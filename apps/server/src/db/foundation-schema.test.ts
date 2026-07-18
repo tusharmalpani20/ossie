@@ -37,6 +37,22 @@ describe("foundation schema migrations", () => {
     expect(sql).toContain("ON DELETE RESTRICT");
     expect(sql).toContain("__OSSIE_RUNTIME_DB_ROLE__");
     expect(sql).toContain("__OSSIE_MAINTENANCE_DB_ROLE__");
+    expect(sql).toContain("SELECT 1 FROM user_schema.user");
+    expect(sql).toContain("pg_namespace");
+    expect(sql).toContain("operation = 'create' AND before_state = 'absent'");
+    expect(sql).toContain("GRANT SELECT ON ALL TABLES");
+    expect(sql).not.toContain(
+      "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES",
+    );
+    expect(sql).not.toMatch(/GRANT[^;]*\bDELETE\b/iu);
+  });
+
+  it("keeps the maintenance reset explicit instead of cascading to unknown tables", () => {
+    const reset_source = readFileSync(
+      new URL("../test-support/database.ts", import.meta.url),
+      "utf8",
+    );
+    expect(reset_source).not.toContain("RESTART IDENTITY CASCADE");
   });
 
   it("define the accepted user organization auth session and project foundation", () => {

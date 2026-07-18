@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { run_migration_transaction } from "./migrator";
+import { assert_database_roles, run_migration_transaction } from "./migrator";
 
 describe("migration transaction", () => {
   it("rolls back SQL and history together when logging fails", async () => {
@@ -27,5 +27,25 @@ describe("migration transaction", () => {
       expect.stringContaining("INSERT INTO db_migration.schema_migrations"),
       "ROLLBACK",
     ]);
+  });
+
+  it("rejects a runtime role that belongs to the maintenance role", async () => {
+    const pool = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes("FROM pg_roles")) {
+          return { rows: [{ role_name: "runtime" }, { role_name: "maintenance" }] };
+        }
+        if (sql.includes("pg_has_role")) {
+          return { rows: [{ current_user: "maintenance", runtime_is_maintenance_member: true }] };
+        }
+        return { rows: [] };
+      }),
+    };
+
+    await expect(assert_database_roles(
+      pool as never,
+      "runtime",
+      "maintenance",
+    )).rejects.toThrow(/must not belong to the maintenance role/);
   });
 });

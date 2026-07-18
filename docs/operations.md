@@ -53,6 +53,9 @@ For disposable local and test databases only, run
 `rtk pnpm --filter server db:provision-runtime-role` before migrations. The
 helper refuses production. Provision both production roles with operator-owned
 PostgreSQL tooling and give the API service only the runtime credentials.
+Keep maintenance variables in the administrative command environment only; the
+local `.env-cmdrc` uses separate `development` and `development_maintenance`
+profiles for this reason.
 
 ## Backups
 
@@ -140,7 +143,7 @@ Do not delete individual files from `OSSIE_LOCAL_STORAGE_ROOT` unless you have v
 ## Migrations And Upgrades
 
 Migration `015_audit_evidence_core.sql` is a clean, pre-live schema transition.
-It deliberately refuses to run when Organization rows already exist. If an
+It deliberately refuses to run when User or Organization rows already exist. If an
 evaluation database predates this transition, reset and reseed that disposable
 database; there is no production-row backfill or compatibility conversion.
 Never use the destructive test reset commands against a production database.
@@ -151,9 +154,11 @@ Before upgrading:
 2. Back up PostgreSQL and local storage.
 3. Build the new server and web artifacts.
 4. Run `rtk pnpm --filter server migrate:up` with maintenance credentials.
-5. Start the API.
-6. Check `/readyz`.
-7. Run a smoke test through sign-in, project access, guide preview, public guide, and interactive demo viewer.
+5. Run `rtk pnpm --filter server migrate:status` and require
+   `audit_schema.status` to be `ready`.
+6. Start the API with runtime credentials only.
+7. Check `/readyz`.
+8. Run a smoke test through sign-in, project access, guide preview, public guide, and interactive demo viewer.
 
 ## Reverse Proxy And HTTPS
 

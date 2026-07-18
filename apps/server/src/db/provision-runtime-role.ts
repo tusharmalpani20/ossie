@@ -5,7 +5,10 @@ type ProvisionClient = {
   query(
     sql: string,
     values?: unknown[],
-  ): Promise<{ rowCount: number | null; rows: Array<{ statement?: string }> }>;
+  ): Promise<{
+    rowCount: number | null;
+    rows: Array<{ statement?: string; maintenance_member?: boolean }>;
+  }>;
 };
 
 export const assert_runtime_role_provisioning_allowed = (
@@ -16,6 +19,7 @@ export const assert_runtime_role_provisioning_allowed = (
   if (
     !env.DB_USER ||
     !env.DB_PASSWORD ||
+    !env.DB_MAINTENANCE_USER ||
     env.DB_USER === env.DB_MAINTENANCE_USER
   ) {
     throw new Error("Distinct runtime role credentials must be defined");
@@ -32,6 +36,17 @@ export const provision_runtime_role = async (
     "SELECT 1 FROM pg_roles WHERE rolname = $1",
     [runtime.user],
   );
+  if (existing.rowCount) {
+    const membership = await client.query(
+      "SELECT pg_has_role($1::text, $2::text, 'MEMBER') AS maintenance_member",
+      [runtime.user, env.DB_MAINTENANCE_USER],
+    );
+    if (membership.rows[0]?.maintenance_member) {
+      throw new Error(
+        "Runtime database role must not belong to the maintenance role",
+      );
+    }
+  }
   const format_sql = existing.rowCount
     ? "SELECT format('ALTER ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT', $1::text, $2::text) AS statement"
     : "SELECT format('CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT', $1::text, $2::text) AS statement";

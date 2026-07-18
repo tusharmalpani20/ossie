@@ -1,10 +1,14 @@
 import pg, { type Client } from "pg";
 import { get_maintenance_database_config } from "../config/maintenance-database.config";
 
-const assert_disposable_test_database = () => {
-  const database = process.env.DB_NAME ?? "";
+type TestDatabaseEnv = Record<string, string | undefined>;
+
+const assert_disposable_test_database = (
+  env: TestDatabaseEnv = process.env,
+) => {
+  const database = env.DB_NAME ?? "";
   const testing_runtime =
-    process.env.NODE_ENV === "test" || process.env.DEV_TYPE === "testing";
+    env.NODE_ENV === "test" || env.DEV_TYPE === "testing";
   const test_name =
     database.endsWith("_test") ||
     database.startsWith("test-") ||
@@ -16,6 +20,21 @@ const assert_disposable_test_database = () => {
   }
 };
 
+export const assert_test_maintenance_connection = (
+  connection: { database: string; user: string },
+  env: TestDatabaseEnv = process.env,
+) => {
+  assert_disposable_test_database(env);
+  if (
+    connection.database !== env.DB_NAME
+    || connection.user !== env.DB_MAINTENANCE_USER
+  ) {
+    throw new Error(
+      "Maintenance connection does not match the configured disposable test database",
+    );
+  }
+};
+
 export const with_maintenance_client = async <Result>(
   callback: (client: Client) => Promise<Result>,
 ) => {
@@ -23,6 +42,12 @@ export const with_maintenance_client = async <Result>(
   const client = new pg.Client(get_maintenance_database_config());
   await client.connect();
   try {
+    const connection = await client.query<{ database: string; user: string }>(
+      "SELECT current_database() AS database, current_user AS user",
+    );
+    const context = connection.rows[0];
+    if (!context) throw new Error("Maintenance connection context is unavailable");
+    assert_test_maintenance_connection(context);
     return await callback(client);
   } finally {
     await client.end();
@@ -59,7 +84,7 @@ export const reset_test_database = async () =>
         organization_schema.org_user,
         organization_schema.organization,
         user_schema.user
-      RESTART IDENTITY CASCADE
+      RESTART IDENTITY
     `);
       await client.query("COMMIT");
     } catch (error) {

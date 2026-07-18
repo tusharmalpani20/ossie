@@ -45,7 +45,7 @@ jobs:
         run: |
           cat > apps/server/.env-cmdrc <<'JSON'
           {
-            "testing": {
+            "testing_maintenance": {
               "JWT_KEY": "",
               "TZ": "UTC",
               "SERVER_PORT": "3002",

@@ -5,7 +5,9 @@
 
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM organization_schema.organization LIMIT 1) THEN
+  IF EXISTS (SELECT 1 FROM user_schema.user LIMIT 1)
+    OR EXISTS (SELECT 1 FROM organization_schema.organization LIMIT 1)
+  THEN
     RAISE EXCEPTION 'Audit foundation requires the accepted empty pre-live schema transition'
       USING ERRCODE = '55000';
   END IF;
@@ -124,6 +126,12 @@ CREATE TABLE IF NOT EXISTS audit_schema.audit_change_item (
     OR (
       field_name IS NOT NULL AND value_type IS NOT NULL
       AND before_state <> 'present' AND after_state <> 'present'
+      AND (
+        (operation = 'create' AND before_state = 'absent' AND after_state IN ('null', 'value', 'redacted'))
+        OR (operation = 'update' AND before_state IN ('absent', 'null', 'value', 'redacted')
+          AND after_state IN ('absent', 'null', 'value', 'redacted'))
+        OR (operation = 'delete' AND before_state IN ('null', 'value', 'redacted') AND after_state = 'absent')
+      )
     )
   ),
   CONSTRAINT chk_audit_change_item_before_count CHECK (
@@ -190,11 +198,12 @@ CREATE INDEX idx_audit_change_item_entity
 CREATE OR REPLACE FUNCTION audit_schema.is_maintenance_bypass(target_table OID)
 RETURNS BOOLEAN AS $$
   SELECT COALESCE(current_setting('ossie.maintenance_mode', true), '') = 'on'
+    AND target_table IS NOT NULL
     AND EXISTS (
       SELECT 1
-      FROM pg_class
-      WHERE oid = target_table
-        AND pg_get_userbyid(relowner) = current_user
+      FROM pg_namespace
+      WHERE nspname = 'audit_schema'
+        AND pg_get_userbyid(nspowner) = current_user
     );
 $$ LANGUAGE SQL STABLE;
 
@@ -289,9 +298,47 @@ REVOKE ALL ON ALL FUNCTIONS IN SCHEMA audit_schema FROM PUBLIC;
 GRANT USAGE ON SCHEMA user_schema, organization_schema, auth_schema, project_schema,
   capture_schema, file_schema, guide_schema, publish_schema, interactive_demo_schema
   TO __OSSIE_RUNTIME_DB_ROLE__;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA user_schema, organization_schema,
-  auth_schema, project_schema, capture_schema, file_schema, guide_schema, publish_schema,
+GRANT SELECT ON ALL TABLES IN SCHEMA user_schema, organization_schema, auth_schema,
+  project_schema, capture_schema, file_schema, guide_schema, publish_schema,
   interactive_demo_schema TO __OSSIE_RUNTIME_DB_ROLE__;
+GRANT INSERT ON
+  user_schema.user,
+  organization_schema.organization,
+  organization_schema.org_user,
+  organization_schema.org_invite,
+  auth_schema.auth_session,
+  project_schema.project,
+  capture_schema.capture_session,
+  file_schema.file,
+  capture_schema.capture_asset,
+  capture_schema.capture_event,
+  guide_schema.guide,
+  guide_schema.guide_block,
+  guide_schema.guide_step,
+  interactive_demo_schema.interactive_demo,
+  interactive_demo_schema.demo_scene,
+  interactive_demo_schema.demo_hotspot,
+  publish_schema.published_artifact,
+  publish_schema.publish_link,
+  publish_schema.public_publish_viewer_session
+  TO __OSSIE_RUNTIME_DB_ROLE__;
+GRANT UPDATE ON
+  organization_schema.org_invite,
+  auth_schema.auth_session,
+  project_schema.project,
+  capture_schema.capture_session,
+  file_schema.file,
+  capture_schema.capture_asset,
+  capture_schema.capture_event,
+  guide_schema.guide,
+  guide_schema.guide_block,
+  guide_schema.guide_step,
+  interactive_demo_schema.interactive_demo,
+  interactive_demo_schema.demo_scene,
+  interactive_demo_schema.demo_hotspot,
+  publish_schema.publish_link,
+  publish_schema.public_publish_viewer_session
+  TO __OSSIE_RUNTIME_DB_ROLE__;
 GRANT USAGE ON SCHEMA audit_schema TO __OSSIE_RUNTIME_DB_ROLE__;
 GRANT SELECT, INSERT ON audit_schema.audit_event, audit_schema.audit_change_item
   TO __OSSIE_RUNTIME_DB_ROLE__;
@@ -321,9 +368,12 @@ DROP SCHEMA audit_schema CASCADE;
 ALTER TABLE organization_schema.org_user DROP CONSTRAINT IF EXISTS uq_org_user_id_organization;
 ALTER TABLE project_schema.project DROP CONSTRAINT IF EXISTS uq_project_id_organization;
 
-REVOKE SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA user_schema, organization_schema,
-  auth_schema, project_schema, capture_schema, file_schema, guide_schema, publish_schema,
+REVOKE SELECT ON ALL TABLES IN SCHEMA user_schema, organization_schema, auth_schema,
+  project_schema, capture_schema, file_schema, guide_schema, publish_schema,
   interactive_demo_schema FROM __OSSIE_RUNTIME_DB_ROLE__;
+REVOKE INSERT, UPDATE ON ALL TABLES IN SCHEMA user_schema, organization_schema,
+  auth_schema, project_schema, capture_schema, file_schema, guide_schema,
+  publish_schema, interactive_demo_schema FROM __OSSIE_RUNTIME_DB_ROLE__;
 REVOKE USAGE ON SCHEMA user_schema, organization_schema, auth_schema, project_schema,
   capture_schema, file_schema, guide_schema, publish_schema, interactive_demo_schema
   FROM __OSSIE_RUNTIME_DB_ROLE__;

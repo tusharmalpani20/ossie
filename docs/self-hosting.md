@@ -35,7 +35,8 @@ VITE_OSSIE_API_URL=https://api.example.com
 
 Create `apps/server/.env-cmdrc` from `apps/server/.env-cmdrc.example`.
 
-For a local self-hosted evaluation using the provided Compose database:
+For a local self-hosted evaluation using the provided Compose database, the
+`development` profile used by the API contains runtime credentials only:
 
 ```json
 {
@@ -48,8 +49,6 @@ For a local self-hosted evaluation using the provided Compose database:
     "DB_PORT": "5432",
     "DB_USER": "ossie_runtime",
     "DB_PASSWORD": "ossie_runtime",
-    "DB_MAINTENANCE_USER": "ossie_maintenance",
-    "DB_MAINTENANCE_PASSWORD": "ossie-maintenance-local",
     "DB_NAME": "ossie",
     "DB_MAX_POOL": "10",
     "NODE_ENV": "development",
@@ -67,6 +66,12 @@ For a local self-hosted evaluation using the provided Compose database:
   }
 }
 ```
+
+Keep the separate `development_maintenance` profile from
+`.env-cmdrc.example`. Give it the same database/runtime values plus
+`DB_MAINTENANCE_USER=ossie_maintenance` and
+`DB_MAINTENANCE_PASSWORD=ossie-maintenance-local`. Database administration
+scripts use that profile; `pnpm --filter server dev` does not load it.
 
 For production, set `NODE_ENV=production`, `DEV_TYPE=production`, a strong `COOKIE_SECRET`, and explicit `OSSIE_CORS_ALLOWED_ORIGINS`.
 For a production portal build, set `VITE_OSSIE_API_URL` when the API is not served from the same origin as the portal.
@@ -114,14 +119,21 @@ local or test database, provision the separate runtime login and then migrate:
 rtk pnpm --filter server db:create
 rtk pnpm --filter server db:provision-runtime-role
 rtk pnpm --filter server migrate:up
+rtk pnpm --filter server migrate:status
 ```
+
+`migrate:status` must report `audit_schema.status` as `ready`; it checks the
+required Audit constraints, indexes, triggers, runtime grants, and absence of
+JSON/JSONB columns without printing credentials.
 
 `db:provision-runtime-role` refuses to run with `NODE_ENV=production`. Production
 operators must provision distinct runtime and maintenance roles through their
 normal PostgreSQL administration path before running migrations. Migration
 `015_audit_evidence_core.sql` is an accepted pre-live transition: it refuses a
-populated Organization table and requires reset/reseed instead of attempting a
-legacy-row backfill.
+populated User or Organization table and requires reset/reseed instead of
+attempting a legacy-row backfill. If the Compose volume was initialized before
+the two-role configuration existed, replace that disposable volume and reseed
+it; changing `POSTGRES_USER` does not rewrite an existing PostgreSQL volume.
 
 ## Run
 

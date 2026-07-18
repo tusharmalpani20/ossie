@@ -1,7 +1,10 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
-import { reset_test_database } from "../../test-support/database";
+import {
+  reset_test_database,
+  with_maintenance_client,
+} from "../../test-support/database";
 import { hash_session_token } from "./session-token";
 
 const setup_owner = async () => {
@@ -203,7 +206,9 @@ describe("DB-backed authentication session", () => {
     const setup_session_token = await setup_owner();
     const app = build({ logger: false });
 
-    await pool.query("UPDATE user_schema.user SET status = 'disabled'");
+    await with_maintenance_client((client) =>
+      client.query("UPDATE user_schema.user SET status = 'disabled'")
+    );
 
     const disabled_user_me_response = await app.inject({
       method: "GET",
@@ -224,8 +229,12 @@ describe("DB-backed authentication session", () => {
     expect(disabled_user_me_response.statusCode).toBe(401);
     expect(disabled_user_login_response.statusCode).toBe(401);
 
-    await pool.query("UPDATE user_schema.user SET status = 'active'");
-    await pool.query("UPDATE organization_schema.organization SET status = 'disabled'");
+    await with_maintenance_client(async (client) => {
+      await client.query("UPDATE user_schema.user SET status = 'active'");
+      await client.query(
+        "UPDATE organization_schema.organization SET status = 'disabled'",
+      );
+    });
 
     const disabled_organization_me_response = await app.inject({
       method: "GET",
@@ -246,8 +255,14 @@ describe("DB-backed authentication session", () => {
     expect(disabled_organization_me_response.statusCode).toBe(401);
     expect(disabled_organization_login_response.statusCode).toBe(401);
 
-    await pool.query("UPDATE organization_schema.organization SET status = 'active'");
-    await pool.query("UPDATE organization_schema.org_user SET status = 'disabled'");
+    await with_maintenance_client(async (client) => {
+      await client.query(
+        "UPDATE organization_schema.organization SET status = 'active'",
+      );
+      await client.query(
+        "UPDATE organization_schema.org_user SET status = 'disabled'",
+      );
+    });
 
     const disabled_membership_me_response = await app.inject({
       method: "GET",

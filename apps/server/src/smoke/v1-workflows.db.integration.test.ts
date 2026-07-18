@@ -145,6 +145,11 @@ describe("v1 dogfood smoke workflow", () => {
 
     expect(project_response.statusCode).toBe(201);
     const project_id = project_response.json().project.id as string;
+    const project_audit = await pool.query<{ count: string }>(
+      "SELECT COUNT(*) AS count FROM audit_schema.audit_event WHERE project_id = $1 AND action = 'project.created'",
+      [project_id],
+    );
+    expect(Number(project_audit.rows[0]?.count)).toBe(1);
 
     const capture_session_response = await app.inject({
       method: "POST",

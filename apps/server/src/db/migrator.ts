@@ -44,7 +44,11 @@ const ensure_migrations_table = async (pool: Pool) => {
   )`);
 };
 
-const assert_roles = async (pool: Pool, runtime_role: string, maintenance_role: string) => {
+export const assert_database_roles = async (
+  pool: Pick<Pool, "query">,
+  runtime_role: string,
+  maintenance_role: string,
+) => {
   if (runtime_role === maintenance_role) throw new Error("Runtime and maintenance database roles must be distinct");
   const result = await pool.query<{ role_name: string }>(
     "SELECT rolname AS role_name FROM pg_roles WHERE rolname = ANY($1::text[])",
@@ -54,9 +58,19 @@ const assert_roles = async (pool: Pool, runtime_role: string, maintenance_role: 
   if (!found.has(runtime_role) || !found.has(maintenance_role)) {
     throw new Error("Configured runtime and maintenance database roles must exist");
   }
-  const current = await pool.query<{ current_user: string }>("SELECT current_user");
+  const current = await pool.query<{
+    current_user: string;
+    runtime_is_maintenance_member: boolean;
+  }>(
+    `SELECT current_user,
+      pg_has_role($1::text, $2::text, 'MEMBER') AS runtime_is_maintenance_member`,
+    [runtime_role, maintenance_role],
+  );
   if (current.rows[0]?.current_user !== maintenance_role) {
     throw new Error("Migrations must run as the configured maintenance role");
+  }
+  if (current.rows[0]?.runtime_is_maintenance_member) {
+    throw new Error("Runtime database role must not belong to the maintenance role");
   }
 };
 
@@ -79,7 +93,7 @@ export const create_migrator = (pool: Pool, roles: { runtime_role: string; maint
         const { name, path: migration_path } = params;
         if (!migration_path) throw new Error(`Migration path not found for ${name}`);
         const run = async (direction: "up" | "down") => {
-          await assert_roles(pool, roles.runtime_role, roles.maintenance_role);
+          await assert_database_roles(pool, roles.runtime_role, roles.maintenance_role);
           const content = await fs.readFile(migration_path, "utf8");
           const parsed = parse_migration_file(content);
           const sql = render_database_role_identifiers(parsed[direction], roles);
