@@ -467,12 +467,12 @@ const read_source_capture_assets = async (
     .filter((asset): asset is GuideSourceCaptureAsset => Boolean(asset));
 };
 
-const build_transactional_repository = (db: Queryable): PublishRepository => {
+export const build_publish_transactional_repository = (db: Queryable): PublishRepository => {
   const guide_repository = build_guide_repository(db as Parameters<typeof build_guide_repository>[0]);
 
   return {
     async transaction(work) {
-      return work(build_transactional_repository(db));
+      return work(build_publish_transactional_repository(db));
     },
 
     async project_exists(input) {
@@ -1079,14 +1079,14 @@ const build_transactional_repository = (db: Queryable): PublishRepository => {
 };
 
 export const build_publish_repository = (pool: TransactionCapable): PublishRepository => ({
-  ...build_transactional_repository(pool),
+  ...build_publish_transactional_repository(pool),
 
   async transaction(work) {
     const client = await pool.connect();
 
     try {
       await client.query("BEGIN");
-      const result = await work(build_transactional_repository(client));
+      const result = await work(build_publish_transactional_repository(client));
       await client.query("COMMIT");
       return result;
     } catch (error) {

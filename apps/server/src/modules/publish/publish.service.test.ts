@@ -915,6 +915,7 @@ describe("publish service", () => {
       },
     });
     expect(update_publish_link_access).toHaveBeenCalledWith({
+      actor_org_user_id: "org_user_1",
       organization_id: "organization_1",
       project_id: "project_1",
       artifact_type: "guide",

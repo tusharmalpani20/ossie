@@ -176,6 +176,7 @@ export type PublishRepository = {
     artifact_id: string;
     visibility: PublishVisibility;
     expires_at: string | null;
+    actor_org_user_id: string;
   }) => Promise<PublishStatus | null>;
   update_publish_link_password: (input: {
     organization_id: string;
@@ -184,6 +185,7 @@ export type PublishRepository = {
     artifact_id: string;
     password_hash: string | null;
     password_salt: string | null;
+    actor_org_user_id: string;
   }) => Promise<PublishStatus | null>;
   create_public_viewer_session: (input: {
     publish_link_id: string;
@@ -600,6 +602,7 @@ export const build_publish_service = (
       artifact_id: input.guide_id,
       visibility: access_input.visibility,
       expires_at: access_input.expires_at,
+      actor_org_user_id: input.auth.actor_org_user_id,
     });
 
     if (!result) {
@@ -631,6 +634,7 @@ export const build_publish_service = (
       artifact_id: input.interactive_demo_id,
       visibility: access_input.visibility,
       expires_at: access_input.expires_at,
+      actor_org_user_id: input.auth.actor_org_user_id,
     });
 
     if (!result) {
@@ -665,6 +669,7 @@ export const build_publish_service = (
       artifact_id: input.guide_id,
       password_hash: password_hash?.hash ?? null,
       password_salt: password_hash?.salt ?? null,
+      actor_org_user_id: input.auth.actor_org_user_id,
     });
 
     if (!result?.publish_link) {
@@ -703,6 +708,7 @@ export const build_publish_service = (
       artifact_id: input.interactive_demo_id,
       password_hash: password_hash?.hash ?? null,
       password_salt: password_hash?.salt ?? null,
+      actor_org_user_id: input.auth.actor_org_user_id,
     });
 
     if (!result?.publish_link) {

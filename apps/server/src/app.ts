@@ -89,7 +89,7 @@ import {
   build_publish_routes,
   type PublishRouteDependencies,
 } from "./modules/publish/publish.routes.js";
-import { build_publish_repository } from "./modules/publish/publish.repository.js";
+import { build_audited_publish_repository } from "./modules/publish/publish.audit.js";
 import { build_publish_service } from "./modules/publish/publish.service.js";
 
 type BuildOptions = FastifyServerOptions & {
@@ -529,7 +529,7 @@ export const build = (opts: BuildOptions = {}) => {
       },
       publish_service:
         publish_service ??
-        build_publish_service(build_publish_repository(pool), {
+        build_publish_service(build_audited_publish_repository(pool), {
           file_storage: default_capture_file_storage,
         }),
     }),
