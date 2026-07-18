@@ -82,7 +82,7 @@ import {
   build_interactive_demo_routes,
   type InteractiveDemoRouteDependencies,
 } from "./modules/interactive-demo/interactive-demo.routes.js";
-import { build_interactive_demo_repository } from "./modules/interactive-demo/interactive-demo.repository.js";
+import { build_audited_interactive_demo_repository } from "./modules/interactive-demo/interactive-demo.audit.js";
 import { build_interactive_demo_service } from "./modules/interactive-demo/interactive-demo.service.js";
 import {
   build_publish_routes,
@@ -506,7 +506,7 @@ export const build = (opts: BuildOptions = {}) => {
       },
       interactive_demo_service:
         interactive_demo_service ??
-        build_interactive_demo_service(build_interactive_demo_repository(pool)),
+        build_interactive_demo_service(build_audited_interactive_demo_repository(pool)),
     }),
     {
       prefix: "/api/v1/projects",

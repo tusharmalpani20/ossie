@@ -306,15 +306,7 @@ const with_transaction = async <Result>(
   operation: (client: Queryable) => Promise<Result>
 ) => {
   if (!db.connect) {
-    await db.query("BEGIN");
-    try {
-      const result = await operation(db);
-      await db.query("COMMIT");
-      return result;
-    } catch (error) {
-      await db.query("ROLLBACK");
-      throw error;
-    }
+    return operation(db);
   }
 
   const client = await db.connect();
@@ -721,11 +713,9 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
   },
 
   async reorder_scenes(input) {
-    const rows: DemoScene[] = [];
-
-    await db.query("BEGIN");
-    try {
-      const scene_count = await db.query<{
+    return with_transaction(db, async (client) => {
+      const rows: DemoScene[] = [];
+      const scene_count = await client.query<{
         active_scene_count: string;
         matching_scene_count: string;
       }>(`
@@ -750,11 +740,10 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         active_scene_count !== input.scene_ids.length ||
         matching_scene_count !== input.scene_ids.length
       ) {
-        await db.query("ROLLBACK");
         return [];
       }
 
-      await db.query(`
+      await client.query(`
         UPDATE interactive_demo_schema.demo_scene
         SET scene_index = scene_index + 1000000
         WHERE organization_id = $1
@@ -768,7 +757,7 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       ]);
 
       for (const [index, scene_id] of input.scene_ids.entries()) {
-        const result = await db.query<DemoSceneRow>(`
+        const result = await client.query<DemoSceneRow>(`
           UPDATE interactive_demo_schema.demo_scene
           SET
             scene_index = $1,
@@ -792,19 +781,14 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         const row = first_row(result);
 
         if (!row) {
-          await db.query("ROLLBACK");
           return [];
         }
 
         rows.push(map_demo_scene(row));
       }
 
-      await db.query("COMMIT");
       return rows;
-    } catch (error) {
-      await db.query("ROLLBACK");
-      throw error;
-    }
+    });
   },
 
   async delete_scene(input) {
@@ -977,11 +961,9 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
   },
 
   async reorder_hotspots(input) {
-    const rows: DemoHotspot[] = [];
-
-    await db.query("BEGIN");
-    try {
-      const hotspot_count = await db.query<{
+    return with_transaction(db, async (client) => {
+      const rows: DemoHotspot[] = [];
+      const hotspot_count = await client.query<{
         active_hotspot_count: string;
         matching_hotspot_count: string;
       }>(`
@@ -1008,11 +990,10 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         active_hotspot_count !== input.hotspot_ids.length ||
         matching_hotspot_count !== input.hotspot_ids.length
       ) {
-        await db.query("ROLLBACK");
         return [];
       }
 
-      await db.query(`
+      await client.query(`
         UPDATE interactive_demo_schema.demo_hotspot
         SET hotspot_index = hotspot_index + 1000000
         WHERE organization_id = $1
@@ -1028,7 +1009,7 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       ]);
 
       for (const [index, hotspot_id] of input.hotspot_ids.entries()) {
-        const result = await db.query<DemoHotspotRow>(`
+        const result = await client.query<DemoHotspotRow>(`
           UPDATE interactive_demo_schema.demo_hotspot
           SET
             hotspot_index = $1,
@@ -1054,19 +1035,14 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         const row = first_row(result);
 
         if (!row) {
-          await db.query("ROLLBACK");
           return [];
         }
 
         rows.push(map_demo_hotspot(row));
       }
 
-      await db.query("COMMIT");
       return rows;
-    } catch (error) {
-      await db.query("ROLLBACK");
-      throw error;
-    }
+    });
   },
 
   async delete_hotspot(input) {
