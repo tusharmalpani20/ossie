@@ -1,0 +1,25 @@
+{
+  "name": "@repo/audit-domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "build": "tsup ./src/index.ts --format esm,cjs --dts",
+    "check-types": "tsc --noEmit",
+    "dev": "tsup ./src/index.ts --format esm,cjs --watch --dts",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "eslint": "^9.39.1",
+    "typescript": "5.9.2",
+    "vitest": "^4.1.5"
+  }
+}
