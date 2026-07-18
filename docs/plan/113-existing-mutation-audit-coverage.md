@@ -32,6 +32,34 @@ Do not mark this child in progress or complete merely because this skeleton
 exists. Preserve the master's ordering and stop at any unmet predecessor gate or
 critical decision defined by `AGENTS.md`.
 
+## Inherited Child 112 Closeout
+
+Child `112` passed its close-previous implementation recheck on 2026-07-19.
+Expansion of this child must preserve and account for these concrete boundaries:
+
+- Project creation is the only converted and guarded business mutation; the
+  coverage registry is intentionally incomplete until this child inventories
+  and converts every remaining mutation.
+- The existing pre-route authentication session `last_seen_at` update is the
+  first known adjacent unaudited mutation and must be included in the inventory.
+- Runtime business-table grants are operation-specific and intentionally omit
+  blanket `DELETE`; extend the grant manifest only for operations required by
+  converted commands.
+- Each new database guard or required Audit object must be reflected in both the
+  coverage registry and the operational Audit catalog verifier.
+- API processes must remain on runtime credentials. Migration, provisioning,
+  reset, and direct synthetic fixture state setup use distinct maintenance
+  credentials and must not become application behavior.
+- Updated child records must emit typed field items through the scalar helper
+  with explicit parent identity; JSON-backed content may use explicit
+  typed/redacted adapters but must never be copied into Audit Evidence.
+- Preserve stable internal persistence errors, mutation-context validation
+  before business writes, same-transaction rollback, no-op suppression,
+  restrictive foreign keys, append-only evidence, and maintenance-bypass
+  protections established by child `112`.
+- Keep Audit query APIs, Access Events, compliance timelines, and their UI in
+  child `114`.
+
 ## Master-Defined Goal And Boundary
 
 Goal:

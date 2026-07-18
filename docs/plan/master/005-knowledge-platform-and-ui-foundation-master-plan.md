@@ -65,8 +65,8 @@ Baseline reviewed on 2026-07-10:
   for authenticated Project creation. Coverage is intentionally partial until
   child `113`; no Audit query API or Access Evidence UI exists yet.
 - Current migrations end at `015_audit_evidence_core.sql`. It implements the
-  accepted clean pre-live transition and refuses populated Organization data;
-  no production-row backfill exists.
+  accepted clean pre-live transition and refuses populated User or Organization
+  data; no production-row backfill exists.
 - The repository is pre-live. There are no production records, external API clients, or deployed public links requiring data-preserving compatibility; development/test databases may be reset and reseeded for the clean target model.
 - The portal uses a lightweight custom pathname parser and substantial page-local request/state management. That foundation must be reviewed before the information architecture grows.
 - `apps/web` and `apps/extension` already use Tailwind CSS 4, and `packages/ui` already owns source-level Alert, Badge, Button, Card, Code, Input, Label, Select, Separator, and Textarea primitives using CVA-style variants and shared class utilities.
@@ -835,6 +835,12 @@ Applied sequencing impact:
 ### 112: Audit Evidence Core
 
 Status: Complete on 2026-07-19.
+
+Close-previous implementation recheck passed on 2026-07-19. It strengthened
+runtime validation, least-privilege database grants, runtime/maintenance role
+separation, reset and pre-live migration safety, stable persistence errors, and
+operational Audit schema verification without expanding mutation coverage past
+the representative Project-create command.
 
 Planned file:
 

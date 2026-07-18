@@ -4,7 +4,8 @@ Date reserved: 2026-07-12
 
 Last reviewed: 2026-07-19
 
-Status: Complete on 2026-07-19.
+Status: Complete on 2026-07-19. Close-previous implementation recheck passed
+on 2026-07-19.
 
 Parent plan:
 
@@ -1015,6 +1016,39 @@ Implementation completed on 2026-07-19:
 domain`) and `b008744` (`feat(audit): enforce transactional evidence
 persistence`). Documentation closeout is kept in its own commit.
 
+Close-previous recheck completed on 2026-07-19:
+
+- Rechecked the implementation from clean closeout commit `67ef0f6` against
+  this child, Master `005`, accepted Audit/domain decisions, and current code.
+- Tightened the framework-free domain boundary so runtime literals, canonical
+  timestamps, hashes, Row Versions, item identities, parent identities, typed
+  values, value states, and operation-specific before/after transitions are
+  validated and normalized before persistence.
+- Validated mutation context before the business write, converted raw database
+  failures into stable internal Audit errors, and ensured rollback failures do
+  not mask the original failure.
+- Hardened maintenance/runtime separation: role provisioning and migrations
+  reject runtime membership in the maintenance role, reset verifies the actual
+  database and current user, the Audit schema owner defines the bypass identity,
+  and runtime cannot spoof maintenance mode.
+- Narrowed runtime business-table grants to the operations used by current
+  commands, removed runtime business-table `DELETE`, strengthened SQL scalar
+  transition constraints, and made migration `015` refuse either existing User
+  or Organization rows.
+- Added an operational catalog verifier for Audit objects, constraints,
+  indexes, ownership, privileges, role separation, and the no-JSON contract.
+  `migrate:up` runs it after migration `015`; `migrate:status` reports the Audit
+  schema as `ready` only when the verifier passes.
+- Split example development/testing runtime and maintenance profiles, routed
+  administrative scripts and CI through maintenance profiles, updated operator
+  documentation, and retained runtime-only API startup.
+- Added DB evidence for typed decimal/date/timestamp round trips, invalid scalar
+  transitions, maintenance-mode spoofing, narrowed business grants, deferred
+  guard rollback, and an exact single-event Project smoke assertion.
+- Recheck implementation commits: `dde2ccd` (`fix(audit): validate evidence
+before persistence`) and `3efe856` (`fix(audit): harden database evidence
+boundary`).
+
 ## Verification Record
 
 Planning baseline:
@@ -1069,6 +1103,30 @@ Browser evidence:
 
 - Not applicable to child `112`; no browser-visible surface is in scope.
 
+Close-previous recheck verification on 2026-07-19:
+
+- TDD red tests were observed for runtime evidence/context validation, stable
+  persistence failures, role-membership rejection, reset identity checks,
+  least-privilege grants, and the catalog verifier before each implementation.
+- `rtk pnpm --filter @repo/audit-domain test`: passed, 5 files/19 tests.
+- `rtk pnpm --filter server test`: passed, 55 files/292 tests.
+- A fresh disposable `ossie_test` drop/create, runtime-role provision, and
+  migration `001` through `015` passed. Destructive commands targeted only the
+  explicitly validated disposable test database.
+- `rtk pnpm --filter server migrate:status`: passed with no pending migrations
+  and `audit_schema.status` equal to `ready`.
+- `rtk pnpm --filter server test:db`: passed, 12 files/54 tests in 111.09
+  seconds.
+- `rtk pnpm --filter server test:smoke`: passed, 1 file/1 test in 5.47 seconds.
+- `rtk pnpm -r --if-present test`: passed across all participating workspaces;
+  the server portion passed 55 files/292 tests.
+- `rtk pnpm check-types`: passed, 12 tasks.
+- `rtk pnpm lint`: passed, 13 tasks.
+- `rtk pnpm build`: passed, 12 tasks.
+- `rtk git diff --check`: passed before the recheck commits.
+- Browser validation remains not applicable because the recheck adds no
+  browser-visible behavior.
+
 ## Leftovers And Handoff
 
 No acceptance-blocking child `112` leftover remains. Required child `113`
@@ -1085,6 +1143,19 @@ handoff:
 - populate the coverage registry exhaustively and activate the repository-wide
   schema/command completeness check only when no current mutation is left
   uncovered;
+- keep the operation-specific runtime business-table grant manifest aligned
+  with real command needs; do not restore blanket `DELETE` or table-wide write
+  grants;
+- extend the operational Audit catalog verifier and coverage registry whenever
+  child `113` adds guards or required schema objects;
+- preserve separate runtime and maintenance profiles and keep API startup on
+  runtime credentials while administrative commands use maintenance;
+- build updated child-record field items with the typed scalar helper and an
+  explicit parent identity rather than storing serialized child payloads;
+- cover the existing pre-route authentication session `last_seen_at` write,
+  which remains the first known adjacent unaudited mutation; direct fixture
+  state setup may use maintenance credentials, but application behavior must be
+  proven with runtime credentials;
 - preserve the credential, maintenance-reset, append-only, restrictive-FK,
   redaction, and no-op contracts established here;
 - keep Access Events and compliance queries/UI deferred to child `114`.
