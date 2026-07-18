@@ -157,6 +157,10 @@ describe("project routes", () => {
         organization_id: "organization_1",
         actor_org_user_id: "org_user_1",
       },
+      mutation: {
+        actor_label: "Owner User",
+        request_id: expect.any(String),
+      },
       data: {
         name: "Onboarding Demo",
         description: "Internal onboarding demo flow",

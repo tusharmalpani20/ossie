@@ -52,8 +52,10 @@ jobs:
               "DEV_TYPE": "testing",
               "DB_HOST": "127.0.0.1",
               "DB_PORT": "5432",
-              "DB_USER": "postgres",
-              "DB_PASSWORD": "postgres",
+              "DB_USER": "ossie_runtime_ci",
+              "DB_PASSWORD": "ossie-runtime-ci-password",
+              "DB_MAINTENANCE_USER": "postgres",
+              "DB_MAINTENANCE_PASSWORD": "postgres",
               "DB_NAME": "ossie_test",
               "DB_MAX_POOL": "10",
               "NODE_ENV": "test",
@@ -81,15 +83,13 @@ jobs:
       - name: Database tests
         run: |
           pnpm --filter server test:db:drop
-          pnpm --filter server test:db:create
-          pnpm --filter server test:migrate
+          pnpm --filter server test:setup
           pnpm --filter server test:db
 
       - name: Server smoke workflow
         run: |
           pnpm --filter server test:db:drop
-          pnpm --filter server test:db:create
-          pnpm --filter server test:migrate
+          pnpm --filter server test:setup
           pnpm --filter server test:smoke
 
       - name: Typecheck

@@ -1,20 +1,9 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { pool } from "../../config/database.config";
+import { reset_test_database } from "../../test-support/database";
 import { build } from "../../app";
 import { hash_session_token } from "../authentication/session-token";
 import { build_first_run_setup_repository } from "./first-run-setup.repository";
-
-const reset_foundation_tables = async () => {
-  await pool.query(`
-    TRUNCATE TABLE
-      auth_schema.auth_session,
-      project_schema.project,
-      organization_schema.org_user,
-      organization_schema.organization,
-      user_schema.user
-    RESTART IDENTITY CASCADE
-  `);
-};
 
 const count_rows = async (table_name: string) => {
   const result = await pool.query<{ count: string }>(`SELECT COUNT(*) AS count FROM ${table_name}`);
@@ -23,7 +12,7 @@ const count_rows = async (table_name: string) => {
 
 describe("DB-backed first-run setup", () => {
   beforeEach(async () => {
-    await reset_foundation_tables();
+    await reset_test_database();
   });
 
   afterAll(async () => {

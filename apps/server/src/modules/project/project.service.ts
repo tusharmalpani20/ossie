@@ -32,6 +32,15 @@ export type CreateProjectInput = {
   metadata?: unknown;
 };
 
+export type ProjectCreationWriter = (input: {
+  organization_id: string;
+  actor_org_user_id: string;
+  actor_label: string;
+  request_id: string;
+  metadata_was_present: boolean;
+  data: CreateProjectInput;
+}) => Promise<Project>;
+
 export type UpdateProjectInput = Partial<{
   name: string;
   description: string | null;
@@ -143,15 +152,32 @@ const normalize_update_project = (input: UpdateProjectInput): UpdateProjectInput
   return normalized;
 };
 
-export const build_project_service = (repository: ProjectRepository) => {
+export const build_project_service = (
+  repository: ProjectRepository,
+  options: { create_project?: ProjectCreationWriter } = {},
+) => {
   const create_project = async (input: {
     auth: ProjectAuthContext;
+    mutation: { actor_label: string; request_id: string };
     data: CreateProjectInput;
-  }) => repository.create_project({
-    organization_id: input.auth.organization_id,
-    actor_org_user_id: input.auth.actor_org_user_id,
-    data: normalize_create_project(input.data),
-  });
+  }) => {
+    const data = normalize_create_project(input.data);
+    if (options.create_project) {
+      return options.create_project({
+        organization_id: input.auth.organization_id,
+        actor_org_user_id: input.auth.actor_org_user_id,
+        actor_label: input.mutation.actor_label,
+        request_id: input.mutation.request_id,
+        metadata_was_present: input.data.metadata !== undefined && input.data.metadata !== null,
+        data,
+      });
+    }
+    return repository.create_project({
+      organization_id: input.auth.organization_id,
+      actor_org_user_id: input.auth.actor_org_user_id,
+      data,
+    });
+  };
 
   const list_projects = async (input: {
     auth: ProjectAuthContext;

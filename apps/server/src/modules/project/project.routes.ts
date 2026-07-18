@@ -32,6 +32,7 @@ export type ProjectRouteDependencies = {
   project_service: {
     create_project: (input: {
       auth: ProjectAuthContext;
+      mutation: { actor_label: string; request_id: string };
       data: CreateProjectInput;
     }) => Promise<Project>;
     list_projects: (input: {
@@ -143,9 +144,16 @@ export const build_project_routes = (
       },
     }, async (request, reply) => {
       try {
-        const auth = await require_auth(session_token_from_request(request));
+        const current_auth = await dependencies.auth_service.get_current_auth_context(
+          session_token_from_request(request),
+        );
+        const auth = project_auth_context(current_auth);
         const project = await dependencies.project_service.create_project({
           auth,
+          mutation: {
+            actor_label: current_auth.user.display_name,
+            request_id: String(request.id),
+          },
           data: pick_create_project_data(request.body),
         });
         return reply.status(201).send({ project });

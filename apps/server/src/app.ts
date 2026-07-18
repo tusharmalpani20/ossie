@@ -46,6 +46,7 @@ import {
 } from './modules/project/project.routes.js';
 import { build_project_repository } from './modules/project/project.repository.js';
 import { build_project_service } from './modules/project/project.service.js';
+import { build_project_creation_writer } from './modules/project/project.audit.js';
 import {
   build_capture_session_routes,
   type CaptureSessionRouteDependencies,
@@ -392,7 +393,8 @@ export const build = (opts: BuildOptions = {}) => {
           get_current_auth_context: default_authentication_session_service.get_current_auth_context,
       },
       project_service: project_service ?? build_project_service(
-          build_project_repository(pool)
+          build_project_repository(pool),
+          { create_project: build_project_creation_writer(pool) }
       ),
   }), {
       prefix: "/api/v1/projects",

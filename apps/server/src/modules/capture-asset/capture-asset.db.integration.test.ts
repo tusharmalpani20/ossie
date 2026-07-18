@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
+import { reset_test_database } from "../../test-support/database";
 
 const multipart_payload = (parts: Array<{
   name: string;
@@ -38,21 +39,6 @@ const multipart_payload = (parts: Array<{
     },
     payload: Buffer.concat(chunks),
   };
-};
-
-const reset_foundation_tables = async () => {
-  await pool.query(`
-    TRUNCATE TABLE
-      auth_schema.auth_session,
-      capture_schema.capture_asset,
-      file_schema.file,
-      capture_schema.capture_session,
-      project_schema.project,
-      organization_schema.org_user,
-      organization_schema.organization,
-      user_schema.user
-    RESTART IDENTITY CASCADE
-  `);
 };
 
 const setup_owner = async () => {
@@ -140,7 +126,7 @@ describe("DB-backed capture asset API", () => {
     storage_root = await mkdtemp(path.join(tmpdir(), "ossie-db-storage-"));
     process.env.OSSIE_LOCAL_STORAGE_ROOT = storage_root;
     process.env.OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES = "1048576";
-    await reset_foundation_tables();
+    await reset_test_database();
   });
 
   afterEach(async () => {

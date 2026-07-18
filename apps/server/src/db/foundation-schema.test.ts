@@ -19,6 +19,26 @@ const table_definition = (sql: string, table_name: string) => {
 };
 
 describe("foundation schema migrations", () => {
+  it("defines typed relational append-only Audit Evidence without JSON", () => {
+    const sql = read_migrations();
+    const event = table_definition(sql, "audit_schema.audit_event");
+    const item = table_definition(sql, "audit_schema.audit_change_item");
+
+    expect(sql).toContain("CREATE SCHEMA IF NOT EXISTS audit_schema");
+    expect(event).toContain("organization_id VARCHAR(26) NOT NULL");
+    expect(event).toContain("actor_org_user_id VARCHAR(26) DEFAULT NULL");
+    expect(event).toContain("before_row_version INTEGER DEFAULT NULL");
+    expect(item).toContain("before_text_value VARCHAR(4000) DEFAULT NULL");
+    expect(item).toContain("after_decimal_value NUMERIC DEFAULT NULL");
+    expect(item).toContain("before_timestamp_value TIMESTAMPTZ DEFAULT NULL");
+    expect(`${event}\n${item}`.toLowerCase()).not.toContain("json");
+    expect(sql).toContain("project_insert_audit_context_guard");
+    expect(sql).toContain("project_insert_audit_evidence_guard");
+    expect(sql).toContain("ON DELETE RESTRICT");
+    expect(sql).toContain("__OSSIE_RUNTIME_DB_ROLE__");
+    expect(sql).toContain("__OSSIE_MAINTENANCE_DB_ROLE__");
+  });
+
   it("define the accepted user organization auth session and project foundation", () => {
     const sql = read_migrations();
 

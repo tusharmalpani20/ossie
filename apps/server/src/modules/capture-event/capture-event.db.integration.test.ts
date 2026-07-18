@@ -1,25 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
-
-const reset_foundation_tables = async () => {
-  await pool.query(`
-    TRUNCATE TABLE
-      auth_schema.auth_session,
-      guide_schema.guide_step,
-      guide_schema.guide_block,
-      guide_schema.guide,
-      capture_schema.capture_event,
-      capture_schema.capture_asset,
-      file_schema.file,
-      capture_schema.capture_session,
-      project_schema.project,
-      organization_schema.org_user,
-      organization_schema.organization,
-      user_schema.user
-    RESTART IDENTITY CASCADE
-  `);
-};
+import { reset_test_database } from "../../test-support/database";
 
 const setup_owner = async () => {
   const app = build({ logger: false });
@@ -130,7 +112,7 @@ const create_capture_asset = async (
 
 describe("DB-backed capture event API", () => {
   beforeEach(async () => {
-    await reset_foundation_tables();
+    await reset_test_database();
   });
 
   afterAll(async () => {

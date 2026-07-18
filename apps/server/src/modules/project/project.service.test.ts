@@ -12,6 +12,11 @@ const auth = {
   actor_org_user_id: "org_user_1",
 };
 
+const mutation = {
+  actor_label: "Owner User",
+  request_id: "request-1",
+};
+
 const project: Project = {
   id: "project_1",
   organization_id: "organization_1",
@@ -87,6 +92,7 @@ describe("project service", () => {
 
     await service.create_project({
       auth,
+      mutation,
       data: {
         name: " Onboarding Demo ",
         description: "",
@@ -106,6 +112,38 @@ describe("project service", () => {
         color: "#2563eb",
         icon: "presentation",
         metadata: undefined,
+      },
+    }]);
+  });
+
+  it("delegates normalized Project creation to the audited writer when configured", async () => {
+    const repository = build_repository();
+    const writes: unknown[] = [];
+    const service = build_project_service(repository, {
+      create_project: async (input) => {
+        writes.push(input);
+        return project;
+      },
+    });
+    await service.create_project({
+      auth,
+      mutation,
+      data: { name: " Project ", metadata: { private: "metadata-value" } },
+    });
+    expect(repository.creates).toEqual([]);
+    expect(writes).toEqual([{
+      organization_id: "organization_1",
+      actor_org_user_id: "org_user_1",
+      actor_label: "Owner User",
+      request_id: "request-1",
+      metadata_was_present: true,
+      data: {
+        name: "Project",
+        description: undefined,
+        slug: undefined,
+        color: undefined,
+        icon: undefined,
+        metadata: { private: "metadata-value" },
       },
     }]);
   });

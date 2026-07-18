@@ -1,4 +1,5 @@
 import pg from "pg";
+import { get_maintenance_admin_config } from "../config/maintenance-database.config";
 import { quote_database_identifier } from "./identifier";
 
 const dbName = process.env.DB_NAME;
@@ -10,13 +11,7 @@ if (!dbName) {
 
 const database_name = dbName;
 
-const client = new pg.Client({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    password: process.env.DB_PASSWORD,
-    port: Number(process.env.DB_PORT),
-    database: "postgres",
-});
+const client = new pg.Client(get_maintenance_admin_config());
 
 async function run() {
     try {

@@ -4,8 +4,8 @@ services:
     container_name: ossie-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ossie
-      POSTGRES_PASSWORD: ossie
+      POSTGRES_USER: ossie_maintenance
+      POSTGRES_PASSWORD: ossie-maintenance-local
       POSTGRES_DB: postgres
     ports:
       - "5432:5432"

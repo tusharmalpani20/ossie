@@ -1,19 +1,8 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
+import { reset_test_database } from "../../test-support/database";
 import { hash_session_token } from "./session-token";
-
-const reset_foundation_tables = async () => {
-  await pool.query(`
-    TRUNCATE TABLE
-      auth_schema.auth_session,
-      project_schema.project,
-      organization_schema.org_user,
-      organization_schema.organization,
-      user_schema.user
-    RESTART IDENTITY CASCADE
-  `);
-};
 
 const setup_owner = async () => {
   const app = build({ logger: false });
@@ -47,7 +36,7 @@ const count_sessions = async () => {
 
 describe("DB-backed authentication session", () => {
   beforeEach(async () => {
-    await reset_foundation_tables();
+    await reset_test_database();
   });
 
   afterAll(async () => {

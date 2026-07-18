@@ -152,6 +152,9 @@ importers:
       '@fastify/websocket':
         specifier: ^11.2.0
         version: 11.2.0
+      '@repo/audit-domain':
+        specifier: workspace:*
+        version: link:../../packages/audit-domain
       '@repo/capture-domain':
         specifier: workspace:*
         version: link:../../packages/capture-domain

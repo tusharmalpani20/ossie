@@ -2,18 +2,7 @@ import { ulid } from "ulid";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
-
-const reset_foundation_tables = async () => {
-  await pool.query(`
-    TRUNCATE TABLE
-      auth_schema.auth_session,
-      project_schema.project,
-      organization_schema.org_user,
-      organization_schema.organization,
-      user_schema.user
-    RESTART IDENTITY CASCADE
-  `);
-};
+import { reset_test_database, with_maintenance_client } from "../../test-support/database";
 
 const setup_owner = async () => {
   const app = build({ logger: false });
@@ -46,19 +35,21 @@ const insert_cross_org_project = async () => {
   const org_user_id = ulid();
   const project_id = ulid();
 
-  await pool.query(`
+  await with_maintenance_client(async (client) => {
+  await client.query(`
     INSERT INTO user_schema.user (id, email, password_hash, display_name)
     VALUES ($1, 'other@example.com', 'hash.salt', 'Other User')
   `, [user_id]);
-  await pool.query(`
+  await client.query(`
     INSERT INTO organization_schema.organization (id, name)
     VALUES ($1, 'Other Org')
   `, [organization_id]);
-  await pool.query(`
+  await client.query(`
     INSERT INTO organization_schema.org_user (id, user_id, organization_id, role)
     VALUES ($1, $2, $3, 'owner')
   `, [org_user_id, user_id, organization_id]);
-  await pool.query(`
+  await client.query("SELECT set_config('ossie.maintenance_mode', 'on', false)");
+  await client.query(`
     INSERT INTO project_schema.project (
       id,
       organization_id,
@@ -68,6 +59,7 @@ const insert_cross_org_project = async () => {
     )
     VALUES ($1, $2, 'Other Project', $3, $3)
   `, [project_id, organization_id, org_user_id]);
+  });
 
   return project_id;
 };
@@ -89,7 +81,7 @@ const get_owner_context = async () => {
 
 describe("DB-backed project foundation API", () => {
   beforeEach(async () => {
-    await reset_foundation_tables();
+    await reset_test_database();
   });
 
   afterAll(async () => {
@@ -246,6 +238,10 @@ describe("DB-backed project foundation API", () => {
     expect(duplicate_name_response.json().error.type).toBe("project_name_conflict");
     expect(duplicate_slug_response.statusCode).toBe(409);
     expect(duplicate_slug_response.json().error.type).toBe("project_slug_conflict");
+    const audit_count_after_conflicts = await pool.query<{ count: string }>(
+      "SELECT COUNT(*) AS count FROM audit_schema.audit_event",
+    );
+    expect(Number(audit_count_after_conflicts.rows[0]?.count)).toBe(1);
 
     const archive_response = await app.inject({
       method: "PATCH",

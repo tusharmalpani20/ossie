@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { ulid } from "ulid";
 import { pool } from "../config/database.config";
+import { with_maintenance_client } from "../test-support/database";
 
 const schema_exists = async (schema_name: string) => {
   const result = await pool.query<{ exists: boolean }>(`
@@ -71,19 +72,21 @@ const insert_constraint_test_context = async () => {
   const guide_id = ulid();
   const guide_block_id = ulid();
 
-  await pool.query(`
+  await with_maintenance_client(async (client) => {
+  await client.query(`
     INSERT INTO user_schema.user (id, email, password_hash, display_name)
     VALUES ($1, $2, 'hash.salt', 'Constraint Owner')
   `, [user_id, `constraint-${user_id}@example.com`]);
-  await pool.query(`
+  await client.query(`
     INSERT INTO organization_schema.organization (id, name)
     VALUES ($1, 'Constraint Org')
   `, [organization_id]);
-  await pool.query(`
+  await client.query(`
     INSERT INTO organization_schema.org_user (id, user_id, organization_id, role)
     VALUES ($1, $2, $3, 'owner')
   `, [org_user_id, user_id, organization_id]);
-  await pool.query(`
+  await client.query("SELECT set_config('ossie.maintenance_mode', 'on', false)");
+  await client.query(`
     INSERT INTO project_schema.project (
       id,
       organization_id,
@@ -93,7 +96,7 @@ const insert_constraint_test_context = async () => {
     )
     VALUES ($1, $2, 'Constraint Project', $3, $3)
   `, [project_id, organization_id, org_user_id]);
-  await pool.query(`
+  await client.query(`
     INSERT INTO capture_schema.capture_session (
       id,
       organization_id,
@@ -104,6 +107,7 @@ const insert_constraint_test_context = async () => {
     )
     VALUES ($1, $2, $3, 'Constraint Capture', $4, $4)
   `, [capture_session_id, organization_id, project_id, org_user_id]);
+  });
 
   return {
     organization_id,
