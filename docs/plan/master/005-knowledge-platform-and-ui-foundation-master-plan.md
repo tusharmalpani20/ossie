@@ -69,7 +69,10 @@ Baseline reviewed on 2026-07-10:
 - Current pages still rely heavily on CSS Modules, hard-coded slate/hex values, repeated control styling, and only minimal global tokens. The UI track is therefore a consolidation and product-design effort, not a fresh Tailwind or icon migration.
 - Child `109` installed the accepted external design guidance as pinned, optional repository tooling and documented provenance, compatibility changes, update/removal procedure, and rejected sources in `docs/agent-workflow.md`. It remains outside application dependencies and runtime behavior.
 - The current UI works at alpha level but does not yet provide the consistency, hierarchy, density, responsive behavior, accessibility, or navigation expected from a daily internal tool.
-- Master plans `001` through `004` are complete. Children `109`, `110`, and `111` are complete; the overnight-runner tooling checkpoint is now the next executable activity.
+- Master plans `001` through `004` are complete. Children `109`, `110`, and
+  `111` are complete; child `112` is now the next executable activity. The
+  optional overnight-runner tooling checkpoint was deferred on 2026-07-19 and
+  is not a gate for sequential child execution.
 - Known extension and production-readiness leftovers from master plan `004` remain real unless a child plan explicitly closes them.
 
 Each implementation child must re-run and record the applicable non-database baseline. The broad workspace test command is recursive because this Turbo graph has no root `test` task:
@@ -551,28 +554,27 @@ Name availability and trademark research is risk reduction, not legal clearance.
 109 skills and agent workflow
   -> 110 product umbrella, naming, and documentation truth
     -> 111 Project Version and Artifact Edition grill
-      -> operational checkpoint: build/test overnight runner and create 112-131 skeletons
-        -> 112 Audit Evidence core
-          -> 113 existing-mutation Audit coverage
-            -> 114 Access Evidence and compliance timelines
-              -> 115 Project Membership foundation
-                -> 116 Project Version foundation
-                  -> 117 Capture source version scoping
-                    -> 118 Guide/Demo Edition and Working Draft relational foundation
-                      -> 119 Guide/Demo Revision, Carry-Forward, and protected assets
-                        -> 120 Publication and multi-version Publish Link integration
-                          -> 121 design-system foundation
-                            -> 122 portal architecture and application shell
-                              -> 123 authentication, setup, and organization UI
-                                -> 124 project, version, and library UI
-                                  -> 125 capture portal UI
-                                    -> 126 extension UI
-                                      -> 127 Guide authoring and reader UI
-                                        -> 128 Interactive Demo authoring and viewer UI
-                                          -> 129 accessibility, motion, and browser dogfood
-                                            -> 130 pre-Documentation closeout
-                                              -> 131 Documentation-domain grill
-                                                -> Documentation implementation begins in 132+
+      -> 112 Audit Evidence core
+        -> 113 existing-mutation Audit coverage
+          -> 114 Access Evidence and compliance timelines
+            -> 115 Project Membership foundation
+              -> 116 Project Version foundation
+                -> 117 Capture source version scoping
+                  -> 118 Guide/Demo Edition and Working Draft relational foundation
+                    -> 119 Guide/Demo Revision, Carry-Forward, and protected assets
+                      -> 120 Publication and multi-version Publish Link integration
+                        -> 121 design-system foundation
+                          -> 122 portal architecture and application shell
+                            -> 123 authentication, setup, and organization UI
+                              -> 124 project, version, and library UI
+                                -> 125 capture portal UI
+                                  -> 126 extension UI
+                                    -> 127 Guide authoring and reader UI
+                                      -> 128 Interactive Demo authoring and viewer UI
+                                        -> 129 accessibility, motion, and browser dogfood
+                                          -> 130 pre-Documentation closeout
+                                            -> 131 Documentation-domain grill
+                                              -> Documentation implementation begins in 132+
 ```
 
 Hard gates:
@@ -827,7 +829,7 @@ Applied sequencing impact:
 
 ### 112: Audit Evidence Core
 
-Status: Not started.
+Status: Implementation-ready; runtime implementation has not started.
 
 Planned file:
 
@@ -1899,15 +1901,15 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is the separate overnight-runner tooling checkpoint,
-not child `112`, a product migration, a screen redesign, a Documentation table,
-or further identity migration.
+The next executable activity is child `112` Audit Evidence Core, executed
+sequentially from its generated prompt pack. The separate overnight-runner
+tooling checkpoint was deferred by user decision on 2026-07-19 because it was
+taking disproportionate time to build; it is optional future workflow tooling
+and no longer blocks this master-plan sequence.
 
 Children `109`, `110`, and the deliberately early `111` grill are complete.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
-their existence does not advance any implementation gate. The runner must still
-be designed, version-controlled, and tested in the shared prompt-generator
-tooling before sequential execution begins with `112` Audit Evidence Core, `113`
-Existing Mutation Audit Coverage, and `114` Access Evidence and Compliance
-Timelines. Project Membership begins at `115`, and Project Version begins at
-`116`.
+their existence does not advance any implementation gate. Sequential execution
+begins with `112` Audit Evidence Core, `113` Existing Mutation Audit Coverage,
+and `114` Access Evidence and Compliance Timelines. Project Membership begins at
+`115`, and Project Version begins at `116`.
