@@ -1,7 +1,4 @@
-import type {
-  CaptureAssetType,
-  FileStorageProvider,
-} from "@repo/constants";
+import type { CaptureAssetType, FileStorageProvider } from "@repo/constants";
 import {
   assert_supported_screenshot_upload_mime_type,
   assert_upload_size_within_limit,
@@ -39,10 +36,7 @@ export {
   FileStorageWriteFailedError,
 };
 
-export type {
-  CaptureAssetType,
-  FileStorageProvider,
-};
+export type { CaptureAssetType, FileStorageProvider };
 
 export type CaptureAssetAuthContext = {
   organization_id: string;
@@ -117,7 +111,9 @@ export type CaptureAssetFileStorage = {
 
 export type CaptureAssetRepository = {
   transaction: <Result>(
-    callback: (repository: CaptureAssetTransactionalRepository) => Promise<Result>
+    callback: (
+      repository: CaptureAssetTransactionalRepository,
+    ) => Promise<Result>,
   ) => Promise<Result>;
 } & CaptureAssetTransactionalRepository;
 
@@ -218,7 +214,7 @@ export const build_capture_asset_service = (
   options: {
     file_storage?: CaptureAssetFileStorage;
     max_upload_bytes?: number;
-  } = {}
+  } = {},
 ) => {
   const max_upload_bytes = options.max_upload_bytes ?? 10 * 1024 * 1024;
 
@@ -306,7 +302,9 @@ export const build_capture_asset_service = (
     let mime_type: string;
 
     try {
-      mime_type = assert_supported_screenshot_upload_mime_type(input.file.mime_type);
+      mime_type = assert_supported_screenshot_upload_mime_type(
+        input.file.mime_type,
+      );
       assert_upload_size_within_limit({
         declared_size_bytes: input.file.declared_size_bytes,
         max_upload_bytes,
@@ -322,26 +320,25 @@ export const build_capture_asset_service = (
 
     const data = normalize_upload_capture_asset(input.data);
 
-    return repository.transaction(async (transactional_repository) => {
-      await ensure_project_exists({
-        repository: transactional_repository,
-        organization_id: input.auth.organization_id,
-        project_id: input.project_id,
-      });
+    const storage_state: { file: StoredFile | null } = { file: null };
+    try {
+      return await repository.transaction(async (transactional_repository) => {
+        await ensure_project_exists({
+          repository: transactional_repository,
+          organization_id: input.auth.organization_id,
+          project_id: input.project_id,
+        });
 
-      await ensure_capture_session_exists({
-        repository: transactional_repository,
-        organization_id: input.auth.organization_id,
-        project_id: input.project_id,
-        capture_session_id: input.capture_session_id,
-      });
+        await ensure_capture_session_exists({
+          repository: transactional_repository,
+          organization_id: input.auth.organization_id,
+          project_id: input.project_id,
+          capture_session_id: input.capture_session_id,
+        });
 
-      const file_id = ulid();
-      const capture_asset_id = ulid();
-      let stored_file: StoredFile | null = null;
-
-      try {
-        stored_file = await file_storage.put({
+        const file_id = ulid();
+        const capture_asset_id = ulid();
+        storage_state.file = await file_storage.put({
           organization_id: input.auth.organization_id,
           project_id: input.project_id,
           capture_session_id: input.capture_session_id,
@@ -351,7 +348,7 @@ export const build_capture_asset_service = (
           max_size_bytes: max_upload_bytes,
         });
 
-        return await transactional_repository.create_uploaded_capture_asset({
+        return transactional_repository.create_uploaded_capture_asset({
           organization_id: input.auth.organization_id,
           project_id: input.project_id,
           capture_session_id: input.capture_session_id,
@@ -368,28 +365,28 @@ export const build_capture_asset_service = (
             captured_at: data.captured_at,
             metadata: data.metadata,
             file: {
-              storage_provider: stored_file.storage_provider,
-              storage_key: stored_file.storage_key,
+              storage_provider: storage_state.file.storage_provider,
+              storage_key: storage_state.file.storage_key,
               mime_type,
-              size_bytes: stored_file.size_bytes,
+              size_bytes: storage_state.file.size_bytes,
               original_name: compact_optional_string(input.file.original_name),
-              checksum_sha256: stored_file.checksum_sha256,
+              checksum_sha256: storage_state.file.checksum_sha256,
               metadata: undefined,
             },
           },
         });
-      } catch (error) {
-        if (stored_file) {
-          await file_storage.delete_best_effort({ storage_key: stored_file.storage_key });
-        }
-
-        if (error instanceof FileStorageUploadTooLargeError) {
-          throw new UploadTooLargeError();
-        }
-
-        throw error;
+      });
+    } catch (error) {
+      if (storage_state.file) {
+        await file_storage.delete_best_effort({
+          storage_key: storage_state.file.storage_key,
+        });
       }
-    });
+      if (error instanceof FileStorageUploadTooLargeError) {
+        throw new UploadTooLargeError();
+      }
+      throw error;
+    }
   };
 
   const list_capture_assets = async (input: {
@@ -424,7 +421,9 @@ export const build_capture_asset_service = (
     project_id: string;
     asset_type?: CaptureAssetType;
   }): Promise<CaptureAssetWithFileUrl[]> => {
-    const asset_type = assert_project_screenshot_picker_asset_type(input.asset_type);
+    const asset_type = assert_project_screenshot_picker_asset_type(
+      input.asset_type,
+    );
 
     await ensure_project_exists({
       repository,
@@ -530,32 +529,33 @@ export const build_capture_asset_service = (
     project_id: string;
     capture_session_id: string;
     capture_asset_id: string;
-  }) => repository.transaction(async (transactional_repository) => {
-    await ensure_project_exists({
-      repository: transactional_repository,
-      organization_id: input.auth.organization_id,
-      project_id: input.project_id,
-    });
+  }) =>
+    repository.transaction(async (transactional_repository) => {
+      await ensure_project_exists({
+        repository: transactional_repository,
+        organization_id: input.auth.organization_id,
+        project_id: input.project_id,
+      });
 
-    await ensure_capture_session_exists({
-      repository: transactional_repository,
-      organization_id: input.auth.organization_id,
-      project_id: input.project_id,
-      capture_session_id: input.capture_session_id,
-    });
+      await ensure_capture_session_exists({
+        repository: transactional_repository,
+        organization_id: input.auth.organization_id,
+        project_id: input.project_id,
+        capture_session_id: input.capture_session_id,
+      });
 
-    const deleted = await transactional_repository.delete_capture_asset({
-      organization_id: input.auth.organization_id,
-      project_id: input.project_id,
-      capture_session_id: input.capture_session_id,
-      capture_asset_id: input.capture_asset_id,
-      actor_org_user_id: input.auth.actor_org_user_id,
-    });
+      const deleted = await transactional_repository.delete_capture_asset({
+        organization_id: input.auth.organization_id,
+        project_id: input.project_id,
+        capture_session_id: input.capture_session_id,
+        capture_asset_id: input.capture_asset_id,
+        actor_org_user_id: input.auth.actor_org_user_id,
+      });
 
-    if (!deleted) {
-      throw new CaptureAssetNotFoundError();
-    }
-  });
+      if (!deleted) {
+        throw new CaptureAssetNotFoundError();
+      }
+    });
 
   return {
     create_capture_asset,

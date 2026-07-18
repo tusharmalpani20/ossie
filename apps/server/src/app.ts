@@ -42,7 +42,7 @@ import {
   build_organization_invites_routes,
   type OrganizationInvitesRouteDependencies,
 } from "./modules/organization/organization-invites.routes.js";
-import { build_organization_invites_repository } from "./modules/organization/organization-invites.repository.js";
+import { build_organization_invites_repository } from "./modules/organization/organization-invites.audit.js";
 import { build_organization_invites_service } from "./modules/organization/organization-invites.service.js";
 import {
   build_project_routes,
@@ -57,20 +57,20 @@ import {
   build_capture_session_routes,
   type CaptureSessionRouteDependencies,
 } from "./modules/capture-session/capture-session.routes.js";
-import { build_capture_session_repository } from "./modules/capture-session/capture-session.repository.js";
+import { build_audited_capture_session_repository } from "./modules/capture-session/capture-session.audit.js";
 import { build_capture_session_service } from "./modules/capture-session/capture-session.service.js";
 import {
   build_capture_asset_routes,
   type CaptureAssetRouteDependencies,
 } from "./modules/capture-asset/capture-asset.routes.js";
-import { build_capture_asset_repository } from "./modules/capture-asset/capture-asset.repository.js";
+import { build_capture_asset_repository } from "./modules/capture-asset/capture-asset.audit.js";
 import { build_capture_asset_service } from "./modules/capture-asset/capture-asset.service.js";
 import { build_local_file_storage_provider } from "./modules/file-storage/local-file-storage.provider.js";
 import {
   build_capture_event_routes,
   type CaptureEventRouteDependencies,
 } from "./modules/capture-event/capture-event.routes.js";
-import { build_capture_event_repository } from "./modules/capture-event/capture-event.repository.js";
+import { build_audited_capture_event_repository } from "./modules/capture-event/capture-event.audit.js";
 import { build_capture_event_service } from "./modules/capture-event/capture-event.service.js";
 import {
   build_guide_routes,
@@ -440,7 +440,9 @@ export const build = (opts: BuildOptions = {}) => {
       },
       capture_session_service:
         capture_session_service ??
-        build_capture_session_service(build_capture_session_repository(pool)),
+        build_capture_session_service(
+          build_audited_capture_session_repository(pool),
+        ),
     }),
     {
       prefix: "/api/v1/projects",
@@ -468,7 +470,9 @@ export const build = (opts: BuildOptions = {}) => {
       },
       capture_event_service:
         capture_event_service ??
-        build_capture_event_service(build_capture_event_repository(pool)),
+        build_capture_event_service(
+          build_audited_capture_event_repository(pool),
+        ),
     }),
     {
       prefix: "/api/v1/projects",

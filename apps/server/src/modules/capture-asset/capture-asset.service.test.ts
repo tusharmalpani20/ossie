@@ -96,7 +96,10 @@ const build_repository = (): CaptureAssetRepository & {
       return input.capture_session_id === "capture_session_1";
     },
     async project_exists(input) {
-      return input.project_id === "project_1" && input.organization_id === "organization_1";
+      return (
+        input.project_id === "project_1" &&
+        input.organization_id === "organization_1"
+      );
     },
     async create_capture_asset(input) {
       creates.push(input);
@@ -116,7 +119,9 @@ const build_repository = (): CaptureAssetRepository & {
     },
     async find_capture_asset(input) {
       finds.push(input);
-      return input.capture_asset_id === "capture_asset_1" ? capture_asset : null;
+      return input.capture_asset_id === "capture_asset_1"
+        ? capture_asset
+        : null;
     },
     async find_capture_asset_file(input) {
       file_finds.push(input);
@@ -129,7 +134,8 @@ const build_repository = (): CaptureAssetRepository & {
         file: {
           id: "file_1",
           storage_provider: "local",
-          storage_key: "organizations/organization_1/projects/project_1/capture-sessions/capture_session_1/file_1.png",
+          storage_key:
+            "organizations/organization_1/projects/project_1/capture-sessions/capture_session_1/file_1.png",
           mime_type: "image/png",
           size_bytes: 14,
         },
@@ -157,7 +163,8 @@ const build_file_storage = () => {
       puts.push(input);
       return {
         storage_provider: "local" as const,
-        storage_key: "organizations/organization_1/projects/project_1/capture-sessions/capture_session_1/file_1.png",
+        storage_key:
+          "organizations/organization_1/projects/project_1/capture-sessions/capture_session_1/file_1.png",
         size_bytes: 14,
         checksum_sha256: "checksum",
       };
@@ -184,30 +191,34 @@ describe("capture asset service", () => {
       max_upload_bytes: 20,
     });
 
-    await expect(service.upload_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      file: {
-        stream: Readable.from(Buffer.from("fake png bytes")),
-        mime_type: "image/png",
-        original_name: " screenshot.png ",
-      },
-      data: {
-        width: 1440,
-        height: 900,
-        device_pixel_ratio: 2,
-        page_url: " https://example.internal ",
-        page_title: " Example ",
-        metadata: { step: 1 },
-      },
-    })).resolves.toEqual(capture_asset);
+    await expect(
+      service.upload_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        file: {
+          stream: Readable.from(Buffer.from("fake png bytes")),
+          mime_type: "image/png",
+          original_name: " screenshot.png ",
+        },
+        data: {
+          width: 1440,
+          height: 900,
+          device_pixel_ratio: 2,
+          page_url: " https://example.internal ",
+          page_title: " Example ",
+          metadata: { step: 1 },
+        },
+      }),
+    ).resolves.toEqual(capture_asset);
 
-    expect(repository.session_checks).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-    }]);
+    expect(repository.session_checks).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+      },
+    ]);
     expect(file_storage.puts).toHaveLength(1);
     expect(file_storage.puts[0]).toMatchObject({
       organization_id: "organization_1",
@@ -216,33 +227,36 @@ describe("capture asset service", () => {
       mime_type: "image/png",
       max_size_bytes: 20,
     });
-    expect(repository.uploaded_creates).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      actor_org_user_id: "org_user_1",
-      file_id: expect.any(String),
-      capture_asset_id: expect.any(String),
-      data: {
-        asset_type: "screenshot",
-        width: 1440,
-        height: 900,
-        device_pixel_ratio: 2,
-        page_url: "https://example.internal",
-        page_title: "Example",
-        captured_at: undefined,
-        metadata: { step: 1 },
-        file: {
-          storage_provider: "local",
-          storage_key: "organizations/organization_1/projects/project_1/capture-sessions/capture_session_1/file_1.png",
-          mime_type: "image/png",
-          size_bytes: 14,
-          original_name: "screenshot.png",
-          checksum_sha256: "checksum",
-          metadata: undefined,
+    expect(repository.uploaded_creates).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        actor_org_user_id: "org_user_1",
+        file_id: expect.any(String),
+        capture_asset_id: expect.any(String),
+        data: {
+          asset_type: "screenshot",
+          width: 1440,
+          height: 900,
+          device_pixel_ratio: 2,
+          page_url: "https://example.internal",
+          page_title: "Example",
+          captured_at: undefined,
+          metadata: { step: 1 },
+          file: {
+            storage_provider: "local",
+            storage_key:
+              "organizations/organization_1/projects/project_1/capture-sessions/capture_session_1/file_1.png",
+            mime_type: "image/png",
+            size_bytes: 14,
+            original_name: "screenshot.png",
+            checksum_sha256: "checksum",
+            metadata: undefined,
+          },
         },
       },
-    }]);
+    ]);
   });
 
   it("rejects invalid uploads before writing file bytes", async () => {
@@ -253,30 +267,34 @@ describe("capture asset service", () => {
       max_upload_bytes: 4,
     });
 
-    await expect(service.upload_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      file: {
-        stream: Readable.from(Buffer.from("html")),
-        mime_type: "text/html",
-        original_name: "capture.html",
-      },
-      data: {},
-    })).rejects.toBeInstanceOf(UnsupportedCaptureAssetUploadTypeError);
+    await expect(
+      service.upload_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        file: {
+          stream: Readable.from(Buffer.from("html")),
+          mime_type: "text/html",
+          original_name: "capture.html",
+        },
+        data: {},
+      }),
+    ).rejects.toBeInstanceOf(UnsupportedCaptureAssetUploadTypeError);
 
-    await expect(service.upload_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      file: {
-        stream: Readable.from(Buffer.from("fake png bytes")),
-        mime_type: "image/png",
-        original_name: "capture.png",
-        declared_size_bytes: 5,
-      },
-      data: {},
-    })).rejects.toBeInstanceOf(UploadTooLargeError);
+    await expect(
+      service.upload_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        file: {
+          stream: Readable.from(Buffer.from("fake png bytes")),
+          mime_type: "image/png",
+          original_name: "capture.png",
+          declared_size_bytes: 5,
+        },
+        data: {},
+      }),
+    ).rejects.toBeInstanceOf(UploadTooLargeError);
 
     expect(file_storage.puts).toEqual([]);
     expect(repository.uploaded_creates).toEqual([]);
@@ -293,21 +311,61 @@ describe("capture asset service", () => {
       max_upload_bytes: 20,
     });
 
-    await expect(service.upload_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      file: {
-        stream: Readable.from(Buffer.from("fake png bytes")),
-        mime_type: "image/png",
-        original_name: "capture.png",
-      },
-      data: {},
-    })).rejects.toBeInstanceOf(FileStorageKeyConflictError);
+    await expect(
+      service.upload_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        file: {
+          stream: Readable.from(Buffer.from("fake png bytes")),
+          mime_type: "image/png",
+          original_name: "capture.png",
+        },
+        data: {},
+      }),
+    ).rejects.toBeInstanceOf(FileStorageKeyConflictError);
 
-    expect(file_storage.deletes).toEqual([{
-      storage_key: "organizations/organization_1/projects/project_1/capture-sessions/capture_session_1/file_1.png",
-    }]);
+    expect(file_storage.deletes).toEqual([
+      {
+        storage_key:
+          "organizations/organization_1/projects/project_1/capture-sessions/capture_session_1/file_1.png",
+      },
+    ]);
+  });
+
+  it("deletes uploaded bytes if the enclosing Audit transaction fails at commit", async () => {
+    const repository = build_repository();
+    const file_storage = build_file_storage();
+    const original_transaction = repository.transaction.bind(repository);
+    repository.transaction = async (callback) => {
+      await original_transaction(callback);
+      throw new Error("synthetic audit commit failure");
+    };
+    const service = build_capture_asset_service(repository, {
+      file_storage,
+      max_upload_bytes: 20,
+    });
+
+    await expect(
+      service.upload_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        file: {
+          stream: Readable.from(Buffer.from("fake png bytes")),
+          mime_type: "image/png",
+          original_name: "capture.png",
+        },
+        data: {},
+      }),
+    ).rejects.toThrow("synthetic audit commit failure");
+
+    expect(file_storage.deletes).toEqual([
+      {
+        storage_key:
+          "organizations/organization_1/projects/project_1/capture-sessions/capture_session_1/file_1.png",
+      },
+    ]);
   });
 
   it("streams stored file bytes for an accessible capture asset", async () => {
@@ -315,25 +373,32 @@ describe("capture asset service", () => {
     const file_storage = build_file_storage();
     const service = build_capture_asset_service(repository, { file_storage });
 
-    await expect(service.get_capture_asset_file({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      capture_asset_id: "capture_asset_1",
-    })).resolves.toMatchObject({
+    await expect(
+      service.get_capture_asset_file({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+      }),
+    ).resolves.toMatchObject({
       mime_type: "image/png",
       size_bytes: 14,
     });
 
-    expect(repository.file_finds).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      capture_asset_id: "capture_asset_1",
-    }]);
-    expect(file_storage.gets).toEqual([{
-      storage_key: "organizations/organization_1/projects/project_1/capture-sessions/capture_session_1/file_1.png",
-    }]);
+    expect(repository.file_finds).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+      },
+    ]);
+    expect(file_storage.gets).toEqual([
+      {
+        storage_key:
+          "organizations/organization_1/projects/project_1/capture-sessions/capture_session_1/file_1.png",
+      },
+    ]);
   });
 
   it("maps missing and unsupported stored file reads", async () => {
@@ -344,19 +409,23 @@ describe("capture asset service", () => {
     };
     const service = build_capture_asset_service(repository, { file_storage });
 
-    await expect(service.get_capture_asset_file({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      capture_asset_id: "missing",
-    })).rejects.toBeInstanceOf(CaptureAssetNotFoundError);
+    await expect(
+      service.get_capture_asset_file({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "missing",
+      }),
+    ).rejects.toBeInstanceOf(CaptureAssetNotFoundError);
 
-    await expect(service.get_capture_asset_file({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      capture_asset_id: "capture_asset_1",
-    })).rejects.toBeInstanceOf(FileBytesNotFoundError);
+    await expect(
+      service.get_capture_asset_file({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+      }),
+    ).rejects.toBeInstanceOf(FileBytesNotFoundError);
 
     repository.find_capture_asset_file = async () => ({
       capture_asset,
@@ -369,178 +438,202 @@ describe("capture asset service", () => {
       },
     });
 
-    await expect(service.get_capture_asset_file({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      capture_asset_id: "capture_asset_1",
-    })).rejects.toBeInstanceOf(UnsupportedFileStorageProviderError);
+    await expect(
+      service.get_capture_asset_file({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+      }),
+    ).rejects.toBeInstanceOf(UnsupportedFileStorageProviderError);
   });
 
   it("creates screenshot asset metadata under an accessible capture session transactionally", async () => {
     const repository = build_repository();
     const service = build_capture_asset_service(repository);
 
-    await expect(service.create_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      data: {
-        asset_type: "screenshot",
-        width: 1440,
-        height: 900,
-        device_pixel_ratio: 1,
-        page_url: " https://example.internal/app/department ",
-        page_title: " Department ",
-        file: {
-          storage_provider: "local",
-          storage_key: " captures/org/project/session/screenshot-1.png ",
-          mime_type: " image/png ",
-          size_bytes: 123456,
-          original_name: " screenshot-1.png ",
-          checksum_sha256: " checksum ",
+    await expect(
+      service.create_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        data: {
+          asset_type: "screenshot",
+          width: 1440,
+          height: 900,
+          device_pixel_ratio: 1,
+          page_url: " https://example.internal/app/department ",
+          page_title: " Department ",
+          file: {
+            storage_provider: "local",
+            storage_key: " captures/org/project/session/screenshot-1.png ",
+            mime_type: " image/png ",
+            size_bytes: 123456,
+            original_name: " screenshot-1.png ",
+            checksum_sha256: " checksum ",
+          },
+          metadata: { capture_mode: "manual" },
         },
-        metadata: { capture_mode: "manual" },
-      },
-    })).resolves.toEqual(capture_asset);
+      }),
+    ).resolves.toEqual(capture_asset);
 
     expect(repository.transactions).toBe(1);
-    expect(repository.session_checks).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-    }]);
-    expect(repository.creates).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      actor_org_user_id: "org_user_1",
-      data: {
-        asset_type: "screenshot",
-        width: 1440,
-        height: 900,
-        device_pixel_ratio: 1,
-        page_url: "https://example.internal/app/department",
-        page_title: "Department",
-        captured_at: undefined,
-        metadata: { capture_mode: "manual" },
-        file: {
-          storage_provider: "local",
-          storage_key: "captures/org/project/session/screenshot-1.png",
-          mime_type: "image/png",
-          size_bytes: 123456,
-          original_name: "screenshot-1.png",
-          checksum_sha256: "checksum",
-          metadata: undefined,
+    expect(repository.session_checks).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+      },
+    ]);
+    expect(repository.creates).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        actor_org_user_id: "org_user_1",
+        data: {
+          asset_type: "screenshot",
+          width: 1440,
+          height: 900,
+          device_pixel_ratio: 1,
+          page_url: "https://example.internal/app/department",
+          page_title: "Department",
+          captured_at: undefined,
+          metadata: { capture_mode: "manual" },
+          file: {
+            storage_provider: "local",
+            storage_key: "captures/org/project/session/screenshot-1.png",
+            mime_type: "image/png",
+            size_bytes: 123456,
+            original_name: "screenshot-1.png",
+            checksum_sha256: "checksum",
+            metadata: undefined,
+          },
         },
       },
-    }]);
+    ]);
   });
 
   it("rejects unsupported asset types and non-image screenshot files", async () => {
     const repository = build_repository();
     const service = build_capture_asset_service(repository);
 
-    await expect(service.create_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      data: {
-        asset_type: "html_snapshot",
-        file: {
-          storage_key: "capture.html",
-          mime_type: "text/html",
-          size_bytes: 1,
+    await expect(
+      service.create_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        data: {
+          asset_type: "html_snapshot",
+          file: {
+            storage_key: "capture.html",
+            mime_type: "text/html",
+            size_bytes: 1,
+          },
         },
-      },
-    })).rejects.toBeInstanceOf(UnsupportedCaptureAssetTypeError);
+      }),
+    ).rejects.toBeInstanceOf(UnsupportedCaptureAssetTypeError);
 
-    await expect(service.create_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      data: {
-        asset_type: "screenshot",
-        file: {
-          storage_key: "capture.txt",
-          mime_type: "text/plain",
-          size_bytes: 1,
+    await expect(
+      service.create_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        data: {
+          asset_type: "screenshot",
+          file: {
+            storage_key: "capture.txt",
+            mime_type: "text/plain",
+            size_bytes: 1,
+          },
         },
-      },
-    })).rejects.toBeInstanceOf(InvalidCaptureAssetInputError);
+      }),
+    ).rejects.toBeInstanceOf(InvalidCaptureAssetInputError);
   });
 
   it("maps missing capture sessions and duplicate storage keys", async () => {
     const repository = build_repository();
     const service = build_capture_asset_service(repository);
 
-    await expect(service.create_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "missing",
-      data: {
-        asset_type: "screenshot",
-        file: {
-          storage_key: "capture.png",
-          mime_type: "image/png",
-          size_bytes: 1,
+    await expect(
+      service.create_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "missing",
+        data: {
+          asset_type: "screenshot",
+          file: {
+            storage_key: "capture.png",
+            mime_type: "image/png",
+            size_bytes: 1,
+          },
         },
-      },
-    })).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
+      }),
+    ).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
 
     repository.create_capture_asset = async () => {
       throw new FileStorageKeyConflictError();
     };
 
-    await expect(service.create_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      data: {
-        asset_type: "screenshot",
-        file: {
-          storage_key: "capture.png",
-          mime_type: "image/png",
-          size_bytes: 1,
+    await expect(
+      service.create_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        data: {
+          asset_type: "screenshot",
+          file: {
+            storage_key: "capture.png",
+            mime_type: "image/png",
+            size_bytes: 1,
+          },
         },
-      },
-    })).rejects.toBeInstanceOf(FileStorageKeyConflictError);
+      }),
+    ).rejects.toBeInstanceOf(FileStorageKeyConflictError);
   });
 
   it("rejects operations when the project is missing before checking capture sessions", async () => {
     const repository = build_repository();
     const service = build_capture_asset_service(repository);
 
-    await expect(service.create_capture_asset({
-      auth,
-      project_id: "missing_project",
-      capture_session_id: "capture_session_1",
-      data: {
-        asset_type: "screenshot",
-        file: {
-          storage_key: "capture.png",
-          mime_type: "image/png",
-          size_bytes: 1,
+    await expect(
+      service.create_capture_asset({
+        auth,
+        project_id: "missing_project",
+        capture_session_id: "capture_session_1",
+        data: {
+          asset_type: "screenshot",
+          file: {
+            storage_key: "capture.png",
+            mime_type: "image/png",
+            size_bytes: 1,
+          },
         },
-      },
-    })).rejects.toBeInstanceOf(ProjectNotFoundError);
-    await expect(service.list_capture_assets({
-      auth,
-      project_id: "missing_project",
-      capture_session_id: "capture_session_1",
-    })).rejects.toBeInstanceOf(ProjectNotFoundError);
-    await expect(service.get_capture_asset({
-      auth,
-      project_id: "missing_project",
-      capture_session_id: "capture_session_1",
-      capture_asset_id: "capture_asset_1",
-    })).rejects.toBeInstanceOf(ProjectNotFoundError);
-    await expect(service.delete_capture_asset({
-      auth,
-      project_id: "missing_project",
-      capture_session_id: "capture_session_1",
-      capture_asset_id: "capture_asset_1",
-    })).rejects.toBeInstanceOf(ProjectNotFoundError);
+      }),
+    ).rejects.toBeInstanceOf(ProjectNotFoundError);
+    await expect(
+      service.list_capture_assets({
+        auth,
+        project_id: "missing_project",
+        capture_session_id: "capture_session_1",
+      }),
+    ).rejects.toBeInstanceOf(ProjectNotFoundError);
+    await expect(
+      service.get_capture_asset({
+        auth,
+        project_id: "missing_project",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+      }),
+    ).rejects.toBeInstanceOf(ProjectNotFoundError);
+    await expect(
+      service.delete_capture_asset({
+        auth,
+        project_id: "missing_project",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+      }),
+    ).rejects.toBeInstanceOf(ProjectNotFoundError);
 
     expect(repository.session_checks).toEqual([]);
     expect(repository.creates).toEqual([]);
@@ -553,74 +646,98 @@ describe("capture asset service", () => {
     const repository = build_repository();
     const service = build_capture_asset_service(repository);
 
-    await expect(service.list_capture_assets({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      asset_type: "screenshot",
-    })).resolves.toEqual([capture_asset]);
-    await expect(service.get_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      capture_asset_id: "capture_asset_1",
-    })).resolves.toEqual(capture_asset);
-    await expect(service.get_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      capture_asset_id: "missing",
-    })).rejects.toBeInstanceOf(CaptureAssetNotFoundError);
-    await expect(service.delete_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      capture_asset_id: "capture_asset_1",
-    })).resolves.toBeUndefined();
+    await expect(
+      service.list_capture_assets({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        asset_type: "screenshot",
+      }),
+    ).resolves.toEqual([capture_asset]);
+    await expect(
+      service.get_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+      }),
+    ).resolves.toEqual(capture_asset);
+    await expect(
+      service.get_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "missing",
+      }),
+    ).rejects.toBeInstanceOf(CaptureAssetNotFoundError);
+    await expect(
+      service.delete_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+      }),
+    ).resolves.toBeUndefined();
 
-    expect(repository.lists).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      asset_type: "screenshot",
-    }]);
+    expect(repository.lists).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        asset_type: "screenshot",
+      },
+    ]);
     expect(repository.session_checks).toHaveLength(4);
     expect(repository.finds).toHaveLength(2);
-    expect(repository.deletes).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      capture_asset_id: "capture_asset_1",
-      actor_org_user_id: "org_user_1",
-    }]);
+    expect(repository.deletes).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+        actor_org_user_id: "org_user_1",
+      },
+    ]);
   });
 
   it("lists project screenshot assets and rejects non-screenshot picker filters", async () => {
     const repository = build_repository();
     const service = build_capture_asset_service(repository);
 
-    await expect(service.list_project_capture_assets({
-      auth,
-      project_id: "project_1",
-    })).resolves.toEqual([{
-      ...capture_asset,
-      file_url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
-    }]);
+    await expect(
+      service.list_project_capture_assets({
+        auth,
+        project_id: "project_1",
+      }),
+    ).resolves.toEqual([
+      {
+        ...capture_asset,
+        file_url:
+          "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
+      },
+    ]);
 
-    await expect(service.list_project_capture_assets({
-      auth,
-      project_id: "project_1",
-      asset_type: "redacted_screenshot",
-    })).resolves.toEqual([{
-      ...capture_asset,
-      file_url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
-    }]);
+    await expect(
+      service.list_project_capture_assets({
+        auth,
+        project_id: "project_1",
+        asset_type: "redacted_screenshot",
+      }),
+    ).resolves.toEqual([
+      {
+        ...capture_asset,
+        file_url:
+          "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
+      },
+    ]);
 
-    await expect(service.list_project_capture_assets({
-      auth,
-      project_id: "project_1",
-      asset_type: "html_snapshot",
-    })).rejects.toBeInstanceOf(UnsupportedCaptureAssetTypeError);
+    await expect(
+      service.list_project_capture_assets({
+        auth,
+        project_id: "project_1",
+        asset_type: "html_snapshot",
+      }),
+    ).rejects.toBeInstanceOf(UnsupportedCaptureAssetTypeError);
 
     expect(repository.lists).toEqual([
       {
@@ -640,23 +757,29 @@ describe("capture asset service", () => {
     const repository = build_repository();
     const service = build_capture_asset_service(repository);
 
-    await expect(service.list_capture_assets({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "missing",
-    })).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
-    await expect(service.get_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "missing",
-      capture_asset_id: "capture_asset_1",
-    })).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
-    await expect(service.delete_capture_asset({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "missing",
-      capture_asset_id: "capture_asset_1",
-    })).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
+    await expect(
+      service.list_capture_assets({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "missing",
+      }),
+    ).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
+    await expect(
+      service.get_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "missing",
+        capture_asset_id: "capture_asset_1",
+      }),
+    ).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
+    await expect(
+      service.delete_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "missing",
+        capture_asset_id: "capture_asset_1",
+      }),
+    ).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
 
     expect(repository.lists).toEqual([]);
     expect(repository.finds).toEqual([]);

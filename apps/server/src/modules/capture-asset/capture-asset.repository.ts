@@ -13,7 +13,10 @@ type QueryResult<Row> = {
 };
 
 type Queryable = {
-  query: <Row = Record<string, unknown>>(sql: string, values?: unknown[]) => Promise<QueryResult<Row>>;
+  query: <Row = Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ) => Promise<QueryResult<Row>>;
 };
 
 type CaptureAssetRow = {
@@ -106,16 +109,18 @@ const capture_asset_file_select = `
 
 const is_storage_key_conflict = (error: unknown) => {
   const pg_error = error as { code?: string; constraint?: string };
-  return pg_error.code === "23505"
-    && pg_error.constraint === "uq_file_storage_key_active_per_org";
+  return (
+    pg_error.code === "23505" &&
+    pg_error.constraint === "uq_file_storage_key_active_per_org"
+  );
 };
 
-const build_transactional_repository = (db: Queryable) => ({
-  async project_exists(input: {
-    organization_id: string;
-    project_id: string;
-  }) {
-    const result = await db.query<{ exists: boolean }>(`
+export const build_capture_asset_transactional_repository = (
+  db: Queryable,
+) => ({
+  async project_exists(input: { organization_id: string; project_id: string }) {
+    const result = await db.query<{ exists: boolean }>(
+      `
       SELECT EXISTS (
         SELECT 1
         FROM project_schema.project
@@ -123,10 +128,9 @@ const build_transactional_repository = (db: Queryable) => ({
         AND organization_id = $2
         AND is_deleted = FALSE
       ) AS exists
-    `, [
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.project_id, input.organization_id],
+    );
 
     return Boolean(result.rows[0]?.exists);
   },
@@ -136,7 +140,8 @@ const build_transactional_repository = (db: Queryable) => ({
     project_id: string;
     capture_session_id: string;
   }) {
-    const result = await db.query<{ exists: boolean }>(`
+    const result = await db.query<{ exists: boolean }>(
+      `
       SELECT EXISTS (
         SELECT 1
         FROM capture_schema.capture_session capture_session
@@ -147,11 +152,9 @@ const build_transactional_repository = (db: Queryable) => ({
         AND capture_session.is_deleted = FALSE
         AND project.is_deleted = FALSE
       ) AS exists
-    `, [
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.capture_session_id, input.project_id, input.organization_id],
+    );
 
     return Boolean(result.rows[0]?.exists);
   },
@@ -177,10 +180,13 @@ const build_transactional_repository = (db: Queryable) => ({
     actor_org_user_id: string;
     file_id: string;
     capture_asset_id: string;
-    data: Parameters<CaptureAssetRepository["create_uploaded_capture_asset"]>[0]["data"];
+    data: Parameters<
+      CaptureAssetRepository["create_uploaded_capture_asset"]
+    >[0]["data"];
   }) {
     try {
-      const result = await db.query<CaptureAssetRow>(`
+      const result = await db.query<CaptureAssetRow>(
+        `
         WITH inserted_file AS (
           INSERT INTO file_schema.file (
             id,
@@ -267,29 +273,31 @@ const build_transactional_repository = (db: Queryable) => ({
           inserted_file.checksum_sha256 AS file_checksum_sha256
         FROM inserted_asset
         INNER JOIN inserted_file ON inserted_file.id = inserted_asset.file_id
-      `, [
-        input.file_id,
-        input.organization_id,
-        input.data.file.storage_provider,
-        input.data.file.storage_key,
-        input.data.file.mime_type,
-        input.data.file.size_bytes,
-        input.data.file.original_name ?? null,
-        input.data.file.checksum_sha256 ?? null,
-        input.data.file.metadata ?? null,
-        input.actor_org_user_id,
-        input.capture_asset_id,
-        input.project_id,
-        input.capture_session_id,
-        input.data.asset_type,
-        input.data.width ?? null,
-        input.data.height ?? null,
-        input.data.device_pixel_ratio ?? null,
-        input.data.page_url ?? null,
-        input.data.page_title ?? null,
-        input.data.captured_at ?? null,
-        input.data.metadata ?? null,
-      ]);
+      `,
+        [
+          input.file_id,
+          input.organization_id,
+          input.data.file.storage_provider,
+          input.data.file.storage_key,
+          input.data.file.mime_type,
+          input.data.file.size_bytes,
+          input.data.file.original_name ?? null,
+          input.data.file.checksum_sha256 ?? null,
+          input.data.file.metadata ?? null,
+          input.actor_org_user_id,
+          input.capture_asset_id,
+          input.project_id,
+          input.capture_session_id,
+          input.data.asset_type,
+          input.data.width ?? null,
+          input.data.height ?? null,
+          input.data.device_pixel_ratio ?? null,
+          input.data.page_url ?? null,
+          input.data.page_title ?? null,
+          input.data.captured_at ?? null,
+          input.data.metadata ?? null,
+        ],
+      );
       const row = first_row(result);
 
       if (!row) {
@@ -317,13 +325,16 @@ const build_transactional_repository = (db: Queryable) => ({
       input.project_id,
       input.organization_id,
     ];
-    const asset_type_filter = input.asset_type ? "AND capture_asset.asset_type = $4" : "";
+    const asset_type_filter = input.asset_type
+      ? "AND capture_asset.asset_type = $4"
+      : "";
 
     if (input.asset_type) {
       values.push(input.asset_type);
     }
 
-    const result = await db.query<CaptureAssetRow>(`
+    const result = await db.query<CaptureAssetRow>(
+      `
       SELECT ${capture_asset_select}
       FROM capture_schema.capture_asset capture_asset
       INNER JOIN file_schema.file app_file ON app_file.id = capture_asset.file_id
@@ -334,7 +345,9 @@ const build_transactional_repository = (db: Queryable) => ({
       AND app_file.is_deleted = FALSE
       ${asset_type_filter}
       ORDER BY capture_asset.created_at DESC, capture_asset.id DESC
-    `, values);
+    `,
+      values,
+    );
 
     return result.rows.map(map_capture_asset);
   },
@@ -344,17 +357,17 @@ const build_transactional_repository = (db: Queryable) => ({
     project_id: string;
     asset_type?: CaptureAssetType;
   }) {
-    const values: unknown[] = [
-      input.project_id,
-      input.organization_id,
-    ];
-    const asset_type_filter = input.asset_type ? "AND capture_asset.asset_type = $3" : "";
+    const values: unknown[] = [input.project_id, input.organization_id];
+    const asset_type_filter = input.asset_type
+      ? "AND capture_asset.asset_type = $3"
+      : "";
 
     if (input.asset_type) {
       values.push(input.asset_type);
     }
 
-    const result = await db.query<CaptureAssetRow>(`
+    const result = await db.query<CaptureAssetRow>(
+      `
       SELECT ${capture_asset_select}
       FROM capture_schema.capture_asset capture_asset
       INNER JOIN file_schema.file app_file ON app_file.id = capture_asset.file_id
@@ -364,7 +377,9 @@ const build_transactional_repository = (db: Queryable) => ({
       AND app_file.is_deleted = FALSE
       ${asset_type_filter}
       ORDER BY capture_asset.captured_at ASC, capture_asset.created_at ASC, capture_asset.id ASC
-    `, values);
+    `,
+      values,
+    );
 
     return result.rows.map(map_capture_asset);
   },
@@ -375,7 +390,8 @@ const build_transactional_repository = (db: Queryable) => ({
     capture_session_id: string;
     capture_asset_id: string;
   }) {
-    const result = await db.query<CaptureAssetRow>(`
+    const result = await db.query<CaptureAssetRow>(
+      `
       SELECT ${capture_asset_select}
       FROM capture_schema.capture_asset capture_asset
       INNER JOIN file_schema.file app_file ON app_file.id = capture_asset.file_id
@@ -386,12 +402,14 @@ const build_transactional_repository = (db: Queryable) => ({
       AND capture_asset.is_deleted = FALSE
       AND app_file.is_deleted = FALSE
       LIMIT 1
-    `, [
-      input.capture_asset_id,
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [
+        input.capture_asset_id,
+        input.capture_session_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
     const row = first_row(result);
 
     return row ? map_capture_asset(row) : null;
@@ -403,7 +421,8 @@ const build_transactional_repository = (db: Queryable) => ({
     capture_session_id: string;
     capture_asset_id: string;
   }): Promise<CaptureAssetFile | null> {
-    const result = await db.query<CaptureAssetFileRow>(`
+    const result = await db.query<CaptureAssetFileRow>(
+      `
       SELECT ${capture_asset_file_select}
       FROM capture_schema.capture_asset capture_asset
       INNER JOIN file_schema.file app_file ON app_file.id = capture_asset.file_id
@@ -414,12 +433,14 @@ const build_transactional_repository = (db: Queryable) => ({
       AND capture_asset.is_deleted = FALSE
       AND app_file.is_deleted = FALSE
       LIMIT 1
-    `, [
-      input.capture_asset_id,
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [
+        input.capture_asset_id,
+        input.capture_session_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
     const row = first_row(result);
 
     if (!row) {
@@ -445,7 +466,8 @@ const build_transactional_repository = (db: Queryable) => ({
     capture_asset_id: string;
     actor_org_user_id: string;
   }) {
-    const asset_result = await db.query<{ file_id: string }>(`
+    const asset_result = await db.query<{ file_id: string }>(
+      `
       UPDATE capture_schema.capture_asset
       SET
         is_deleted = TRUE,
@@ -460,20 +482,23 @@ const build_transactional_repository = (db: Queryable) => ({
       AND organization_id = $5
       AND is_deleted = FALSE
       RETURNING file_id
-    `, [
-      input.actor_org_user_id,
-      input.capture_asset_id,
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [
+        input.actor_org_user_id,
+        input.capture_asset_id,
+        input.capture_session_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
     const file_id = asset_result.rows[0]?.file_id;
 
     if (!file_id) {
       return false;
     }
 
-    await db.query(`
+    await db.query(
+      `
       UPDATE file_schema.file
       SET
         is_deleted = TRUE,
@@ -485,29 +510,29 @@ const build_transactional_repository = (db: Queryable) => ({
       WHERE id = $2
       AND organization_id = $3
       AND is_deleted = FALSE
-    `, [
-      input.actor_org_user_id,
-      file_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.actor_org_user_id, file_id, input.organization_id],
+    );
 
     return true;
   },
 });
 
-export const build_capture_asset_repository = (
+export const build_uncovered_capture_asset_repository = (
   pool: Queryable & {
     connect: () => Promise<Queryable & { release: () => void }>;
-  }
+  },
 ): CaptureAssetRepository => ({
-  ...build_transactional_repository(pool),
+  ...build_capture_asset_transactional_repository(pool),
 
   async transaction(callback) {
     const client = await pool.connect();
 
     try {
       await client.query("BEGIN");
-      const result = await callback(build_transactional_repository(client));
+      const result = await callback(
+        build_capture_asset_transactional_repository(client),
+      );
       await client.query("COMMIT");
       return result;
     } catch (error) {
