@@ -46,8 +46,10 @@ For a local self-hosted evaluation using the provided Compose database:
     "DEV_TYPE": "development",
     "DB_HOST": "127.0.0.1",
     "DB_PORT": "5432",
-    "DB_USER": "ossie",
-    "DB_PASSWORD": "ossie",
+    "DB_USER": "ossie_runtime",
+    "DB_PASSWORD": "ossie_runtime",
+    "DB_MAINTENANCE_USER": "ossie_maintenance",
+    "DB_MAINTENANCE_PASSWORD": "ossie-maintenance-local",
     "DB_NAME": "ossie",
     "DB_MAX_POOL": "10",
     "NODE_ENV": "development",
@@ -98,10 +100,28 @@ Production server startup validates these high-risk settings before listening:
 
 ## Database
 
+Ossie uses two PostgreSQL roles. `DB_USER`/`DB_PASSWORD` are the API runtime
+credentials. They can perform application writes and append Audit Evidence,
+but cannot modify or remove existing evidence. `DB_MAINTENANCE_USER`/
+`DB_MAINTENANCE_PASSWORD` are administrative credentials used by database
+creation, migrations, test reset, and restore work; never expose them to the API
+process.
+
+The provided Compose database creates the maintenance role. For a disposable
+local or test database, provision the separate runtime login and then migrate:
+
 ```bash
 rtk pnpm --filter server db:create
+rtk pnpm --filter server db:provision-runtime-role
 rtk pnpm --filter server migrate:up
 ```
+
+`db:provision-runtime-role` refuses to run with `NODE_ENV=production`. Production
+operators must provision distinct runtime and maintenance roles through their
+normal PostgreSQL administration path before running migrations. Migration
+`015_audit_evidence_core.sql` is an accepted pre-live transition: it refuses a
+populated Organization table and requires reset/reseed instead of attempting a
+legacy-row backfill.
 
 ## Run
 

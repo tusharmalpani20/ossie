@@ -32,7 +32,27 @@ The report prints JSON with non-secret summaries only:
 - in-memory rate-limit settings
 - known alpha operational limitations
 
-It does not print `COOKIE_SECRET`, `DB_PASSWORD`, raw cookies, bearer tokens, invite tokens, or the local storage root path. Treat the report as a preflight aid, not a replacement for `/readyz`, reverse proxy testing, backup rehearsal, or a full production readiness review.
+It does not print `COOKIE_SECRET`, `DB_PASSWORD`, maintenance database
+credentials, raw cookies, bearer tokens, invite tokens, or the local storage
+root path. The API process needs only `DB_USER`/`DB_PASSWORD`; do not place
+`DB_MAINTENANCE_USER` or `DB_MAINTENANCE_PASSWORD` in its runtime environment.
+Treat the report as a preflight aid, not a replacement for `/readyz`, reverse
+proxy testing, backup rehearsal, or a full production readiness review.
+
+## Database Roles
+
+- `DB_USER`/`DB_PASSWORD` identify the least-privilege API runtime role.
+- `DB_MAINTENANCE_USER`/`DB_MAINTENANCE_PASSWORD` identify the administrative
+  role used by database create/drop, migrations, test reset, and restore work.
+- The roles must be distinct, and the runtime role must not inherit or belong to
+  the maintenance role.
+- Runtime credentials may append validated rows to `audit_schema`, but cannot
+  update, delete, truncate, or bypass its evidence guards.
+
+For disposable local and test databases only, run
+`rtk pnpm --filter server db:provision-runtime-role` before migrations. The
+helper refuses production. Provision both production roles with operator-owned
+PostgreSQL tooling and give the API service only the runtime credentials.
 
 ## Backups
 
@@ -48,6 +68,11 @@ Example PostgreSQL backup:
 ```bash
 pg_dump --format=custom --file=ossie.dump "$DATABASE_URL"
 ```
+
+Use a maintenance-capable connection for the dump and confirm that it includes
+`audit_schema`, its triggers, constraints, privileges, and rows. Audit Evidence
+is retained for the lifetime of its Organization; there is no supported cleanup
+or row-deletion command.
 
 Example local storage backup:
 
@@ -70,7 +95,13 @@ tar -xzf ossie_storage.tgz -C /
 
 After restore:
 
+- restore or pre-provision the distinct maintenance and runtime roles before
+  applying ownership and grants
 - run migrations for the target application version
+- confirm `audit_schema.audit_event` and `audit_schema.audit_change_item` exist
+  with their append-only and Project guard triggers
+- confirm the runtime role is not a maintenance-role member and cannot update,
+  delete, or truncate Audit Evidence
 - point `OSSIE_LOCAL_STORAGE_ROOT` at the restored storage path
 - set `API_URL` to the API origin used for the rehearsal environment
 - start the API
@@ -108,12 +139,18 @@ Do not delete individual files from `OSSIE_LOCAL_STORAGE_ROOT` unless you have v
 
 ## Migrations And Upgrades
 
+Migration `015_audit_evidence_core.sql` is a clean, pre-live schema transition.
+It deliberately refuses to run when Organization rows already exist. If an
+evaluation database predates this transition, reset and reseed that disposable
+database; there is no production-row backfill or compatibility conversion.
+Never use the destructive test reset commands against a production database.
+
 Before upgrading:
 
 1. Stop background writes if possible.
 2. Back up PostgreSQL and local storage.
 3. Build the new server and web artifacts.
-4. Run `rtk pnpm --filter server migrate:up`.
+4. Run `rtk pnpm --filter server migrate:up` with maintenance credentials.
 5. Start the API.
 6. Check `/readyz`.
 7. Run a smoke test through sign-in, project access, guide preview, public guide, and interactive demo viewer.

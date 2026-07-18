@@ -16,7 +16,10 @@ These settings are validated at server startup in production:
 - [ ] Set `SERVER_PORT`.
 - [ ] Set `COOKIE_SECRET` to a strong secret with at least 20 characters.
 - [ ] Set `OSSIE_CORS_ALLOWED_ORIGINS` to comma-separated allowed browser origins.
-- [ ] Set PostgreSQL variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_MAX_POOL`.
+- [ ] Set API PostgreSQL variables: `DB_HOST`, `DB_PORT`, `DB_USER`,
+      `DB_PASSWORD`, `DB_NAME`, `DB_MAX_POOL`; use the runtime role only.
+- [ ] Keep `DB_MAINTENANCE_USER` and `DB_MAINTENANCE_PASSWORD` out of the API
+      process environment.
 - [ ] Set `OSSIE_DEPLOYMENT_MODE` to `self_hosted` or `hosted`.
 - [ ] Set `OSSIE_ONBOARDING_MODE` to `first_run_setup` or `signup`.
 - [ ] Set `OSSIE_LOCAL_STORAGE_ROOT` to an absolute durable storage path.
@@ -39,6 +42,9 @@ These settings still require operator verification:
 ## Database
 
 - [ ] Create the production database.
+- [ ] Pre-provision distinct runtime and maintenance PostgreSQL roles; do not use
+      the local/test runtime-role provisioning helper in production.
+- [ ] Confirm the runtime role is not a member of the maintenance role.
 - [ ] Run migrations:
 
 ```bash
@@ -46,7 +52,11 @@ rtk pnpm --filter server run migrate:up
 ```
 
 - [ ] Confirm backups exist before allowing real usage.
+- [ ] Confirm database backups include `audit_schema`, its constraints,
+      triggers, privileges, and retained evidence rows.
 - [ ] Test restore on a separate database before relying on backups.
+- [ ] During restore rehearsal, confirm role ownership/grants are restored and
+      runtime credentials cannot update, delete, or truncate Audit Evidence.
 - [ ] During restore rehearsal, verify project access, a capture asset, a guide preview, a published guide, and an interactive demo if demos exist.
 
 ## Build

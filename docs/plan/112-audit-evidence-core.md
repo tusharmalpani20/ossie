@@ -4,7 +4,7 @@ Date reserved: 2026-07-12
 
 Last reviewed: 2026-07-19
 
-Status: Implementation-ready; runtime implementation has not started.
+Status: Complete on 2026-07-19.
 
 Parent plan:
 
@@ -924,21 +924,21 @@ Also record:
 
 ## Delivery Checklist
 
-- [ ] Establish every behavior boundary with a failing focused test before
+- [x] Establish every behavior boundary with a failing focused test before
       production code.
-- [ ] Add and verify the audit-domain package without framework/database imports.
-- [ ] Add migration `015`, runtime/maintenance credential separation, schema
+- [x] Add and verify the audit-domain package without framework/database imports.
+- [x] Add migration `015`, runtime/maintenance credential separation, schema
       checks, grants, append-only triggers, and guarded test reset.
-- [ ] Add the server Audit repository, transaction coordinator, mutation context,
+- [x] Add the server Audit repository, transaction coordinator, mutation context,
       and partial coverage registry.
-- [ ] Convert only authenticated Project creation end to end.
-- [ ] Prove atomicity, tenant isolation, typed persistence, redaction,
+- [x] Convert only authenticated Project creation end to end.
+- [x] Prove atomicity, tenant isolation, typed persistence, redaction,
       append-only behavior, restrictive deletion, role separation, and partial
       guard coverage with real PostgreSQL tests.
-- [ ] Update operator documentation and backup/restore expectations.
-- [ ] Run focused, DB-backed, smoke, and broad verification and record exact
+- [x] Update operator documentation and backup/restore expectations.
+- [x] Run focused, DB-backed, smoke, and broad verification and record exact
       outcomes.
-- [ ] Update this child status, implementation log, evidence, leftovers, and
+- [x] Update this child status, implementation log, evidence, leftovers, and
       handoff together with Master `005` only after acceptance passes.
 
 ## Commit Strategy
@@ -957,8 +957,6 @@ commands, or child `113` coverage into these commits.
 
 ## Implementation Log
 
-Runtime implementation has not started.
-
 Planning baseline:
 
 - Baseline commit: `5bf83dd9ab959997895f11377ae59b0f07e56a85`.
@@ -975,9 +973,51 @@ Planning baseline:
 - No runtime, schema, API, UI, package, or operational behavior was changed by
   this planning step.
 
+Implementation completed on 2026-07-19:
+
+- Implementation began from clean commit `e1a780c` after rereading this child,
+  Master `005`, the accepted domain decisions, current migrations, Project
+  creation, database tooling, tests, CI, and operator documentation. No
+  intervening code change invalidated the expanded plan.
+- Added framework-free `@repo/audit-domain` actor/source/operation/value-state
+  contracts, event/item validation, scalar and child-record diff helpers,
+  sensitive-field allow/deny/redaction policy, and coverage registration.
+- Added `015_audit_evidence_core.sql` with typed relational Audit Event and
+  Change Item tables, no JSON/JSONB, composite tenant constraints, restrictive
+  references, indexes, append-only guards, Project INSERT context/evidence
+  triggers, runtime grants, and guarded pre-live rollback behavior.
+- Split runtime and maintenance database configuration. Administrative create,
+  drop, migration, role-provisioning, and test reset paths now require explicit
+  maintenance credentials; the API imports only runtime configuration. The
+  local/test provisioning helper rejects production and migrations verify that
+  both configured roles exist, are distinct, and execute as maintenance.
+- Made each migration body and its migration-history row one transaction. Added
+  a disposable-test-only reset helper that validates the database name, uses a
+  maintenance connection and transaction-local bypass, and truncates an
+  explicit table list.
+- Added the server Audit mutation context, same-client transaction coordinator,
+  typed repository adapter, and the intentionally partial coverage registry:
+  `project_schema.project` / `INSERT` / `project.create` /
+  `POST /api/v1/projects` only.
+- Converted authenticated Project creation without changing its public route or
+  response contract. It authenticates once, carries the safe actor label and
+  request ID, writes one event with the row marker and typed field items,
+  represents supplied metadata only as an eighth redacted item, and rolls back
+  the Project if evidence fails.
+- Updated CI, package scripts, Compose, example environment, Turbo environment
+  declarations, self-hosting, operations, production readiness, and every
+  affected DB fixture/reset path for the credential boundary.
+- TDD red evidence included missing domain modules, missing configuration and
+  identifier behavior, absent role provisioning, absent Audit transaction/
+  repository/coverage adapters, unaudited Project service/route behavior, and
+  the missing DB reset helper before the corresponding minimal implementations.
+- Logical implementation commits: `f2e2ffe` (`feat(audit): add typed evidence
+domain`) and `b008744` (`feat(audit): enforce transactional evidence
+persistence`). Documentation closeout is kept in its own commit.
+
 ## Verification Record
 
-Planning baseline only:
+Planning baseline:
 
 - `rtk pnpm --filter server test`: passed, 44 files/263 tests.
 - `rtk pnpm --filter server check-types`: passed.
@@ -988,8 +1028,42 @@ docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`:
   passed after recheck.
 - `rtk git diff --check`: passed after recheck.
 
-Implementation verification has not run and must not be inferred from these
-baseline results.
+Implementation verification on 2026-07-19:
+
+- `rtk pnpm --filter @repo/audit-domain test`: passed, 5 files/17 tests.
+- `rtk pnpm --filter @repo/audit-domain check-types`, `lint`, and `build`:
+  passed.
+- `rtk pnpm --filter server test`: passed, 52 files/278 tests.
+- Focused server configuration, identifier, migrator, role provisioning, Audit
+  transaction/repository/coverage, Project audit/service/route, static schema,
+  and DB tests passed during red-green implementation.
+- A clean disposable `ossie_test` drop/create, runtime-role provisioning, and
+  migrations `001` through `015` succeeded under maintenance credentials. The
+  drop/create/reset commands are destructive only to the explicitly validated
+  disposable test database; they were not run against any other database.
+- Final DB run: 12 files/51 tests passed in 102.14 seconds. It proved exact
+  Project event/item counts, typed constraints, metadata redaction, same-
+  transaction rollback, duplicate/failure behavior, tenant-scoped actor FKs,
+  restrictive Project deletion, runtime append-only privileges, guard
+  rejection, role separation, trigger/registry agreement, and absence of Audit
+  JSON/JSONB columns.
+- `rtk pnpm --filter server test:smoke`: passed, 1 file/1 test.
+- Migration status reported `001_foundation_schema.sql` through
+  `015_audit_evidence_core.sql` executed and no pending migration.
+- Catalog evidence confirmed runtime `current_user` is the configured runtime
+  role, it is not a maintenance-role member, and the Project trigger set is
+  exactly `project_insert_audit_context_guard` plus
+  `project_insert_audit_evidence_guard`.
+- `rtk pnpm -r --if-present test`: passed across the workspace.
+- `rtk pnpm check-types`: passed, 12 tasks.
+- `rtk pnpm lint`: passed, 13 tasks.
+- `rtk pnpm build`: passed, 12 tasks.
+- `rtk git diff --check`: passed before closeout.
+- CI now provisions the runtime role and migrates/resets with explicit
+  maintenance credentials, and the server `test:db` script includes the Audit
+  DB suite.
+- No Audit query route, Access Event, UI, browser behavior, or shared public API
+  contract was added.
 
 Browser evidence:
 
@@ -997,7 +1071,8 @@ Browser evidence:
 
 ## Leftovers And Handoff
 
-Required child `113` handoff after successful closeout:
+No acceptance-blocking child `112` leftover remains. Required child `113`
+handoff:
 
 - inventory every remaining mutable table, SQL operation, repository/service
   command, background/system path, extension path, import, and data-changing
