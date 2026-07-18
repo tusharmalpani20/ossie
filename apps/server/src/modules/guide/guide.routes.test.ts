@@ -149,6 +149,7 @@ const build_test_app = async (
     auth_service?: Partial<Parameters<typeof build_guide_routes>[0]["auth_service"]>;
     guide_service?: Partial<Parameters<typeof build_guide_routes>[0]["guide_service"]>;
     capture_asset_service?: Partial<NonNullable<Parameters<typeof build_guide_routes>[0]["capture_asset_service"]>>;
+    guide_screenshot_upload_service?: Parameters<typeof build_guide_routes>[0]["guide_screenshot_upload_service"];
   } = {}
 ) => {
   const app = fastify();
@@ -212,6 +213,7 @@ const build_test_app = async (
       upload_capture_asset: async () => uploaded_capture_asset,
       ...overrides.capture_asset_service,
     },
+    guide_screenshot_upload_service: overrides.guide_screenshot_upload_service,
   }), { prefix: "/api/v1/projects" });
   return app;
 };
@@ -1012,6 +1014,37 @@ describe("guide routes", () => {
       },
     ]);
     expect(JSON.stringify(response.json())).not.toContain("attacker_session");
+    await app.close();
+  });
+
+  it("uses the atomic Guide screenshot upload command when available", async () => {
+    const upload = vi.fn(async () => ({
+      capture_asset: uploaded_capture_asset,
+      guide_block: {
+        ...guide_block,
+        selected_capture_asset_id: uploaded_capture_asset.id,
+        screenshot_hidden: false,
+        display_capture_asset_id: uploaded_capture_asset.id,
+      },
+    }));
+    const upload_capture_asset = vi.fn();
+    const update_guide_block_screenshot = vi.fn();
+    const app = await build_test_app({
+      guide_screenshot_upload_service: { upload },
+      capture_asset_service: { upload_capture_asset },
+      guide_service: { update_guide_block_screenshot },
+    });
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/screenshot-upload",
+      cookies: { ossie_session: "session-token" },
+      ...multipart_payload([{ name: "file", filename: "replacement.png", content_type: "image/png", value: Buffer.from("replacement png bytes") }]),
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(upload).toHaveBeenCalledOnce();
+    expect(upload_capture_asset).not.toHaveBeenCalled();
+    expect(update_guide_block_screenshot).not.toHaveBeenCalled();
     await app.close();
   });
 

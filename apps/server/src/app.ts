@@ -76,7 +76,8 @@ import {
   build_guide_routes,
   type GuideRouteDependencies,
 } from "./modules/guide/guide.routes.js";
-import { build_guide_repository } from "./modules/guide/guide.repository.js";
+import { build_audited_guide_repository } from "./modules/guide/guide.audit.js";
+import { build_audited_guide_screenshot_upload_service } from "./modules/guide/guide-screenshot-upload.audit.js";
 import { build_guide_service } from "./modules/guide/guide.service.js";
 import {
   build_interactive_demo_routes,
@@ -487,11 +488,18 @@ export const build = (opts: BuildOptions = {}) => {
       },
       guide_service:
         guide_service ??
-        build_guide_service(build_guide_repository(pool), {
+        build_guide_service(build_audited_guide_repository(pool), {
           public_base_url: process.env.API_URL,
           file_storage: default_capture_file_storage,
         }),
       capture_asset_service: default_capture_asset_service,
+      guide_screenshot_upload_service:
+        !guide_service && !capture_asset_service
+          ? build_audited_guide_screenshot_upload_service(pool, {
+              file_storage: default_capture_file_storage,
+              max_upload_bytes: max_screenshot_upload_bytes,
+            })
+          : undefined,
     }),
     {
       prefix: "/api/v1/projects",

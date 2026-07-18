@@ -165,6 +165,21 @@ export type GuideRouteDependencies = {
       data: UploadCaptureAssetInput;
     }) => Promise<CaptureAsset>;
   };
+  guide_screenshot_upload_service?: {
+    upload: (input: {
+      auth: GuideAuthContext;
+      project_id: string;
+      guide_id: string;
+      guide_block_id: string;
+      capture_session_id: string;
+      file: {
+        stream: NodeJS.ReadableStream;
+        mime_type: string;
+        original_name?: string | null;
+      };
+      data: UploadCaptureAssetInput;
+    }) => Promise<{ capture_asset: CaptureAsset; guide_block: GuideBlock }>;
+  };
 };
 
 const create_guide_body_schema = CreateGuideFromCaptureRequestSchema;
@@ -784,6 +799,26 @@ export const build_guide_routes = (
           guide_id: request.params.guide_id,
           guide_block_id: request.params.guide_block_id,
         });
+        const upload_data = pick_upload_capture_asset_data(upload.fields);
+        if (dependencies.guide_screenshot_upload_service) {
+          const result = await dependencies.guide_screenshot_upload_service.upload({
+            auth: guide_auth,
+            project_id: request.params.project_id,
+            guide_id: request.params.guide_id,
+            guide_block_id: request.params.guide_block_id,
+            capture_session_id: prepared.capture_session_id,
+            file: {
+              stream: upload.file,
+              mime_type: upload.mimetype,
+              original_name: upload.filename,
+            },
+            data: upload_data,
+          });
+          return reply.status(201).send({
+            guide_block: result.guide_block,
+            capture_asset: with_file_url(result.capture_asset),
+          });
+        }
         const capture_asset = await dependencies.capture_asset_service.upload_capture_asset({
           auth: capture_asset_auth,
           project_id: request.params.project_id,
@@ -793,7 +828,7 @@ export const build_guide_routes = (
             mime_type: upload.mimetype,
             original_name: upload.filename,
           },
-          data: pick_upload_capture_asset_data(upload.fields),
+          data: upload_data,
         });
         const guide_block = await dependencies.guide_service.update_guide_block_screenshot({
           auth: guide_auth,
