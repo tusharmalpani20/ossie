@@ -1,8 +1,5 @@
 import { Password } from "../../common/services/password.common.service";
-import {
-  generate_session_token,
-  hash_session_token,
-} from "./session-token";
+import { generate_session_token, hash_session_token } from "./session-token";
 
 export { generate_session_token, hash_session_token };
 
@@ -45,9 +42,12 @@ export type LoginIdentity = {
 };
 
 export type AuthenticationSessionRepository = {
-  find_auth_context_by_token_hash: (token_hash: string) => Promise<AuthContext | null>;
-  touch_session: (session_id: string) => Promise<void>;
-  find_login_identity_by_email: (email: string) => Promise<LoginIdentity | null>;
+  find_and_touch_auth_context_by_token_hash: (
+    token_hash: string,
+  ) => Promise<AuthContext | null>;
+  find_login_identity_by_email: (
+    email: string,
+  ) => Promise<LoginIdentity | null>;
   create_session: (input: {
     user_id: string;
     organization_id: string;
@@ -72,28 +72,28 @@ export class InvalidCredentialsError extends Error {
 const normalize_email = (email: string) => email.trim().toLowerCase();
 
 export const build_authentication_session_service = (
-  repository: AuthenticationSessionRepository
+  repository: AuthenticationSessionRepository,
 ) => {
   const get_current_auth_context = async (session_token?: string) => {
     if (!session_token) {
       throw new UnauthenticatedSessionError();
     }
 
-    const auth_context = await repository.find_auth_context_by_token_hash(
-      hash_session_token(session_token)
-    );
+    const auth_context =
+      await repository.find_and_touch_auth_context_by_token_hash(
+        hash_session_token(session_token),
+      );
 
     if (!auth_context) {
       throw new UnauthenticatedSessionError();
     }
 
-    await repository.touch_session(auth_context.session.id);
     return auth_context;
   };
 
   const login = async (input: { email: string; password: string }) => {
     const identity = await repository.find_login_identity_by_email(
-      normalize_email(input.email)
+      normalize_email(input.email),
     );
 
     if (!identity) {
@@ -102,7 +102,7 @@ export const build_authentication_session_service = (
 
     const password_matches = await Password.compare(
       identity.user.password_hash,
-      input.password
+      input.password,
     );
 
     if (!password_matches) {
@@ -137,7 +137,9 @@ export const build_authentication_session_service = (
       return;
     }
 
-    await repository.revoke_session_by_token_hash(hash_session_token(session_token));
+    await repository.revoke_session_by_token_hash(
+      hash_session_token(session_token),
+    );
   };
 
   return {

@@ -10,7 +10,10 @@ type QueryResult<Row> = {
 };
 
 type Queryable = {
-  query: <Row = Record<string, unknown>>(sql: string, values?: unknown[]) => Promise<QueryResult<Row>>;
+  query: <Row = Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ) => Promise<QueryResult<Row>>;
 };
 
 const first_row = <Row>(result: QueryResult<Row>) => result.rows[0] ?? null;
@@ -79,31 +82,41 @@ const active_auth_context_filters = `
   AND auth_session.expires_at > CURRENT_TIMESTAMP
 `;
 
-export const build_authentication_session_repository = (
-  db: Queryable
-): AuthenticationSessionRepository => ({
-  async find_auth_context_by_token_hash(token_hash) {
-    const result = await db.query<AuthContextRow>(`
+export const build_authentication_session_client_repository = (
+  db: Queryable,
+) => ({
+  async find_auth_context_by_token_hash(token_hash: string) {
+    const result = await db.query<AuthContextRow>(
+      `
       ${auth_context_select}
       WHERE auth_session.token_hash = $1
       AND ${active_auth_context_filters}
       LIMIT 1
-    `, [token_hash]);
+      FOR UPDATE OF auth_session
+    `,
+      [token_hash],
+    );
     const row = first_row(result);
     return row ? map_auth_context(row) : null;
   },
 
-  async touch_session(session_id) {
-    await db.query(`
+  async touch_session(session_id: string) {
+    await db.query(
+      `
       UPDATE auth_schema.auth_session
       SET last_active_at = CURRENT_TIMESTAMP,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
-    `, [session_id]);
+    `,
+      [session_id],
+    );
   },
 
-  async find_login_identity_by_email(email): Promise<LoginIdentity | null> {
-    const result = await db.query<AuthContextRow & { password_hash: string }>(`
+  async find_login_identity_by_email(
+    email: string,
+  ): Promise<LoginIdentity | null> {
+    const result = await db.query<AuthContextRow & { password_hash: string }>(
+      `
       SELECT
         app_user.id AS user_id,
         app_user.email AS user_email,
@@ -128,7 +141,9 @@ export const build_authentication_session_repository = (
       AND org_user.is_deleted = FALSE
       ORDER BY org_user.created_at ASC
       LIMIT 1
-    `, [email]);
+    `,
+      [email],
+    );
     const row = first_row(result);
 
     if (!row) {
@@ -153,12 +168,15 @@ export const build_authentication_session_repository = (
     };
   },
 
-  async create_session(input) {
+  async create_session(
+    input: Parameters<AuthenticationSessionRepository["create_session"]>[0],
+  ) {
     const result = await db.query<{
       id: string;
       session_type: string;
       expires_at: Date;
-    }>(`
+    }>(
+      `
       INSERT INTO auth_schema.auth_session (
         id,
         user_id,
@@ -169,13 +187,15 @@ export const build_authentication_session_repository = (
       )
       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP + interval '30 days')
       RETURNING id, session_type, expires_at
-    `, [
-      ulid(),
-      input.user_id,
-      input.organization_id,
-      input.org_user_id,
-      input.token_hash,
-    ]);
+    `,
+      [
+        ulid(),
+        input.user_id,
+        input.organization_id,
+        input.org_user_id,
+        input.token_hash,
+      ],
+    );
     const row = first_row(result);
 
     if (!row) {
@@ -189,8 +209,9 @@ export const build_authentication_session_repository = (
     };
   },
 
-  async revoke_session_by_token_hash(token_hash) {
-    await db.query(`
+  async revoke_session_by_token_hash(token_hash: string) {
+    await db.query(
+      `
       UPDATE auth_schema.auth_session
       SET status = 'revoked',
           revoked_at = COALESCE(revoked_at, CURRENT_TIMESTAMP),
@@ -198,6 +219,8 @@ export const build_authentication_session_repository = (
       WHERE token_hash = $1
       AND status = 'active'
       AND revoked_at IS NULL
-    `, [token_hash]);
+    `,
+      [token_hash],
+    );
   },
 });

@@ -8,7 +8,10 @@ import {
 } from "@repo/audit-domain";
 
 export type TransactionClient = {
-  query(sql: string, values?: unknown[]): Promise<unknown>;
+  query<Row = Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ): Promise<{ rows: Row[] }>;
   release(): void;
 };
 
@@ -20,26 +23,39 @@ export const run_audited_mutation = async <Result, Event>(input: {
   pool: TransactionPool;
   event_id: string;
   command: AuditCommandCoverage;
-  context: AuditMutationContext;
+  context:
+    | AuditMutationContext
+    | ((client: TransactionClient) => Promise<AuditMutationContext>);
   execute: (client: TransactionClient) => Promise<Result>;
   build_event: (result: Result) => Event | null;
   write_audit_event: (client: TransactionClient, event: Event) => Promise<void>;
 }): Promise<Result> => {
-  const mutation_context = validate_audit_mutation_context({
-    event_id: input.event_id,
-    ...input.context,
-    action: input.command.action,
-    command: input.command.command,
-  });
-  if (
-    !input.command.actor_types.includes(mutation_context.actor_type) ||
-    !input.command.source_types.includes(mutation_context.source_type)
-  ) {
-    throw new AuditDomainError("invalid_audit_command_context", "internal");
-  }
+  const validate_context = (context: AuditMutationContext) => {
+    const validated = validate_audit_mutation_context({
+      event_id: input.event_id,
+      ...context,
+      action: input.command.action,
+      command: input.command.command,
+    });
+    if (
+      !input.command.actor_types.includes(validated.actor_type) ||
+      !input.command.source_types.includes(validated.source_type)
+    ) {
+      throw new AuditDomainError("invalid_audit_command_context", "internal");
+    }
+    return validated;
+  };
+  const static_context =
+    typeof input.context === "function"
+      ? null
+      : validate_context(input.context);
+  const context_resolver =
+    typeof input.context === "function" ? input.context : null;
   const client = await input.pool.connect();
   try {
     await client.query("BEGIN");
+    const mutation_context =
+      static_context ?? validate_context(await context_resolver!(client));
     for (const [name, value] of [
       ["ossie.audit_event_id", mutation_context.event_id],
       ["ossie.audit_organization_id", mutation_context.organization_id],

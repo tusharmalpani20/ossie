@@ -45,16 +45,13 @@ const build_repository = (): AuthenticationSessionRepository & {
     session_token_hashes,
     created_session_token_hashes,
     revoked_session_token_hashes,
-    async find_auth_context_by_token_hash(token_hash) {
+    async find_and_touch_auth_context_by_token_hash(token_hash) {
       session_token_hashes.push(token_hash);
       if (token_hash !== hash_session_token("valid-session-token")) {
         return null;
       }
-
+      touched_session_ids.push(auth_context.session.id);
       return auth_context;
-    },
-    async touch_session(session_id) {
-      touched_session_ids.push(session_id);
     },
     async find_login_identity_by_email(email) {
       if (email !== "owner@example.com") {
@@ -93,11 +90,8 @@ const build_missing_login_repository = (): AuthenticationSessionRepository & {
 
   return {
     created_session_token_hashes,
-    async find_auth_context_by_token_hash() {
+    async find_and_touch_auth_context_by_token_hash() {
       return null;
-    },
-    async touch_session() {
-      throw new Error("not used");
     },
     async find_login_identity_by_email() {
       return null;
@@ -116,7 +110,9 @@ describe("authentication session service", () => {
     const repository = build_repository();
     const service = build_authentication_session_service(repository);
 
-    const result = await service.get_current_auth_context("valid-session-token");
+    const result = await service.get_current_auth_context(
+      "valid-session-token",
+    );
 
     expect(result).toEqual(auth_context);
     expect(repository.session_token_hashes).toEqual([
@@ -130,11 +126,11 @@ describe("authentication session service", () => {
     const service = build_authentication_session_service(repository);
 
     await expect(service.get_current_auth_context()).rejects.toBeInstanceOf(
-      UnauthenticatedSessionError
+      UnauthenticatedSessionError,
     );
-    await expect(service.get_current_auth_context("invalid-token")).rejects.toBeInstanceOf(
-      UnauthenticatedSessionError
-    );
+    await expect(
+      service.get_current_auth_context("invalid-token"),
+    ).rejects.toBeInstanceOf(UnauthenticatedSessionError);
     expect(repository.touched_session_ids).toEqual([]);
   });
 
@@ -159,17 +155,21 @@ describe("authentication session service", () => {
     expect(repository.created_session_token_hashes).toEqual([
       hash_session_token(result.session_token),
     ]);
-    expect(repository.created_session_token_hashes[0]).not.toBe(result.session_token);
+    expect(repository.created_session_token_hashes[0]).not.toBe(
+      result.session_token,
+    );
   });
 
   it("rejects invalid credentials without creating a session", async () => {
     const repository = build_missing_login_repository();
     const service = build_authentication_session_service(repository);
 
-    await expect(service.login({
-      email: "missing@example.com",
-      password: "safe local password",
-    })).rejects.toBeInstanceOf(InvalidCredentialsError);
+    await expect(
+      service.login({
+        email: "missing@example.com",
+        password: "safe local password",
+      }),
+    ).rejects.toBeInstanceOf(InvalidCredentialsError);
 
     expect(repository.created_session_token_hashes).toEqual([]);
   });

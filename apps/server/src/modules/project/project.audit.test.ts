@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { build_project_created_event } from "./project.audit";
+import {
+  build_project_created_event,
+  build_project_deleted_event,
+  build_project_updated_event,
+} from "./project.audit";
 import type { Project } from "./project.service";
 
 const project: Project = {
@@ -48,5 +52,43 @@ describe("Project Audit adapter", () => {
       event.items.find((item) => item.field_name === "metadata")?.after,
     ).toEqual({ state: "redacted" });
     expect(JSON.stringify(event)).not.toContain("metadata-value");
+  });
+
+  it("emits only persisted Project field changes and a root Row Version envelope", () => {
+    const after = { ...project, name: "Updated", version: 2 };
+    const event = build_project_updated_event({
+      event_id: "01J00000000000000000000000",
+      before: project,
+      after,
+      actor_org_user_id: project.updated_by_id,
+      actor_label: "Owner User",
+      request_id: null,
+      occurred_at: "2026-07-19T00:00:00.000Z",
+      metadata_changed: false,
+    });
+    expect(event.before_row_version).toBe(1);
+    expect(event.after_row_version).toBe(2);
+    expect(event.items).toEqual([
+      expect.objectContaining({
+        field_name: "name",
+        before: { state: "value", value: "Onboarding" },
+        after: { state: "value", value: "Updated" },
+      }),
+    ]);
+  });
+
+  it("uses delete evidence for a Project soft deletion", () => {
+    const event = build_project_deleted_event({
+      event_id: "01J00000000000000000000000",
+      before: project,
+      after: { ...project, version: 2 },
+      actor_org_user_id: project.updated_by_id,
+      actor_label: "Owner User",
+      request_id: null,
+      occurred_at: "2026-07-19T00:00:00.000Z",
+    });
+    expect(event.items).toEqual([
+      expect.objectContaining({ field_name: null, operation: "delete" }),
+    ]);
   });
 });

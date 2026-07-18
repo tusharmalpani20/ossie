@@ -180,4 +180,30 @@ describe("audit transaction", () => {
       }),
     ).rejects.toBe(failure);
   });
+
+  it("resolves and locks actor context on the transaction client before setting guards", async () => {
+    const order: string[] = [];
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        order.push(sql);
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    };
+    await run_audited_mutation({
+      pool: { connect: vi.fn(async () => client) },
+      event_id: "event-1",
+      command: find_audit_command("authentication.session.touch"),
+      context: async (transaction) => {
+        await transaction.query("SELECT auth FOR UPDATE");
+        return context;
+      },
+      execute: async () => "touched",
+      build_event: () => ({ id: "event-1" }),
+      write_audit_event: async () => undefined,
+    });
+    expect(order[0]).toBe("BEGIN");
+    expect(order[1]).toBe("SELECT auth FOR UPDATE");
+    expect(order[2]).toContain("set_config");
+  });
 });
