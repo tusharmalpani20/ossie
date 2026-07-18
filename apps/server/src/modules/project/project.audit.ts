@@ -7,6 +7,7 @@ import {
 } from "@repo/audit-domain";
 import { ulid } from "ulid";
 import { run_audited_mutation } from "../audit/audit-transaction";
+import { find_audit_command } from "../audit/audit-coverage-registry";
 import { write_audit_event } from "../audit/audit.repository";
 import { build_project_repository } from "./project.repository";
 import type {
@@ -102,10 +103,11 @@ export const build_project_creation_writer =
     return run_audited_mutation({
       pool,
       event_id,
+      command: find_audit_command("project.create"),
       context: {
         organization_id: input.organization_id,
-        action: "project.created",
-        command: "project.create",
+        actor_type: "org_user",
+        source_type: "web",
       },
       execute: (client) =>
         build_project_repository(

@@ -22,14 +22,17 @@ export const classify_audit_field = (
   redacted_allowlist: readonly string[] = [],
 ): "scalar" | "redacted" => {
   const normalized = field_name.trim().toLowerCase();
-  if (!normalized || forbidden_fragments.some((fragment) => normalized.includes(fragment))) {
+  if (!normalized) {
+    throw new AuditDomainError("forbidden_audit_field");
+  }
+  if (redacted_allowlist.includes(field_name)) {
+    return "redacted";
+  }
+  if (forbidden_fragments.some((fragment) => normalized.includes(fragment))) {
     throw new AuditDomainError("forbidden_audit_field");
   }
   if (scalar_allowlist.includes(field_name)) {
     return "scalar";
-  }
-  if (redacted_allowlist.includes(field_name)) {
-    return "redacted";
   }
   throw new AuditDomainError("unapproved_audit_field");
 };
