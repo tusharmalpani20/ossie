@@ -67,4 +67,19 @@ describe("audit repository", () => {
       true,
     );
   });
+
+  it("replaces database failures with a stable non-sensitive error", async () => {
+    const client = {
+      query: vi.fn(async () => {
+        throw new Error("database rejected secret-value");
+      }),
+    };
+    await expect(write_audit_event(client, event()))
+      .rejects.toThrow(/^audit_persistence_failed$/u);
+    try {
+      await write_audit_event(client, event());
+    } catch (error) {
+      expect(String(error)).not.toContain("secret-value");
+    }
+  });
 });

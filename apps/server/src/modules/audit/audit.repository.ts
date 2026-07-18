@@ -1,4 +1,5 @@
 import {
+  AuditDomainError,
   validate_audit_event,
   type AuditChangeItem,
   type AuditEvent,
@@ -74,7 +75,8 @@ export const write_audit_event = async (
   event_input: AuditEvent,
 ) => {
   const event = validate_audit_event(event_input);
-  await client.query(
+  try {
+    await client.query(
     `
     INSERT INTO audit_schema.audit_event (
       id, organization_id, project_id, root_resource_type, root_resource_id,
@@ -106,6 +108,9 @@ export const write_audit_event = async (
       event.reason,
       event.occurred_at,
     ],
-  );
-  for (const item of event.items) await write_item(client, item);
+    );
+    for (const item of event.items) await write_item(client, item);
+  } catch {
+    throw new AuditDomainError("audit_persistence_failed", "internal");
+  }
 };
