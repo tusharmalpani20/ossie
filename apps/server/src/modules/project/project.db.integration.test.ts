@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
 import {
+  insert_test_project,
   reset_test_database,
   with_maintenance_client,
 } from "../../test-support/database";
@@ -39,6 +40,7 @@ const insert_cross_org_project = async () => {
   const organization_id = ulid();
   const org_user_id = ulid();
   const project_id = ulid();
+  const project_version_id = ulid();
 
   await with_maintenance_client(async (client) => {
     await client.query(
@@ -65,19 +67,10 @@ const insert_cross_org_project = async () => {
     await client.query(
       "SELECT set_config('ossie.maintenance_mode', 'on', false)",
     );
-    await client.query(
-      `
-    INSERT INTO project_schema.project (
-      id,
-      organization_id,
-      name,
-      created_by_id,
-      updated_by_id
-    )
-    VALUES ($1, $2, 'Other Project', $3, $3)
-  `,
-      [project_id, organization_id, org_user_id],
-    );
+    await insert_test_project(client.query.bind(client), {
+      project_id, project_version_id, organization_id,
+      actor_org_user_id: org_user_id, name: "Other Project",
+    });
   });
 
   return project_id;

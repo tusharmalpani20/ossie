@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { project_role_has_capability, project_route_capability, type ProjectCapability } from "./project-access.policy";
+import { is_project_content_mutation, project_role_has_capability, project_route_capability, type ProjectCapability } from "./project-access.policy";
 
 const capabilities: ProjectCapability[] = [
   "project.read",
@@ -54,11 +54,17 @@ describe("project access policy", () => {
     ["GET", "/api/v1/projects/:project_id/guides/:guide_id/publish", "publication.read"],
     ["POST", "/api/v1/projects/:project_id/guides/:guide_id/publish", "publication.manage"],
     ["PATCH", "/api/v1/projects/:id", "project.settings.manage"],
+    ["GET", "/api/v1/projects/:project_id/versions/:project_version_id", "project.read"],
+    ["POST", "/api/v1/projects/:project_id/versions", "project_version.manage"],
   ])("maps %s %s to %s", (method, route, capability) => {
     expect(project_route_capability(method, route)).toBe(capability);
   });
 
   it("does not apply internal membership to public Publish Link routes", () => {
     expect(project_route_capability("GET", "/api/v1/public/publish-links/:slug")).toBeNull();
+  });
+
+  it("blocks Project Version management while the owning Project is archived", () => {
+    expect(is_project_content_mutation("project_version.manage")).toBe(true);
   });
 });

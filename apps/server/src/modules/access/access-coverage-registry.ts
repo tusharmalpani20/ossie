@@ -39,6 +39,8 @@ const registration = (
 };
 
 const root_for_route = (route: string) => {
+  if (route.includes("/versions/:project_version_id"))
+    return { type: "project_version", parameter: "project_version_id" };
   if (route.includes("/interactive-demos/:interactive_demo_id/scenes/:scene_id/hotspots"))
     return { type: "demo_scene", parameter: "scene_id" };
   if (route.includes("/interactive-demos/:interactive_demo_id"))
@@ -196,6 +198,9 @@ const reads: AccessRouteRegistration[] = [
   read("GET /api/v1/authentication/me", "authentication.session.viewed", "auth_session", null, "authentication"),
   read("GET /api/v1/projects", "project.list_viewed", "organization", null),
   read("GET /api/v1/projects/:id", "project.viewed", "project", "id"),
+  read("GET /api/v1/projects/:project_id/versions", "project_version.list_viewed", "project", "project_id"),
+  read("GET /api/v1/projects/:project_id/versions/resolve/:slug", "project_version.viewed", "project", "project_id"),
+  read("GET /api/v1/projects/:project_id/versions/:project_version_id", "project_version.viewed", "project_version", "project_version_id"),
   read("GET /api/v1/projects/:project_id/memberships", "project.membership_list_viewed", "project", "project_id"),
   registration("GET /api/v1/projects/:project_id/activity", {
     action: "project.activity_viewed", denied_action: "project.activity_access_denied",

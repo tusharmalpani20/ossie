@@ -20,6 +20,7 @@ const project: Project = {
   version: 1,
   created_at: "2026-07-19T00:00:00.000Z",
   updated_at: "2026-07-19T00:00:00.000Z",
+  default_project_version: { id: "01J00000000000000000000004", name: "Main", slug: "main", status: "active", position: 1 },
 };
 
 describe("Project Audit adapter", () => {
@@ -33,9 +34,7 @@ describe("Project Audit adapter", () => {
       metadata_was_present: true,
       occurred_at: "2026-07-19T00:00:00.000Z",
     });
-    expect(event.items.filter((item) => item.field_name === null)).toHaveLength(
-      1,
-    );
+    expect(event.items.filter((item) => item.field_name === null)).toHaveLength(2);
     expect(event.items.map((item) => item.field_name)).toEqual(
       expect.arrayContaining([
         null,
@@ -52,6 +51,9 @@ describe("Project Audit adapter", () => {
       event.items.find((item) => item.field_name === "metadata")?.after,
     ).toEqual({ state: "redacted" });
     expect(JSON.stringify(event)).not.toContain("metadata-value");
+    expect(event.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ entity_type: "project_version", entity_id: project.default_project_version.id, operation: "create" }),
+    ]));
   });
 
   it("includes the non-owner creator Project Admin membership in the same Project event", () => {

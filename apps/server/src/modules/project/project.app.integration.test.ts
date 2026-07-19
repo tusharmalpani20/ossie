@@ -48,6 +48,7 @@ describe("project app routes", () => {
           version: 1,
           created_at: "2026-06-05T00:00:00.000Z",
           updated_at: "2026-06-05T00:00:00.000Z",
+          default_project_version: { id: "version_1", name: "Main", slug: "main", status: "active", position: 1 },
         }),
         list_projects: async () => [],
         get_project: async () => {

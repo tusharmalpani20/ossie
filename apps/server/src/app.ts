@@ -120,6 +120,9 @@ import { with_project_authorization } from "./modules/project-membership/project
 import { build_project_activity_repository } from "./modules/project-activity/project-activity.repository.js";
 import { build_project_activity_service } from "./modules/project-activity/project-activity.service.js";
 import { build_project_activity_routes } from "./modules/project-activity/project-activity.routes.js";
+import { build_project_version_routes, type ProjectVersionRouteService } from "./modules/project-version/project-version.routes.js";
+import { build_project_version_service } from "./modules/project-version/project-version.service.js";
+import { build_audited_project_version_repository } from "./modules/project-version/project-version.audit.js";
 
 type BuildOptions = FastifyServerOptions & {
   public_instance_service?: PublicInstanceRouteService;
@@ -127,6 +130,7 @@ type BuildOptions = FastifyServerOptions & {
   authentication_session_service?: AuthenticationSessionRouteService;
   organization_invites_service?: OrganizationInvitesRouteDependencies["organization_invites_service"];
   project_service?: ProjectRouteDependencies["project_service"];
+  project_version_service?: ProjectVersionRouteService;
   capture_session_service?: CaptureSessionRouteDependencies["capture_session_service"];
   capture_asset_service?: CaptureAssetRouteDependencies["capture_asset_service"];
   capture_event_service?: CaptureEventRouteDependencies["capture_event_service"];
@@ -200,6 +204,7 @@ export const build = (opts: BuildOptions = {}) => {
     authentication_session_service,
     organization_invites_service,
     project_service,
+    project_version_service,
     capture_session_service,
     capture_asset_service,
     capture_event_service,
@@ -554,6 +559,14 @@ export const build = (opts: BuildOptions = {}) => {
       prefix: "/api/v1/projects",
     },
   );
+
+  app.register(build_project_version_routes({
+    auth_service: { get_current_auth_context: default_authentication_session_service.get_current_auth_context },
+    project_version_service: project_version_service ?? build_project_version_service({
+      access: project_access_service,
+      repository: build_audited_project_version_repository(pool),
+    }),
+  }), { prefix: "/api/v1/projects" });
 
   app.register(build_project_membership_routes({
     auth_service: { get_current_auth_context: default_authentication_session_service.get_current_auth_context },

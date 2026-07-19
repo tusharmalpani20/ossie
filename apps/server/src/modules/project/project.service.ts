@@ -1,4 +1,5 @@
 import type { ProjectAccessSource, ProjectListPurpose, ProjectRole, ProjectStatus } from "@repo/constants";
+import type { ProjectVersionSummary } from "@repo/types/project-version";
 
 export type { ProjectListPurpose, ProjectStatus };
 
@@ -21,6 +22,7 @@ export type Project = {
   version: number;
   created_at: string;
   updated_at: string;
+  default_project_version: ProjectVersionSummary;
 };
 export type AuthorizedProject = Project & { access: { role: ProjectRole; source: ProjectAccessSource } };
 

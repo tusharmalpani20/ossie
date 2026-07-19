@@ -31,6 +31,11 @@ type ProjectRow = {
   version: number;
   created_at: Date;
   updated_at: Date;
+  default_project_version_id: string;
+  default_project_version_name: string;
+  default_project_version_slug: string;
+  default_project_version_status: "active" | "archived";
+  default_project_version_position: number;
 };
 
 const first_row = <Row>(result: QueryResult<Row>) => result.rows[0] ?? null;
@@ -49,6 +54,13 @@ const map_project = (row: ProjectRow): Project => ({
   version: row.version,
   created_at: row.created_at.toISOString(),
   updated_at: row.updated_at.toISOString(),
+  default_project_version: {
+    id: row.default_project_version_id,
+    name: row.default_project_version_name,
+    slug: row.default_project_version_slug,
+    status: row.default_project_version_status,
+    position: row.default_project_version_position,
+  },
 });
 
 const project_select = `
@@ -70,6 +82,12 @@ const qualified_project_select = project_select.replace(
   /^\s*([a-z_]+)/gmu,
   "  project.$1",
 );
+const default_version_select = `,
+  default_version.id AS default_project_version_id,
+  default_version.name AS default_project_version_name,
+  default_version.slug AS default_project_version_slug,
+  default_version.status AS default_project_version_status,
+  default_version.position AS default_project_version_position`;
 
 const is_unique_violation = (error: unknown) => (
   typeof error === "object"
@@ -140,8 +158,10 @@ const update_assignments = (data: UpdateProjectInput) => {
 export const build_project_repository = (db: Queryable): ProjectRepository => ({
   async create_project(input) {
     try {
+      const project_id = ulid();
+      const main_id = ulid();
       const result = await db.query<ProjectRow>(`
-        INSERT INTO project_schema.project (
+        WITH inserted_project AS (INSERT INTO project_schema.project (
           id,
           organization_id,
           name,
@@ -152,12 +172,21 @@ export const build_project_repository = (db: Queryable): ProjectRepository => ({
           metadata,
           status,
           created_by_id,
-          updated_by_id
+          updated_by_id,
+          default_project_version_id
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9, $9)
-        RETURNING ${project_select}
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9, $9, $10)
+        RETURNING *), inserted_version AS (
+          INSERT INTO project_schema.project_version (
+            id, organization_id, project_id, name, description, slug, release_date,
+            position, status, created_by_id, updated_by_id
+          ) VALUES ($10, $2, $1, 'Main', NULL, 'main', NULL, 1, 'active', $9, $9)
+          RETURNING *
+        ) SELECT ${qualified_project_select}${default_version_select}
+          FROM inserted_project project JOIN inserted_version default_version
+            ON default_version.id = project.default_project_version_id
       `, [
-        ulid(),
+        project_id,
         input.organization_id,
         input.data.name,
         input.data.description ?? null,
@@ -166,6 +195,7 @@ export const build_project_repository = (db: Queryable): ProjectRepository => ({
         input.data.icon ?? null,
         input.data.metadata ?? null,
         input.actor_org_user_id,
+        main_id,
       ]);
       const row = first_row(result);
 
@@ -181,12 +211,14 @@ export const build_project_repository = (db: Queryable): ProjectRepository => ({
 
   async list_projects(input) {
     const result = await db.query<ProjectRow>(`
-      SELECT ${project_select}
-      FROM project_schema.project
-      WHERE organization_id = $1
-      AND status = $2
-      AND is_deleted = FALSE
-      ORDER BY created_at DESC, id DESC
+      SELECT ${qualified_project_select}${default_version_select}
+      FROM project_schema.project project
+      JOIN project_schema.project_version default_version
+        ON default_version.id = project.default_project_version_id
+      WHERE project.organization_id = $1
+      AND project.status = $2
+      AND project.is_deleted = FALSE
+      ORDER BY project.created_at DESC, project.id DESC
     `, [input.organization_id, input.status]);
 
     return result.rows.map(map_project);
@@ -197,7 +229,7 @@ export const build_project_repository = (db: Queryable): ProjectRepository => ({
       actor_role: "owner" | "member";
       membership_role: "project_admin" | "editor" | "viewer" | null;
     }>(`
-      SELECT ${qualified_project_select},
+      SELECT ${qualified_project_select}${default_version_select},
         actor.role AS actor_role, membership.role AS membership_role
       FROM project_schema.project project
       INNER JOIN organization_schema.org_user actor
@@ -207,6 +239,8 @@ export const build_project_repository = (db: Queryable): ProjectRepository => ({
         ON membership.organization_id = project.organization_id
         AND membership.project_id = project.id AND membership.org_user_id = actor.id
         AND membership.status = 'active'
+      JOIN project_schema.project_version default_version
+        ON default_version.id = project.default_project_version_id
       WHERE project.organization_id = $1 AND project.status = $3 AND project.is_deleted = FALSE
         AND (actor.role = 'owner' OR membership.id IS NOT NULL)
         AND ($4::text IS NULL OR $4 <> 'capture' OR actor.role = 'owner' OR membership.role IN ('project_admin', 'editor'))
@@ -222,11 +256,13 @@ export const build_project_repository = (db: Queryable): ProjectRepository => ({
 
   async find_project(input) {
     const result = await db.query<ProjectRow>(`
-      SELECT ${project_select}
-      FROM project_schema.project
-      WHERE id = $1
-      AND organization_id = $2
-      AND is_deleted = FALSE
+      SELECT ${qualified_project_select}${default_version_select}
+      FROM project_schema.project project
+      JOIN project_schema.project_version default_version
+        ON default_version.id = project.default_project_version_id
+      WHERE project.id = $1
+      AND project.organization_id = $2
+      AND project.is_deleted = FALSE
       LIMIT 1
     `, [input.project_id, input.organization_id]);
     const row = first_row(result);
@@ -247,8 +283,8 @@ export const build_project_repository = (db: Queryable): ProjectRepository => ({
     const organization_index = update.values.length + 3;
 
     try {
-      const result = await db.query<ProjectRow>(`
-        UPDATE project_schema.project
+      const result = await db.query<ProjectRow>(`WITH updated AS (
+        UPDATE project_schema.project project
         SET ${[
           ...update.assignments,
           `updated_by_id = $${actor_index}`,
@@ -258,7 +294,10 @@ export const build_project_repository = (db: Queryable): ProjectRepository => ({
         WHERE id = $${project_index}
         AND organization_id = $${organization_index}
         AND is_deleted = FALSE
-        RETURNING ${project_select}
+        RETURNING project.*
+      ) SELECT ${qualified_project_select}${default_version_select}
+        FROM updated project JOIN project_schema.project_version default_version
+          ON default_version.id = project.default_project_version_id
       `, values);
       const row = first_row(result);
 
@@ -269,8 +308,8 @@ export const build_project_repository = (db: Queryable): ProjectRepository => ({
   },
 
   async delete_project(input) {
-    const result = await db.query<ProjectRow>(`
-      UPDATE project_schema.project
+    const result = await db.query<ProjectRow>(`WITH updated AS (
+      UPDATE project_schema.project project
       SET
         is_deleted = TRUE,
         deleted_at = CURRENT_TIMESTAMP,
@@ -281,7 +320,10 @@ export const build_project_repository = (db: Queryable): ProjectRepository => ({
       WHERE id = $2
       AND organization_id = $3
       AND is_deleted = FALSE
-      RETURNING ${project_select}
+      RETURNING project.*
+    ) SELECT ${qualified_project_select}${default_version_select}
+      FROM updated project JOIN project_schema.project_version default_version
+        ON default_version.id = project.default_project_version_id
     `, [
       input.actor_org_user_id,
       input.project_id,

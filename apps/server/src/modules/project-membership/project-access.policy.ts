@@ -43,7 +43,8 @@ export const project_role_has_capability = (
 export const is_project_content_mutation = (capability: ProjectCapability) =>
   capability === "capture.write" || capability === "artifact.write" ||
   capability === "publication.manage" || capability === "revision.checkpoint_restore" ||
-  capability === "revision.carry_forward" || capability === "asset.purge";
+  capability === "revision.carry_forward" || capability === "asset.purge" ||
+  capability === "project_version.manage";
 
 export const project_route_capability = (
   method: string,
@@ -53,6 +54,8 @@ export const project_route_capability = (
   const read = method === "GET";
   if (route_template === "/api/v1/projects/:id")
     return read ? "project.read" : "project.settings.manage";
+  if (route_template.includes("/versions"))
+    return read ? "project.read" : "project_version.manage";
   if (route_template.includes("/memberships")) return "project.membership.manage";
   if (route_template.includes("/compliance/")) return "project.compliance.read";
   if (route_template.endsWith("/activity")) return "project.activity.read";

@@ -81,6 +81,28 @@ export const build_project_created_event = (input: {
           }),
         ]
       : []),
+    create_row_change({
+      id: ulid(), organization_id: input.project.organization_id,
+      audit_event_id: input.event_id, entity_type: "project_version",
+      entity_id: input.project.default_project_version.id,
+      parent_entity_type: "project", parent_entity_id: input.project.id,
+      operation: "create",
+    }),
+    ...([
+      ["name", "text", input.project.default_project_version.name],
+      ["description", "text", null],
+      ["slug", "text", input.project.default_project_version.slug],
+      ["release_date", "date", null],
+      ["position", "integer", input.project.default_project_version.position],
+      ["status", "enum", input.project.default_project_version.status],
+    ] as const).map(([field_name, value_type, value]) => create_scalar_change({
+      id: ulid(), organization_id: input.project.organization_id,
+      audit_event_id: input.event_id, entity_type: "project_version",
+      entity_id: input.project.default_project_version.id,
+      parent_entity_type: "project", parent_entity_id: input.project.id,
+      operation: "create", field_name, value_type,
+      before: { state: "absent" }, after: value === null ? { state: "null" } : { state: "value", value },
+    })),
     ...(input.creator_membership
       ? build_project_membership_event({
           event_id: input.event_id,

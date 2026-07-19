@@ -10,7 +10,9 @@ const add = (category: ProjectActivityCategory, actions: readonly string[]) => {
     summary: action.split(".").map((part) => part.replaceAll("_", " ")).join(" ").replace(/^./u, (value) => value.toUpperCase()),
   });
 };
-add("project", ["project.created", "project.updated", "project.deleted"]);
+add("project", ["project.created", "project.updated", "project.deleted", "project_version.created",
+  "project_version.updated", "project_version.reordered", "project_version.archived",
+  "project_version.restored", "project_version.default_set"]);
 add("capture", ["capture_session.created", "capture_session.updated", "capture_session.completed", "capture_session.deleted", "capture_asset.created", "capture_asset.uploaded", "capture_asset.deleted", "capture_event.created", "capture_event.updated", "capture_event.reordered", "capture_event.deleted"]);
 add("content", ["guide.created", "guide.updated", "guide.step.updated", "guide.blocks.reordered", "guide.block.created", "guide.block.updated", "guide.block.screenshot_updated", "guide.block.annotations_updated", "guide.block.screenshot_uploaded", "guide.block.deleted", "interactive_demo.created", "interactive_demo.updated", "interactive_demo.deleted", "interactive_demo.scene.created", "interactive_demo.scene.updated", "interactive_demo.scenes.reordered", "interactive_demo.scene.deleted", "interactive_demo.hotspot.created", "interactive_demo.hotspot.updated", "interactive_demo.hotspots.reordered", "interactive_demo.hotspot.deleted"]);
 add("publication", ["guide.published", "interactive_demo.published", "guide.publish_link.revoked", "interactive_demo.publish_link.revoked", "guide.publish_link.access_updated", "interactive_demo.publish_link.access_updated", "guide.publish_link.password_updated", "interactive_demo.publish_link.password_updated"]);
