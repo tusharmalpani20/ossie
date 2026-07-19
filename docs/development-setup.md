@@ -26,10 +26,16 @@ Expected environments:
 
 ```text
 development
+development_maintenance
 testing
+testing_maintenance
 ```
 
 Do not commit real secrets. Keep local database credentials, cookie secrets, and deployment-specific URLs in `.env-cmdrc` or an ignored environment file.
+The runtime profiles contain `DB_USER`/`DB_PASSWORD`; the maintenance profiles
+also contain `DB_MAINTENANCE_USER`/`DB_MAINTENANCE_PASSWORD` and are used only by
+database create, role-provisioning, migration, reset, DB-test, and smoke commands.
+Never copy maintenance credentials into a running API environment.
 
 Common server variables:
 
@@ -109,7 +115,9 @@ Run DB integration tests:
 rtk pnpm --filter server run test:db
 ```
 
-DB tests use the `.env-cmdrc` `testing` environment and a real PostgreSQL database.
+DB tests use the `.env-cmdrc` `testing_maintenance` environment and a disposable
+real PostgreSQL database. Application connections inside the suite still use the
+runtime `DB_USER`; maintenance credentials are limited to setup/reset fixtures.
 
 ## Running Apps
 
@@ -178,7 +186,9 @@ rtk pnpm --filter server run test:db
 
 ## Common Failures
 
-- `test:db` fails to connect: check `.env-cmdrc` `testing` database credentials and make sure PostgreSQL is running.
+- `test:db` fails before connecting: confirm `.env-cmdrc` defines
+  `testing_maintenance`, including both runtime and maintenance DB variables,
+  and make sure PostgreSQL is running.
 - migrations fail because the database is already in a bad state: reset the testing DB with `test:db:drop`, `test:db:create`, and `test:migrate`.
 - public guide images fail locally: check `OSSIE_LOCAL_STORAGE_ROOT` and make sure the server can read files written during upload.
 - extension cannot authenticate: confirm the extension instance URL points to the running server and that cookies/credentials are accepted by the backend.

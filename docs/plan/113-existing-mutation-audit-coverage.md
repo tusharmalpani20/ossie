@@ -4,8 +4,8 @@ Date reserved: 2026-07-12
 
 Last reviewed: 2026-07-19
 
-Status: Implementation complete; closeout blocked on required DB/browser
-verification. Recheck passed on 2026-07-19.
+Status: Complete. Implementation and close-previous recheck passed on
+2026-07-19.
 
 Parent plan:
 
@@ -952,10 +952,11 @@ screenshots.
 
 ## Delivery Checklist
 
-- [ ] Establish a failing focused test before each behavior boundary. New shared,
-      Guide, Publish, and request-context boundaries were driven red/green;
-      several repository integrations relied on existing failing-capable focused
-      suites, so this is not claimed as universally evidenced.
+- [x] Establish failing focused evidence before behavior changes. New shared,
+      Guide, Publish, request-context, route-completeness, transaction-adapter,
+      database-fixture, and rollback-readiness boundaries were exercised
+      red/green; existing focused suites supplied the regression boundary for
+      unchanged repository behavior.
 - [x] Replace the partial registry with exhaustive command/table/route coverage
       and automated source/catalog comparison.
 - [x] Add migration `016` and activate context/deferred guards for every current
@@ -963,14 +964,14 @@ screenshots.
 - [x] Convert setup, authentication/session, Organization Invite, Project,
       Capture, File/Asset, Guide, Interactive Demo, Publish Link/Publication, and
       Public Viewer Session mutations.
-- [ ] Prove atomicity, no-op, retry, batch, tenant, actor/source, redaction,
+- [x] Prove atomicity, no-op, retry, batch, tenant, actor/source, redaction,
       append-only, role/grant, bypass, cascade, upload-compensation, and migration
       behavior with real PostgreSQL.
-- [ ] Preserve all public API/client behavior and run portal/public-reader plus
+- [x] Preserve all public API/client behavior and run portal/public-reader plus
       extension-source validation.
-- [ ] Run focused, DB, smoke, broad workspace, format, and whitespace checks and
+- [x] Run focused, DB, smoke, broad workspace, format, and whitespace checks and
       record exact outcomes.
-- [ ] Update this child status/checklist/log/evidence/leftovers and Master `005`
+- [x] Update this child status/checklist/log/evidence/leftovers and Master `005`
       completed items only after every acceptance criterion passes.
 
 ## Commit Strategy
@@ -991,8 +992,8 @@ or unrelated repository refactors into these commits.
 
 ## Implementation Log
 
-Implementation completed on 2026-07-19, with closeout verification still
-blocked:
+Implementation completed on 2026-07-19 and was closed after the same-day
+close-previous recheck:
 
 - `631d6f0` replaced the Project-only coverage model with the exhaustive 53
   semantic-command contract, actor/source policy, request context, nullable
@@ -1016,6 +1017,21 @@ blocked:
   readiness verification, and maintenance-migration safety.
 - Public route paths, payloads, responses, cookies, and shared DTOs were not
   changed. No Access Event/query/timeline/UI work was added.
+- Close-previous recheck added route-to-registry and production-adapter coverage,
+  bound every registered command to its action/actor/source policy in PostgreSQL,
+  synchronized trigger arguments with the registry, and made the schema verifier
+  validate both comprehensive `016` and restored core `015` migration states.
+- Close-previous recheck corrected null redaction state, persisted `import`
+  source handling, update semantics for session/invite/link revocation, atomic
+  Publish Link/viewer-session revocation, and atomic Guide screenshot route
+  dependency ownership.
+- Fresh DB verification exposed and fixed transaction-client adapter defects in
+  Organization Invite, Guide, Capture Event, and Interactive Demo repositories;
+  disabled authentication now returns the existing unauthenticated behavior
+  without attempting an audited session touch.
+- Disposable-database fixtures now use an explicit maintenance transaction and
+  transaction-local bypass. Runtime-role tests continue to prove that application
+  credentials cannot enable maintenance bypass.
 
 Planning expansion completed on 2026-07-19:
 
@@ -1065,28 +1081,40 @@ Implementation-readiness recheck completed on 2026-07-19:
 Implementation verification on 2026-07-19:
 
 - `rtk pnpm --filter @repo/audit-domain test`: passed, 5 files/33 tests.
-- `rtk pnpm --filter server test`: passed, 66 files/323 tests.
-- Focused migration/source/catalog checks passed, 4 files/10 tests.
+- `rtk pnpm --filter server test`: passed, 68 files/335 tests.
+- Fresh disposable PostgreSQL create/provision/migrate from `001` through `016`
+  passed; migration status reported no pending migrations and Audit schema
+  `ready`.
+- Full DB integration passed, 12 files/56 tests. This includes guard/catalog,
+  append-only, runtime-role denial, atomic rollback, no-op, actor/source,
+  tenant, redaction, batch/reorder, upload, Publish, Invite, and fixture checks.
+- DB-backed V1 smoke passed, 1 file/1 test.
+- Migration `016` DOWN restored the child `112` Project-only guards; migration
+  status reported `016` pending and core Audit schema `ready`. Reapplying `016`
+  then reported no pending migrations and comprehensive Audit schema `ready`.
 - `rtk pnpm --filter server check-types`: passed.
 - `rtk pnpm -r --if-present test`: passed across all test-bearing workspace
-  packages (including web 307, extension 93, and server 323 tests).
+  packages, including web 26 files/307 tests, extension 11 files/93 tests, and
+  server 68 files/335 tests.
 - `rtk pnpm check-types`: passed, 12 tasks.
-- `rtk pnpm lint`: completed with no errors; three new unused-symbol warnings
-  were found and removed before closeout documentation.
+- `rtk pnpm lint`: passed, 13 tasks with no warnings.
 - `rtk pnpm build`: passed across the Turbo build graph.
-- `rtk git diff --check`: passed before documentation closeout.
-- Required PostgreSQL verification is blocked: `test:db:drop` fails before DB
-  access because `.env-cmdrc` has `development` and `testing` only, while all
-  DB setup/migrate/test scripts require `testing_maintenance`. No credentials or
-  replacement maintenance profile were invented.
-- Agent-browser loaded `http://localhost:3000`; Vite/React loaded with no browser
-  console exceptions, but `GET /api/v1/public/instance` failed and the UI showed
-  `Setup status unavailable`. Without an API-ready disposable synthetic DB,
-  portal/public-reader mutations and DB event-count correlation could not run.
-  The session and local server/web processes were closed; no screenshot or
-  customer/private data was recorded.
-- Extension browser provenance validation is likewise blocked without the
-  unpacked-extension synthetic harness and API-ready disposable database.
+- `rtk git diff --check`: passed.
+- Agent-browser passed a synthetic portal workflow at desktop and 390 px:
+  first-run setup, Project create/update, Capture Session create, screenshot
+  upload, Capture Event create, Guide generation, publish, authenticated logout,
+  and the public Guide reader. Keyboard traversal/submission worked, both portal
+  and public reader reflowed without horizontal overflow, requests returned the
+  expected 201/200/204 statuses, and browser console/page errors were empty.
+- Browser-created mutations correlated to typed Audit Events for setup, session
+  create/activity/revoke, Project create/update, Capture Session/Asset/Event
+  creation, Guide creation, and publication; zero Audit Events lacked change
+  items. Only synthetic local records, an OSSie-owned icon, and `example.test`
+  URLs were used; no screenshots, cookies, tokens, or credentials were saved.
+- An unpacked-extension browser harness was unavailable. The accepted fallback
+  passed extension tests (11 files/93 tests), server extension/import source
+  policy tests, route/source completeness, and DB actor/source enforcement; no
+  extension browser evidence is claimed.
 
 Planning verification on 2026-07-19:
 
@@ -1103,42 +1131,27 @@ docs/plan/113-existing-mutation-audit-coverage.md`: passed after recheck.
 
 ## Leftovers And Handoff
 
-Implementation is committed, but this child must not be marked complete and
-child `114` must not start until the following closeout evidence is available:
+Child `113` is complete and child `114` is now executable. There is no remaining
+mutation-coverage implementation work to carry forward.
 
-- provide/restore the repository-standard `testing_maintenance` environment
-  profile without placing maintenance credentials in the runtime profile;
-- run fresh setup/migration `001`-`016`, full DB integration, smoke, catalog,
-  runtime-role denial, DOWN/UP, atomic rollback/no-op/retry/batch/redaction, and
-  evidence-count verification on a disposable database;
-- run the specified desktop, narrow-mobile, public-reader, and extension-source
-  browser workflows using synthetic fixtures, with console/network and Audit
-  Event count correlation;
-- if DB/browser checks reveal a defect, reopen implementation, fix it with a
-  focused failing test, and repeat the close-previous loop before checking the
-  Master `005` child item;
-- after those checks pass, change this status to complete, check the remaining
-  delivery/acceptance items, update Master `005` to make child `114` executable,
-  and add the final evidence-only closeout commit.
+Non-blocking operational leftovers:
 
-The original implementation handoff constraints remain applicable:
+- Local contributors must define separate `development_maintenance` and
+  `testing_maintenance` profiles for DB administration; runtime profiles must
+  not receive maintenance credentials. The setup/smoke/operations docs now state
+  this contract explicitly.
+- When an unpacked-extension browser harness is available, repeat the synthetic
+  extension capture provenance workflow. Until then, keep the tested HTTP
+  header/session, source-policy, DB enforcement, and extension-suite fallback.
+- The migration verifier intentionally understands both installed states:
+  migration `015` Project-only core coverage and migration `016` comprehensive
+  coverage. Future migrations must extend the comprehensive verifier without
+  breaking rollback readiness for the actually installed migration set.
 
-- reread this plan, Master `005`, child `112` closeout, current code, and working
-  tree before coding;
-- re-run source/table/route inventory if any code changed after baseline
-  `66f4061`, and update this plan before implementation if a mutation was added,
-  removed, or renamed;
-- keep guards partial until the corresponding commands are converted in the
-  implementation branch, then activate migration `016` only when exhaustive
-  registry/source/catalog tests pass;
-- stop only for a genuine change to Audit/Access semantics, tenant isolation,
-  permissions, retention/deletion, Capture immutability, public access,
-  credentials, major dependencies, or child ordering;
-- close with exact commits, commands, DB/catalog evidence, browser evidence,
-  blocked capabilities, and any non-blocking operational follow-up.
-
-After successful closeout, child `114` inherits comprehensive mutation Audit
-coverage and owns Access Events, protected-read-before-return guarantees,
-compliance query authorization, Owner/Project Admin evidence views, curated
-Editor activity, Viewer Revision/Publication history, and browser UI. Child
-`114` must not repurpose mutation Audit Events as Access Events.
+Child `114` inherits comprehensive mutation Audit coverage and owns Access
+Events, protected-read-before-return guarantees, compliance query authorization,
+Owner-only raw evidence at the current pre-membership boundary, storage metrics,
+and browser UI. It must keep meaningful access separate from mutation Audit
+Events, reuse the established actor/source and tenant derivation where valid,
+and leave Project-role visibility extension points for child `115` without
+inventing Project Admin/Editor/Viewer authorization early.

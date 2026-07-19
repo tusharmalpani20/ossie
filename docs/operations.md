@@ -57,8 +57,9 @@ For disposable local and test databases only, run
 helper refuses production. Provision both production roles with operator-owned
 PostgreSQL tooling and give the API service only the runtime credentials.
 Keep maintenance variables in the administrative command environment only; the
-local `.env-cmdrc` uses separate `development` and `development_maintenance`
-profiles for this reason.
+local `.env-cmdrc` must define separate `development`/`testing` runtime profiles
+and `development_maintenance`/`testing_maintenance` administrative profiles for
+this reason.
 
 ## Backups
 

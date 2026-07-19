@@ -14,7 +14,8 @@ Do not mark a flow as passed from assumption. Record pending manual checks as pe
 
 - Node and pnpm versions supported by the repo.
 - PostgreSQL available through `.env-cmdrc`.
-- `.env-cmdrc` has a `testing` environment usable by `apps/server`.
+- `.env-cmdrc` has separate `testing` runtime and `testing_maintenance`
+  administrative environments usable by `apps/server`.
 - Server migrations have been run for the testing database.
 - Local file storage is writable.
 - Chrome or Chromium is available for extension dogfooding.
@@ -27,7 +28,10 @@ From the repo root:
 rtk pnpm --filter server test:smoke
 ```
 
-The smoke command uses the existing `.env-cmdrc` `testing` environment. It does not create a separate database configuration.
+The smoke command uses the existing `.env-cmdrc` `testing_maintenance`
+environment so it can reset the disposable database. The application path still
+connects as the configured runtime role; maintenance credentials are not API
+runtime credentials.
 
 If the testing database is missing or stale, run the existing DB setup commands first:
 
