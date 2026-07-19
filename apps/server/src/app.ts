@@ -697,7 +697,7 @@ export const build = (opts: BuildOptions = {}) => {
           return with_project_authorization(service, project_access_service, {
             create_interactive_demo_from_capture: "artifact.write", create_interactive_demo: "artifact.write",
             list_interactive_demos: "artifact.read", get_interactive_demo: "artifact.read",
-            update_interactive_demo: "artifact.write", delete_interactive_demo: "artifact.write",
+            update_interactive_demo: "artifact.write",
             create_demo_scene: "artifact.write", list_demo_scenes: "artifact.read",
             update_demo_scene: "artifact.write", reorder_demo_scenes: "artifact.write",
             delete_demo_scene: "artifact.write", create_demo_hotspot: "artifact.write",

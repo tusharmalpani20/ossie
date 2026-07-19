@@ -4,7 +4,6 @@ import { build } from "../../app";
 import { pool } from "../../config/database.config";
 import {
   reset_test_database,
-  run_test_fixture_mutation,
   with_maintenance_client,
 } from "../../test-support/database";
 
@@ -50,7 +49,10 @@ const create_project = async (session_token: string) => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  return response.json().project.id as string;
+  return {
+    project_id: response.json().project.id as string,
+    project_version_id: response.json().project.default_project_version.id as string,
+  };
 };
 
 const get_owner_context = async () => {
@@ -312,9 +314,9 @@ describe("DB-backed interactive demo API", () => {
     await pool.end();
   });
 
-  it("creates lists gets updates archives demos and manages ordered scenes", async () => {
+  it("persists a version-scoped Edition, Working Draft, scenes, transitions, and lifecycle changes", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
+    const { project_id, project_version_id } = await create_project(session_token);
     const owner_context = await get_owner_context();
     const capture_asset_id = await insert_screenshot_asset({
       organization_id: owner_context?.organization_id ?? "",
@@ -323,367 +325,111 @@ describe("DB-backed interactive demo API", () => {
     });
     const app = build({ logger: false });
 
-    const create_demo_response = await app.inject({
+    const created = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${project_id}/interactive-demos`,
       cookies: { ossie_session: session_token },
       payload: {
+        project_version_id,
         title: "Product Tour",
         description: "Internal walkthrough",
-        organization_id: "attacker_org",
       },
     });
-
-    expect(create_demo_response.statusCode).toBe(201);
-    expect(create_demo_response.json().interactive_demo).toMatchObject({
-      organization_id: owner_context?.organization_id,
-      project_id,
+    expect(created.statusCode, created.body).toBe(201);
+    expect(created.json().artifact).toMatchObject({ project_id });
+    expect(created.json().edition).toMatchObject({
+      project_version_id,
       title: "Product Tour",
-      description: "Internal walkthrough",
       status: "draft",
       version: 1,
     });
-    expect(JSON.stringify(create_demo_response.json())).not.toContain(
-      "is_deleted",
-    );
-    const interactive_demo_id = create_demo_response.json().interactive_demo
-      .id as string;
+    expect(created.json().working_draft.version).toBe(1);
+    const demo_id = created.json().artifact.id as string;
 
-    const first_scene_response = await app.inject({
+    const first_scene = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes`,
+      url: `/api/v1/projects/${project_id}/interactive-demos/${demo_id}/scenes?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         title: "Welcome",
         background_capture_asset_id: capture_asset_id,
+        expected_working_draft_version: created.json().working_draft.version,
       },
     });
-    const second_scene_response = await app.inject({
+    expect(first_scene.statusCode, first_scene.body).toBe(201);
+
+    const second_scene = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes`,
+      url: `/api/v1/projects/${project_id}/interactive-demos/${demo_id}/scenes?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         title: "Dashboard",
         background_capture_asset_id: capture_asset_id,
+        expected_working_draft_version: first_scene.json().working_draft.version,
       },
     });
+    expect(second_scene.statusCode, second_scene.body).toBe(201);
 
-    expect(first_scene_response.statusCode).toBe(201);
-    expect(first_scene_response.json().demo_scene).toMatchObject({
-      scene_index: 1,
-      title: "Welcome",
-      background_capture_asset_id: capture_asset_id,
-    });
-    expect(second_scene_response.statusCode).toBe(201);
-    expect(second_scene_response.json().demo_scene.scene_index).toBe(2);
-    const first_scene_id = first_scene_response.json().demo_scene.id as string;
-    const second_scene_id = second_scene_response.json().demo_scene
-      .id as string;
-
-    const create_hotspot_response = await app.inject({
+    const hotspot = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${first_scene_id}/hotspots`,
+      url: `/api/v1/projects/${project_id}/interactive-demos/${demo_id}/scenes/${first_scene.json().demo_scene.id}/hotspots?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         hotspot_type: "click",
         label: "Continue",
-        content: "Move forward",
         x: 0.1,
         y: 0.2,
         width: 0.3,
         height: 0.12,
-        target_scene_id: second_scene_id,
+        transition: { target_scene_id: second_scene.json().demo_scene.id },
+        expected_working_draft_version: second_scene.json().working_draft.version,
       },
     });
-    const invalid_hotspot_response = await app.inject({
+    expect(hotspot.statusCode, hotspot.body).toBe(201);
+    expect(hotspot.json().demo_hotspot.transition).toMatchObject({
+      target_scene_id: second_scene.json().demo_scene.id,
+    });
+
+    const archived = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${first_scene_id}/hotspots`,
+      url: `/api/v1/projects/${project_id}/interactive-demos/${demo_id}/archive?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
-      payload: {
-        hotspot_type: "info",
-        x: 0.95,
-        y: 0.2,
-        width: 0.1,
-        height: 0.12,
-      },
+      payload: { expected_edition_version: created.json().edition.version },
     });
+    expect(archived.statusCode, archived.body).toBe(200);
+    expect(archived.json().edition.status).toBe("archived");
 
-    expect(create_hotspot_response.statusCode).toBe(201);
-    expect(create_hotspot_response.json().demo_hotspot).toMatchObject({
-      hotspot_type: "click",
-      label: "Continue",
-      content: "Move forward",
-      x: 0.1,
-      y: 0.2,
-      width: 0.3,
-      height: 0.12,
-      target_scene_id: second_scene_id,
-      hotspot_index: 1,
-    });
-    expect(JSON.stringify(create_hotspot_response.json())).not.toContain(
-      "is_deleted",
-    );
-    expect(invalid_hotspot_response.statusCode).toBe(400);
-    expect(invalid_hotspot_response.json().error.type).toBe(
-      "invalid_demo_hotspot_coordinates",
-    );
-    const first_hotspot_id = create_hotspot_response.json().demo_hotspot
-      .id as string;
-
-    const second_hotspot_response = await app.inject({
+    const blocked_write = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${first_scene_id}/hotspots`,
+      url: `/api/v1/projects/${project_id}/interactive-demos/${demo_id}/scenes?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
-        hotspot_type: "info",
-        label: "Read this",
-        content: "This is a helpful note",
-        x: 0.5,
-        y: 0.3,
-        width: 0.2,
-        height: 0.1,
+        title: "Blocked",
+        expected_working_draft_version: hotspot.json().working_draft.version,
       },
     });
-    expect(second_hotspot_response.statusCode).toBe(201);
-    const second_hotspot_id = second_hotspot_response.json().demo_hotspot
-      .id as string;
+    expect(blocked_write.statusCode).toBe(409);
+    expect(blocked_write.json().error.type).toBe("interactive_demo_not_editable");
 
-    const partial_reorder_response = await app.inject({
-      method: "PUT",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/order`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        scene_ids: [second_scene_id],
-      },
+    const rows = await pool.query<{ editions: string; drafts: string; scenes: string; transitions: string }>(`
+      SELECT
+        (SELECT COUNT(*) FROM interactive_demo_schema.interactive_demo_edition)::text AS editions,
+        (SELECT COUNT(*) FROM interactive_demo_schema.interactive_demo_working_draft)::text AS drafts,
+        (SELECT COUNT(*) FROM interactive_demo_schema.demo_scene WHERE is_deleted = FALSE)::text AS scenes,
+        (SELECT COUNT(*) FROM interactive_demo_schema.demo_transition WHERE is_deleted = FALSE)::text AS transitions
+    `);
+    expect(rows.rows[0]).toEqual({
+      editions: "1",
+      drafts: "1",
+      scenes: "2",
+      transitions: "1",
     });
-    const reorder_response = await app.inject({
-      method: "PUT",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/order`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        scene_ids: [second_scene_id, first_scene_id],
-      },
-    });
-    const update_demo_response = await app.inject({
-      method: "PATCH",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        title: "Updated Tour",
-        description: "",
-        status: "archived",
-      },
-    });
-    const list_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/projects/${project_id}/interactive-demos`,
-      cookies: { ossie_session: session_token },
-    });
-    const scenes_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes`,
-      cookies: { ossie_session: session_token },
-    });
-    const update_hotspot_response = await app.inject({
-      method: "PATCH",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${first_scene_id}/hotspots/${first_hotspot_id}`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        label: "Updated hotspot",
-        target_scene_id: null,
-      },
-    });
-    const reorder_hotspot_response = await app.inject({
-      method: "PUT",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${first_scene_id}/hotspots/order`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        hotspot_ids: [second_hotspot_id, first_hotspot_id],
-      },
-    });
-    const hotspots_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${first_scene_id}/hotspots`,
-      cookies: { ossie_session: session_token },
-    });
-
-    expect(partial_reorder_response.statusCode).toBe(400);
-    expect(partial_reorder_response.json().error.type).toBe(
-      "invalid_demo_scene_order",
-    );
-    expect(reorder_response.statusCode).toBe(200);
-    expect(
-      reorder_response
-        .json()
-        .demo_scenes.map((scene: { id: string; scene_index: number }) => ({
-          id: scene.id,
-          scene_index: scene.scene_index,
-        })),
-    ).toEqual([
-      { id: second_scene_id, scene_index: 1 },
-      { id: first_scene_id, scene_index: 2 },
-    ]);
-    expect(update_demo_response.statusCode).toBe(200);
-    expect(update_demo_response.json().interactive_demo).toMatchObject({
-      title: "Updated Tour",
-      description: null,
-      status: "archived",
-      version: 2,
-    });
-    expect(list_response.json().interactive_demos).toHaveLength(1);
-    expect(
-      scenes_response
-        .json()
-        .demo_scenes.map((scene: { id: string }) => scene.id),
-    ).toEqual([second_scene_id, first_scene_id]);
-    expect(update_hotspot_response.statusCode).toBe(200);
-    expect(update_hotspot_response.json().demo_hotspot).toMatchObject({
-      id: first_hotspot_id,
-      label: "Updated hotspot",
-      target_scene_id: null,
-      version: 2,
-    });
-    expect(reorder_hotspot_response.statusCode).toBe(200);
-    expect(
-      reorder_hotspot_response
-        .json()
-        .demo_hotspots.map(
-          (hotspot: { id: string; hotspot_index: number }) => ({
-            id: hotspot.id,
-            hotspot_index: hotspot.hotspot_index,
-          }),
-        ),
-    ).toEqual([
-      { id: second_hotspot_id, hotspot_index: 1 },
-      { id: first_hotspot_id, hotspot_index: 2 },
-    ]);
-    expect(
-      hotspots_response
-        .json()
-        .demo_hotspots.map((hotspot: { id: string }) => hotspot.id),
-    ).toEqual([second_hotspot_id, first_hotspot_id]);
-
-    const delete_hotspot_response = await app.inject({
-      method: "DELETE",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${first_scene_id}/hotspots/${first_hotspot_id}`,
-      cookies: { ossie_session: session_token },
-    });
-    const delete_scene_response = await app.inject({
-      method: "DELETE",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${first_scene_id}`,
-      cookies: { ossie_session: session_token },
-    });
-    const delete_demo_response = await app.inject({
-      method: "DELETE",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}`,
-      cookies: { ossie_session: session_token },
-    });
-    const get_deleted_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}`,
-      cookies: { ossie_session: session_token },
-    });
-
-    expect(delete_hotspot_response.statusCode).toBe(204);
-    expect(delete_scene_response.statusCode).toBe(204);
-    expect(delete_demo_response.statusCode).toBe(204);
-    expect(get_deleted_response.statusCode).toBe(404);
-
     await app.close();
   }, 60_000);
 
-  it("rejects hotspot target scenes from a different interactive demo at the schema boundary", async () => {
+  it("generates independent relational demos from version-owned Capture source", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
-    const owner_context = await get_owner_context();
-    const app = build({ logger: false });
-    const first_demo_response = await app.inject({
-      method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos`,
-      cookies: { ossie_session: session_token },
-      payload: { title: "First demo" },
-    });
-    const second_demo_response = await app.inject({
-      method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos`,
-      cookies: { ossie_session: session_token },
-      payload: { title: "Second demo" },
-    });
-    expect(first_demo_response.statusCode).toBe(201);
-    expect(second_demo_response.statusCode).toBe(201);
-    const first_demo_id = first_demo_response.json().interactive_demo
-      .id as string;
-    const second_demo_id = second_demo_response.json().interactive_demo
-      .id as string;
-    const first_scene_id = ulid();
-    const second_scene_id = ulid();
-
-    await run_test_fixture_mutation(
-      `
-      INSERT INTO interactive_demo_schema.demo_scene (
-        id,
-        organization_id,
-        project_id,
-        interactive_demo_id,
-        scene_index,
-        title,
-        created_by_id,
-        updated_by_id
-      )
-      VALUES
-        ($1, $3, $4, $5, 1, 'First scene', $7, $7),
-        ($2, $3, $4, $6, 1, 'Second scene', $7, $7)
-    `,
-      [
-        first_scene_id,
-        second_scene_id,
-        owner_context?.organization_id,
-        project_id,
-        first_demo_id,
-        second_demo_id,
-        owner_context?.org_user_id,
-      ],
-    );
-
-    await expect(
-      pool.query(
-        `
-      INSERT INTO interactive_demo_schema.demo_hotspot (
-        id,
-        organization_id,
-        project_id,
-        interactive_demo_id,
-        demo_scene_id,
-        hotspot_type,
-        x,
-        y,
-        width,
-        height,
-        target_scene_id,
-        hotspot_index,
-        created_by_id,
-        updated_by_id
-      )
-      VALUES ($1, $2, $3, $4, $5, 'click', 0.1, 0.1, 0.2, 0.2, $6, 1, $7, $7)
-    `,
-        [
-          ulid(),
-          owner_context?.organization_id,
-          project_id,
-          first_demo_id,
-          first_scene_id,
-          second_scene_id,
-          owner_context?.org_user_id,
-        ],
-      ),
-    ).rejects.toThrow();
-
-    await app.close();
-  });
-
-  it("creates interactive demos from screenshot-backed capture events", async () => {
-    const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
+    const { project_id, project_version_id } = await create_project(session_token);
     const owner_context = await get_owner_context();
     const source = await insert_capture_source_material({
       organization_id: owner_context?.organization_id ?? "",
@@ -692,135 +438,32 @@ describe("DB-backed interactive demo API", () => {
     });
     const app = build({ logger: false });
 
-    const response = await app.inject({
-      method: "POST",
-      url: `/api/v1/projects/${project_id}/capture-sessions/${source.capture_session_id}/interactive-demos`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        title: "Request title should be ignored",
-        description: "",
-      },
-    });
-
-    expect(response.statusCode).toBe(201);
-    expect(response.json().interactive_demo).toMatchObject({
-      project_id,
-      source_capture_session_id: source.capture_session_id,
-      title: "Department setup",
-      description: "Create departments in ERP",
-      status: "draft",
-    });
-    expect(response.json().redirect_path).toBe(
-      `/projects/${project_id}/interactive-demos/${response.json().interactive_demo.id}`,
-    );
-    expect(
-      response
-        .json()
-        .demo_scenes.map(
-          (scene: {
-            scene_index: number;
-            source_capture_event_id: string | null;
-            source_capture_asset_id: string | null;
-            background_capture_asset_id: string | null;
-            title: string | null;
-          }) => ({
-            scene_index: scene.scene_index,
-            source_capture_event_id: scene.source_capture_event_id,
-            source_capture_asset_id: scene.source_capture_asset_id,
-            background_capture_asset_id: scene.background_capture_asset_id,
-            title: scene.title,
-          }),
-        ),
-    ).toEqual([
-      {
-        scene_index: 1,
-        source_capture_event_id: source.click_event_id,
-        source_capture_asset_id: source.first_asset_id,
-        background_capture_asset_id: source.first_asset_id,
-        title: "Click Add Department",
-      },
-      {
-        scene_index: 2,
-        source_capture_event_id: source.capture_event_id,
-        source_capture_asset_id: source.second_asset_id,
-        background_capture_asset_id: source.second_asset_id,
-        title: "New Department",
-      },
-    ]);
-
-    const second_response = await app.inject({
+    const create_from_capture = () => app.inject({
       method: "POST",
       url: `/api/v1/projects/${project_id}/capture-sessions/${source.capture_session_id}/interactive-demos`,
       cookies: { ossie_session: session_token },
       payload: {},
     });
-    expect(second_response.statusCode).toBe(201);
-    expect(second_response.json().interactive_demo.id).not.toBe(
-      response.json().interactive_demo.id,
-    );
-    expect(
-      second_response
-        .json()
-        .demo_scenes.map(
-          (scene: {
-            id: string;
-            interactive_demo_id: string;
-            source_capture_event_id: string | null;
-            background_capture_asset_id: string | null;
-          }) => ({
-            id: scene.id,
-            interactive_demo_id: scene.interactive_demo_id,
-            source_capture_event_id: scene.source_capture_event_id,
-            background_capture_asset_id: scene.background_capture_asset_id,
-          }),
-        ),
-    ).toEqual([
-      {
-        id: expect.any(String),
-        interactive_demo_id: second_response.json().interactive_demo.id,
-        source_capture_event_id: source.click_event_id,
-        background_capture_asset_id: source.first_asset_id,
-      },
-      {
-        id: expect.any(String),
-        interactive_demo_id: second_response.json().interactive_demo.id,
-        source_capture_event_id: source.capture_event_id,
-        background_capture_asset_id: source.second_asset_id,
-      },
-    ]);
-    expect(second_response.json().demo_scenes[0].id).not.toBe(
-      response.json().demo_scenes[0].id,
-    );
+    const first = await create_from_capture();
+    const second = await create_from_capture();
 
-    await app.close();
-  });
-
-  it("rejects scenes that reference capture assets outside the current project", async () => {
-    const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
-    const app = build({ logger: false });
-    const demo_response = await app.inject({
-      method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos`,
-      cookies: { ossie_session: session_token },
-      payload: { title: "Product Tour" },
+    expect(first.statusCode, first.body).toBe(201);
+    expect(second.statusCode, second.body).toBe(201);
+    expect(first.json().artifact.id).not.toBe(second.json().artifact.id);
+    expect(first.json().edition).toMatchObject({
+      project_version_id,
+      source_capture_session_id: source.capture_session_id,
+      title: "Department setup",
+      description: "Create departments in ERP",
     });
-    const interactive_demo_id = demo_response.json().interactive_demo
-      .id as string;
-
-    const response = await app.inject({
-      method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        title: "Invalid asset",
-        background_capture_asset_id: "missing_asset",
-      },
+    expect(first.json().working_draft.version).toBe(1);
+    expect(first.json().demo_scenes).toHaveLength(2);
+    expect(first.json().demo_scenes[0]).toMatchObject({
+      source_capture_session_id: source.capture_session_id,
+      source_capture_event_id: source.click_event_id,
+      background_capture_asset_id: source.first_asset_id,
     });
-
-    expect(response.statusCode).toBe(400);
-    expect(response.json().error.type).toBe("invalid_demo_scene_reference");
-
+    expect(JSON.stringify(first.json())).not.toContain("storage_key");
     await app.close();
-  });
+  }, 60_000);
 });

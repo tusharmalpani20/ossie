@@ -97,7 +97,10 @@ const U = {
       operation,
     ]),
   guide_insert: () => write("guide_schema.guide", "INSERT", "guide"),
-  guide_update: () => write("guide_schema.guide", "UPDATE", "guide"),
+  guide_edition_insert: () => write("guide_schema.guide_edition", "INSERT", "guide_edition"),
+  guide_update: () => write("guide_schema.guide_edition", "UPDATE", "guide_edition"),
+  guide_draft_insert: () => write("guide_schema.guide_working_draft", "INSERT", "guide_working_draft"),
+  guide_draft_update: () => write("guide_schema.guide_working_draft", "UPDATE", "guide_working_draft"),
   block_insert: () =>
     write("guide_schema.guide_block", "INSERT", "guide_block"),
   block_update: (operation: AuditOperation = "update") =>
@@ -105,19 +108,24 @@ const U = {
   step_insert: () => write("guide_schema.guide_step", "INSERT", "guide_step"),
   step_update: (operation: AuditOperation = "update") =>
     write("guide_schema.guide_step", "UPDATE", "guide_step", [operation]),
+  annotation_insert: () => write("guide_schema.guide_annotation", "INSERT", "guide_annotation"),
+  annotation_update: (operation: AuditOperation = "update") => write("guide_schema.guide_annotation", "UPDATE", "guide_annotation", [operation]),
   demo_insert: () =>
     write(
       "interactive_demo_schema.interactive_demo",
       "INSERT",
       "interactive_demo",
     ),
+  demo_edition_insert: () => write("interactive_demo_schema.interactive_demo_edition", "INSERT", "interactive_demo_edition"),
   demo_update: (operation: AuditOperation = "update") =>
     write(
-      "interactive_demo_schema.interactive_demo",
+      "interactive_demo_schema.interactive_demo_edition",
       "UPDATE",
-      "interactive_demo",
+      "interactive_demo_edition",
       [operation],
     ),
+  demo_draft_insert: () => write("interactive_demo_schema.interactive_demo_working_draft", "INSERT", "interactive_demo_working_draft"),
+  demo_draft_update: () => write("interactive_demo_schema.interactive_demo_working_draft", "UPDATE", "interactive_demo_working_draft"),
   scene_insert: () =>
     write("interactive_demo_schema.demo_scene", "INSERT", "demo_scene"),
   scene_update: (operation: AuditOperation = "update") =>
@@ -130,6 +138,8 @@ const U = {
     write("interactive_demo_schema.demo_hotspot", "UPDATE", "demo_hotspot", [
       operation,
     ]),
+  transition_insert: () => write("interactive_demo_schema.demo_transition", "INSERT", "demo_transition"),
+  transition_update: (operation: AuditOperation = "update") => write("interactive_demo_schema.demo_transition", "UPDATE", "demo_transition", [operation]),
   publication_insert: () =>
     write("publish_schema.published_artifact", "INSERT", "published_artifact"),
   link_insert: () =>
@@ -389,33 +399,35 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "POST /api/v1/projects/:project_id/guides/from-capture-session/:capture_session_id",
     ],
-    [U.guide_insert(), U.block_insert(), U.step_insert()],
+    [U.guide_insert(), U.guide_edition_insert(), U.guide_draft_insert(), U.block_insert(), U.step_insert()],
   ),
   command(
     "guide.update",
-    "guide.updated",
+    "guide.edition.updated",
     ["PATCH /api/v1/projects/:project_id/guides/:guide_id"],
     [U.guide_update()],
   ),
+  command("guide.archive", "guide.edition.archived", ["POST /api/v1/projects/:project_id/guides/:guide_id/archive"], [U.guide_update()]),
+  command("guide.restore", "guide.edition.restored", ["POST /api/v1/projects/:project_id/guides/:guide_id/restore"], [U.guide_update()]),
   command(
     "guide.step.update",
     "guide.step.updated",
     [
       "PATCH /api/v1/projects/:project_id/guides/:guide_id/steps/:guide_step_id",
     ],
-    [U.step_update(), U.guide_update()],
+    [U.step_update(), U.guide_draft_update()],
   ),
   command(
     "guide.blocks.reorder",
     "guide.blocks.reordered",
     ["PATCH /api/v1/projects/:project_id/guides/:guide_id/blocks/reorder"],
-    [U.block_update(), U.guide_update()],
+    [U.block_update(), U.guide_draft_update()],
   ),
   command(
     "guide.block.create",
     "guide.block.created",
     ["POST /api/v1/projects/:project_id/guides/:guide_id/blocks"],
-    [U.block_update(), U.block_insert(), U.step_insert(), U.guide_update()],
+    [U.block_update(), U.block_insert(), U.step_insert(), U.guide_draft_update()],
   ),
   command(
     "guide.block.update",
@@ -423,7 +435,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "PATCH /api/v1/projects/:project_id/guides/:guide_id/blocks/:guide_block_id",
     ],
-    [U.block_update(), U.step_update(), U.guide_update()],
+    [U.block_update(), U.guide_draft_update()],
   ),
   command(
     "guide.block.screenshot.update",
@@ -431,7 +443,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "PATCH /api/v1/projects/:project_id/guides/:guide_id/blocks/:guide_block_id/screenshot",
     ],
-    [U.block_update(), U.guide_update()],
+    [U.step_update(), U.annotation_update(), U.guide_draft_update()],
   ),
   command(
     "guide.block.annotations.update",
@@ -439,7 +451,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "PATCH /api/v1/projects/:project_id/guides/:guide_id/blocks/:guide_block_id/annotations",
     ],
-    [U.block_update(), U.guide_update()],
+    [U.annotation_update(), U.annotation_insert(), U.guide_draft_update()],
   ),
   command(
     "guide.block.screenshot_upload",
@@ -447,7 +459,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "POST /api/v1/projects/:project_id/guides/:guide_id/blocks/:guide_block_id/screenshot-upload",
     ],
-    [U.file_insert(), U.asset_insert(), U.block_update(), U.guide_update()],
+    [U.file_insert(), U.asset_insert(), U.step_update(), U.guide_draft_update()],
     { source_types: ["web", "api", "extension", "import"] },
   ),
   command(
@@ -456,7 +468,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "DELETE /api/v1/projects/:project_id/guides/:guide_id/blocks/:guide_block_id",
     ],
-    [U.block_update("delete"), U.step_update("delete"), U.guide_update()],
+    [U.block_update("delete"), U.step_update("delete"), U.annotation_update("delete"), U.guide_draft_update()],
   ),
   command(
     "interactive_demo.create_from_capture",
@@ -464,37 +476,31 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "POST /api/v1/projects/:project_id/capture-sessions/:capture_session_id/interactive-demos",
     ],
-    [U.demo_insert(), U.scene_insert()],
+    [U.demo_insert(), U.demo_edition_insert(), U.demo_draft_insert(), U.scene_insert()],
   ),
   command(
     "interactive_demo.create",
     "interactive_demo.created",
     ["POST /api/v1/projects/:project_id/interactive-demos"],
-    [U.demo_insert()],
+    [U.demo_insert(), U.demo_edition_insert(), U.demo_draft_insert()],
   ),
   command(
     "interactive_demo.update",
-    "interactive_demo.updated",
+    "interactive_demo.edition.updated",
     [
       "PATCH /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id",
     ],
     [U.demo_update()],
   ),
-  command(
-    "interactive_demo.delete",
-    "interactive_demo.deleted",
-    [
-      "DELETE /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id",
-    ],
-    [U.demo_update("delete")],
-  ),
+  command("interactive_demo.archive", "interactive_demo.edition.archived", ["POST /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/archive"], [U.demo_update()]),
+  command("interactive_demo.restore", "interactive_demo.edition.restored", ["POST /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/restore"], [U.demo_update()]),
   command(
     "interactive_demo.scene.create",
     "interactive_demo.scene.created",
     [
       "POST /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes",
     ],
-    [U.scene_insert()],
+    [U.scene_insert(), U.demo_draft_update()],
   ),
   command(
     "interactive_demo.scene.update",
@@ -502,7 +508,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "PATCH /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes/:scene_id",
     ],
-    [U.scene_update()],
+    [U.scene_update(), U.demo_draft_update()],
   ),
   command(
     "interactive_demo.scenes.reorder",
@@ -510,7 +516,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "PUT /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes/order",
     ],
-    [U.scene_update()],
+    [U.scene_update(), U.demo_draft_update()],
   ),
   command(
     "interactive_demo.scene.delete",
@@ -518,7 +524,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "DELETE /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes/:scene_id",
     ],
-    [U.scene_update("delete")],
+    [U.scene_update("delete"), U.hotspot_update("delete"), U.transition_update("delete"), U.demo_draft_update()],
   ),
   command(
     "interactive_demo.hotspot.create",
@@ -526,7 +532,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "POST /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes/:scene_id/hotspots",
     ],
-    [U.hotspot_insert()],
+    [U.hotspot_insert(), U.transition_insert(), U.demo_draft_update()],
   ),
   command(
     "interactive_demo.hotspot.update",
@@ -534,7 +540,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "PATCH /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes/:scene_id/hotspots/:hotspot_id",
     ],
-    [U.hotspot_update()],
+    [U.hotspot_update(), U.transition_insert(), U.transition_update(), U.demo_draft_update()],
   ),
   command(
     "interactive_demo.hotspots.reorder",
@@ -542,7 +548,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "PUT /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes/:scene_id/hotspots/order",
     ],
-    [U.hotspot_update()],
+    [U.hotspot_update(), U.demo_draft_update()],
   ),
   command(
     "interactive_demo.hotspot.delete",
@@ -550,7 +556,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "DELETE /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes/:scene_id/hotspots/:hotspot_id",
     ],
-    [U.hotspot_update("delete")],
+    [U.hotspot_update("delete"), U.transition_update("delete"), U.demo_draft_update()],
   ),
   command(
     "publish.guide",

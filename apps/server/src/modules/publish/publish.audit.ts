@@ -175,12 +175,12 @@ export const build_audited_publish_repository = (
         ...raw,
         async find_guide_detail(input) {
           const result = await raw.find_guide_detail(input);
-          if (result) root_version = result.guide.version;
+          if (result) root_version = result.working_draft.version;
           return result;
         },
         async find_interactive_demo_detail(input) {
           const result = await raw.find_interactive_demo_detail(input);
-          if (result) root_version = result.interactive_demo.version;
+          if (result) root_version = result.working_draft.version;
           return result;
         },
         async find_active_publish_link(input) {

@@ -226,13 +226,13 @@ describe("DB-backed guide publishing API", () => {
       payload: {},
     });
     expect(create_demo_response.statusCode).toBe(201);
-    const interactive_demo_id = create_demo_response.json().interactive_demo
+    const interactive_demo_id = create_demo_response.json().artifact
       .id as string;
     const scene_id = create_demo_response.json().demo_scenes[0].id as string;
 
     const create_hotspot_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${scene_id}/hotspots`,
+      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${scene_id}/hotspots?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         hotspot_type: "info",
@@ -242,13 +242,15 @@ describe("DB-backed guide publishing API", () => {
         y: 0.2,
         width: 0.3,
         height: 0.1,
+        expected_working_draft_version:
+          create_demo_response.json().working_draft.version,
       },
     });
     expect(create_hotspot_response.statusCode).toBe(201);
 
     const publish_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/publish`,
+      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/publish?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     expect(publish_response.statusCode).toBe(201);
@@ -342,11 +344,11 @@ describe("DB-backed guide publishing API", () => {
       },
     });
     expect(create_guide_response.statusCode).toBe(201);
-    const guide_id = create_guide_response.json().guide.id as string;
+    const guide_id = create_guide_response.json().artifact.id as string;
 
     const publish_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     expect(publish_response.statusCode).toBe(201);
@@ -397,7 +399,7 @@ describe("DB-backed guide publishing API", () => {
 
     const restrict_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/access`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/access?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         visibility: "restricted",
@@ -433,7 +435,7 @@ describe("DB-backed guide publishing API", () => {
     const expired_at = new Date(Date.now() - 60_000).toISOString();
     const expire_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/access`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/access?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         visibility: "public",
@@ -458,7 +460,7 @@ describe("DB-backed guide publishing API", () => {
 
     const reopen_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/access`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/access?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         visibility: "public",
@@ -480,7 +482,7 @@ describe("DB-backed guide publishing API", () => {
 
     const set_password_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/password`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/password?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         password: "shared password",
@@ -549,7 +551,7 @@ describe("DB-backed guide publishing API", () => {
 
     const rotate_password_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/password`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/password?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         password: "new shared password",
@@ -566,7 +568,7 @@ describe("DB-backed guide publishing API", () => {
 
     const clear_password_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/password`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/password?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         password: null,
@@ -585,17 +587,19 @@ describe("DB-backed guide publishing API", () => {
 
     const update_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         title: "Edited department setup guide",
+        expected_edition_version:
+          create_guide_response.json().edition.version,
       },
     });
     expect(update_response.statusCode).toBe(200);
 
     const republish_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     expect(republish_response.statusCode).toBe(201);
@@ -637,7 +641,7 @@ describe("DB-backed guide publishing API", () => {
 
     const revoke_response = await app.inject({
       method: "DELETE",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     expect(revoke_response.statusCode).toBe(200);
@@ -651,7 +655,7 @@ describe("DB-backed guide publishing API", () => {
 
     const after_revoke_publish_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     expect(after_revoke_publish_response.statusCode).toBe(201);
@@ -663,17 +667,17 @@ describe("DB-backed guide publishing API", () => {
     ).toBe(3);
 
     const archive_response = await app.inject({
-      method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/archive?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
-        status: "archived",
+        expected_edition_version: update_response.json().edition.version,
       },
     });
     expect(archive_response.statusCode).toBe(200);
     const archived_publish_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     expect(archived_publish_response.statusCode).toBe(409);

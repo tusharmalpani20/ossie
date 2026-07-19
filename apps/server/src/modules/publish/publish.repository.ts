@@ -16,6 +16,7 @@ import type {
 import type { GuideSourceCaptureAsset } from "../guide/guide.service";
 import { PublishSlugConflictError } from "./publish.service";
 import { build_guide_repository } from "../guide/guide.repository";
+import { build_interactive_demo_repository } from "../interactive-demo/interactive-demo.repository";
 
 type QueryResult<Row> = {
   rows: Row[];
@@ -101,62 +102,6 @@ type GuidePublishStatusRow = {
   artifact_title: string;
   artifact_snapshot_json: unknown;
   artifact_published_at: Date;
-};
-
-type InteractiveDemoRow = {
-  id: string;
-  organization_id: string;
-  project_id: string;
-  source_capture_session_id: string | null;
-  title: string;
-  description: string | null;
-  status: "draft" | "archived";
-  created_by_id: string;
-  updated_by_id: string;
-  version: number;
-  created_at: Date;
-  updated_at: Date;
-};
-
-type DemoSceneRow = {
-  id: string;
-  organization_id: string;
-  project_id: string;
-  interactive_demo_id: string;
-  source_capture_session_id: string | null;
-  source_capture_event_id: string | null;
-  source_capture_asset_id: string | null;
-  scene_index: number;
-  title: string | null;
-  description: string | null;
-  background_capture_asset_id: string | null;
-  created_by_id: string;
-  updated_by_id: string;
-  version: number;
-  created_at: Date;
-  updated_at: Date;
-};
-
-type DemoHotspotRow = {
-  id: string;
-  organization_id: string;
-  project_id: string;
-  interactive_demo_id: string;
-  demo_scene_id: string;
-  hotspot_type: "click" | "info" | "next";
-  label: string | null;
-  content: string | null;
-  x: string;
-  y: string;
-  width: string;
-  height: string;
-  target_scene_id: string | null;
-  hotspot_index: number;
-  created_by_id: string;
-  updated_by_id: string;
-  version: number;
-  created_at: Date;
-  updated_at: Date;
 };
 
 type SourceCaptureAssetRow = {
@@ -273,62 +218,6 @@ const map_publish_status = (
   }),
 });
 
-const map_interactive_demo = (row: InteractiveDemoRow) => ({
-  id: row.id,
-  organization_id: row.organization_id,
-  project_id: row.project_id,
-  source_capture_session_id: row.source_capture_session_id,
-  title: row.title,
-  description: row.description,
-  status: row.status,
-  created_by_id: row.created_by_id,
-  updated_by_id: row.updated_by_id,
-  version: row.version,
-  created_at: row.created_at.toISOString(),
-  updated_at: row.updated_at.toISOString(),
-});
-
-const map_demo_scene = (row: DemoSceneRow) => ({
-  id: row.id,
-  organization_id: row.organization_id,
-  project_id: row.project_id,
-  interactive_demo_id: row.interactive_demo_id,
-  source_capture_session_id: row.source_capture_session_id,
-  source_capture_event_id: row.source_capture_event_id,
-  source_capture_asset_id: row.source_capture_asset_id,
-  scene_index: row.scene_index,
-  title: row.title,
-  description: row.description,
-  background_capture_asset_id: row.background_capture_asset_id,
-  created_by_id: row.created_by_id,
-  updated_by_id: row.updated_by_id,
-  version: row.version,
-  created_at: row.created_at.toISOString(),
-  updated_at: row.updated_at.toISOString(),
-});
-
-const map_demo_hotspot = (row: DemoHotspotRow) => ({
-  id: row.id,
-  organization_id: row.organization_id,
-  project_id: row.project_id,
-  interactive_demo_id: row.interactive_demo_id,
-  demo_scene_id: row.demo_scene_id,
-  hotspot_type: row.hotspot_type,
-  label: row.label,
-  content: row.content,
-  x: Number(row.x),
-  y: Number(row.y),
-  width: Number(row.width),
-  height: Number(row.height),
-  target_scene_id: row.target_scene_id,
-  hotspot_index: row.hotspot_index,
-  created_by_id: row.created_by_id,
-  updated_by_id: row.updated_by_id,
-  version: row.version,
-  created_at: row.created_at.toISOString(),
-  updated_at: row.updated_at.toISOString(),
-});
-
 const map_source_capture_asset = (
   row: SourceCaptureAssetRow,
 ): GuideSourceCaptureAsset => ({
@@ -349,62 +238,6 @@ const map_source_capture_asset = (
     size_bytes: Number(row.size_bytes),
   },
 });
-
-const interactive_demo_select = `
-  id,
-  organization_id,
-  project_id,
-  source_capture_session_id,
-  title,
-  description,
-  status,
-  created_by_id,
-  updated_by_id,
-  version,
-  created_at,
-  updated_at
-`;
-
-const demo_scene_select = `
-  id,
-  organization_id,
-  project_id,
-  interactive_demo_id,
-  source_capture_session_id,
-  source_capture_event_id,
-  source_capture_asset_id,
-  scene_index,
-  title,
-  description,
-  background_capture_asset_id,
-  created_by_id,
-  updated_by_id,
-  version,
-  created_at,
-  updated_at
-`;
-
-const demo_hotspot_select = `
-  id,
-  organization_id,
-  project_id,
-  interactive_demo_id,
-  demo_scene_id,
-  hotspot_type,
-  label,
-  content,
-  x::text AS x,
-  y::text AS y,
-  width::text AS width,
-  height::text AS height,
-  target_scene_id,
-  hotspot_index,
-  created_by_id,
-  updated_by_id,
-  version,
-  created_at,
-  updated_at
-`;
 
 const asset_referenced_by_snapshot = (
   snapshot: unknown,
@@ -499,6 +332,9 @@ export const build_publish_transactional_repository = (
   const guide_repository = build_guide_repository(
     db as Parameters<typeof build_guide_repository>[0],
   );
+  const demo_repository = build_interactive_demo_repository(
+    db as Parameters<typeof build_interactive_demo_repository>[0],
+  );
 
   return {
     async transaction(work) {
@@ -522,6 +358,25 @@ export const build_publish_transactional_repository = (
       return Boolean(result.rows[0]?.exists);
     },
 
+    async project_version_is_default(input) {
+      const result = await db.query<{ exists: boolean }>(
+        `SELECT EXISTS (
+          SELECT 1
+          FROM project_schema.project project
+          JOIN project_schema.project_version project_version
+            ON project_version.id = project.default_project_version_id
+           AND project_version.project_id = project.id
+           AND project_version.organization_id = project.organization_id
+          WHERE project_version.id = $1
+            AND project.id = $2
+            AND project.organization_id = $3
+            AND project.is_deleted = FALSE
+        ) AS exists`,
+        [input.project_version_id, input.project_id, input.organization_id],
+      );
+      return Boolean(result.rows[0]?.exists);
+    },
+
     async find_guide_detail(input) {
       return guide_repository.find_guide_detail(input);
     },
@@ -529,60 +384,31 @@ export const build_publish_transactional_repository = (
     async find_interactive_demo_detail(
       input,
     ): Promise<InteractiveDemoPublishDetail | null> {
-      const demo_result = await db.query<InteractiveDemoRow>(
-        `
-        SELECT ${interactive_demo_select}
-        FROM interactive_demo_schema.interactive_demo
-        WHERE id = $1
-        AND project_id = $2
-        AND organization_id = $3
-        AND is_deleted = FALSE
-        LIMIT 1
-      `,
-        [input.interactive_demo_id, input.project_id, input.organization_id],
-      );
-      const demo_row = first_row(demo_result);
-
-      if (!demo_row) {
-        return null;
+      const demo = await demo_repository.find_demo(input);
+      if (!demo) return null;
+      const scene_result = await demo_repository.list_scenes(input);
+      const demo_scenes = scene_result.demo_scenes;
+      const demo_hotspots: InteractiveDemoPublishDetail["demo_hotspots"] = [];
+      for (const scene of demo_scenes) {
+        demo_hotspots.push(...(await demo_repository.list_hotspots({
+          ...input,
+          demo_scene_id: scene.id,
+        })).demo_hotspots);
       }
-
-      const scenes_result = await db.query<DemoSceneRow>(
-        `
-        SELECT ${demo_scene_select}
-        FROM interactive_demo_schema.demo_scene
-        WHERE interactive_demo_id = $1
-        AND project_id = $2
-        AND organization_id = $3
-        AND is_deleted = FALSE
-        ORDER BY scene_index ASC, id ASC
-      `,
-        [input.interactive_demo_id, input.project_id, input.organization_id],
-      );
-      const hotspots_result = await db.query<DemoHotspotRow>(
-        `
-        SELECT ${demo_hotspot_select}
-        FROM interactive_demo_schema.demo_hotspot
-        WHERE interactive_demo_id = $1
-        AND project_id = $2
-        AND organization_id = $3
-        AND is_deleted = FALSE
-        ORDER BY demo_scene_id ASC, hotspot_index ASC, id ASC
-      `,
-        [input.interactive_demo_id, input.project_id, input.organization_id],
-      );
       const background_asset_ids = [
         ...new Set(
-          scenes_result.rows
+          demo_scenes
             .map((scene) => scene.background_capture_asset_id)
             .filter((asset_id): asset_id is string => Boolean(asset_id)),
         ),
       ];
 
       return {
-        interactive_demo: map_interactive_demo(demo_row),
-        demo_scenes: scenes_result.rows.map(map_demo_scene),
-        demo_hotspots: hotspots_result.rows.map(map_demo_hotspot),
+        artifact: demo.artifact,
+        edition: demo.edition,
+        working_draft: demo.working_draft,
+        demo_scenes,
+        demo_hotspots,
         source_capture_assets: await read_source_capture_assets(db, {
           organization_id: input.organization_id,
           project_id: input.project_id,

@@ -13,6 +13,8 @@ import {
   build_published_interactive_demo_snapshot,
   GuideHasNoPublishableBlocksError,
   GuideNotPublishableError,
+  InteractiveDemoNotPublishableError,
+  PublicationVersionNotReadyError,
   PUBLISH_SLUG_RETRY_LIMIT,
   public_viewer_session_expires_at,
   PublishLinkPasswordRequiredError,
@@ -38,7 +40,9 @@ import type {
 import type {
   DemoHotspot,
   DemoScene,
-  InteractiveDemo,
+  InteractiveDemoArtifact,
+  InteractiveDemoEdition,
+  InteractiveDemoWorkingDraft,
 } from "../interactive-demo/interactive-demo.service";
 import {
   hash_public_link_password,
@@ -93,7 +97,9 @@ export type PublishedAssetFileRead = {
 };
 
 export type InteractiveDemoPublishDetail = {
-  interactive_demo: InteractiveDemo;
+  artifact: InteractiveDemoArtifact;
+  edition: InteractiveDemoEdition;
+  working_draft: InteractiveDemoWorkingDraft;
   demo_scenes: DemoScene[];
   demo_hotspots: DemoHotspot[];
   source_capture_assets: GuideSourceCaptureAsset[];
@@ -121,15 +127,22 @@ export type PublishRepository = {
     organization_id: string;
     project_id: string;
   }) => Promise<boolean>;
+  project_version_is_default?: (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+  }) => Promise<boolean>;
   find_guide_detail: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
   }) => Promise<GuideDetail | null>;
   find_interactive_demo_detail: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
   }) => Promise<InteractiveDemoPublishDetail | null>;
   find_active_publish_link: (input: {
     organization_id: string;
@@ -313,10 +326,22 @@ export const build_publish_service = (
     }
   };
 
+  const ensure_scoped_artifact = async (input: {
+    organization_id: string; project_id: string; project_version_id: string;
+    artifact_type: "guide" | "interactive_demo"; artifact_id: string;
+  }) => {
+    const detail = input.artifact_type === "guide"
+      ? await repository.find_guide_detail({ organization_id: input.organization_id, project_id: input.project_id, project_version_id: input.project_version_id, guide_id: input.artifact_id })
+      : await repository.find_interactive_demo_detail({ organization_id: input.organization_id, project_id: input.project_id, project_version_id: input.project_version_id, interactive_demo_id: input.artifact_id });
+    if (!detail) throw input.artifact_type === "guide" ? new GuideNotFoundError() : new InteractiveDemoNotFoundError();
+    return detail;
+  };
+
   const publish_guide = async (input: {
     auth: PublishAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
   }) => {
     let last_error: unknown;
 
@@ -330,18 +355,26 @@ export const build_publish_service = (
             };
 
             await ensure_project_exists(scope);
+            if (transactional_repository.project_version_is_default
+              && !(await transactional_repository.project_version_is_default({
+                ...scope,
+                project_version_id: input.project_version_id,
+              }))) {
+              throw new PublicationVersionNotReadyError();
+            }
 
             const guide_detail =
               await transactional_repository.find_guide_detail({
                 ...scope,
                 guide_id: input.guide_id,
+                project_version_id: input.project_version_id,
               });
 
             if (!guide_detail) {
               throw new GuideNotFoundError();
             }
 
-            if (guide_detail.guide.status !== "draft") {
+            if (guide_detail.edition.status !== "draft") {
               throw new GuideNotPublishableError();
             }
 
@@ -378,7 +411,7 @@ export const build_publish_service = (
                 artifact_type: "guide",
                 artifact_id: input.guide_id,
                 version_number,
-                title: guide_detail.guide.title,
+                title: guide_detail.edition.title,
                 snapshot_json,
                 actor_org_user_id: input.auth.actor_org_user_id,
               });
@@ -419,6 +452,7 @@ export const build_publish_service = (
     auth: PublishAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
   }): Promise<PublishResult> => {
     let last_error: unknown;
 
@@ -432,15 +466,27 @@ export const build_publish_service = (
             };
 
             await ensure_project_exists(scope);
+            if (transactional_repository.project_version_is_default
+              && !(await transactional_repository.project_version_is_default({
+                ...scope,
+                project_version_id: input.project_version_id,
+              }))) {
+              throw new PublicationVersionNotReadyError();
+            }
 
             const demo_detail =
               await transactional_repository.find_interactive_demo_detail({
                 ...scope,
                 interactive_demo_id: input.interactive_demo_id,
+                project_version_id: input.project_version_id,
               });
 
             if (!demo_detail) {
               throw new InteractiveDemoNotFoundError();
+            }
+
+            if (demo_detail.edition.status !== "draft") {
+              throw new InteractiveDemoNotPublishableError();
             }
 
             const existing_link =
@@ -472,7 +518,7 @@ export const build_publish_service = (
                 artifact_type: "interactive_demo",
                 artifact_id: input.interactive_demo_id,
                 version_number,
-                title: demo_detail.interactive_demo.title,
+                title: demo_detail.edition.title,
                 snapshot_json,
                 actor_org_user_id: input.auth.actor_org_user_id,
               });
@@ -513,6 +559,7 @@ export const build_publish_service = (
     auth: PublishAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
   }) => {
     const scope = {
       organization_id: input.auth.organization_id,
@@ -520,6 +567,7 @@ export const build_publish_service = (
     };
 
     await ensure_project_exists(scope);
+    await ensure_scoped_artifact({ ...scope, project_version_id: input.project_version_id, artifact_type: "guide", artifact_id: input.guide_id });
 
     return (
       (await repository.find_publish_status({
@@ -537,6 +585,7 @@ export const build_publish_service = (
     auth: PublishAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
   }): Promise<InteractiveDemoPublishStatus> => {
     const scope = {
       organization_id: input.auth.organization_id,
@@ -544,6 +593,7 @@ export const build_publish_service = (
     };
 
     await ensure_project_exists(scope);
+    await ensure_scoped_artifact({ ...scope, project_version_id: input.project_version_id, artifact_type: "interactive_demo", artifact_id: input.interactive_demo_id });
 
     return (
       (await repository.find_publish_status({
@@ -561,6 +611,7 @@ export const build_publish_service = (
     auth: PublishAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
   }): Promise<RevokePublishResult> => {
     const scope = {
       organization_id: input.auth.organization_id,
@@ -568,6 +619,7 @@ export const build_publish_service = (
     };
 
     await ensure_project_exists(scope);
+    await ensure_scoped_artifact({ ...scope, project_version_id: input.project_version_id, artifact_type: "guide", artifact_id: input.guide_id });
 
     const publish_link = await repository.revoke_active_publish_link({
       ...scope,
@@ -587,6 +639,7 @@ export const build_publish_service = (
     auth: PublishAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
   }): Promise<RevokePublishResult> => {
     const scope = {
       organization_id: input.auth.organization_id,
@@ -594,6 +647,7 @@ export const build_publish_service = (
     };
 
     await ensure_project_exists(scope);
+    await ensure_scoped_artifact({ ...scope, project_version_id: input.project_version_id, artifact_type: "interactive_demo", artifact_id: input.interactive_demo_id });
 
     const publish_link = await repository.revoke_active_publish_link({
       ...scope,
@@ -613,6 +667,7 @@ export const build_publish_service = (
     auth: PublishAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     visibility: PublishVisibility;
     expires_at: string | null;
   }) => {
@@ -624,6 +679,7 @@ export const build_publish_service = (
     };
 
     await ensure_project_exists(scope);
+    await ensure_scoped_artifact({ ...scope, project_version_id: input.project_version_id, artifact_type: "guide", artifact_id: input.guide_id });
 
     const result = await repository.update_publish_link_access({
       ...scope,
@@ -645,6 +701,7 @@ export const build_publish_service = (
     auth: PublishAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     visibility: PublishVisibility;
     expires_at: string | null;
   }): Promise<InteractiveDemoPublishStatus> => {
@@ -656,6 +713,7 @@ export const build_publish_service = (
     };
 
     await ensure_project_exists(scope);
+    await ensure_scoped_artifact({ ...scope, project_version_id: input.project_version_id, artifact_type: "interactive_demo", artifact_id: input.interactive_demo_id });
 
     const result = await repository.update_publish_link_access({
       ...scope,
@@ -677,6 +735,7 @@ export const build_publish_service = (
     auth: PublishAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     password: string | null;
   }) => {
     validate_publish_password_input(input.password);
@@ -687,6 +746,7 @@ export const build_publish_service = (
     };
 
     await ensure_project_exists(scope);
+    await ensure_scoped_artifact({ ...scope, project_version_id: input.project_version_id, artifact_type: "guide", artifact_id: input.guide_id });
 
     const password_hash =
       input.password === null
@@ -713,6 +773,7 @@ export const build_publish_service = (
     auth: PublishAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     password: string | null;
   }): Promise<InteractiveDemoPublishStatus> => {
     validate_publish_password_input(input.password);
@@ -723,6 +784,7 @@ export const build_publish_service = (
     };
 
     await ensure_project_exists(scope);
+    await ensure_scoped_artifact({ ...scope, project_version_id: input.project_version_id, artifact_type: "interactive_demo", artifact_id: input.interactive_demo_id });
 
     const password_hash =
       input.password === null

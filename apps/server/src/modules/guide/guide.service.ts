@@ -3,13 +3,13 @@ import type {
   CaptureEventType,
   GuideBlockType,
   GuideCreatableBlockType,
-  GuideStatus,
+  ArtifactEditionStatus,
 } from "@repo/constants";
-import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import {
   CaptureEventNotFoundError,
   CaptureSessionNotFoundError,
   GuideBlockNotFoundError,
+  GuideEditionConflictError,
   GuideExportFileNotFoundError,
   GuideNotFoundError,
   GuideStepNotFoundError,
@@ -19,7 +19,6 @@ import {
   assert_guide_block_can_select_screenshot,
   assert_guide_block_order_covers_active_blocks,
   assert_guide_is_editable,
-  assert_guide_status_change_is_effective,
   build_guide_from_capture_source,
   compact_optional_string,
   guide_html_zip_filename,
@@ -58,7 +57,7 @@ export {
 export type {
   GuideBlockType,
   GuideCreatableBlockType,
-  GuideStatus,
+  ArtifactEditionStatus,
 };
 
 export type GuideAuthContext = {
@@ -72,10 +71,12 @@ export type Guide = {
   id: string;
   organization_id: string;
   project_id: string;
+  guide_id: string;
+  project_version_id: string;
   source_capture_session_id: string | null;
   title: string;
   description: string | null;
-  status: GuideStatus;
+  status: ArtifactEditionStatus;
   created_by_id: string;
   updated_by_id: string;
   version: number;
@@ -87,13 +88,36 @@ export type GuideStep = {
   id: string;
   organization_id: string;
   project_id: string;
-  guide_id: string;
+  guide_working_draft_id: string;
   guide_block_id: string;
   source_capture_session_id: string | null;
   source_capture_event_id: string | null;
   source_capture_asset_id: string | null;
+  selected_capture_asset_id: string | null;
+  screenshot_hidden: boolean;
+  display_capture_asset_id: string | null;
   title: string;
   body: string | null;
+  created_by_id: string;
+  updated_by_id: string;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  annotations: GuideAnnotation[];
+};
+
+export type GuideAnnotation = {
+  id: string;
+  organization_id: string;
+  project_id: string;
+  guide_working_draft_id: string;
+  guide_step_id: string;
+  annotation_type: "highlight";
+  annotation_index: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
   created_by_id: string;
   updated_by_id: string;
   version: number;
@@ -105,15 +129,10 @@ export type GuideBlock = {
   id: string;
   organization_id: string;
   project_id: string;
-  guide_id: string;
-  source_capture_session_id: string | null;
-  source_capture_event_id: string | null;
-  source_capture_asset_id: string | null;
-  selected_capture_asset_id: string | null;
-  screenshot_hidden: boolean;
-  display_capture_asset_id: string | null;
+  guide_working_draft_id: string;
   block_type: GuideBlockType;
-  content: GuideBlockContent | null;
+  title: string | null;
+  body: string | null;
   block_index: number;
   created_by_id: string;
   updated_by_id: string;
@@ -158,10 +177,35 @@ export type GuideSourceCaptureAsset = {
 };
 
 export type GuideDetail = {
-  guide: Guide;
+  artifact: GuideArtifact;
+  edition: Guide;
+  working_draft: GuideWorkingDraft;
+  authored_updated_at: string;
   guide_blocks: GuideBlock[];
   source_capture_assets: GuideSourceCaptureAsset[];
 };
+
+export type GuideArtifact = {
+  id: string;
+  organization_id: string;
+  project_id: string;
+  created_by_id: string;
+  created_at: string;
+};
+
+export type GuideWorkingDraft = {
+  id: string;
+  organization_id: string;
+  project_id: string;
+  guide_edition_id: string;
+  created_by_id: string;
+  updated_by_id: string;
+  version: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GuideSummary = Pick<GuideDetail, "artifact" | "edition" | "authored_updated_at">;
 
 export type GuideMarkdownExport = {
   filename: string;
@@ -206,12 +250,13 @@ export type CreateGuideFromCaptureInput = {
 export type UpdateGuideInput = {
   title?: string;
   description?: string | null;
-  status?: GuideStatus;
+  expected_edition_version: number;
 };
 
 export type UpdateGuideStepInput = {
   title?: string;
   body?: string | null;
+  expected_working_draft_version: number;
 };
 
 export type CreateGuideBlockInput = {
@@ -224,15 +269,20 @@ export type CreateGuideBlockInput = {
     title?: string;
     body?: string | null;
   } | null;
-  content?: GuideBlockContent | null;
+  title?: string | null;
+  body?: string | null;
+  expected_working_draft_version: number;
 };
 
 export type UpdateGuideBlockInput = {
-  content?: GuideBlockContent | null;
+  title?: string | null;
+  body?: string | null;
+  expected_working_draft_version: number;
 };
 
 export type UpdateGuideBlockScreenshotInput = {
   capture_asset_id: string | null;
+  expected_working_draft_version: number;
 };
 
 export type UpdateGuideBlockAnnotationsInput = {
@@ -244,6 +294,7 @@ export type UpdateGuideBlockAnnotationsInput = {
     width: number;
     height: number;
   }>;
+  expected_working_draft_version: number;
 };
 
 export type PrepareGuideBlockScreenshotUploadResult = {
@@ -253,7 +304,6 @@ export type PrepareGuideBlockScreenshotUploadResult = {
 export type NormalizedUpdateGuideInput = {
   title?: string;
   description?: string | null;
-  status?: GuideStatus;
 };
 
 export type NormalizedUpdateGuideStepInput = {
@@ -271,11 +321,13 @@ export type NormalizedCreateGuideBlockInput = {
     title: string;
     body: string | null;
   };
-  content?: GuideBlockContent | null;
+  title?: string | null;
+  body?: string | null;
 };
 
 export type NormalizedUpdateGuideBlockInput = {
-  content: GuideBlockContent;
+  title: string | null;
+  body: string | null;
 };
 
 export type NormalizedUpdateGuideBlockScreenshotInput = {
@@ -284,7 +336,15 @@ export type NormalizedUpdateGuideBlockScreenshotInput = {
 };
 
 export type NormalizedUpdateGuideBlockAnnotationsInput = {
-  content: GuideBlockContent;
+  annotations: Array<{
+    id: string;
+    annotation_type: "highlight";
+    annotation_index: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>;
 };
 
 export type NormalizedCreateGuideFromCaptureInput = {
@@ -308,11 +368,6 @@ export type GuideRepository = {
     project_id: string;
   }) => Promise<boolean>;
   capture_session_exists: (input: {
-    organization_id: string;
-    project_id: string;
-    capture_session_id: string;
-  }) => Promise<boolean>;
-  capture_session_is_current_default: (input: {
     organization_id: string;
     project_id: string;
     capture_session_id: string;
@@ -344,87 +399,117 @@ export type GuideRepository = {
   list_guides: (input: {
     organization_id: string;
     project_id: string;
-  }) => Promise<Guide[]>;
+    project_version_id: string;
+  }) => Promise<GuideSummary[]>;
   find_guide_detail: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
   }) => Promise<GuideDetail | null>;
   update_guide: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     actor_org_user_id: string;
     data: NormalizedUpdateGuideInput;
+    expected_edition_version: number;
+  }) => Promise<Guide>;
+  update_guide_status: (input: {
+    organization_id: string;
+    project_id: string;
+    guide_id: string;
+    project_version_id: string;
+    actor_org_user_id: string;
+    status: "draft" | "archived";
+    expected_edition_version: number;
   }) => Promise<Guide>;
   find_guide_step: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_step_id: string;
   }) => Promise<GuideStep | null>;
   update_guide_step: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_step_id: string;
     actor_org_user_id: string;
     data: NormalizedUpdateGuideStepInput;
-  }) => Promise<GuideStep>;
+    expected_working_draft_version: number;
+  }) => Promise<{ guide_step: GuideStep; working_draft: GuideWorkingDraft }>;
   list_guide_blocks: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
   }) => Promise<GuideBlock[]>;
   reorder_guide_blocks: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     actor_org_user_id: string;
     block_ids: string[];
-  }) => Promise<GuideBlock[]>;
+    expected_working_draft_version: number;
+  }) => Promise<{ guide_blocks: GuideBlock[]; working_draft: GuideWorkingDraft }>;
   create_guide_block: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     actor_org_user_id: string;
     data: NormalizedCreateGuideBlockInput;
-  }) => Promise<GuideBlock[]>;
+    expected_working_draft_version: number;
+  }) => Promise<{ guide_blocks: GuideBlock[]; working_draft: GuideWorkingDraft }>;
   update_guide_block: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_block_id: string;
     actor_org_user_id: string;
     data: NormalizedUpdateGuideBlockInput;
-  }) => Promise<GuideBlock>;
+    expected_working_draft_version: number;
+  }) => Promise<{ guide_block: GuideBlock; working_draft: GuideWorkingDraft }>;
   update_guide_block_screenshot: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_block_id: string;
     actor_org_user_id: string;
     data: NormalizedUpdateGuideBlockScreenshotInput;
-  }) => Promise<GuideBlock>;
+    expected_working_draft_version: number;
+  }) => Promise<{ guide_block: GuideBlock; working_draft: GuideWorkingDraft }>;
   update_guide_block_annotations: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_block_id: string;
     actor_org_user_id: string;
     data: NormalizedUpdateGuideBlockAnnotationsInput;
-  }) => Promise<GuideBlock>;
+    expected_working_draft_version: number;
+  }) => Promise<{ guide_block: GuideBlock; working_draft: GuideWorkingDraft }>;
   delete_guide_block: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_block_id: string;
     actor_org_user_id: string;
-  }) => Promise<boolean>;
+    expected_working_draft_version: number;
+  }) => Promise<{ deleted: boolean; working_draft: GuideWorkingDraft | null }>;
   find_guide_export_asset_files: (input: {
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     capture_asset_ids: string[];
   }) => Promise<GuideExportAssetFile[]>;
 };
@@ -436,7 +521,7 @@ export type GuideFileStorage = {
   }>;
 };
 
-const annotation_id = () => `ann_${ulid()}`;
+const annotation_id = () => ulid();
 
 export const build_guide_service = (
   repository: GuideRepository,
@@ -463,9 +548,6 @@ export const build_guide_service = (
   }) => {
     if (!await repository.capture_session_exists(input)) {
       throw new CaptureSessionNotFoundError();
-    }
-    if (!await repository.capture_session_is_current_default(input)) {
-      throw new CaptureArtifactVersionNotReadyError();
     }
   };
 
@@ -524,6 +606,7 @@ export const build_guide_service = (
   const list_guides = async (input: {
     auth: GuideAuthContext;
     project_id: string;
+    project_version_id: string;
   }) => {
     const scope = {
       organization_id: input.auth.organization_id,
@@ -531,13 +614,14 @@ export const build_guide_service = (
     };
     await ensure_project_exists(scope);
 
-    return repository.list_guides(scope);
+    return repository.list_guides({ ...scope, project_version_id: input.project_version_id });
   };
 
   const get_guide_detail = async (input: {
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
   }) => {
     const scope = {
       organization_id: input.auth.organization_id,
@@ -548,6 +632,7 @@ export const build_guide_service = (
     const guide_detail = await repository.find_guide_detail({
       ...scope,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
     });
 
     if (!guide_detail) {
@@ -561,6 +646,7 @@ export const build_guide_service = (
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
   }): Promise<GuideMarkdownExport> => {
     const scope = {
       organization_id: input.auth.organization_id,
@@ -571,6 +657,7 @@ export const build_guide_service = (
     const guide_detail = await repository.find_guide_detail({
       ...scope,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
     });
 
     if (!guide_detail) {
@@ -578,7 +665,7 @@ export const build_guide_service = (
     }
 
     return {
-      filename: guide_markdown_filename(guide_detail.guide),
+      filename: guide_markdown_filename(guide_detail.edition),
       markdown: render_guide_markdown(guide_detail, public_base_url),
     };
   };
@@ -587,6 +674,7 @@ export const build_guide_service = (
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
   }): Promise<GuideHtmlZipExport> => {
     const scope = {
       organization_id: input.auth.organization_id,
@@ -598,7 +686,10 @@ export const build_guide_service = (
       project_id: scope.project_id,
     });
 
-    const guide_detail = await repository.find_guide_detail(scope);
+    const guide_detail = await repository.find_guide_detail({
+      ...scope,
+      project_version_id: input.project_version_id,
+    });
 
     if (!guide_detail) {
       throw new GuideNotFoundError();
@@ -613,6 +704,7 @@ export const build_guide_service = (
     const export_asset_files = capture_asset_ids.length > 0
       ? await repository.find_guide_export_asset_files({
         ...scope,
+        project_version_id: input.project_version_id,
         capture_asset_ids,
       })
       : [];
@@ -647,7 +739,7 @@ export const build_guide_service = (
     });
 
     return {
-      filename: guide_html_zip_filename(guide_detail.guide),
+      filename: guide_html_zip_filename(guide_detail.edition),
       ...zip_export,
     };
   };
@@ -656,6 +748,7 @@ export const build_guide_service = (
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     data: UpdateGuideInput;
   }) => {
     const data = normalize_update_guide_input(input.data);
@@ -668,23 +761,48 @@ export const build_guide_service = (
     const guide_detail = await repository.find_guide_detail({
       ...scope,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
     });
 
     if (!guide_detail) {
       throw new GuideNotFoundError();
     }
 
-    assert_guide_is_editable(guide_detail.guide);
-    assert_guide_status_change_is_effective({
-      next_status: data.status,
-      current_status: guide_detail.guide.status,
-    });
+    assert_guide_is_editable(guide_detail.edition);
 
     return repository.update_guide({
       ...scope,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       data,
+      expected_edition_version: input.data.expected_edition_version,
+    });
+  };
+
+  const update_guide_status = async (input: {
+    auth: GuideAuthContext;
+    project_id: string;
+    guide_id: string;
+    project_version_id: string;
+    status: "draft" | "archived";
+    expected_edition_version: number;
+  }) => {
+    const scope = { organization_id: input.auth.organization_id, project_id: input.project_id };
+    await ensure_project_exists(scope);
+    const detail = await repository.find_guide_detail({ ...scope, guide_id: input.guide_id, project_version_id: input.project_version_id });
+    if (!detail) throw new GuideNotFoundError();
+    if (detail.edition.status === input.status) {
+      if (detail.edition.version !== input.expected_edition_version) throw new GuideEditionConflictError();
+      return detail.edition;
+    }
+    return repository.update_guide_status({
+      ...scope,
+      guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
+      actor_org_user_id: input.auth.actor_org_user_id,
+      status: input.status,
+      expected_edition_version: input.expected_edition_version,
     });
   };
 
@@ -692,6 +810,7 @@ export const build_guide_service = (
     organization_id: string;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
   }) => {
     const guide_detail = await repository.find_guide_detail(input);
 
@@ -699,15 +818,16 @@ export const build_guide_service = (
       throw new GuideNotFoundError();
     }
 
-    assert_guide_is_editable(guide_detail.guide);
+    assert_guide_is_editable(guide_detail.edition);
 
-    return guide_detail.guide;
+    return guide_detail;
   };
 
   const update_guide_step = async (input: {
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_step_id: string;
     data: UpdateGuideStepInput;
   }) => {
@@ -716,6 +836,7 @@ export const build_guide_service = (
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
     };
     await ensure_project_exists({
       organization_id: scope.organization_id,
@@ -726,6 +847,7 @@ export const build_guide_service = (
     const guide_step = await repository.find_guide_step({
       ...scope,
       guide_step_id: input.guide_step_id,
+      project_version_id: input.project_version_id,
     });
 
     if (!guide_step) {
@@ -735,8 +857,10 @@ export const build_guide_service = (
     return repository.update_guide_step({
       ...scope,
       guide_step_id: input.guide_step_id,
+      project_version_id: input.project_version_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       data,
+      expected_working_draft_version: input.data.expected_working_draft_version,
     });
   };
 
@@ -744,13 +868,16 @@ export const build_guide_service = (
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     block_ids: string[];
+    expected_working_draft_version: number;
   }) => {
     const block_ids = normalize_guide_block_ids(input.block_ids);
     const scope = {
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
     };
     await ensure_project_exists({
       organization_id: scope.organization_id,
@@ -766,6 +893,7 @@ export const build_guide_service = (
       ...scope,
       actor_org_user_id: input.auth.actor_org_user_id,
       block_ids,
+      expected_working_draft_version: input.expected_working_draft_version,
     });
   };
 
@@ -773,6 +901,7 @@ export const build_guide_service = (
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     data: CreateGuideBlockInput;
   }) => {
     const data = normalize_create_guide_block_input(input.data);
@@ -780,6 +909,7 @@ export const build_guide_service = (
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
     };
     await ensure_project_exists({
       organization_id: scope.organization_id,
@@ -800,6 +930,7 @@ export const build_guide_service = (
       ...scope,
       actor_org_user_id: input.auth.actor_org_user_id,
       data,
+      expected_working_draft_version: input.data.expected_working_draft_version,
     });
   };
 
@@ -807,6 +938,7 @@ export const build_guide_service = (
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_block_id: string;
     data: UpdateGuideBlockInput;
   }) => {
@@ -814,6 +946,7 @@ export const build_guide_service = (
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
     };
     await ensure_project_exists({
       organization_id: scope.organization_id,
@@ -835,6 +968,7 @@ export const build_guide_service = (
       guide_block_id: input.guide_block_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       data,
+      expected_working_draft_version: input.data.expected_working_draft_version,
     });
   };
 
@@ -842,6 +976,7 @@ export const build_guide_service = (
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_block_id: string;
     data: UpdateGuideBlockScreenshotInput;
   }) => {
@@ -850,6 +985,7 @@ export const build_guide_service = (
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
     };
     await ensure_project_exists({
       organization_id: scope.organization_id,
@@ -882,6 +1018,7 @@ export const build_guide_service = (
       guide_block_id: input.guide_block_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       data,
+      expected_working_draft_version: input.data.expected_working_draft_version,
     });
   };
 
@@ -889,6 +1026,7 @@ export const build_guide_service = (
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_block_id: string;
     data: UpdateGuideBlockAnnotationsInput;
   }) => {
@@ -896,6 +1034,7 @@ export const build_guide_service = (
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
     };
     await ensure_project_exists({
       organization_id: scope.organization_id,
@@ -917,6 +1056,7 @@ export const build_guide_service = (
       guide_block_id: input.guide_block_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       data,
+      expected_working_draft_version: input.data.expected_working_draft_version,
     });
   };
 
@@ -924,12 +1064,15 @@ export const build_guide_service = (
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_block_id: string;
+    expected_working_draft_version: number;
   }): Promise<PrepareGuideBlockScreenshotUploadResult> => {
     const scope = {
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
     };
     await ensure_project_exists({
       organization_id: scope.organization_id,
@@ -949,7 +1092,7 @@ export const build_guide_service = (
     }
 
     const capture_session_id = compact_optional_string(
-      block.source_capture_session_id ?? guide.source_capture_session_id
+      block.step?.source_capture_session_id ?? guide.edition.source_capture_session_id
     );
 
     if (!capture_session_id) {
@@ -969,12 +1112,15 @@ export const build_guide_service = (
     auth: GuideAuthContext;
     project_id: string;
     guide_id: string;
+    project_version_id: string;
     guide_block_id: string;
+    expected_working_draft_version: number;
   }) => {
     const scope = {
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       guide_id: input.guide_id,
+      project_version_id: input.project_version_id,
     };
     await ensure_project_exists({
       organization_id: scope.organization_id,
@@ -986,11 +1132,13 @@ export const build_guide_service = (
       ...scope,
       guide_block_id: input.guide_block_id,
       actor_org_user_id: input.auth.actor_org_user_id,
+      expected_working_draft_version: input.expected_working_draft_version,
     });
 
-    if (!deleted) {
+    if (!deleted.deleted) {
       throw new GuideBlockNotFoundError();
     }
+    return deleted.working_draft;
   };
 
   return {
@@ -1000,6 +1148,7 @@ export const build_guide_service = (
     export_guide_markdown,
     export_guide_html_zip,
     update_guide,
+    update_guide_status,
     update_guide_step,
     reorder_guide_blocks,
     create_guide_block,

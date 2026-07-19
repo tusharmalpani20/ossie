@@ -278,7 +278,7 @@ describe("DB-backed guide API", () => {
 
     expect(create_response.statusCode).toBe(201);
     const created_body = create_response.json();
-    expect(created_body.guide).toMatchObject({
+    expect(created_body.edition).toMatchObject({
       project_id,
       source_capture_session_id: capture_session_id,
       title: "Department setup guide",
@@ -298,11 +298,11 @@ describe("DB-backed guide API", () => {
       'Click "Add Department"',
       'Enter the required value in "Department Name"',
     ]);
-    expect(created_body.guide_blocks[0].source_capture_event_id).toBe(
+    expect(created_body.guide_blocks[0].step.source_capture_event_id).toBe(
       note_event_id,
     );
-    expect(created_body.guide_blocks[1].source_capture_asset_id).toBeNull();
-    expect(created_body.guide_blocks[2].source_capture_asset_id).toBe(
+    expect(created_body.guide_blocks[1].step.source_capture_asset_id).toBeNull();
+    expect(created_body.guide_blocks[2].step.source_capture_asset_id).toBe(
       active_asset_id,
     );
     expect(JSON.stringify(created_body)).not.toContain("target_selector");
@@ -310,15 +310,15 @@ describe("DB-backed guide API", () => {
     expect(JSON.stringify(created_body)).not.toContain("storage_key");
     expect(JSON.stringify(created_body)).not.toContain("is_deleted");
 
-    const guide_id = created_body.guide.id as string;
+    const guide_id = created_body.artifact.id as string;
     const list_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides`,
+      url: `/api/v1/projects/${project_id}/guides?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     const get_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     const missing_event_response = await app.inject({
@@ -332,10 +332,10 @@ describe("DB-backed guide API", () => {
     });
 
     expect(list_response.statusCode).toBe(200);
-    expect(list_response.json().guides).toHaveLength(1);
-    expect(list_response.json().guides[0].id).toBe(guide_id);
+    expect(list_response.json().guide_editions).toHaveLength(1);
+    expect(list_response.json().guide_editions[0].artifact.id).toBe(guide_id);
     expect(get_response.statusCode).toBe(200);
-    expect(get_response.json().guide.id).toBe(guide_id);
+    expect(get_response.json().artifact.id).toBe(guide_id);
     expect(get_response.json().guide_blocks).toHaveLength(3);
     expect(missing_event_response.statusCode).toBe(404);
     expect(missing_event_response.json().error.type).toBe(
@@ -349,56 +349,58 @@ describe("DB-backed guide API", () => {
 
     const update_guide_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         title: "Edited department setup guide",
         description: "Internal onboarding draft",
-        organization_id: "attacker_org",
-        version: 999,
+        expected_edition_version: created_body.edition.version,
       },
     });
     const update_step_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/steps/${first_step_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/steps/${first_step_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         title: "Start from the department list",
         body: "Use the department list as the starting point.",
-        source_capture_event_id: "attacker_event",
+        expected_working_draft_version: created_body.working_draft.version,
       },
     });
+    expect(update_step_response.statusCode, update_step_response.body).toBe(200);
     const reorder_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/reorder`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/reorder?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         block_ids: [third_block_id, first_block_id, second_block_id],
+        expected_working_draft_version:
+          update_step_response.json().working_draft.version,
       },
     });
     const delete_response = await app.inject({
       method: "DELETE",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${first_block_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${first_block_id}?project_version_id=${project_version_id}&expected_working_draft_version=${reorder_response.json().working_draft.version}`,
       cookies: { ossie_session: session_token },
     });
     const after_delete_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     const create_header_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         block_type: "header",
+        expected_working_draft_version:
+          after_delete_response.json().working_draft.version,
         position: {
           placement: "before",
           guide_block_id: second_block_id,
         },
-        content: {
-          title: "Department details",
-        },
+        title: "Department details",
       },
     });
     const created_header_block = create_header_response
@@ -408,32 +410,32 @@ describe("DB-backed guide API", () => {
       );
     const update_header_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${created_header_block?.id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${created_header_block?.id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
-        content: {
-          title: "Department setup details",
-        },
+        expected_working_draft_version:
+          create_header_response.json().working_draft.version,
+        title: "Department setup details",
       },
     });
     const after_header_update_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     const create_paragraph_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         block_type: "paragraph",
+        expected_working_draft_version:
+          update_header_response.json().working_draft.version,
         position: {
           placement: "after",
           guide_block_id: created_header_block?.id,
         },
-        content: {
-          body: "Confirm the department fields before saving.",
-        },
+        body: "Confirm the department fields before saving.",
       },
     });
     const created_paragraph_block = create_paragraph_response
@@ -443,20 +445,22 @@ describe("DB-backed guide API", () => {
       );
     const update_paragraph_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${created_paragraph_block?.id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${created_paragraph_block?.id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
-        content: {
-          body: "Review the department fields before saving.",
-        },
+        expected_working_draft_version:
+          create_paragraph_response.json().working_draft.version,
+        body: "Review the department fields before saving.",
       },
     });
     const create_divider_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         block_type: "divider",
+        expected_working_draft_version:
+          update_paragraph_response.json().working_draft.version,
         position: {
           placement: "after",
           guide_block_id: created_paragraph_block?.id,
@@ -470,29 +474,32 @@ describe("DB-backed guide API", () => {
       );
     const after_paragraph_divider_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     const archive_response = await app.inject({
-      method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/archive?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
-        status: "archived",
+        expected_edition_version:
+          update_guide_response.json().edition.version,
       },
     });
     const archived_step_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/steps/${first_step_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/steps/${first_step_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         title: "Cannot edit archived guide",
+        expected_working_draft_version:
+          create_divider_response.json().working_draft.version,
       },
     });
 
     expect(update_guide_response.statusCode).toBe(200);
-    expect(update_guide_response.json().guide).toMatchObject({
-      id: guide_id,
+    expect(update_guide_response.json().edition).toMatchObject({
+      guide_id,
       title: "Edited department setup guide",
       description: "Internal onboarding draft",
       version: 2,
@@ -549,17 +556,13 @@ describe("DB-backed guide API", () => {
     ]);
     expect(created_header_block).toMatchObject({
       block_type: "header",
-      content: {
-        title: "Department details",
-      },
+      title: "Department details",
       step: null,
     });
     expect(update_header_response.statusCode).toBe(200);
     expect(update_header_response.json().guide_block).toMatchObject({
       id: created_header_block.id,
-      content: {
-        title: "Department setup details",
-      },
+      title: "Department setup details",
       step: null,
     });
     expect(after_header_update_response.statusCode).toBe(200);
@@ -572,30 +575,25 @@ describe("DB-backed guide API", () => {
     ).toEqual([1, 2, 3]);
     expect(after_header_update_response.json().guide_blocks[1]).toMatchObject({
       id: created_header_block.id,
-      content: {
-        title: "Department setup details",
-      },
+      title: "Department setup details",
     });
     expect(create_paragraph_response.statusCode).toBe(201);
     expect(created_paragraph_block).toMatchObject({
       block_type: "paragraph",
-      content: {
-        body: "Confirm the department fields before saving.",
-      },
+      body: "Confirm the department fields before saving.",
       step: null,
     });
     expect(update_paragraph_response.statusCode).toBe(200);
     expect(update_paragraph_response.json().guide_block).toMatchObject({
       id: created_paragraph_block.id,
-      content: {
-        body: "Review the department fields before saving.",
-      },
+      body: "Review the department fields before saving.",
       step: null,
     });
     expect(create_divider_response.statusCode).toBe(201);
     expect(created_divider_block).toMatchObject({
       block_type: "divider",
-      content: null,
+      title: null,
+      body: null,
       step: null,
     });
     expect(after_paragraph_divider_response.statusCode).toBe(200);
@@ -610,18 +608,17 @@ describe("DB-backed guide API", () => {
       after_paragraph_divider_response.json().guide_blocks[2],
     ).toMatchObject({
       id: created_paragraph_block.id,
-      content: {
-        body: "Review the department fields before saving.",
-      },
+      body: "Review the department fields before saving.",
     });
     expect(
       after_paragraph_divider_response.json().guide_blocks[3],
     ).toMatchObject({
       id: created_divider_block.id,
-      content: null,
+      title: null,
+      body: null,
     });
     expect(archive_response.statusCode).toBe(200);
-    expect(archive_response.json().guide.status).toBe("archived");
+    expect(archive_response.json().edition.status).toBe("archived");
     expect(archived_step_response.statusCode).toBe(409);
     expect(archived_step_response.json().error.type).toBe("guide_not_editable");
 
@@ -721,8 +718,8 @@ describe("DB-backed guide API", () => {
     const created_body = create_response.json();
     expect(
       created_body.guide_blocks.map(
-        (block: { source_capture_event_id: string }) =>
-          block.source_capture_event_id,
+        (block: { step: { source_capture_event_id: string } }) =>
+          block.step.source_capture_event_id,
       ),
     ).toEqual([
       deleted_asset_event_id,
@@ -731,8 +728,8 @@ describe("DB-backed guide API", () => {
     ]);
     expect(
       created_body.guide_blocks.map(
-        (block: { source_capture_asset_id: string | null }) =>
-          block.source_capture_asset_id,
+        (block: { step: { source_capture_asset_id: string | null } }) =>
+          block.step.source_capture_asset_id,
       ),
     ).toEqual([null, active_asset_id, active_asset_id]);
     expect(
@@ -769,10 +766,10 @@ describe("DB-backed guide API", () => {
     expect(JSON.stringify(created_body)).not.toContain("input_value");
     expect(JSON.stringify(created_body)).not.toContain("storage_key");
 
-    const guide_id = created_body.guide.id as string;
+    const guide_id = created_body.artifact.id as string;
     const get_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
 
@@ -845,14 +842,16 @@ describe("DB-backed guide API", () => {
     });
 
     expect(create_response.statusCode).toBe(201);
-    const guide_id = create_response.json().guide.id as string;
+    const guide_id = create_response.json().artifact.id as string;
     const guide_block_id = create_response.json().guide_blocks[0].id as string;
 
     const annotations_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/annotations`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/annotations?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
+        expected_working_draft_version:
+          create_response.json().working_draft.version,
         annotations: [
           {
             type: "highlight",
@@ -866,11 +865,12 @@ describe("DB-backed guide API", () => {
     });
 
     expect(annotations_response.statusCode).toBe(200);
-    expect(annotations_response.json().guide_block.content.annotations).toEqual(
+    expect(annotations_response.json().guide_block.step.annotations).toMatchObject(
       [
         {
-          id: expect.stringMatching(/^ann_/),
-          type: "highlight",
+          id: expect.any(String),
+          annotation_type: "highlight",
+          annotation_index: 1,
           x: 0.2,
           y: 0.15,
           width: 0.25,
@@ -881,18 +881,18 @@ describe("DB-backed guide API", () => {
 
     const annotated_detail_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
 
     expect(annotated_detail_response.statusCode).toBe(200);
     expect(
-      annotated_detail_response.json().guide_blocks[0].content.annotations,
-    ).toEqual(annotations_response.json().guide_block.content.annotations);
+      annotated_detail_response.json().guide_blocks[0].step.annotations,
+    ).toEqual(annotations_response.json().guide_block.step.annotations);
 
     const annotated_export_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/export/markdown`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/export/markdown?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
 
@@ -924,41 +924,37 @@ describe("DB-backed guide API", () => {
 
     const replace_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/screenshot`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/screenshot?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         capture_asset_id: replacement_asset_id,
+        expected_working_draft_version:
+          annotations_response.json().working_draft.version,
       },
     });
 
     expect(replace_response.statusCode).toBe(200);
-    expect(replace_response.json().guide_block).toMatchObject({
-      id: guide_block_id,
+    expect(replace_response.json().guide_block.step).toMatchObject({
       source_capture_asset_id: source_asset_id,
       selected_capture_asset_id: replacement_asset_id,
       screenshot_hidden: false,
       display_capture_asset_id: replacement_asset_id,
-      content: {
-        annotations: [],
-      },
+      annotations: [],
     });
 
     const after_replace_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
 
     expect(after_replace_response.statusCode).toBe(200);
-    expect(after_replace_response.json().guide_blocks[0]).toMatchObject({
-      id: guide_block_id,
+    expect(after_replace_response.json().guide_blocks[0].step).toMatchObject({
       source_capture_asset_id: source_asset_id,
       selected_capture_asset_id: replacement_asset_id,
       screenshot_hidden: false,
       display_capture_asset_id: replacement_asset_id,
-      content: {
-        annotations: [],
-      },
+      annotations: [],
     });
     expect(
       after_replace_response
@@ -971,8 +967,8 @@ describe("DB-backed guide API", () => {
     }>(
       `
       SELECT source_capture_asset_id
-      FROM guide_schema.guide_block
-      WHERE id = $1
+      FROM guide_schema.guide_step
+      WHERE guide_block_id = $1
     `,
       [guide_block_id],
     );
@@ -980,46 +976,42 @@ describe("DB-backed guide API", () => {
 
     const hide_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/screenshot`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/screenshot?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
         capture_asset_id: null,
+        expected_working_draft_version:
+          replace_response.json().working_draft.version,
       },
     });
 
     expect(hide_response.statusCode).toBe(200);
-    expect(hide_response.json().guide_block).toMatchObject({
-      id: guide_block_id,
+    expect(hide_response.json().guide_block.step).toMatchObject({
       source_capture_asset_id: source_asset_id,
       selected_capture_asset_id: null,
       screenshot_hidden: true,
       display_capture_asset_id: null,
-      content: {
-        annotations: [],
-      },
+      annotations: [],
     });
 
     const after_hide_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
 
     expect(after_hide_response.statusCode).toBe(200);
-    expect(after_hide_response.json().guide_blocks[0]).toMatchObject({
-      id: guide_block_id,
+    expect(after_hide_response.json().guide_blocks[0].step).toMatchObject({
       selected_capture_asset_id: null,
       screenshot_hidden: true,
       display_capture_asset_id: null,
-      content: {
-        annotations: [],
-      },
+      annotations: [],
     });
     expect(after_hide_response.json().source_capture_assets).toEqual([]);
 
     const hidden_export_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/export/markdown`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/export/markdown?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
 
@@ -1066,12 +1058,12 @@ describe("DB-backed guide API", () => {
     });
 
     expect(create_response.statusCode).toBe(201);
-    const guide_id = create_response.json().guide.id as string;
+    const guide_id = create_response.json().artifact.id as string;
     const guide_block_id = create_response.json().guide_blocks[0].id as string;
     const uploaded_bytes = Buffer.from("uploaded replacement png bytes");
     const upload_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/screenshot-upload`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/screenshot-upload?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       ...multipart_payload([
         {
@@ -1086,6 +1078,10 @@ describe("DB-backed guide API", () => {
         { name: "page_url", value: "https://example.test/replacement" },
         { name: "metadata", value: JSON.stringify({ source: "editor" }) },
         { name: "capture_session_id", value: "attacker_session" },
+        {
+          name: "expected_working_draft_version",
+          value: String(create_response.json().working_draft.version),
+        },
       ]),
     });
 
@@ -1106,8 +1102,7 @@ describe("DB-backed guide API", () => {
         size_bytes: uploaded_bytes.length,
       },
     });
-    expect(upload_response.json().guide_block).toMatchObject({
-      id: guide_block_id,
+    expect(upload_response.json().guide_block.step).toMatchObject({
       source_capture_asset_id: source_asset_id,
       selected_capture_asset_id: uploaded_asset_id,
       screenshot_hidden: false,
@@ -1136,11 +1131,11 @@ describe("DB-backed guide API", () => {
         app_file.original_name,
         app_file.mime_type,
         app_file.size_bytes,
-        guide_block.selected_capture_asset_id,
-        guide_block.source_capture_asset_id
+        guide_step.selected_capture_asset_id,
+        guide_step.source_capture_asset_id
       FROM capture_schema.capture_asset capture_asset
       INNER JOIN file_schema.file app_file ON app_file.id = capture_asset.file_id
-      INNER JOIN guide_schema.guide_block guide_block ON guide_block.selected_capture_asset_id = capture_asset.id
+      INNER JOIN guide_schema.guide_step guide_step ON guide_step.selected_capture_asset_id = capture_asset.id
       WHERE capture_asset.id = $1
     `,
       [uploaded_asset_id],
@@ -1160,12 +1155,12 @@ describe("DB-backed guide API", () => {
 
     const detail_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     expect(detail_response.statusCode).toBe(200);
     expect(
-      detail_response.json().guide_blocks[0].display_capture_asset_id,
+      detail_response.json().guide_blocks[0].step.display_capture_asset_id,
     ).toBe(uploaded_asset_id);
     expect(
       detail_response
@@ -1175,7 +1170,7 @@ describe("DB-backed guide API", () => {
 
     const publish_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
     expect(publish_response.statusCode).toBe(201);
@@ -1234,12 +1229,12 @@ describe("DB-backed guide API", () => {
     });
 
     expect(create_response.statusCode).toBe(201);
-    const guide_id = create_response.json().guide.id as string;
+    const guide_id = create_response.json().artifact.id as string;
     const guide_block_id = create_response.json().guide_blocks[0].id as string;
     const uploaded_bytes = Buffer.from("html export png bytes");
     const upload_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/screenshot-upload`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/screenshot-upload?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       ...multipart_payload([
         {
@@ -1249,6 +1244,10 @@ describe("DB-backed guide API", () => {
           value: uploaded_bytes,
         },
         { name: "page_title", value: "Exported Department List" },
+        {
+          name: "expected_working_draft_version",
+          value: String(create_response.json().working_draft.version),
+        },
       ]),
     });
 
@@ -1256,9 +1255,11 @@ describe("DB-backed guide API", () => {
     const uploaded_asset_id = upload_response.json().capture_asset.id as string;
     const annotations_response = await app.inject({
       method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/annotations`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/annotations?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
+        expected_working_draft_version:
+          upload_response.json().working_draft.version,
         annotations: [
           {
             type: "highlight",
@@ -1275,7 +1276,7 @@ describe("DB-backed guide API", () => {
 
     const export_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/export/html.zip`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/export/html.zip?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
     });
 

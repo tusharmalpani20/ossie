@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply } from "fastify";
+import { GuideVersionQuerySchema, type GuideVersionQuery } from "@repo/types/guide";
 import {
   CreatePublicViewerSessionRequestSchema,
   type PublishResult,
@@ -53,36 +54,43 @@ export type PublishRouteDependencies = {
       auth: PublishAuthContext;
       project_id: string;
       guide_id: string;
+      project_version_id: string;
     }) => Promise<PublishResult>;
     publish_interactive_demo: (input: {
       auth: PublishAuthContext;
       project_id: string;
       interactive_demo_id: string;
+      project_version_id: string;
     }) => Promise<PublishResult>;
     get_guide_publish_status: (input: {
       auth: PublishAuthContext;
       project_id: string;
       guide_id: string;
+      project_version_id: string;
     }) => Promise<PublishStatusResponse>;
     get_interactive_demo_publish_status: (input: {
       auth: PublishAuthContext;
       project_id: string;
       interactive_demo_id: string;
+      project_version_id: string;
     }) => Promise<PublishStatusResponse>;
     revoke_guide_publish_link: (input: {
       auth: PublishAuthContext;
       project_id: string;
       guide_id: string;
+      project_version_id: string;
     }) => Promise<RevokePublishResult>;
     revoke_interactive_demo_publish_link: (input: {
       auth: PublishAuthContext;
       project_id: string;
       interactive_demo_id: string;
+      project_version_id: string;
     }) => Promise<RevokePublishResult>;
     update_guide_publish_access: (input: {
       auth: PublishAuthContext;
       project_id: string;
       guide_id: string;
+      project_version_id: string;
       visibility: PublishVisibility;
       expires_at: string | null;
     }) => Promise<PublishStatusResponse>;
@@ -90,6 +98,7 @@ export type PublishRouteDependencies = {
       auth: PublishAuthContext;
       project_id: string;
       interactive_demo_id: string;
+      project_version_id: string;
       visibility: PublishVisibility;
       expires_at: string | null;
     }) => Promise<PublishStatusResponse>;
@@ -97,12 +106,14 @@ export type PublishRouteDependencies = {
       auth: PublishAuthContext;
       project_id: string;
       guide_id: string;
+      project_version_id: string;
       password: string | null;
     }) => Promise<PublishStatusResponse>;
     update_interactive_demo_publish_password: (input: {
       auth: PublishAuthContext;
       project_id: string;
       interactive_demo_id: string;
+      project_version_id: string;
       password: string | null;
     }) => Promise<PublishStatusResponse>;
     resolve_public_publish_link: (input: {
@@ -271,13 +282,15 @@ export const build_publish_routes = (
         project_id: string;
         guide_id: string;
       };
-    }>("/projects/:project_id/guides/:guide_id/publish", async (request, reply) => {
+      Querystring: GuideVersionQuery;
+    }>("/projects/:project_id/guides/:guide_id/publish", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
       try {
         const auth = await require_auth(request.cookies[web_session_cookie_name]);
         const result = await dependencies.publish_service.publish_guide({
           auth,
           project_id: request.params.project_id,
           guide_id: request.params.guide_id,
+          project_version_id: request.query.project_version_id,
         });
 
         return reply.status(201).send(result);
@@ -291,13 +304,15 @@ export const build_publish_routes = (
         project_id: string;
         guide_id: string;
       };
-    }>("/projects/:project_id/guides/:guide_id/publish", async (request, reply) => {
+      Querystring: GuideVersionQuery;
+    }>("/projects/:project_id/guides/:guide_id/publish", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
       try {
         const auth = await require_auth(request.cookies[web_session_cookie_name]);
         const result = await dependencies.publish_service.get_guide_publish_status({
           auth,
           project_id: request.params.project_id,
           guide_id: request.params.guide_id,
+          project_version_id: request.query.project_version_id,
         });
 
         return reply.status(200).send(result);
@@ -311,13 +326,15 @@ export const build_publish_routes = (
         project_id: string;
         guide_id: string;
       };
-    }>("/projects/:project_id/guides/:guide_id/publish", async (request, reply) => {
+      Querystring: GuideVersionQuery;
+    }>("/projects/:project_id/guides/:guide_id/publish", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
       try {
         const auth = await require_auth(request.cookies[web_session_cookie_name]);
         const result = await dependencies.publish_service.revoke_guide_publish_link({
           auth,
           project_id: request.params.project_id,
           guide_id: request.params.guide_id,
+          project_version_id: request.query.project_version_id,
         });
 
         return reply.status(200).send(result);
@@ -335,7 +352,8 @@ export const build_publish_routes = (
         visibility: PublishVisibility;
         expires_at?: string | null;
       };
-    }>("/projects/:project_id/guides/:guide_id/publish/access", async (request, reply) => {
+      Querystring: GuideVersionQuery;
+    }>("/projects/:project_id/guides/:guide_id/publish/access", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
       try {
         const auth = await require_auth(request.cookies[web_session_cookie_name]);
         const access_body = parse_publish_access_body(request.body);
@@ -343,6 +361,7 @@ export const build_publish_routes = (
           auth,
           project_id: request.params.project_id,
           guide_id: request.params.guide_id,
+          project_version_id: request.query.project_version_id,
           visibility: access_body.visibility,
           expires_at: access_body.expires_at,
         });
@@ -361,7 +380,8 @@ export const build_publish_routes = (
       Body: {
         password: string | null;
       };
-    }>("/projects/:project_id/guides/:guide_id/publish/password", async (request, reply) => {
+      Querystring: GuideVersionQuery;
+    }>("/projects/:project_id/guides/:guide_id/publish/password", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
       try {
         const auth = await require_auth(request.cookies[web_session_cookie_name]);
         const password_body = parse_publish_password_body(request.body);
@@ -369,6 +389,7 @@ export const build_publish_routes = (
           auth,
           project_id: request.params.project_id,
           guide_id: request.params.guide_id,
+          project_version_id: request.query.project_version_id,
           password: password_body.password,
         });
 
@@ -383,13 +404,15 @@ export const build_publish_routes = (
         project_id: string;
         interactive_demo_id: string;
       };
-    }>("/projects/:project_id/interactive-demos/:interactive_demo_id/publish", async (request, reply) => {
+      Querystring: GuideVersionQuery;
+    }>("/projects/:project_id/interactive-demos/:interactive_demo_id/publish", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
       try {
         const auth = await require_auth(request.cookies[web_session_cookie_name]);
         const result = await dependencies.publish_service.publish_interactive_demo({
           auth,
           project_id: request.params.project_id,
           interactive_demo_id: request.params.interactive_demo_id,
+          project_version_id: request.query.project_version_id,
         });
 
         return reply.status(201).send(result);
@@ -403,13 +426,15 @@ export const build_publish_routes = (
         project_id: string;
         interactive_demo_id: string;
       };
-    }>("/projects/:project_id/interactive-demos/:interactive_demo_id/publish", async (request, reply) => {
+      Querystring: GuideVersionQuery;
+    }>("/projects/:project_id/interactive-demos/:interactive_demo_id/publish", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
       try {
         const auth = await require_auth(request.cookies[web_session_cookie_name]);
         const result = await dependencies.publish_service.get_interactive_demo_publish_status({
           auth,
           project_id: request.params.project_id,
           interactive_demo_id: request.params.interactive_demo_id,
+          project_version_id: request.query.project_version_id,
         });
 
         return reply.status(200).send(result);
@@ -423,13 +448,15 @@ export const build_publish_routes = (
         project_id: string;
         interactive_demo_id: string;
       };
-    }>("/projects/:project_id/interactive-demos/:interactive_demo_id/publish", async (request, reply) => {
+      Querystring: GuideVersionQuery;
+    }>("/projects/:project_id/interactive-demos/:interactive_demo_id/publish", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
       try {
         const auth = await require_auth(request.cookies[web_session_cookie_name]);
         const result = await dependencies.publish_service.revoke_interactive_demo_publish_link({
           auth,
           project_id: request.params.project_id,
           interactive_demo_id: request.params.interactive_demo_id,
+          project_version_id: request.query.project_version_id,
         });
 
         return reply.status(200).send(result);
@@ -447,7 +474,8 @@ export const build_publish_routes = (
         visibility: PublishVisibility;
         expires_at?: string | null;
       };
-    }>("/projects/:project_id/interactive-demos/:interactive_demo_id/publish/access", async (request, reply) => {
+      Querystring: GuideVersionQuery;
+    }>("/projects/:project_id/interactive-demos/:interactive_demo_id/publish/access", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
       try {
         const auth = await require_auth(request.cookies[web_session_cookie_name]);
         const access_body = parse_publish_access_body(request.body);
@@ -455,6 +483,7 @@ export const build_publish_routes = (
           auth,
           project_id: request.params.project_id,
           interactive_demo_id: request.params.interactive_demo_id,
+          project_version_id: request.query.project_version_id,
           visibility: access_body.visibility,
           expires_at: access_body.expires_at,
         });
@@ -473,7 +502,8 @@ export const build_publish_routes = (
       Body: {
         password: string | null;
       };
-    }>("/projects/:project_id/interactive-demos/:interactive_demo_id/publish/password", async (request, reply) => {
+      Querystring: GuideVersionQuery;
+    }>("/projects/:project_id/interactive-demos/:interactive_demo_id/publish/password", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
       try {
         const auth = await require_auth(request.cookies[web_session_cookie_name]);
         const password_body = parse_publish_password_body(request.body);
@@ -481,6 +511,7 @@ export const build_publish_routes = (
           auth,
           project_id: request.params.project_id,
           interactive_demo_id: request.params.interactive_demo_id,
+          project_version_id: request.query.project_version_id,
           password: password_body.password,
         });
 

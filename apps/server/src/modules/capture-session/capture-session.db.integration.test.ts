@@ -496,24 +496,23 @@ describe("DB-backed capture session API", () => {
       cookies: { ossie_session: session_token },
       payload: {},
     });
-    expect(guide_response.statusCode).toBe(409);
-    expect(guide_response.json().error.type).toBe(
-      "capture_artifact_version_not_ready",
-    );
-    expect(demo_response.statusCode).toBe(409);
-    expect(demo_response.json().error.type).toBe(
-      "capture_artifact_version_not_ready",
-    );
+    expect(guide_response.statusCode, guide_response.body).toBe(201);
+    expect(guide_response.json().edition).toMatchObject({
+      project_version_id: target_version_id,
+      source_capture_session_id: session.id,
+    });
+    expect(demo_response.statusCode).toBe(400);
+    expect(demo_response.json().error.type).toBe("no_usable_capture_events");
     const partial_targets = await pool.query<{ count: string }>(
       `
       SELECT (
-        (SELECT COUNT(*) FROM guide_schema.guide WHERE source_capture_session_id = $1) +
-        (SELECT COUNT(*) FROM interactive_demo_schema.interactive_demo WHERE source_capture_session_id = $1)
+        (SELECT COUNT(*) FROM guide_schema.guide_edition WHERE source_capture_session_id = $1) +
+        (SELECT COUNT(*) FROM interactive_demo_schema.interactive_demo_edition WHERE source_capture_session_id = $1)
       )::text AS count
     `,
       [session.id],
     );
-    expect(partial_targets.rows[0]?.count).toBe("0");
+    expect(partial_targets.rows[0]?.count).toBe("1");
     await app.close();
   });
 

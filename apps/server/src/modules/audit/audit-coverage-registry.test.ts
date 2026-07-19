@@ -8,10 +8,10 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(63);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(66);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(63);
+    ).toBe(66);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
@@ -20,14 +20,14 @@ describe("audit coverage registry", () => {
     expect(AUDIT_COMMANDS).toContain("project_version.set_default");
   });
 
-  it("covers all 22 product tables and the 39 runtime table-operation classes", () => {
+  it("covers all 28 product tables and the 49 runtime table-operation classes", () => {
     const writes = AUDIT_COVERAGE_REGISTRY.flatMap(({ writes }) => writes);
-    expect(new Set(writes.map(({ table }) => table)).size).toBe(22);
+    expect(new Set(writes.map(({ table }) => table)).size).toBe(28);
     expect(
       new Set(
         writes.map(({ table, sql_operation }) => `${table}:${sql_operation}`),
       ).size,
-    ).toBe(39);
+    ).toBe(49);
     expect(
       writes.every(({ sql_operation }) => sql_operation !== "DELETE"),
     ).toBe(true);
@@ -102,8 +102,8 @@ describe("audit coverage registry", () => {
       expect.arrayContaining([
         "file_schema.file",
         "capture_schema.capture_asset",
-        "guide_schema.guide_block",
-        "guide_schema.guide",
+        "guide_schema.guide_step",
+        "guide_schema.guide_working_draft",
       ]),
     );
   });
@@ -137,6 +137,13 @@ describe("audit coverage registry", () => {
       ),
       "utf8",
     );
+    const migration_022 = readFileSync(
+      new URL(
+        "../../db/migrations/022_guide_demo_edition_working_draft_relational_foundation.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
     const policy_start = migration_016.indexOf("FROM (VALUES");
     const policy_end = migration_016.indexOf(") AS policy(command, action)");
     const new_policy_start = migration_019.indexOf(
@@ -153,13 +160,14 @@ describe("audit coverage registry", () => {
       "AND selected_actor_type",
       version_policy_start,
     );
-    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}`;
+    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}\n${migration_022}`;
     const pairs = [...policy.matchAll(/\('([^']+)', '([^']+)'\)/gu)].map(
       ([, command, action]) => ({ command, action }),
-    );
+    ).filter(({ command }) => AUDIT_COMMANDS.includes(command as typeof AUDIT_COMMANDS[number]));
+    const current_pairs = [...new Map(pairs.map((pair) => [pair.command, pair])).values()];
 
     expect(
-      [...pairs].sort((left, right) =>
+      [...current_pairs].sort((left, right) =>
         (left.command ?? "").localeCompare(right.command ?? ""),
       ),
     ).toEqual(
@@ -202,8 +210,15 @@ describe("audit coverage registry", () => {
       ),
       "utf8",
     );
+    const migration_022 = readFileSync(
+      new URL(
+        "../../db/migrations/022_guide_demo_edition_working_draft_relational_foundation.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
     const rows = [
-      ...`${migration_016}\n${migration_019}\n${migration_020}`.matchAll(
+      ...`${migration_016}\n${migration_019}\n${migration_020}\n${migration_022}`.matchAll(
         /\('([^']+)', '([^']+)', '(INSERT|UPDATE)', '[^']+', '[^']+', '([^']+)'\)/gu,
       ),
     ];
@@ -246,6 +261,16 @@ describe("audit coverage registry", () => {
       "capture_session.delete",
       "capture_session.reassign_project_version",
     ]);
+    actual.delete("guide_schema.guide:UPDATE");
+    actual.delete("interactive_demo_schema.interactive_demo:UPDATE");
+    for (const key of [...actual.keys()]) {
+      if (key.startsWith("guide_schema.") || key.startsWith("interactive_demo_schema.")) actual.delete(key);
+    }
+    for (const [, schema, table, operation, , commands] of migration_022.matchAll(
+      /\('([^']+)', '([^']+)', '(INSERT|UPDATE)', '([^']+)', '([^']+)'\)/gu,
+    )) {
+      actual.set(`${schema}.${table}:${operation}`, commands!.split(","));
+    }
 
     expect(actual).toEqual(expected);
   });

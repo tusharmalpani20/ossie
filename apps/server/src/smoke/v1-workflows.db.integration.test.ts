@@ -169,7 +169,7 @@ describe("v1 dogfood smoke workflow", () => {
         slug: "summer-release",
       },
     });
-    expect(renamed_version_response.statusCode).toBe(200);
+    expect(renamed_version_response.statusCode, renamed_version_response.body).toBe(200);
     const alias_response = await app.inject({
       method: "GET",
       url: `/api/v1/projects/${project_id}/versions/resolve/summer-2026`,
@@ -285,20 +285,20 @@ describe("v1 dogfood smoke workflow", () => {
       },
     });
 
-    expect(guide_response.statusCode).toBe(201);
-    const guide_id = guide_response.json().guide.id as string;
+    expect(guide_response.statusCode, guide_response.body).toBe(201);
+    const guide_id = guide_response.json().artifact.id as string;
     expect(guide_response.json().guide_blocks).toHaveLength(1);
     expect(guide_response.json().guide_blocks[0]).toMatchObject({
-      source_capture_event_id: capture_event_id,
-      source_capture_asset_id: capture_asset_id,
       step: {
+        source_capture_event_id: capture_event_id,
+        source_capture_asset_id: capture_asset_id,
         title: 'Click "Add Department"',
       },
     });
 
     const guide_publish_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
       cookies: { ossie_session: owner_session },
     });
 
@@ -354,12 +354,15 @@ describe("v1 dogfood smoke workflow", () => {
       payload: {},
     });
 
-    expect(demo_response.statusCode).toBe(201);
-    const interactive_demo_id = demo_response.json().interactive_demo
+    expect(
+      demo_response.statusCode,
+      demo_response.body,
+    ).toBe(201);
+    const interactive_demo_id = demo_response.json().artifact
       .id as string;
     const scene_id = demo_response.json().demo_scenes[0].id as string;
-    expect(demo_response.json().interactive_demo).toMatchObject({
-      id: interactive_demo_id,
+    expect(demo_response.json().edition).toMatchObject({
+      interactive_demo_id,
       source_capture_session_id: capture_session_id,
       title: "Create department workflow",
     });
@@ -374,7 +377,7 @@ describe("v1 dogfood smoke workflow", () => {
 
     const hotspot_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${scene_id}/hotspots`,
+      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${scene_id}/hotspots?project_version_id=${project_version_id}`,
       cookies: { ossie_session: owner_session },
       payload: {
         hotspot_type: "info",
@@ -384,6 +387,7 @@ describe("v1 dogfood smoke workflow", () => {
         y: 0.08,
         width: 0.18,
         height: 0.1,
+        expected_working_draft_version: demo_response.json().working_draft.version,
       },
     });
 
@@ -396,7 +400,7 @@ describe("v1 dogfood smoke workflow", () => {
 
     const demo_publish_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/publish`,
+      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/publish?project_version_id=${project_version_id}`,
       cookies: { ossie_session: owner_session },
     });
 

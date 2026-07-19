@@ -1,9 +1,7 @@
 import type {
   CaptureEventType,
   DemoHotspotType,
-  InteractiveDemoStatus,
 } from "@repo/constants";
-import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import {
   CaptureSessionNotFoundError,
   DemoHotspotNotFoundError,
@@ -14,6 +12,9 @@ import {
   EmptyDemoSceneUpdateError,
   EmptyInteractiveDemoUpdateError,
   InteractiveDemoNotFoundError,
+  InteractiveDemoNotEditableError,
+  InteractiveDemoEditionConflictError,
+  InteractiveDemoWorkingDraftConflictError,
   InvalidDemoHotspotCoordinatesError,
   InvalidDemoHotspotOrderError,
   InvalidDemoHotspotTargetError,
@@ -56,6 +57,9 @@ import type {
   DemoHotspot,
   DemoScene,
   InteractiveDemo,
+  InteractiveDemoArtifact,
+  InteractiveDemoEdition,
+  InteractiveDemoWorkingDraft,
   UpdateDemoHotspotInput,
   UpdateDemoSceneInput,
   UpdateInteractiveDemoInput,
@@ -73,7 +77,9 @@ export type {
   InteractiveDemoSourceCaptureSession,
   InteractiveDemoSourceEvent,
   InteractiveDemoSourceEventType,
-  InteractiveDemoStatus,
+  InteractiveDemoArtifact,
+  InteractiveDemoEdition,
+  InteractiveDemoWorkingDraft,
   NormalizedCreateDemoHotspotInput,
   NormalizedCreateDemoSceneInput,
   NormalizedCreateInteractiveDemoFromCaptureInput,
@@ -96,6 +102,9 @@ export {
   EmptyDemoSceneUpdateError,
   EmptyInteractiveDemoUpdateError,
   InteractiveDemoNotFoundError,
+  InteractiveDemoNotEditableError,
+  InteractiveDemoEditionConflictError,
+  InteractiveDemoWorkingDraftConflictError,
   InvalidDemoHotspotCoordinatesError,
   InvalidDemoHotspotOrderError,
   InvalidDemoHotspotTargetError,
@@ -112,6 +121,15 @@ export type InteractiveDemoAuthContext = {
 
 export type { CaptureEventType };
 
+export type InteractiveDemoSummary = {
+  artifact: InteractiveDemoArtifact;
+  edition: InteractiveDemoEdition;
+  authored_updated_at: string;
+};
+export type InteractiveDemoDetail = InteractiveDemoSummary & {
+  working_draft: InteractiveDemoWorkingDraft;
+};
+
 export type InteractiveDemoRepository = {
   project_exists: (input: {
     organization_id: string;
@@ -122,29 +140,32 @@ export type InteractiveDemoRepository = {
     project_id: string;
     actor_org_user_id: string;
     data: NormalizedCreateInteractiveDemoInput;
-  }) => Promise<InteractiveDemo>;
+  }) => Promise<InteractiveDemoDetail>;
   list_demos: (input: {
     organization_id: string;
     project_id: string;
-  }) => Promise<InteractiveDemo[]>;
+    project_version_id: string;
+  }) => Promise<InteractiveDemoSummary[]>;
   find_demo: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
-  }) => Promise<InteractiveDemo | null>;
+    project_version_id: string;
+  }) => Promise<InteractiveDemoDetail | null>;
   update_demo: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     actor_org_user_id: string;
     data: NormalizedUpdateInteractiveDemoInput;
-  }) => Promise<InteractiveDemo | null>;
-  delete_demo: (input: {
-    organization_id: string;
-    project_id: string;
-    interactive_demo_id: string;
-    actor_org_user_id: string;
-  }) => Promise<boolean>;
+    expected_edition_version: number;
+  }) => Promise<InteractiveDemoEdition | null>;
+  update_demo_status: (input: {
+    organization_id: string; project_id: string; interactive_demo_id: string;
+    project_version_id: string; actor_org_user_id: string;
+    status: "draft" | "archived"; expected_edition_version: number;
+  }) => Promise<InteractiveDemoEdition>;
   background_asset_exists: (input: {
     organization_id: string;
     project_id: string;
@@ -178,88 +199,109 @@ export type InteractiveDemoRepository = {
     actor_org_user_id: string;
     data: NormalizedCreateInteractiveDemoFromCaptureInput;
   }) => Promise<{
-    interactive_demo: InteractiveDemo;
+    artifact: InteractiveDemoArtifact;
+    edition: InteractiveDemoEdition;
+    working_draft: InteractiveDemoWorkingDraft;
     demo_scenes: DemoScene[];
   }>;
   create_scene: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     actor_org_user_id: string;
     data: NormalizedCreateDemoSceneInput;
-  }) => Promise<DemoScene>;
+    expected_working_draft_version: number;
+  }) => Promise<{ demo_scene: DemoScene; working_draft: InteractiveDemoWorkingDraft }>;
   list_scenes: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
-  }) => Promise<DemoScene[]>;
+    project_version_id: string;
+  }) => Promise<{ demo_scenes: DemoScene[]; working_draft: InteractiveDemoWorkingDraft }>;
   update_scene: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
     actor_org_user_id: string;
     data: NormalizedUpdateDemoSceneInput;
-  }) => Promise<DemoScene | null>;
+    expected_working_draft_version: number;
+  }) => Promise<{ demo_scene: DemoScene; working_draft: InteractiveDemoWorkingDraft } | null>;
   reorder_scenes: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     actor_org_user_id: string;
     scene_ids: string[];
-  }) => Promise<DemoScene[]>;
+    expected_working_draft_version: number;
+  }) => Promise<{ demo_scenes: DemoScene[]; working_draft: InteractiveDemoWorkingDraft }>;
   delete_scene: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
     actor_org_user_id: string;
-  }) => Promise<boolean>;
+    expected_working_draft_version: number;
+  }) => Promise<{ deleted: boolean; working_draft: InteractiveDemoWorkingDraft | null }>;
   find_scene: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
   }) => Promise<DemoScene | null>;
   create_hotspot: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
     actor_org_user_id: string;
     data: NormalizedCreateDemoHotspotInput;
-  }) => Promise<DemoHotspot>;
+    expected_working_draft_version: number;
+  }) => Promise<{ demo_hotspot: DemoHotspot; working_draft: InteractiveDemoWorkingDraft }>;
   list_hotspots: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
-  }) => Promise<DemoHotspot[]>;
+  }) => Promise<{ demo_hotspots: DemoHotspot[]; working_draft: InteractiveDemoWorkingDraft }>;
   update_hotspot: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
     demo_hotspot_id: string;
     actor_org_user_id: string;
     data: NormalizedUpdateDemoHotspotInput;
-  }) => Promise<DemoHotspot | null>;
+    expected_working_draft_version: number;
+  }) => Promise<{ demo_hotspot: DemoHotspot; working_draft: InteractiveDemoWorkingDraft } | null>;
   reorder_hotspots: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
     actor_org_user_id: string;
     hotspot_ids: string[];
-  }) => Promise<DemoHotspot[]>;
+    expected_working_draft_version: number;
+  }) => Promise<{ demo_hotspots: DemoHotspot[]; working_draft: InteractiveDemoWorkingDraft }>;
   delete_hotspot: (input: {
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
     demo_hotspot_id: string;
     actor_org_user_id: string;
-  }) => Promise<boolean>;
+    expected_working_draft_version: number;
+  }) => Promise<{ deleted: boolean; working_draft: InteractiveDemoWorkingDraft | null }>;
 };
 
 const ensure_project = async (
@@ -303,6 +345,7 @@ const ensure_scene = async (
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
   }
 ) => {
@@ -321,6 +364,7 @@ const ensure_target_scene = async (
     organization_id: string;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     target_scene_id: string | null | undefined;
   }
 ) => {
@@ -332,6 +376,7 @@ const ensure_target_scene = async (
     organization_id: input.organization_id,
     project_id: input.project_id,
     interactive_demo_id: input.interactive_demo_id,
+    project_version_id: input.project_version_id,
     demo_scene_id: input.target_scene_id,
   });
 
@@ -358,9 +403,6 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
 
     const capture_session = await repository.find_capture_session_for_demo(scope);
     if (!capture_session) {
-      if (await repository.capture_session_exists_for_demo(scope)) {
-        throw new CaptureArtifactVersionNotReadyError();
-      }
       throw new CaptureSessionNotFoundError();
     }
     const normalized = normalize_create_demo_from_capture_source(capture_session);
@@ -391,7 +433,11 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
 
     return {
       ...result,
-      redirect_path: demo_redirect_path(input.project_id, result.interactive_demo.id),
+      redirect_path: demo_redirect_path(
+        input.project_id,
+        result.edition.project_version_id,
+        result.artifact.id,
+      ),
     };
   };
 
@@ -416,6 +462,7 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
   const list_interactive_demos = async (input: {
     auth: InteractiveDemoAuthContext;
     project_id: string;
+    project_version_id: string;
   }) => {
     await ensure_project(repository, {
       organization_id: input.auth.organization_id,
@@ -425,6 +472,7 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     return repository.list_demos({
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
+      project_version_id: input.project_version_id,
     });
   };
 
@@ -432,11 +480,13 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
   }) => {
     const demo = await repository.find_demo({
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
     });
 
     if (!demo) {
@@ -446,10 +496,19 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     return demo;
   };
 
+  const require_editable_interactive_demo = async (input: Parameters<typeof get_interactive_demo>[0]) => {
+    const demo = await get_interactive_demo(input);
+    if (demo.edition.status === "archived") {
+      throw new InteractiveDemoNotEditableError();
+    }
+    return demo;
+  };
+
   const update_interactive_demo = async (input: {
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     data: UpdateInteractiveDemoInput;
   }) => {
     const data = normalize_update_demo_input(input.data);
@@ -458,8 +517,10 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       data,
+      expected_edition_version: input.data.expected_edition_version,
     });
 
     if (!demo) {
@@ -469,30 +530,28 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     return demo;
   };
 
-  const delete_interactive_demo = async (input: {
-    auth: InteractiveDemoAuthContext;
-    project_id: string;
-    interactive_demo_id: string;
+  const update_interactive_demo_status = async (input: {
+    auth: InteractiveDemoAuthContext; project_id: string; interactive_demo_id: string;
+    project_version_id: string; status: "draft" | "archived"; expected_edition_version: number;
   }) => {
-    const deleted = await repository.delete_demo({
-      organization_id: input.auth.organization_id,
-      project_id: input.project_id,
-      interactive_demo_id: input.interactive_demo_id,
-      actor_org_user_id: input.auth.actor_org_user_id,
-    });
-
-    if (!deleted) {
-      throw new InteractiveDemoNotFoundError();
+    const scope = { organization_id: input.auth.organization_id, project_id: input.project_id };
+    const detail = await repository.find_demo({ ...scope, interactive_demo_id: input.interactive_demo_id, project_version_id: input.project_version_id });
+    if (!detail) throw new InteractiveDemoNotFoundError();
+    if (detail.edition.status === input.status) {
+      if (detail.edition.version !== input.expected_edition_version) throw new InteractiveDemoEditionConflictError();
+      return detail.edition;
     }
+    return repository.update_demo_status({ ...scope, interactive_demo_id: input.interactive_demo_id, project_version_id: input.project_version_id, actor_org_user_id: input.auth.actor_org_user_id, status: input.status, expected_edition_version: input.expected_edition_version });
   };
 
   const create_demo_scene = async (input: {
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     data: CreateDemoSceneInput;
   }) => {
-    await get_interactive_demo(input);
+    await require_editable_interactive_demo(input);
     const data = normalize_create_scene_input(input.data);
     await ensure_background_asset(repository, {
       organization_id: input.auth.organization_id,
@@ -504,8 +563,10 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       data,
+      expected_working_draft_version: input.data.expected_working_draft_version!,
     });
   };
 
@@ -513,12 +574,14 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
   }) => {
     await get_interactive_demo(input);
     return repository.list_scenes({
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
     });
   };
 
@@ -526,10 +589,11 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
     data: UpdateDemoSceneInput;
   }) => {
-    await get_interactive_demo(input);
+    await require_editable_interactive_demo(input);
     const data = normalize_update_scene_input(input.data);
 
     await ensure_background_asset(repository, {
@@ -542,9 +606,11 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       data,
+      expected_working_draft_version: input.data.expected_working_draft_version,
     });
 
     if (!scene) {
@@ -558,20 +624,24 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     scene_ids: string[];
+    expected_working_draft_version: number;
   }) => {
-    await get_interactive_demo(input);
+    await require_editable_interactive_demo(input);
     const scene_ids = normalize_demo_scene_ids(input.scene_ids);
 
     const scenes = await repository.reorder_scenes({
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       scene_ids,
+      expected_working_draft_version: input.expected_working_draft_version,
     });
 
-    assert_demo_scene_order_result(scene_ids, scenes);
+    assert_demo_scene_order_result(scene_ids, scenes.demo_scenes);
 
     return scenes;
   };
@@ -580,18 +650,22 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
+    expected_working_draft_version: number;
   }) => {
-    await get_interactive_demo(input);
+    await require_editable_interactive_demo(input);
     const deleted = await repository.delete_scene({
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
       actor_org_user_id: input.auth.actor_org_user_id,
+      expected_working_draft_version: input.expected_working_draft_version,
     });
 
-    if (!deleted) {
+    if (!deleted.deleted) {
       throw new DemoSceneNotFoundError();
     }
   };
@@ -600,14 +674,16 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
     data: CreateDemoHotspotInput;
   }) => {
-    await get_interactive_demo(input);
+    await require_editable_interactive_demo(input);
     await ensure_scene(repository, {
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
     });
     const data = normalize_create_hotspot_input(input.data);
@@ -616,16 +692,19 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
-      target_scene_id: data.target_scene_id,
+      project_version_id: input.project_version_id,
+      target_scene_id: data.transition?.target_scene_id,
     });
 
     return repository.create_hotspot({
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       data,
+      expected_working_draft_version: input.data.expected_working_draft_version!,
     });
   };
 
@@ -633,6 +712,7 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
   }) => {
     await get_interactive_demo(input);
@@ -640,6 +720,7 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
     });
 
@@ -647,6 +728,7 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
     });
   };
@@ -655,15 +737,17 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
     demo_hotspot_id: string;
     data: UpdateDemoHotspotInput;
   }) => {
-    await get_interactive_demo(input);
+    await require_editable_interactive_demo(input);
     await ensure_scene(repository, {
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
     });
     const data = normalize_update_hotspot_input(input.data);
@@ -673,17 +757,20 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
-      target_scene_id: data.target_scene_id,
+      project_version_id: input.project_version_id,
+      target_scene_id: data.transition?.target_scene_id,
     });
 
     const hotspot = await repository.update_hotspot({
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
       demo_hotspot_id: input.demo_hotspot_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       data,
+      expected_working_draft_version: input.data.expected_working_draft_version!,
     });
 
     if (!hotspot) {
@@ -697,14 +784,17 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
     hotspot_ids: string[];
+    expected_working_draft_version: number;
   }) => {
-    await get_interactive_demo(input);
+    await require_editable_interactive_demo(input);
     await ensure_scene(repository, {
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
     });
     const hotspot_ids = normalize_demo_hotspot_ids(input.hotspot_ids);
@@ -713,12 +803,14 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
       actor_org_user_id: input.auth.actor_org_user_id,
       hotspot_ids,
+      expected_working_draft_version: input.expected_working_draft_version,
     });
 
-    assert_demo_hotspot_order_result(hotspot_ids, hotspots);
+    assert_demo_hotspot_order_result(hotspot_ids, hotspots.demo_hotspots);
 
     return hotspots;
   };
@@ -727,26 +819,31 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     auth: InteractiveDemoAuthContext;
     project_id: string;
     interactive_demo_id: string;
+    project_version_id: string;
     demo_scene_id: string;
     demo_hotspot_id: string;
+    expected_working_draft_version: number;
   }) => {
-    await get_interactive_demo(input);
+    await require_editable_interactive_demo(input);
     await ensure_scene(repository, {
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
     });
     const deleted = await repository.delete_hotspot({
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
       interactive_demo_id: input.interactive_demo_id,
+      project_version_id: input.project_version_id,
       demo_scene_id: input.demo_scene_id,
       demo_hotspot_id: input.demo_hotspot_id,
       actor_org_user_id: input.auth.actor_org_user_id,
+      expected_working_draft_version: input.expected_working_draft_version,
     });
 
-    if (!deleted) {
+    if (!deleted.deleted) {
       throw new DemoHotspotNotFoundError();
     }
   };
@@ -757,7 +854,7 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
     list_interactive_demos,
     get_interactive_demo,
     update_interactive_demo,
-    delete_interactive_demo,
+    update_interactive_demo_status,
     create_demo_scene,
     list_demo_scenes,
     update_demo_scene,
