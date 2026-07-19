@@ -8,10 +8,12 @@ Date rechecked: 2026-07-19
 
 Date implemented: 2026-07-19
 
-Status: Runtime implementation is complete at commits `f130d45` and `b7fc3af`.
-Closeout remains blocked on a configured `testing_maintenance` PostgreSQL
-environment and an authenticated local browser environment; child `120` must
-not start until those gates pass.
+Date closed: 2026-07-19
+
+Status: Complete after implementation closeout recheck on 2026-07-19. Runtime
+implementation is at `f130d45` and `b7fc3af`; safety and workflow corrections
+are at `a3e8398` and `4b4195c`. Fresh PostgreSQL, rollback, DB/smoke, storage,
+and authenticated browser gates passed. Child `120` is sequence-unblocked.
 
 Parent plan:
 
@@ -1052,11 +1054,11 @@ stop services afterward. A blocked browser capability is not a pass.
       by the complete relational reference graph, and does not erase evidence.
 - [x] Current publication compatibility maintains typed Asset references without
       claiming child `120`'s Revision-backed publication target.
-- [ ] Audit/Access/database mutation coverage, tenant isolation, runtime grants,
+- [x] Audit/Access/database mutation coverage, tenant isolation, runtime grants,
       migration/reset/rollback, focused/broad/DB/smoke checks pass.
 - [x] Required browser journeys pass or have precise current capability blockers
       with no fabricated evidence.
-- [ ] Child `120` can point Published Artifacts at exact Revisions and remove the
+- [x] Child `120` can point Published Artifacts at exact Revisions and remove the
       temporary snapshot/projection seam without another authoring rewrite.
 
 ## Expansion And Recheck Checklist
@@ -1084,7 +1086,7 @@ stop services afterward. A blocked browser capability is not a pass.
 - [x] Establish failing tests before each behavior boundary.
 - [x] Implement only this child and preserve unrelated user/agent changes.
 - [x] Keep core Revision, lineage, protection, and operation state relational.
-- [ ] Run focused, broad, migration, DB, smoke, storage, and browser verification.
+- [x] Run focused, broad, migration, DB, smoke, storage, and browser verification.
 - [x] Update this file with implementation status, checklist, log, exact evidence,
       blockers, leftovers, and commits.
 - [x] Update master `005` only for genuinely completed child `119` items.
@@ -1125,64 +1127,71 @@ Implemented from clean `HEAD` `a687d62` with no unrelated worktree changes:
 - combined the two planned Revision/Carry-Forward DB files into
   `artifact-revision-carry-forward.db.integration.test.ts` so checkpoint/reuse,
   mixed carry/replay, lineage, and immutability share one transaction fixture.
+- closeout recheck corrected real Guide/Demo Published Artifact Asset extraction,
+  scoped the projection FK, hardened typed Carry-Forward evidence and archived
+  Project Version purge guards, restored replacement-function runtime grants,
+  and made purge protection/race responses storage-truthful and conflict-stable;
+- closeout recheck aligned the portal with a fixed target Project Version,
+  active/archived source grouping, complete blocker/result presentation,
+  role/lifecycle-gated actions, Revision creator evidence, and typed immutable
+  Guide/Demo visual previews;
+- the complete DB suite exposed one stale pre-119 bodyless Asset-delete fixture;
+  it now verifies the implemented archive-then-purge contract.
 
 Implementation commits:
 
 - `f130d45` — `feat(server): add revisions carry-forward and protected assets`
 - `b7fc3af` — `feat(web): add revision and carry-forward workflows`
+- `a3e8398` — `fix(server): close child 119 safety gaps`
+- `4b4195c` — `fix(web): align child 119 revision workflows`
 - closeout/operational documentation — this documentation commit.
 
 ## Verification Record
 
-Passed on 2026-07-19:
+Passed on 2026-07-19 during implementation and closeout recheck:
 
 - `rtk pnpm -r --if-present test`: all workspace suites passed, including server
-  `96` files / `385` tests, web `37` / `272`, extension `11` / `99`, types `16` /
-  `60`, and all other shared-package suites;
-- `rtk pnpm check-types`: `12` tasks passed;
-- `rtk pnpm lint`: `13` tasks passed;
-- `rtk pnpm build`: `12` tasks passed;
-- focused Revision content/repository/service/route, Carry-Forward service/route,
-  Capture Asset repository/service/route/audit/storage, publish projection,
-  activity, migration schema, UI history/preview/carry/purge, and route tests;
-- `rtk git diff --check` and cached whitespace checks before each implementation
-  commit;
-- `rtk agent-browser doctor --offline --quick`: `9` checks passed, including an
-  available browser binary.
-
-Blocked verification, not passes:
-
-- `rtk pnpm --filter server run test:db` and `test:smoke` both stop before Vitest
-  because `apps/server/.env-cmdrc` does not define `testing_maintenance`;
-  therefore migration `023`, database guards/grants/rollback, DB integration,
-  and DB smoke remain unverified against a live PostgreSQL instance;
-- agent-browser opened the exact new Revision route through the Vite portal, but
-  `/api/v1/public/instance` returned `500` through the proxy because no local
-  server/setup environment was available. Authenticated role, responsive,
-  keyboard, error-state, and end-to-end browser journeys could not proceed.
-  The browser session and Vite process were closed after evidence capture.
-
-Required closeout rerun:
-
-1. configure the repository-local `testing_maintenance` environment and run
-   `test:setup`, `test:db`, and `test:smoke` against disposable PostgreSQL;
-2. start a migrated local server and portal with synthetic Admin, Editor, and
-   Viewer fixtures, then execute the browser matrix above;
-3. if both gates pass, check the remaining Acceptance/Delivery items, mark child
-   `119` complete in master `005`, and only then begin child `120`.
+  `96` files / `389` tests, web `37` / `275`, extension `11` / `99`, types `16` /
+  `60`, and every shared-package suite;
+- `rtk pnpm typecheck`: `12` tasks passed; `rtk pnpm lint`: `13` tasks completed
+  with no errors (the server reports `24` non-blocking warnings); and
+  `rtk pnpm build`: `12` tasks passed;
+- focused Revision/Carry-Forward, Capture Asset, Guide, Demo, publish projection,
+  migration-schema, portal history/preview/carry, and Project Version route
+  suites passed (`45` server tests and `32` web tests in the final focused set);
+- a disposable PostgreSQL 16 database migrated freshly through `023`; migration
+  `023` then reverted and reapplied successfully;
+- the full serial DB suite passed `17` files / `65` tests, including tenant,
+  authorization, Audit/Access evidence, grants/guards, Revision immutability,
+  Carry-Forward, publish projection, Capture Asset protection/purge, and legacy
+  workflow regression coverage;
+- `v1-workflows.db.integration.test.ts` passed `1` / `1` against the fresh schema
+  and local synthetic storage, including cross-Project-Version authored Asset
+  reuse through the accepted Carry-Forward exception;
+- authenticated agent-browser validation passed against the migrated local API
+  and portal with synthetic Project Admin, Editor, and Viewer roles: the active
+  target flow listed active/archived source groups, an archived source loaded
+  Guide and Demo choices, conflicts rendered every blocker ID, Admin/Editor
+  controls matched capability, Viewer/archived-target write controls were absent,
+  archived targets were visibly read-only, and Revision history/Guide preview
+  rendered creator evidence, immutable content, referenced media, and overlays;
+- browser validation covered desktop `1440x900`, narrow mobile `390x844`,
+  keyboard focus movement, exact reflow (`scrollWidth === innerWidth`), successful
+  authenticated media resolution, and zero final console errors;
+- `rtk git diff --check` and cached whitespace checks passed before each closeout
+  implementation commit. Browser sessions, application processes, and synthetic
+  fixtures were closed after evidence capture.
 
 ## Leftovers
 
-- No known code-level child-`119` defect remains after the focused and broad
-  non-database suites.
-- Live PostgreSQL migration, rollback, grant/guard, DB integration, and smoke
-  evidence remains mandatory because the repository-local test environment is
-  absent.
-- Authenticated Admin/Editor/Viewer desktop/mobile, keyboard, zoom/reflow,
-  console, and network browser evidence remains mandatory because the local API
-  setup endpoint is unavailable.
-- Child `120` owns the reserved Publication Revision trigger and removal of the
-  temporary `snapshot_json`/Published Asset projection compatibility seam.
+- No known child-`119` implementation or verification defect remains.
+- Child `120` owns the reserved Publication Revision trigger, exact Revision FK
+  publication persistence, and removal of the temporary `snapshot_json` and
+  Published Artifact Asset projection compatibility seam.
+- Child `120` must preserve the real typed media shapes verified here
+  (`blocks[].source_asset.id` and `scenes[].background_asset.id`), the scoped
+  projection constraints, immutable Revision reads, immediate Edition lineage,
+  and the complete protected-Asset dependency graph.
 
 ## Handoff To Child 120
 
@@ -1206,5 +1215,5 @@ Child `120` owns:
 
 Do not carry the current snapshot JSON into a second permanent source of truth.
 Do not weaken Revision immutability or asset protection to simplify publication.
-Child `120` is structurally unblocked by code but remains sequence-blocked until
-the child-`119` PostgreSQL and authenticated browser verification gates pass.
+Child `120` is structurally and sequentially unblocked by the completed child
+`119` PostgreSQL and authenticated browser verification gates.

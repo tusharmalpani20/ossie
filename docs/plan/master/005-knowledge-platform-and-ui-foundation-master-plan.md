@@ -2,9 +2,8 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `118` are complete. Child `119`
-runtime implementation is committed; its PostgreSQL and authenticated browser
-closeout gates remain blocked by the local environment.
+Status: In progress. Children `109` through `119` are complete. Child `120` is
+the next executable phase.
 
 Master plan number: 005.
 
@@ -89,10 +88,10 @@ Baseline reviewed on 2026-07-10:
 - Current pages still rely heavily on CSS Modules, hard-coded slate/hex values, repeated control styling, and only minimal global tokens. The UI track is therefore a consolidation and product-design effort, not a fresh Tailwind or icon migration.
 - Child `109` installed the accepted external design guidance as pinned, optional repository tooling and documented provenance, compatibility changes, update/removal procedure, and rejected sources in `docs/agent-workflow.md`. It remains outside application dependencies and runtime behavior.
 - The current UI works at alpha level but does not yet provide the consistency, hierarchy, density, responsive behavior, accessibility, or navigation expected from a daily internal tool.
-- Master plans `001` through `004` are complete. Children `109` through `118`
-  are complete. Child `119` is implemented but not closed because its database
-  and authenticated browser verification cannot run in the current environment.
-  The
+- Master plans `001` through `004` are complete. Children `109` through `119`
+  are complete. Child `119` passed fresh migration/rollback, full DB/smoke,
+  storage, broad workspace, and authenticated Admin/Editor/Viewer browser
+  closeout on 2026-07-19. The
   optional overnight-runner tooling checkpoint was deferred on 2026-07-19 and
   is not a gate for sequential child execution.
 - Known extension and production-readiness leftovers from master plan `004` remain real unless a child plan explicitly closes them.
@@ -1196,9 +1195,11 @@ Acceptance:
 
 ### 119: Guide And Demo Revision, Carry-Forward, And Protected Assets
 
-Status: Implemented at `f130d45` and `b7fc3af`; closeout blocked on configured
-PostgreSQL DB/smoke and authenticated browser verification. The master checklist
-remains open until those gates pass.
+Status: Complete after implementation closeout recheck on 2026-07-19. Runtime
+implementation is at `f130d45` and `b7fc3af`; safety/workflow corrections are
+at `a3e8398` and `4b4195c`. Fresh migration/rollback, the full DB suite, smoke,
+storage, broad workspace checks, and authenticated Admin/Editor/Viewer browser
+validation passed.
 
 Planned file:
 
@@ -1905,7 +1906,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `116`.
 - [x] Create, expand, recheck, implement, and close child plan `117`.
 - [x] Create, expand, recheck, implement, and close child plan `118`.
-- [ ] Create, expand, recheck, implement, and close child plan `119`.
+- [x] Create, expand, recheck, implement, and close child plan `119`.
 - [ ] Create, expand, recheck, implement, and close child plan `120`.
 - [ ] Create, expand, recheck, implement, and close child plan `121`.
 - [ ] Create, expand, recheck, implement, and close child plan `122`.
@@ -1955,10 +1956,10 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is child `119` verification closeout: provision the
-repository-local `testing_maintenance` PostgreSQL environment, run migration/DB/
-smoke checks, then run the authenticated Admin/Editor/Viewer browser matrix.
-Child `120` must not start until those gates pass and child `119` is closed.
+The next executable activity is child `120`: expand and recheck Publication And
+Multi-Version Publish Link Integration against the completed child `119`
+Revision, Carry-Forward, lineage, and protected-Asset boundaries before
+implementation.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -1968,11 +1969,11 @@ Children `109`, `110`, the deliberately early `111` grill, Audit Evidence Core
 child `112`, comprehensive existing-mutation coverage child `113`, Access
 Evidence/Owner compliance timeline child `114`, Project Membership Foundation
 child `115`, Project Version Foundation child `116`, Capture Source Version
-Scoping child `117`, and Guide/Demo Edition And Working Draft Relational
-Foundation child `118` are complete. Child `119` has implemented immutable
-relational Revisions, Carry-Forward, and protected shared-asset behavior on those
-shipped Artifact, Edition, and Working Draft ownership boundaries; only its
-environment-blocked verification and closeout remain.
+Scoping child `117`, Guide/Demo Edition And Working Draft Relational Foundation
+child `118`, and Guide/Demo Revision, Carry-Forward, And Protected Assets child
+`119` are complete. Child `119` leaves child `120` immutable exact
+Revisions, immediate Edition lineage, typed current-publication Asset projection,
+and a verified protected shared-Asset dependency boundary.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with child `119` verification closeout.
+continues with child `120` expansion and recheck.
