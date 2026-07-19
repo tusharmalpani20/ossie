@@ -324,6 +324,10 @@ importers:
         version: 4.1.8(@types/node@22.15.3)(jsdom@29.1.1)(vite@7.3.2(@types/node@22.15.3)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/audit-domain:
+    dependencies:
+      '@repo/constants':
+        specifier: workspace:*
+        version: link:../constants
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*

@@ -3,6 +3,7 @@ import {
   verify_audit_core_schema,
   verify_audit_schema,
 } from "./audit-schema-verification";
+import * as verification from "./audit-schema-verification";
 
 describe("Audit schema verification", () => {
   it("reports missing schema protections without exposing credentials", async () => {
@@ -85,5 +86,22 @@ describe("Audit schema verification", () => {
     expect(pool.query.mock.calls[0]?.[0]).not.toContain(
       "public_publish_viewer_session",
     );
+  });
+
+  it("verifies the full Access Evidence catalog after migration 017", async () => {
+    const pool = {
+      query: vi.fn<
+        (sql: string, values?: unknown[]) => Promise<{ rows: never[] }>
+      >(async () => ({ rows: [] })),
+    };
+    const verify = Reflect.get(verification, "verify_evidence_schema");
+
+    expect(verify).toBeTypeOf("function");
+    await expect(
+      verify(pool as never, { runtime_role: "runtime", maintenance_role: "maintenance" }),
+    ).resolves.toEqual({ status: "ready" });
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("access_event_append_only");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("idx_access_event_organization_cursor");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("audit_schema.access_event");
   });
 });

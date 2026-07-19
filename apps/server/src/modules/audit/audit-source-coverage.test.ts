@@ -8,6 +8,7 @@ const source_root = new URL("../../", import.meta.url);
 const excluded = new Set([
   "audit_schema.audit_change_item:INSERT",
   "audit_schema.audit_event:INSERT",
+  "audit_schema.access_event:INSERT",
   "db_migration.schema_migrations:INSERT",
   "db_migration.schema_migrations:DELETE",
 ]);
@@ -55,6 +56,7 @@ describe("Audit production SQL source coverage", () => {
     expect(uncovered).toEqual([]);
     expect([...registered].filter((key) => !discovered.has(key))).toEqual([]);
     expect([...excluded].sort()).toEqual([
+      "audit_schema.access_event:INSERT",
       "audit_schema.audit_change_item:INSERT",
       "audit_schema.audit_event:INSERT",
       "db_migration.schema_migrations:DELETE",

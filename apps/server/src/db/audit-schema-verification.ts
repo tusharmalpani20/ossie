@@ -318,3 +318,85 @@ export const verify_audit_schema = async (
   );
   return throw_verification_issues(result.rows);
 };
+
+export const verify_evidence_schema = async (
+  pool: VerificationPool,
+  roles: { runtime_role: string; maintenance_role: string },
+) => {
+  await verify_audit_schema(pool, roles);
+  const result = await pool.query<{ issue: string }>(
+    `
+    WITH expected_triggers(name) AS (VALUES
+      ('access_event_append_only'),
+      ('access_event_no_truncate')
+    ), expected_indexes(name) AS (VALUES
+      ('idx_access_event_organization_cursor'),
+      ('idx_access_event_project_cursor'),
+      ('idx_access_event_actor_cursor'),
+      ('idx_access_event_root_cursor'),
+      ('idx_access_event_request')
+    ), expected_constraints(name) AS (VALUES
+      ('fk_access_event_organization'),
+      ('fk_access_event_project_organization'),
+      ('fk_access_event_actor_organization'),
+      ('chk_access_event_source'),
+      ('chk_access_event_actor'),
+      ('chk_access_event_outcome'),
+      ('chk_access_event_surface'),
+      ('chk_access_event_authorization'),
+      ('chk_access_event_reason'),
+      ('chk_access_event_transport'),
+      ('chk_access_event_response_bytes')
+    ), expected_privileges(privilege, expected) AS (VALUES
+      ('SELECT', true),
+      ('INSERT', true),
+      ('UPDATE', false),
+      ('DELETE', false),
+      ('TRUNCATE', false),
+      ('REFERENCES', false),
+      ('TRIGGER', false)
+    )
+    SELECT 'table:audit_schema.access_event' AS issue
+    WHERE to_regclass('audit_schema.access_event') IS NULL
+    UNION ALL
+    SELECT 'trigger:' || expected.name
+    FROM expected_triggers expected
+    WHERE NOT EXISTS (
+      SELECT 1 FROM pg_trigger
+      WHERE tgname = expected.name AND NOT tgisinternal
+    )
+    UNION ALL
+    SELECT 'index:' || expected.name
+    FROM expected_indexes expected
+    WHERE NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = expected.name)
+    UNION ALL
+    SELECT 'constraint:' || expected.name
+    FROM expected_constraints expected
+    WHERE NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = expected.name)
+    UNION ALL
+    SELECT 'privilege:audit_schema.access_event:' || privilege || ':' || expected::text
+    FROM expected_privileges
+    WHERE has_table_privilege($1::text, 'audit_schema.access_event', privilege)
+      IS DISTINCT FROM expected
+    UNION ALL
+    SELECT 'owner:audit_schema.access_event:maintenance'
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM pg_class class
+      JOIN pg_namespace namespace ON namespace.oid = class.relnamespace
+      WHERE namespace.nspname = 'audit_schema'
+        AND class.relname = 'access_event'
+        AND pg_get_userbyid(class.relowner) = $2::text
+    )
+    UNION ALL
+    SELECT 'column:audit_schema:json_forbidden'
+    WHERE EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'audit_schema' AND data_type IN ('json', 'jsonb')
+    )
+    ORDER BY issue
+    `,
+    [roles.runtime_role, roles.maintenance_role],
+  );
+  return throw_verification_issues(result.rows);
+};

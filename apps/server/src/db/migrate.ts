@@ -2,6 +2,7 @@ import { get_migrator } from "./migrator";
 import {
   verify_audit_core_schema,
   verify_audit_schema,
+  verify_evidence_schema,
 } from "./audit-schema-verification";
 
 const command = process.argv[2];
@@ -18,10 +19,18 @@ const run = async () => {
       await umzug.up(target ? { to: target } : undefined);
       const executed = await umzug.executed();
       if (executed.some(({ name }) => name === "015_audit_evidence_core.sql")) {
+        const access_evidence = executed.some(
+          ({ name }) =>
+            name === "017_access_evidence_and_compliance_timelines.sql",
+        );
         const comprehensive = executed.some(
           ({ name }) => name === "016_existing_mutation_audit_coverage.sql",
         );
-        await (comprehensive ? verify_audit_schema : verify_audit_core_schema)(
+        await (access_evidence
+          ? verify_evidence_schema
+          : comprehensive
+            ? verify_audit_schema
+            : verify_audit_core_schema)(
           pool,
           roles,
         );
@@ -38,10 +47,15 @@ const run = async () => {
       )
         ? await (
             executed.some(
+              ({ name }) =>
+                name === "017_access_evidence_and_compliance_timelines.sql",
+            )
+              ? verify_evidence_schema
+              : executed.some(
               ({ name }) => name === "016_existing_mutation_audit_coverage.sql",
             )
-              ? verify_audit_schema
-              : verify_audit_core_schema
+                ? verify_audit_schema
+                : verify_audit_core_schema
           )(pool, roles)
         : { status: "not_installed" as const };
       console.info(

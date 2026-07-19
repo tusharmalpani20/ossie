@@ -85,6 +85,29 @@ describe("foundation schema migrations", () => {
     expect(sql).not.toMatch(/GRANT[^;]*\bDELETE\b/iu);
   });
 
+  it("defines typed relational append-only Access Evidence", () => {
+    const migration = readFileSync(
+      new URL(
+        "./migrations/017_access_evidence_and_compliance_timelines.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const event = table_definition(migration, "audit_schema.access_event");
+
+    expect(event).toContain("organization_id VARCHAR(26) NOT NULL");
+    expect(event).toContain("project_id VARCHAR(26) DEFAULT NULL");
+    expect(event).toContain("route_template VARCHAR(255) DEFAULT NULL");
+    expect(event).toContain("authorization_type VARCHAR(32) NOT NULL");
+    expect(event).toContain("response_bytes BIGINT DEFAULT NULL");
+    expect(event.toLowerCase()).not.toContain("json");
+    expect(migration).toContain("access_event_append_only");
+    expect(migration).toContain("access_event_no_truncate");
+    expect(migration).toContain("GRANT SELECT, INSERT ON audit_schema.access_event");
+    expect(migration).toContain("Refusing to remove populated Access Evidence");
+    expect(migration).not.toMatch(/GRANT[^;]*\b(?:UPDATE|DELETE|TRUNCATE)\b/iu);
+  });
+
   it("keeps the maintenance reset explicit instead of cascading to unknown tables", () => {
     const reset_source = readFileSync(
       new URL("../test-support/database.ts", import.meta.url),

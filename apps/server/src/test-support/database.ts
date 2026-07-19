@@ -74,6 +74,7 @@ export const reset_test_database = async () =>
       TRUNCATE TABLE
         audit_schema.audit_change_item,
         audit_schema.audit_event,
+        audit_schema.access_event,
         publish_schema.public_publish_viewer_session,
         publish_schema.publish_link,
         publish_schema.published_artifact,

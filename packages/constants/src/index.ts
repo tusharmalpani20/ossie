@@ -1,3 +1,4 @@
+export * from "./access";
 export * from "./capture";
 export * from "./demo";
 export * from "./file";
