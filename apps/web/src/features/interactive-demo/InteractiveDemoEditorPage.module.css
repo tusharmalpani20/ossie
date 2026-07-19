@@ -226,6 +226,11 @@
   gap: 12px;
 }
 
+.hotspotList li {
+  display: grid;
+  gap: 4px;
+}
+
 .hotspotEditor {
   display: grid;
   gap: 10px;

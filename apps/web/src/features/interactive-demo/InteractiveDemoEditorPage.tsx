@@ -307,15 +307,59 @@ export const InteractiveDemoEditorPage = ({
           <h2 id="demo-scenes-readonly-heading" className={styles.sectionTitle}>Scenes</h2>
           {state.scenes.length === 0 ? (
             <div className={styles.state}>This demo does not have any scenes yet.</div>
-          ) : state.scenes.map((scene, index) => (
-            <Card key={scene.id} className={styles.panel}>
-              <CardContent>
-                <h3>Scene {index + 1}: {scene.title ?? "Untitled scene"}</h3>
-                {scene.description ? <p>{scene.description}</p> : null}
-                <p>{state.hotspotsBySceneId[scene.id]?.length ?? 0} hotspots</p>
-              </CardContent>
-            </Card>
-          ))}
+          ) : state.scenes.map((scene, index) => {
+            const sceneNumber = index + 1;
+            const sceneTitle = scene.title ?? `Scene ${sceneNumber}`;
+            const assetFileUrl = sceneAssetFileUrl(projectId, scene);
+            const hotspots = state.hotspotsBySceneId[scene.id] ?? [];
+            return (
+              <Card key={scene.id} className={styles.panel}>
+                <CardContent>
+                  <h3>Scene {sceneNumber}: {sceneTitle}</h3>
+                  {scene.description ? <p>{scene.description}</p> : null}
+                  <div className={styles.screenshotFrame}>
+                    {assetFileUrl ? (
+                      <>
+                        <img
+                          className={styles.screenshot}
+                          src={resolveAssetUrl(assetFileUrl)}
+                          alt={`${sceneTitle} screenshot`}
+                        />
+                        {hotspots.map((hotspot) => (
+                          <span
+                            key={hotspot.id}
+                            role="note"
+                            className={styles.hotspotOverlay}
+                            aria-label={`Hotspot ${hotspot.label ?? hotspot.hotspot_index}`}
+                            style={{
+                              left: `${hotspot.x * 100}%`,
+                              top: `${hotspot.y * 100}%`,
+                              width: `${hotspot.width * 100}%`,
+                              height: `${hotspot.height * 100}%`,
+                            }}
+                          />
+                        ))}
+                      </>
+                    ) : (
+                      <div className={styles.placeholder}>No screenshot attached.</div>
+                    )}
+                  </div>
+                  {hotspots.length === 0 ? (
+                    <p>No hotspots.</p>
+                  ) : (
+                    <ol className={styles.hotspotList} aria-label={`Scene ${sceneNumber} hotspot content`}>
+                      {hotspots.map((hotspot) => (
+                        <li key={hotspot.id}>
+                          <strong>{hotspot.label ?? `Hotspot ${hotspot.hotspot_index}`}</strong>
+                          <span>{hotspot.content ?? hotspot.hotspot_type}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </section>
       </PortalShell>
     );

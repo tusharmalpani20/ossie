@@ -291,6 +291,12 @@ describe("InteractiveDemoEditorPage", () => {
     expect(await screen.findByRole("heading", { name: "Department setup demo" })).toBeInTheDocument();
     expect(screen.getByText("Interactive demo · read only")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Scene 1: Navigate to Department List" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Navigate to Department List screenshot" })).toHaveAttribute(
+      "src",
+      "https://api.example.com/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/asset_1/file"
+    );
+    expect(screen.getByText("Continue")).toBeInTheDocument();
+    expect(screen.getByLabelText("Hotspot Continue")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save demo" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Publish demo" })).not.toBeInTheDocument();
   });
