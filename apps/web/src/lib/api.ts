@@ -15,6 +15,9 @@ import type {
   ReorderCaptureEventsResponse,
   UpdateCaptureEventInput,
   UpdateCaptureEventResponse,
+  CaptureAsset,
+  CaptureAssetProtectionResponse,
+  CaptureAssetPurgeResponse,
 } from "@repo/types/capture";
 import type {
   CreateDemoHotspotInput,
@@ -104,6 +107,17 @@ import type {
   UpdateProjectVersionRequest,
 } from "@repo/types/project-version";
 import type {
+  ArtifactCarryForwardRequest,
+  ArtifactCarryForwardResponse,
+  ArtifactRevisionListQuery,
+  ArtifactRevisionSummary,
+  ArtifactRevisionWriteRequest,
+  GuideRevisionDetail,
+  GuideRevisionRestoreResponse,
+  InteractiveDemoRevisionDetail,
+  InteractiveDemoRevisionRestoreResponse,
+} from "@repo/types";
+import type {
   UploadCaptureAssetInput,
   UploadCaptureAssetResponse,
 } from "../features/capture-session/types";
@@ -150,10 +164,149 @@ export type ApiClientErrorKind =
   | "validation"
   | "unknown";
 
+const revisionPath = (
+  projectId: string,
+  type: "guides" | "interactive-demos",
+  artifactId: string,
+  projectVersionId: string,
+) =>
+  `/api/v1/projects/${encodeURIComponent(projectId)}/${type}/${encodeURIComponent(artifactId)}/revisions?project_version_id=${encodeURIComponent(projectVersionId)}`;
+
+export const listArtifactRevisions = (input: {
+  projectId: string;
+  projectVersionId: string;
+  artifactType: "guide" | "interactive_demo";
+  artifactId: string;
+  query?: ArtifactRevisionListQuery;
+}) => {
+  const path = revisionPath(
+    input.projectId,
+    input.artifactType === "guide" ? "guides" : "interactive-demos",
+    input.artifactId,
+    input.projectVersionId,
+  );
+  const params = new URLSearchParams();
+  if (input.query?.limit) params.set("limit", String(input.query.limit));
+  if (input.query?.before_revision_number)
+    params.set(
+      "before_revision_number",
+      String(input.query.before_revision_number),
+    );
+  return requestJson<{
+    revisions: ArtifactRevisionSummary[];
+    next_before_revision_number: number | null;
+  }>(`${path}${params.size ? `&${params}` : ""}`);
+};
+export const getArtifactRevision = <
+  T extends "guide" | "interactive_demo",
+>(input: {
+  projectId: string;
+  projectVersionId: string;
+  artifactType: T;
+  artifactId: string;
+  revisionNumber: number;
+}) =>
+  requestJson<
+    T extends "guide" ? GuideRevisionDetail : InteractiveDemoRevisionDetail
+  >(
+    `${revisionPath(input.projectId, input.artifactType === "guide" ? "guides" : "interactive-demos", input.artifactId, input.projectVersionId).replace("?", `/${input.revisionNumber}?`)}`,
+  );
+export const checkpointArtifactRevision = (input: {
+  projectId: string;
+  projectVersionId: string;
+  artifactType: "guide" | "interactive_demo";
+  artifactId: string;
+  data: ArtifactRevisionWriteRequest;
+}) =>
+  requestJson<{ revision: ArtifactRevisionSummary; reused: boolean }>(
+    `${revisionPath(input.projectId, input.artifactType === "guide" ? "guides" : "interactive-demos", input.artifactId, input.projectVersionId).replace("?", "/checkpoint?")}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input.data),
+    },
+  );
+export const restoreArtifactRevision = (input: {
+  projectId: string;
+  projectVersionId: string;
+  artifactType: "guide" | "interactive_demo";
+  artifactId: string;
+  revisionNumber: number;
+  data: ArtifactRevisionWriteRequest;
+}) =>
+  requestJson<
+    GuideRevisionRestoreResponse | InteractiveDemoRevisionRestoreResponse
+  >(
+    `${revisionPath(input.projectId, input.artifactType === "guide" ? "guides" : "interactive-demos", input.artifactId, input.projectVersionId).replace("?", `/${input.revisionNumber}/restore?`)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input.data),
+    },
+  );
+export const carryForwardArtifactEditions = (
+  projectId: string,
+  data: ArtifactCarryForwardRequest,
+  idempotencyKey: string,
+) =>
+  requestJson<ArtifactCarryForwardResponse>(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/artifact-editions/carry-forward`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": idempotencyKey,
+      },
+      body: JSON.stringify(data),
+    },
+  );
+export const changeCaptureAssetLifecycle = (input: {
+  projectId: string;
+  captureSessionId: string;
+  captureAssetId: string;
+  command: "archive" | "restore";
+  expectedAssetVersion: number;
+}) =>
+  requestJson<{ capture_asset: CaptureAsset }>(
+    `/api/v1/projects/${encodeURIComponent(input.projectId)}/capture-sessions/${encodeURIComponent(input.captureSessionId)}/assets/${encodeURIComponent(input.captureAssetId)}/${input.command}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        expected_asset_version: input.expectedAssetVersion,
+      }),
+    },
+  );
+export const getCaptureAssetProtection = (input: {
+  projectId: string;
+  captureSessionId: string;
+  captureAssetId: string;
+}) =>
+  requestJson<CaptureAssetProtectionResponse>(
+    `/api/v1/projects/${encodeURIComponent(input.projectId)}/capture-sessions/${encodeURIComponent(input.captureSessionId)}/assets/${encodeURIComponent(input.captureAssetId)}/protection`,
+  );
+export const purgeCaptureAsset = (input: {
+  projectId: string;
+  captureSessionId: string;
+  captureAssetId: string;
+  expectedAssetVersion: number;
+}) =>
+  requestJson<CaptureAssetPurgeResponse>(
+    `/api/v1/projects/${encodeURIComponent(input.projectId)}/capture-sessions/${encodeURIComponent(input.captureSessionId)}/assets/${encodeURIComponent(input.captureAssetId)}`,
+    {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        expected_asset_version: input.expectedAssetVersion,
+      }),
+    },
+  );
+
 type ApiErrorBody = {
   error?: {
     type?: string;
     message?: string;
+    details?: unknown;
   };
 };
 
@@ -170,18 +323,21 @@ export class ApiClientError extends Error {
   kind: ApiClientErrorKind;
   status: number;
   type: string | null;
+  details: unknown;
 
   constructor(input: {
     kind: ApiClientErrorKind;
     status: number;
     message: string;
     type?: string | null;
+    details?: unknown;
   }) {
     super(input.message);
     this.name = "ApiClientError";
     this.kind = input.kind;
     this.status = input.status;
     this.type = input.type ?? null;
+    this.details = input.details;
   }
 }
 
@@ -243,6 +399,7 @@ const requestJson = async <Result>(
       status: response.status,
       type: body.error?.type ?? null,
       message: body.error?.message ?? "Request failed",
+      details: body.error?.details,
     });
   }
 

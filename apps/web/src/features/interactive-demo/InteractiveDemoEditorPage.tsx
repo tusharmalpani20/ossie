@@ -309,6 +309,7 @@ export const InteractiveDemoEditorPage = ({
   navigate,
   copyText = defaultCopyText,
   canWrite = true,
+  versionSlug,
   isDefaultVersion = true,
   changeEditionStatus = (command, id, artifactId, versionId, expected) =>
     command === "archive"
@@ -481,6 +482,13 @@ export const InteractiveDemoEditorPage = ({
           </div>
           <div>
             <Badge>{state.demo.status}</Badge>
+            {versionSlug ? (
+              <a
+                href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/revisions`}
+              >
+                Revision history
+              </a>
+            ) : null}
             {canWrite && state.demo.status === "archived" ? (
               <Button
                 variant="secondary"
@@ -598,6 +606,7 @@ export const InteractiveDemoEditorPage = ({
       navigate={navigate}
       copyText={copyText}
       onChangeLifecycle={changeLifecycle}
+      versionSlug={versionSlug}
       isDefaultVersion={isDefaultVersion}
     />
   );
@@ -652,6 +661,7 @@ const InteractiveDemoEditorLoaded = ({
   navigate,
   copyText,
   onChangeLifecycle,
+  versionSlug,
   isDefaultVersion,
 }: {
   projectId: string;
@@ -692,6 +702,7 @@ const InteractiveDemoEditorLoaded = ({
   navigate?: (path: string) => void;
   copyText: NonNullable<InteractiveDemoEditorPageProps["copyText"]>;
   onChangeLifecycle: () => Promise<void>;
+  versionSlug?: string;
   isDefaultVersion: boolean;
 }) => {
   const orderedScenes = useMemo(() => sortedScenes(scenes), [scenes]);
@@ -1218,6 +1229,13 @@ const InteractiveDemoEditorLoaded = ({
             <Badge variant={demo.status === "draft" ? "warning" : "success"}>
               {demo.status}
             </Badge>
+            {versionSlug ? (
+              <a
+                href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/revisions`}
+              >
+                Revision history
+              </a>
+            ) : null}
             <Button
               variant="destructive"
               onClick={() => void onChangeLifecycle()}

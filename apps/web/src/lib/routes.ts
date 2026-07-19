@@ -1,161 +1,252 @@
 export type PortalRoute =
   | {
-    type: "login";
-  }
+      type: "login";
+    }
   | {
-    type: "setup";
-  }
+      type: "setup";
+    }
   | {
-    type: "project_list";
-  }
+      type: "project_list";
+    }
   | {
-    type: "organization_members";
-  }
+      type: "organization_members";
+    }
   | {
-    type: "organization_compliance";
-  }
+      type: "organization_compliance";
+    }
   | {
-    type: "organization_invite_accept";
-    token: string;
-  }
+      type: "organization_invite_accept";
+      token: string;
+    }
   | {
-    type: "project_workspace";
-    projectId: string;
-  }
-  | { type: "project_version_workspace"; projectId: string; versionSlug: string }
+      type: "project_workspace";
+      projectId: string;
+    }
   | {
-    type: "project_settings";
-    projectId: string;
-  }
+      type: "project_version_workspace";
+      projectId: string;
+      versionSlug: string;
+    }
+  | { type: "project_carry_forward"; projectId: string; versionSlug: string }
+  | {
+      type: "artifact_revision_history";
+      projectId: string;
+      versionSlug: string;
+      artifactType: "guide" | "interactive_demo";
+      artifactId: string;
+    }
+  | {
+      type: "artifact_revision_preview";
+      projectId: string;
+      versionSlug: string;
+      artifactType: "guide" | "interactive_demo";
+      artifactId: string;
+      revisionNumber: number;
+    }
+  | {
+      type: "project_settings";
+      projectId: string;
+    }
   | { type: "project_compliance"; projectId: string }
   | { type: "project_activity"; projectId: string }
   | {
-    type: "capture_session_detail";
-    projectId: string;
-    captureSessionId: string;
-    versionSlug?: string;
-  }
+      type: "capture_session_detail";
+      projectId: string;
+      captureSessionId: string;
+      versionSlug?: string;
+    }
   | {
-    type: "project_capture_session_list";
-    projectId: string;
-    versionSlug?: string;
-  }
+      type: "project_capture_session_list";
+      projectId: string;
+      versionSlug?: string;
+    }
   | {
-    type: "guide_detail";
-    projectId: string;
-    guideId: string;
-    versionSlug?: string;
-  }
+      type: "guide_detail";
+      projectId: string;
+      guideId: string;
+      versionSlug?: string;
+    }
   | {
-    type: "guide_preview";
-    projectId: string;
-    guideId: string;
-    versionSlug?: string;
-  }
+      type: "guide_preview";
+      projectId: string;
+      guideId: string;
+      versionSlug?: string;
+    }
   | {
-    type: "project_guide_list";
-    projectId: string;
-    versionSlug?: string;
-  }
+      type: "project_guide_list";
+      projectId: string;
+      versionSlug?: string;
+    }
   | {
-    type: "project_interactive_demo_list";
-    projectId: string;
-    versionSlug?: string;
-  }
+      type: "project_interactive_demo_list";
+      projectId: string;
+      versionSlug?: string;
+    }
   | {
-    type: "interactive_demo_detail";
-    projectId: string;
-    interactiveDemoId: string;
-    versionSlug?: string;
-  }
+      type: "interactive_demo_detail";
+      projectId: string;
+      interactiveDemoId: string;
+      versionSlug?: string;
+    }
   | {
-    type: "public_guide_reader";
-    slug: string;
-  }
+      type: "public_guide_reader";
+      slug: string;
+    }
   | {
-    type: "public_guide_embed";
-    slug: string;
-  }
+      type: "public_guide_embed";
+      slug: string;
+    }
   | {
-    type: "public_interactive_demo_reader";
-    slug: string;
-  }
+      type: "public_interactive_demo_reader";
+      slug: string;
+    }
   | {
-    type: "public_interactive_demo_embed";
-    slug: string;
-  }
+      type: "public_interactive_demo_embed";
+      slug: string;
+    }
   | {
-    type: "unsupported";
-  };
+      type: "unsupported";
+    };
 
 export const parsePortalRoute = (pathname: string): PortalRoute => {
   const segments = pathname.split("/").filter(Boolean);
 
-  if (segments[0] === "projects" && segments[2] === "versions" && segments[1] && segments[3]) {
+  if (
+    segments[0] === "projects" &&
+    segments[2] === "versions" &&
+    segments[1] &&
+    segments[3]
+  ) {
     const projectId = decodeURIComponent(segments[1]);
     const versionSlug = decodeURIComponent(segments[3]);
     const rest = segments.slice(4);
-    if (rest.length === 0) return { type: "project_version_workspace", projectId, versionSlug };
+    if (rest.length === 0)
+      return { type: "project_version_workspace", projectId, versionSlug };
+    if (rest.length === 1 && rest[0] === "carry-forward")
+      return { type: "project_carry_forward", projectId, versionSlug };
     if (rest[0] === "capture-sessions") {
-      if (rest.length === 1) return { type: "project_capture_session_list", projectId, versionSlug };
-      if (rest.length === 2 && rest[1]) return { type: "capture_session_detail", projectId, versionSlug, captureSessionId: decodeURIComponent(rest[1]) };
+      if (rest.length === 1)
+        return { type: "project_capture_session_list", projectId, versionSlug };
+      if (rest.length === 2 && rest[1])
+        return {
+          type: "capture_session_detail",
+          projectId,
+          versionSlug,
+          captureSessionId: decodeURIComponent(rest[1]),
+        };
     }
     if (rest[0] === "guides") {
-      if (rest.length === 1) return { type: "project_guide_list", projectId, versionSlug };
-      if (rest.length === 2 && rest[1]) return { type: "guide_detail", projectId, versionSlug, guideId: decodeURIComponent(rest[1]) };
-      if (rest.length === 3 && rest[1] && rest[2] === "preview") return { type: "guide_preview", projectId, versionSlug, guideId: decodeURIComponent(rest[1]) };
+      if (rest.length === 1)
+        return { type: "project_guide_list", projectId, versionSlug };
+      if (rest.length === 2 && rest[1])
+        return {
+          type: "guide_detail",
+          projectId,
+          versionSlug,
+          guideId: decodeURIComponent(rest[1]),
+        };
+      if (rest.length === 3 && rest[1] && rest[2] === "preview")
+        return {
+          type: "guide_preview",
+          projectId,
+          versionSlug,
+          guideId: decodeURIComponent(rest[1]),
+        };
+      if (rest.length === 3 && rest[1] && rest[2] === "revisions")
+        return {
+          type: "artifact_revision_history",
+          projectId,
+          versionSlug,
+          artifactType: "guide",
+          artifactId: decodeURIComponent(rest[1]),
+        };
+      if (
+        rest.length === 4 &&
+        rest[1] &&
+        rest[2] === "revisions" &&
+        /^\d+$/u.test(rest[3] ?? "")
+      )
+        return {
+          type: "artifact_revision_preview",
+          projectId,
+          versionSlug,
+          artifactType: "guide",
+          artifactId: decodeURIComponent(rest[1]),
+          revisionNumber: Number(rest[3]),
+        };
     }
     if (rest[0] === "interactive-demos") {
-      if (rest.length === 1) return { type: "project_interactive_demo_list", projectId, versionSlug };
-      if (rest.length === 2 && rest[1]) return { type: "interactive_demo_detail", projectId, versionSlug, interactiveDemoId: decodeURIComponent(rest[1]) };
+      if (rest.length === 1)
+        return {
+          type: "project_interactive_demo_list",
+          projectId,
+          versionSlug,
+        };
+      if (rest.length === 2 && rest[1])
+        return {
+          type: "interactive_demo_detail",
+          projectId,
+          versionSlug,
+          interactiveDemoId: decodeURIComponent(rest[1]),
+        };
+      if (rest.length === 3 && rest[1] && rest[2] === "revisions")
+        return {
+          type: "artifact_revision_history",
+          projectId,
+          versionSlug,
+          artifactType: "interactive_demo",
+          artifactId: decodeURIComponent(rest[1]),
+        };
+      if (
+        rest.length === 4 &&
+        rest[1] &&
+        rest[2] === "revisions" &&
+        /^\d+$/u.test(rest[3] ?? "")
+      )
+        return {
+          type: "artifact_revision_preview",
+          projectId,
+          versionSlug,
+          artifactType: "interactive_demo",
+          artifactId: decodeURIComponent(rest[1]),
+          revisionNumber: Number(rest[3]),
+        };
     }
     return { type: "unsupported" };
   }
 
-  if (
-    segments.length === 1
-    && segments[0] === "login"
-  ) {
+  if (segments.length === 1 && segments[0] === "login") {
     return { type: "login" };
   }
 
-  if (
-    segments.length === 1
-    && segments[0] === "setup"
-  ) {
+  if (segments.length === 1 && segments[0] === "setup") {
     return { type: "setup" };
   }
 
   if (
-    segments.length === 0
-    || (
-      segments.length === 1
-      && segments[0] === "projects"
-    )
+    segments.length === 0 ||
+    (segments.length === 1 && segments[0] === "projects")
   ) {
     return { type: "project_list" };
   }
 
   if (
-    segments.length === 2
-    && segments[0] === "organization"
-    && segments[1] === "members"
+    segments.length === 2 &&
+    segments[0] === "organization" &&
+    segments[1] === "members"
   ) {
     return { type: "organization_members" };
   }
 
   if (
-    segments.length === 2
-    && segments[0] === "organization"
-    && segments[1] === "compliance"
+    segments.length === 2 &&
+    segments[0] === "organization" &&
+    segments[1] === "compliance"
   ) {
     return { type: "organization_compliance" };
   }
 
-  if (
-    segments.length === 2
-    && segments[0] === "invites"
-  ) {
+  if (segments.length === 2 && segments[0] === "invites") {
     const token = segments[1];
 
     if (!token) {
@@ -168,10 +259,7 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
     };
   }
 
-  if (
-    segments.length === 2
-    && segments[0] === "p"
-  ) {
+  if (segments.length === 2 && segments[0] === "p") {
     const slug = segments[1];
 
     if (!slug) {
@@ -184,10 +272,7 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
     };
   }
 
-  if (
-    segments.length === 2
-    && segments[0] === "d"
-  ) {
+  if (segments.length === 2 && segments[0] === "d") {
     const slug = segments[1];
 
     if (!slug) {
@@ -200,11 +285,7 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
     };
   }
 
-  if (
-    segments.length === 3
-    && segments[0] === "p"
-    && segments[2] === "embed"
-  ) {
+  if (segments.length === 3 && segments[0] === "p" && segments[2] === "embed") {
     const slug = segments[1];
 
     if (!slug) {
@@ -217,11 +298,7 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
     };
   }
 
-  if (
-    segments.length === 3
-    && segments[0] === "d"
-    && segments[2] === "embed"
-  ) {
+  if (segments.length === 3 && segments[0] === "d" && segments[2] === "embed") {
     const slug = segments[1];
 
     if (!slug) {
@@ -234,10 +311,7 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
     };
   }
 
-  if (
-    segments.length === 2
-    && segments[0] === "projects"
-  ) {
+  if (segments.length === 2 && segments[0] === "projects") {
     const projectId = segments[1];
 
     if (!projectId) {
@@ -251,9 +325,9 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
   }
 
   if (
-    segments.length === 3
-    && segments[0] === "projects"
-    && segments[2] === "settings"
+    segments.length === 3 &&
+    segments[0] === "projects" &&
+    segments[2] === "settings"
   ) {
     const projectId = segments[1];
 
@@ -267,16 +341,26 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
     };
   }
 
-  if (segments.length === 3 && segments[0] === "projects" && (segments[2] === "compliance" || segments[2] === "activity")) {
+  if (
+    segments.length === 3 &&
+    segments[0] === "projects" &&
+    (segments[2] === "compliance" || segments[2] === "activity")
+  ) {
     const projectId = segments[1];
     if (!projectId) return { type: "unsupported" };
-    return { type: segments[2] === "compliance" ? "project_compliance" : "project_activity", projectId: decodeURIComponent(projectId) };
+    return {
+      type:
+        segments[2] === "compliance"
+          ? "project_compliance"
+          : "project_activity",
+      projectId: decodeURIComponent(projectId),
+    };
   }
 
   if (
-    segments.length === 4
-    && segments[0] === "projects"
-    && segments[2] === "capture-sessions"
+    segments.length === 4 &&
+    segments[0] === "projects" &&
+    segments[2] === "capture-sessions"
   ) {
     const projectId = segments[1];
     const captureSessionId = segments[3];
@@ -293,9 +377,9 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
   }
 
   if (
-    segments.length === 3
-    && segments[0] === "projects"
-    && segments[2] === "capture-sessions"
+    segments.length === 3 &&
+    segments[0] === "projects" &&
+    segments[2] === "capture-sessions"
   ) {
     const projectId = segments[1];
 
@@ -310,10 +394,10 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
   }
 
   if (
-    segments.length === 5
-    && segments[0] === "projects"
-    && segments[2] === "guides"
-    && segments[4] === "preview"
+    segments.length === 5 &&
+    segments[0] === "projects" &&
+    segments[2] === "guides" &&
+    segments[4] === "preview"
   ) {
     const projectId = segments[1];
     const guideId = segments[3];
@@ -330,9 +414,9 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
   }
 
   if (
-    segments.length === 4
-    && segments[0] === "projects"
-    && segments[2] === "guides"
+    segments.length === 4 &&
+    segments[0] === "projects" &&
+    segments[2] === "guides"
   ) {
     const projectId = segments[1];
     const guideId = segments[3];
@@ -349,9 +433,9 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
   }
 
   if (
-    segments.length === 4
-    && segments[0] === "projects"
-    && segments[2] === "interactive-demos"
+    segments.length === 4 &&
+    segments[0] === "projects" &&
+    segments[2] === "interactive-demos"
   ) {
     const projectId = segments[1];
     const interactiveDemoId = segments[3];
@@ -368,9 +452,9 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
   }
 
   if (
-    segments.length === 3
-    && segments[0] === "projects"
-    && segments[2] === "interactive-demos"
+    segments.length === 3 &&
+    segments[0] === "projects" &&
+    segments[2] === "interactive-demos"
   ) {
     const projectId = segments[1];
 
@@ -385,9 +469,9 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
   }
 
   if (
-    segments.length === 3
-    && segments[0] === "projects"
-    && segments[2] === "guides"
+    segments.length === 3 &&
+    segments[0] === "projects" &&
+    segments[2] === "guides"
   ) {
     const projectId = segments[1];
 

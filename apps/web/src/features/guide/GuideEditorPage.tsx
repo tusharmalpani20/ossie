@@ -88,7 +88,9 @@ type PublishState =
   | { status: "loaded"; response: GuidePublishStatusResponse }
   | { status: "error" };
 
-type VersionBound<T> = T extends (...args: [...infer Args, string]) => infer Result
+type VersionBound<T> = T extends (
+  ...args: [...infer Args, string]
+) => infer Result
   ? (...args: Args) => Result
   : never;
 
@@ -244,27 +246,57 @@ export const GuideEditorPage = ({
   projectId,
   guideId,
   projectVersionId,
-  loadDetail = (id, artifactId) => getGuideDetail(id, artifactId, projectVersionId),
-  loadPublishStatus = (id, artifactId) => getGuidePublishStatus(id, artifactId, projectVersionId),
-  publishCurrentGuide = (id, artifactId) => publishGuide(id, artifactId, projectVersionId),
-  revokePublishLink = (id, artifactId) => revokeGuidePublishLink(id, artifactId, projectVersionId),
-  updatePublishAccess = (id, artifactId, input) => updateGuidePublishAccess(id, artifactId, input, projectVersionId),
-  updatePublishPassword = (id, artifactId, input) => updateGuidePublishPassword(id, artifactId, input, projectVersionId),
+  loadDetail = (id, artifactId) =>
+    getGuideDetail(id, artifactId, projectVersionId),
+  loadPublishStatus = (id, artifactId) =>
+    getGuidePublishStatus(id, artifactId, projectVersionId),
+  publishCurrentGuide = (id, artifactId) =>
+    publishGuide(id, artifactId, projectVersionId),
+  revokePublishLink = (id, artifactId) =>
+    revokeGuidePublishLink(id, artifactId, projectVersionId),
+  updatePublishAccess = (id, artifactId, input) =>
+    updateGuidePublishAccess(id, artifactId, input, projectVersionId),
+  updatePublishPassword = (id, artifactId, input) =>
+    updateGuidePublishPassword(id, artifactId, input, projectVersionId),
   copyText = defaultCopyText,
-  exportMarkdown = (id, artifactId) => exportGuideMarkdown(id, artifactId, projectVersionId),
-  exportHtmlZip = (id, artifactId) => exportGuideHtmlZip(id, artifactId, projectVersionId),
+  exportMarkdown = (id, artifactId) =>
+    exportGuideMarkdown(id, artifactId, projectVersionId),
+  exportHtmlZip = (id, artifactId) =>
+    exportGuideHtmlZip(id, artifactId, projectVersionId),
   downloadTextFile = defaultDownloadTextFile,
   downloadBlobFile = defaultDownloadBlobFile,
-  saveGuide = (id, artifactId, data) => updateGuide(id, artifactId, data, projectVersionId),
-  saveStep = (id, artifactId, stepId, data) => updateGuideStep(id, artifactId, stepId, data, projectVersionId),
-  createBlock = (id, artifactId, data) => createGuideBlock(id, artifactId, data, projectVersionId),
-  saveBlock = (id, artifactId, blockId, data) => updateGuideBlock(id, artifactId, blockId, data, projectVersionId),
+  saveGuide = (id, artifactId, data) =>
+    updateGuide(id, artifactId, data, projectVersionId),
+  saveStep = (id, artifactId, stepId, data) =>
+    updateGuideStep(id, artifactId, stepId, data, projectVersionId),
+  createBlock = (id, artifactId, data) =>
+    createGuideBlock(id, artifactId, data, projectVersionId),
+  saveBlock = (id, artifactId, blockId, data) =>
+    updateGuideBlock(id, artifactId, blockId, data, projectVersionId),
   loadScreenshotAssets = listProjectScreenshotAssets,
-  saveBlockScreenshot = (id, artifactId, blockId, data) => updateGuideBlockScreenshot(id, artifactId, blockId, data, projectVersionId),
-  saveBlockAnnotations = (id, artifactId, blockId, data) => updateGuideBlockAnnotations(id, artifactId, blockId, data, projectVersionId),
-  uploadBlockScreenshot = (id, artifactId, blockId, input, expected) => uploadGuideBlockScreenshot(id, artifactId, blockId, input, expected, projectVersionId),
-  reorderBlocks = (id, artifactId, blockIds, expected) => reorderGuideBlocks(id, artifactId, blockIds, expected, projectVersionId),
-  removeBlock = (id, artifactId, blockId, expected) => deleteGuideBlock(id, artifactId, blockId, expected, projectVersionId),
+  saveBlockScreenshot = (id, artifactId, blockId, data) =>
+    updateGuideBlockScreenshot(id, artifactId, blockId, data, projectVersionId),
+  saveBlockAnnotations = (id, artifactId, blockId, data) =>
+    updateGuideBlockAnnotations(
+      id,
+      artifactId,
+      blockId,
+      data,
+      projectVersionId,
+    ),
+  uploadBlockScreenshot = (id, artifactId, blockId, input, expected) =>
+    uploadGuideBlockScreenshot(
+      id,
+      artifactId,
+      blockId,
+      input,
+      expected,
+      projectVersionId,
+    ),
+  reorderBlocks = (id, artifactId, blockIds, expected) =>
+    reorderGuideBlocks(id, artifactId, blockIds, expected, projectVersionId),
+  removeBlock = (id, artifactId, blockId, expected) =>
+    deleteGuideBlock(id, artifactId, blockId, expected, projectVersionId),
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
@@ -304,9 +336,8 @@ export const GuideEditorPage = ({
   const [screenshotAssetsError, setScreenshotAssetsError] = useState(false);
   const [activeScreenshotPickerBlockId, setActiveScreenshotPickerBlockId] =
     useState<string | null>(null);
-  const currentWorkingDraftVersion = state.status === "loaded"
-    ? state.detail.working_draft.version
-    : 0;
+  const currentWorkingDraftVersion =
+    state.status === "loaded" ? state.detail.working_draft.version : 0;
 
   useEffect(() => {
     let active = true;
@@ -335,8 +366,8 @@ export const GuideEditorPage = ({
     return () => {
       active = false;
     };
-  // Route identity and reloadKey intentionally control refetching; injected loaders may be inline test adapters.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Route identity and reloadKey intentionally control refetching; injected loaders may be inline test adapters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, projectVersionId, guideId, reloadKey]);
 
   useEffect(() => {
@@ -358,8 +389,8 @@ export const GuideEditorPage = ({
     return () => {
       active = false;
     };
-  // Route identity and publishReloadKey intentionally control refetching; injected loaders may be inline adapters.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Route identity and publishReloadKey intentionally control refetching; injected loaders may be inline adapters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, projectVersionId, guideId, publishReloadKey]);
 
   useEffect(() => {
@@ -651,24 +682,19 @@ export const GuideEditorPage = ({
     setNotice(null);
 
     try {
-      const response = await createBlock(
-        projectId,
-        guideId,
-        {
-          ...defaultBlockInput(
-            blockType,
-            afterBlock
-              ? {
-                  placement: "after",
-                  guide_block_id: afterBlock.id,
-                }
-              : undefined,
-          ),
-          expected_working_draft_version: state.status === "loaded"
-            ? state.detail.working_draft.version
-            : 1,
-        },
-      );
+      const response = await createBlock(projectId, guideId, {
+        ...defaultBlockInput(
+          blockType,
+          afterBlock
+            ? {
+                placement: "after",
+                guide_block_id: afterBlock.id,
+              }
+            : undefined,
+        ),
+        expected_working_draft_version:
+          state.status === "loaded" ? state.detail.working_draft.version : 1,
+      });
       patchDetail((detail) => ({
         ...detail,
         working_draft: response.working_draft,
@@ -839,7 +865,10 @@ export const GuideEditorPage = ({
         projectId,
         guideId,
         block.id,
-        { annotations, expected_working_draft_version: currentWorkingDraftVersion },
+        {
+          annotations,
+          expected_working_draft_version: currentWorkingDraftVersion,
+        },
       );
       patchDetail((detail) => ({
         ...detail,
@@ -902,7 +931,12 @@ export const GuideEditorPage = ({
     setNotice(null);
 
     try {
-      const response = await reorderBlocks(projectId, guideId, nextBlockIds, state.detail.working_draft.version);
+      const response = await reorderBlocks(
+        projectId,
+        guideId,
+        nextBlockIds,
+        state.detail.working_draft.version,
+      );
       patchDetail((detail) => ({
         ...detail,
         working_draft: response.working_draft,
@@ -925,7 +959,12 @@ export const GuideEditorPage = ({
     setNotice(null);
 
     try {
-      await removeBlock(projectId, guideId, block.id, currentWorkingDraftVersion);
+      await removeBlock(
+        projectId,
+        guideId,
+        block.id,
+        currentWorkingDraftVersion,
+      );
       markPublishedDraftStale();
       reload();
     } catch (error: unknown) {
@@ -937,8 +976,10 @@ export const GuideEditorPage = ({
 
   const changeLifecycle = async () => {
     if (state.status !== "loaded") return;
-    const command = state.detail.edition.status === "draft" ? "archive" : "restore";
-    if (command === "archive" && !window.confirm("Archive this guide edition?")) return;
+    const command =
+      state.detail.edition.status === "draft" ? "archive" : "restore";
+    if (command === "archive" && !window.confirm("Archive this guide edition?"))
+      return;
     setBusyAction("lifecycle");
     setNotice(null);
     try {
@@ -1288,8 +1329,18 @@ const GuideEditorView = ({
             >
               Preview guide
             </a>
+            {versionSlug ? (
+              <a
+                className={`${buttonVariants({ variant: "secondary" })} ${styles.previewLink}`}
+                href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/guides/${encodeURIComponent(guideId)}/revisions`}
+              >
+                Revision history
+              </a>
+            ) : null}
             <Badge
-              variant={detail.edition.status === "draft" ? "warning" : "success"}
+              variant={
+                detail.edition.status === "draft" ? "warning" : "success"
+              }
             >
               {detail.edition.status}
             </Badge>
@@ -1313,7 +1364,11 @@ const GuideEditorView = ({
           <PublishPanel
             state={publishState}
             readOnly={readOnly}
-            publishingDeferred={!isDefaultVersion && publishState.status === "loaded" && !publishState.response.publish_link}
+            publishingDeferred={
+              !isDefaultVersion &&
+              publishState.status === "loaded" &&
+              !publishState.response.publish_link
+            }
             canPublish={isDefaultVersion}
             busyAction={publishBusyAction}
             guideUpdatedAt={detail.edition.updated_at}
@@ -1584,14 +1639,18 @@ const PublishPanel = ({
           <div className={styles.publishText}>This guide is not published.</div>
           {publishingDeferred ? (
             <p className={styles.publishNote}>
-              Publishing from a named Project Version is deferred until publication sequencing is available.
+              Publishing from a named Project Version is deferred until
+              publication sequencing is available.
             </p>
           ) : (
             <>
               <p className={styles.publishNote}>
                 Publishing creates a public read-only snapshot.
               </p>
-              <Button disabled={readOnly || isBusy || !canPublish} onClick={onPublish}>
+              <Button
+                disabled={readOnly || isBusy || !canPublish}
+                onClick={onPublish}
+              >
                 {publishLabel}
               </Button>
             </>
@@ -2099,7 +2158,8 @@ const GuideBlockEditor = ({
                   {screenshotAssets.map((asset) => {
                     const displayName = assetDisplayName(asset);
                     const capturedAt = formatCapturedAt(asset.captured_at);
-                    const current = asset.id === block.step?.display_capture_asset_id;
+                    const current =
+                      asset.id === block.step?.display_capture_asset_id;
                     const fileName =
                       asset.file.original_name &&
                       asset.file.original_name !== displayName

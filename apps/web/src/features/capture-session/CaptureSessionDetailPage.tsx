@@ -34,6 +34,7 @@ import type {
   UpdateCaptureEventResponse,
   UploadCaptureAssetResponse,
 } from "./types";
+import { CaptureAssetLifecycleControls } from "./CaptureAssetLifecycleControls";
 import styles from "./CaptureSessionDetailPage.module.css";
 
 type LoadState =
@@ -122,6 +123,7 @@ type CaptureSessionDetailPageProps = {
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   canWrite?: boolean;
+  canPurge?: boolean;
   versionSlug?: string;
   isDefaultVersion?: boolean;
   projectVersions?: ProjectVersion[];
@@ -352,6 +354,7 @@ export const CaptureSessionDetailPage = ({
   performLogout,
   navigate,
   canWrite = true,
+  canPurge = false,
   versionSlug,
   isDefaultVersion = true,
   projectVersions = [],
@@ -480,6 +483,7 @@ export const CaptureSessionDetailPage = ({
       performLogout={performLogout}
       navigate={navigate}
       canWrite={canWrite}
+      canPurge={canPurge}
       versionSlug={versionSlug}
       isDefaultVersion={isDefaultVersion}
       projectVersions={projectVersions}
@@ -527,6 +531,7 @@ const CaptureSessionDetailView = ({
   performLogout,
   navigate,
   canWrite,
+  canPurge,
   versionSlug,
   isDefaultVersion,
   projectVersions,
@@ -551,6 +556,7 @@ const CaptureSessionDetailView = ({
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   canWrite: boolean;
+  canPurge: boolean;
   versionSlug?: string;
   isDefaultVersion: boolean;
   projectVersions: ProjectVersion[];
@@ -1215,6 +1221,16 @@ const CaptureSessionDetailView = ({
                   asset={asset}
                   imageUrl={resolveAssetUrl(asset.file_url)}
                   eager={index === 0}
+                  controls={
+                    <CaptureAssetLifecycleControls
+                      asset={asset}
+                      projectId={projectId}
+                      captureSessionId={captureSessionId}
+                      canWrite={canWrite}
+                      canPurge={canPurge}
+                      onChanged={reloadDetail}
+                    />
+                  }
                 />
               ))}
             </div>
@@ -1442,10 +1458,12 @@ const AssetPreview = ({
   asset,
   imageUrl,
   eager,
+  controls,
 }: {
   asset: CaptureAsset;
   imageUrl: string;
   eager: boolean;
+  controls?: React.ReactNode;
 }) => (
   <article className={styles.asset}>
     <img
@@ -1456,6 +1474,9 @@ const AssetPreview = ({
     />
     <div className={styles.assetBody}>
       <div className={styles.assetTitle}>{assetTitle(asset)}</div>
+      <div className={styles.assetMeta}>
+        Lifecycle: {asset.status ?? "active"}
+      </div>
       <div className={styles.assetMeta}>
         {asset.width && asset.height
           ? `${asset.width} x ${asset.height}`
@@ -1471,6 +1492,7 @@ const AssetPreview = ({
           {asset.page_title ?? asset.page_url}
         </div>
       ) : null}
+      {controls}
     </div>
   </article>
 );

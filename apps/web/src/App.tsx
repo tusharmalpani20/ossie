@@ -20,6 +20,10 @@ import { ProjectVersionRouteBoundary } from "./features/project-version/ProjectV
 import { projectVersionWorkspaceUrl } from "./features/project-version/ProjectVersionContextBar";
 import { ProjectActivityTimelinePage } from "./features/project-activity/ProjectActivityTimelinePage";
 import { FirstRunSetupPage } from "./features/setup/FirstRunSetupPage";
+import { ArtifactRevisionHistoryPage } from "./features/artifact-revision/ArtifactRevisionHistoryPage";
+import { GuideRevisionPreviewPage } from "./features/artifact-revision/GuideRevisionPreviewPage";
+import { InteractiveDemoRevisionPreviewPage } from "./features/artifact-revision/InteractiveDemoRevisionPreviewPage";
+import { ProjectCarryForwardPage } from "./features/artifact-carry-forward/ProjectCarryForwardPage";
 import { getProject, getPublicInstanceStatus } from "./lib/api";
 import { parsePortalRoute, type PortalRoute } from "./lib/routes";
 import styles from "./App.module.css";
@@ -42,6 +46,9 @@ const setupGuardedRouteTypes = new Set<PortalRoute["type"]>([
   "project_guide_list",
   "project_interactive_demo_list",
   "interactive_demo_detail",
+  "project_carry_forward",
+  "artifact_revision_history",
+  "artifact_revision_preview",
 ]);
 
 const shouldCheckSetup = (route: PortalRoute) =>
@@ -250,6 +257,80 @@ export default function App() {
     );
   }
 
+  if (route.type === "project_carry_forward")
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+      >
+        {({ project, selected, versions }) => (
+          <ProjectCarryForwardPage
+            projectId={route.projectId}
+            source={selected}
+            versions={versions}
+            canWrite={
+              project.status === "active" && project.access.role !== "viewer"
+            }
+          />
+        )}
+      </ProjectVersionRouteBoundary>
+    );
+
+  if (route.type === "artifact_revision_history")
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+      >
+        {({ project, selected }) => (
+          <ArtifactRevisionHistoryPage
+            projectId={route.projectId}
+            projectVersionId={selected.id}
+            versionSlug={route.versionSlug}
+            artifactType={route.artifactType}
+            artifactId={route.artifactId}
+            canWrite={
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role !== "viewer"
+            }
+          />
+        )}
+      </ProjectVersionRouteBoundary>
+    );
+
+  if (route.type === "artifact_revision_preview")
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+      >
+        {({ selected }) => {
+          const base = `/projects/${encodeURIComponent(route.projectId)}/versions/${encodeURIComponent(route.versionSlug)}/${route.artifactType === "guide" ? "guides" : "interactive-demos"}/${encodeURIComponent(route.artifactId)}/revisions`;
+          return route.artifactType === "guide" ? (
+            <GuideRevisionPreviewPage
+              projectId={route.projectId}
+              projectVersionId={selected.id}
+              artifactId={route.artifactId}
+              revisionNumber={route.revisionNumber}
+              historyHref={base}
+            />
+          ) : (
+            <InteractiveDemoRevisionPreviewPage
+              projectId={route.projectId}
+              projectVersionId={selected.id}
+              artifactId={route.artifactId}
+              revisionNumber={route.revisionNumber}
+              historyHref={base}
+            />
+          );
+        }}
+      </ProjectVersionRouteBoundary>
+    );
+
   if (route.type === "project_settings") {
     return (
       <ProjectSettingsPage
@@ -293,6 +374,7 @@ export default function App() {
               canWrite={
                 project.status === "active" && project.access.role !== "viewer"
               }
+              canPurge={project.access.role === "project_admin"}
             />
           )}
         </LegacyProjectRedirect>
@@ -311,8 +393,11 @@ export default function App() {
             projectVersions={versions}
             currentPath={currentPath}
             canWrite={
-              project.status === "active" && selected.status === "active" && project.access.role !== "viewer"
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role !== "viewer"
             }
+            canPurge={project.access.role === "project_admin"}
             isDefaultVersion={selected.is_default}
           />
         )}
@@ -397,7 +482,9 @@ export default function App() {
         allowVersionOwnedContent
       >
         {({ project, selected }) =>
-          project.status === "active" && selected.status === "active" && project.access.role !== "viewer" ? (
+          project.status === "active" &&
+          selected.status === "active" &&
+          project.access.role !== "viewer" ? (
             <GuideEditorPage
               projectId={route.projectId}
               projectVersionId={selected.id}
@@ -456,7 +543,9 @@ export default function App() {
             versionSlug={route.versionSlug}
             currentPath={currentPath}
             canWrite={
-              project.status === "active" && selected.status === "active" && project.access.role !== "viewer"
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role !== "viewer"
             }
           />
         )}
@@ -570,7 +659,9 @@ export default function App() {
             versionSlug={route.versionSlug}
             currentPath={currentPath}
             canWrite={
-              project.status === "active" && selected.status === "active" && project.access.role !== "viewer"
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role !== "viewer"
             }
             isDefaultVersion={selected.is_default}
           />

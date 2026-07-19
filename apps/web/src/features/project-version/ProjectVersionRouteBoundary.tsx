@@ -122,9 +122,7 @@ export const ProjectVersionRouteBoundary = ({
             Version is read-only.
           </Alert>
         ) : null}
-        {children &&
-        (legacyContentAvailable ||
-          allowVersionOwnedContent) ? (
+        {children && (legacyContentAvailable || allowVersionOwnedContent) ? (
           children(state)
         ) : (
           <VersionWorkspace {...state} />
@@ -168,26 +166,23 @@ const VersionWorkspace = ({ project, selected }: Loaded) => (
         title="Capture sessions"
         href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/capture-sessions`}
       />
-      {selected.is_default &&
-      selected.status === "active" &&
-      project.status === "active" ? (
-        <>
-        <WorkspaceLink
-          title="Guides"
-          href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/guides`}
-        />
-        <WorkspaceLink
-          title="Interactive demos"
-          href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/interactive-demos`}
-        />
-        </>
-      ) : null}
+      <WorkspaceLink
+        title="Carry Forward Editions"
+        href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/carry-forward`}
+      />
+      <WorkspaceLink
+        title="Guides"
+        href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/guides`}
+      />
+      <WorkspaceLink
+        title="Interactive demos"
+        href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/interactive-demos`}
+      />
     </div>
     {!selected.is_default ? (
       <Card className={styles.empty}>
-        Captures belong to this Project Version. Guide and Interactive Demo
-        ownership arrives in child 118; those existing artifacts remain with
-        the Default Project Version for now.
+        Guides and Interactive Demos belong to this Project Version. Use Carry
+        Forward Editions to create independent drafts from another Version.
       </Card>
     ) : null}
   </section>

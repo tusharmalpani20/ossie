@@ -1,0 +1,14 @@
+.page {
+  display: grid;
+  gap: 1rem;
+  max-width: 60rem;
+}
+.page h1 {
+  margin: 0;
+}
+.card {
+  padding: 1.25rem;
+}
+.card h2 {
+  margin-top: 0;
+}

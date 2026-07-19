@@ -57,13 +57,62 @@ describe("parsePortalRoute", () => {
 
   it("parses canonical Project Version workspace and content routes", () => {
     expect(parsePortalRoute("/projects/project_1/versions/main")).toEqual({
-      type: "project_version_workspace", projectId: "project_1", versionSlug: "main",
+      type: "project_version_workspace",
+      projectId: "project_1",
+      versionSlug: "main",
     });
-    expect(parsePortalRoute("/projects/project_1/versions/q3/guides/guide_1/preview")).toEqual({
-      type: "guide_preview", projectId: "project_1", versionSlug: "q3", guideId: "guide_1",
+    expect(
+      parsePortalRoute(
+        "/projects/project_1/versions/q3/guides/guide_1/preview",
+      ),
+    ).toEqual({
+      type: "guide_preview",
+      projectId: "project_1",
+      versionSlug: "q3",
+      guideId: "guide_1",
     });
-    expect(parsePortalRoute("/projects/project_1/versions/main/capture-sessions/capture_1")).toEqual({
-      type: "capture_session_detail", projectId: "project_1", versionSlug: "main", captureSessionId: "capture_1",
+    expect(
+      parsePortalRoute(
+        "/projects/project_1/versions/main/capture-sessions/capture_1",
+      ),
+    ).toEqual({
+      type: "capture_session_detail",
+      projectId: "project_1",
+      versionSlug: "main",
+      captureSessionId: "capture_1",
+    });
+  });
+
+  it("parses Project Version Carry-Forward and immutable Revision routes", () => {
+    expect(
+      parsePortalRoute("/projects/project_1/versions/q3/carry-forward"),
+    ).toEqual({
+      type: "project_carry_forward",
+      projectId: "project_1",
+      versionSlug: "q3",
+    });
+    expect(
+      parsePortalRoute(
+        "/projects/project_1/versions/q3/guides/guide_1/revisions",
+      ),
+    ).toEqual({
+      type: "artifact_revision_history",
+      projectId: "project_1",
+      versionSlug: "q3",
+      artifactType: "guide",
+      artifactId: "guide_1",
+    });
+    expect(
+      parsePortalRoute(
+        "/projects/project_1/versions/q3/interactive-demos/demo_1/revisions/12",
+      ),
+    ).toEqual({
+      type: "artifact_revision_preview",
+      projectId: "project_1",
+      versionSlug: "q3",
+      artifactType: "interactive_demo",
+      artifactId: "demo_1",
+      revisionNumber: 12,
     });
   });
 
@@ -79,7 +128,11 @@ describe("parsePortalRoute", () => {
   });
 
   it("parses capture session detail routes", () => {
-    expect(parsePortalRoute("/projects/project_1/capture-sessions/capture_session_1")).toEqual({
+    expect(
+      parsePortalRoute(
+        "/projects/project_1/capture-sessions/capture_session_1",
+      ),
+    ).toEqual({
       type: "capture_session_detail",
       projectId: "project_1",
       captureSessionId: "capture_session_1",
@@ -106,12 +159,16 @@ describe("parsePortalRoute", () => {
   });
 
   it("parses guide preview routes", () => {
-    expect(parsePortalRoute("/projects/project_1/guides/guide_1/preview")).toEqual({
+    expect(
+      parsePortalRoute("/projects/project_1/guides/guide_1/preview"),
+    ).toEqual({
       type: "guide_preview",
       projectId: "project_1",
       guideId: "guide_1",
     });
-    expect(parsePortalRoute("/projects/project%201/guides/guide%20%2F%201/preview")).toEqual({
+    expect(
+      parsePortalRoute("/projects/project%201/guides/guide%20%2F%201/preview"),
+    ).toEqual({
       type: "guide_preview",
       projectId: "project 1",
       guideId: "guide / 1",
@@ -130,12 +187,20 @@ describe("parsePortalRoute", () => {
   });
 
   it("parses interactive demo detail routes", () => {
-    expect(parsePortalRoute("/projects/project_1/interactive-demos/interactive_demo_1")).toEqual({
+    expect(
+      parsePortalRoute(
+        "/projects/project_1/interactive-demos/interactive_demo_1",
+      ),
+    ).toEqual({
       type: "interactive_demo_detail",
       projectId: "project_1",
       interactiveDemoId: "interactive_demo_1",
     });
-    expect(parsePortalRoute("/projects/project%201/interactive-demos/interactive%20%2F%201")).toEqual({
+    expect(
+      parsePortalRoute(
+        "/projects/project%201/interactive-demos/interactive%20%2F%201",
+      ),
+    ).toEqual({
       type: "interactive_demo_detail",
       projectId: "project 1",
       interactiveDemoId: "interactive / 1",
@@ -147,15 +212,23 @@ describe("parsePortalRoute", () => {
       type: "project_interactive_demo_list",
       projectId: "project_1",
     });
-    expect(parsePortalRoute("/projects/project%201/interactive-demos/")).toEqual({
+    expect(
+      parsePortalRoute("/projects/project%201/interactive-demos/"),
+    ).toEqual({
       type: "project_interactive_demo_list",
       projectId: "project 1",
     });
   });
 
   it("parses Project compliance and Activity routes", () => {
-    expect(parsePortalRoute("/projects/project%201/compliance")).toEqual({ type: "project_compliance", projectId: "project 1" });
-    expect(parsePortalRoute("/projects/project_1/activity")).toEqual({ type: "project_activity", projectId: "project_1" });
+    expect(parsePortalRoute("/projects/project%201/compliance")).toEqual({
+      type: "project_compliance",
+      projectId: "project 1",
+    });
+    expect(parsePortalRoute("/projects/project_1/activity")).toEqual({
+      type: "project_activity",
+      projectId: "project_1",
+    });
   });
 
   it("parses public guide reader routes", () => {
@@ -198,14 +271,26 @@ describe("parsePortalRoute", () => {
   it("rejects unsupported routes", () => {
     expect(parsePortalRoute("/unknown")).toEqual({ type: "unsupported" });
     expect(parsePortalRoute("/p")).toEqual({ type: "unsupported" });
-    expect(parsePortalRoute("/p/abc123/extra")).toEqual({ type: "unsupported" });
-    expect(parsePortalRoute("/p/abc123/embed/extra")).toEqual({ type: "unsupported" });
+    expect(parsePortalRoute("/p/abc123/extra")).toEqual({
+      type: "unsupported",
+    });
+    expect(parsePortalRoute("/p/abc123/embed/extra")).toEqual({
+      type: "unsupported",
+    });
     expect(parsePortalRoute("/d")).toEqual({ type: "unsupported" });
-    expect(parsePortalRoute("/d/demo123/extra")).toEqual({ type: "unsupported" });
-    expect(parsePortalRoute("/d/demo123/embed/extra")).toEqual({ type: "unsupported" });
+    expect(parsePortalRoute("/d/demo123/extra")).toEqual({
+      type: "unsupported",
+    });
+    expect(parsePortalRoute("/d/demo123/embed/extra")).toEqual({
+      type: "unsupported",
+    });
     expect(parsePortalRoute("/organization")).toEqual({ type: "unsupported" });
-    expect(parsePortalRoute("/organization/members/extra")).toEqual({ type: "unsupported" });
+    expect(parsePortalRoute("/organization/members/extra")).toEqual({
+      type: "unsupported",
+    });
     expect(parsePortalRoute("/invites")).toEqual({ type: "unsupported" });
-    expect(parsePortalRoute("/invites/plain-token/extra")).toEqual({ type: "unsupported" });
+    expect(parsePortalRoute("/invites/plain-token/extra")).toEqual({
+      type: "unsupported",
+    });
   });
 });

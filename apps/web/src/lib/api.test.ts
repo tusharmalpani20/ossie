@@ -74,6 +74,10 @@ import {
   uploadCaptureSessionAsset,
   uploadGuideBlockScreenshot,
   updateGuideStep,
+  listArtifactRevisions,
+  carryForwardArtifactEditions,
+  getCaptureAssetProtection,
+  purgeCaptureAsset,
 } from "./api";
 
 const detail_response = {
@@ -3326,6 +3330,72 @@ describe("api client", () => {
       kind: "forbidden",
       type: "compliance_permission_denied",
     });
+  });
+
+  it("builds Revision, Carry-Forward, and protected Asset contracts", async () => {
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ revisions: [], items: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    await listArtifactRevisions({
+      projectId: "project/id",
+      projectVersionId: "version/id",
+      artifactType: "guide",
+      artifactId: "guide/id",
+      query: { limit: 25, before_revision_number: 8 },
+    });
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/projects/project%2Fid/guides/guide%2Fid/revisions?project_version_id=version%2Fid&limit=25&before_revision_number=8",
+      expect.anything(),
+    );
+
+    await carryForwardArtifactEditions(
+      "project/id",
+      {
+        source_project_version_id: "source",
+        target_project_version_id: "target",
+        artifacts: [{ artifact_type: "guide", artifact_id: "guide_1" }],
+      },
+      "retry-key-123456789",
+    );
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/projects/project%2Fid/artifact-editions/carry-forward",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "idempotency-key": "retry-key-123456789",
+        }),
+      }),
+    );
+
+    await getCaptureAssetProtection({
+      projectId: "project/id",
+      captureSessionId: "capture/id",
+      captureAssetId: "asset/id",
+    });
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/projects/project%2Fid/capture-sessions/capture%2Fid/assets/asset%2Fid/protection",
+      expect.anything(),
+    );
+
+    await purgeCaptureAsset({
+      projectId: "project/id",
+      captureSessionId: "capture/id",
+      captureAssetId: "asset/id",
+      expectedAssetVersion: 4,
+    });
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/projects/project%2Fid/capture-sessions/capture%2Fid/assets/asset%2Fid",
+      expect.objectContaining({
+        method: "DELETE",
+        body: JSON.stringify({ expected_asset_version: 4 }),
+      }),
+    );
   });
 
   it("resolves relative asset URLs against optional API base URLs", () => {
