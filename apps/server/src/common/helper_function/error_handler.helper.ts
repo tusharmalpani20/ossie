@@ -1,4 +1,5 @@
 import { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import { AccessDomainError } from "@repo/audit-domain";
 import { hasZodFastifySchemaValidationErrors, isResponseSerializationError } from "fastify-type-provider-zod";
 
 const response_message = {
@@ -20,6 +21,15 @@ export const error_handler = (
     request: FastifyRequest,
     reply: FastifyReply
 ) => {
+    if (error instanceof AccessDomainError) {
+        return reply.status(503).send({
+            error: {
+                type: "access_evidence_unavailable",
+                message: "Access evidence is temporarily unavailable",
+            },
+        });
+    }
+
     if (hasZodFastifySchemaValidationErrors(error)) {
         const field_errors = error.validation.map((validation_error) => {
             return {

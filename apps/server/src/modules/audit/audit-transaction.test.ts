@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { find_audit_command } from "./audit-coverage-registry";
 import { run_audited_mutation } from "./audit-transaction";
+import {
+  access_request_context,
+  run_with_access_request_context,
+  set_access_auth_context,
+} from "../access/access-request-context";
+import type { AuditEvent } from "@repo/audit-domain";
 
 const project_create = find_audit_command("project.create");
 const context = {
@@ -205,5 +211,70 @@ describe("audit transaction", () => {
     expect(order[0]).toBe("BEGIN");
     expect(order[1]).toBe("SELECT auth FOR UPDATE");
     expect(order[2]).toContain("set_config");
+  });
+
+  it("writes extension mutation Access Evidence on the same client before commit", async () => {
+    const queries: string[] = [];
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        queries.push(sql);
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    };
+    const request_context = access_request_context({
+      id: "request-extension",
+      method: "POST",
+      headers: { "x-ossie-client": "extension" },
+      routeOptions: { url: "/api/v1/projects" },
+    });
+    const event = {
+      id: "01J00000000000000000000000",
+      organization_id: "01J00000000000000000000001",
+      project_id: "01J00000000000000000000002",
+      root_resource_type: "project",
+      root_resource_id: "01J00000000000000000000002",
+      action: "project.created",
+      source_type: "extension",
+      actor_type: "org_user",
+      actor_org_user_id: "01J00000000000000000000003",
+      actor_label: "Synthetic owner",
+      request_id: "request-extension",
+      correlation_id: null,
+      idempotency_key_hash: null,
+      before_row_version: null,
+      after_row_version: null,
+      outcome: "committed",
+      reason: null,
+      occurred_at: "2026-07-19T12:00:00.000Z",
+      items: [],
+    } satisfies AuditEvent;
+
+    await run_with_access_request_context(request_context, async () => {
+      set_access_auth_context({
+        organization_id: event.organization_id,
+        org_user_id: event.actor_org_user_id,
+        actor_label: event.actor_label,
+        organization_role: "owner",
+        auth_session_id: "01J00000000000000000000004",
+      });
+      await run_audited_mutation({
+        pool: { connect: vi.fn(async () => client) },
+        event_id: event.id,
+        command: project_create,
+        context: {
+          organization_id: event.organization_id,
+          actor_type: "org_user",
+          source_type: "extension",
+        },
+        execute: async () => "created",
+        build_event: () => event,
+        write_audit_event: async () => undefined,
+      });
+    });
+
+    expect(queries.some((sql) => sql.includes("INSERT INTO audit_schema.access_event"))).toBe(true);
+    expect(queries.at(-1)).toBe("COMMIT");
+    expect(request_context.atomic_access_event_id).toHaveLength(26);
   });
 });

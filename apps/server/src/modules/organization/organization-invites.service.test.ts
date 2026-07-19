@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   AcceptedInviteError,
   ExpiredInviteError,
@@ -228,6 +228,30 @@ describe("organization invites service", () => {
       },
     });
     expect(JSON.stringify(result)).not.toContain("token_hash");
+  });
+
+  it("reports a resolved invite through a safe trusted context callback", async () => {
+    const repository = build_repository();
+    repository.invites.push({
+      ...pending_invite(),
+      token_hash: hash_invite_token("plain-token"),
+    });
+    const on_public_invite_resolved = vi.fn();
+    const service = build_organization_invites_service(repository, {
+      now: stable_invite_now,
+      on_public_invite_resolved,
+    });
+
+    await service.get_public_invite({ token: "plain-token" });
+
+    expect(on_public_invite_resolved).toHaveBeenCalledWith({
+      organization_id: "organization_1",
+      invite_id: "invite_1",
+      status: "pending",
+    });
+    expect(JSON.stringify(on_public_invite_resolved.mock.calls)).not.toContain(
+      "token_hash",
+    );
   });
 
   it("accepts an invite for a new user and creates an authenticated session", async () => {

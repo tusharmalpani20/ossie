@@ -193,11 +193,22 @@ export const build_organization_invites_service = (
     generate_token?: () => string;
     generate_session_token?: () => string;
     now?: () => Date;
+    on_public_invite_resolved?: (context: {
+      organization_id: string;
+      invite_id: string;
+      status: OrgInviteStatus;
+    }) => void;
   } = {}
 ) => {
   const generate_token = options.generate_token ?? generate_invite_token;
   const generate_auth_session_token = options.generate_session_token ?? generate_session_token;
   const now = options.now ?? default_now;
+  const report_public_context = (invite: StoredOrgInvite) =>
+    options.on_public_invite_resolved?.({
+      organization_id: invite.organization_id,
+      invite_id: invite.id,
+      status: invite.status,
+    });
 
   const list_members = async (input: { auth: OrganizationInviteAuth }) => {
     assert_owner(input.auth);
@@ -267,6 +278,7 @@ export const build_organization_invites_service = (
     if (!invite) {
       throw new InviteNotFoundError();
     }
+    report_public_context(invite);
     public_invite_status_guard(invite, now());
     const existing_user = await repository.find_user_by_email(invite.email);
 
@@ -297,6 +309,7 @@ export const build_organization_invites_service = (
       if (!invite) {
         throw new InviteNotFoundError();
       }
+      report_public_context(invite);
       public_invite_status_guard(invite, now());
 
       const existing_user = await transaction_repository.find_user_by_email(invite.email);

@@ -69,6 +69,16 @@ export type PublicPublishResult = {
     hash: string;
     salt: string;
   } | null;
+  access_context?: PublicPublishAccessContext;
+};
+
+export type PublicPublishAccessContext = {
+  organization_id: string;
+  project_id: string;
+  publish_link_id: string;
+  status: PublishLinkStatus;
+  visibility: PublishVisibility;
+  password_protected: boolean;
 };
 
 export type PublicViewerSession = {
@@ -276,12 +286,23 @@ export const build_publish_service = (
     generate_viewer_token?: () => string;
     now?: () => Date;
     file_storage?: PublishFileStorage;
+    on_public_publish_link_resolved?: (
+      context: PublicPublishAccessContext,
+    ) => void;
   } = {},
 ) => {
   const generate_slug = options.generate_slug ?? default_generate_slug;
   const generate_viewer_token =
     options.generate_viewer_token ?? default_generate_viewer_token;
   const now = options.now ?? (() => new Date());
+  const report_public_context = (result: PublicPublishResult) => {
+    if (result.access_context)
+      options.on_public_publish_link_resolved?.(result.access_context);
+  };
+  const assert_active_public_result = (result: PublicPublishResult) => {
+    if (result.publish_link.status !== "active")
+      throw new PublishLinkNotFoundError();
+  };
 
   const ensure_project_exists = async (input: {
     organization_id: string;
@@ -764,6 +785,9 @@ export const build_publish_service = (
       throw new PublishLinkNotFoundError();
     }
 
+    report_public_context(result);
+    assert_active_public_result(result);
+
     assert_public_publish_link_access({
       publish_link: result.publish_link,
       now: now(),
@@ -784,6 +808,9 @@ export const build_publish_service = (
     if (!result) {
       throw new PublishLinkNotFoundError();
     }
+
+    report_public_context(result);
+    assert_active_public_result(result);
 
     assert_public_publish_link_access({
       publish_link: result.publish_link,
@@ -836,6 +863,10 @@ export const build_publish_service = (
     if (!public_result) {
       throw new PublishedAssetNotFoundError();
     }
+
+    report_public_context(public_result);
+    if (public_result.publish_link.status !== "active")
+      throw new PublishedAssetNotFoundError();
 
     assert_public_publish_link_access({
       publish_link: public_result.publish_link,

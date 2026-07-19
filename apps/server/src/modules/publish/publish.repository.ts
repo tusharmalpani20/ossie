@@ -64,6 +64,8 @@ type PublishLinkRow = {
 };
 
 type PublicResolveRow = PublishLinkRow & {
+  organization_id: string;
+  project_id: string;
   artifact_id: string;
   published_artifact_version_number: number;
   published_artifact_title: string;
@@ -1025,6 +1027,8 @@ export const build_publish_transactional_repository = (
         `
         SELECT
           publish_link.id,
+          publish_link.organization_id,
+          publish_link.project_id,
           publish_link.artifact_type,
           publish_link.artifact_id,
           publish_link.published_artifact_id,
@@ -1046,7 +1050,6 @@ export const build_publish_transactional_repository = (
         INNER JOIN publish_schema.published_artifact published_artifact
           ON published_artifact.id = publish_link.published_artifact_id
         WHERE publish_link.slug = $1
-        AND publish_link.status = 'active'
         LIMIT 1
       `,
         [input.slug],
@@ -1083,6 +1086,14 @@ export const build_publish_transactional_repository = (
                 salt: row.password_salt,
               }
             : null,
+        access_context: {
+          organization_id: row.organization_id,
+          project_id: row.project_id,
+          publish_link_id: row.id,
+          status: row.status,
+          visibility: row.visibility,
+          password_protected: Boolean(row.password_hash),
+        },
       };
     },
 

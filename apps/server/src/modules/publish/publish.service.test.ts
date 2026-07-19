@@ -1231,6 +1231,59 @@ describe("publish service", () => {
     });
   });
 
+  it("reports safe internal scope before applying public link access policy", async () => {
+    const on_public_publish_link_resolved = vi.fn();
+    const repository = create_repository({
+      find_active_publish_link_by_slug: vi.fn(async () =>
+        ({
+          publish_link: {
+            slug: "abc123",
+            artifact_type: "guide",
+            visibility: "restricted",
+            status: "active",
+            expires_at: null,
+            password_protected: false,
+          },
+          published_artifact: {
+            id: "published_artifact_1",
+            artifact_type: "guide",
+            artifact_id: "guide_1",
+            version_number: 1,
+            title: "Department guide",
+            published_at: "2026-06-10T00:00:00.000Z",
+            snapshot: { artifact_type: "guide", blocks: [] },
+          },
+          access_context: {
+            organization_id: "organization_1",
+            project_id: "project_1",
+            publish_link_id: "publish_link_1",
+            status: "active",
+            visibility: "restricted",
+            password_protected: false,
+          },
+        }) as never,
+      ),
+    });
+    const service = build_publish_service(repository, {
+      on_public_publish_link_resolved,
+    });
+
+    await expect(
+      service.resolve_public_publish_link({ slug: "abc123" }),
+    ).rejects.toThrow();
+    expect(on_public_publish_link_resolved).toHaveBeenCalledWith({
+      organization_id: "organization_1",
+      project_id: "project_1",
+      publish_link_id: "publish_link_1",
+      status: "active",
+      visibility: "restricted",
+      password_protected: false,
+    });
+    expect(JSON.stringify(on_public_publish_link_resolved.mock.calls)).not.toContain(
+      "abc123",
+    );
+  });
+
   it("does not expose public password verifier internals when resolving authorized public links", async () => {
     const repository = create_repository({
       find_active_publish_link_by_slug: vi.fn(async () => ({

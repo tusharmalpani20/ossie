@@ -73,6 +73,10 @@ const normalize_email = (email: string) => email.trim().toLowerCase();
 
 export const build_authentication_session_service = (
   repository: AuthenticationSessionRepository,
+  options: {
+    on_auth_context_resolved?: (auth: AuthContext) => void;
+    on_login_identity_resolved?: (identity: LoginIdentity) => void;
+  } = {},
 ) => {
   const get_current_auth_context = async (session_token?: string) => {
     if (!session_token) {
@@ -88,6 +92,7 @@ export const build_authentication_session_service = (
       throw new UnauthenticatedSessionError();
     }
 
+    options.on_auth_context_resolved?.(auth_context);
     return auth_context;
   };
 
@@ -99,6 +104,7 @@ export const build_authentication_session_service = (
     if (!identity) {
       throw new InvalidCredentialsError();
     }
+    options.on_login_identity_resolved?.(identity);
 
     const password_matches = await Password.compare(
       identity.user.password_hash,
@@ -117,18 +123,20 @@ export const build_authentication_session_service = (
       token_hash: hash_session_token(session_token),
     });
 
+    const auth = {
+      user: {
+        id: identity.user.id,
+        email: identity.user.email,
+        display_name: identity.user.display_name,
+      },
+      organization: identity.organization,
+      org_user: identity.org_user,
+      session,
+    };
+    options.on_auth_context_resolved?.(auth);
     return {
       session_token,
-      auth: {
-        user: {
-          id: identity.user.id,
-          email: identity.user.email,
-          display_name: identity.user.display_name,
-        },
-        organization: identity.organization,
-        org_user: identity.org_user,
-        session,
-      },
+      auth,
     };
   };
 

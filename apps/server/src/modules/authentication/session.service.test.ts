@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Password } from "../../common/services/password.common.service";
 import {
   build_authentication_session_service,
@@ -184,5 +184,29 @@ describe("authentication session service", () => {
     expect(repository.revoked_session_token_hashes).toEqual([
       hash_session_token("session-token-to-revoke"),
     ]);
+  });
+
+  it("reports only resolved auth and known login identities to trusted callbacks", async () => {
+    const repository = build_repository();
+    const on_auth_context_resolved = vi.fn();
+    const on_login_identity_resolved = vi.fn();
+    const service = build_authentication_session_service(repository, {
+      on_auth_context_resolved,
+      on_login_identity_resolved,
+    });
+
+    await service.get_current_auth_context("valid-session-token");
+    await expect(
+      service.login({
+        email: "owner@example.com",
+        password: "wrong password",
+      }),
+    ).rejects.toBeInstanceOf(InvalidCredentialsError);
+
+    expect(on_auth_context_resolved).toHaveBeenCalledWith(auth_context);
+    expect(on_login_identity_resolved).toHaveBeenCalledOnce();
+    expect(on_login_identity_resolved).toHaveBeenCalledWith(
+      expect.objectContaining({ organization: auth_context.organization }),
+    );
   });
 });

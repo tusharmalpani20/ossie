@@ -4,8 +4,10 @@ import {
 } from "./audit-context";
 import {
   AuditDomainError,
+  type AuditEvent,
   type AuditCommandCoverage,
 } from "@repo/audit-domain";
+import { write_atomic_access_for_audit } from "../access/access-atomic";
 
 export type TransactionClient = {
   query<Row = Record<string, unknown>>(
@@ -82,7 +84,17 @@ export const run_audited_mutation = async <Result, Event>(input: {
     }
     const result = await input.execute(client);
     const event = input.build_event(result);
-    if (event !== null) await input.write_audit_event(client, event);
+    if (event !== null) {
+      await input.write_audit_event(client, event);
+      await write_atomic_access_for_audit({
+        client,
+        command: input.command,
+        // The transaction runner remains generic so persistence-boundary tests can
+        // exercise malformed Audit payloads. The configured writer is responsible
+        // for validation before this Access projection runs.
+        audit_event: event as AuditEvent,
+      });
+    }
     await client.query("COMMIT");
     return result;
   } catch (error) {

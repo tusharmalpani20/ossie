@@ -44,4 +44,12 @@ describe("cors config", () => {
     expect(config.is_origin_allowed("chrome-extension://abcdefghijklmnopabcdefghijklmnop")).toBe(true);
     expect(config.is_origin_allowed("https://evil.example.com")).toBe(false);
   });
+
+  it("allows the bounded public access-surface hint header", () => {
+    const config = get_cors_config();
+
+    expect(config.fastify_options.allowedHeaders).toContain(
+      "X-Ossie-Access-Surface",
+    );
+  });
 });

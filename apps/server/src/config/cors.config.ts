@@ -5,6 +5,7 @@ const allowed_headers = [
     'Authorization',
     'X-Requested-With',
     'X-Ossie-Client',
+    'X-Ossie-Access-Surface',
 ];
 
 const parse_origins = (value: string | undefined) => (
