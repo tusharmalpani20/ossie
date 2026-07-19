@@ -343,7 +343,7 @@ Do not use production accounts, customer systems, private URLs, or private scree
 - Manual portal smoke: pending
 - Manual extension smoke: pending
 - Known limitations found:
-  - public guide and interactive demo snapshots intentionally omit internal source event IDs while preserving published source assets
+  - public guide and interactive demo Revision graphs intentionally omit internal source event IDs while preserving exact-Revision protected Assets
 - Follow-up plans/issues: none recorded yet
 
 Use this template for future smoke runs:

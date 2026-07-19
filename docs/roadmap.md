@@ -1,6 +1,6 @@
 # Roadmap
 
-Last reviewed: 2026-07-19
+Last reviewed: 2026-07-20
 
 Ossie is alpha software. This roadmap separates shipped behavior from accepted
 direction and intentionally deferred work; it does not promise dates.
@@ -44,15 +44,17 @@ Master Plan `005` is the accepted implementation track:
 8. Immutable Guide/Demo Revisions, Carry-Forward, and protected shared assets.
    Implemented in child `119`; PostgreSQL and authenticated browser closeout are
    still environment-blocked.
-9. Revision-backed Publications and multi-version Publish Links.
+9. Revision-backed Publications and multi-version Publish Links. Implemented in
+   child `120`; PostgreSQL and authenticated/public browser closeout are still
+   environment-blocked.
 10. Design-system and workflow-by-workflow portal, extension, authoring, reader,
     accessibility, motion, and browser modernization.
 11. Cross-workflow closeout before new artifact-family design.
 
-Items 1 through 7 are verified current runtime behavior. Item 8 is committed
-runtime implementation awaiting its environment-blocked child closeout.
-Revision-backed Publications, multi-version Publish Links, and later UI
-modernization remain accepted target behavior rather than shipped claims.
+Items 1 through 8 are verified current runtime behavior. Item 9 is a committed
+runtime implementation awaiting its recorded environment-blocked closeout
+evidence. Later UI modernization remains accepted target behavior rather than
+shipped behavior.
 See `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 for gates and exact child ordering.
 

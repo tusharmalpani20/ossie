@@ -178,7 +178,7 @@ Ossie does not yet include automated retention cleanup. Treat storage growth as 
 
 Before deleting local files manually:
 
-- confirm whether the file is referenced by capture assets, guide blocks, published snapshots, or interactive demo scenes
+- confirm whether the file is referenced by Capture Assets, Working Draft content, immutable Revisions, or Revision-backed Publications
 - take a backup
 - prefer archiving whole old projects only after the product has built explicit deletion workflows
 

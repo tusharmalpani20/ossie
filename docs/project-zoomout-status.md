@@ -71,7 +71,7 @@ Manual portal dogfood smoke completed with non-blocking limitations on 2026-06-2
 - Capture events with create/list/get/edit/reorder/archive behavior and raw input-value protection.
 - Guide creation from capture sessions, guide editing, guide blocks, guide steps, screenshot selection, direct step screenshot upload, annotations, Markdown export, HTML ZIP export, and guide detail read models.
 - Interactive demo creation from capture sessions, demo metadata, scenes, ordering, hotspots, and archive behavior.
-- Publishing for guides and interactive demos through immutable snapshots, stable slugs, public/restricted access, expiry, password protection, viewer sessions, embeds, and asset streaming constrained to referenced published assets.
+- Revision-backed immutable Publications and independent multi-Project-Version Publish Link manifests for guides and interactive demos, with stable slugs, public/restricted access, expiry, password protection, viewer sessions, embeds, and exact-Revision Asset streaming.
 - Health and readiness endpoints.
 - Production config hardening around CORS, cookie secrets, body/upload limits, and sensitive route rate limits.
 - Unit, route, app integration, DB integration, and v1 smoke coverage.

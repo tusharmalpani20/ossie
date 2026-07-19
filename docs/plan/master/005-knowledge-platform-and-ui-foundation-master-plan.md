@@ -3,7 +3,7 @@
 Date: 2026-07-10
 
 Status: In progress. Children `109` through `119` are complete. Child `120` is
-the next executable phase.
+implemented but awaits its PostgreSQL and authenticated browser closeout gates.
 
 Master plan number: 005.
 
@@ -1237,7 +1237,9 @@ Acceptance:
 
 ### 120: Publication And Multi-Version Publish Link Integration
 
-Status: Not started.
+Status: Implemented in commits `76cb8bd`, `142ec8b`, and `5532682`; not closed
+because the required disposable PostgreSQL and freshly migrated browser gates
+are blocked by the missing `testing_maintenance` environment.
 
 Planned file:
 
@@ -1956,10 +1958,10 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is child `120`: expand and recheck Publication And
-Multi-Version Publish Link Integration against the completed child `119`
-Revision, Carry-Forward, lineage, and protected-Asset boundaries before
-implementation.
+The next executable activity is to finish child `120` verification: provision a
+safe disposable `testing_maintenance` PostgreSQL environment, run migration
+`024` up/down, DB/smoke/storage gates, and complete the authenticated/public
+browser matrix before closing `120` or beginning child `121`.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -1971,9 +1973,9 @@ Evidence/Owner compliance timeline child `114`, Project Membership Foundation
 child `115`, Project Version Foundation child `116`, Capture Source Version
 Scoping child `117`, Guide/Demo Edition And Working Draft Relational Foundation
 child `118`, and Guide/Demo Revision, Carry-Forward, And Protected Assets child
-`119` are complete. Child `119` leaves child `120` immutable exact
-Revisions, immediate Edition lineage, typed current-publication Asset projection,
-and a verified protected shared-Asset dependency boundary.
+`119` are complete. Child `120` now has committed Revision-backed Publication
+and multi-version Publish Link runtime code, but its database and browser
+acceptance evidence remains blocked as recorded in the child plan.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with child `120` expansion and recheck.
+continues with child `120` verification and closeout.

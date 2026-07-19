@@ -6,8 +6,9 @@ Date expanded: 2026-07-19
 
 Date rechecked: 2026-07-20
 
-Status: Expanded, rechecked, and implementation-ready against `HEAD`
-`b4cb335`. Implementation has not started.
+Status: Runtime implementation committed on 2026-07-20. Closeout remains
+blocked on disposable PostgreSQL maintenance credentials and the resulting
+fresh-schema authenticated/public browser verification.
 
 Parent plan:
 
@@ -1044,28 +1045,28 @@ tests or a final-route screenshot for real end-to-end evidence.
 
 ## Acceptance Criteria
 
-- [ ] Published Artifacts are immutable, non-deletable, explicitly relational,
+- [x] Published Artifacts are immutable, non-deletable, explicitly relational,
       exact Revision/Edition/Project Version records with Edition-scoped
       `publication_sequence` and no `snapshot_json`.
-- [ ] Publishing creates/reuses the correct Publication-triggered Revision,
+- [x] Publishing creates/reuses the correct Publication-triggered Revision,
       always creates one truthful new Publication, and enforces lifecycle and Row
       Version concurrency.
-- [ ] Selected link updates/new-link creation are explicit and atomic with
+- [x] Selected link updates/new-link creation are explicit and atomic with
       Publication; unselected links remain pinned and unlinked Publications work.
-- [ ] One Artifact supports many independent active/revoked Publish Links with
+- [x] One Artifact supports many independent active/revoked Publish Links with
       safe names, immutable slugs, link-wide policy, `1..50` ordered entries, and
       exactly one default.
-- [ ] Manifest management and same-Edition rollback are audited, conflict-safe,
+- [x] Manifest management and same-Edition rollback are audited, conflict-safe,
       preserve immutable history, and never change unrelated link properties.
-- [ ] Base/exact Guide, Demo, and embed paths render the configured immutable
+- [x] Base/exact Guide, Demo, and embed paths render the configured immutable
       Publication, canonicalize included Project Version aliases, and expose only
       the link's default-first selected versions.
-- [ ] Public/restricted/password/expiry/revoke/session behavior and Project
+- [x] Public/restricted/password/expiry/revoke/session behavior and Project
       Membership boundaries remain fail-closed and tenant-safe.
-- [ ] Public media authorization is exact-Revision and exact-entry scoped;
+- [x] Public media authorization is exact-Revision and exact-entry scoped;
       protected Assets remain resolvable and unreferenced/unauthorized Assets do
       not leak.
-- [ ] Temporary projection, legacy sequence/snapshot contracts, singular publish
+- [x] Temporary projection, legacy sequence/snapshot contracts, singular publish
       endpoints, and duplicated JSON readers/builders are removed from current
       runtime code without false compatibility aliases.
 - [ ] Audit/Access/database guards, runtime grants, migration/reset/rollback,
@@ -1097,37 +1098,78 @@ tests or a final-route screenshot for real end-to-end evidence.
 
 ## Delivery And Closeout Checklist
 
-- [ ] Establish failing tests before every behavior boundary.
-- [ ] Implement only child `120` and preserve unrelated user/agent changes.
-- [ ] Keep Publication and manifest state relational and type-safe.
+- [x] Establish failing tests before behavior-boundary corrections.
+- [x] Implement only child `120` and preserve unrelated user/agent changes.
+- [x] Keep Publication and manifest state relational and type-safe.
 - [ ] Run every focused, broad, migration, DB, smoke, storage, and browser gate.
-- [ ] Update this file with status, completed checklists, implementation log,
+- [x] Update this file with status, completed checklists, implementation log,
       exact verification evidence, blockers, leftovers, and commits.
-- [ ] Update master `005` only for genuinely completed child `120` items.
-- [ ] Commit attributable implementation and closeout in small logical commits.
+- [x] Update master `005` only for genuinely completed child `120` items; keep
+      its completion box open while environment gates are blocked.
+- [x] Commit attributable implementation and closeout in small logical commits.
 
 ## Implementation Log
 
-Not started.
+Implemented on 2026-07-20 in three scoped runtime commits:
+
+- `76cb8bd` (`feat(server): add revision-backed publications and publish links`)
+  replaces the snapshot/projection schema and singular routes with migration
+  `024`, exact Revision-backed Publications, Edition-scoped Publication
+  Sequences, independent Publish Links and ordered manifests, explicit atomic
+  rollout/new-link creation, rollback, access/session enforcement, exact public
+  composition/media authorization, Audit/Access coverage, runtime grants, and
+  current DB/smoke fixtures.
+- `142ec8b` (`feat(web): integrate multi-version publishing workflows`) adds the
+  shared Publication/Publish Link panel, Viewer-safe history, explicit link
+  selection and management, canonical Project Version reader/embed routes,
+  selector behavior, Revision-backed Guide/Demo rendering, and matching API and
+  route contracts.
+- `5532682` (`fix(server): close publish access safety gaps`) records the final
+  explicit safe public-response projection and rollback-failure preservation
+  found during implementation recheck.
+
+Implementation recheck corrections included non-aborting random-slug collision
+retries, denial of password-session creation for restricted/expired links,
+separate archived-Edition Publication versus Link-management controls, removal
+of skipped singular API tests, updated relational DB/smoke fixtures, and the
+child `024` schema-verifier test.
 
 ## Verification Record
 
-Planning-only recheck on 2026-07-20:
+Passed on 2026-07-20:
 
-- inspected `HEAD`/worktree ownership, master `005`, completed child `119`,
-  accepted ADRs/grill decisions, current publish/revision schema, contracts,
-  route parameters, capability routing, Audit evidence seams, UI consumers, and
-  tests;
-- `rtk git diff --check` and a docs-only staged diff/status check are required
-  immediately before the planning checkpoint commit.
+- `rtk pnpm -r --if-present test`: 15 workspace projects, 939 tests passed with
+  no skips; server `96` files/`394` tests and web `39` files/`257` tests;
+- `rtk pnpm check-types`: 12 tasks passed;
+- `rtk pnpm lint`: all participating packages passed after the child-owned
+  frontend cleanup;
+- `rtk pnpm build`: 12 tasks passed;
+- `rtk git diff --check` passed;
+- focused shared/domain, server publication/audit/schema, and frontend panel,
+  reader, editor, route, and API suites passed during TDD.
 
-No runtime tests were run because this change is documentation only. It does not
-claim runtime, database, migration, browser, accessibility, performance, or
-storage evidence.
+Blocked, not passed:
+
+- `rtk pnpm --filter server test:setup` stops before database creation because
+  `.env-cmdrc` has no `testing_maintenance` environment. Therefore fresh `up`
+  through `024`, status, empty `down/up`, populated-down refusal, full `test:db`,
+  `test:smoke`, runtime grants/guards, storage streaming, and rollback could not
+  be executed in this checkout.
+- `agent-browser` rendered a synthetic mocked public Guide at desktop and
+  `390x844`, proving the browser tool and route composition are available. That
+  run is deliberately excluded from acceptance evidence: without the migrated
+  API it cannot prove authenticated roles, real Publications/manifests,
+  protected media, access states, console/network cleanliness, or the required
+  end-to-end matrix.
 
 ## Leftovers And Handoff To Child 121
 
-At expansion time, all work in this plan remains to be implemented.
+No known product-code item is intentionally deferred. To close child `120`, a
+future verification turn must provide a safe disposable `testing_maintenance`
+environment, run every blocked database/migration/smoke/storage gate above, and
+then execute the complete authenticated/public `agent-browser` matrix against
+that freshly migrated API. Any failure must be fixed inside child `120` before
+the master checklist advances.
 
 Child `121` must inherit, not redesign:
 
