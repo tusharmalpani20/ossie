@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { ulid } from "ulid";
 import { pool } from "../../config/database.config";
-import { reset_test_database, with_maintenance_client } from "../../test-support/database";
+import { insert_test_project, reset_test_database, with_maintenance_client } from "../../test-support/database";
 import { build_project_membership_repository } from "./project-membership.repository";
 
 describe("Project Membership persistence", () => {
@@ -9,7 +9,7 @@ describe("Project Membership persistence", () => {
   afterAll(async () => pool.end());
 
   it("enforces tenant FKs, owner invariants, lifecycle, and runtime non-destructive grants", async () => {
-    const organization_id = ulid(); const project_id = ulid();
+    const organization_id = ulid(); const project_id = ulid(); const project_version_id = ulid();
     const owner_user_id = ulid(); const owner_id = ulid();
     const member_user_id = ulid(); const member_id = ulid();
     await with_maintenance_client(async (client) => {
@@ -18,8 +18,13 @@ describe("Project Membership persistence", () => {
       await client.query("INSERT INTO organization_schema.organization (id,name) VALUES ($1,'Synthetic')", [organization_id]);
       await client.query("INSERT INTO organization_schema.org_user (id,organization_id,user_id,role) VALUES ($1,$3,$2,'owner'),($4,$3,$5,'member')",
         [owner_id, owner_user_id, organization_id, member_id, member_user_id]);
-      await client.query("INSERT INTO project_schema.project (id,organization_id,name,created_by_id,updated_by_id) VALUES ($1,$2,'Synthetic Project',$3,$3)",
-        [project_id, organization_id, owner_id]);
+      await insert_test_project((text, values) => client.query(text, values), {
+        project_id,
+        project_version_id,
+        organization_id,
+        actor_org_user_id: owner_id,
+        name: "Synthetic Project",
+      });
     });
     const repository = build_project_membership_repository(pool);
     await expect(repository.resolve_project_access({ organization_id, actor_org_user_id: owner_id, project_id }))

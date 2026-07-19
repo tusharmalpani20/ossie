@@ -38,4 +38,12 @@ describe("Project Version routes", () => {
     expect((await app.inject({ method: "POST", url: "/api/v1/projects/project_1/versions/version_1/archive",
       payload: { expected_version: 0 } })).statusCode).toBe(400);
   });
+
+  it("returns the stable empty-update error before schema refinement", async () => {
+    const { app } = await setup();
+    const response = await app.inject({ method: "PATCH", url: "/api/v1/projects/project_1/versions/version_1",
+      payload: { expected_version: 1 } });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error.type).toBe("empty_project_version_update");
+  });
 });

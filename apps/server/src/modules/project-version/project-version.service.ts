@@ -182,7 +182,7 @@ export const build_project_version_service = (input: {
       return restored;
     },
     async set_default(args: { auth: Auth; project_id: string; project_version_id: string; data: SetDefaultProjectVersionRequest }) {
-      await authorize_manage(args.auth, args.project_id);
+      const access = await authorize_manage(args.auth, args.project_id);
       const existing = await resolve_existing(args);
       if (existing.status === "archived") throw new ProjectVersionArchivedError();
       if (existing.is_default) throw new ProjectVersionUnchangedError();
@@ -193,7 +193,8 @@ export const build_project_version_service = (input: {
         data: args.data,
       });
       if (!changed) throw new ProjectVersionConflictError();
-      return changed;
+      const response = changed as { project?: Record<string, unknown>; project_version?: unknown };
+      return response.project ? { ...response, project: { ...response.project, access } } : changed;
     },
   };
 };

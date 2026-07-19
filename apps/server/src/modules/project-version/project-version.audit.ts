@@ -5,7 +5,7 @@ import {
   type AuditEvent,
   type AuditValueType,
 } from "@repo/audit-domain";
-import type { ProjectVersionDetail, ReorderProjectVersionsRequest } from "@repo/types/project-version";
+import type { ProjectVersionDetail } from "@repo/types/project-version";
 import { ulid } from "ulid";
 import { find_audit_command } from "../audit/audit-coverage-registry";
 import { current_audit_request_id, current_audit_source_type, safe_audit_actor_label } from "../audit/audit-request-context";

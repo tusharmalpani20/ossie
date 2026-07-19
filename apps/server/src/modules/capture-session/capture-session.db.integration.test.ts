@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
 import {
+  insert_test_project,
   reset_test_database,
   run_test_fixture_mutation,
   with_maintenance_client,
@@ -77,6 +78,7 @@ const insert_cross_org_project_and_capture_session = async () => {
   const organization_id = ulid();
   const org_user_id = ulid();
   const project_id = ulid();
+  const project_version_id = ulid();
   const capture_session_id = ulid();
 
   await with_maintenance_client(async (client) => {
@@ -104,19 +106,13 @@ const insert_cross_org_project_and_capture_session = async () => {
     await client.query(
       "SELECT set_config('ossie.maintenance_mode', 'on', false)",
     );
-    await client.query(
-      `
-    INSERT INTO project_schema.project (
-      id,
+    await insert_test_project((text, values) => client.query(text, values), {
+      project_id,
+      project_version_id,
       organization_id,
-      name,
-      created_by_id,
-      updated_by_id
-    )
-    VALUES ($1, $2, 'Other Project', $3, $3)
-  `,
-      [project_id, organization_id, org_user_id],
-    );
+      actor_org_user_id: org_user_id,
+      name: "Other Project",
+    });
     await client.query(
       `
     INSERT INTO capture_schema.capture_session (

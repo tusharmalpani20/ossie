@@ -3,6 +3,7 @@ import { ulid } from "ulid";
 import { build_project_repository } from "../project/project.repository";
 import {
   LegacyContentBlocksDefaultChangeError,
+  ProjectVersionConflictError,
   ProjectVersionSlugConflictError,
   type ProjectVersionRepository,
 } from "./project-version.service";
@@ -43,8 +44,10 @@ const map_write_error = (error: unknown): never => {
     "project_version_slug_namespace_guard", "uq_project_version_project_slug_ci",
     "uq_project_version_alias_project_slug_ci", "project_version_slug_alias_guard",
   ])) throw new ProjectVersionSlugConflictError();
-  if (is_constraint(error, ["project_default_legacy_content_guard"]))
+  if (is_constraint(error, ["project_version_legacy_content_guard"]))
     throw new LegacyContentBlocksDefaultChangeError();
+  if (is_constraint(error, ["project_default_version_active_guard"]))
+    throw new ProjectVersionConflictError();
   throw error;
 };
 
@@ -164,15 +167,17 @@ export const build_project_version_repository = (db: Queryable): ProjectVersionR
       } catch (error) { return map_write_error(error); }
     },
     async archive_version(input) {
-      const result = await db.query<VersionRow>(`WITH updated AS (
-        UPDATE project_schema.project_version SET status = 'archived', updated_by_id = $4,
-          updated_at = CURRENT_TIMESTAMP, version = version + 1
-        WHERE organization_id = $1 AND project_id = $2 AND id = $3
-          AND status = 'active' AND version = $5 RETURNING *
-      ) SELECT ${version_select} FROM updated version JOIN project_schema.project project
-        ON project.id = version.project_id AND project.organization_id = version.organization_id`,
-      [input.organization_id, input.project_id, input.project_version_id, input.actor_org_user_id, input.expected_version]);
-      return result.rows[0] ? map_version(result.rows[0]) : null;
+      try {
+        const result = await db.query<VersionRow>(`WITH updated AS (
+          UPDATE project_schema.project_version SET status = 'archived', updated_by_id = $4,
+            updated_at = CURRENT_TIMESTAMP, version = version + 1
+          WHERE organization_id = $1 AND project_id = $2 AND id = $3
+            AND status = 'active' AND version = $5 RETURNING *
+        ) SELECT ${version_select} FROM updated version JOIN project_schema.project project
+          ON project.id = version.project_id AND project.organization_id = version.organization_id`,
+        [input.organization_id, input.project_id, input.project_version_id, input.actor_org_user_id, input.expected_version]);
+        return result.rows[0] ? map_version(result.rows[0]) : null;
+      } catch (error) { return map_write_error(error); }
     },
     async restore_version(input) {
       const result = await db.query<VersionRow>(`WITH updated AS (

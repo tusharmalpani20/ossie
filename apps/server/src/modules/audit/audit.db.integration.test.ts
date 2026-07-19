@@ -73,14 +73,15 @@ describe("Audit Evidence core", () => {
     });
     const items = await pool.query(
       `
-      SELECT field_name, before_state, after_state, after_text_value
+      SELECT entity_type, field_name, before_state, after_state, after_text_value
       FROM audit_schema.audit_change_item
       WHERE audit_event_id = $1
       ORDER BY created_at, id
     `,
       [events.rows[0].id],
     );
-    expect(items.rows).toHaveLength(8);
+    expect(items.rows).toHaveLength(15);
+    expect(items.rows.filter((row) => row.entity_type === "project_version")).toHaveLength(7);
     expect(
       items.rows.find((row) => row.field_name === "metadata"),
     ).toMatchObject({
@@ -140,6 +141,7 @@ describe("Audit Evidence core", () => {
       ORDER BY tgname
     `);
     expect(triggers.rows.map((row) => row.trigger_name)).toEqual([
+      "project_default_mutation_command_guard",
       "project_i_audit_ctx",
       "project_i_audit_evd",
       "project_u_audit_ctx",
@@ -376,6 +378,7 @@ describe("Audit Evidence core", () => {
       "SELECT organization_id, id FROM organization_schema.org_user LIMIT 1",
     );
     const project_id = ulid();
+    const project_version_id = ulid();
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -401,10 +404,17 @@ describe("Audit Evidence core", () => {
       );
       await client.query(
         `
-        INSERT INTO project_schema.project (id, organization_id, name, created_by_id, updated_by_id)
-        VALUES ($1, $2, 'Missing Evidence', $3, $3)
+        INSERT INTO project_schema.project
+          (id, organization_id, name, default_project_version_id, created_by_id, updated_by_id)
+        VALUES ($1, $2, 'Missing Evidence', $3, $4, $4)
       `,
-        [project_id, actor.rows[0].organization_id, actor.rows[0].id],
+        [project_id, actor.rows[0].organization_id, project_version_id, actor.rows[0].id],
+      );
+      await client.query(
+        `INSERT INTO project_schema.project_version
+          (id, organization_id, project_id, name, slug, position, created_by_id, updated_by_id)
+         VALUES ($1, $2, $3, 'Main', 'main', 1, $4, $4)`,
+        [project_version_id, actor.rows[0].organization_id, project_id, actor.rows[0].id],
       );
       await expect(client.query("COMMIT")).rejects.toMatchObject({
         code: "23514",
@@ -457,9 +467,9 @@ describe("Audit Evidence core", () => {
         await expect(
           client.query(
             `INSERT INTO project_schema.project
-          (id, organization_id, name, created_by_id, updated_by_id)
-         VALUES ($1, $2, 'Invalid Audit policy', $3, $3)`,
-            [ulid(), actor.rows[0].organization_id, actor.rows[0].id],
+          (id, organization_id, name, default_project_version_id, created_by_id, updated_by_id)
+         VALUES ($1, $2, 'Invalid Audit policy', $3, $4, $4)`,
+            [ulid(), actor.rows[0].organization_id, ulid(), actor.rows[0].id],
           ),
         ).rejects.toMatchObject({
           code: "23514",

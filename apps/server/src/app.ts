@@ -323,7 +323,7 @@ export const build = (opts: BuildOptions = {}) => {
   });
 
   app.setErrorHandler(async (error, request, response) => {
-    error_handler(error as FastifyError, request, response);
+    return error_handler(error as FastifyError, request, response);
   });
 
   // Set up Zod as the validator and serializer

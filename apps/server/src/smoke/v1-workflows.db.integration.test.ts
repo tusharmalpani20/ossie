@@ -145,6 +145,39 @@ describe("v1 dogfood smoke workflow", () => {
 
     expect(project_response.statusCode).toBe(201);
     const project_id = project_response.json().project.id as string;
+    expect(project_response.json().project.default_project_version).toMatchObject({
+      name: "Main",
+      slug: "main",
+      status: "active",
+    });
+    const named_version_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/versions`,
+      cookies: { ossie_session: owner_session },
+      payload: { name: "Summer 2026" },
+    });
+    expect(named_version_response.statusCode).toBe(201);
+    const named_version = named_version_response.json().project_version as {
+      id: string;
+      version: number;
+    };
+    const renamed_version_response = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/projects/${project_id}/versions/${named_version.id}`,
+      cookies: { ossie_session: owner_session },
+      payload: { expected_version: named_version.version, slug: "summer-release" },
+    });
+    expect(renamed_version_response.statusCode).toBe(200);
+    const alias_response = await app.inject({
+      method: "GET",
+      url: `/api/v1/projects/${project_id}/versions/resolve/summer-2026`,
+      cookies: { ossie_session: owner_session },
+    });
+    expect(alias_response.statusCode).toBe(200);
+    expect(alias_response.json()).toMatchObject({
+      resolution: "alias",
+      project_version: { id: named_version.id, slug: "summer-release" },
+    });
     const project_audit = await pool.query<{ count: string }>(
       "SELECT COUNT(*) AS count FROM audit_schema.audit_event WHERE project_id = $1 AND action = 'project.created'",
       [project_id],

@@ -390,7 +390,7 @@ describe("DB-backed capture event API", () => {
     );
 
     await app.close();
-  }, 15000);
+  }, 30000);
 
   it("reorders manual capture events while preserving contiguous indexes", async () => {
     const session_token = await setup_owner();

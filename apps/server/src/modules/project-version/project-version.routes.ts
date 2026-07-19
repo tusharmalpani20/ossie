@@ -68,6 +68,11 @@ export const build_project_version_routes = (dependencies: {
     wrap(reply, async () => ({ project_version: await dependencies.project_version_service.get({ auth: await auth(request), ...request.params }) })));
   fastify.patch<{ Params: { project_id: string; project_version_id: string }; Body: UpdateProjectVersionRequest }>("/:project_id/versions/:project_version_id", {
     schema: { body: UpdateProjectVersionRequestSchema },
+    preValidation: async (request, reply) => {
+      const body = request.body as Record<string, unknown>;
+      if (!["name", "description", "slug", "release_date"].some((field) => body[field] !== undefined))
+        return reply.status(400).send(error_response("empty_project_version_update", "At least one Project Version field must be provided"));
+    },
   }, (request, reply) => wrap(reply, async () => ({ project_version: await dependencies.project_version_service.update({
     auth: await auth(request), ...request.params, data: request.body,
   }) })));
