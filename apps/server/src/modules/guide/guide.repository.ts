@@ -17,7 +17,10 @@ type QueryResult<Row> = {
 };
 
 type Queryable = {
-  query: <Row = Record<string, unknown>>(sql: string, values?: unknown[]) => Promise<QueryResult<Row>>;
+  query: <Row = Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ) => Promise<QueryResult<Row>>;
 };
 
 type TransactionClient = Queryable & {
@@ -167,7 +170,10 @@ const map_block = (row: GuideBlockRow, step: GuideStep | null): GuideBlock => ({
   screenshot_hidden: row.screenshot_hidden,
   display_capture_asset_id: row.screenshot_hidden
     ? null
-    : row.selected_capture_asset_id ?? row.source_capture_asset_id ?? step?.source_capture_asset_id ?? null,
+    : (row.selected_capture_asset_id ??
+      row.source_capture_asset_id ??
+      step?.source_capture_asset_id ??
+      null),
   block_type: row.block_type,
   content: row.content,
   block_index: row.block_index,
@@ -192,7 +198,9 @@ const map_source_event = (row: GuideSourceEventRow): GuideSourceEvent => ({
   note: row.note,
 });
 
-const map_source_capture_asset = (row: GuideSourceCaptureAssetRow): GuideSourceCaptureAsset => ({
+const map_source_capture_asset = (
+  row: GuideSourceCaptureAssetRow,
+): GuideSourceCaptureAsset => ({
   id: row.id,
   capture_session_id: row.capture_session_id,
   asset_type: row.asset_type,
@@ -268,15 +276,17 @@ const build_detail_from_rows = (
   guide_row: GuideRow,
   block_rows: GuideBlockRow[],
   step_rows: GuideStepRow[],
-  source_capture_assets: GuideSourceCaptureAsset[] = []
+  source_capture_assets: GuideSourceCaptureAsset[] = [],
 ): GuideDetail => {
   const steps_by_block_id = new Map(
-    step_rows.map((row) => [row.guide_block_id, map_step(row)])
+    step_rows.map((row) => [row.guide_block_id, map_step(row)]),
   );
 
   return {
     guide: map_guide(guide_row),
-    guide_blocks: block_rows.map((row) => map_block(row, steps_by_block_id.get(row.id) ?? null)),
+    guide_blocks: block_rows.map((row) =>
+      map_block(row, steps_by_block_id.get(row.id) ?? null),
+    ),
     source_capture_assets,
   };
 };
@@ -305,13 +315,14 @@ const read_source_capture_assets = async (
     organization_id: string;
     project_id: string;
     source_capture_asset_ids: string[];
-  }
+  },
 ) => {
   if (input.source_capture_asset_ids.length === 0) {
     return [];
   }
 
-  const result = await db.query<GuideSourceCaptureAssetRow>(`
+  const result = await db.query<GuideSourceCaptureAssetRow>(
+    `
     SELECT
       capture_asset.id,
       capture_asset.project_id,
@@ -334,14 +345,12 @@ const read_source_capture_assets = async (
     AND capture_asset.organization_id = $3
     AND capture_asset.is_deleted = FALSE
     AND app_file.is_deleted = FALSE
-  `, [
-    input.source_capture_asset_ids,
-    input.project_id,
-    input.organization_id,
-  ]);
+  `,
+    [input.source_capture_asset_ids, input.project_id, input.organization_id],
+  );
 
   const assets_by_id = new Map(
-    result.rows.map((row) => [row.id, map_source_capture_asset(row)])
+    result.rows.map((row) => [row.id, map_source_capture_asset(row)]),
   );
 
   return input.source_capture_asset_ids
@@ -355,9 +364,10 @@ const read_guide_blocks = async (
     organization_id: string;
     project_id: string;
     guide_id: string;
-  }
+  },
 ) => {
-  const blocks_result = await db.query<GuideBlockRow>(`
+  const blocks_result = await db.query<GuideBlockRow>(
+    `
     SELECT ${guide_block_select}
     FROM guide_schema.guide_block
     WHERE guide_id = $1
@@ -365,13 +375,12 @@ const read_guide_blocks = async (
     AND organization_id = $3
     AND is_deleted = FALSE
     ORDER BY block_index ASC, created_at ASC, id ASC
-  `, [
-    input.guide_id,
-    input.project_id,
-    input.organization_id,
-  ]);
+  `,
+    [input.guide_id, input.project_id, input.organization_id],
+  );
 
-  const steps_result = await db.query<GuideStepRow>(`
+  const steps_result = await db.query<GuideStepRow>(
+    `
     SELECT ${guide_step_select}
     FROM guide_schema.guide_step
     WHERE guide_id = $1
@@ -379,16 +388,16 @@ const read_guide_blocks = async (
     AND organization_id = $3
     AND is_deleted = FALSE
     ORDER BY created_at ASC, id ASC
-  `, [
-    input.guide_id,
-    input.project_id,
-    input.organization_id,
-  ]);
+  `,
+    [input.guide_id, input.project_id, input.organization_id],
+  );
   const steps_by_block_id = new Map(
-    steps_result.rows.map((row) => [row.guide_block_id, map_step(row)])
+    steps_result.rows.map((row) => [row.guide_block_id, map_step(row)]),
   );
 
-  return blocks_result.rows.map((row) => map_block(row, steps_by_block_id.get(row.id) ?? null));
+  return blocks_result.rows.map((row) =>
+    map_block(row, steps_by_block_id.get(row.id) ?? null),
+  );
 };
 
 const touch_guide = async (
@@ -398,9 +407,10 @@ const touch_guide = async (
     project_id: string;
     guide_id: string;
     actor_org_user_id: string;
-  }
+  },
 ) => {
-  await db.query(`
+  await db.query(
+    `
     UPDATE guide_schema.guide
     SET
       updated_by_id = $1,
@@ -410,19 +420,21 @@ const touch_guide = async (
     AND project_id = $3
     AND organization_id = $4
     AND is_deleted = FALSE
-  `, [
-    input.actor_org_user_id,
-    input.guide_id,
-    input.project_id,
-    input.organization_id,
-  ]);
+  `,
+    [
+      input.actor_org_user_id,
+      input.guide_id,
+      input.project_id,
+      input.organization_id,
+    ],
+  );
 };
 
 const with_transaction = async <Result>(
   db: TransactionCapable,
-  work: (client: Queryable) => Promise<Result>
+  work: (client: Queryable) => Promise<Result>,
 ) => {
-  if (!db.connect) {
+  if (!db.connect || "release" in db) {
     return work(db);
   }
 
@@ -441,9 +453,12 @@ const with_transaction = async <Result>(
   }
 };
 
-export const build_guide_repository = (db: TransactionCapable): GuideRepository => ({
+export const build_guide_repository = (
+  db: TransactionCapable,
+): GuideRepository => ({
   async project_exists(input) {
-    const result = await db.query<{ exists: boolean }>(`
+    const result = await db.query<{ exists: boolean }>(
+      `
       SELECT EXISTS (
         SELECT 1
         FROM project_schema.project
@@ -451,13 +466,16 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND organization_id = $2
         AND is_deleted = FALSE
       ) AS exists
-    `, [input.project_id, input.organization_id]);
+    `,
+      [input.project_id, input.organization_id],
+    );
 
     return Boolean(result.rows[0]?.exists);
   },
 
   async capture_session_exists(input) {
-    const result = await db.query<{ exists: boolean }>(`
+    const result = await db.query<{ exists: boolean }>(
+      `
       SELECT EXISTS (
         SELECT 1
         FROM capture_schema.capture_session capture_session
@@ -468,11 +486,9 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND capture_session.is_deleted = FALSE
         AND project.is_deleted = FALSE
       ) AS exists
-    `, [
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.capture_session_id, input.project_id, input.organization_id],
+    );
 
     return Boolean(result.rows[0]?.exists);
   },
@@ -491,7 +507,8 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       values.push(input.selected_capture_event_ids);
     }
 
-    const result = await db.query<GuideSourceEventRow>(`
+    const result = await db.query<GuideSourceEventRow>(
+      `
       SELECT
         id,
         event_type,
@@ -510,7 +527,9 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       AND is_deleted = FALSE
       ${selected_filter}
       ORDER BY event_index ASC, created_at ASC, id ASC
-    `, values);
+    `,
+      values,
+    );
 
     return result.rows.map(map_source_event);
   },
@@ -520,7 +539,8 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       return [];
     }
 
-    const result = await db.query<{ id: string }>(`
+    const result = await db.query<{ id: string }>(
+      `
       SELECT id
       FROM capture_schema.capture_asset
       WHERE id = ANY($1::varchar[])
@@ -528,18 +548,21 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       AND project_id = $3
       AND organization_id = $4
       AND is_deleted = FALSE
-    `, [
-      input.capture_asset_ids,
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [
+        input.capture_asset_ids,
+        input.capture_session_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
 
     return result.rows.map((row) => row.id);
   },
 
   async active_screenshot_asset_exists(input) {
-    const result = await db.query<{ exists: boolean }>(`
+    const result = await db.query<{ exists: boolean }>(
+      `
       SELECT EXISTS (
         SELECT 1
         FROM capture_schema.capture_asset capture_asset
@@ -551,18 +574,17 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND capture_asset.is_deleted = FALSE
         AND app_file.is_deleted = FALSE
       ) AS exists
-    `, [
-      input.capture_asset_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.capture_asset_id, input.project_id, input.organization_id],
+    );
 
     return Boolean(result.rows[0]?.exists);
   },
 
   async create_guide_from_capture(input) {
     return with_transaction(db, async (client) => {
-      const guide_result = await client.query<GuideRow>(`
+      const guide_result = await client.query<GuideRow>(
+        `
         INSERT INTO guide_schema.guide (
           id,
           organization_id,
@@ -575,15 +597,17 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
         RETURNING ${guide_select}
-      `, [
-        ulid(),
-        input.organization_id,
-        input.project_id,
-        input.capture_session_id,
-        input.data.title,
-        input.data.description,
-        input.actor_org_user_id,
-      ]);
+      `,
+        [
+          ulid(),
+          input.organization_id,
+          input.project_id,
+          input.capture_session_id,
+          input.data.title,
+          input.data.description,
+          input.actor_org_user_id,
+        ],
+      );
       const guide_row = first_row(guide_result);
 
       if (!guide_row) {
@@ -594,7 +618,8 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       const step_rows: GuideStepRow[] = [];
 
       for (const block of input.data.blocks) {
-        const block_result = await client.query<GuideBlockRow>(`
+        const block_result = await client.query<GuideBlockRow>(
+          `
           INSERT INTO guide_schema.guide_block (
             id,
             organization_id,
@@ -611,25 +636,28 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         )
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, $9, $10, $10)
           RETURNING ${guide_block_select}
-        `, [
-          ulid(),
-          input.organization_id,
-          input.project_id,
-          guide_row.id,
-          input.capture_session_id,
-          block.source_capture_event_id,
-          block.source_capture_asset_id,
-          block.block_type,
-          block.block_index,
-          input.actor_org_user_id,
-        ]);
+        `,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            guide_row.id,
+            input.capture_session_id,
+            block.source_capture_event_id,
+            block.source_capture_asset_id,
+            block.block_type,
+            block.block_index,
+            input.actor_org_user_id,
+          ],
+        );
         const block_row = first_row(block_result);
 
         if (!block_row) {
           throw new Error("Failed to create guide block");
         }
 
-        const step_result = await client.query<GuideStepRow>(`
+        const step_result = await client.query<GuideStepRow>(
+          `
           INSERT INTO guide_schema.guide_step (
             id,
             organization_id,
@@ -646,19 +674,21 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
           )
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
           RETURNING ${guide_step_select}
-        `, [
-          ulid(),
-          input.organization_id,
-          input.project_id,
-          guide_row.id,
-          block_row.id,
-          input.capture_session_id,
-          block.source_capture_event_id,
-          block.source_capture_asset_id,
-          block.step.title,
-          block.step.body,
-          input.actor_org_user_id,
-        ]);
+        `,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            guide_row.id,
+            block_row.id,
+            input.capture_session_id,
+            block.source_capture_event_id,
+            block.source_capture_asset_id,
+            block.step.title,
+            block.step.body,
+            input.actor_org_user_id,
+          ],
+        );
         const step_row = first_row(step_result);
 
         if (!step_row) {
@@ -674,23 +704,24 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
   },
 
   async list_guides(input) {
-    const result = await db.query<GuideRow>(`
+    const result = await db.query<GuideRow>(
+      `
       SELECT ${guide_select}
       FROM guide_schema.guide
       WHERE project_id = $1
       AND organization_id = $2
       AND is_deleted = FALSE
       ORDER BY created_at DESC, id DESC
-    `, [
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.project_id, input.organization_id],
+    );
 
     return result.rows.map(map_guide);
   },
 
   async find_guide_detail(input) {
-    const guide_result = await db.query<GuideRow>(`
+    const guide_result = await db.query<GuideRow>(
+      `
       SELECT ${guide_select}
       FROM guide_schema.guide
       WHERE id = $1
@@ -698,18 +729,17 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       AND organization_id = $3
       AND is_deleted = FALSE
       LIMIT 1
-    `, [
-      input.guide_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.guide_id, input.project_id, input.organization_id],
+    );
     const guide_row = first_row(guide_result);
 
     if (!guide_row) {
       return null;
     }
 
-    const blocks_result = await db.query<GuideBlockRow>(`
+    const blocks_result = await db.query<GuideBlockRow>(
+      `
       SELECT ${guide_block_select}
       FROM guide_schema.guide_block
       WHERE guide_id = $1
@@ -717,13 +747,12 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       AND organization_id = $3
       AND is_deleted = FALSE
       ORDER BY block_index ASC, created_at ASC, id ASC
-    `, [
-      input.guide_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.guide_id, input.project_id, input.organization_id],
+    );
 
-    const steps_result = await db.query<GuideStepRow>(`
+    const steps_result = await db.query<GuideStepRow>(
+      `
       SELECT ${guide_step_select}
       FROM guide_schema.guide_step
       WHERE guide_id = $1
@@ -731,17 +760,20 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       AND organization_id = $3
       AND is_deleted = FALSE
       ORDER BY created_at ASC, id ASC
-    `, [
-      input.guide_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.guide_id, input.project_id, input.organization_id],
+    );
 
-    const guide_blocks = build_detail_from_rows(guide_row, blocks_result.rows, steps_result.rows).guide_blocks;
+    const guide_blocks = build_detail_from_rows(
+      guide_row,
+      blocks_result.rows,
+      steps_result.rows,
+    ).guide_blocks;
     const source_capture_assets = await read_source_capture_assets(db, {
       organization_id: input.organization_id,
       project_id: input.project_id,
-      source_capture_asset_ids: source_capture_asset_ids_from_blocks(guide_blocks),
+      source_capture_asset_ids:
+        source_capture_asset_ids_from_blocks(guide_blocks),
     });
 
     return {
@@ -756,7 +788,8 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       return [];
     }
 
-    const result = await db.query<GuideExportAssetFileRow>(`
+    const result = await db.query<GuideExportAssetFileRow>(
+      `
       SELECT DISTINCT ON (capture_asset.id)
         capture_asset.id AS capture_asset_id,
         app_file.storage_provider,
@@ -794,21 +827,26 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       AND guide.organization_id = $3
       AND guide.is_deleted = FALSE
       ORDER BY capture_asset.id
-    `, [
-      input.guide_id,
-      input.project_id,
-      input.organization_id,
-      input.capture_asset_ids,
-    ]);
+    `,
+      [
+        input.guide_id,
+        input.project_id,
+        input.organization_id,
+        input.capture_asset_ids,
+      ],
+    );
     const files_by_asset_id = new Map(
-      result.rows.map((row): [string, GuideExportAssetFile] => [row.capture_asset_id, {
-        capture_asset_id: row.capture_asset_id,
-        storage_provider: row.storage_provider,
-        storage_key: row.storage_key,
-        mime_type: row.mime_type,
-        original_name: row.original_name,
-        size_bytes: Number(row.size_bytes),
-      }])
+      result.rows.map((row): [string, GuideExportAssetFile] => [
+        row.capture_asset_id,
+        {
+          capture_asset_id: row.capture_asset_id,
+          storage_provider: row.storage_provider,
+          storage_key: row.storage_key,
+          mime_type: row.mime_type,
+          original_name: row.original_name,
+          size_bytes: Number(row.size_bytes),
+        },
+      ]),
     );
 
     return input.capture_asset_ids
@@ -839,14 +877,15 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       input.actor_org_user_id,
       input.guide_id,
       input.project_id,
-      input.organization_id
+      input.organization_id,
     );
     const actor_index = values.length - 3;
     const guide_index = values.length - 2;
     const project_index = values.length - 1;
     const organization_index = values.length;
 
-    const result = await db.query<GuideRow>(`
+    const result = await db.query<GuideRow>(
+      `
       UPDATE guide_schema.guide
       SET ${[
         ...assignments,
@@ -859,7 +898,9 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       AND organization_id = $${organization_index}
       AND is_deleted = FALSE
       RETURNING ${guide_select}
-    `, values);
+    `,
+      values,
+    );
     const row = first_row(result);
 
     if (!row) {
@@ -870,7 +911,8 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
   },
 
   async find_guide_step(input) {
-    const result = await db.query<GuideStepRow>(`
+    const result = await db.query<GuideStepRow>(
+      `
       SELECT ${guide_step_select}
       FROM guide_schema.guide_step
       WHERE id = $1
@@ -879,12 +921,14 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       AND organization_id = $4
       AND is_deleted = FALSE
       LIMIT 1
-    `, [
-      input.guide_step_id,
-      input.guide_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [
+        input.guide_step_id,
+        input.guide_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
     const row = first_row(result);
 
     return row ? map_step(row) : null;
@@ -912,7 +956,7 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         input.guide_step_id,
         input.guide_id,
         input.project_id,
-        input.organization_id
+        input.organization_id,
       );
       const actor_index = values.length - 4;
       const step_index = values.length - 3;
@@ -920,7 +964,8 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       const project_index = values.length - 1;
       const organization_index = values.length;
 
-      const result = await client.query<GuideStepRow>(`
+      const result = await client.query<GuideStepRow>(
+        `
         UPDATE guide_schema.guide_step
         SET ${[
           ...assignments,
@@ -934,7 +979,9 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND organization_id = $${organization_index}
         AND is_deleted = FALSE
         RETURNING ${guide_step_select}
-      `, values);
+      `,
+        values,
+      );
       const row = first_row(result);
 
       if (!row) {
@@ -954,10 +1001,15 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
   async reorder_guide_blocks(input) {
     return with_transaction(db, async (client) => {
       const active_blocks = await read_guide_blocks(client, input);
-      const current_indexes = new Map(active_blocks.map((row) => [row.id, row.block_index]));
-      const changed_ids = input.block_ids.filter((id, index) => current_indexes.get(id) !== index + 1);
+      const current_indexes = new Map(
+        active_blocks.map((row) => [row.id, row.block_index]),
+      );
+      const changed_ids = input.block_ids.filter(
+        (id, index) => current_indexes.get(id) !== index + 1,
+      );
       if (changed_ids.length === 0) return active_blocks;
-      await client.query(`
+      await client.query(
+        `
         UPDATE guide_schema.guide_block
         SET
           block_index = block_index + 1000000,
@@ -969,17 +1021,20 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND organization_id = $4
         AND is_deleted = FALSE
         AND id = ANY($5::varchar[])
-      `, [
-        input.actor_org_user_id,
-        input.guide_id,
-        input.project_id,
-        input.organization_id,
-        changed_ids,
-      ]);
+      `,
+        [
+          input.actor_org_user_id,
+          input.guide_id,
+          input.project_id,
+          input.organization_id,
+          changed_ids,
+        ],
+      );
 
       for (const [index, block_id] of input.block_ids.entries()) {
         if (!changed_ids.includes(block_id)) continue;
-        await client.query(`
+        await client.query(
+          `
           UPDATE guide_schema.guide_block
           SET
             block_index = $1,
@@ -991,14 +1046,16 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
           AND project_id = $5
           AND organization_id = $6
           AND is_deleted = FALSE
-        `, [
-          index + 1,
-          input.actor_org_user_id,
-          block_id,
-          input.guide_id,
-          input.project_id,
-          input.organization_id,
-        ]);
+        `,
+          [
+            index + 1,
+            input.actor_org_user_id,
+            block_id,
+            input.guide_id,
+            input.project_id,
+            input.organization_id,
+          ],
+        );
       }
 
       await touch_guide(client, input);
@@ -1015,7 +1072,9 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
           return active_blocks.length + 1;
         }
 
-        const target = active_blocks.find((block) => block.id === input.data.position?.guide_block_id);
+        const target = active_blocks.find(
+          (block) => block.id === input.data.position?.guide_block_id,
+        );
 
         if (!target) {
           return null;
@@ -1030,7 +1089,8 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         return active_blocks;
       }
 
-      await client.query(`
+      await client.query(
+        `
         UPDATE guide_schema.guide_block
         SET
           block_index = block_index + 1000000,
@@ -1042,16 +1102,19 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND organization_id = $4
         AND is_deleted = FALSE
         AND block_index >= $5
-      `, [
-        input.actor_org_user_id,
-        input.guide_id,
-        input.project_id,
-        input.organization_id,
-        target_position,
-      ]);
+      `,
+        [
+          input.actor_org_user_id,
+          input.guide_id,
+          input.project_id,
+          input.organization_id,
+          target_position,
+        ],
+      );
 
       const block_id = ulid();
-      const block_result = await client.query<GuideBlockRow>(`
+      const block_result = await client.query<GuideBlockRow>(
+        `
         INSERT INTO guide_schema.guide_block (
           id,
           organization_id,
@@ -1068,16 +1131,18 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         )
         VALUES ($1, $2, $3, $4, NULL, NULL, NULL, $5, $6, $7, $8, $8)
         RETURNING ${guide_block_select}
-      `, [
-        block_id,
-        input.organization_id,
-        input.project_id,
-        input.guide_id,
-        input.data.block_type,
-        input.data.content ? JSON.stringify(input.data.content) : null,
-        target_position,
-        input.actor_org_user_id,
-      ]);
+      `,
+        [
+          block_id,
+          input.organization_id,
+          input.project_id,
+          input.guide_id,
+          input.data.block_type,
+          input.data.content ? JSON.stringify(input.data.content) : null,
+          target_position,
+          input.actor_org_user_id,
+        ],
+      );
       const block_row = first_row(block_result);
 
       if (!block_row) {
@@ -1085,7 +1150,8 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
       }
 
       if (input.data.block_type === "step" && input.data.step) {
-        await client.query<GuideStepRow>(`
+        await client.query<GuideStepRow>(
+          `
           INSERT INTO guide_schema.guide_step (
             id,
             organization_id,
@@ -1101,25 +1167,30 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
             updated_by_id
           )
           VALUES ($1, $2, $3, $4, $5, NULL, NULL, NULL, $6, $7, $8, $8)
-        `, [
-          ulid(),
-          input.organization_id,
-          input.project_id,
-          input.guide_id,
-          block_id,
-          input.data.step.title,
-          input.data.step.body,
-          input.actor_org_user_id,
-        ]);
+        `,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            input.guide_id,
+            block_id,
+            input.data.step.title,
+            input.data.step.body,
+            input.actor_org_user_id,
+          ],
+        );
       }
 
       const shifted_blocks = await read_guide_blocks(client, input);
       const shifted_without_insert = shifted_blocks
-        .filter((block) => block.id !== block_id && block.block_index >= 1000000)
+        .filter(
+          (block) => block.id !== block_id && block.block_index >= 1000000,
+        )
         .sort((left, right) => left.block_index - right.block_index);
 
       for (const [index, block] of shifted_without_insert.entries()) {
-        await client.query(`
+        await client.query(
+          `
           UPDATE guide_schema.guide_block
           SET
             block_index = $1,
@@ -1131,14 +1202,16 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
           AND project_id = $5
           AND organization_id = $6
           AND is_deleted = FALSE
-        `, [
-          target_position + index + 1,
-          input.actor_org_user_id,
-          block.id,
-          input.guide_id,
-          input.project_id,
-          input.organization_id,
-        ]);
+        `,
+          [
+            target_position + index + 1,
+            input.actor_org_user_id,
+            block.id,
+            input.guide_id,
+            input.project_id,
+            input.organization_id,
+          ],
+        );
       }
 
       await touch_guide(client, input);
@@ -1149,7 +1222,8 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
 
   async update_guide_block(input) {
     return with_transaction(db, async (client) => {
-      const result = await client.query<GuideBlockRow>(`
+      const result = await client.query<GuideBlockRow>(
+        `
         UPDATE guide_schema.guide_block
         SET
           content = $1,
@@ -1162,14 +1236,16 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND organization_id = $6
         AND is_deleted = FALSE
         RETURNING ${guide_block_select}
-      `, [
-        JSON.stringify(input.data.content),
-        input.actor_org_user_id,
-        input.guide_block_id,
-        input.guide_id,
-        input.project_id,
-        input.organization_id,
-      ]);
+      `,
+        [
+          JSON.stringify(input.data.content),
+          input.actor_org_user_id,
+          input.guide_block_id,
+          input.guide_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      );
       const row = first_row(result);
 
       if (!row) {
@@ -1184,7 +1260,8 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
 
   async update_guide_block_screenshot(input) {
     return with_transaction(db, async (client) => {
-      const result = await client.query<GuideBlockRow>(`
+      const result = await client.query<GuideBlockRow>(
+        `
         UPDATE guide_schema.guide_block
         SET
           selected_capture_asset_id = $1,
@@ -1199,22 +1276,25 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND organization_id = $7
         AND is_deleted = FALSE
         RETURNING ${guide_block_select}
-      `, [
-        input.data.selected_capture_asset_id,
-        input.data.screenshot_hidden,
-        input.actor_org_user_id,
-        input.guide_block_id,
-        input.guide_id,
-        input.project_id,
-        input.organization_id,
-      ]);
+      `,
+        [
+          input.data.selected_capture_asset_id,
+          input.data.screenshot_hidden,
+          input.actor_org_user_id,
+          input.guide_block_id,
+          input.guide_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      );
       const row = first_row(result);
 
       if (!row) {
         throw new Error("Failed to update guide block screenshot");
       }
 
-      const steps_result = await client.query<GuideStepRow>(`
+      const steps_result = await client.query<GuideStepRow>(
+        `
         SELECT ${guide_step_select}
         FROM guide_schema.guide_step
         WHERE guide_block_id = $1
@@ -1223,22 +1303,28 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND organization_id = $4
         AND is_deleted = FALSE
         LIMIT 1
-      `, [
-        input.guide_block_id,
-        input.guide_id,
-        input.project_id,
-        input.organization_id,
-      ]);
+      `,
+        [
+          input.guide_block_id,
+          input.guide_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      );
 
       await touch_guide(client, input);
 
-      return map_block(row, steps_result.rows[0] ? map_step(steps_result.rows[0]) : null);
+      return map_block(
+        row,
+        steps_result.rows[0] ? map_step(steps_result.rows[0]) : null,
+      );
     });
   },
 
   async update_guide_block_annotations(input) {
     return with_transaction(db, async (client) => {
-      const result = await client.query<GuideBlockRow>(`
+      const result = await client.query<GuideBlockRow>(
+        `
         UPDATE guide_schema.guide_block
         SET
           content = $1,
@@ -1251,21 +1337,24 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND organization_id = $6
         AND is_deleted = FALSE
         RETURNING ${guide_block_select}
-      `, [
-        JSON.stringify(input.data.content),
-        input.actor_org_user_id,
-        input.guide_block_id,
-        input.guide_id,
-        input.project_id,
-        input.organization_id,
-      ]);
+      `,
+        [
+          JSON.stringify(input.data.content),
+          input.actor_org_user_id,
+          input.guide_block_id,
+          input.guide_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      );
       const row = first_row(result);
 
       if (!row) {
         throw new Error("Failed to update guide block annotations");
       }
 
-      const steps_result = await client.query<GuideStepRow>(`
+      const steps_result = await client.query<GuideStepRow>(
+        `
         SELECT ${guide_step_select}
         FROM guide_schema.guide_step
         WHERE guide_block_id = $1
@@ -1274,22 +1363,28 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND organization_id = $4
         AND is_deleted = FALSE
         LIMIT 1
-      `, [
-        input.guide_block_id,
-        input.guide_id,
-        input.project_id,
-        input.organization_id,
-      ]);
+      `,
+        [
+          input.guide_block_id,
+          input.guide_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      );
 
       await touch_guide(client, input);
 
-      return map_block(row, steps_result.rows[0] ? map_step(steps_result.rows[0]) : null);
+      return map_block(
+        row,
+        steps_result.rows[0] ? map_step(steps_result.rows[0]) : null,
+      );
     });
   },
 
   async delete_guide_block(input) {
     return with_transaction(db, async (client) => {
-      const block_result = await client.query<GuideBlockRow>(`
+      const block_result = await client.query<GuideBlockRow>(
+        `
         UPDATE guide_schema.guide_block
         SET
           is_deleted = TRUE,
@@ -1304,19 +1399,22 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND organization_id = $5
         AND is_deleted = FALSE
         RETURNING ${guide_block_select}
-      `, [
-        input.actor_org_user_id,
-        input.guide_block_id,
-        input.guide_id,
-        input.project_id,
-        input.organization_id,
-      ]);
+      `,
+        [
+          input.actor_org_user_id,
+          input.guide_block_id,
+          input.guide_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      );
 
       if (block_result.rows.length === 0) {
         return false;
       }
 
-      await client.query(`
+      await client.query(
+        `
         UPDATE guide_schema.guide_step
         SET
           is_deleted = TRUE,
@@ -1330,13 +1428,15 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND project_id = $4
         AND organization_id = $5
         AND is_deleted = FALSE
-      `, [
-        input.actor_org_user_id,
-        input.guide_block_id,
-        input.guide_id,
-        input.project_id,
-        input.organization_id,
-      ]);
+      `,
+        [
+          input.actor_org_user_id,
+          input.guide_block_id,
+          input.guide_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      );
 
       const remaining_blocks = await read_guide_blocks(client, input);
 
@@ -1345,7 +1445,8 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
           continue;
         }
 
-        await client.query(`
+        await client.query(
+          `
           UPDATE guide_schema.guide_block
           SET
             block_index = $1,
@@ -1357,14 +1458,16 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
           AND project_id = $5
           AND organization_id = $6
           AND is_deleted = FALSE
-        `, [
-          index + 1,
-          input.actor_org_user_id,
-          block.id,
-          input.guide_id,
-          input.project_id,
-          input.organization_id,
-        ]);
+        `,
+          [
+            index + 1,
+            input.actor_org_user_id,
+            block.id,
+            input.guide_id,
+            input.project_id,
+            input.organization_id,
+          ],
+        );
       }
 
       await touch_guide(client, input);

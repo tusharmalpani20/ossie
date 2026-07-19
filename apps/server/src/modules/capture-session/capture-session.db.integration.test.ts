@@ -2,7 +2,11 @@ import { ulid } from "ulid";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
-import { reset_test_database, with_maintenance_client } from "../../test-support/database";
+import {
+  reset_test_database,
+  run_test_fixture_mutation,
+  with_maintenance_client,
+} from "../../test-support/database";
 
 const setup_owner = async () => {
   const app = build({ logger: false });
@@ -24,7 +28,9 @@ const setup_owner = async () => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  const session_cookie = response.cookies.find((cookie) => cookie.name === "ossie_session");
+  const session_cookie = response.cookies.find(
+    (cookie) => cookie.name === "ossie_session",
+  );
   expect(session_cookie?.value).toEqual(expect.any(String));
   return session_cookie?.value ?? "";
 };
@@ -45,7 +51,10 @@ const get_owner_context = async () => {
   return row;
 };
 
-const create_project = async (session_token: string, name = "Onboarding Demo") => {
+const create_project = async (
+  session_token: string,
+  name = "Onboarding Demo",
+) => {
   const app = build({ logger: false });
   const response = await app.inject({
     method: "POST",
@@ -71,20 +80,32 @@ const insert_cross_org_project_and_capture_session = async () => {
   const capture_session_id = ulid();
 
   await with_maintenance_client(async (client) => {
-  await client.query(`
+    await client.query(
+      `
     INSERT INTO user_schema.user (id, email, password_hash, display_name)
     VALUES ($1, 'other@example.com', 'hash.salt', 'Other User')
-  `, [user_id]);
-  await client.query(`
+  `,
+      [user_id],
+    );
+    await client.query(
+      `
     INSERT INTO organization_schema.organization (id, name)
     VALUES ($1, 'Other Org')
-  `, [organization_id]);
-  await client.query(`
+  `,
+      [organization_id],
+    );
+    await client.query(
+      `
     INSERT INTO organization_schema.org_user (id, user_id, organization_id, role)
     VALUES ($1, $2, $3, 'owner')
-  `, [org_user_id, user_id, organization_id]);
-  await client.query("SELECT set_config('ossie.maintenance_mode', 'on', false)");
-  await client.query(`
+  `,
+      [org_user_id, user_id, organization_id],
+    );
+    await client.query(
+      "SELECT set_config('ossie.maintenance_mode', 'on', false)",
+    );
+    await client.query(
+      `
     INSERT INTO project_schema.project (
       id,
       organization_id,
@@ -93,8 +114,11 @@ const insert_cross_org_project_and_capture_session = async () => {
       updated_by_id
     )
     VALUES ($1, $2, 'Other Project', $3, $3)
-  `, [project_id, organization_id, org_user_id]);
-  await client.query(`
+  `,
+      [project_id, organization_id, org_user_id],
+    );
+    await client.query(
+      `
     INSERT INTO capture_schema.capture_session (
       id,
       organization_id,
@@ -104,7 +128,9 @@ const insert_cross_org_project_and_capture_session = async () => {
       updated_by_id
     )
     VALUES ($1, $2, $3, 'Other Capture', $4, $4)
-  `, [capture_session_id, organization_id, project_id, org_user_id]);
+  `,
+      [capture_session_id, organization_id, project_id, org_user_id],
+    );
   });
 
   return {
@@ -175,9 +201,12 @@ describe("DB-backed capture session API", () => {
     expect(JSON.stringify(create_response.json())).not.toContain("metadata");
     expect(JSON.stringify(create_response.json())).not.toContain("is_deleted");
     expect(JSON.stringify(create_response.json())).not.toContain("deleted_at");
-    expect(JSON.stringify(create_response.json())).not.toContain("deleted_by_id");
+    expect(JSON.stringify(create_response.json())).not.toContain(
+      "deleted_by_id",
+    );
 
-    const capture_session_id = create_response.json().capture_session.id as string;
+    const capture_session_id = create_response.json().capture_session
+      .id as string;
 
     const list_response = await app.inject({
       method: "GET",
@@ -250,15 +279,27 @@ describe("DB-backed capture session API", () => {
       status: "capturing",
       version: 2,
     });
-    expect(capturing_response.json().capture_session.started_at).toEqual(expect.any(String));
+    expect(capturing_response.json().capture_session.started_at).toEqual(
+      expect.any(String),
+    );
     expect(completed_response.statusCode).toBe(200);
-    expect(completed_response.json().capture_session.completed_at).toEqual(expect.any(String));
+    expect(completed_response.json().capture_session.completed_at).toEqual(
+      expect.any(String),
+    );
     expect(canceled_response.statusCode).toBe(200);
-    expect(canceled_response.json().capture_session.canceled_at).toEqual(expect.any(String));
+    expect(canceled_response.json().capture_session.canceled_at).toEqual(
+      expect.any(String),
+    );
     expect(archived_response.statusCode).toBe(200);
-    expect(archived_response.json().capture_session.started_at).toEqual(expect.any(String));
-    expect(archived_response.json().capture_session.completed_at).toEqual(expect.any(String));
-    expect(archived_response.json().capture_session.canceled_at).toEqual(expect.any(String));
+    expect(archived_response.json().capture_session.started_at).toEqual(
+      expect.any(String),
+    );
+    expect(archived_response.json().capture_session.completed_at).toEqual(
+      expect.any(String),
+    );
+    expect(archived_response.json().capture_session.canceled_at).toEqual(
+      expect.any(String),
+    );
     expect(completed_list_response.statusCode).toBe(200);
     expect(completed_list_response.json().capture_sessions).toEqual([]);
 
@@ -268,11 +309,14 @@ describe("DB-backed capture session API", () => {
       completed_at: Date | null;
       canceled_at: Date | null;
       version: number;
-    }>(`
+    }>(
+      `
       SELECT metadata, started_at, completed_at, canceled_at, version
       FROM capture_schema.capture_session
       WHERE id = $1
-    `, [capture_session_id]);
+    `,
+      [capture_session_id],
+    );
 
     expect(persisted_before_delete.rows[0]?.metadata).toEqual({
       capture_mode: "screenshot",
@@ -300,11 +344,14 @@ describe("DB-backed capture session API", () => {
       status: string;
       updated_by_id: string;
       version: number;
-    }>(`
+    }>(
+      `
       SELECT is_deleted, deleted_at, deleted_by_id, status, updated_by_id, version
       FROM capture_schema.capture_session
       WHERE id = $1
-    `, [capture_session_id]);
+    `,
+      [capture_session_id],
+    );
 
     expect(persisted_after_delete.rows[0]).toMatchObject({
       is_deleted: true,
@@ -350,11 +397,17 @@ describe("DB-backed capture session API", () => {
     expect(hidden_list_response.statusCode).toBe(200);
     expect(hidden_list_response.json().capture_sessions).toEqual([]);
     expect(hidden_get_response.statusCode).toBe(404);
-    expect(hidden_get_response.json().error.type).toBe("capture_session_not_found");
+    expect(hidden_get_response.json().error.type).toBe(
+      "capture_session_not_found",
+    );
     expect(hidden_update_response.statusCode).toBe(404);
-    expect(hidden_update_response.json().error.type).toBe("capture_session_not_found");
+    expect(hidden_update_response.json().error.type).toBe(
+      "capture_session_not_found",
+    );
     expect(repeat_delete_response.statusCode).toBe(404);
-    expect(repeat_delete_response.json().error.type).toBe("capture_session_not_found");
+    expect(repeat_delete_response.json().error.type).toBe(
+      "capture_session_not_found",
+    );
 
     await app.close();
   });
@@ -383,9 +436,12 @@ describe("DB-backed capture session API", () => {
     };
 
     const draft_session_id = await create_capture_session("Draft Capture");
-    const capturing_session_id = await create_capture_session("Capturing Capture");
-    const canceled_session_id = await create_capture_session("Canceled Capture");
-    const archived_session_id = await create_capture_session("Archived Capture");
+    const capturing_session_id =
+      await create_capture_session("Capturing Capture");
+    const canceled_session_id =
+      await create_capture_session("Canceled Capture");
+    const archived_session_id =
+      await create_capture_session("Archived Capture");
 
     const capturing_update_response = await app.inject({
       method: "PATCH",
@@ -499,11 +555,17 @@ describe("DB-backed capture session API", () => {
       version: 2,
     });
     expect(canceled_complete_response.statusCode).toBe(400);
-    expect(canceled_complete_response.json().error.type).toBe("capture_session_not_completable");
+    expect(canceled_complete_response.json().error.type).toBe(
+      "capture_session_not_completable",
+    );
     expect(archived_complete_response.statusCode).toBe(400);
-    expect(archived_complete_response.json().error.type).toBe("capture_session_not_completable");
+    expect(archived_complete_response.json().error.type).toBe(
+      "capture_session_not_completable",
+    );
     expect(non_empty_body_response.statusCode).toBe(400);
-    expect(non_empty_body_response.json().error.type).toBe("invalid_capture_session_completion");
+    expect(non_empty_body_response.json().error.type).toBe(
+      "invalid_capture_session_completion",
+    );
 
     const persisted = await pool.query<{
       id: string;
@@ -511,29 +573,34 @@ describe("DB-backed capture session API", () => {
       started_at: Date | null;
       completed_at: Date | null;
       version: number;
-    }>(`
+    }>(
+      `
       SELECT id, status, started_at, completed_at, version
       FROM capture_schema.capture_session
       WHERE id = ANY($1::varchar[])
       ORDER BY id
-    `, [[draft_session_id, capturing_session_id]]);
+    `,
+      [[draft_session_id, capturing_session_id]],
+    );
 
-    expect(persisted.rows).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: draft_session_id,
-        status: "completed",
-        started_at: null,
-        completed_at: expect.any(Date),
-        version: 2,
-      }),
-      expect.objectContaining({
-        id: capturing_session_id,
-        status: "completed",
-        started_at: expect.any(Date),
-        completed_at: expect.any(Date),
-        version: 3,
-      }),
-    ]));
+    expect(persisted.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: draft_session_id,
+          status: "completed",
+          started_at: null,
+          completed_at: expect.any(Date),
+          version: 2,
+        }),
+        expect.objectContaining({
+          id: capturing_session_id,
+          status: "completed",
+          started_at: expect.any(Date),
+          completed_at: expect.any(Date),
+          version: 3,
+        }),
+      ]),
+    );
 
     await app.close();
   });
@@ -558,7 +625,8 @@ describe("DB-backed capture session API", () => {
       },
     });
     expect(create_session_response.statusCode).toBe(201);
-    const capture_session_id = create_session_response.json().capture_session.id as string;
+    const capture_session_id = create_session_response.json().capture_session
+      .id as string;
 
     const create_asset = async (storage_key: string, page_title: string) => {
       const response = await app.inject({
@@ -594,10 +662,17 @@ describe("DB-backed capture session API", () => {
       return response.json().capture_asset.id as string;
     };
 
-    const kept_asset_id = await create_asset("captures/acme/session/kept.png", "Department List");
-    const deleted_asset_id = await create_asset("captures/acme/session/deleted.png", "Deleted Asset");
+    const kept_asset_id = await create_asset(
+      "captures/acme/session/kept.png",
+      "Department List",
+    );
+    const deleted_asset_id = await create_asset(
+      "captures/acme/session/deleted.png",
+      "Deleted Asset",
+    );
 
-    await pool.query(`
+    await run_test_fixture_mutation(
+      `
       UPDATE capture_schema.capture_asset
       SET created_at = CASE
         WHEN id = $1 THEN '2026-06-05T10:01:00.000Z'::timestamptz
@@ -605,7 +680,9 @@ describe("DB-backed capture session API", () => {
         ELSE created_at
       END
       WHERE id = ANY($3::varchar[])
-    `, [kept_asset_id, deleted_asset_id, [kept_asset_id, deleted_asset_id]]);
+    `,
+      [kept_asset_id, deleted_asset_id, [kept_asset_id, deleted_asset_id]],
+    );
 
     const create_event = async (payload: Record<string, unknown>) => {
       const response = await app.inject({
@@ -673,12 +750,22 @@ describe("DB-backed capture session API", () => {
       project_id,
       status: "draft",
     });
-    expect(detail_response.json().capture_events.map((event: { event_index: number }) => event.event_index)).toEqual([1, 2]);
+    expect(
+      detail_response
+        .json()
+        .capture_events.map(
+          (event: { event_index: number }) => event.event_index,
+        ),
+    ).toEqual([1, 2]);
     expect(detail_response.json().capture_events[1]).toMatchObject({
       capture_asset_id: deleted_asset_id,
       event_type: "capture",
     });
-    expect(detail_response.json().capture_assets.map((asset: { id: string }) => asset.id)).toEqual([kept_asset_id]);
+    expect(
+      detail_response
+        .json()
+        .capture_assets.map((asset: { id: string }) => asset.id),
+    ).toEqual([kept_asset_id]);
     expect(detail_response.json().capture_assets[0]).toMatchObject({
       id: kept_asset_id,
       file: {
@@ -718,15 +805,23 @@ describe("DB-backed capture session API", () => {
 
     expect(delete_session_response.statusCode).toBe(204);
     expect(hidden_detail_response.statusCode).toBe(404);
-    expect(hidden_detail_response.json().error.type).toBe("capture_session_not_found");
+    expect(hidden_detail_response.json().error.type).toBe(
+      "capture_session_not_found",
+    );
 
     await app.close();
   });
 
   it("does not reveal cross-org or deleted project resources", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token, "Disposable Project");
-    const visible_project_id = await create_project(session_token, "Visible Project");
+    const project_id = await create_project(
+      session_token,
+      "Disposable Project",
+    );
+    const visible_project_id = await create_project(
+      session_token,
+      "Visible Project",
+    );
     const app = build({ logger: false });
 
     const delete_project_response = await app.inject({
@@ -749,7 +844,9 @@ describe("DB-backed capture session API", () => {
       },
     });
     expect(create_under_deleted_project_response.statusCode).toBe(404);
-    expect(create_under_deleted_project_response.json().error.type).toBe("project_not_found");
+    expect(create_under_deleted_project_response.json().error.type).toBe(
+      "project_not_found",
+    );
 
     const detail_under_deleted_project_response = await app.inject({
       method: "GET",
@@ -759,7 +856,9 @@ describe("DB-backed capture session API", () => {
       },
     });
     expect(detail_under_deleted_project_response.statusCode).toBe(404);
-    expect(detail_under_deleted_project_response.json().error.type).toBe("project_not_found");
+    expect(detail_under_deleted_project_response.json().error.type).toBe(
+      "project_not_found",
+    );
 
     const cross_org = await insert_cross_org_project_and_capture_session();
     const cross_org_list_response = await app.inject({
@@ -787,16 +886,23 @@ describe("DB-backed capture session API", () => {
     expect(cross_org_list_response.statusCode).toBe(404);
     expect(cross_org_list_response.json().error.type).toBe("project_not_found");
     expect(cross_org_get_response.statusCode).toBe(404);
-    expect(cross_org_get_response.json().error.type).toBe("capture_session_not_found");
+    expect(cross_org_get_response.json().error.type).toBe(
+      "capture_session_not_found",
+    );
     expect(cross_org_detail_response.statusCode).toBe(404);
-    expect(cross_org_detail_response.json().error.type).toBe("capture_session_not_found");
+    expect(cross_org_detail_response.json().error.type).toBe(
+      "capture_session_not_found",
+    );
 
     await app.close();
   });
 
   it("enforces capture session schema constraints in postgres", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token, "Constraint Project");
+    const project_id = await create_project(
+      session_token,
+      "Constraint Project",
+    );
     const owner_context = await get_owner_context();
 
     const insert_invalid_capture_session = (overrides: {
@@ -805,7 +911,9 @@ describe("DB-backed capture session API", () => {
       viewport_width?: number;
       viewport_height?: number;
       device_pixel_ratio?: number;
-    }) => pool.query(`
+    }) =>
+      pool.query(
+        `
       INSERT INTO capture_schema.capture_session (
         id,
         organization_id,
@@ -820,32 +928,44 @@ describe("DB-backed capture session API", () => {
         updated_by_id
       )
       VALUES ($1, $2, $3, 'Invalid Capture', $4, $5, $6, $7, $8, $9, $9)
-    `, [
-      ulid(),
-      owner_context?.organization_id,
-      project_id,
-      overrides.status ?? "draft",
-      overrides.source_type ?? "manual",
-      overrides.viewport_width ?? 100,
-      overrides.viewport_height ?? 100,
-      overrides.device_pixel_ratio ?? 1,
-      owner_context?.org_user_id,
-    ]);
+    `,
+        [
+          ulid(),
+          owner_context?.organization_id,
+          project_id,
+          overrides.status ?? "draft",
+          overrides.source_type ?? "manual",
+          overrides.viewport_width ?? 100,
+          overrides.viewport_height ?? 100,
+          overrides.device_pixel_ratio ?? 1,
+          owner_context?.org_user_id,
+        ],
+      );
 
-    await expect(insert_invalid_capture_session({
-      status: "paused",
-    })).rejects.toThrow();
-    await expect(insert_invalid_capture_session({
-      source_type: "screen_magic",
-    })).rejects.toThrow();
-    await expect(insert_invalid_capture_session({
-      viewport_width: 0,
-    })).rejects.toThrow();
-    await expect(insert_invalid_capture_session({
-      viewport_height: -1,
-    })).rejects.toThrow();
-    await expect(insert_invalid_capture_session({
-      device_pixel_ratio: 0,
-    })).rejects.toThrow();
+    await expect(
+      insert_invalid_capture_session({
+        status: "paused",
+      }),
+    ).rejects.toThrow();
+    await expect(
+      insert_invalid_capture_session({
+        source_type: "screen_magic",
+      }),
+    ).rejects.toThrow();
+    await expect(
+      insert_invalid_capture_session({
+        viewport_width: 0,
+      }),
+    ).rejects.toThrow();
+    await expect(
+      insert_invalid_capture_session({
+        viewport_height: -1,
+      }),
+    ).rejects.toThrow();
+    await expect(
+      insert_invalid_capture_session({
+        device_pixel_ratio: 0,
+      }),
+    ).rejects.toThrow();
   });
 });

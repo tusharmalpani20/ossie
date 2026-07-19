@@ -2,7 +2,11 @@ import { ulid } from "ulid";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
-import { reset_test_database } from "../../test-support/database";
+import {
+  reset_test_database,
+  run_test_fixture_mutation,
+  with_maintenance_client,
+} from "../../test-support/database";
 
 const setup_owner = async () => {
   const app = build({ logger: false });
@@ -24,7 +28,9 @@ const setup_owner = async () => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  const session_cookie = response.cookies.find((cookie) => cookie.name === "ossie_session");
+  const session_cookie = response.cookies.find(
+    (cookie) => cookie.name === "ossie_session",
+  );
   expect(session_cookie?.value).toEqual(expect.any(String));
   return session_cookie?.value ?? "";
 };
@@ -72,7 +78,9 @@ const insert_screenshot_asset = async (input: {
   const file_id = ulid();
   const capture_asset_id = ulid();
 
-  await pool.query(`
+  await with_maintenance_client(async (client) => {
+    await client.query(
+      `
     INSERT INTO capture_schema.capture_session (
       id,
       organization_id,
@@ -82,8 +90,16 @@ const insert_screenshot_asset = async (input: {
       updated_by_id
     )
     VALUES ($1, $2, $3, 'Demo source capture', $4, $4)
-  `, [capture_session_id, input.organization_id, input.project_id, input.org_user_id]);
-  await pool.query(`
+  `,
+      [
+        capture_session_id,
+        input.organization_id,
+        input.project_id,
+        input.org_user_id,
+      ],
+    );
+    await client.query(
+      `
     INSERT INTO file_schema.file (
       id,
       organization_id,
@@ -95,8 +111,16 @@ const insert_screenshot_asset = async (input: {
       updated_by_id
     )
     VALUES ($1, $2, 'local', $3, 'image/png', 100, $4, $4)
-  `, [file_id, input.organization_id, `interactive-demo/${file_id}.png`, input.org_user_id]);
-  await pool.query(`
+  `,
+      [
+        file_id,
+        input.organization_id,
+        `interactive-demo/${file_id}.png`,
+        input.org_user_id,
+      ],
+    );
+    await client.query(
+      `
     INSERT INTO capture_schema.capture_asset (
       id,
       organization_id,
@@ -108,7 +132,17 @@ const insert_screenshot_asset = async (input: {
       updated_by_id
     )
     VALUES ($1, $2, $3, $4, $5, 'screenshot', $6, $6)
-  `, [capture_asset_id, input.organization_id, input.project_id, capture_session_id, file_id, input.org_user_id]);
+    `,
+      [
+        capture_asset_id,
+        input.organization_id,
+        input.project_id,
+        capture_session_id,
+        file_id,
+        input.org_user_id,
+      ],
+    );
+  });
 
   return capture_asset_id;
 };
@@ -127,7 +161,9 @@ const insert_capture_source_material = async (input: {
   const click_event_id = ulid();
   const capture_event_id = ulid();
 
-  await pool.query(`
+  await with_maintenance_client(async (client) => {
+    await client.query(
+      `
     INSERT INTO capture_schema.capture_session (
       id,
       organization_id,
@@ -140,8 +176,16 @@ const insert_capture_source_material = async (input: {
       updated_by_id
     )
     VALUES ($1, $2, $3, 'Department setup', 'Create departments in ERP', 'completed', 'extension', $4, $4)
-  `, [capture_session_id, input.organization_id, input.project_id, input.org_user_id]);
-  await pool.query(`
+  `,
+      [
+        capture_session_id,
+        input.organization_id,
+        input.project_id,
+        input.org_user_id,
+      ],
+    );
+    await client.query(
+      `
     INSERT INTO file_schema.file (
       id,
       organization_id,
@@ -155,15 +199,18 @@ const insert_capture_source_material = async (input: {
     VALUES
       ($1, $3, 'local', $4, 'image/png', 100, $2, $2),
       ($5, $3, 'local', $6, 'image/png', 100, $2, $2)
-  `, [
-    first_file_id,
-    input.org_user_id,
-    input.organization_id,
-    `interactive-demo/${first_file_id}.png`,
-    second_file_id,
-    `interactive-demo/${second_file_id}.png`,
-  ]);
-  await pool.query(`
+  `,
+      [
+        first_file_id,
+        input.org_user_id,
+        input.organization_id,
+        `interactive-demo/${first_file_id}.png`,
+        second_file_id,
+        `interactive-demo/${second_file_id}.png`,
+      ],
+    );
+    await client.query(
+      `
     INSERT INTO capture_schema.capture_asset (
       id,
       organization_id,
@@ -178,17 +225,20 @@ const insert_capture_source_material = async (input: {
     VALUES
       ($1, $2, $3, $4, $5, 'screenshot', 'Department List', $7, $7),
       ($6, $2, $3, $4, $8, 'screenshot', 'New Department', $7, $7)
-  `, [
-    first_asset_id,
-    input.organization_id,
-    input.project_id,
-    capture_session_id,
-    first_file_id,
-    second_asset_id,
-    input.org_user_id,
-    second_file_id,
-  ]);
-  await pool.query(`
+  `,
+      [
+        first_asset_id,
+        input.organization_id,
+        input.project_id,
+        capture_session_id,
+        first_file_id,
+        second_asset_id,
+        input.org_user_id,
+        second_file_id,
+      ],
+    );
+    await client.query(
+      `
     INSERT INTO capture_schema.capture_event (
       id,
       organization_id,
@@ -208,17 +258,20 @@ const insert_capture_source_material = async (input: {
       ($1, $4, $5, $6, NULL, 'note', 1, NULL, NULL, 'Skipped note', TRUE, $7, $7),
       ($2, $4, $5, $6, $8, 'click', 2, 'Department List', 'Add Department', NULL, TRUE, $7, $7),
       ($3, $4, $5, $6, $9, 'capture', 3, 'New Department', NULL, NULL, TRUE, $7, $7)
-  `, [
-    note_event_id,
-    click_event_id,
-    capture_event_id,
-    input.organization_id,
-    input.project_id,
-    capture_session_id,
-    input.org_user_id,
-    first_asset_id,
-    second_asset_id,
-  ]);
+  `,
+      [
+        note_event_id,
+        click_event_id,
+        capture_event_id,
+        input.organization_id,
+        input.project_id,
+        capture_session_id,
+        input.org_user_id,
+        first_asset_id,
+        second_asset_id,
+      ],
+    );
+  });
 
   return {
     capture_session_id,
@@ -269,8 +322,11 @@ describe("DB-backed interactive demo API", () => {
       status: "draft",
       version: 1,
     });
-    expect(JSON.stringify(create_demo_response.json())).not.toContain("is_deleted");
-    const interactive_demo_id = create_demo_response.json().interactive_demo.id as string;
+    expect(JSON.stringify(create_demo_response.json())).not.toContain(
+      "is_deleted",
+    );
+    const interactive_demo_id = create_demo_response.json().interactive_demo
+      .id as string;
 
     const first_scene_response = await app.inject({
       method: "POST",
@@ -300,7 +356,8 @@ describe("DB-backed interactive demo API", () => {
     expect(second_scene_response.statusCode).toBe(201);
     expect(second_scene_response.json().demo_scene.scene_index).toBe(2);
     const first_scene_id = first_scene_response.json().demo_scene.id as string;
-    const second_scene_id = second_scene_response.json().demo_scene.id as string;
+    const second_scene_id = second_scene_response.json().demo_scene
+      .id as string;
 
     const create_hotspot_response = await app.inject({
       method: "POST",
@@ -342,10 +399,15 @@ describe("DB-backed interactive demo API", () => {
       target_scene_id: second_scene_id,
       hotspot_index: 1,
     });
-    expect(JSON.stringify(create_hotspot_response.json())).not.toContain("is_deleted");
+    expect(JSON.stringify(create_hotspot_response.json())).not.toContain(
+      "is_deleted",
+    );
     expect(invalid_hotspot_response.statusCode).toBe(400);
-    expect(invalid_hotspot_response.json().error.type).toBe("invalid_demo_hotspot_coordinates");
-    const first_hotspot_id = create_hotspot_response.json().demo_hotspot.id as string;
+    expect(invalid_hotspot_response.json().error.type).toBe(
+      "invalid_demo_hotspot_coordinates",
+    );
+    const first_hotspot_id = create_hotspot_response.json().demo_hotspot
+      .id as string;
 
     const second_hotspot_response = await app.inject({
       method: "POST",
@@ -362,7 +424,8 @@ describe("DB-backed interactive demo API", () => {
       },
     });
     expect(second_hotspot_response.statusCode).toBe(201);
-    const second_hotspot_id = second_hotspot_response.json().demo_hotspot.id as string;
+    const second_hotspot_id = second_hotspot_response.json().demo_hotspot
+      .id as string;
 
     const partial_reorder_response = await app.inject({
       method: "PUT",
@@ -424,12 +487,18 @@ describe("DB-backed interactive demo API", () => {
     });
 
     expect(partial_reorder_response.statusCode).toBe(400);
-    expect(partial_reorder_response.json().error.type).toBe("invalid_demo_scene_order");
+    expect(partial_reorder_response.json().error.type).toBe(
+      "invalid_demo_scene_order",
+    );
     expect(reorder_response.statusCode).toBe(200);
-    expect(reorder_response.json().demo_scenes.map((scene: { id: string; scene_index: number }) => ({
-      id: scene.id,
-      scene_index: scene.scene_index,
-    }))).toEqual([
+    expect(
+      reorder_response
+        .json()
+        .demo_scenes.map((scene: { id: string; scene_index: number }) => ({
+          id: scene.id,
+          scene_index: scene.scene_index,
+        })),
+    ).toEqual([
       { id: second_scene_id, scene_index: 1 },
       { id: first_scene_id, scene_index: 2 },
     ]);
@@ -441,10 +510,11 @@ describe("DB-backed interactive demo API", () => {
       version: 2,
     });
     expect(list_response.json().interactive_demos).toHaveLength(1);
-    expect(scenes_response.json().demo_scenes.map((scene: { id: string }) => scene.id)).toEqual([
-      second_scene_id,
-      first_scene_id,
-    ]);
+    expect(
+      scenes_response
+        .json()
+        .demo_scenes.map((scene: { id: string }) => scene.id),
+    ).toEqual([second_scene_id, first_scene_id]);
     expect(update_hotspot_response.statusCode).toBe(200);
     expect(update_hotspot_response.json().demo_hotspot).toMatchObject({
       id: first_hotspot_id,
@@ -453,17 +523,24 @@ describe("DB-backed interactive demo API", () => {
       version: 2,
     });
     expect(reorder_hotspot_response.statusCode).toBe(200);
-    expect(reorder_hotspot_response.json().demo_hotspots.map((hotspot: { id: string; hotspot_index: number }) => ({
-      id: hotspot.id,
-      hotspot_index: hotspot.hotspot_index,
-    }))).toEqual([
+    expect(
+      reorder_hotspot_response
+        .json()
+        .demo_hotspots.map(
+          (hotspot: { id: string; hotspot_index: number }) => ({
+            id: hotspot.id,
+            hotspot_index: hotspot.hotspot_index,
+          }),
+        ),
+    ).toEqual([
       { id: second_hotspot_id, hotspot_index: 1 },
       { id: first_hotspot_id, hotspot_index: 2 },
     ]);
-    expect(hotspots_response.json().demo_hotspots.map((hotspot: { id: string }) => hotspot.id)).toEqual([
-      second_hotspot_id,
-      first_hotspot_id,
-    ]);
+    expect(
+      hotspots_response
+        .json()
+        .demo_hotspots.map((hotspot: { id: string }) => hotspot.id),
+    ).toEqual([second_hotspot_id, first_hotspot_id]);
 
     const delete_hotspot_response = await app.inject({
       method: "DELETE",
@@ -513,12 +590,15 @@ describe("DB-backed interactive demo API", () => {
     });
     expect(first_demo_response.statusCode).toBe(201);
     expect(second_demo_response.statusCode).toBe(201);
-    const first_demo_id = first_demo_response.json().interactive_demo.id as string;
-    const second_demo_id = second_demo_response.json().interactive_demo.id as string;
+    const first_demo_id = first_demo_response.json().interactive_demo
+      .id as string;
+    const second_demo_id = second_demo_response.json().interactive_demo
+      .id as string;
     const first_scene_id = ulid();
     const second_scene_id = ulid();
 
-    await pool.query(`
+    await run_test_fixture_mutation(
+      `
       INSERT INTO interactive_demo_schema.demo_scene (
         id,
         organization_id,
@@ -532,17 +612,21 @@ describe("DB-backed interactive demo API", () => {
       VALUES
         ($1, $3, $4, $5, 1, 'First scene', $7, $7),
         ($2, $3, $4, $6, 1, 'Second scene', $7, $7)
-    `, [
-      first_scene_id,
-      second_scene_id,
-      owner_context?.organization_id,
-      project_id,
-      first_demo_id,
-      second_demo_id,
-      owner_context?.org_user_id,
-    ]);
+    `,
+      [
+        first_scene_id,
+        second_scene_id,
+        owner_context?.organization_id,
+        project_id,
+        first_demo_id,
+        second_demo_id,
+        owner_context?.org_user_id,
+      ],
+    );
 
-    await expect(pool.query(`
+    await expect(
+      pool.query(
+        `
       INSERT INTO interactive_demo_schema.demo_hotspot (
         id,
         organization_id,
@@ -560,15 +644,18 @@ describe("DB-backed interactive demo API", () => {
         updated_by_id
       )
       VALUES ($1, $2, $3, $4, $5, 'click', 0.1, 0.1, 0.2, 0.2, $6, 1, $7, $7)
-    `, [
-      ulid(),
-      owner_context?.organization_id,
-      project_id,
-      first_demo_id,
-      first_scene_id,
-      second_scene_id,
-      owner_context?.org_user_id,
-    ])).rejects.toThrow();
+    `,
+        [
+          ulid(),
+          owner_context?.organization_id,
+          project_id,
+          first_demo_id,
+          first_scene_id,
+          second_scene_id,
+          owner_context?.org_user_id,
+        ],
+      ),
+    ).rejects.toThrow();
 
     await app.close();
   });
@@ -603,21 +690,27 @@ describe("DB-backed interactive demo API", () => {
       status: "draft",
     });
     expect(response.json().redirect_path).toBe(
-      `/projects/${project_id}/interactive-demos/${response.json().interactive_demo.id}`
+      `/projects/${project_id}/interactive-demos/${response.json().interactive_demo.id}`,
     );
-    expect(response.json().demo_scenes.map((scene: {
-      scene_index: number;
-      source_capture_event_id: string | null;
-      source_capture_asset_id: string | null;
-      background_capture_asset_id: string | null;
-      title: string | null;
-    }) => ({
-      scene_index: scene.scene_index,
-      source_capture_event_id: scene.source_capture_event_id,
-      source_capture_asset_id: scene.source_capture_asset_id,
-      background_capture_asset_id: scene.background_capture_asset_id,
-      title: scene.title,
-    }))).toEqual([
+    expect(
+      response
+        .json()
+        .demo_scenes.map(
+          (scene: {
+            scene_index: number;
+            source_capture_event_id: string | null;
+            source_capture_asset_id: string | null;
+            background_capture_asset_id: string | null;
+            title: string | null;
+          }) => ({
+            scene_index: scene.scene_index,
+            source_capture_event_id: scene.source_capture_event_id,
+            source_capture_asset_id: scene.source_capture_asset_id,
+            background_capture_asset_id: scene.background_capture_asset_id,
+            title: scene.title,
+          }),
+        ),
+    ).toEqual([
       {
         scene_index: 1,
         source_capture_event_id: source.click_event_id,
@@ -641,18 +734,26 @@ describe("DB-backed interactive demo API", () => {
       payload: {},
     });
     expect(second_response.statusCode).toBe(201);
-    expect(second_response.json().interactive_demo.id).not.toBe(response.json().interactive_demo.id);
-    expect(second_response.json().demo_scenes.map((scene: {
-      id: string;
-      interactive_demo_id: string;
-      source_capture_event_id: string | null;
-      background_capture_asset_id: string | null;
-    }) => ({
-      id: scene.id,
-      interactive_demo_id: scene.interactive_demo_id,
-      source_capture_event_id: scene.source_capture_event_id,
-      background_capture_asset_id: scene.background_capture_asset_id,
-    }))).toEqual([
+    expect(second_response.json().interactive_demo.id).not.toBe(
+      response.json().interactive_demo.id,
+    );
+    expect(
+      second_response
+        .json()
+        .demo_scenes.map(
+          (scene: {
+            id: string;
+            interactive_demo_id: string;
+            source_capture_event_id: string | null;
+            background_capture_asset_id: string | null;
+          }) => ({
+            id: scene.id,
+            interactive_demo_id: scene.interactive_demo_id,
+            source_capture_event_id: scene.source_capture_event_id,
+            background_capture_asset_id: scene.background_capture_asset_id,
+          }),
+        ),
+    ).toEqual([
       {
         id: expect.any(String),
         interactive_demo_id: second_response.json().interactive_demo.id,
@@ -666,7 +767,9 @@ describe("DB-backed interactive demo API", () => {
         background_capture_asset_id: source.second_asset_id,
       },
     ]);
-    expect(second_response.json().demo_scenes[0].id).not.toBe(response.json().demo_scenes[0].id);
+    expect(second_response.json().demo_scenes[0].id).not.toBe(
+      response.json().demo_scenes[0].id,
+    );
 
     await app.close();
   });
@@ -681,7 +784,8 @@ describe("DB-backed interactive demo API", () => {
       cookies: { ossie_session: session_token },
       payload: { title: "Product Tour" },
     });
-    const interactive_demo_id = demo_response.json().interactive_demo.id as string;
+    const interactive_demo_id = demo_response.json().interactive_demo
+      .id as string;
 
     const response = await app.inject({
       method: "POST",

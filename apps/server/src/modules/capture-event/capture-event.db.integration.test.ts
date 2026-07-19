@@ -1,7 +1,10 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
-import { reset_test_database } from "../../test-support/database";
+import {
+  reset_test_database,
+  run_test_fixture_mutation,
+} from "../../test-support/database";
 
 const setup_owner = async () => {
   const app = build({ logger: false });
@@ -23,7 +26,9 @@ const setup_owner = async () => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  const session_cookie = response.cookies.find((cookie) => cookie.name === "ossie_session");
+  const session_cookie = response.cookies.find(
+    (cookie) => cookie.name === "ossie_session",
+  );
   expect(session_cookie?.value).toEqual(expect.any(String));
   return session_cookie?.value ?? "";
 };
@@ -61,7 +66,7 @@ const create_project = async (session_token: string) => {
 const create_capture_session = async (
   session_token: string,
   project_id: string,
-  source_type: "manual" | "extension" | "import" = "extension"
+  source_type: "manual" | "extension" | "import" = "extension",
 ) => {
   const app = build({ logger: false });
   const response = await app.inject({
@@ -82,7 +87,7 @@ const create_capture_session = async (
 const create_capture_asset = async (
   session_token: string,
   project_id: string,
-  capture_session_id: string
+  capture_session_id: string,
 ) => {
   const app = build({ logger: false });
   const response = await app.inject({
@@ -122,11 +127,14 @@ describe("DB-backed capture event API", () => {
   it("creates lists gets and soft deletes capture events without deleting linked assets", async () => {
     const session_token = await setup_owner();
     const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id);
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+    );
     const { capture_asset_id, file_id } = await create_capture_asset(
       session_token,
       project_id,
-      capture_session_id
+      capture_session_id,
     );
     const owner_context = await get_owner_context();
     const app = build({ logger: false });
@@ -180,7 +188,9 @@ describe("DB-backed capture event API", () => {
     expect(JSON.stringify(click_response.json())).not.toContain("metadata");
     expect(JSON.stringify(click_response.json())).not.toContain("is_deleted");
     expect(JSON.stringify(click_response.json())).not.toContain("deleted_at");
-    expect(JSON.stringify(click_response.json())).not.toContain("deleted_by_id");
+    expect(JSON.stringify(click_response.json())).not.toContain(
+      "deleted_by_id",
+    );
     expect(note_response.statusCode).toBe(201);
 
     const capture_event_id = click_response.json().capture_event.id as string;
@@ -240,11 +250,14 @@ describe("DB-backed capture event API", () => {
         capture_asset_id: "missing_asset",
       },
     });
-    await pool.query(`
+    await run_test_fixture_mutation(
+      `
       UPDATE capture_schema.capture_asset
       SET is_deleted = TRUE
       WHERE id = $1
-    `, [capture_asset_id]);
+    `,
+      [capture_asset_id],
+    );
     const deleted_asset_response = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/events`,
@@ -255,11 +268,14 @@ describe("DB-backed capture event API", () => {
         capture_asset_id,
       },
     });
-    await pool.query(`
+    await run_test_fixture_mutation(
+      `
       UPDATE capture_schema.capture_asset
       SET is_deleted = FALSE
       WHERE id = $1
-    `, [capture_asset_id]);
+    `,
+      [capture_asset_id],
+    );
     const raw_value_response = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/events`,
@@ -289,21 +305,37 @@ describe("DB-backed capture event API", () => {
     });
 
     expect(list_response.statusCode).toBe(200);
-    expect(list_response.json().capture_events.map((event: { event_index: number }) => event.event_index)).toEqual([1, 2]);
+    expect(
+      list_response
+        .json()
+        .capture_events.map(
+          (event: { event_index: number }) => event.event_index,
+        ),
+    ).toEqual([1, 2]);
     expect(click_list_response.statusCode).toBe(200);
     expect(click_list_response.json().capture_events).toHaveLength(1);
     expect(get_response.statusCode).toBe(200);
     expect(get_response.json().capture_event.id).toBe(capture_event_id);
     expect(duplicate_response.statusCode).toBe(409);
-    expect(duplicate_response.json().error.type).toBe("capture_event_index_conflict");
+    expect(duplicate_response.json().error.type).toBe(
+      "capture_event_index_conflict",
+    );
     expect(missing_project_response.statusCode).toBe(404);
-    expect(missing_project_response.json().error.type).toBe("project_not_found");
+    expect(missing_project_response.json().error.type).toBe(
+      "project_not_found",
+    );
     expect(missing_capture_session_response.statusCode).toBe(404);
-    expect(missing_capture_session_response.json().error.type).toBe("capture_session_not_found");
+    expect(missing_capture_session_response.json().error.type).toBe(
+      "capture_session_not_found",
+    );
     expect(invalid_asset_response.statusCode).toBe(404);
-    expect(invalid_asset_response.json().error.type).toBe("capture_asset_not_found");
+    expect(invalid_asset_response.json().error.type).toBe(
+      "capture_asset_not_found",
+    );
     expect(deleted_asset_response.statusCode).toBe(404);
-    expect(deleted_asset_response.json().error.type).toBe("capture_asset_not_found");
+    expect(deleted_asset_response.json().error.type).toBe(
+      "capture_asset_not_found",
+    );
     expect(raw_value_response.statusCode).toBe(400);
     expect(raw_value_response.json().error.type).toBe("invalid_capture_event");
     expect(unredacted_response.statusCode).toBe(400);
@@ -318,7 +350,8 @@ describe("DB-backed capture event API", () => {
       event_deleted_by_id: string | null;
       event_version: number;
       event_metadata: unknown;
-    }>(`
+    }>(
+      `
       SELECT
         capture_event.is_deleted AS event_deleted,
         capture_asset.is_deleted AS asset_deleted,
@@ -332,7 +365,9 @@ describe("DB-backed capture event API", () => {
       WHERE capture_event.id = $1
       AND capture_asset.id = $2
       AND app_file.id = $3
-    `, [capture_event_id, capture_asset_id, file_id]);
+    `,
+      [capture_event_id, capture_asset_id, file_id],
+    );
 
     expect(persisted_after_delete.rows[0]).toMatchObject({
       event_deleted: true,
@@ -350,7 +385,9 @@ describe("DB-backed capture event API", () => {
     });
 
     expect(hidden_get_response.statusCode).toBe(404);
-    expect(hidden_get_response.json().error.type).toBe("capture_event_not_found");
+    expect(hidden_get_response.json().error.type).toBe(
+      "capture_event_not_found",
+    );
 
     await app.close();
   }, 15000);
@@ -358,7 +395,11 @@ describe("DB-backed capture event API", () => {
   it("reorders manual capture events while preserving contiguous indexes", async () => {
     const session_token = await setup_owner();
     const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id, "manual");
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+      "manual",
+    );
     const app = build({ logger: false });
 
     const first_response = await app.inject({
@@ -400,11 +441,14 @@ describe("DB-backed capture event API", () => {
     const second_id = second_response.json().capture_event.id as string;
     const third_id = third_response.json().capture_event.id as string;
 
-    await pool.query(`
+    await run_test_fixture_mutation(
+      `
       UPDATE capture_schema.capture_event
       SET is_deleted = TRUE
       WHERE id = $1
-    `, [second_id]);
+    `,
+      [second_id],
+    );
 
     const reorder_response = await app.inject({
       method: "PUT",
@@ -419,7 +463,11 @@ describe("DB-backed capture event API", () => {
       url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/events`,
       cookies: { ossie_session: session_token },
     });
-    const invalid_extension_session_id = await create_capture_session(session_token, project_id, "extension");
+    const invalid_extension_session_id = await create_capture_session(
+      session_token,
+      project_id,
+      "extension",
+    );
     const extension_reorder_response = await app.inject({
       method: "PUT",
       url: `/api/v1/projects/${project_id}/capture-sessions/${invalid_extension_session_id}/events/order`,
@@ -430,19 +478,35 @@ describe("DB-backed capture event API", () => {
     });
 
     expect(reorder_response.statusCode).toBe(200);
-    expect(reorder_response.json().capture_events.map((event: { id: string }) => event.id)).toEqual([
-      third_id,
-      first_id,
-    ]);
-    expect(reorder_response.json().capture_events.map((event: { event_index: number }) => event.event_index)).toEqual([1, 2]);
+    expect(
+      reorder_response
+        .json()
+        .capture_events.map((event: { id: string }) => event.id),
+    ).toEqual([third_id, first_id]);
+    expect(
+      reorder_response
+        .json()
+        .capture_events.map(
+          (event: { event_index: number }) => event.event_index,
+        ),
+    ).toEqual([1, 2]);
     expect(list_response.statusCode).toBe(200);
-    expect(list_response.json().capture_events.map((event: { id: string }) => event.id)).toEqual([
-      third_id,
-      first_id,
-    ]);
-    expect(list_response.json().capture_events.map((event: { event_index: number }) => event.event_index)).toEqual([1, 2]);
+    expect(
+      list_response
+        .json()
+        .capture_events.map((event: { id: string }) => event.id),
+    ).toEqual([third_id, first_id]);
+    expect(
+      list_response
+        .json()
+        .capture_events.map(
+          (event: { event_index: number }) => event.event_index,
+        ),
+    ).toEqual([1, 2]);
     expect(extension_reorder_response.statusCode).toBe(409);
-    expect(extension_reorder_response.json().error.type).toBe("capture_event_reorder_not_allowed");
+    expect(extension_reorder_response.json().error.type).toBe(
+      "capture_event_reorder_not_allowed",
+    );
 
     await app.close();
   });
@@ -450,7 +514,11 @@ describe("DB-backed capture event API", () => {
   it("updates safe manual capture event text and uses it for later guide generation", async () => {
     const session_token = await setup_owner();
     const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id, "manual");
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+      "manual",
+    );
     const owner_context = await get_owner_context();
     const app = build({ logger: false });
 
@@ -505,7 +573,8 @@ describe("DB-backed capture event API", () => {
       note: string | null;
       updated_by_id: string;
       version: number;
-    }>(`
+    }>(
+      `
       SELECT
         event_index,
         page_title,
@@ -518,7 +587,9 @@ describe("DB-backed capture event API", () => {
         version
       FROM capture_schema.capture_event
       WHERE id = $1
-    `, [capture_event_id]);
+    `,
+      [capture_event_id],
+    );
     expect(persisted.rows[0]).toEqual({
       event_index: 1,
       page_title: "Department list",
@@ -563,7 +634,11 @@ describe("DB-backed capture event API", () => {
       source_capture_event_id: capture_event_id,
     });
 
-    const extension_session_id = await create_capture_session(session_token, project_id, "extension");
+    const extension_session_id = await create_capture_session(
+      session_token,
+      project_id,
+      "extension",
+    );
     const extension_event_response = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${project_id}/capture-sessions/${extension_session_id}/events`,
@@ -584,13 +659,18 @@ describe("DB-backed capture event API", () => {
       },
     });
     expect(extension_update_response.statusCode).toBe(409);
-    expect(extension_update_response.json().error.type).toBe("capture_event_update_not_allowed");
+    expect(extension_update_response.json().error.type).toBe(
+      "capture_event_update_not_allowed",
+    );
 
-    await pool.query(`
+    await run_test_fixture_mutation(
+      `
       UPDATE capture_schema.capture_session
       SET status = 'archived'
       WHERE id = $1
-    `, [capture_session_id]);
+    `,
+      [capture_session_id],
+    );
     const archived_update_response = await app.inject({
       method: "PATCH",
       url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/events/${capture_event_id}`,
@@ -600,7 +680,9 @@ describe("DB-backed capture event API", () => {
       },
     });
     expect(archived_update_response.statusCode).toBe(409);
-    expect(archived_update_response.json().error.type).toBe("capture_event_update_not_allowed");
+    expect(archived_update_response.json().error.type).toBe(
+      "capture_event_update_not_allowed",
+    );
 
     await app.close();
   });

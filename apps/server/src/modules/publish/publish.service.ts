@@ -104,7 +104,9 @@ export type PublicAssetFile = {
 };
 
 export type PublishRepository = {
-  transaction: <Result>(work: (repository: PublishRepository) => Promise<Result>) => Promise<Result>;
+  transaction: <Result>(
+    work: (repository: PublishRepository) => Promise<Result>,
+  ) => Promise<Result>;
   project_exists: (input: {
     organization_id: string;
     project_id: string;
@@ -201,12 +203,7 @@ export type PublishRepository = {
     expires_at: string;
     revoked_at: string | null;
   } | null>;
-  touch_public_viewer_session: (input: {
-    token_hash: string;
-  }) => Promise<void>;
-  revoke_public_viewer_sessions_for_publish_link: (input: {
-    publish_link_id: string;
-  }) => Promise<void>;
+  touch_public_viewer_session: (input: { token_hash: string }) => Promise<void>;
   find_active_publish_link_by_slug: (input: {
     slug: string;
   }) => Promise<PublicPublishResult | null>;
@@ -260,12 +257,14 @@ export class UnsupportedPublishedAssetStorageProviderError extends Error {
 }
 
 const default_generate_slug = () => randomBytes(9).toString("base64url");
-const default_generate_viewer_token = () => randomBytes(32).toString("base64url");
-const hash_viewer_token = (token: string) => (
-  createHash("sha256").update(token).digest("hex")
-);
+const default_generate_viewer_token = () =>
+  randomBytes(32).toString("base64url");
+const hash_viewer_token = (token: string) =>
+  createHash("sha256").update(token).digest("hex");
 
-const public_publish_response = (result: PublicPublishResult): PublicPublishResult => ({
+const public_publish_response = (
+  result: PublicPublishResult,
+): PublicPublishResult => ({
   publish_link: result.publish_link,
   published_artifact: result.published_artifact,
 });
@@ -277,17 +276,18 @@ export const build_publish_service = (
     generate_viewer_token?: () => string;
     now?: () => Date;
     file_storage?: PublishFileStorage;
-  } = {}
+  } = {},
 ) => {
   const generate_slug = options.generate_slug ?? default_generate_slug;
-  const generate_viewer_token = options.generate_viewer_token ?? default_generate_viewer_token;
+  const generate_viewer_token =
+    options.generate_viewer_token ?? default_generate_viewer_token;
   const now = options.now ?? (() => new Date());
 
   const ensure_project_exists = async (input: {
     organization_id: string;
     project_id: string;
   }) => {
-    if (!await repository.project_exists(input)) {
+    if (!(await repository.project_exists(input))) {
       throw new ProjectNotFoundError();
     }
   };
@@ -301,81 +301,87 @@ export const build_publish_service = (
 
     for (let attempt = 0; attempt < PUBLISH_SLUG_RETRY_LIMIT; attempt += 1) {
       try {
-        return await repository.transaction(async (transactional_repository) => {
-          const scope = {
-            organization_id: input.auth.organization_id,
-            project_id: input.project_id,
-          };
+        return await repository.transaction(
+          async (transactional_repository) => {
+            const scope = {
+              organization_id: input.auth.organization_id,
+              project_id: input.project_id,
+            };
 
-          await ensure_project_exists(scope);
+            await ensure_project_exists(scope);
 
-          const guide_detail = await transactional_repository.find_guide_detail({
-            ...scope,
-            guide_id: input.guide_id,
-          });
+            const guide_detail =
+              await transactional_repository.find_guide_detail({
+                ...scope,
+                guide_id: input.guide_id,
+              });
 
-          if (!guide_detail) {
-            throw new GuideNotFoundError();
-          }
+            if (!guide_detail) {
+              throw new GuideNotFoundError();
+            }
 
-          if (guide_detail.guide.status !== "draft") {
-            throw new GuideNotPublishableError();
-          }
+            if (guide_detail.guide.status !== "draft") {
+              throw new GuideNotPublishableError();
+            }
 
-          if (guide_detail.guide_blocks.length === 0) {
-            throw new GuideHasNoPublishableBlocksError();
-          }
+            if (guide_detail.guide_blocks.length === 0) {
+              throw new GuideHasNoPublishableBlocksError();
+            }
 
-          const existing_link = await transactional_repository.find_active_publish_link({
-            ...scope,
-            artifact_type: "guide",
-            artifact_id: input.guide_id,
-          });
-          const version_number = await transactional_repository.next_published_artifact_version({
-            ...scope,
-            artifact_type: "guide",
-            artifact_id: input.guide_id,
-          });
-          const slug = publish_slug_for_link({
-            existing_link,
-            generated_slug: generate_slug(),
-          });
-          const published_at = now().toISOString();
-          const snapshot_json = build_published_guide_snapshot({
-            guide_detail,
-            version_number,
-            published_at,
-            slug,
-          });
-          const published_artifact = await transactional_repository.create_published_artifact({
-            ...scope,
-            artifact_type: "guide",
-            artifact_id: input.guide_id,
-            version_number,
-            title: guide_detail.guide.title,
-            snapshot_json,
-            actor_org_user_id: input.auth.actor_org_user_id,
-          });
-          const publish_link = existing_link
-            ? await transactional_repository.update_publish_link_target({
-              ...scope,
-              publish_link_id: existing_link.id,
-              published_artifact_id: published_artifact.id,
-            })
-            : await transactional_repository.create_publish_link({
-              ...scope,
-              artifact_type: "guide",
-              artifact_id: input.guide_id,
-              published_artifact_id: published_artifact.id,
-              slug,
-              actor_org_user_id: input.auth.actor_org_user_id,
+            const existing_link =
+              await transactional_repository.find_active_publish_link({
+                ...scope,
+                artifact_type: "guide",
+                artifact_id: input.guide_id,
+              });
+            const version_number =
+              await transactional_repository.next_published_artifact_version({
+                ...scope,
+                artifact_type: "guide",
+                artifact_id: input.guide_id,
+              });
+            const slug = publish_slug_for_link({
+              existing_link,
+              generated_slug: generate_slug(),
             });
+            const published_at = now().toISOString();
+            const snapshot_json = build_published_guide_snapshot({
+              guide_detail,
+              version_number,
+              published_at,
+              slug,
+            });
+            const published_artifact =
+              await transactional_repository.create_published_artifact({
+                ...scope,
+                artifact_type: "guide",
+                artifact_id: input.guide_id,
+                version_number,
+                title: guide_detail.guide.title,
+                snapshot_json,
+                actor_org_user_id: input.auth.actor_org_user_id,
+              });
+            const publish_link = existing_link
+              ? await transactional_repository.update_publish_link_target({
+                  ...scope,
+                  publish_link_id: existing_link.id,
+                  published_artifact_id: published_artifact.id,
+                })
+              : await transactional_repository.create_publish_link({
+                  ...scope,
+                  artifact_type: "guide",
+                  artifact_id: input.guide_id,
+                  published_artifact_id: published_artifact.id,
+                  slug,
+                  actor_org_user_id: input.auth.actor_org_user_id,
+                });
 
-          return {
-            publish_link,
-            published_artifact,
-          };
-        });
+            return {
+              publish_link,
+              published_artifact,
+            };
+          },
+        );
       } catch (error) {
         if (!(error instanceof PublishSlugConflictError)) {
           throw error;
@@ -397,73 +403,79 @@ export const build_publish_service = (
 
     for (let attempt = 0; attempt < PUBLISH_SLUG_RETRY_LIMIT; attempt += 1) {
       try {
-        return await repository.transaction(async (transactional_repository) => {
-          const scope = {
-            organization_id: input.auth.organization_id,
-            project_id: input.project_id,
-          };
+        return await repository.transaction(
+          async (transactional_repository) => {
+            const scope = {
+              organization_id: input.auth.organization_id,
+              project_id: input.project_id,
+            };
 
-          await ensure_project_exists(scope);
+            await ensure_project_exists(scope);
 
-          const demo_detail = await transactional_repository.find_interactive_demo_detail({
-            ...scope,
-            interactive_demo_id: input.interactive_demo_id,
-          });
+            const demo_detail =
+              await transactional_repository.find_interactive_demo_detail({
+                ...scope,
+                interactive_demo_id: input.interactive_demo_id,
+              });
 
-          if (!demo_detail) {
-            throw new InteractiveDemoNotFoundError();
-          }
+            if (!demo_detail) {
+              throw new InteractiveDemoNotFoundError();
+            }
 
-          const existing_link = await transactional_repository.find_active_publish_link({
-            ...scope,
-            artifact_type: "interactive_demo",
-            artifact_id: input.interactive_demo_id,
-          });
-          const version_number = await transactional_repository.next_published_artifact_version({
-            ...scope,
-            artifact_type: "interactive_demo",
-            artifact_id: input.interactive_demo_id,
-          });
-          const slug = publish_slug_for_link({
-            existing_link,
-            generated_slug: generate_slug(),
-          });
-          const published_at = now().toISOString();
-          const snapshot_json = build_published_interactive_demo_snapshot({
-            demo_detail,
-            version_number,
-            published_at,
-            slug,
-          });
-          const published_artifact = await transactional_repository.create_published_artifact({
-            ...scope,
-            artifact_type: "interactive_demo",
-            artifact_id: input.interactive_demo_id,
-            version_number,
-            title: demo_detail.interactive_demo.title,
-            snapshot_json,
-            actor_org_user_id: input.auth.actor_org_user_id,
-          });
-          const publish_link = existing_link
-            ? await transactional_repository.update_publish_link_target({
-              ...scope,
-              publish_link_id: existing_link.id,
-              published_artifact_id: published_artifact.id,
-            })
-            : await transactional_repository.create_publish_link({
-              ...scope,
-              artifact_type: "interactive_demo",
-              artifact_id: input.interactive_demo_id,
-              published_artifact_id: published_artifact.id,
-              slug,
-              actor_org_user_id: input.auth.actor_org_user_id,
+            const existing_link =
+              await transactional_repository.find_active_publish_link({
+                ...scope,
+                artifact_type: "interactive_demo",
+                artifact_id: input.interactive_demo_id,
+              });
+            const version_number =
+              await transactional_repository.next_published_artifact_version({
+                ...scope,
+                artifact_type: "interactive_demo",
+                artifact_id: input.interactive_demo_id,
+              });
+            const slug = publish_slug_for_link({
+              existing_link,
+              generated_slug: generate_slug(),
             });
+            const published_at = now().toISOString();
+            const snapshot_json = build_published_interactive_demo_snapshot({
+              demo_detail,
+              version_number,
+              published_at,
+              slug,
+            });
+            const published_artifact =
+              await transactional_repository.create_published_artifact({
+                ...scope,
+                artifact_type: "interactive_demo",
+                artifact_id: input.interactive_demo_id,
+                version_number,
+                title: demo_detail.interactive_demo.title,
+                snapshot_json,
+                actor_org_user_id: input.auth.actor_org_user_id,
+              });
+            const publish_link = existing_link
+              ? await transactional_repository.update_publish_link_target({
+                  ...scope,
+                  publish_link_id: existing_link.id,
+                  published_artifact_id: published_artifact.id,
+                })
+              : await transactional_repository.create_publish_link({
+                  ...scope,
+                  artifact_type: "interactive_demo",
+                  artifact_id: input.interactive_demo_id,
+                  published_artifact_id: published_artifact.id,
+                  slug,
+                  actor_org_user_id: input.auth.actor_org_user_id,
+                });
 
-          return {
-            publish_link,
-            published_artifact,
-          };
-        });
+            return {
+              publish_link,
+              published_artifact,
+            };
+          },
+        );
       } catch (error) {
         if (!(error instanceof PublishSlugConflictError)) {
           throw error;
@@ -488,14 +500,16 @@ export const build_publish_service = (
 
     await ensure_project_exists(scope);
 
-    return await repository.find_publish_status({
-      ...scope,
-      artifact_type: "guide",
-      artifact_id: input.guide_id,
-    }) ?? {
-      publish_link: null,
-      published_artifact: null,
-    };
+    return (
+      (await repository.find_publish_status({
+        ...scope,
+        artifact_type: "guide",
+        artifact_id: input.guide_id,
+      })) ?? {
+        publish_link: null,
+        published_artifact: null,
+      }
+    );
   };
 
   const get_interactive_demo_publish_status = async (input: {
@@ -510,14 +524,16 @@ export const build_publish_service = (
 
     await ensure_project_exists(scope);
 
-    return await repository.find_publish_status({
-      ...scope,
-      artifact_type: "interactive_demo",
-      artifact_id: input.interactive_demo_id,
-    }) ?? {
-      publish_link: null,
-      published_artifact: null,
-    };
+    return (
+      (await repository.find_publish_status({
+        ...scope,
+        artifact_type: "interactive_demo",
+        artifact_id: input.interactive_demo_id,
+      })) ?? {
+        publish_link: null,
+        published_artifact: null,
+      }
+    );
   };
 
   const revoke_guide_publish_link = async (input: {
@@ -542,10 +558,6 @@ export const build_publish_service = (
     if (!publish_link) {
       throw new PublishLinkNotFoundError();
     }
-
-    await repository.revoke_public_viewer_sessions_for_publish_link({
-      publish_link_id: publish_link.id,
-    });
 
     return { publish_link };
   };
@@ -572,10 +584,6 @@ export const build_publish_service = (
     if (!publish_link) {
       throw new PublishLinkNotFoundError();
     }
-
-    await repository.revoke_public_viewer_sessions_for_publish_link({
-      publish_link_id: publish_link.id,
-    });
 
     return { publish_link };
   };
@@ -659,9 +667,10 @@ export const build_publish_service = (
 
     await ensure_project_exists(scope);
 
-    const password_hash = input.password === null
-      ? null
-      : await hash_public_link_password(input.password);
+    const password_hash =
+      input.password === null
+        ? null
+        : await hash_public_link_password(input.password);
 
     const result = await repository.update_publish_link_password({
       ...scope,
@@ -675,10 +684,6 @@ export const build_publish_service = (
     if (!result?.publish_link) {
       throw new PublishLinkNotFoundError();
     }
-
-    await repository.revoke_public_viewer_sessions_for_publish_link({
-      publish_link_id: result.publish_link.id,
-    });
 
     return result;
   };
@@ -698,9 +703,10 @@ export const build_publish_service = (
 
     await ensure_project_exists(scope);
 
-    const password_hash = input.password === null
-      ? null
-      : await hash_public_link_password(input.password);
+    const password_hash =
+      input.password === null
+        ? null
+        : await hash_public_link_password(input.password);
 
     const result = await repository.update_publish_link_password({
       ...scope,
@@ -714,10 +720,6 @@ export const build_publish_service = (
     if (!result?.publish_link) {
       throw new PublishLinkNotFoundError();
     }
-
-    await repository.revoke_public_viewer_sessions_for_publish_link({
-      publish_link_id: result.publish_link.id,
-    });
 
     return result;
   };
@@ -775,7 +777,9 @@ export const build_publish_service = (
     slug: string;
     password: string;
   }): Promise<PublicViewerSession> => {
-    const result = await repository.find_active_publish_link_by_slug({ slug: input.slug });
+    const result = await repository.find_active_publish_link_by_slug({
+      slug: input.slug,
+    });
 
     if (!result) {
       throw new PublishLinkNotFoundError();
@@ -800,7 +804,7 @@ export const build_publish_service = (
     const valid_password = await verify_public_link_password(
       input.password,
       result.password.hash,
-      result.password.salt
+      result.password.salt,
     );
 
     assert_public_viewer_password_result(valid_password);
@@ -825,7 +829,9 @@ export const build_publish_service = (
       throw new PublishedAssetNotFoundError();
     }
 
-    const public_result = await repository.find_active_publish_link_by_slug({ slug: input.slug });
+    const public_result = await repository.find_active_publish_link_by_slug({
+      slug: input.slug,
+    });
 
     if (!public_result) {
       throw new PublishedAssetNotFoundError();
@@ -835,7 +841,10 @@ export const build_publish_service = (
       publish_link: public_result.publish_link,
       now: now(),
     });
-    await assert_viewer_access({ result: public_result, viewer_token: input.viewer_token });
+    await assert_viewer_access({
+      result: public_result,
+      viewer_token: input.viewer_token,
+    });
 
     const asset_file = await repository.find_public_asset_file(input);
 

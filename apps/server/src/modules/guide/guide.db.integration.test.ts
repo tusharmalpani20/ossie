@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
-import { reset_test_database } from "../../test-support/database";
+import {
+  reset_test_database,
+  run_test_fixture_mutation,
+} from "../../test-support/database";
 
 const setup_owner = async () => {
   const app = build({ logger: false });
@@ -26,7 +29,10 @@ const setup_owner = async () => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  return response.cookies.find((cookie) => cookie.name === "ossie_session")?.value ?? "";
+  return (
+    response.cookies.find((cookie) => cookie.name === "ossie_session")?.value ??
+    ""
+  );
 };
 
 const create_project = async (session_token: string) => {
@@ -43,7 +49,10 @@ const create_project = async (session_token: string) => {
   return response.json().project.id as string;
 };
 
-const create_capture_session = async (session_token: string, project_id: string) => {
+const create_capture_session = async (
+  session_token: string,
+  project_id: string,
+) => {
   const app = build({ logger: false });
   const response = await app.inject({
     method: "POST",
@@ -63,7 +72,7 @@ const create_capture_session = async (session_token: string, project_id: string)
 const create_capture_asset = async (
   session_token: string,
   project_id: string,
-  capture_session_id: string
+  capture_session_id: string,
 ) => {
   const app = build({ logger: false });
   const response = await app.inject({
@@ -91,7 +100,7 @@ const create_capture_event = async (
   session_token: string,
   project_id: string,
   capture_session_id: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
 ) => {
   const app = build({ logger: false });
   const response = await app.inject({
@@ -106,27 +115,33 @@ const create_capture_event = async (
   return response.json().capture_event.id as string;
 };
 
-const multipart_payload = (parts: Array<{
-  name: string;
-  value: string | Buffer;
-  filename?: string;
-  content_type?: string;
-}>) => {
+const multipart_payload = (
+  parts: Array<{
+    name: string;
+    value: string | Buffer;
+    filename?: string;
+    content_type?: string;
+  }>,
+) => {
   const boundary = "----ossie-test-boundary";
   const chunks: Buffer[] = [];
 
   for (const part of parts) {
     chunks.push(Buffer.from(`--${boundary}\r\n`));
-    chunks.push(Buffer.from(
-      `Content-Disposition: form-data; name="${part.name}"${
-        part.filename ? `; filename="${part.filename}"` : ""
-      }\r\n`
-    ));
+    chunks.push(
+      Buffer.from(
+        `Content-Disposition: form-data; name="${part.name}"${
+          part.filename ? `; filename="${part.filename}"` : ""
+        }\r\n`,
+      ),
+    );
     if (part.content_type) {
       chunks.push(Buffer.from(`Content-Type: ${part.content_type}\r\n`));
     }
     chunks.push(Buffer.from("\r\n"));
-    chunks.push(Buffer.isBuffer(part.value) ? part.value : Buffer.from(part.value));
+    chunks.push(
+      Buffer.isBuffer(part.value) ? part.value : Buffer.from(part.value),
+    );
     chunks.push(Buffer.from("\r\n"));
   }
 
@@ -177,37 +192,66 @@ describe("DB-backed guide API", () => {
   it("creates lists and reads an editable draft guide from selected capture events", async () => {
     const session_token = await setup_owner();
     const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id);
-    const active_asset_id = await create_capture_asset(session_token, project_id, capture_session_id);
-    const deleted_asset_id = await create_capture_asset(session_token, project_id, capture_session_id);
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+    );
+    const active_asset_id = await create_capture_asset(
+      session_token,
+      project_id,
+      capture_session_id,
+    );
+    const deleted_asset_id = await create_capture_asset(
+      session_token,
+      project_id,
+      capture_session_id,
+    );
 
-    const note_event_id = await create_capture_event(session_token, project_id, capture_session_id, {
-      event_type: "note",
-      event_index: 1,
-      note: "Start from department list",
-    });
-    const click_event_id = await create_capture_event(session_token, project_id, capture_session_id, {
-      event_type: "click",
-      event_index: 2,
-      capture_asset_id: deleted_asset_id,
-      page_title: "Department",
-      target_label: "Add Department",
-      target_selector: "button[data-testid='add-department']",
-    });
-    const input_event_id = await create_capture_event(session_token, project_id, capture_session_id, {
-      event_type: "input",
-      event_index: 3,
-      capture_asset_id: active_asset_id,
-      page_title: "New Department",
-      target_label: "Department Name",
-      input_intent: "typed a redacted department name",
-    });
+    const note_event_id = await create_capture_event(
+      session_token,
+      project_id,
+      capture_session_id,
+      {
+        event_type: "note",
+        event_index: 1,
+        note: "Start from department list",
+      },
+    );
+    const click_event_id = await create_capture_event(
+      session_token,
+      project_id,
+      capture_session_id,
+      {
+        event_type: "click",
+        event_index: 2,
+        capture_asset_id: deleted_asset_id,
+        page_title: "Department",
+        target_label: "Add Department",
+        target_selector: "button[data-testid='add-department']",
+      },
+    );
+    const input_event_id = await create_capture_event(
+      session_token,
+      project_id,
+      capture_session_id,
+      {
+        event_type: "input",
+        event_index: 3,
+        capture_asset_id: active_asset_id,
+        page_title: "New Department",
+        target_label: "Department Name",
+        input_intent: "typed a redacted department name",
+      },
+    );
 
-    await pool.query(`
+    await run_test_fixture_mutation(
+      `
       UPDATE capture_schema.capture_asset
       SET is_deleted = TRUE, deleted_at = CURRENT_TIMESTAMP
       WHERE id = $1
-    `, [deleted_asset_id]);
+    `,
+      [deleted_asset_id],
+    );
 
     const app = build({ logger: false });
     const create_response = await app.inject({
@@ -216,7 +260,11 @@ describe("DB-backed guide API", () => {
       cookies: { ossie_session: session_token },
       payload: {
         title: "Department setup guide",
-        selected_capture_event_ids: [input_event_id, note_event_id, click_event_id],
+        selected_capture_event_ids: [
+          input_event_id,
+          note_event_id,
+          click_event_id,
+        ],
       },
     });
 
@@ -228,15 +276,27 @@ describe("DB-backed guide API", () => {
       title: "Department setup guide",
       status: "draft",
     });
-    expect(created_body.guide_blocks.map((block: { block_index: number }) => block.block_index)).toEqual([1, 2, 3]);
-    expect(created_body.guide_blocks.map((block: { step: { title: string } }) => block.step.title)).toEqual([
+    expect(
+      created_body.guide_blocks.map(
+        (block: { block_index: number }) => block.block_index,
+      ),
+    ).toEqual([1, 2, 3]);
+    expect(
+      created_body.guide_blocks.map(
+        (block: { step: { title: string } }) => block.step.title,
+      ),
+    ).toEqual([
       "Start from department list",
-      "Click \"Add Department\"",
-      "Enter the required value in \"Department Name\"",
+      'Click "Add Department"',
+      'Enter the required value in "Department Name"',
     ]);
-    expect(created_body.guide_blocks[0].source_capture_event_id).toBe(note_event_id);
+    expect(created_body.guide_blocks[0].source_capture_event_id).toBe(
+      note_event_id,
+    );
     expect(created_body.guide_blocks[1].source_capture_asset_id).toBeNull();
-    expect(created_body.guide_blocks[2].source_capture_asset_id).toBe(active_asset_id);
+    expect(created_body.guide_blocks[2].source_capture_asset_id).toBe(
+      active_asset_id,
+    );
     expect(JSON.stringify(created_body)).not.toContain("target_selector");
     expect(JSON.stringify(created_body)).not.toContain("input_intent");
     expect(JSON.stringify(created_body)).not.toContain("storage_key");
@@ -270,7 +330,9 @@ describe("DB-backed guide API", () => {
     expect(get_response.json().guide.id).toBe(guide_id);
     expect(get_response.json().guide_blocks).toHaveLength(3);
     expect(missing_event_response.statusCode).toBe(404);
-    expect(missing_event_response.json().error.type).toBe("capture_event_not_found");
+    expect(missing_event_response.json().error.type).toBe(
+      "capture_event_not_found",
+    );
 
     const first_step_id = created_body.guide_blocks[0].step.id as string;
     const first_block_id = created_body.guide_blocks[0].id as string;
@@ -331,8 +393,11 @@ describe("DB-backed guide API", () => {
         },
       },
     });
-    const created_header_block = create_header_response.json().guide_blocks
-      ?.find((block: { block_type: string }) => block.block_type === "header");
+    const created_header_block = create_header_response
+      .json()
+      .guide_blocks?.find(
+        (block: { block_type: string }) => block.block_type === "header",
+      );
     const update_header_response = await app.inject({
       method: "PATCH",
       url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${created_header_block?.id}`,
@@ -363,8 +428,11 @@ describe("DB-backed guide API", () => {
         },
       },
     });
-    const created_paragraph_block = create_paragraph_response.json().guide_blocks
-      ?.find((block: { block_type: string }) => block.block_type === "paragraph");
+    const created_paragraph_block = create_paragraph_response
+      .json()
+      .guide_blocks?.find(
+        (block: { block_type: string }) => block.block_type === "paragraph",
+      );
     const update_paragraph_response = await app.inject({
       method: "PATCH",
       url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${created_paragraph_block?.id}`,
@@ -387,8 +455,11 @@ describe("DB-backed guide API", () => {
         },
       },
     });
-    const created_divider_block = create_divider_response.json().guide_blocks
-      ?.find((block: { block_type: string }) => block.block_type === "divider");
+    const created_divider_block = create_divider_response
+      .json()
+      .guide_blocks?.find(
+        (block: { block_type: string }) => block.block_type === "divider",
+      );
     const after_paragraph_divider_response = await app.inject({
       method: "GET",
       url: `/api/v1/projects/${project_id}/guides/${guide_id}`,
@@ -427,29 +498,43 @@ describe("DB-backed guide API", () => {
       version: 2,
     });
     expect(reorder_response.statusCode).toBe(200);
-    expect(reorder_response.json().guide_blocks.map((block: { id: string; block_index: number }) => ({
-      id: block.id,
-      block_index: block.block_index,
-    }))).toEqual([
+    expect(
+      reorder_response
+        .json()
+        .guide_blocks.map((block: { id: string; block_index: number }) => ({
+          id: block.id,
+          block_index: block.block_index,
+        })),
+    ).toEqual([
       { id: third_block_id, block_index: 1 },
       { id: first_block_id, block_index: 2 },
       { id: second_block_id, block_index: 3 },
     ]);
     expect(delete_response.statusCode).toBe(204);
     expect(after_delete_response.statusCode).toBe(200);
-    expect(after_delete_response.json().guide_blocks.map((block: { id: string; block_index: number }) => ({
-      id: block.id,
-      block_index: block.block_index,
-    }))).toEqual([
+    expect(
+      after_delete_response
+        .json()
+        .guide_blocks.map((block: { id: string; block_index: number }) => ({
+          id: block.id,
+          block_index: block.block_index,
+        })),
+    ).toEqual([
       { id: third_block_id, block_index: 1 },
       { id: second_block_id, block_index: 2 },
     ]);
-    expect(JSON.stringify(after_delete_response.json())).not.toContain(first_block_id);
+    expect(JSON.stringify(after_delete_response.json())).not.toContain(
+      first_block_id,
+    );
     expect(create_header_response.statusCode).toBe(201);
-    expect(create_header_response.json().guide_blocks.map((block: { id: string; block_index: number }) => ({
-      id: block.id,
-      block_index: block.block_index,
-    }))).toEqual([
+    expect(
+      create_header_response
+        .json()
+        .guide_blocks.map((block: { id: string; block_index: number }) => ({
+          id: block.id,
+          block_index: block.block_index,
+        })),
+    ).toEqual([
       { id: third_block_id, block_index: 1 },
       { id: created_header_block.id, block_index: 2 },
       { id: second_block_id, block_index: 3 },
@@ -470,7 +555,13 @@ describe("DB-backed guide API", () => {
       step: null,
     });
     expect(after_header_update_response.statusCode).toBe(200);
-    expect(after_header_update_response.json().guide_blocks.map((block: { block_index: number }) => block.block_index)).toEqual([1, 2, 3]);
+    expect(
+      after_header_update_response
+        .json()
+        .guide_blocks.map(
+          (block: { block_index: number }) => block.block_index,
+        ),
+    ).toEqual([1, 2, 3]);
     expect(after_header_update_response.json().guide_blocks[1]).toMatchObject({
       id: created_header_block.id,
       content: {
@@ -500,14 +591,24 @@ describe("DB-backed guide API", () => {
       step: null,
     });
     expect(after_paragraph_divider_response.statusCode).toBe(200);
-    expect(after_paragraph_divider_response.json().guide_blocks.map((block: { block_index: number }) => block.block_index)).toEqual([1, 2, 3, 4, 5]);
-    expect(after_paragraph_divider_response.json().guide_blocks[2]).toMatchObject({
+    expect(
+      after_paragraph_divider_response
+        .json()
+        .guide_blocks.map(
+          (block: { block_index: number }) => block.block_index,
+        ),
+    ).toEqual([1, 2, 3, 4, 5]);
+    expect(
+      after_paragraph_divider_response.json().guide_blocks[2],
+    ).toMatchObject({
       id: created_paragraph_block.id,
       content: {
         body: "Review the department fields before saving.",
       },
     });
-    expect(after_paragraph_divider_response.json().guide_blocks[3]).toMatchObject({
+    expect(
+      after_paragraph_divider_response.json().guide_blocks[3],
+    ).toMatchObject({
       id: created_divider_block.id,
       content: null,
     });
@@ -516,12 +617,15 @@ describe("DB-backed guide API", () => {
     expect(archived_step_response.statusCode).toBe(409);
     expect(archived_step_response.json().error.type).toBe("guide_not_editable");
 
-    const capture_counts = await pool.query<{ count: string }>(`
+    const capture_counts = await pool.query<{ count: string }>(
+      `
       SELECT COUNT(*) AS count
       FROM capture_schema.capture_event
       WHERE capture_session_id = $1
       AND is_deleted = FALSE
-    `, [capture_session_id]);
+    `,
+      [capture_session_id],
+    );
     expect(capture_counts.rows[0]?.count).toBe("3");
 
     await app.close();
@@ -530,39 +634,68 @@ describe("DB-backed guide API", () => {
   it("persists generated guide steps from screenshot-backed capture events", async () => {
     const session_token = await setup_owner();
     const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id);
-    const active_asset_id = await create_capture_asset(session_token, project_id, capture_session_id);
-    const deleted_asset_id = await create_capture_asset(session_token, project_id, capture_session_id);
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+    );
+    const active_asset_id = await create_capture_asset(
+      session_token,
+      project_id,
+      capture_session_id,
+    );
+    const deleted_asset_id = await create_capture_asset(
+      session_token,
+      project_id,
+      capture_session_id,
+    );
 
-    const first_capture_event_id = await create_capture_event(session_token, project_id, capture_session_id, {
-      event_type: "capture",
-      event_index: 2,
-      capture_asset_id: active_asset_id,
-      page_title: "Department List",
-      page_url: "https://example.test/departments",
-      input_value_redacted: true,
-    });
-    const duplicate_asset_event_id = await create_capture_event(session_token, project_id, capture_session_id, {
-      event_type: "capture",
-      event_index: 3,
-      capture_asset_id: active_asset_id,
-      page_title: "Department List Duplicate",
-      page_url: "https://example.test/departments",
-      input_value_redacted: true,
-    });
-    const deleted_asset_event_id = await create_capture_event(session_token, project_id, capture_session_id, {
-      event_type: "capture",
-      event_index: 1,
-      capture_asset_id: deleted_asset_id,
-      page_url: "https://example.test/departments/new",
-      input_value_redacted: true,
-    });
+    const first_capture_event_id = await create_capture_event(
+      session_token,
+      project_id,
+      capture_session_id,
+      {
+        event_type: "capture",
+        event_index: 2,
+        capture_asset_id: active_asset_id,
+        page_title: "Department List",
+        page_url: "https://example.test/departments",
+        input_value_redacted: true,
+      },
+    );
+    const duplicate_asset_event_id = await create_capture_event(
+      session_token,
+      project_id,
+      capture_session_id,
+      {
+        event_type: "capture",
+        event_index: 3,
+        capture_asset_id: active_asset_id,
+        page_title: "Department List Duplicate",
+        page_url: "https://example.test/departments",
+        input_value_redacted: true,
+      },
+    );
+    const deleted_asset_event_id = await create_capture_event(
+      session_token,
+      project_id,
+      capture_session_id,
+      {
+        event_type: "capture",
+        event_index: 1,
+        capture_asset_id: deleted_asset_id,
+        page_url: "https://example.test/departments/new",
+        input_value_redacted: true,
+      },
+    );
 
-    await pool.query(`
+    await run_test_fixture_mutation(
+      `
       UPDATE capture_schema.capture_asset
       SET is_deleted = TRUE, deleted_at = CURRENT_TIMESTAMP
       WHERE id = $1
-    `, [deleted_asset_id]);
+    `,
+      [deleted_asset_id],
+    );
 
     const app = build({ logger: false });
     const create_response = await app.inject({
@@ -576,39 +709,49 @@ describe("DB-backed guide API", () => {
 
     expect(create_response.statusCode).toBe(201);
     const created_body = create_response.json();
-    expect(created_body.guide_blocks.map((block: { source_capture_event_id: string }) => block.source_capture_event_id)).toEqual([
+    expect(
+      created_body.guide_blocks.map(
+        (block: { source_capture_event_id: string }) =>
+          block.source_capture_event_id,
+      ),
+    ).toEqual([
       deleted_asset_event_id,
       first_capture_event_id,
       duplicate_asset_event_id,
     ]);
-    expect(created_body.guide_blocks.map((block: { source_capture_asset_id: string | null }) => block.source_capture_asset_id)).toEqual([
-      null,
-      active_asset_id,
-      active_asset_id,
-    ]);
-    expect(created_body.guide_blocks.map((block: {
-      step: {
-        title: string;
-        body: string | null;
-        source_capture_asset_id: string | null;
-      };
-    }) => ({
-      title: block.step.title,
-      body: block.step.body,
-      source_capture_asset_id: block.step.source_capture_asset_id,
-    }))).toEqual([
+    expect(
+      created_body.guide_blocks.map(
+        (block: { source_capture_asset_id: string | null }) =>
+          block.source_capture_asset_id,
+      ),
+    ).toEqual([null, active_asset_id, active_asset_id]);
+    expect(
+      created_body.guide_blocks.map(
+        (block: {
+          step: {
+            title: string;
+            body: string | null;
+            source_capture_asset_id: string | null;
+          };
+        }) => ({
+          title: block.step.title,
+          body: block.step.body,
+          source_capture_asset_id: block.step.source_capture_asset_id,
+        }),
+      ),
+    ).toEqual([
       {
-        title: "Capture \"https://example.test/departments/new\"",
+        title: 'Capture "https://example.test/departments/new"',
         body: "Captured from this page.",
         source_capture_asset_id: null,
       },
       {
-        title: "Capture \"Department List\"",
+        title: 'Capture "Department List"',
         body: "Captured from https://example.test/departments.",
         source_capture_asset_id: active_asset_id,
       },
       {
-        title: "Capture \"Department List Duplicate\"",
+        title: 'Capture "Department List Duplicate"',
         body: "Captured from https://example.test/departments.",
         source_capture_asset_id: active_asset_id,
       },
@@ -624,27 +767,31 @@ describe("DB-backed guide API", () => {
     });
 
     expect(get_response.statusCode).toBe(200);
-    expect(get_response.json().source_capture_assets).toEqual([{
-      id: active_asset_id,
-      capture_session_id,
-      asset_type: "screenshot",
-      width: 1440,
-      height: 900,
-      device_pixel_ratio: null,
-      page_url: null,
-      page_title: null,
-      captured_at: expect.any(String),
-      file_url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${active_asset_id}/file`,
-      file: {
-        id: expect.any(String),
-        original_name: null,
-        mime_type: "image/png",
-        size_bytes: 123456,
+    expect(get_response.json().source_capture_assets).toEqual([
+      {
+        id: active_asset_id,
+        capture_session_id,
+        asset_type: "screenshot",
+        width: 1440,
+        height: 900,
+        device_pixel_ratio: null,
+        page_url: null,
+        page_title: null,
+        captured_at: expect.any(String),
+        file_url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${active_asset_id}/file`,
+        file: {
+          id: expect.any(String),
+          original_name: null,
+          mime_type: "image/png",
+          size_bytes: 123456,
+        },
       },
-    }]);
+    ]);
     expect(JSON.stringify(get_response.json())).not.toContain(deleted_asset_id);
     expect(JSON.stringify(get_response.json())).not.toContain("storage_key");
-    expect(JSON.stringify(get_response.json())).not.toContain("checksum_sha256");
+    expect(JSON.stringify(get_response.json())).not.toContain(
+      "checksum_sha256",
+    );
 
     await app.close();
   }, 30_000);
@@ -652,9 +799,20 @@ describe("DB-backed guide API", () => {
   it("replaces and hides guide step screenshots without mutating capture source records", async () => {
     const session_token = await setup_owner();
     const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id);
-    const source_asset_id = await create_capture_asset(session_token, project_id, capture_session_id);
-    const replacement_asset_id = await create_capture_asset(session_token, project_id, capture_session_id);
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+    );
+    const source_asset_id = await create_capture_asset(
+      session_token,
+      project_id,
+      capture_session_id,
+    );
+    const replacement_asset_id = await create_capture_asset(
+      session_token,
+      project_id,
+      capture_session_id,
+    );
 
     await create_capture_event(session_token, project_id, capture_session_id, {
       event_type: "capture",
@@ -683,25 +841,31 @@ describe("DB-backed guide API", () => {
       url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/annotations`,
       cookies: { ossie_session: session_token },
       payload: {
-        annotations: [{
+        annotations: [
+          {
+            type: "highlight",
+            x: 0.2,
+            y: 0.15,
+            width: 0.25,
+            height: 0.1,
+          },
+        ],
+      },
+    });
+
+    expect(annotations_response.statusCode).toBe(200);
+    expect(annotations_response.json().guide_block.content.annotations).toEqual(
+      [
+        {
+          id: expect.stringMatching(/^ann_/),
           type: "highlight",
           x: 0.2,
           y: 0.15,
           width: 0.25,
           height: 0.1,
-        }],
-      },
-    });
-
-    expect(annotations_response.statusCode).toBe(200);
-    expect(annotations_response.json().guide_block.content.annotations).toEqual([{
-      id: expect.stringMatching(/^ann_/),
-      type: "highlight",
-      x: 0.2,
-      y: 0.15,
-      width: 0.25,
-      height: 0.1,
-    }]);
+        },
+      ],
+    );
 
     const annotated_detail_response = await app.inject({
       method: "GET",
@@ -710,9 +874,9 @@ describe("DB-backed guide API", () => {
     });
 
     expect(annotated_detail_response.statusCode).toBe(200);
-    expect(annotated_detail_response.json().guide_blocks[0].content.annotations).toEqual(
-      annotations_response.json().guide_block.content.annotations
-    );
+    expect(
+      annotated_detail_response.json().guide_blocks[0].content.annotations,
+    ).toEqual(annotations_response.json().guide_block.content.annotations);
 
     const annotated_export_response = await app.inject({
       method: "GET",
@@ -721,16 +885,30 @@ describe("DB-backed guide API", () => {
     });
 
     expect(annotated_export_response.statusCode).toBe(200);
-    const public_base_url = (process.env.API_URL ?? "http://localhost:3000").replace(/\/$/, "");
-    expect(annotated_export_response.json().filename).toBe("screenshot-replacement-guide.md");
-    expect(annotated_export_response.json().markdown).toContain("# Screenshot replacement guide\n");
-    expect(annotated_export_response.json().markdown).toContain("## 1. Capture \"Department List\"");
-    expect(annotated_export_response.json().markdown).toContain(
-      `![Capture "Department List"](${public_base_url}/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${source_asset_id}/file)`
+    const public_base_url = (
+      process.env.API_URL ?? "http://localhost:3000"
+    ).replace(/\/$/, "");
+    expect(annotated_export_response.json().filename).toBe(
+      "screenshot-replacement-guide.md",
     );
-    expect(annotated_export_response.json().markdown).toContain("- Highlight 1: x 20%, y 15%, width 25%, height 10%");
-    expect(annotated_export_response.json().markdown).not.toContain("storage_key");
-    expect(annotated_export_response.json().markdown).not.toContain("organization_id");
+    expect(annotated_export_response.json().markdown).toContain(
+      "# Screenshot replacement guide\n",
+    );
+    expect(annotated_export_response.json().markdown).toContain(
+      '## 1. Capture "Department List"',
+    );
+    expect(annotated_export_response.json().markdown).toContain(
+      `![Capture "Department List"](${public_base_url}/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${source_asset_id}/file)`,
+    );
+    expect(annotated_export_response.json().markdown).toContain(
+      "- Highlight 1: x 20%, y 15%, width 25%, height 10%",
+    );
+    expect(annotated_export_response.json().markdown).not.toContain(
+      "storage_key",
+    );
+    expect(annotated_export_response.json().markdown).not.toContain(
+      "organization_id",
+    );
 
     const replace_response = await app.inject({
       method: "PATCH",
@@ -770,14 +948,22 @@ describe("DB-backed guide API", () => {
         annotations: [],
       },
     });
-    expect(after_replace_response.json().source_capture_assets.map((asset: { id: string }) => asset.id))
-      .toEqual([replacement_asset_id]);
+    expect(
+      after_replace_response
+        .json()
+        .source_capture_assets.map((asset: { id: string }) => asset.id),
+    ).toEqual([replacement_asset_id]);
 
-    const source_block = await pool.query<{ source_capture_asset_id: string | null }>(`
+    const source_block = await pool.query<{
+      source_capture_asset_id: string | null;
+    }>(
+      `
       SELECT source_capture_asset_id
       FROM guide_schema.guide_block
       WHERE id = $1
-    `, [guide_block_id]);
+    `,
+      [guide_block_id],
+    );
     expect(source_block.rows[0]?.source_capture_asset_id).toBe(source_asset_id);
 
     const hide_response = await app.inject({
@@ -826,7 +1012,9 @@ describe("DB-backed guide API", () => {
     });
 
     expect(hidden_export_response.statusCode).toBe(200);
-    expect(hidden_export_response.json().markdown).not.toContain("![Department List]");
+    expect(hidden_export_response.json().markdown).not.toContain(
+      "![Department List]",
+    );
     expect(hidden_export_response.json().markdown).not.toContain("Highlight 1");
 
     await app.close();
@@ -835,8 +1023,15 @@ describe("DB-backed guide API", () => {
   it("uploads a replacement guide step screenshot and publishes it in the snapshot", async () => {
     const session_token = await setup_owner();
     const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id);
-    const source_asset_id = await create_capture_asset(session_token, project_id, capture_session_id);
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+    );
+    const source_asset_id = await create_capture_asset(
+      session_token,
+      project_id,
+      capture_session_id,
+    );
 
     await create_capture_event(session_token, project_id, capture_session_id, {
       event_type: "capture",
@@ -904,7 +1099,9 @@ describe("DB-backed guide API", () => {
       screenshot_hidden: false,
       display_capture_asset_id: uploaded_asset_id,
     });
-    expect(JSON.stringify(upload_response.json())).not.toContain("attacker_session");
+    expect(JSON.stringify(upload_response.json())).not.toContain(
+      "attacker_session",
+    );
     expect(JSON.stringify(upload_response.json())).not.toContain("storage_key");
 
     const uploaded_rows = await pool.query<{
@@ -916,7 +1113,8 @@ describe("DB-backed guide API", () => {
       size_bytes: string;
       selected_capture_asset_id: string;
       source_capture_asset_id: string;
-    }>(`
+    }>(
+      `
       SELECT
         capture_asset.id AS asset_id,
         app_file.id AS file_id,
@@ -930,17 +1128,21 @@ describe("DB-backed guide API", () => {
       INNER JOIN file_schema.file app_file ON app_file.id = capture_asset.file_id
       INNER JOIN guide_schema.guide_block guide_block ON guide_block.selected_capture_asset_id = capture_asset.id
       WHERE capture_asset.id = $1
-    `, [uploaded_asset_id]);
-    expect(uploaded_rows.rows).toEqual([{
-      asset_id: uploaded_asset_id,
-      file_id: expect.any(String),
-      capture_session_id,
-      original_name: "replacement.png",
-      mime_type: "image/png",
-      size_bytes: String(uploaded_bytes.length),
-      selected_capture_asset_id: uploaded_asset_id,
-      source_capture_asset_id: source_asset_id,
-    }]);
+    `,
+      [uploaded_asset_id],
+    );
+    expect(uploaded_rows.rows).toEqual([
+      {
+        asset_id: uploaded_asset_id,
+        file_id: expect.any(String),
+        capture_session_id,
+        original_name: "replacement.png",
+        mime_type: "image/png",
+        size_bytes: String(uploaded_bytes.length),
+        selected_capture_asset_id: uploaded_asset_id,
+        source_capture_asset_id: source_asset_id,
+      },
+    ]);
 
     const detail_response = await app.inject({
       method: "GET",
@@ -948,9 +1150,14 @@ describe("DB-backed guide API", () => {
       cookies: { ossie_session: session_token },
     });
     expect(detail_response.statusCode).toBe(200);
-    expect(detail_response.json().guide_blocks[0].display_capture_asset_id).toBe(uploaded_asset_id);
-    expect(detail_response.json().source_capture_assets.map((asset: { id: string }) => asset.id))
-      .toEqual([uploaded_asset_id]);
+    expect(
+      detail_response.json().guide_blocks[0].display_capture_asset_id,
+    ).toBe(uploaded_asset_id);
+    expect(
+      detail_response
+        .json()
+        .source_capture_assets.map((asset: { id: string }) => asset.id),
+    ).toEqual([uploaded_asset_id]);
 
     const publish_response = await app.inject({
       method: "POST",
@@ -965,7 +1172,9 @@ describe("DB-backed guide API", () => {
       url: `/api/v1/public/publish-links/${slug}`,
     });
     expect(public_response.statusCode).toBe(200);
-    expect(public_response.json().published_artifact.snapshot.blocks[0].source_asset).toMatchObject({
+    expect(
+      public_response.json().published_artifact.snapshot.blocks[0].source_asset,
+    ).toMatchObject({
       id: uploaded_asset_id,
       file_url: `/api/v1/public/publish-links/${slug}/assets/${uploaded_asset_id}/file`,
       file: {
@@ -981,8 +1190,15 @@ describe("DB-backed guide API", () => {
   it("exports a guide draft as HTML ZIP with local screenshot assets", async () => {
     const session_token = await setup_owner();
     const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id);
-    const source_asset_id = await create_capture_asset(session_token, project_id, capture_session_id);
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+    );
+    const source_asset_id = await create_capture_asset(
+      session_token,
+      project_id,
+      capture_session_id,
+    );
 
     await create_capture_event(session_token, project_id, capture_session_id, {
       event_type: "capture",
@@ -1027,13 +1243,15 @@ describe("DB-backed guide API", () => {
       url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/annotations`,
       cookies: { ossie_session: session_token },
       payload: {
-        annotations: [{
-          type: "highlight",
-          x: 0.2,
-          y: 0.15,
-          width: 0.25,
-          height: 0.1,
-        }],
+        annotations: [
+          {
+            type: "highlight",
+            x: 0.2,
+            y: 0.15,
+            width: 0.25,
+            height: 0.1,
+          },
+        ],
       },
     });
 
@@ -1048,7 +1266,7 @@ describe("DB-backed guide API", () => {
     expect(export_response.statusCode).toBe(200);
     expect(export_response.headers["content-type"]).toBe("application/zip");
     expect(export_response.headers["content-disposition"]).toBe(
-      "attachment; filename=\"html-export-guide-html-export.zip\""
+      'attachment; filename="html-export-guide-html-export.zip"',
     );
     const JSZip = (await import("jszip")).default;
     const archive = await JSZip.loadAsync(export_response.rawPayload);
@@ -1059,8 +1277,9 @@ describe("DB-backed guide API", () => {
     expect(html).toContain("left: 20%; top: 15%; width: 25%; height: 10%;");
     expect(html).not.toContain("storage_key");
     expect(html).not.toContain("organizations/");
-    await expect(archive.file(`assets/1-${uploaded_asset_id}.png`)?.async("nodebuffer"))
-      .resolves.toEqual(uploaded_bytes);
+    await expect(
+      archive.file(`assets/1-${uploaded_asset_id}.png`)?.async("nodebuffer"),
+    ).resolves.toEqual(uploaded_bytes);
     await app.close();
   }, 30_000);
 });

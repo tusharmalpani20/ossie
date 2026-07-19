@@ -22,7 +22,10 @@ type QueryResult<Row> = {
 };
 
 type Queryable = {
-  query: <Row = Record<string, unknown>>(sql: string, values?: unknown[]) => Promise<QueryResult<Row>>;
+  query: <Row = Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ) => Promise<QueryResult<Row>>;
 };
 
 type TransactionClient = Queryable & {
@@ -173,9 +176,10 @@ type SourceCaptureAssetRow = {
 
 const first_row = <Row>(result: QueryResult<Row>) => result.rows[0] ?? null;
 
-const public_url_for_slug = (artifact_type: PublishArtifactType, slug: string) => (
-  artifact_type === "interactive_demo" ? `/d/${slug}` : `/p/${slug}`
-);
+const public_url_for_slug = (
+  artifact_type: PublishArtifactType,
+  slug: string,
+) => (artifact_type === "interactive_demo" ? `/d/${slug}` : `/p/${slug}`);
 
 const map_publish_link = (row: PublishLinkRow): PublishLink => ({
   id: row.id,
@@ -192,7 +196,9 @@ const map_publish_link = (row: PublishLinkRow): PublishLink => ({
   public_url: public_url_for_slug(row.artifact_type, row.slug),
 });
 
-const map_published_artifact = (row: PublishedArtifactRow): PublishedArtifact => ({
+const map_published_artifact = (
+  row: PublishedArtifactRow,
+): PublishedArtifact => ({
   id: row.id,
   artifact_type: row.artifact_type,
   artifact_id: row.artifact_id,
@@ -230,10 +236,14 @@ const published_artifact_select = `
 
 const is_slug_conflict = (error: unknown) => {
   const pg_error = error as { code?: string; constraint?: string };
-  return pg_error.code === "23505" && pg_error.constraint === "uq_publish_link_slug";
+  return (
+    pg_error.code === "23505" && pg_error.constraint === "uq_publish_link_slug"
+  );
 };
 
-const map_publish_status = (row: GuidePublishStatusRow): GuidePublishStatus => ({
+const map_publish_status = (
+  row: GuidePublishStatusRow,
+): GuidePublishStatus => ({
   publish_link: map_publish_link({
     id: row.link_id,
     artifact_type: row.link_artifact_type,
@@ -317,7 +327,9 @@ const map_demo_hotspot = (row: DemoHotspotRow) => ({
   updated_at: row.updated_at.toISOString(),
 });
 
-const map_source_capture_asset = (row: SourceCaptureAssetRow): GuideSourceCaptureAsset => ({
+const map_source_capture_asset = (
+  row: SourceCaptureAssetRow,
+): GuideSourceCaptureAsset => ({
   id: row.id,
   capture_session_id: row.capture_session_id,
   asset_type: row.asset_type,
@@ -392,28 +404,41 @@ const demo_hotspot_select = `
   updated_at
 `;
 
-const asset_referenced_by_snapshot = (snapshot: unknown, capture_asset_id: string) => {
+const asset_referenced_by_snapshot = (
+  snapshot: unknown,
+  capture_asset_id: string,
+) => {
   if (!snapshot || typeof snapshot !== "object") {
     return false;
   }
 
   const blocks = (snapshot as { blocks?: unknown }).blocks;
 
-  if (Array.isArray(blocks) && blocks.some((block) => (
-    block
-    && typeof block === "object"
-    && (block as { source_asset?: { id?: unknown } | null }).source_asset?.id === capture_asset_id
-  ))) {
+  if (
+    Array.isArray(blocks) &&
+    blocks.some(
+      (block) =>
+        block &&
+        typeof block === "object" &&
+        (block as { source_asset?: { id?: unknown } | null }).source_asset
+          ?.id === capture_asset_id,
+    )
+  ) {
     return true;
   }
 
   const scenes = (snapshot as { scenes?: unknown }).scenes;
 
-  return Array.isArray(scenes) && scenes.some((scene) => (
-    scene
-    && typeof scene === "object"
-    && (scene as { background_asset?: { id?: unknown } | null }).background_asset?.id === capture_asset_id
-  ));
+  return (
+    Array.isArray(scenes) &&
+    scenes.some(
+      (scene) =>
+        scene &&
+        typeof scene === "object" &&
+        (scene as { background_asset?: { id?: unknown } | null })
+          .background_asset?.id === capture_asset_id,
+    )
+  );
 };
 
 const read_source_capture_assets = async (
@@ -422,13 +447,14 @@ const read_source_capture_assets = async (
     organization_id: string;
     project_id: string;
     source_capture_asset_ids: string[];
-  }
+  },
 ) => {
   if (input.source_capture_asset_ids.length === 0) {
     return [];
   }
 
-  const result = await db.query<SourceCaptureAssetRow>(`
+  const result = await db.query<SourceCaptureAssetRow>(
+    `
     SELECT
       capture_asset.id,
       capture_asset.project_id,
@@ -452,14 +478,12 @@ const read_source_capture_assets = async (
     AND capture_asset.asset_type IN ('screenshot', 'redacted_screenshot')
     AND capture_asset.is_deleted = FALSE
     AND app_file.is_deleted = FALSE
-  `, [
-    input.source_capture_asset_ids,
-    input.project_id,
-    input.organization_id,
-  ]);
+  `,
+    [input.source_capture_asset_ids, input.project_id, input.organization_id],
+  );
 
   const assets_by_id = new Map(
-    result.rows.map((row) => [row.id, map_source_capture_asset(row)])
+    result.rows.map((row) => [row.id, map_source_capture_asset(row)]),
   );
 
   return input.source_capture_asset_ids
@@ -467,8 +491,12 @@ const read_source_capture_assets = async (
     .filter((asset): asset is GuideSourceCaptureAsset => Boolean(asset));
 };
 
-export const build_publish_transactional_repository = (db: Queryable): PublishRepository => {
-  const guide_repository = build_guide_repository(db as Parameters<typeof build_guide_repository>[0]);
+export const build_publish_transactional_repository = (
+  db: Queryable,
+): PublishRepository => {
+  const guide_repository = build_guide_repository(
+    db as Parameters<typeof build_guide_repository>[0],
+  );
 
   return {
     async transaction(work) {
@@ -476,7 +504,8 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
     },
 
     async project_exists(input) {
-      const result = await db.query<{ exists: boolean }>(`
+      const result = await db.query<{ exists: boolean }>(
+        `
         SELECT EXISTS (
           SELECT 1
           FROM project_schema.project
@@ -484,7 +513,9 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
           AND organization_id = $2
           AND is_deleted = FALSE
         ) AS exists
-      `, [input.project_id, input.organization_id]);
+      `,
+        [input.project_id, input.organization_id],
+      );
 
       return Boolean(result.rows[0]?.exists);
     },
@@ -493,8 +524,11 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
       return guide_repository.find_guide_detail(input);
     },
 
-    async find_interactive_demo_detail(input): Promise<InteractiveDemoPublishDetail | null> {
-      const demo_result = await db.query<InteractiveDemoRow>(`
+    async find_interactive_demo_detail(
+      input,
+    ): Promise<InteractiveDemoPublishDetail | null> {
+      const demo_result = await db.query<InteractiveDemoRow>(
+        `
         SELECT ${interactive_demo_select}
         FROM interactive_demo_schema.interactive_demo
         WHERE id = $1
@@ -502,18 +536,17 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         AND organization_id = $3
         AND is_deleted = FALSE
         LIMIT 1
-      `, [
-        input.interactive_demo_id,
-        input.project_id,
-        input.organization_id,
-      ]);
+      `,
+        [input.interactive_demo_id, input.project_id, input.organization_id],
+      );
       const demo_row = first_row(demo_result);
 
       if (!demo_row) {
         return null;
       }
 
-      const scenes_result = await db.query<DemoSceneRow>(`
+      const scenes_result = await db.query<DemoSceneRow>(
+        `
         SELECT ${demo_scene_select}
         FROM interactive_demo_schema.demo_scene
         WHERE interactive_demo_id = $1
@@ -521,12 +554,11 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         AND organization_id = $3
         AND is_deleted = FALSE
         ORDER BY scene_index ASC, id ASC
-      `, [
-        input.interactive_demo_id,
-        input.project_id,
-        input.organization_id,
-      ]);
-      const hotspots_result = await db.query<DemoHotspotRow>(`
+      `,
+        [input.interactive_demo_id, input.project_id, input.organization_id],
+      );
+      const hotspots_result = await db.query<DemoHotspotRow>(
+        `
         SELECT ${demo_hotspot_select}
         FROM interactive_demo_schema.demo_hotspot
         WHERE interactive_demo_id = $1
@@ -534,15 +566,15 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         AND organization_id = $3
         AND is_deleted = FALSE
         ORDER BY demo_scene_id ASC, hotspot_index ASC, id ASC
-      `, [
-        input.interactive_demo_id,
-        input.project_id,
-        input.organization_id,
-      ]);
+      `,
+        [input.interactive_demo_id, input.project_id, input.organization_id],
+      );
       const background_asset_ids = [
-        ...new Set(scenes_result.rows
-          .map((scene) => scene.background_capture_asset_id)
-          .filter((asset_id): asset_id is string => Boolean(asset_id))),
+        ...new Set(
+          scenes_result.rows
+            .map((scene) => scene.background_capture_asset_id)
+            .filter((asset_id): asset_id is string => Boolean(asset_id)),
+        ),
       ];
 
       return {
@@ -558,7 +590,8 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
     },
 
     async find_active_publish_link(input) {
-      const result = await db.query<PublishLinkRow>(`
+      const result = await db.query<PublishLinkRow>(
+        `
         SELECT ${publish_link_select}
         FROM publish_schema.publish_link
         WHERE organization_id = $1
@@ -567,37 +600,43 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         AND artifact_id = $4
         AND status = 'active'
         LIMIT 1
-      `, [
-        input.organization_id,
-        input.project_id,
-        input.artifact_type,
-        input.artifact_id,
-      ]);
+      `,
+        [
+          input.organization_id,
+          input.project_id,
+          input.artifact_type,
+          input.artifact_id,
+        ],
+      );
       const row = first_row(result);
 
       return row ? map_publish_link(row) : null;
     },
 
     async next_published_artifact_version(input) {
-      const result = await db.query<{ next_version: number }>(`
+      const result = await db.query<{ next_version: number }>(
+        `
         SELECT COALESCE(MAX(version_number), 0) + 1 AS next_version
         FROM publish_schema.published_artifact
         WHERE organization_id = $1
         AND project_id = $2
         AND artifact_type = $3
         AND artifact_id = $4
-      `, [
-        input.organization_id,
-        input.project_id,
-        input.artifact_type,
-        input.artifact_id,
-      ]);
+      `,
+        [
+          input.organization_id,
+          input.project_id,
+          input.artifact_type,
+          input.artifact_id,
+        ],
+      );
 
       return Number(result.rows[0]?.next_version ?? 1);
     },
 
     async create_published_artifact(input) {
-      const result = await db.query<PublishedArtifactRow>(`
+      const result = await db.query<PublishedArtifactRow>(
+        `
         INSERT INTO publish_schema.published_artifact (
           id,
           organization_id,
@@ -611,17 +650,19 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING ${published_artifact_select}
-      `, [
-        ulid(),
-        input.organization_id,
-        input.project_id,
-        input.artifact_type,
-        input.artifact_id,
-        input.version_number,
-        input.title,
-        JSON.stringify(input.snapshot_json),
-        input.actor_org_user_id,
-      ]);
+      `,
+        [
+          ulid(),
+          input.organization_id,
+          input.project_id,
+          input.artifact_type,
+          input.artifact_id,
+          input.version_number,
+          input.title,
+          JSON.stringify(input.snapshot_json),
+          input.actor_org_user_id,
+        ],
+      );
       const row = first_row(result);
 
       if (!row) {
@@ -633,7 +674,8 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
 
     async create_publish_link(input) {
       try {
-        const result = await db.query<PublishLinkRow>(`
+        const result = await db.query<PublishLinkRow>(
+          `
           INSERT INTO publish_schema.publish_link (
             id,
             organization_id,
@@ -646,16 +688,18 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
           )
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING ${publish_link_select}
-        `, [
-          ulid(),
-          input.organization_id,
-          input.project_id,
-          input.artifact_type,
-          input.artifact_id,
-          input.published_artifact_id,
-          input.slug,
-          input.actor_org_user_id,
-        ]);
+        `,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            input.artifact_type,
+            input.artifact_id,
+            input.published_artifact_id,
+            input.slug,
+            input.actor_org_user_id,
+          ],
+        );
         const row = first_row(result);
 
         if (!row) {
@@ -673,7 +717,8 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
     },
 
     async update_publish_link_target(input) {
-      const result = await db.query<PublishLinkRow>(`
+      const result = await db.query<PublishLinkRow>(
+        `
         UPDATE publish_schema.publish_link
         SET
           published_artifact_id = $1,
@@ -684,12 +729,14 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         AND project_id = $4
         AND status = 'active'
         RETURNING ${publish_link_select}
-      `, [
-        input.published_artifact_id,
-        input.publish_link_id,
-        input.organization_id,
-        input.project_id,
-      ]);
+      `,
+        [
+          input.published_artifact_id,
+          input.publish_link_id,
+          input.organization_id,
+          input.project_id,
+        ],
+      );
       const row = first_row(result);
 
       if (!row) {
@@ -700,7 +747,8 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
     },
 
     async find_publish_status(input) {
-      const result = await db.query<GuidePublishStatusRow>(`
+      const result = await db.query<GuidePublishStatusRow>(
+        `
         SELECT
           publish_link.id AS link_id,
           publish_link.artifact_type AS link_artifact_type,
@@ -732,12 +780,14 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         AND publish_link.artifact_id = $4
         AND publish_link.status = 'active'
         LIMIT 1
-      `, [
-        input.organization_id,
-        input.project_id,
-        input.artifact_type,
-        input.artifact_id,
-      ]);
+      `,
+        [
+          input.organization_id,
+          input.project_id,
+          input.artifact_type,
+          input.artifact_id,
+        ],
+      );
       const row = first_row(result);
 
       if (!row) {
@@ -748,33 +798,47 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
     },
 
     async revoke_active_publish_link(input) {
-      const result = await db.query<PublishLinkRow>(`
-        UPDATE publish_schema.publish_link
-        SET
-          status = 'revoked',
-          revoked_at = CURRENT_TIMESTAMP,
-          revoked_by_id = $1,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE organization_id = $2
-        AND project_id = $3
-        AND artifact_type = $4
-        AND artifact_id = $5
-        AND status = 'active'
-        RETURNING ${publish_link_select}
-      `, [
-        input.actor_org_user_id,
-        input.organization_id,
-        input.project_id,
-        input.artifact_type,
-        input.artifact_id,
-      ]);
+      const result = await db.query<PublishLinkRow>(
+        `
+        WITH updated_link AS (
+          UPDATE publish_schema.publish_link
+          SET
+            status = 'revoked',
+            revoked_at = CURRENT_TIMESTAMP,
+            revoked_by_id = $1,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE organization_id = $2
+          AND project_id = $3
+          AND artifact_type = $4
+          AND artifact_id = $5
+          AND status = 'active'
+          RETURNING *
+        ), revoked_viewers AS (
+          UPDATE publish_schema.public_publish_viewer_session
+          SET revoked_at = COALESCE(revoked_at, CURRENT_TIMESTAMP)
+          WHERE publish_link_id = (SELECT id FROM updated_link)
+          AND revoked_at IS NULL
+          RETURNING id
+        )
+        SELECT ${publish_link_select}
+        FROM updated_link
+      `,
+        [
+          input.actor_org_user_id,
+          input.organization_id,
+          input.project_id,
+          input.artifact_type,
+          input.artifact_id,
+        ],
+      );
       const row = first_row(result);
 
       return row ? map_publish_link(row) : null;
     },
 
     async update_publish_link_access(input) {
-      const result = await db.query<GuidePublishStatusRow>(`
+      const result = await db.query<GuidePublishStatusRow>(
+        `
         WITH updated_link AS (
           UPDATE publish_schema.publish_link
           SET
@@ -814,21 +878,24 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         INNER JOIN publish_schema.published_artifact published_artifact
           ON published_artifact.id = updated_link.published_artifact_id
         LIMIT 1
-      `, [
-        input.visibility,
-        input.expires_at,
-        input.organization_id,
-        input.project_id,
-        input.artifact_type,
-        input.artifact_id,
-      ]);
+      `,
+        [
+          input.visibility,
+          input.expires_at,
+          input.organization_id,
+          input.project_id,
+          input.artifact_type,
+          input.artifact_id,
+        ],
+      );
       const row = first_row(result);
 
       return row ? map_publish_status(row) : null;
     },
 
     async update_publish_link_password(input) {
-      const result = await db.query<GuidePublishStatusRow>(`
+      const result = await db.query<GuidePublishStatusRow>(
+        `
         WITH updated_link AS (
           UPDATE publish_schema.publish_link
           SET
@@ -843,6 +910,12 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
           AND artifact_id = $6
           AND status = 'active'
           RETURNING *
+        ), revoked_viewers AS (
+          UPDATE publish_schema.public_publish_viewer_session
+          SET revoked_at = COALESCE(revoked_at, CURRENT_TIMESTAMP)
+          WHERE publish_link_id = (SELECT id FROM updated_link)
+          AND revoked_at IS NULL
+          RETURNING id
         )
         SELECT
           updated_link.id AS link_id,
@@ -870,21 +943,24 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         INNER JOIN publish_schema.published_artifact published_artifact
           ON published_artifact.id = updated_link.published_artifact_id
         LIMIT 1
-      `, [
-        input.password_hash,
-        input.password_salt,
-        input.organization_id,
-        input.project_id,
-        input.artifact_type,
-        input.artifact_id,
-      ]);
+      `,
+        [
+          input.password_hash,
+          input.password_salt,
+          input.organization_id,
+          input.project_id,
+          input.artifact_type,
+          input.artifact_id,
+        ],
+      );
       const row = first_row(result);
 
       return row ? map_publish_status(row) : null;
     },
 
     async create_public_viewer_session(input) {
-      await db.query(`
+      await db.query(
+        `
         INSERT INTO publish_schema.public_publish_viewer_session (
           id,
           publish_link_id,
@@ -892,12 +968,9 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
           expires_at
         )
         VALUES ($1, $2, $3, $4)
-      `, [
-        ulid(),
-        input.publish_link_id,
-        input.token_hash,
-        input.expires_at,
-      ]);
+      `,
+        [ulid(), input.publish_link_id, input.token_hash, input.expires_at],
+      );
 
       return {
         token: input.token,
@@ -910,7 +983,8 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         publish_link_id: string;
         expires_at: Date;
         revoked_at: Date | null;
-      }>(`
+      }>(
+        `
         SELECT
           viewer_session.publish_link_id,
           viewer_session.expires_at,
@@ -921,40 +995,34 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         WHERE viewer_session.token_hash = $1
         AND publish_link.slug = $2
         LIMIT 1
-      `, [
-        input.token_hash,
-        input.publish_link_slug,
-      ]);
+      `,
+        [input.token_hash, input.publish_link_slug],
+      );
       const row = first_row(result);
 
       return row
         ? {
-          publish_link_id: row.publish_link_id,
-          expires_at: row.expires_at.toISOString(),
-          revoked_at: row.revoked_at?.toISOString() ?? null,
-        }
+            publish_link_id: row.publish_link_id,
+            expires_at: row.expires_at.toISOString(),
+            revoked_at: row.revoked_at?.toISOString() ?? null,
+          }
         : null;
     },
 
     async touch_public_viewer_session(input) {
-      await db.query(`
+      await db.query(
+        `
         UPDATE publish_schema.public_publish_viewer_session
         SET last_used_at = CURRENT_TIMESTAMP
         WHERE token_hash = $1
-      `, [input.token_hash]);
-    },
-
-    async revoke_public_viewer_sessions_for_publish_link(input) {
-      await db.query(`
-        UPDATE publish_schema.public_publish_viewer_session
-        SET revoked_at = COALESCE(revoked_at, CURRENT_TIMESTAMP)
-        WHERE publish_link_id = $1
-        AND revoked_at IS NULL
-      `, [input.publish_link_id]);
+      `,
+        [input.token_hash],
+      );
     },
 
     async find_active_publish_link_by_slug(input) {
-      const result = await db.query<PublicResolveRow>(`
+      const result = await db.query<PublicResolveRow>(
+        `
         SELECT
           publish_link.id,
           publish_link.artifact_type,
@@ -980,7 +1048,9 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         WHERE publish_link.slug = $1
         AND publish_link.status = 'active'
         LIMIT 1
-      `, [input.slug]);
+      `,
+        [input.slug],
+      );
       const row = first_row(result);
 
       if (!row) {
@@ -1006,12 +1076,13 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
           snapshot: row.published_artifact_snapshot_json,
         },
         publish_link_id: row.id,
-        password: row.password_hash && row.password_salt
-          ? {
-            hash: row.password_hash,
-            salt: row.password_salt,
-          }
-          : null,
+        password:
+          row.password_hash && row.password_salt
+            ? {
+                hash: row.password_hash,
+                salt: row.password_salt,
+              }
+            : null,
       };
     },
 
@@ -1020,7 +1091,8 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         organization_id: string;
         project_id: string;
         snapshot_json: unknown;
-      }>(`
+      }>(
+        `
         SELECT
           publish_link.organization_id,
           publish_link.project_id,
@@ -1036,14 +1108,23 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
           OR publish_link.expires_at > CURRENT_TIMESTAMP
         )
         LIMIT 1
-      `, [input.slug]);
+      `,
+        [input.slug],
+      );
       const link = first_row(link_result);
 
-      if (!link || !asset_referenced_by_snapshot(link.snapshot_json, input.capture_asset_id)) {
+      if (
+        !link ||
+        !asset_referenced_by_snapshot(
+          link.snapshot_json,
+          input.capture_asset_id,
+        )
+      ) {
         return null;
       }
 
-      const result = await db.query<PublicAssetFileRow>(`
+      const result = await db.query<PublicAssetFileRow>(
+        `
         SELECT
           app_file.storage_provider,
           app_file.storage_key,
@@ -1056,11 +1137,9 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
         AND app_file.organization_id = $2
         AND app_file.is_deleted = FALSE
         LIMIT 1
-      `, [
-        input.capture_asset_id,
-        link.organization_id,
-        link.project_id,
-      ]);
+      `,
+        [input.capture_asset_id, link.organization_id, link.project_id],
+      );
       const row = first_row(result);
 
       if (!row) {
@@ -1078,7 +1157,9 @@ export const build_publish_transactional_repository = (db: Queryable): PublishRe
   };
 };
 
-export const build_publish_repository = (pool: TransactionCapable): PublishRepository => ({
+export const build_publish_repository = (
+  pool: TransactionCapable,
+): PublishRepository => ({
   ...build_publish_transactional_repository(pool),
 
   async transaction(work) {

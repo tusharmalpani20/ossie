@@ -19,7 +19,10 @@ type QueryResult<Row> = {
 };
 
 type Queryable = {
-  query: <Row = Record<string, unknown>>(sql: string, values?: unknown[]) => Promise<QueryResult<Row>>;
+  query: <Row = Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ) => Promise<QueryResult<Row>>;
 };
 
 type TransactionClient = Queryable & {
@@ -161,7 +164,9 @@ const map_demo_hotspot = (row: DemoHotspotRow): DemoHotspot => ({
   updated_at: row.updated_at.toISOString(),
 });
 
-const map_source_event = (row: InteractiveDemoSourceEventRow): InteractiveDemoSourceEvent => ({
+const map_source_event = (
+  row: InteractiveDemoSourceEventRow,
+): InteractiveDemoSourceEvent => ({
   id: row.id,
   event_type: row.event_type,
   event_index: row.event_index,
@@ -173,7 +178,7 @@ const map_source_event = (row: InteractiveDemoSourceEventRow): InteractiveDemoSo
 });
 
 const map_source_capture_session = (
-  row: InteractiveDemoSourceCaptureSessionRow
+  row: InteractiveDemoSourceCaptureSessionRow,
 ): InteractiveDemoSourceCaptureSession => ({
   id: row.id,
   name: row.name,
@@ -236,7 +241,9 @@ const demo_hotspot_select = `
   updated_at
 `;
 
-const update_demo_assignments = (data: NormalizedUpdateInteractiveDemoInput) => {
+const update_demo_assignments = (
+  data: NormalizedUpdateInteractiveDemoInput,
+) => {
   const assignments: string[] = [];
   const values: unknown[] = [];
 
@@ -274,7 +281,10 @@ const update_scene_assignments = (data: NormalizedUpdateDemoSceneInput) => {
     add_assignment("description", data.description);
   }
   if (data.background_capture_asset_id !== undefined) {
-    add_assignment("background_capture_asset_id", data.background_capture_asset_id);
+    add_assignment(
+      "background_capture_asset_id",
+      data.background_capture_asset_id,
+    );
   }
 
   return { assignments, values };
@@ -289,23 +299,25 @@ const update_hotspot_assignments = (data: NormalizedUpdateDemoHotspotInput) => {
     assignments.push(`${column} = $${values.length}`);
   };
 
-  if (data.hotspot_type !== undefined) add_assignment("hotspot_type", data.hotspot_type);
+  if (data.hotspot_type !== undefined)
+    add_assignment("hotspot_type", data.hotspot_type);
   if (data.label !== undefined) add_assignment("label", data.label);
   if (data.content !== undefined) add_assignment("content", data.content);
   if (data.x !== undefined) add_assignment("x", data.x);
   if (data.y !== undefined) add_assignment("y", data.y);
   if (data.width !== undefined) add_assignment("width", data.width);
   if (data.height !== undefined) add_assignment("height", data.height);
-  if (data.target_scene_id !== undefined) add_assignment("target_scene_id", data.target_scene_id);
+  if (data.target_scene_id !== undefined)
+    add_assignment("target_scene_id", data.target_scene_id);
 
   return { assignments, values };
 };
 
 const with_transaction = async <Result>(
   db: TransactionCapable,
-  operation: (client: Queryable) => Promise<Result>
+  operation: (client: Queryable) => Promise<Result>,
 ) => {
-  if (!db.connect) {
+  if (!db.connect || "release" in db) {
     return operation(db);
   }
 
@@ -323,9 +335,12 @@ const with_transaction = async <Result>(
   }
 };
 
-export const build_interactive_demo_repository = (db: TransactionCapable): InteractiveDemoRepository => ({
+export const build_interactive_demo_repository = (
+  db: TransactionCapable,
+): InteractiveDemoRepository => ({
   async project_exists(input) {
-    const result = await db.query<{ exists: boolean }>(`
+    const result = await db.query<{ exists: boolean }>(
+      `
       SELECT EXISTS (
         SELECT 1
         FROM project_schema.project
@@ -333,13 +348,16 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         AND organization_id = $2
         AND is_deleted = FALSE
       ) AS exists
-    `, [input.project_id, input.organization_id]);
+    `,
+      [input.project_id, input.organization_id],
+    );
 
     return Boolean(result.rows[0]?.exists);
   },
 
   async create_demo(input) {
-    const result = await db.query<InteractiveDemoRow>(`
+    const result = await db.query<InteractiveDemoRow>(
+      `
       INSERT INTO interactive_demo_schema.interactive_demo (
         id,
         organization_id,
@@ -352,15 +370,17 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
       RETURNING ${interactive_demo_select}
-    `, [
-      ulid(),
-      input.organization_id,
-      input.project_id,
-      input.data.source_capture_session_id,
-      input.data.title,
-      input.data.description,
-      input.actor_org_user_id,
-    ]);
+    `,
+      [
+        ulid(),
+        input.organization_id,
+        input.project_id,
+        input.data.source_capture_session_id,
+        input.data.title,
+        input.data.description,
+        input.actor_org_user_id,
+      ],
+    );
     const row = first_row(result);
 
     if (!row) {
@@ -371,20 +391,24 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
   },
 
   async list_demos(input) {
-    const result = await db.query<InteractiveDemoRow>(`
+    const result = await db.query<InteractiveDemoRow>(
+      `
       SELECT ${interactive_demo_select}
       FROM interactive_demo_schema.interactive_demo
       WHERE organization_id = $1
       AND project_id = $2
       AND is_deleted = FALSE
       ORDER BY created_at DESC, id DESC
-    `, [input.organization_id, input.project_id]);
+    `,
+      [input.organization_id, input.project_id],
+    );
 
     return result.rows.map(map_interactive_demo);
   },
 
   async find_demo(input) {
-    const result = await db.query<InteractiveDemoRow>(`
+    const result = await db.query<InteractiveDemoRow>(
+      `
       SELECT ${interactive_demo_select}
       FROM interactive_demo_schema.interactive_demo
       WHERE id = $1
@@ -392,7 +416,9 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND project_id = $3
       AND is_deleted = FALSE
       LIMIT 1
-    `, [input.interactive_demo_id, input.organization_id, input.project_id]);
+    `,
+      [input.interactive_demo_id, input.organization_id, input.project_id],
+    );
     const row = first_row(result);
 
     return row ? map_interactive_demo(row) : null;
@@ -411,7 +437,8 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
     const demo_index = update.values.length + 2;
     const organization_index = update.values.length + 3;
     const project_index = update.values.length + 4;
-    const result = await db.query<InteractiveDemoRow>(`
+    const result = await db.query<InteractiveDemoRow>(
+      `
       UPDATE interactive_demo_schema.interactive_demo
       SET ${[
         ...update.assignments,
@@ -424,14 +451,17 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND project_id = $${project_index}
       AND is_deleted = FALSE
       RETURNING ${interactive_demo_select}
-    `, values);
+    `,
+      values,
+    );
     const row = first_row(result);
 
     return row ? map_interactive_demo(row) : null;
   },
 
   async delete_demo(input) {
-    const result = await db.query<InteractiveDemoRow>(`
+    const result = await db.query<InteractiveDemoRow>(
+      `
       UPDATE interactive_demo_schema.interactive_demo
       SET
         is_deleted = TRUE,
@@ -445,18 +475,21 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND project_id = $4
       AND is_deleted = FALSE
       RETURNING ${interactive_demo_select}
-    `, [
-      input.actor_org_user_id,
-      input.interactive_demo_id,
-      input.organization_id,
-      input.project_id,
-    ]);
+    `,
+      [
+        input.actor_org_user_id,
+        input.interactive_demo_id,
+        input.organization_id,
+        input.project_id,
+      ],
+    );
 
     return result.rows.length > 0;
   },
 
   async background_asset_exists(input) {
-    const result = await db.query<{ exists: boolean }>(`
+    const result = await db.query<{ exists: boolean }>(
+      `
       SELECT EXISTS (
         SELECT 1
         FROM capture_schema.capture_asset
@@ -466,13 +499,16 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         AND asset_type = 'screenshot'
         AND is_deleted = FALSE
       ) AS exists
-    `, [input.capture_asset_id, input.organization_id, input.project_id]);
+    `,
+      [input.capture_asset_id, input.organization_id, input.project_id],
+    );
 
     return Boolean(result.rows[0]?.exists);
   },
 
   async find_capture_session_for_demo(input) {
-    const result = await db.query<InteractiveDemoSourceCaptureSessionRow>(`
+    const result = await db.query<InteractiveDemoSourceCaptureSessionRow>(
+      `
       SELECT id, name, description
       FROM capture_schema.capture_session
       WHERE id = $1
@@ -480,14 +516,17 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND project_id = $3
       AND is_deleted = FALSE
       LIMIT 1
-    `, [input.capture_session_id, input.organization_id, input.project_id]);
+    `,
+      [input.capture_session_id, input.organization_id, input.project_id],
+    );
     const row = first_row(result);
 
     return row ? map_source_capture_session(row) : null;
   },
 
   async list_capture_events_for_demo(input) {
-    const result = await db.query<InteractiveDemoSourceEventRow>(`
+    const result = await db.query<InteractiveDemoSourceEventRow>(
+      `
       SELECT
         id,
         event_type,
@@ -503,7 +542,9 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND capture_session_id = $3
       AND is_deleted = FALSE
       ORDER BY event_index ASC, created_at ASC, id ASC
-    `, [input.organization_id, input.project_id, input.capture_session_id]);
+    `,
+      [input.organization_id, input.project_id, input.capture_session_id],
+    );
 
     return result.rows.map(map_source_event);
   },
@@ -513,7 +554,8 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       return [];
     }
 
-    const result = await db.query<{ id: string }>(`
+    const result = await db.query<{ id: string }>(
+      `
       SELECT id
       FROM capture_schema.capture_asset
       WHERE id = ANY($1::varchar[])
@@ -522,19 +564,22 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND capture_session_id = $4
       AND asset_type = 'screenshot'
       AND is_deleted = FALSE
-    `, [
-      input.capture_asset_ids,
-      input.organization_id,
-      input.project_id,
-      input.capture_session_id,
-    ]);
+    `,
+      [
+        input.capture_asset_ids,
+        input.organization_id,
+        input.project_id,
+        input.capture_session_id,
+      ],
+    );
 
     return result.rows.map((row) => row.id);
   },
 
   async create_demo_from_capture(input) {
     return with_transaction(db, async (client) => {
-      const demo_result = await client.query<InteractiveDemoRow>(`
+      const demo_result = await client.query<InteractiveDemoRow>(
+        `
         INSERT INTO interactive_demo_schema.interactive_demo (
           id,
           organization_id,
@@ -547,15 +592,17 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
         RETURNING ${interactive_demo_select}
-      `, [
-        ulid(),
-        input.organization_id,
-        input.project_id,
-        input.capture_session_id,
-        input.data.title,
-        input.data.description,
-        input.actor_org_user_id,
-      ]);
+      `,
+        [
+          ulid(),
+          input.organization_id,
+          input.project_id,
+          input.capture_session_id,
+          input.data.title,
+          input.data.description,
+          input.actor_org_user_id,
+        ],
+      );
       const demo_row = first_row(demo_result);
 
       if (!demo_row) {
@@ -564,7 +611,8 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
 
       const scene_rows: DemoSceneRow[] = [];
       for (const scene of input.data.scenes) {
-        const scene_result = await client.query<DemoSceneRow>(`
+        const scene_result = await client.query<DemoSceneRow>(
+          `
           INSERT INTO interactive_demo_schema.demo_scene (
             id,
             organization_id,
@@ -582,20 +630,22 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
           )
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
           RETURNING ${demo_scene_select}
-        `, [
-          ulid(),
-          input.organization_id,
-          input.project_id,
-          demo_row.id,
-          input.capture_session_id,
-          scene.source_capture_event_id,
-          scene.source_capture_asset_id,
-          scene.scene_index,
-          scene.title,
-          scene.description,
-          scene.background_capture_asset_id,
-          input.actor_org_user_id,
-        ]);
+        `,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            demo_row.id,
+            input.capture_session_id,
+            scene.source_capture_event_id,
+            scene.source_capture_asset_id,
+            scene.scene_index,
+            scene.title,
+            scene.description,
+            scene.background_capture_asset_id,
+            input.actor_org_user_id,
+          ],
+        );
         const scene_row = first_row(scene_result);
 
         if (!scene_row) {
@@ -613,16 +663,20 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
   },
 
   async create_scene(input) {
-    const index_result = await db.query<{ next_index: number }>(`
+    const index_result = await db.query<{ next_index: number }>(
+      `
       SELECT COALESCE(MAX(scene_index), 0) + 1 AS next_index
       FROM interactive_demo_schema.demo_scene
       WHERE organization_id = $1
       AND project_id = $2
       AND interactive_demo_id = $3
       AND is_deleted = FALSE
-    `, [input.organization_id, input.project_id, input.interactive_demo_id]);
+    `,
+      [input.organization_id, input.project_id, input.interactive_demo_id],
+    );
     const next_index = Number(index_result.rows[0]?.next_index ?? 1);
-    const result = await db.query<DemoSceneRow>(`
+    const result = await db.query<DemoSceneRow>(
+      `
       INSERT INTO interactive_demo_schema.demo_scene (
         id,
         organization_id,
@@ -640,20 +694,22 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
       RETURNING ${demo_scene_select}
-    `, [
-      ulid(),
-      input.organization_id,
-      input.project_id,
-      input.interactive_demo_id,
-      input.data.source_capture_session_id,
-      input.data.source_capture_event_id,
-      input.data.source_capture_asset_id,
-      next_index,
-      input.data.title,
-      input.data.description,
-      input.data.background_capture_asset_id,
-      input.actor_org_user_id,
-    ]);
+    `,
+      [
+        ulid(),
+        input.organization_id,
+        input.project_id,
+        input.interactive_demo_id,
+        input.data.source_capture_session_id,
+        input.data.source_capture_event_id,
+        input.data.source_capture_asset_id,
+        next_index,
+        input.data.title,
+        input.data.description,
+        input.data.background_capture_asset_id,
+        input.actor_org_user_id,
+      ],
+    );
     const row = first_row(result);
 
     if (!row) {
@@ -664,7 +720,8 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
   },
 
   async list_scenes(input) {
-    const result = await db.query<DemoSceneRow>(`
+    const result = await db.query<DemoSceneRow>(
+      `
       SELECT ${demo_scene_select}
       FROM interactive_demo_schema.demo_scene
       WHERE organization_id = $1
@@ -672,7 +729,9 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND interactive_demo_id = $3
       AND is_deleted = FALSE
       ORDER BY scene_index ASC, id ASC
-    `, [input.organization_id, input.project_id, input.interactive_demo_id]);
+    `,
+      [input.organization_id, input.project_id, input.interactive_demo_id],
+    );
 
     return result.rows.map(map_demo_scene);
   },
@@ -692,7 +751,8 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
     const organization_index = update.values.length + 3;
     const project_index = update.values.length + 4;
     const demo_index = update.values.length + 5;
-    const result = await db.query<DemoSceneRow>(`
+    const result = await db.query<DemoSceneRow>(
+      `
       UPDATE interactive_demo_schema.demo_scene
       SET ${[
         ...update.assignments,
@@ -706,7 +766,9 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND interactive_demo_id = $${demo_index}
       AND is_deleted = FALSE
       RETURNING ${demo_scene_select}
-    `, values);
+    `,
+      values,
+    );
     const row = first_row(result);
 
     return row ? map_demo_scene(row) : null;
@@ -718,7 +780,8 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       const scene_count = await client.query<{
         active_scene_count: string;
         matching_scene_count: string;
-      }>(`
+      }>(
+        `
         SELECT
           COUNT(*)::text AS active_scene_count,
           COUNT(*) FILTER (WHERE id = ANY($4::varchar[]))::text AS matching_scene_count
@@ -727,14 +790,20 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         AND project_id = $2
         AND interactive_demo_id = $3
         AND is_deleted = FALSE
-      `, [
-        input.organization_id,
-        input.project_id,
-        input.interactive_demo_id,
-        input.scene_ids,
-      ]);
-      const active_scene_count = Number(scene_count.rows[0]?.active_scene_count ?? 0);
-      const matching_scene_count = Number(scene_count.rows[0]?.matching_scene_count ?? 0);
+      `,
+        [
+          input.organization_id,
+          input.project_id,
+          input.interactive_demo_id,
+          input.scene_ids,
+        ],
+      );
+      const active_scene_count = Number(
+        scene_count.rows[0]?.active_scene_count ?? 0,
+      );
+      const matching_scene_count = Number(
+        scene_count.rows[0]?.matching_scene_count ?? 0,
+      );
 
       if (
         active_scene_count !== input.scene_ids.length ||
@@ -743,16 +812,24 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         return [];
       }
 
-      const current = await client.query<{ id: string; scene_index: number }>(`
+      const current = await client.query<{ id: string; scene_index: number }>(
+        `
         SELECT id, scene_index FROM interactive_demo_schema.demo_scene
         WHERE organization_id=$1 AND project_id=$2 AND interactive_demo_id=$3 AND is_deleted=FALSE
-      `, [input.organization_id, input.project_id, input.interactive_demo_id]);
-      const current_indexes = new Map(current.rows.map((row) => [row.id, row.scene_index]));
-      const changed_ids = input.scene_ids.filter((id, index) => current_indexes.get(id) !== index + 1);
+      `,
+        [input.organization_id, input.project_id, input.interactive_demo_id],
+      );
+      const current_indexes = new Map(
+        current.rows.map((row) => [row.id, row.scene_index]),
+      );
+      const changed_ids = input.scene_ids.filter(
+        (id, index) => current_indexes.get(id) !== index + 1,
+      );
       if (changed_ids.length === 0)
         return build_interactive_demo_repository(client).list_scenes(input);
 
-      await client.query(`
+      await client.query(
+        `
         UPDATE interactive_demo_schema.demo_scene
         SET scene_index = scene_index + 1000000
         WHERE organization_id = $1
@@ -760,16 +837,19 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         AND interactive_demo_id = $3
         AND is_deleted = FALSE
         AND id = ANY($4::varchar[])
-      `, [
-        input.organization_id,
-        input.project_id,
-        input.interactive_demo_id,
-        changed_ids,
-      ]);
+      `,
+        [
+          input.organization_id,
+          input.project_id,
+          input.interactive_demo_id,
+          changed_ids,
+        ],
+      );
 
       for (const [index, scene_id] of input.scene_ids.entries()) {
         if (!changed_ids.includes(scene_id)) continue;
-        const result = await client.query<DemoSceneRow>(`
+        const result = await client.query<DemoSceneRow>(
+          `
           UPDATE interactive_demo_schema.demo_scene
           SET
             scene_index = $1,
@@ -782,14 +862,16 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
           AND interactive_demo_id = $6
           AND is_deleted = FALSE
           RETURNING ${demo_scene_select}
-        `, [
-          index + 1,
-          input.actor_org_user_id,
-          scene_id,
-          input.organization_id,
-          input.project_id,
-          input.interactive_demo_id,
-        ]);
+        `,
+          [
+            index + 1,
+            input.actor_org_user_id,
+            scene_id,
+            input.organization_id,
+            input.project_id,
+            input.interactive_demo_id,
+          ],
+        );
         const row = first_row(result);
 
         if (!row) {
@@ -804,7 +886,8 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
   },
 
   async delete_scene(input) {
-    const result = await db.query<DemoSceneRow>(`
+    const result = await db.query<DemoSceneRow>(
+      `
       UPDATE interactive_demo_schema.demo_scene
       SET
         is_deleted = TRUE,
@@ -819,19 +902,22 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND interactive_demo_id = $5
       AND is_deleted = FALSE
       RETURNING ${demo_scene_select}
-    `, [
-      input.actor_org_user_id,
-      input.demo_scene_id,
-      input.organization_id,
-      input.project_id,
-      input.interactive_demo_id,
-    ]);
+    `,
+      [
+        input.actor_org_user_id,
+        input.demo_scene_id,
+        input.organization_id,
+        input.project_id,
+        input.interactive_demo_id,
+      ],
+    );
 
     return result.rows.length > 0;
   },
 
   async find_scene(input) {
-    const result = await db.query<DemoSceneRow>(`
+    const result = await db.query<DemoSceneRow>(
+      `
       SELECT ${demo_scene_select}
       FROM interactive_demo_schema.demo_scene
       WHERE id = $1
@@ -840,19 +926,22 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND interactive_demo_id = $4
       AND is_deleted = FALSE
       LIMIT 1
-    `, [
-      input.demo_scene_id,
-      input.organization_id,
-      input.project_id,
-      input.interactive_demo_id,
-    ]);
+    `,
+      [
+        input.demo_scene_id,
+        input.organization_id,
+        input.project_id,
+        input.interactive_demo_id,
+      ],
+    );
     const row = first_row(result);
 
     return row ? map_demo_scene(row) : null;
   },
 
   async create_hotspot(input) {
-    const index_result = await db.query<{ next_index: number }>(`
+    const index_result = await db.query<{ next_index: number }>(
+      `
       SELECT COALESCE(MAX(hotspot_index), 0) + 1 AS next_index
       FROM interactive_demo_schema.demo_hotspot
       WHERE organization_id = $1
@@ -860,14 +949,17 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND interactive_demo_id = $3
       AND demo_scene_id = $4
       AND is_deleted = FALSE
-    `, [
-      input.organization_id,
-      input.project_id,
-      input.interactive_demo_id,
-      input.demo_scene_id,
-    ]);
+    `,
+      [
+        input.organization_id,
+        input.project_id,
+        input.interactive_demo_id,
+        input.demo_scene_id,
+      ],
+    );
     const next_index = Number(index_result.rows[0]?.next_index ?? 1);
-    const result = await db.query<DemoHotspotRow>(`
+    const result = await db.query<DemoHotspotRow>(
+      `
       INSERT INTO interactive_demo_schema.demo_hotspot (
         id,
         organization_id,
@@ -888,23 +980,25 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15)
       RETURNING ${demo_hotspot_select}
-    `, [
-      ulid(),
-      input.organization_id,
-      input.project_id,
-      input.interactive_demo_id,
-      input.demo_scene_id,
-      input.data.hotspot_type,
-      input.data.label,
-      input.data.content,
-      input.data.x,
-      input.data.y,
-      input.data.width,
-      input.data.height,
-      input.data.target_scene_id,
-      next_index,
-      input.actor_org_user_id,
-    ]);
+    `,
+      [
+        ulid(),
+        input.organization_id,
+        input.project_id,
+        input.interactive_demo_id,
+        input.demo_scene_id,
+        input.data.hotspot_type,
+        input.data.label,
+        input.data.content,
+        input.data.x,
+        input.data.y,
+        input.data.width,
+        input.data.height,
+        input.data.target_scene_id,
+        next_index,
+        input.actor_org_user_id,
+      ],
+    );
     const row = first_row(result);
 
     if (!row) {
@@ -915,7 +1009,8 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
   },
 
   async list_hotspots(input) {
-    const result = await db.query<DemoHotspotRow>(`
+    const result = await db.query<DemoHotspotRow>(
+      `
       SELECT ${demo_hotspot_select}
       FROM interactive_demo_schema.demo_hotspot
       WHERE organization_id = $1
@@ -924,12 +1019,14 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND demo_scene_id = $4
       AND is_deleted = FALSE
       ORDER BY hotspot_index ASC, id ASC
-    `, [
-      input.organization_id,
-      input.project_id,
-      input.interactive_demo_id,
-      input.demo_scene_id,
-    ]);
+    `,
+      [
+        input.organization_id,
+        input.project_id,
+        input.interactive_demo_id,
+        input.demo_scene_id,
+      ],
+    );
 
     return result.rows.map(map_demo_hotspot);
   },
@@ -951,7 +1048,8 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
     const project_index = update.values.length + 4;
     const demo_index = update.values.length + 5;
     const scene_index = update.values.length + 6;
-    const result = await db.query<DemoHotspotRow>(`
+    const result = await db.query<DemoHotspotRow>(
+      `
       UPDATE interactive_demo_schema.demo_hotspot
       SET ${[
         ...update.assignments,
@@ -966,7 +1064,9 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND demo_scene_id = $${scene_index}
       AND is_deleted = FALSE
       RETURNING ${demo_hotspot_select}
-    `, values);
+    `,
+      values,
+    );
     const row = first_row(result);
 
     return row ? map_demo_hotspot(row) : null;
@@ -978,7 +1078,8 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       const hotspot_count = await client.query<{
         active_hotspot_count: string;
         matching_hotspot_count: string;
-      }>(`
+      }>(
+        `
         SELECT
           COUNT(*)::text AS active_hotspot_count,
           COUNT(*) FILTER (WHERE id = ANY($5::varchar[]))::text AS matching_hotspot_count
@@ -988,15 +1089,21 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         AND interactive_demo_id = $3
         AND demo_scene_id = $4
         AND is_deleted = FALSE
-      `, [
-        input.organization_id,
-        input.project_id,
-        input.interactive_demo_id,
-        input.demo_scene_id,
-        input.hotspot_ids,
-      ]);
-      const active_hotspot_count = Number(hotspot_count.rows[0]?.active_hotspot_count ?? 0);
-      const matching_hotspot_count = Number(hotspot_count.rows[0]?.matching_hotspot_count ?? 0);
+      `,
+        [
+          input.organization_id,
+          input.project_id,
+          input.interactive_demo_id,
+          input.demo_scene_id,
+          input.hotspot_ids,
+        ],
+      );
+      const active_hotspot_count = Number(
+        hotspot_count.rows[0]?.active_hotspot_count ?? 0,
+      );
+      const matching_hotspot_count = Number(
+        hotspot_count.rows[0]?.matching_hotspot_count ?? 0,
+      );
 
       if (
         active_hotspot_count !== input.hotspot_ids.length ||
@@ -1005,16 +1112,29 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         return [];
       }
 
-      const current = await client.query<{ id: string; hotspot_index: number }>(`
+      const current = await client.query<{ id: string; hotspot_index: number }>(
+        `
         SELECT id, hotspot_index FROM interactive_demo_schema.demo_hotspot
         WHERE organization_id=$1 AND project_id=$2 AND interactive_demo_id=$3 AND demo_scene_id=$4 AND is_deleted=FALSE
-      `, [input.organization_id, input.project_id, input.interactive_demo_id, input.demo_scene_id]);
-      const current_indexes = new Map(current.rows.map((row) => [row.id, row.hotspot_index]));
-      const changed_ids = input.hotspot_ids.filter((id, index) => current_indexes.get(id) !== index + 1);
+      `,
+        [
+          input.organization_id,
+          input.project_id,
+          input.interactive_demo_id,
+          input.demo_scene_id,
+        ],
+      );
+      const current_indexes = new Map(
+        current.rows.map((row) => [row.id, row.hotspot_index]),
+      );
+      const changed_ids = input.hotspot_ids.filter(
+        (id, index) => current_indexes.get(id) !== index + 1,
+      );
       if (changed_ids.length === 0)
         return build_interactive_demo_repository(client).list_hotspots(input);
 
-      await client.query(`
+      await client.query(
+        `
         UPDATE interactive_demo_schema.demo_hotspot
         SET hotspot_index = hotspot_index + 1000000
         WHERE organization_id = $1
@@ -1023,17 +1143,20 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         AND demo_scene_id = $4
         AND is_deleted = FALSE
         AND id = ANY($5::varchar[])
-      `, [
-        input.organization_id,
-        input.project_id,
-        input.interactive_demo_id,
-        input.demo_scene_id,
-        changed_ids,
-      ]);
+      `,
+        [
+          input.organization_id,
+          input.project_id,
+          input.interactive_demo_id,
+          input.demo_scene_id,
+          changed_ids,
+        ],
+      );
 
       for (const [index, hotspot_id] of input.hotspot_ids.entries()) {
         if (!changed_ids.includes(hotspot_id)) continue;
-        const result = await client.query<DemoHotspotRow>(`
+        const result = await client.query<DemoHotspotRow>(
+          `
           UPDATE interactive_demo_schema.demo_hotspot
           SET
             hotspot_index = $1,
@@ -1047,15 +1170,17 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
           AND demo_scene_id = $7
           AND is_deleted = FALSE
           RETURNING ${demo_hotspot_select}
-        `, [
-          index + 1,
-          input.actor_org_user_id,
-          hotspot_id,
-          input.organization_id,
-          input.project_id,
-          input.interactive_demo_id,
-          input.demo_scene_id,
-        ]);
+        `,
+          [
+            index + 1,
+            input.actor_org_user_id,
+            hotspot_id,
+            input.organization_id,
+            input.project_id,
+            input.interactive_demo_id,
+            input.demo_scene_id,
+          ],
+        );
         const row = first_row(result);
 
         if (!row) {
@@ -1070,7 +1195,8 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
   },
 
   async delete_hotspot(input) {
-    const result = await db.query<DemoHotspotRow>(`
+    const result = await db.query<DemoHotspotRow>(
+      `
       UPDATE interactive_demo_schema.demo_hotspot
       SET
         is_deleted = TRUE,
@@ -1086,14 +1212,16 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
       AND demo_scene_id = $6
       AND is_deleted = FALSE
       RETURNING ${demo_hotspot_select}
-    `, [
-      input.actor_org_user_id,
-      input.demo_hotspot_id,
-      input.organization_id,
-      input.project_id,
-      input.interactive_demo_id,
-      input.demo_scene_id,
-    ]);
+    `,
+      [
+        input.actor_org_user_id,
+        input.demo_hotspot_id,
+        input.organization_id,
+        input.project_id,
+        input.interactive_demo_id,
+        input.demo_scene_id,
+      ],
+    );
 
     return result.rows.length > 0;
   },

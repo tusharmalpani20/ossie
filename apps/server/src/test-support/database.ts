@@ -7,8 +7,7 @@ const assert_disposable_test_database = (
   env: TestDatabaseEnv = process.env,
 ) => {
   const database = env.DB_NAME ?? "";
-  const testing_runtime =
-    env.NODE_ENV === "test" || env.DEV_TYPE === "testing";
+  const testing_runtime = env.NODE_ENV === "test" || env.DEV_TYPE === "testing";
   const test_name =
     database.endsWith("_test") ||
     database.startsWith("test-") ||
@@ -26,8 +25,8 @@ export const assert_test_maintenance_connection = (
 ) => {
   assert_disposable_test_database(env);
   if (
-    connection.database !== env.DB_NAME
-    || connection.user !== env.DB_MAINTENANCE_USER
+    connection.database !== env.DB_NAME ||
+    connection.user !== env.DB_MAINTENANCE_USER
   ) {
     throw new Error(
       "Maintenance connection does not match the configured disposable test database",
@@ -46,22 +45,32 @@ export const with_maintenance_client = async <Result>(
       "SELECT current_database() AS database, current_user AS user",
     );
     const context = connection.rows[0];
-    if (!context) throw new Error("Maintenance connection context is unavailable");
+    if (!context)
+      throw new Error("Maintenance connection context is unavailable");
     assert_test_maintenance_connection(context);
-    return await callback(client);
-  } finally {
-    await client.end();
-  }
-};
-
-export const reset_test_database = async () =>
-  with_maintenance_client(async (client) => {
     await client.query("BEGIN");
     try {
       await client.query(
         "SELECT set_config('ossie.maintenance_mode', 'on', true)",
       );
-      await client.query(`
+      const result = await callback(client);
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    }
+  } finally {
+    await client.end();
+  }
+};
+
+export const run_test_fixture_mutation = (text: string, values?: unknown[]) =>
+  with_maintenance_client((client) => client.query(text, values));
+
+export const reset_test_database = async () =>
+  with_maintenance_client(async (client) => {
+    await client.query(`
       TRUNCATE TABLE
         audit_schema.audit_change_item,
         audit_schema.audit_event,
@@ -86,9 +95,4 @@ export const reset_test_database = async () =>
         user_schema.user
       RESTART IDENTITY
     `);
-      await client.query("COMMIT");
-    } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
-    }
   });

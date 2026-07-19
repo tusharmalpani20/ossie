@@ -13,7 +13,10 @@ type QueryResult<Row> = {
 };
 
 type Queryable = {
-  query: <Row = Record<string, unknown>>(sql: string, values?: unknown[]) => Promise<QueryResult<Row>>;
+  query: <Row = Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ) => Promise<QueryResult<Row>>;
 };
 
 type TransactionClient = Queryable & {
@@ -121,15 +124,17 @@ const capture_event_select = `
 
 const is_event_index_conflict = (error: unknown) => {
   const pg_error = error as { code?: string; constraint?: string };
-  return pg_error.code === "23505"
-    && pg_error.constraint === "uq_capture_event_session_index_active";
+  return (
+    pg_error.code === "23505" &&
+    pg_error.constraint === "uq_capture_event_session_index_active"
+  );
 };
 
 const with_transaction = async <Result>(
   db: TransactionCapableQueryable,
-  work: (client: Queryable) => Promise<Result>
+  work: (client: Queryable) => Promise<Result>,
 ) => {
-  if (!db.connect) {
+  if (!db.connect || "release" in db) {
     return work(db);
   }
 
@@ -150,20 +155,30 @@ const with_transaction = async <Result>(
 
 const read_capture_events = async (
   db: Queryable,
-  input: { capture_session_id: string; project_id: string; organization_id: string },
+  input: {
+    capture_session_id: string;
+    project_id: string;
+    organization_id: string;
+  },
 ) => {
-  const result = await db.query<CaptureEventRow>(`
+  const result = await db.query<CaptureEventRow>(
+    `
     SELECT ${capture_event_select}
     FROM capture_schema.capture_event
     WHERE capture_session_id=$1 AND project_id=$2 AND organization_id=$3 AND is_deleted=FALSE
     ORDER BY event_index ASC, created_at ASC, id ASC
-  `, [input.capture_session_id, input.project_id, input.organization_id]);
+  `,
+    [input.capture_session_id, input.project_id, input.organization_id],
+  );
   return result.rows.map(map_capture_event);
 };
 
-export const build_capture_event_repository = (db: TransactionCapableQueryable): CaptureEventRepository => ({
+export const build_capture_event_repository = (
+  db: TransactionCapableQueryable,
+): CaptureEventRepository => ({
   async project_exists(input) {
-    const result = await db.query<{ exists: boolean }>(`
+    const result = await db.query<{ exists: boolean }>(
+      `
       SELECT EXISTS (
         SELECT 1
         FROM project_schema.project
@@ -171,13 +186,16 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
         AND organization_id = $2
         AND is_deleted = FALSE
       ) AS exists
-    `, [input.project_id, input.organization_id]);
+    `,
+      [input.project_id, input.organization_id],
+    );
 
     return Boolean(result.rows[0]?.exists);
   },
 
   async capture_session_exists(input) {
-    const result = await db.query<{ exists: boolean }>(`
+    const result = await db.query<{ exists: boolean }>(
+      `
       SELECT EXISTS (
         SELECT 1
         FROM capture_schema.capture_session
@@ -186,17 +204,16 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
         AND organization_id = $3
         AND is_deleted = FALSE
       ) AS exists
-    `, [
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.capture_session_id, input.project_id, input.organization_id],
+    );
 
     return Boolean(result.rows[0]?.exists);
   },
 
   async get_capture_session_source_type(input) {
-    const result = await db.query<{ source_type: CaptureSessionSourceType }>(`
+    const result = await db.query<{ source_type: CaptureSessionSourceType }>(
+      `
       SELECT capture_session.source_type
       FROM capture_schema.capture_session capture_session
       INNER JOIN project_schema.project project ON project.id = capture_session.project_id
@@ -206,11 +223,9 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
       AND capture_session.is_deleted = FALSE
       AND project.is_deleted = FALSE
       LIMIT 1
-    `, [
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.capture_session_id, input.project_id, input.organization_id],
+    );
 
     return result.rows[0]?.source_type ?? null;
   },
@@ -219,7 +234,8 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
     const result = await db.query<{
       source_type: CaptureSessionSourceType;
       status: CaptureSessionStatus;
-    }>(`
+    }>(
+      `
       SELECT capture_session.source_type, capture_session.status
       FROM capture_schema.capture_session capture_session
       INNER JOIN project_schema.project project ON project.id = capture_session.project_id
@@ -229,17 +245,16 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
       AND capture_session.is_deleted = FALSE
       AND project.is_deleted = FALSE
       LIMIT 1
-    `, [
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.capture_session_id, input.project_id, input.organization_id],
+    );
 
     return result.rows[0] ?? null;
   },
 
   async capture_asset_exists(input) {
-    const result = await db.query<{ exists: boolean }>(`
+    const result = await db.query<{ exists: boolean }>(
+      `
       SELECT EXISTS (
         SELECT 1
         FROM capture_schema.capture_asset
@@ -249,19 +264,22 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
         AND organization_id = $4
         AND is_deleted = FALSE
       ) AS exists
-    `, [
-      input.capture_asset_id,
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [
+        input.capture_asset_id,
+        input.capture_session_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
 
     return Boolean(result.rows[0]?.exists);
   },
 
   async create_capture_event(input) {
     try {
-      const result = await db.query<CaptureEventRow>(`
+      const result = await db.query<CaptureEventRow>(
+        `
         INSERT INTO capture_schema.capture_event (
           id,
           organization_id,
@@ -296,32 +314,34 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
           $21, TRUE, $22, $23, $24, $24
         )
         RETURNING ${capture_event_select}
-      `, [
-        ulid(),
-        input.organization_id,
-        input.project_id,
-        input.capture_session_id,
-        input.data.capture_asset_id ?? null,
-        input.data.event_type,
-        input.data.event_index,
-        input.data.occurred_at ?? null,
-        input.data.page_url ?? null,
-        input.data.page_title ?? null,
-        input.data.target_label ?? null,
-        input.data.target_selector ?? null,
-        input.data.target_role ?? null,
-        input.data.target_test_id ?? null,
-        input.data.target_text ?? null,
-        input.data.client_x ?? null,
-        input.data.client_y ?? null,
-        input.data.viewport_width ?? null,
-        input.data.viewport_height ?? null,
-        input.data.device_pixel_ratio ?? null,
-        input.data.input_intent ?? null,
-        input.data.note ?? null,
-        input.data.metadata ?? null,
-        input.actor_org_user_id,
-      ]);
+      `,
+        [
+          ulid(),
+          input.organization_id,
+          input.project_id,
+          input.capture_session_id,
+          input.data.capture_asset_id ?? null,
+          input.data.event_type,
+          input.data.event_index,
+          input.data.occurred_at ?? null,
+          input.data.page_url ?? null,
+          input.data.page_title ?? null,
+          input.data.target_label ?? null,
+          input.data.target_selector ?? null,
+          input.data.target_role ?? null,
+          input.data.target_test_id ?? null,
+          input.data.target_text ?? null,
+          input.data.client_x ?? null,
+          input.data.client_y ?? null,
+          input.data.viewport_width ?? null,
+          input.data.viewport_height ?? null,
+          input.data.device_pixel_ratio ?? null,
+          input.data.input_intent ?? null,
+          input.data.note ?? null,
+          input.data.metadata ?? null,
+          input.actor_org_user_id,
+        ],
+      );
       const row = first_row(result);
 
       if (!row) {
@@ -350,7 +370,8 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
       values.push(input.event_type);
     }
 
-    const result = await db.query<CaptureEventRow>(`
+    const result = await db.query<CaptureEventRow>(
+      `
       SELECT ${capture_event_select}
       FROM capture_schema.capture_event
       WHERE capture_session_id = $1
@@ -359,13 +380,16 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
       AND is_deleted = FALSE
       ${event_type_filter}
       ORDER BY event_index ASC, created_at ASC, id ASC
-    `, values);
+    `,
+      values,
+    );
 
     return result.rows.map(map_capture_event);
   },
 
   async find_capture_event(input) {
-    const result = await db.query<CaptureEventRow>(`
+    const result = await db.query<CaptureEventRow>(
+      `
       SELECT ${capture_event_select}
       FROM capture_schema.capture_event
       WHERE id = $1
@@ -374,19 +398,22 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
       AND organization_id = $4
       AND is_deleted = FALSE
       LIMIT 1
-    `, [
-      input.capture_event_id,
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [
+        input.capture_event_id,
+        input.capture_session_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
     const row = first_row(result);
 
     return row ? map_capture_event(row) : null;
   },
 
   async delete_capture_event(input) {
-    const result = await db.query<CaptureEventRow>(`
+    const result = await db.query<CaptureEventRow>(
+      `
       UPDATE capture_schema.capture_event
       SET
         is_deleted = TRUE,
@@ -401,19 +428,22 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
       AND organization_id = $5
       AND is_deleted = FALSE
       RETURNING ${capture_event_select}
-    `, [
-      input.actor_org_user_id,
-      input.capture_event_id,
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [
+        input.actor_org_user_id,
+        input.capture_event_id,
+        input.capture_session_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
 
     return result.rows.length > 0;
   },
 
   async update_capture_event(input) {
-    const result = await db.query<CaptureEventRow>(`
+    const result = await db.query<CaptureEventRow>(
+      `
       UPDATE capture_schema.capture_event
       SET
         page_url = CASE WHEN $1::boolean THEN $2 ELSE page_url END,
@@ -431,25 +461,27 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
       AND organization_id = $17
       AND is_deleted = FALSE
       RETURNING ${capture_event_select}
-    `, [
-      Object.hasOwn(input.data, "page_url"),
-      input.data.page_url ?? null,
-      Object.hasOwn(input.data, "page_title"),
-      input.data.page_title ?? null,
-      Object.hasOwn(input.data, "target_label"),
-      input.data.target_label ?? null,
-      Object.hasOwn(input.data, "target_text"),
-      input.data.target_text ?? null,
-      Object.hasOwn(input.data, "input_intent"),
-      input.data.input_intent ?? null,
-      Object.hasOwn(input.data, "note"),
-      input.data.note ?? null,
-      input.actor_org_user_id,
-      input.capture_event_id,
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [
+        Object.hasOwn(input.data, "page_url"),
+        input.data.page_url ?? null,
+        Object.hasOwn(input.data, "page_title"),
+        input.data.page_title ?? null,
+        Object.hasOwn(input.data, "target_label"),
+        input.data.target_label ?? null,
+        Object.hasOwn(input.data, "target_text"),
+        input.data.target_text ?? null,
+        Object.hasOwn(input.data, "input_intent"),
+        input.data.input_intent ?? null,
+        Object.hasOwn(input.data, "note"),
+        input.data.note ?? null,
+        input.actor_org_user_id,
+        input.capture_event_id,
+        input.capture_session_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
     const row = first_row(result);
 
     return row ? map_capture_event(row) : null;
@@ -457,22 +489,32 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
 
   async reorder_capture_events(input) {
     return with_transaction(db, async (client) => {
-      const current = await client.query<{ id: string; event_index: number }>(`
+      const current = await client.query<{ id: string; event_index: number }>(
+        `
         SELECT id, event_index FROM capture_schema.capture_event
         WHERE capture_session_id=$1 AND project_id=$2 AND organization_id=$3 AND is_deleted=FALSE
-      `, [input.capture_session_id, input.project_id, input.organization_id]);
-      const current_indexes = new Map(current.rows.map((row) => [row.id, row.event_index]));
+      `,
+        [input.capture_session_id, input.project_id, input.organization_id],
+      );
+      const current_indexes = new Map(
+        current.rows.map((row) => [row.id, row.event_index]),
+      );
       const changed = input.event_ids
         .map((id, index) => ({ id, final_index: index + 1 }))
-        .filter(({ id, final_index }) => current_indexes.get(id) !== final_index);
+        .filter(
+          ({ id, final_index }) => current_indexes.get(id) !== final_index,
+        );
       const event_ids = changed.map(({ id }) => id);
       const final_indexes = changed.map(({ final_index }) => final_index);
-      const temporary_indexes = final_indexes.map((index) => index + input.event_ids.length + 100000);
+      const temporary_indexes = final_indexes.map(
+        (index) => index + input.event_ids.length + 100000,
+      );
 
       if (changed.length === 0) {
         return read_capture_events(client, input);
       }
-      await client.query(`
+      await client.query(
+        `
         UPDATE capture_schema.capture_event capture_event
         SET event_index = ordered.temporary_index
         FROM (
@@ -484,15 +526,18 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
         AND capture_event.project_id = $4
         AND capture_event.organization_id = $5
         AND capture_event.is_deleted = FALSE
-      `, [
-        event_ids,
-        temporary_indexes,
-        input.capture_session_id,
-        input.project_id,
-        input.organization_id,
-      ]);
+      `,
+        [
+          event_ids,
+          temporary_indexes,
+          input.capture_session_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      );
 
-      await client.query(`
+      await client.query(
+        `
         UPDATE capture_schema.capture_event capture_event
         SET
           event_index = ordered.final_index,
@@ -508,14 +553,16 @@ export const build_capture_event_repository = (db: TransactionCapableQueryable):
         AND capture_event.project_id = $4
         AND capture_event.organization_id = $5
         AND capture_event.is_deleted = FALSE
-      `, [
-        event_ids,
-        final_indexes,
-        input.capture_session_id,
-        input.project_id,
-        input.organization_id,
-        input.actor_org_user_id,
-      ]);
+      `,
+        [
+          event_ids,
+          final_indexes,
+          input.capture_session_id,
+          input.project_id,
+          input.organization_id,
+          input.actor_org_user_id,
+        ],
+      );
 
       return read_capture_events(client, input);
     });

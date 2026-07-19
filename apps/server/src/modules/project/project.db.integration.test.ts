@@ -2,7 +2,10 @@ import { ulid } from "ulid";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
-import { reset_test_database, with_maintenance_client } from "../../test-support/database";
+import {
+  reset_test_database,
+  with_maintenance_client,
+} from "../../test-support/database";
 
 const setup_owner = async () => {
   const app = build({ logger: false });
@@ -24,7 +27,9 @@ const setup_owner = async () => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  const session_cookie = response.cookies.find((cookie) => cookie.name === "ossie_session");
+  const session_cookie = response.cookies.find(
+    (cookie) => cookie.name === "ossie_session",
+  );
   expect(session_cookie?.value).toEqual(expect.any(String));
   return session_cookie?.value ?? "";
 };
@@ -36,20 +41,32 @@ const insert_cross_org_project = async () => {
   const project_id = ulid();
 
   await with_maintenance_client(async (client) => {
-  await client.query(`
+    await client.query(
+      `
     INSERT INTO user_schema.user (id, email, password_hash, display_name)
     VALUES ($1, 'other@example.com', 'hash.salt', 'Other User')
-  `, [user_id]);
-  await client.query(`
+  `,
+      [user_id],
+    );
+    await client.query(
+      `
     INSERT INTO organization_schema.organization (id, name)
     VALUES ($1, 'Other Org')
-  `, [organization_id]);
-  await client.query(`
+  `,
+      [organization_id],
+    );
+    await client.query(
+      `
     INSERT INTO organization_schema.org_user (id, user_id, organization_id, role)
     VALUES ($1, $2, $3, 'owner')
-  `, [org_user_id, user_id, organization_id]);
-  await client.query("SELECT set_config('ossie.maintenance_mode', 'on', false)");
-  await client.query(`
+  `,
+      [org_user_id, user_id, organization_id],
+    );
+    await client.query(
+      "SELECT set_config('ossie.maintenance_mode', 'on', false)",
+    );
+    await client.query(
+      `
     INSERT INTO project_schema.project (
       id,
       organization_id,
@@ -58,7 +75,9 @@ const insert_cross_org_project = async () => {
       updated_by_id
     )
     VALUES ($1, $2, 'Other Project', $3, $3)
-  `, [project_id, organization_id, org_user_id]);
+  `,
+      [project_id, organization_id, org_user_id],
+    );
   });
 
   return project_id;
@@ -178,11 +197,14 @@ describe("DB-backed project foundation API", () => {
       created_by_id: string;
       updated_by_id: string;
       version: number;
-    }>(`
+    }>(
+      `
       SELECT organization_id, created_by_id, updated_by_id, version
       FROM project_schema.project
       WHERE id = $1
-    `, [project_id]);
+    `,
+      [project_id],
+    );
     const owner_context = await get_owner_context();
 
     expect(persisted.rows[0]).toMatchObject({
@@ -235,11 +257,18 @@ describe("DB-backed project foundation API", () => {
     });
 
     expect(duplicate_name_response.statusCode).toBe(409);
-    expect(duplicate_name_response.json().error.type).toBe("project_name_conflict");
+    expect(duplicate_name_response.json().error.type).toBe(
+      "project_name_conflict",
+    );
     expect(duplicate_slug_response.statusCode).toBe(409);
-    expect(duplicate_slug_response.json().error.type).toBe("project_slug_conflict");
+    expect(duplicate_slug_response.json().error.type).toBe(
+      "project_slug_conflict",
+    );
     const audit_count_after_conflicts = await pool.query<{ count: string }>(
-      "SELECT COUNT(*) AS count FROM audit_schema.audit_event",
+      `SELECT COUNT(*) AS count
+       FROM audit_schema.audit_event
+       WHERE project_id = $1 AND action = 'project.created'`,
+      [first_project_id],
     );
     expect(Number(audit_count_after_conflicts.rows[0]?.count)).toBe(1);
 
@@ -328,11 +357,14 @@ describe("DB-backed project foundation API", () => {
       status: string;
       updated_by_id: string;
       version: number;
-    }>(`
+    }>(
+      `
       SELECT is_deleted, deleted_at, deleted_by_id, status, updated_by_id, version
       FROM project_schema.project
       WHERE id = $1
-    `, [project_id]);
+    `,
+      [project_id],
+    );
 
     expect(persisted.rows[0]).toMatchObject({
       is_deleted: true,
@@ -396,7 +428,9 @@ describe("DB-backed project foundation API", () => {
       },
     });
     expect(cross_org_delete_response.statusCode).toBe(404);
-    expect(cross_org_delete_response.json().error.type).toBe("project_not_found");
+    expect(cross_org_delete_response.json().error.type).toBe(
+      "project_not_found",
+    );
 
     await app.close();
   });

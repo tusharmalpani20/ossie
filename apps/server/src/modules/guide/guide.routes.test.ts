@@ -2,7 +2,10 @@ import cookie from "@fastify/cookie";
 import multipart from "@fastify/multipart";
 import fastify from "fastify";
 import { Readable } from "node:stream";
-import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import {
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
 import { describe, expect, it, vi } from "vitest";
 import { UnauthenticatedSessionError } from "../authentication/session.service";
 import type { CaptureAsset } from "../capture-asset/capture-asset.service";
@@ -59,61 +62,66 @@ const guide_detail: GuideDetail = {
     created_at: "2026-06-05T00:00:00.000Z",
     updated_at: "2026-06-05T00:00:00.000Z",
   },
-  guide_blocks: [{
-    id: "block_1",
-    organization_id: "organization_1",
-    project_id: "project_1",
-    guide_id: "guide_1",
-    source_capture_session_id: "capture_session_1",
-    source_capture_event_id: "event_1",
-    source_capture_asset_id: "asset_1",
-    selected_capture_asset_id: null,
-    screenshot_hidden: false,
-    display_capture_asset_id: "asset_1",
-    block_type: "step",
-    content: null,
-    block_index: 1,
-    created_by_id: "org_user_1",
-    updated_by_id: "org_user_1",
-    version: 1,
-    created_at: "2026-06-05T00:00:00.000Z",
-    updated_at: "2026-06-05T00:00:00.000Z",
-    step: {
-      id: "step_1",
+  guide_blocks: [
+    {
+      id: "block_1",
       organization_id: "organization_1",
       project_id: "project_1",
       guide_id: "guide_1",
-      guide_block_id: "block_1",
       source_capture_session_id: "capture_session_1",
       source_capture_event_id: "event_1",
       source_capture_asset_id: "asset_1",
-      title: "Navigate to \"Department List\"",
-      body: null,
+      selected_capture_asset_id: null,
+      screenshot_hidden: false,
+      display_capture_asset_id: "asset_1",
+      block_type: "step",
+      content: null,
+      block_index: 1,
       created_by_id: "org_user_1",
       updated_by_id: "org_user_1",
       version: 1,
       created_at: "2026-06-05T00:00:00.000Z",
       updated_at: "2026-06-05T00:00:00.000Z",
+      step: {
+        id: "step_1",
+        organization_id: "organization_1",
+        project_id: "project_1",
+        guide_id: "guide_1",
+        guide_block_id: "block_1",
+        source_capture_session_id: "capture_session_1",
+        source_capture_event_id: "event_1",
+        source_capture_asset_id: "asset_1",
+        title: 'Navigate to "Department List"',
+        body: null,
+        created_by_id: "org_user_1",
+        updated_by_id: "org_user_1",
+        version: 1,
+        created_at: "2026-06-05T00:00:00.000Z",
+        updated_at: "2026-06-05T00:00:00.000Z",
+      },
     },
-  }],
-  source_capture_assets: [{
-    id: "asset_1",
-    capture_session_id: "capture_session_1",
-    asset_type: "screenshot",
-    width: 1440,
-    height: 900,
-    device_pixel_ratio: 1,
-    page_url: "https://example.test/departments",
-    page_title: "Department List",
-    captured_at: "2026-06-05T00:00:00.000Z",
-    file_url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/asset_1/file",
-    file: {
-      id: "file_1",
-      original_name: "departments.png",
-      mime_type: "image/png",
-      size_bytes: 123456,
+  ],
+  source_capture_assets: [
+    {
+      id: "asset_1",
+      capture_session_id: "capture_session_1",
+      asset_type: "screenshot",
+      width: 1440,
+      height: 900,
+      device_pixel_ratio: 1,
+      page_url: "https://example.test/departments",
+      page_title: "Department List",
+      captured_at: "2026-06-05T00:00:00.000Z",
+      file_url:
+        "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/asset_1/file",
+      file: {
+        id: "file_1",
+        original_name: "departments.png",
+        mime_type: "image/png",
+        size_bytes: 123456,
+      },
     },
-  }],
+  ],
 };
 const guide_block = guide_detail.guide_blocks[0]!;
 const guide_step = guide_block.step!;
@@ -146,11 +154,18 @@ const uploaded_capture_asset: CaptureAsset = {
 
 const build_test_app = async (
   overrides: {
-    auth_service?: Partial<Parameters<typeof build_guide_routes>[0]["auth_service"]>;
-    guide_service?: Partial<Parameters<typeof build_guide_routes>[0]["guide_service"]>;
-    capture_asset_service?: Partial<NonNullable<Parameters<typeof build_guide_routes>[0]["capture_asset_service"]>>;
-    guide_screenshot_upload_service?: Parameters<typeof build_guide_routes>[0]["guide_screenshot_upload_service"];
-  } = {}
+    auth_service?: Partial<
+      Parameters<typeof build_guide_routes>[0]["auth_service"]
+    >;
+    guide_service?: Partial<
+      Parameters<typeof build_guide_routes>[0]["guide_service"]
+    >;
+    guide_screenshot_upload_service?:
+      | Parameters<
+          typeof build_guide_routes
+        >[0]["guide_screenshot_upload_service"]
+      | null;
+  } = {},
 ) => {
   const app = fastify();
   app.setValidatorCompiler(validatorCompiler);
@@ -162,83 +177,112 @@ const build_test_app = async (
       fileSize: 20,
     },
   });
-  await app.register(build_guide_routes({
-    auth_service: {
-      get_current_auth_context: async () => auth_context,
-      ...overrides.auth_service,
-    },
-    guide_service: {
-      create_guide_from_capture: async () => guide_detail,
-      list_guides: async () => [guide_detail.guide],
-      get_guide_detail: async () => guide_detail,
-      export_guide_markdown: async () => ({
-        filename: "department-guide.md",
-        markdown: "# Department guide\n",
-      }),
-      export_guide_html_zip: async () => ({
-        filename: "department-guide-html-export.zip",
-        mime_type: "application/zip",
-        stream: Readable.from(Buffer.from("zip-bytes")),
-        size_bytes: 9,
-      }),
-      update_guide: async () => ({ ...guide_detail.guide, version: 2 }),
-      update_guide_step: async () => ({ ...guide_step, version: 2 }),
-      reorder_guide_blocks: async () => guide_detail.guide_blocks,
-      create_guide_block: async () => guide_detail.guide_blocks,
-      update_guide_block: async () => ({ ...guide_block, block_type: "tip", content: { title: "Tip", body: "Details" }, step: null }),
-      update_guide_block_annotations: async () => ({
-        ...guide_block,
-        content: {
-          annotations: [{
-            id: "ann_1",
-            type: "highlight",
-            x: 0.1,
-            y: 0.2,
-            width: 0.3,
-            height: 0.4,
-          }],
-        },
-      }),
-      delete_guide_block: async () => undefined,
-      prepare_guide_block_screenshot_upload: async () => ({ capture_session_id: "capture_session_1" }),
-      ...overrides.guide_service,
-      update_guide_block_screenshot: overrides.guide_service?.update_guide_block_screenshot ?? (async () => ({
-        ...guide_block,
-        selected_capture_asset_id: "asset_1",
-        screenshot_hidden: false,
-        display_capture_asset_id: "asset_1",
-      })),
-    },
-    capture_asset_service: {
-      upload_capture_asset: async () => uploaded_capture_asset,
-      ...overrides.capture_asset_service,
-    },
-    guide_screenshot_upload_service: overrides.guide_screenshot_upload_service,
-  }), { prefix: "/api/v1/projects" });
+  await app.register(
+    build_guide_routes({
+      auth_service: {
+        get_current_auth_context: async () => auth_context,
+        ...overrides.auth_service,
+      },
+      guide_service: {
+        create_guide_from_capture: async () => guide_detail,
+        list_guides: async () => [guide_detail.guide],
+        get_guide_detail: async () => guide_detail,
+        export_guide_markdown: async () => ({
+          filename: "department-guide.md",
+          markdown: "# Department guide\n",
+        }),
+        export_guide_html_zip: async () => ({
+          filename: "department-guide-html-export.zip",
+          mime_type: "application/zip",
+          stream: Readable.from(Buffer.from("zip-bytes")),
+          size_bytes: 9,
+        }),
+        update_guide: async () => ({ ...guide_detail.guide, version: 2 }),
+        update_guide_step: async () => ({ ...guide_step, version: 2 }),
+        reorder_guide_blocks: async () => guide_detail.guide_blocks,
+        create_guide_block: async () => guide_detail.guide_blocks,
+        update_guide_block: async () => ({
+          ...guide_block,
+          block_type: "tip",
+          content: { title: "Tip", body: "Details" },
+          step: null,
+        }),
+        update_guide_block_annotations: async () => ({
+          ...guide_block,
+          content: {
+            annotations: [
+              {
+                id: "ann_1",
+                type: "highlight",
+                x: 0.1,
+                y: 0.2,
+                width: 0.3,
+                height: 0.4,
+              },
+            ],
+          },
+        }),
+        delete_guide_block: async () => undefined,
+        prepare_guide_block_screenshot_upload: async () => ({
+          capture_session_id: "capture_session_1",
+        }),
+        ...overrides.guide_service,
+        update_guide_block_screenshot:
+          overrides.guide_service?.update_guide_block_screenshot ??
+          (async () => ({
+            ...guide_block,
+            selected_capture_asset_id: "asset_1",
+            screenshot_hidden: false,
+            display_capture_asset_id: "asset_1",
+          })),
+      },
+      guide_screenshot_upload_service:
+        overrides.guide_screenshot_upload_service === null
+          ? (null as never)
+          : (overrides.guide_screenshot_upload_service ?? {
+              upload: async () => ({
+                capture_asset: uploaded_capture_asset,
+                guide_block: {
+                  ...guide_block,
+                  selected_capture_asset_id: uploaded_capture_asset.id,
+                  screenshot_hidden: false,
+                  display_capture_asset_id: uploaded_capture_asset.id,
+                },
+              }),
+            }),
+    }),
+    { prefix: "/api/v1/projects" },
+  );
   return app;
 };
 
-const multipart_payload = (parts: Array<{
-  name: string;
-  value: string | Buffer;
-  filename?: string;
-  content_type?: string;
-}>) => {
+const multipart_payload = (
+  parts: Array<{
+    name: string;
+    value: string | Buffer;
+    filename?: string;
+    content_type?: string;
+  }>,
+) => {
   const boundary = "----ossie-test-boundary";
   const chunks: Buffer[] = [];
 
   for (const part of parts) {
     chunks.push(Buffer.from(`--${boundary}\r\n`));
-    chunks.push(Buffer.from(
-      `Content-Disposition: form-data; name="${part.name}"${
-        part.filename ? `; filename="${part.filename}"` : ""
-      }\r\n`
-    ));
+    chunks.push(
+      Buffer.from(
+        `Content-Disposition: form-data; name="${part.name}"${
+          part.filename ? `; filename="${part.filename}"` : ""
+        }\r\n`,
+      ),
+    );
     if (part.content_type) {
       chunks.push(Buffer.from(`Content-Type: ${part.content_type}\r\n`));
     }
     chunks.push(Buffer.from("\r\n"));
-    chunks.push(Buffer.isBuffer(part.value) ? part.value : Buffer.from(part.value));
+    chunks.push(
+      Buffer.isBuffer(part.value) ? part.value : Buffer.from(part.value),
+    );
     chunks.push(Buffer.from("\r\n"));
   }
 
@@ -253,6 +297,13 @@ const multipart_payload = (parts: Array<{
 };
 
 describe("guide routes", () => {
+  it("refuses to register without the atomic screenshot upload dependency", async () => {
+    await expect(
+      build_test_app({
+        guide_screenshot_upload_service: null,
+      }),
+    ).rejects.toThrow(/atomic Guide screenshot upload service is required/u);
+  });
   it("creates a guide from a capture session using auth and URL scope", async () => {
     const seen_inputs: unknown[] = [];
     const app = await build_test_app({
@@ -285,19 +336,21 @@ describe("guide routes", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(seen_inputs).toEqual([{
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
+    expect(seen_inputs).toEqual([
+      {
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
+        },
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        data: {
+          title: "Department guide",
+          description: null,
+          selected_capture_event_ids: ["event_2", "event_1"],
+        },
       },
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      data: {
-        title: "Department guide",
-        description: null,
-        selected_capture_event_ids: ["event_2", "event_1"],
-      },
-    }]);
+    ]);
     expect(response.json()).toEqual(guide_detail);
     expect(JSON.stringify(response.json())).not.toContain("target_selector");
     expect(JSON.stringify(response.json())).not.toContain("input_intent");
@@ -324,7 +377,9 @@ describe("guide routes", () => {
     expect(get_response.statusCode).toBe(200);
     expect(get_response.json()).toEqual(guide_detail);
     expect(JSON.stringify(get_response.json())).not.toContain("storage_key");
-    expect(JSON.stringify(get_response.json())).not.toContain("checksum_sha256");
+    expect(JSON.stringify(get_response.json())).not.toContain(
+      "checksum_sha256",
+    );
     await app.close();
   });
 
@@ -359,14 +414,16 @@ describe("guide routes", () => {
       filename: "department-guide.md",
       markdown: "# Department guide\n",
     });
-    expect(seen_inputs).toEqual([{
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
+    expect(seen_inputs).toEqual([
+      {
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
+        },
+        project_id: "project_1",
+        guide_id: "guide_1",
       },
-      project_id: "project_1",
-      guide_id: "guide_1",
-    }]);
+    ]);
     expect(JSON.stringify(response.json())).not.toContain("attacker");
     await app.close();
   });
@@ -397,17 +454,19 @@ describe("guide routes", () => {
     expect(response.headers["content-type"]).toBe("application/zip");
     expect(response.headers["content-length"]).toBe("9");
     expect(response.headers["content-disposition"]).toBe(
-      "attachment; filename=\"department-guide-html-export.zip\""
+      'attachment; filename="department-guide-html-export.zip"',
     );
     expect(response.body).toBe("zip-bytes");
-    expect(seen_inputs).toEqual([{
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
+    expect(seen_inputs).toEqual([
+      {
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
+        },
+        project_id: "project_1",
+        guide_id: "guide_1",
       },
-      project_id: "project_1",
-      guide_id: "guide_1",
-    }]);
+    ]);
     await app.close();
   });
 
@@ -417,7 +476,13 @@ describe("guide routes", () => {
       guide_service: {
         update_guide: async (input) => {
           seen_inputs.push(input);
-          return { ...guide_detail.guide, title: "Updated", description: null, status: "archived", version: 2 };
+          return {
+            ...guide_detail.guide,
+            title: "Updated",
+            description: null,
+            status: "archived",
+            version: 2,
+          };
         },
       },
     });
@@ -436,20 +501,26 @@ describe("guide routes", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().guide).toMatchObject({ title: "Updated", status: "archived", version: 2 });
-    expect(seen_inputs).toEqual([{
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
+    expect(response.json().guide).toMatchObject({
+      title: "Updated",
+      status: "archived",
+      version: 2,
+    });
+    expect(seen_inputs).toEqual([
+      {
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
+        },
+        project_id: "project_1",
+        guide_id: "guide_1",
+        data: {
+          title: "Updated",
+          description: null,
+          status: "archived",
+        },
       },
-      project_id: "project_1",
-      guide_id: "guide_1",
-      data: {
-        title: "Updated",
-        description: null,
-        status: "archived",
-      },
-    }]);
+    ]);
   });
 
   it("updates guide steps reorders blocks and deletes blocks through the service", async () => {
@@ -458,7 +529,12 @@ describe("guide routes", () => {
       guide_service: {
         update_guide_step: async (input) => {
           seen_inputs.push(input);
-          return { ...guide_step, title: "Updated step", body: "Details", version: 2 };
+          return {
+            ...guide_step,
+            title: "Updated step",
+            body: "Details",
+            version: 2,
+          };
         },
         reorder_guide_blocks: async (input) => {
           seen_inputs.push(input);
@@ -495,9 +571,15 @@ describe("guide routes", () => {
     });
 
     expect(step_response.statusCode).toBe(200);
-    expect(step_response.json().guide_step).toMatchObject({ title: "Updated step", body: "Details", version: 2 });
+    expect(step_response.json().guide_step).toMatchObject({
+      title: "Updated step",
+      body: "Details",
+      version: 2,
+    });
     expect(reorder_response.statusCode).toBe(200);
-    expect(reorder_response.json().guide_blocks).toEqual([{ ...guide_block, id: "block_2", block_index: 1 }]);
+    expect(reorder_response.json().guide_blocks).toEqual([
+      { ...guide_block, id: "block_2", block_index: 1 },
+    ]);
     expect(delete_response.statusCode).toBe(204);
     expect(delete_response.body).toBe("");
     expect(seen_inputs).toEqual([
@@ -597,7 +679,10 @@ describe("guide routes", () => {
     });
 
     expect(create_response.statusCode).toBe(201);
-    expect(create_response.json().guide_blocks).toEqual([guide_block, tip_block]);
+    expect(create_response.json().guide_blocks).toEqual([
+      guide_block,
+      tip_block,
+    ]);
     expect(update_response.statusCode).toBe(200);
     expect(update_response.json().guide_block).toMatchObject({
       id: "block_tip",
@@ -670,7 +755,9 @@ describe("guide routes", () => {
       guide_service: {
         create_guide_block: async (input) => {
           seen_inputs.push(input);
-          return input.data.block_type === "paragraph" ? [paragraph_block] : [divider_block];
+          return input.data.block_type === "paragraph"
+            ? [paragraph_block]
+            : [divider_block];
         },
       },
     });
@@ -827,14 +914,16 @@ describe("guide routes", () => {
           return {
             ...guide_block,
             content: {
-              annotations: [{
-                id: "ann_saved",
-                type: "highlight" as const,
-                x: 0.1,
-                y: 0.2,
-                width: 0.3,
-                height: 0.4,
-              }],
+              annotations: [
+                {
+                  id: "ann_saved",
+                  type: "highlight" as const,
+                  x: 0.1,
+                  y: 0.2,
+                  width: 0.3,
+                  height: 0.4,
+                },
+              ],
             },
           };
         },
@@ -846,48 +935,56 @@ describe("guide routes", () => {
       url: "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/annotations",
       cookies: { ossie_session: "session-token" },
       payload: {
-        annotations: [{
-          id: "client_managed",
-          type: "highlight",
-          x: 0.1,
-          y: 0.2,
-          width: 0.3,
-          height: 0.4,
-          organization_id: "attacker",
-        }],
+        annotations: [
+          {
+            id: "client_managed",
+            type: "highlight",
+            x: 0.1,
+            y: 0.2,
+            width: 0.3,
+            height: 0.4,
+            organization_id: "attacker",
+          },
+        ],
       },
     });
 
     expect(response.statusCode).toBe(200);
     expect(response.json().guide_block.content).toEqual({
-      annotations: [{
-        id: "ann_saved",
-        type: "highlight",
-        x: 0.1,
-        y: 0.2,
-        width: 0.3,
-        height: 0.4,
-      }],
-    });
-    expect(seen_inputs).toEqual([{
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
-      },
-      project_id: "project_1",
-      guide_id: "guide_1",
-      guide_block_id: "block_1",
-      data: {
-        annotations: [{
-          id: "client_managed",
+      annotations: [
+        {
+          id: "ann_saved",
           type: "highlight",
           x: 0.1,
           y: 0.2,
           width: 0.3,
           height: 0.4,
-        }],
+        },
+      ],
+    });
+    expect(seen_inputs).toEqual([
+      {
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
+        },
+        project_id: "project_1",
+        guide_id: "guide_1",
+        guide_block_id: "block_1",
+        data: {
+          annotations: [
+            {
+              id: "client_managed",
+              type: "highlight",
+              x: 0.1,
+              y: 0.2,
+              width: 0.3,
+              height: 0.4,
+            },
+          ],
+        },
       },
-    }]);
+    ]);
     expect(JSON.stringify(response.json())).not.toContain("attacker");
     await app.close();
   });
@@ -902,22 +999,20 @@ describe("guide routes", () => {
           seen_inputs.push({ step: "prepare", input });
           return { capture_session_id: "capture_session_1" };
         },
-        update_guide_block_screenshot: async (input) => {
-          seen_order.push("select");
-          seen_inputs.push({ step: "select", input });
-          return {
-            ...guide_block,
-            selected_capture_asset_id: input.data.capture_asset_id,
-            screenshot_hidden: false,
-            display_capture_asset_id: input.data.capture_asset_id,
-          };
-        },
       },
-      capture_asset_service: {
-        upload_capture_asset: async (input) => {
+      guide_screenshot_upload_service: {
+        upload: async (input) => {
           seen_order.push("upload");
           seen_inputs.push({ step: "upload", input });
-          return uploaded_capture_asset;
+          return {
+            capture_asset: uploaded_capture_asset,
+            guide_block: {
+              ...guide_block,
+              selected_capture_asset_id: uploaded_capture_asset.id,
+              screenshot_hidden: false,
+              display_capture_asset_id: uploaded_capture_asset.id,
+            },
+          };
         },
       },
     });
@@ -955,10 +1050,11 @@ describe("guide routes", () => {
       },
       capture_asset: {
         ...uploaded_capture_asset,
-        file_url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/uploaded_asset_1/file",
+        file_url:
+          "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/uploaded_asset_1/file",
       },
     });
-    expect(seen_order).toEqual(["prepare", "upload", "select"]);
+    expect(seen_order).toEqual(["prepare", "upload"]);
     expect(seen_inputs).toEqual([
       {
         step: "prepare",
@@ -980,6 +1076,8 @@ describe("guide routes", () => {
             actor_org_user_id: "org_user_1",
           },
           project_id: "project_1",
+          guide_id: "guide_1",
+          guide_block_id: "block_1",
           capture_session_id: "capture_session_1",
           file: {
             stream: expect.any(Object),
@@ -997,27 +1095,12 @@ describe("guide routes", () => {
           },
         },
       },
-      {
-        step: "select",
-        input: {
-          auth: {
-            organization_id: "organization_1",
-            actor_org_user_id: "org_user_1",
-          },
-          project_id: "project_1",
-          guide_id: "guide_1",
-          guide_block_id: "block_1",
-          data: {
-            capture_asset_id: "uploaded_asset_1",
-          },
-        },
-      },
     ]);
     expect(JSON.stringify(response.json())).not.toContain("attacker_session");
     await app.close();
   });
 
-  it("uses the atomic Guide screenshot upload command when available", async () => {
+  it("always uses the atomic Guide screenshot upload command", async () => {
     const upload = vi.fn(async () => ({
       capture_asset: uploaded_capture_asset,
       guide_block: {
@@ -1027,38 +1110,43 @@ describe("guide routes", () => {
         display_capture_asset_id: uploaded_capture_asset.id,
       },
     }));
-    const upload_capture_asset = vi.fn();
     const update_guide_block_screenshot = vi.fn();
     const app = await build_test_app({
       guide_screenshot_upload_service: { upload },
-      capture_asset_service: { upload_capture_asset },
       guide_service: { update_guide_block_screenshot },
     });
     const response = await app.inject({
       method: "POST",
       url: "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/screenshot-upload",
       cookies: { ossie_session: "session-token" },
-      ...multipart_payload([{ name: "file", filename: "replacement.png", content_type: "image/png", value: Buffer.from("replacement png bytes") }]),
+      ...multipart_payload([
+        {
+          name: "file",
+          filename: "replacement.png",
+          content_type: "image/png",
+          value: Buffer.from("replacement png bytes"),
+        },
+      ]),
     });
 
     expect(response.statusCode).toBe(201);
     expect(upload).toHaveBeenCalledOnce();
-    expect(upload_capture_asset).not.toHaveBeenCalled();
     expect(update_guide_block_screenshot).not.toHaveBeenCalled();
     await app.close();
   });
 
   it("does not upload guide screenshot bytes when preflight fails", async () => {
-    const upload_capture_asset = vi.fn(async () => uploaded_capture_asset);
+    const upload = vi.fn(async () => ({
+      capture_asset: uploaded_capture_asset,
+      guide_block,
+    }));
     const app = await build_test_app({
       guide_service: {
         prepare_guide_block_screenshot_upload: async () => {
           throw new GuideBlockNotFoundError();
         },
       },
-      capture_asset_service: {
-        upload_capture_asset,
-      },
+      guide_screenshot_upload_service: { upload },
     });
     const request_body = multipart_payload([
       {
@@ -1078,20 +1166,21 @@ describe("guide routes", () => {
 
     expect(response.statusCode).toBe(404);
     expect(response.json().error.type).toBe("guide_block_not_found");
-    expect(upload_capture_asset).not.toHaveBeenCalled();
+    expect(upload).not.toHaveBeenCalled();
     await app.close();
   });
 
   it("does not report success when guide screenshot selection fails after upload", async () => {
     const app = await build_test_app({
       guide_service: {
-        prepare_guide_block_screenshot_upload: async () => ({ capture_session_id: "capture_session_1" }),
-        update_guide_block_screenshot: async () => {
+        prepare_guide_block_screenshot_upload: async () => ({
+          capture_session_id: "capture_session_1",
+        }),
+      },
+      guide_screenshot_upload_service: {
+        upload: async () => {
           throw new InvalidGuideBlockScreenshotError();
         },
-      },
-      capture_asset_service: {
-        upload_capture_asset: async () => uploaded_capture_asset,
       },
     });
     const request_body = multipart_payload([
@@ -1132,18 +1221,62 @@ describe("guide routes", () => {
     await unauthenticated_app.close();
 
     const cases = [
-      { error: new ProjectNotFoundError(), status: 404, type: "project_not_found" },
-      { error: new CaptureSessionNotFoundError(), status: 404, type: "capture_session_not_found" },
-      { error: new CaptureEventNotFoundError(), status: 404, type: "capture_event_not_found" },
+      {
+        error: new ProjectNotFoundError(),
+        status: 404,
+        type: "project_not_found",
+      },
+      {
+        error: new CaptureSessionNotFoundError(),
+        status: 404,
+        type: "capture_session_not_found",
+      },
+      {
+        error: new CaptureEventNotFoundError(),
+        status: 404,
+        type: "capture_event_not_found",
+      },
       { error: new GuideNotFoundError(), status: 404, type: "guide_not_found" },
-      { error: new InvalidGuideInputError(), status: 400, type: "invalid_guide" },
-      { error: new GuideStepNotFoundError(), status: 404, type: "guide_step_not_found" },
-      { error: new GuideBlockNotFoundError(), status: 404, type: "guide_block_not_found" },
-      { error: new InvalidGuideBlockOrderError(), status: 400, type: "invalid_guide_block_order" },
-      { error: new InvalidGuideBlockContentError(), status: 400, type: "invalid_guide_block_content" },
-      { error: new InvalidGuideBlockScreenshotError(), status: 400, type: "invalid_guide_block_screenshot" },
-      { error: new InvalidGuideStepInputError(), status: 400, type: "invalid_guide_step" },
-      { error: new GuideNotEditableError(), status: 409, type: "guide_not_editable" },
+      {
+        error: new InvalidGuideInputError(),
+        status: 400,
+        type: "invalid_guide",
+      },
+      {
+        error: new GuideStepNotFoundError(),
+        status: 404,
+        type: "guide_step_not_found",
+      },
+      {
+        error: new GuideBlockNotFoundError(),
+        status: 404,
+        type: "guide_block_not_found",
+      },
+      {
+        error: new InvalidGuideBlockOrderError(),
+        status: 400,
+        type: "invalid_guide_block_order",
+      },
+      {
+        error: new InvalidGuideBlockContentError(),
+        status: 400,
+        type: "invalid_guide_block_content",
+      },
+      {
+        error: new InvalidGuideBlockScreenshotError(),
+        status: 400,
+        type: "invalid_guide_block_screenshot",
+      },
+      {
+        error: new InvalidGuideStepInputError(),
+        status: 400,
+        type: "invalid_guide_step",
+      },
+      {
+        error: new GuideNotEditableError(),
+        status: 409,
+        type: "guide_not_editable",
+      },
     ];
 
     for (const test_case of cases) {

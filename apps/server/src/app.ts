@@ -106,6 +106,7 @@ type BuildOptions = FastifyServerOptions & {
   capture_asset_service?: CaptureAssetRouteDependencies["capture_asset_service"];
   capture_event_service?: CaptureEventRouteDependencies["capture_event_service"];
   guide_service?: GuideRouteDependencies["guide_service"];
+  guide_screenshot_upload_service?: GuideRouteDependencies["guide_screenshot_upload_service"];
   interactive_demo_service?: InteractiveDemoRouteDependencies["interactive_demo_service"];
   publish_service?: PublishRouteDependencies["publish_service"];
   readiness_check?: () => Promise<void>;
@@ -174,6 +175,7 @@ export const build = (opts: BuildOptions = {}) => {
     capture_asset_service,
     capture_event_service,
     guide_service,
+    guide_screenshot_upload_service,
     interactive_demo_service,
     publish_service,
     readiness_check = async () => {
@@ -500,14 +502,12 @@ export const build = (opts: BuildOptions = {}) => {
           public_base_url: process.env.API_URL,
           file_storage: default_capture_file_storage,
         }),
-      capture_asset_service: default_capture_asset_service,
       guide_screenshot_upload_service:
-        !guide_service && !capture_asset_service
-          ? build_audited_guide_screenshot_upload_service(pool, {
-              file_storage: default_capture_file_storage,
-              max_upload_bytes: max_screenshot_upload_bytes,
-            })
-          : undefined,
+        guide_screenshot_upload_service ??
+        build_audited_guide_screenshot_upload_service(pool, {
+          file_storage: default_capture_file_storage,
+          max_upload_bytes: max_screenshot_upload_bytes,
+        }),
     }),
     {
       prefix: "/api/v1/projects",
@@ -522,7 +522,9 @@ export const build = (opts: BuildOptions = {}) => {
       },
       interactive_demo_service:
         interactive_demo_service ??
-        build_interactive_demo_service(build_audited_interactive_demo_repository(pool)),
+        build_interactive_demo_service(
+          build_audited_interactive_demo_repository(pool),
+        ),
     }),
     {
       prefix: "/api/v1/projects",
