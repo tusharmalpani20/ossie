@@ -48,6 +48,9 @@ proxy testing, backup rehearsal, or a full production readiness review.
   the maintenance role.
 - Runtime credentials may append validated rows to `audit_schema`, but cannot
   update, delete, truncate, or bypass its evidence guards.
+- Migration `016` guards every current runtime-granted product INSERT/UPDATE.
+  A write without its registered command context and same-transaction typed
+  evidence is rejected at commit.
 
 For disposable local and test databases only, run
 `rtk pnpm --filter server db:provision-runtime-role` before migrations. The
@@ -102,7 +105,7 @@ After restore:
   applying ownership and grants
 - run migrations for the target application version
 - confirm `audit_schema.audit_event` and `audit_schema.audit_change_item` exist
-  with their append-only and Project guard triggers
+  with append-only controls and generalized product-mutation guard triggers
 - confirm the runtime role is not a maintenance-role member and cannot update,
   delete, or truncate Audit Evidence
 - point `OSSIE_LOCAL_STORAGE_ROOT` at the restored storage path
@@ -148,9 +151,17 @@ evaluation database predates this transition, reset and reseed that disposable
 database; there is no production-row backfill or compatibility conversion.
 Never use the destructive test reset commands against a production database.
 
+Migration `016_existing_mutation_audit_coverage.sql` activates exhaustive
+current mutation guards without backfilling historical rows. It is not safe to
+run a mixed fleet of old and converted writers. Use a maintenance window: stop
+API writers, run `016`, deploy the converted server, require
+`audit_schema.status = ready`, and only then reopen writes. To roll back, stop
+writers first, run `016` DOWN, deploy the prior server, and then reopen traffic;
+DOWN restores the child-112 Project-only guard and retains Audit Evidence.
+
 Before upgrading:
 
-1. Stop background writes if possible.
+1. Stop all API/background writers; do not use a rolling mixed-writer deploy.
 2. Back up PostgreSQL and local storage.
 3. Build the new server and web artifacts.
 4. Run `rtk pnpm --filter server migrate:up` with maintenance credentials.

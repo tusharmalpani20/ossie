@@ -51,10 +51,15 @@ These settings still require operator verification:
 rtk pnpm --filter server run migrate:up
 ```
 
+- [ ] For migration `016`, stop every old API/background writer before
+      migrating; do not run a mixed pre/post-`016` fleet.
+
 - [ ] Run `rtk pnpm --filter server migrate:status` with maintenance
       credentials and confirm `audit_schema.status` is `ready`.
 - [ ] Start the API with runtime credentials only; do not reuse the migration
       process environment.
+- [ ] Before reopening writes, confirm catalog verification covers all current
+      product INSERT/UPDATE guards and perform a synthetic audited mutation.
 
 - [ ] Confirm backups exist before allowing real usage.
 - [ ] Confirm database backups include `audit_schema`, its constraints,

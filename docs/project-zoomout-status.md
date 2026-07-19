@@ -121,7 +121,8 @@ Manual portal dogfood smoke completed with non-blocking limitations on 2026-06-2
 Master Plan `005` is the accepted next track:
 
 1. Complete the naming/documentation truth foundation in child `110` using the accepted Ossie display brand while retaining technical compatibility identifiers.
-2. Build relational append-only Audit and Access Evidence before adding new version-domain mutations.
+2. Finish DB/browser closure of comprehensive current-mutation Audit coverage,
+   then add Access Evidence before new version-domain mutations.
 3. Establish Project Membership authorization.
 4. Add Project Versions and scope Capture source to one Project Version.
 5. Introduce Project-owned Guide/Demo Artifacts with version-scoped Editions, mutable Working Drafts, immutable Revisions, Carry-Forward, protected assets, revision-backed Publications, and multi-version Publish Links.

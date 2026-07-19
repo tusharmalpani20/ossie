@@ -2,8 +2,9 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `112` are complete; child `113` is
-the next executable activity.
+Status: In progress. Children `109` through `112` are complete. Child `113`
+implementation is committed; DB-backed and browser closeout are blocked by the
+missing local maintenance test profile/API-ready synthetic environment.
 
 Master plan number: 005.
 
@@ -64,7 +65,7 @@ Baseline reviewed on 2026-07-10:
   separate runtime and maintenance database credentials, and mutation guards
   for authenticated Project creation. Coverage is intentionally partial until
   child `113`; no Audit query API or Access Evidence UI exists yet.
-- Current migrations end at `015_audit_evidence_core.sql`. It implements the
+- Current migrations end at `016_existing_mutation_audit_coverage.sql`. Migration `015` implements the
   accepted clean pre-live transition and refuses populated User or Organization
   data; no production-row backfill exists.
 - The repository is pre-live. There are no production records, external API clients, or deployed public links requiring data-preserving compatibility; development/test databases may be reset and reseeded for the clean target model.
@@ -1919,7 +1920,8 @@ taking disproportionate time to build; it is optional future workflow tooling
 and no longer blocks this master-plan sequence.
 
 Children `109`, `110`, the deliberately early `111` grill, and Audit Evidence
-Core child `112` are complete.
+Core child `112` are complete. Child `113` remains the active closeout until its
+required DB-backed and browser evidence can run.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
 continues with `113` Existing Mutation Audit Coverage and `114` Access Evidence

@@ -4,7 +4,8 @@ Date reserved: 2026-07-12
 
 Last reviewed: 2026-07-19
 
-Status: Implementation-ready. Recheck passed on 2026-07-19. Not started.
+Status: Implementation complete; closeout blocked on required DB/browser
+verification. Recheck passed on 2026-07-19.
 
 Parent plan:
 
@@ -951,12 +952,15 @@ screenshots.
 
 ## Delivery Checklist
 
-- [ ] Establish a failing focused test before each behavior boundary.
-- [ ] Replace the partial registry with exhaustive command/table/route coverage
+- [ ] Establish a failing focused test before each behavior boundary. New shared,
+      Guide, Publish, and request-context boundaries were driven red/green;
+      several repository integrations relied on existing failing-capable focused
+      suites, so this is not claimed as universally evidenced.
+- [x] Replace the partial registry with exhaustive command/table/route coverage
       and automated source/catalog comparison.
-- [ ] Add migration `016` and activate context/deferred guards for every current
+- [x] Add migration `016` and activate context/deferred guards for every current
       runtime-writable product operation.
-- [ ] Convert setup, authentication/session, Organization Invite, Project,
+- [x] Convert setup, authentication/session, Organization Invite, Project,
       Capture, File/Asset, Guide, Interactive Demo, Publish Link/Publication, and
       Public Viewer Session mutations.
 - [ ] Prove atomicity, no-op, retry, batch, tenant, actor/source, redaction,
@@ -986,6 +990,32 @@ Do not mix child `114` Access work, Project Membership/Version work, UI cleanup,
 or unrelated repository refactors into these commits.
 
 ## Implementation Log
+
+Implementation completed on 2026-07-19, with closeout verification still
+blocked:
+
+- `631d6f0` replaced the Project-only coverage model with the exhaustive 53
+  semantic-command contract, actor/source policy, request context, nullable
+  no-op transaction result, and all 19 current product-table registrations.
+- `55bb461` covered Auth Session create/touch/revoke and Project
+  create/update/soft-delete through same-client Audit transactions.
+- `31a860b` covered first-run setup, Invite create/revoke/accept, Capture
+  Session/Event, and File/Capture Asset commands, including upload compensation.
+- `ff07dd4` covered Interactive Demo root, Scene, Hotspot, and logical reorder
+  commands and removed nested transaction ownership.
+- `f839dda` covered Guide generation/edit/reorder/delete and introduced the
+  atomic screenshot upload command spanning File, Capture Asset, Guide Block,
+  Guide root, and one Audit Event.
+- `d74662d` covered immutable current publication, Publish Link changes, atomic
+  viewer-session revocation, and system-owned public Viewer Session create/touch.
+- `6beaec0` propagated request ID and supported extension source through
+  async request context and prevented reorder shuffles from updating logically
+  unchanged rows.
+- `5abbf03` added migration `016`, generalized immediate-context and deferred-
+  evidence guards, exhaustive production-SQL source coverage, deep catalog
+  readiness verification, and maintenance-migration safety.
+- Public route paths, payloads, responses, cookies, and shared DTOs were not
+  changed. No Access Event/query/timeline/UI work was added.
 
 Planning expansion completed on 2026-07-19:
 
@@ -1032,6 +1062,32 @@ Implementation-readiness recheck completed on 2026-07-19:
 
 ## Verification Record
 
+Implementation verification on 2026-07-19:
+
+- `rtk pnpm --filter @repo/audit-domain test`: passed, 5 files/33 tests.
+- `rtk pnpm --filter server test`: passed, 66 files/323 tests.
+- Focused migration/source/catalog checks passed, 4 files/10 tests.
+- `rtk pnpm --filter server check-types`: passed.
+- `rtk pnpm -r --if-present test`: passed across all test-bearing workspace
+  packages (including web 307, extension 93, and server 323 tests).
+- `rtk pnpm check-types`: passed, 12 tasks.
+- `rtk pnpm lint`: completed with no errors; three new unused-symbol warnings
+  were found and removed before closeout documentation.
+- `rtk pnpm build`: passed across the Turbo build graph.
+- `rtk git diff --check`: passed before documentation closeout.
+- Required PostgreSQL verification is blocked: `test:db:drop` fails before DB
+  access because `.env-cmdrc` has `development` and `testing` only, while all
+  DB setup/migrate/test scripts require `testing_maintenance`. No credentials or
+  replacement maintenance profile were invented.
+- Agent-browser loaded `http://localhost:3000`; Vite/React loaded with no browser
+  console exceptions, but `GET /api/v1/public/instance` failed and the UI showed
+  `Setup status unavailable`. Without an API-ready disposable synthetic DB,
+  portal/public-reader mutations and DB event-count correlation could not run.
+  The session and local server/web processes were closed; no screenshot or
+  customer/private data was recorded.
+- Extension browser provenance validation is likewise blocked without the
+  unpacked-extension synthetic harness and API-ready disposable database.
+
 Planning verification on 2026-07-19:
 
 - `rtk pnpm --filter @repo/audit-domain test`: passed, 5 files/19 tests.
@@ -1047,7 +1103,25 @@ docs/plan/113-existing-mutation-audit-coverage.md`: passed after recheck.
 
 ## Leftovers And Handoff
 
-Implementation has not started. The implementing agent must:
+Implementation is committed, but this child must not be marked complete and
+child `114` must not start until the following closeout evidence is available:
+
+- provide/restore the repository-standard `testing_maintenance` environment
+  profile without placing maintenance credentials in the runtime profile;
+- run fresh setup/migration `001`-`016`, full DB integration, smoke, catalog,
+  runtime-role denial, DOWN/UP, atomic rollback/no-op/retry/batch/redaction, and
+  evidence-count verification on a disposable database;
+- run the specified desktop, narrow-mobile, public-reader, and extension-source
+  browser workflows using synthetic fixtures, with console/network and Audit
+  Event count correlation;
+- if DB/browser checks reveal a defect, reopen implementation, fix it with a
+  focused failing test, and repeat the close-previous loop before checking the
+  Master `005` child item;
+- after those checks pass, change this status to complete, check the remaining
+  delivery/acceptance items, update Master `005` to make child `114` executable,
+  and add the final evidence-only closeout commit.
+
+The original implementation handoff constraints remain applicable:
 
 - reread this plan, Master `005`, child `112` closeout, current code, and working
   tree before coding;

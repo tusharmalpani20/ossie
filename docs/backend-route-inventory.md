@@ -47,6 +47,11 @@ apps/server/src/modules/*
 
 The current authentication model is cookie-backed session auth through the `ossie_session` cookie. Project, capture, guide, interactive demo, organization, and authenticated publish routes derive organization scope from the current session.
 
+All current state-changing routes retain these public contracts while their
+product writes use one registered Audit command and one same-transaction Audit
+Event. Public viewer-session row maintenance uses the fixed system actor. Audit
+query routes and Access Events do not exist yet; child `114` owns that surface.
+
 ## Rate-Limited Route Groups
 
 The app applies in-memory rate limiting to sensitive routes:

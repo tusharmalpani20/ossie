@@ -123,8 +123,9 @@ rtk pnpm --filter server migrate:status
 ```
 
 `migrate:status` must report `audit_schema.status` as `ready`; it checks the
-required Audit constraints, indexes, triggers, runtime grants, and absence of
-JSON/JSONB columns without printing credentials.
+required Audit constraints, indexes, exhaustive current product-mutation
+triggers, runtime grants, and absence of JSON/JSONB evidence columns without
+printing credentials.
 
 `db:provision-runtime-role` refuses to run with `NODE_ENV=production`. Production
 operators must provision distinct runtime and maintenance roles through their
@@ -134,6 +135,13 @@ populated User or Organization table and requires reset/reseed instead of
 attempting a legacy-row backfill. If the Compose volume was initialized before
 the two-role configuration existed, replace that disposable volume and reseed
 it; changing `POSTGRES_USER` does not rewrite an existing PostgreSQL volume.
+
+Migration `016_existing_mutation_audit_coverage.sql` must be deployed with all
+old API writers stopped. After migration, start only the converted server and
+require `migrate:status`/readiness before reopening writes. A rolling fleet
+containing pre-`016` writers is intentionally unsupported. Rollback likewise
+stops writers before `016` DOWN and the prior server deployment; retained Audit
+Evidence is not deleted.
 
 ## Run
 

@@ -43,6 +43,9 @@ Master Plan `005` is the accepted implementation track:
 10. Cross-workflow closeout before new artifact-family design.
 
 These capabilities are accepted target behavior, not current runtime behavior.
+The source now contains comprehensive current-mutation Audit writers and guards;
+DB-backed/browser closeout remains required before that child is marked complete.
+Access Evidence and evidence-query UI remain future work.
 See `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 for gates and exact child ordering.
 
