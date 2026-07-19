@@ -187,6 +187,7 @@ const renderPage = (overrides: {
   navigate?: (path: string) => void;
   performLogout?: () => Promise<void>;
   copyText?: (text: string) => Promise<void>;
+  canWrite?: boolean;
 } = {}) => {
   const loadDemo = overrides.loadDemo ?? vi.fn(async () => ({ interactive_demo: interactiveDemo }));
   const loadScenes = overrides.loadScenes ?? vi.fn(async () => ({ demo_scenes: [firstScene, secondScene] }));
@@ -258,6 +259,7 @@ const renderPage = (overrides: {
       navigate={overrides.navigate}
       performLogout={overrides.performLogout}
       copyText={copyText}
+      canWrite={overrides.canWrite}
     />
   );
 
@@ -283,6 +285,16 @@ const renderPage = (overrides: {
 };
 
 describe("InteractiveDemoEditorPage", () => {
+  it("renders demo content without authoring controls when writes are not allowed", async () => {
+    renderPage({ canWrite: false });
+
+    expect(await screen.findByRole("heading", { name: "Department setup demo" })).toBeInTheDocument();
+    expect(screen.getByText("Interactive demo · read only")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Scene 1: Navigate to Department List" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save demo" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Publish demo" })).not.toBeInTheDocument();
+  });
+
   it("loads demo metadata and ordered screenshot scenes", async () => {
     const { loadDemo, loadScenes } = renderPage();
 

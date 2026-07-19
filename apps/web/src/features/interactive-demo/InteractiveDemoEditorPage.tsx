@@ -6,6 +6,7 @@ import {
 } from "@repo/constants";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
+import { Card, CardContent } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Select } from "@repo/ui/select";
@@ -154,6 +155,7 @@ export type InteractiveDemoEditorPageProps = {
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   copyText?: (text: string) => Promise<void>;
+  canWrite?: boolean;
 };
 
 const loadStateFromError = (error: unknown): LoadState => {
@@ -202,6 +204,7 @@ export const InteractiveDemoEditorPage = ({
   performLogout,
   navigate,
   copyText = defaultCopyText,
+  canWrite = true,
 }: InteractiveDemoEditorPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
@@ -213,7 +216,9 @@ export const InteractiveDemoEditorPage = ({
     Promise.all([
       loadDemo(projectId, interactiveDemoId),
       loadScenes(projectId, interactiveDemoId),
-      loadPublishStatus(projectId, interactiveDemoId).catch(() => unpublishedStatus()),
+      canWrite
+        ? loadPublishStatus(projectId, interactiveDemoId).catch(() => unpublishedStatus())
+        : Promise.resolve(unpublishedStatus()),
     ])
       .then(async ([demoResponse, sceneResponse, publishStatus]) => {
         const scenes = sortedScenes(sceneResponse.demo_scenes);
@@ -245,7 +250,7 @@ export const InteractiveDemoEditorPage = ({
     return () => {
       active = false;
     };
-  }, [projectId, interactiveDemoId, loadDemo, loadScenes, loadHotspots, loadPublishStatus, reloadKey]);
+  }, [projectId, interactiveDemoId, loadDemo, loadScenes, loadHotspots, loadPublishStatus, canWrite, reloadKey]);
 
   if (state.status === "loading") {
     return (
@@ -283,6 +288,35 @@ export const InteractiveDemoEditorPage = ({
             Retry
           </Button>
         </div>
+      </PortalShell>
+    );
+  }
+
+  if (!canWrite) {
+    return (
+      <PortalShell projectId={projectId} interactiveDemoId={interactiveDemoId} performLogout={performLogout} navigate={navigate}>
+        <section className={styles.header}>
+          <div>
+            <div className={styles.eyebrow}>Interactive demo · read only</div>
+            <h1 className={styles.title}>{state.demo.title}</h1>
+            {state.demo.description ? <p className={styles.description}>{state.demo.description}</p> : null}
+          </div>
+          <Badge>{state.demo.status}</Badge>
+        </section>
+        <section aria-labelledby="demo-scenes-readonly-heading">
+          <h2 id="demo-scenes-readonly-heading" className={styles.sectionTitle}>Scenes</h2>
+          {state.scenes.length === 0 ? (
+            <div className={styles.state}>This demo does not have any scenes yet.</div>
+          ) : state.scenes.map((scene, index) => (
+            <Card key={scene.id} className={styles.panel}>
+              <CardContent>
+                <h3>Scene {index + 1}: {scene.title ?? "Untitled scene"}</h3>
+                {scene.description ? <p>{scene.description}</p> : null}
+                <p>{state.hotspotsBySceneId[scene.id]?.length ?? 0} hotspots</p>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
       </PortalShell>
     );
   }

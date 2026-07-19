@@ -226,6 +226,7 @@ const renderPage = (overrides: {
   copyText?: (text: string) => Promise<void>;
   downloadTextFile?: (filename: string, contents: string, mimeType: string) => Promise<void>;
   currentPath?: string;
+  canWrite?: boolean;
 } = {}) => {
   const loadDetail = overrides.loadDetail ?? vi.fn(async () => overrides.detail ?? guideDetail);
   const exportMarkdown = overrides.exportMarkdown ?? vi.fn(async () => ({
@@ -244,6 +245,7 @@ const renderPage = (overrides: {
       exportMarkdown={exportMarkdown}
       copyText={copyText}
       downloadTextFile={downloadTextFile}
+      canWrite={overrides.canWrite}
     />
   );
 
@@ -251,6 +253,14 @@ const renderPage = (overrides: {
 };
 
 describe("GuidePreviewPage", () => {
+  it("keeps previews readable without exposing the editor link", async () => {
+    renderPage({ canWrite: false });
+
+    expect(await screen.findByRole("heading", { name: "Department guide" })).toBeInTheDocument();
+    expect(screen.getByText("Read only")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Edit guide" })).not.toBeInTheDocument();
+  });
+
   it("renders ordered guide steps and screenshots", async () => {
     const { loadDetail } = renderPage();
 

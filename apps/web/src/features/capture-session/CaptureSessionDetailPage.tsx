@@ -116,6 +116,7 @@ type CaptureSessionDetailPageProps = {
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  canWrite?: boolean;
 };
 
 const formatDateTime = (value: string | null) => {
@@ -327,6 +328,7 @@ export const CaptureSessionDetailPage = ({
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
+  canWrite = true,
 }: CaptureSessionDetailPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
@@ -408,6 +410,7 @@ export const CaptureSessionDetailPage = ({
       redirectTo={redirectTo}
       performLogout={performLogout}
       navigate={navigate}
+      canWrite={canWrite}
     />
   );
 };
@@ -446,6 +449,7 @@ const CaptureSessionDetailView = ({
   redirectTo,
   performLogout,
   navigate,
+  canWrite,
 }: {
   detail: CaptureSessionDetail;
   projectId: string;
@@ -461,6 +465,7 @@ const CaptureSessionDetailView = ({
   redirectTo: NonNullable<CaptureSessionDetailPageProps["redirectTo"]>;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  canWrite: boolean;
 }) => {
   const [createState, setCreateState] = useState<"idle" | "creating" | "error">("idle");
   const [createDemoState, setCreateDemoState] = useState<"idle" | "creating" | "error">("idle");
@@ -492,17 +497,18 @@ const CaptureSessionDetailView = ({
     guideTitle.length === 0 ? missingTitleMessageId : null,
     !hasCaptureEvents ? emptyCaptureMessageId : null,
   ].filter(Boolean).join(" ") || undefined;
-  const canUploadScreenshot = session.source_type === "manual";
+  const canUploadScreenshot = canWrite && session.source_type === "manual";
   const isUploading = uploadState === "uploading";
   const uploadButtonText = isUploading
     ? "Uploading Screenshots..."
     : uploadFiles.length > 1
       ? "Upload Screenshots"
       : "Upload Screenshot";
-  const canReorderEvents = session.source_type === "manual" && detail.capture_events.length > 1;
+  const canReorderEvents = canWrite && session.source_type === "manual" && detail.capture_events.length > 1;
   const isReordering = reorderState === "reordering";
   const canEditEvents = (
-    session.source_type === "manual"
+    canWrite
+    && session.source_type === "manual"
     && session.status !== "archived"
     && session.status !== "canceled"
   );
@@ -755,7 +761,7 @@ const CaptureSessionDetailView = ({
             <Badge>{session.source_type}</Badge>
           </div>
         </div>
-        <div className={styles.actionRow}>
+        {canWrite ? <div className={styles.actionRow}>
           <Button
             type="button"
             disabled={!canCreateGuide}
@@ -789,7 +795,7 @@ const CaptureSessionDetailView = ({
           {createDemoState === "error" ? (
             <div className={styles.actionMessage}>Could not create interactive demo.</div>
           ) : null}
-        </div>
+        </div> : <Badge>Read only</Badge>}
 
         <div className={styles.metrics}>
           <Metric label="Events" value={plural(detail.capture_events.length, "event")} />

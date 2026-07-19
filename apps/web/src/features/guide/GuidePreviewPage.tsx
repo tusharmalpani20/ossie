@@ -39,6 +39,7 @@ export type GuidePreviewPageProps = {
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  canWrite?: boolean;
 };
 
 const loadStateFromError = (error: unknown): LoadState => {
@@ -105,6 +106,7 @@ export const GuidePreviewPage = ({
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
+  canWrite = true,
 }: GuidePreviewPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
@@ -174,6 +176,7 @@ export const GuidePreviewPage = ({
       downloadTextFile={downloadTextFile}
       performLogout={performLogout}
       navigate={navigate}
+      canWrite={canWrite}
     />
   );
 };
@@ -206,6 +209,7 @@ const GuidePreviewView = ({
   downloadTextFile,
   performLogout,
   navigate,
+  canWrite,
 }: {
   detail: GuideDetail;
   projectId: string;
@@ -215,6 +219,7 @@ const GuidePreviewView = ({
   downloadTextFile: (filename: string, contents: string, mimeType: string) => Promise<void>;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  canWrite: boolean;
 }) => {
   const sortedBlocks = useMemo(() => sortBlocks(detail.guide_blocks), [detail.guide_blocks]);
   const [activeScreenshotId, setActiveScreenshotId] = useState<string | null>(null);
@@ -294,7 +299,7 @@ const GuidePreviewView = ({
             {busyAction === "download-markdown" ? "Downloading Markdown..." : "Download Markdown"}
           </Button>
           <a className={`${buttonVariants({ variant: "secondary" })} ${styles.actionLink}`} href={guidePreviewListUrl(projectId)}>Back to guides</a>
-          <a className={`${buttonVariants({ variant: "primary" })} ${styles.actionLink}`} href={guideUrl(projectId, guideId)}>Edit guide</a>
+          {canWrite ? <a className={`${buttonVariants({ variant: "primary" })} ${styles.actionLink}`} href={guideUrl(projectId, guideId)}>Edit guide</a> : <Badge>Read only</Badge>}
         </div>
       </section>
 

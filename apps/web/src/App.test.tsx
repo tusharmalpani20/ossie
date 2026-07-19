@@ -16,6 +16,25 @@ const readyInstanceStatus = {
   signup_enabled: false,
 };
 
+const writableProjectResponse = {
+  project: {
+    id: "project_1",
+    organization_id: "organization_1",
+    name: "Internal onboarding demos",
+    description: null,
+    slug: null,
+    color: null,
+    icon: null,
+    status: "active",
+    created_by_id: "org_user_1",
+    updated_by_id: "org_user_1",
+    version: 1,
+    created_at: "2026-06-05T10:00:00.000Z",
+    updated_at: "2026-06-05T10:05:00.000Z",
+    access: { role: "project_admin", source: "organization_owner" },
+  },
+};
+
 describe("App", () => {
   it("renders project list home routes", async () => {
     window.history.pushState({}, "", "/projects");
@@ -222,7 +241,11 @@ describe("App", () => {
 
   it("renders capture session detail routes", async () => {
     window.history.pushState({}, "", "/projects/project_1/capture-sessions/capture_session_1");
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      if (input.toString().endsWith("/api/v1/projects/project_1")) {
+        return jsonResponse(writableProjectResponse);
+      }
+      return new Response(JSON.stringify({
       capture_session: {
         id: "capture_session_1",
         organization_id: "organization_1",
@@ -255,7 +278,8 @@ describe("App", () => {
       headers: {
         "content-type": "application/json",
       },
-    })));
+      });
+    }));
 
     render(<App />);
 
@@ -264,7 +288,11 @@ describe("App", () => {
 
   it("renders project capture session list routes", async () => {
     window.history.pushState({}, "", "/projects/project_1/capture-sessions");
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      if (input.toString().endsWith("/api/v1/projects/project_1")) {
+        return jsonResponse(writableProjectResponse);
+      }
+      return new Response(JSON.stringify({
       capture_sessions: [{
         id: "capture_session_1",
         organization_id: "organization_1",
@@ -295,7 +323,8 @@ describe("App", () => {
       headers: {
         "content-type": "application/json",
       },
-    })));
+      });
+    }));
 
     render(<App />);
 
@@ -305,7 +334,11 @@ describe("App", () => {
 
   it("renders guide editor routes", async () => {
     window.history.pushState({}, "", "/projects/project_1/guides/guide_1");
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      if (input.toString().endsWith("/api/v1/projects/project_1")) {
+        return jsonResponse(writableProjectResponse);
+      }
+      return new Response(JSON.stringify({
       guide: {
         id: "guide_1",
         organization_id: "organization_1",
@@ -327,7 +360,8 @@ describe("App", () => {
       headers: {
         "content-type": "application/json",
       },
-    })));
+      });
+    }));
 
     render(<App />);
 
@@ -337,7 +371,11 @@ describe("App", () => {
 
   it("renders guide preview routes", async () => {
     window.history.pushState({}, "", "/projects/project_1/guides/guide_1/preview");
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      if (input.toString().endsWith("/api/v1/projects/project_1")) {
+        return jsonResponse(writableProjectResponse);
+      }
+      return new Response(JSON.stringify({
       guide: {
         id: "guide_1",
         organization_id: "organization_1",
@@ -359,7 +397,8 @@ describe("App", () => {
       headers: {
         "content-type": "application/json",
       },
-    })));
+      });
+    }));
 
     render(<App />);
 
@@ -406,6 +445,10 @@ describe("App", () => {
         return jsonResponse(readyInstanceStatus);
       }
 
+      if (url.endsWith("/api/v1/projects/project_1")) {
+        return jsonResponse(writableProjectResponse);
+      }
+
       if (url.endsWith("/api/v1/projects/project_1/interactive-demos")) {
         return jsonResponse({
           interactive_demos: [{
@@ -441,6 +484,10 @@ describe("App", () => {
 
       if (url.endsWith("/api/v1/public/instance")) {
         return jsonResponse(readyInstanceStatus);
+      }
+
+      if (url.endsWith("/api/v1/projects/project_1")) {
+        return jsonResponse(writableProjectResponse);
       }
 
       if (url.endsWith("/api/v1/projects/project_1/interactive-demos/interactive_demo_1")) {

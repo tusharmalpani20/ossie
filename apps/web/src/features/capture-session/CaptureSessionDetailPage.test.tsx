@@ -318,6 +318,7 @@ const renderPage = (overrides: {
     input: UpdateCaptureEventInput
   ) => Promise<UpdateCaptureEventResponse>;
   redirectTo?: (path: string) => void;
+  canWrite?: boolean;
 } = {}) => {
   const loadDetail = overrides.loadDetail ?? vi.fn(async () => detail);
   const resolveAssetUrl = overrides.resolveAssetUrl ?? ((fileUrl: string) => `https://api.example.com${fileUrl}`);
@@ -342,6 +343,7 @@ const renderPage = (overrides: {
       reorderEvents={reorderEvents}
       updateEvent={updateEvent}
       redirectTo={redirectTo}
+      canWrite={overrides.canWrite}
     />
   );
 
@@ -349,6 +351,16 @@ const renderPage = (overrides: {
 };
 
 describe("CaptureSessionDetailPage", () => {
+  it("keeps capture evidence readable without exposing authoring controls", async () => {
+    renderPage({ canWrite: false });
+
+    expect(await screen.findByRole("heading", { name: "Create department workflow" })).toBeInTheDocument();
+    expect(screen.getByText("Read only")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create guide" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create interactive demo" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Save event/ })).not.toBeInTheDocument();
+  });
+
   it("renders session metadata events and asset previews", async () => {
     const { loadDetail } = renderPage();
 

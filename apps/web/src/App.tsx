@@ -18,6 +18,7 @@ import { ProjectListPage } from "./features/project/ProjectListPage";
 import { ProjectSettingsPage } from "./features/project/ProjectSettingsPage";
 import { ProjectWorkspacePage } from "./features/project/ProjectWorkspacePage";
 import { ProjectActivityTimelinePage } from "./features/project-activity/ProjectActivityTimelinePage";
+import { projectIsWritable, useProjectAccess } from "./features/project/useProjectAccess";
 import { FirstRunSetupPage } from "./features/setup/FirstRunSetupPage";
 import { getPublicInstanceStatus } from "./lib/api";
 import { parsePortalRoute, type PortalRoute } from "./lib/routes";
@@ -46,6 +47,26 @@ const shouldCheckSetup = (route: PortalRoute) => setupGuardedRouteTypes.has(rout
 const shouldCheckSetupInBackground = (route: PortalRoute) => (
   route.type === "login" || shouldCheckSetup(route)
 );
+
+const ProjectContentRoute = ({ projectId, children }: {
+  projectId: string;
+  children: (canWrite: boolean) => React.ReactNode;
+}) => {
+  const { state } = useProjectAccess(projectId);
+  if (state.status === "loading") {
+    return <div className={styles.page}><main className={styles.main}>Loading Project access...</main></div>;
+  }
+  if (state.status === "unauthenticated") {
+    return <div className={styles.page}><main className={styles.main}>Sign in to view this Project.</main></div>;
+  }
+  if (state.status === "not_found") {
+    return <div className={styles.page}><main className={styles.main}>Project was not found.</main></div>;
+  }
+  if (state.status !== "loaded" || !state.project) {
+    return <div className={styles.page}><main className={styles.main}>Could not load Project access.</main></div>;
+  }
+  return children(projectIsWritable(state.project));
+};
 
 export default function App() {
   const currentPath = `${window.location.pathname}${window.location.search}`;
@@ -222,40 +243,62 @@ export default function App() {
 
   if (route.type === "capture_session_detail") {
     return (
-      <CaptureSessionDetailPage
-        projectId={route.projectId}
-        captureSessionId={route.captureSessionId}
-        currentPath={currentPath}
-      />
+      <ProjectContentRoute projectId={route.projectId}>
+        {(canWrite) => (
+          <CaptureSessionDetailPage
+            projectId={route.projectId}
+            captureSessionId={route.captureSessionId}
+            currentPath={currentPath}
+            canWrite={canWrite}
+          />
+        )}
+      </ProjectContentRoute>
     );
   }
 
   if (route.type === "project_capture_session_list") {
     return (
-      <ProjectCaptureSessionListPage
-        projectId={route.projectId}
-        currentPath={currentPath}
-      />
+      <ProjectContentRoute projectId={route.projectId}>
+        {(canWrite) => (
+          <ProjectCaptureSessionListPage
+            projectId={route.projectId}
+            currentPath={currentPath}
+            canWrite={canWrite}
+          />
+        )}
+      </ProjectContentRoute>
     );
   }
 
   if (route.type === "guide_detail") {
     return (
-      <GuideEditorPage
-        projectId={route.projectId}
-        guideId={route.guideId}
-        currentPath={currentPath}
-      />
+      <ProjectContentRoute projectId={route.projectId}>
+        {(canWrite) => canWrite ? (
+          <GuideEditorPage projectId={route.projectId} guideId={route.guideId} currentPath={currentPath} />
+        ) : (
+          <GuidePreviewPage
+            projectId={route.projectId}
+            guideId={route.guideId}
+            currentPath={currentPath}
+            canWrite={false}
+          />
+        )}
+      </ProjectContentRoute>
     );
   }
 
   if (route.type === "guide_preview") {
     return (
-      <GuidePreviewPage
-        projectId={route.projectId}
-        guideId={route.guideId}
-        currentPath={currentPath}
-      />
+      <ProjectContentRoute projectId={route.projectId}>
+        {(canWrite) => (
+          <GuidePreviewPage
+            projectId={route.projectId}
+            guideId={route.guideId}
+            currentPath={currentPath}
+            canWrite={canWrite}
+          />
+        )}
+      </ProjectContentRoute>
     );
   }
 
@@ -279,11 +322,16 @@ export default function App() {
 
   if (route.type === "interactive_demo_detail") {
     return (
-      <InteractiveDemoEditorPage
-        projectId={route.projectId}
-        interactiveDemoId={route.interactiveDemoId}
-        currentPath={currentPath}
-      />
+      <ProjectContentRoute projectId={route.projectId}>
+        {(canWrite) => (
+          <InteractiveDemoEditorPage
+            projectId={route.projectId}
+            interactiveDemoId={route.interactiveDemoId}
+            currentPath={currentPath}
+            canWrite={canWrite}
+          />
+        )}
+      </ProjectContentRoute>
     );
   }
 
