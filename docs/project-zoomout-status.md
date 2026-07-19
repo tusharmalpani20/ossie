@@ -130,10 +130,13 @@ Master Plan `005` is the accepted next track:
 1. Completed: naming/documentation truth, Audit and Access Evidence, Project
    Membership, Project Versions, and Project Version-owned Capture source
    through child `117`.
-2. Next: introduce Project-owned Guide/Demo Artifacts with version-scoped Editions, mutable Working Drafts, immutable Revisions, Carry-Forward, protected assets, revision-backed Publications, and multi-version Publish Links.
-3. Establish the design system and modernize each existing workflow with browser, accessibility, motion, and responsive evidence.
-4. Close the foundation at child `130`, then conduct the mandatory Product Documentation domain grill at child `131`.
+2. Completed in child `118`: Project-owned Guide/Demo Artifact identities,
+   Project Version-scoped Editions, and relational mutable Working Drafts.
+3. Next: add immutable Revisions, Carry-Forward, protected assets,
+   revision-backed Publications, and multi-version Publish Links.
+4. Establish the design system and modernize each existing workflow with browser, accessibility, motion, and responsive evidence.
+5. Close the foundation at child `130`, then conduct the mandatory Product Documentation domain grill at child `131`.
 
-The accepted Project Version and Artifact Edition decisions are recorded in `CONTEXT.md`, ADRs `0021` through `0026`, the completed grill record, and `docs/plan/111-project-version-and-artifact-edition-grill.md`. Project Versions and Capture ownership are implemented; Artifact Editions and the later Revision/Publication model are not.
+The accepted Project Version and Artifact Edition decisions are recorded in `CONTEXT.md`, ADRs `0021` through `0026`, the completed grill record, and `docs/plan/111-project-version-and-artifact-edition-grill.md`. Project Versions, Capture ownership, Guide/Demo Artifact identities, Editions, and relational Working Drafts are implemented; the later Revision/Publication model is not.
 
 Product Documentation implementation begins only after child `131` and new `132+` plans. Loom-style Video remains a later direction with no accepted runtime model.

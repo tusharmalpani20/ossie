@@ -29,24 +29,31 @@ apps/server/src/modules/*
 
 ## API Route Groups
 
-| Area                         | Prefix / routes                                                                                                                          | Source                     |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| public instance status       | `GET /api/v1/public/instance`                                                                                                            | `modules/public-instance`  |
-| first-run setup              | `POST /api/v1/setup/first-run`                                                                                                           | `modules/setup`            |
-| authentication               | `/api/v1/authentication/*`                                                                                                               | `modules/authentication`   |
-| organization members/invites | `/api/v1/organization/members`, `/api/v1/organization/invites*`, `/api/v1/public/invites*`                                               | `modules/organization`     |
-| projects                     | `/api/v1/projects*`                                                                                                                      | `modules/project`          |
-| project versions             | `/api/v1/projects/:project_id/versions*`                                                                                                 | `modules/project-version`  |
-| capture sessions             | `/api/v1/projects/:project_id/capture-sessions*`                                                                                         | `modules/capture-session`  |
-| capture assets               | `/api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets*`                                                              | `modules/capture-asset`    |
-| capture events               | `/api/v1/projects/:project_id/capture-sessions/:capture_session_id/events*`                                                              | `modules/capture-event`    |
-| guides                       | `/api/v1/projects/:project_id/guides*`                                                                                                   | `modules/guide`            |
-| interactive demos            | `/api/v1/projects/:project_id/interactive-demos*`, `/api/v1/projects/:project_id/capture-sessions/:capture_session_id/interactive-demos` | `modules/interactive-demo` |
-| guide publishing             | `/api/v1/projects/:project_id/guides/:guide_id/publish*`                                                                                 | `modules/publish`          |
-| interactive demo publishing  | `/api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/publish*`                                                           | `modules/publish`          |
-| public published artifacts   | `/api/v1/public/publish-links/:slug*`                                                                                                    | `modules/publish`          |
+| Area                         | Prefix / routes                                                                                                                                                                                                                  | Source                     |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| public instance status       | `GET /api/v1/public/instance`                                                                                                                                                                                                    | `modules/public-instance`  |
+| first-run setup              | `POST /api/v1/setup/first-run`                                                                                                                                                                                                   | `modules/setup`            |
+| authentication               | `/api/v1/authentication/*`                                                                                                                                                                                                       | `modules/authentication`   |
+| organization members/invites | `/api/v1/organization/members`, `/api/v1/organization/invites*`, `/api/v1/public/invites*`                                                                                                                                       | `modules/organization`     |
+| projects                     | `/api/v1/projects*`                                                                                                                                                                                                              | `modules/project`          |
+| project versions             | `/api/v1/projects/:project_id/versions*`                                                                                                                                                                                         | `modules/project-version`  |
+| capture sessions             | `/api/v1/projects/:project_id/capture-sessions*`                                                                                                                                                                                 | `modules/capture-session`  |
+| capture assets               | `/api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets*`                                                                                                                                                      | `modules/capture-asset`    |
+| capture events               | `/api/v1/projects/:project_id/capture-sessions/:capture_session_id/events*`                                                                                                                                                      | `modules/capture-event`    |
+| guides                       | `/api/v1/projects/:project_id/guides*` (selected `project_version_id`; Edition archive/restore and Working Draft child routes)                                                                                                   | `modules/guide`            |
+| interactive demos            | `/api/v1/projects/:project_id/interactive-demos*`, `/api/v1/projects/:project_id/capture-sessions/:capture_session_id/interactive-demos` (selected `project_version_id`; Edition archive/restore and Working Draft child routes) | `modules/interactive-demo` |
+| guide publishing             | `/api/v1/projects/:project_id/guides/:guide_id/publish*`                                                                                                                                                                         | `modules/publish`          |
+| interactive demo publishing  | `/api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/publish*`                                                                                                                                                   | `modules/publish`          |
+| public published artifacts   | `/api/v1/public/publish-links/:slug*`                                                                                                                                                                                            | `modules/publish`          |
 
 The current authentication model is cookie-backed session auth through the `ossie_session` cookie. Project, capture, guide, interactive demo, organization, and authenticated publish routes derive organization scope from the current session.
+
+Authenticated Guide and Interactive Demo list/read/write requests require the
+selected `project_version_id`. Edition metadata/archive/restore mutations carry
+`expected_edition_version`; Working Draft and relational child mutations carry
+the aggregate `expected_working_draft_version`. Guide archive/restore routes are
+`POST .../guides/:guide_id/archive|restore`; Interactive Demo equivalents are
+`POST .../interactive-demos/:interactive_demo_id/archive|restore`.
 
 All current state-changing routes retain these public contracts while their
 product writes use one registered Audit command and one same-transaction Audit

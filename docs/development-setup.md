@@ -119,6 +119,13 @@ DB tests use the `.env-cmdrc` `testing_maintenance` environment and a disposable
 real PostgreSQL database. Application connections inside the suite still use the
 runtime `DB_USER`; maintenance credentials are limited to setup/reset fixtures.
 
+Migration `022` deliberately refuses retained legacy Guide, Interactive Demo,
+or publication rows. For a disposable local database created before this
+transition, use the reset sequence above and reseed it. Do not point those reset
+commands at retained or production data. The migrated portal/server pair uses
+explicit Project Version-scoped Guide/Demo Editions and relational Working
+Draft content, so mixed old/new clients are unsupported.
+
 ## Running Apps
 
 Server:

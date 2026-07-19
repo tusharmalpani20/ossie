@@ -234,6 +234,16 @@ clients do not satisfy the new Project response contract. DOWN refuses retained
 Project Versions, aliases, Project Version evidence, or Access Evidence and
 does not delete them automatically.
 
+Migration `022_guide_demo_edition_working_draft_relational_foundation.sql` is a
+coordinated clean-schema transition. It refuses retained Guide, Interactive
+Demo, Published Artifact, or Publish Link rows instead of inventing Artifact,
+Edition, Working Draft, or source-Version ownership. Reset and reseed disposable
+pre-`022` databases; for any non-disposable database, stop and preserve it for
+an explicitly designed conversion rather than bypassing the refusal. Deploy
+server and portal together because Guide/Demo contracts now require a selected
+Project Version and distinct Edition/Working Draft Row Versions. DOWN is guarded
+and must not be used to discard retained relational authoring or evidence.
+
 Before upgrading:
 
 1. Stop all API/background writers; do not use a rolling mixed-writer deploy.

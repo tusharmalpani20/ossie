@@ -6,7 +6,11 @@ Date expanded: 2026-07-19
 
 Date rechecked: 2026-07-19
 
-Status: Rechecked and implementation-ready. Not implemented.
+Date implemented and closed: 2026-07-19
+
+Status: Complete. Relational Guide/Demo Artifact, Edition, Working Draft, and
+typed child ownership is implemented. Mandatory browser dogfood is recorded
+with one precise pre-existing authentication Audit blocker.
 
 Parent plan:
 
@@ -1218,33 +1222,33 @@ unavailable, mark only that capability blocked; do not fabricate evidence.
 
 ## Acceptance Criteria
 
-- [ ] Guide and Interactive Demo roots are immutable identity-only records.
-- [ ] Metadata and `draft | archived` belong only to Project Version-scoped
+- [x] Guide and Interactive Demo roots are immutable identity-only records.
+- [x] Metadata and `draft | archived` belong only to Project Version-scoped
       Editions, with at most one Edition per Artifact/Version.
-- [ ] Every Edition has exactly one mutable Working Draft.
-- [ ] Edition and Working Draft mutations have enforced caller-visible Row
+- [x] Every Edition has exactly one mutable Working Draft.
+- [x] Edition and Working Draft mutations have enforced caller-visible Row
       Version conflict behavior.
-- [ ] Guide Blocks/Steps/Annotations and Demo Scenes/Hotspots/Transitions are
+- [x] Guide Blocks/Steps/Annotations and Demo Scenes/Hotspots/Transitions are
       separate relational records.
-- [ ] No Guide/Demo Working Draft content or generic metadata uses JSON/JSONB.
-- [ ] Capture generation inherits exact immutable source Version and works in an
+- [x] No Guide/Demo Working Draft content or generic metadata uses JSON/JSONB.
+- [x] Capture generation inherits exact immutable source Version and works in an
       active named Version.
-- [ ] Cross-tenant, Project, Version, Draft, and child mismatches fail safely;
+- [x] Cross-tenant, Project, Version, Draft, and child mismatches fail safely;
       immediate provenance/new Asset selection is Version-scoped without
       preventing child-`119` same-Project Protected Shared Asset reuse.
-- [ ] Archived Project/Version/Edition read-only semantics and Default-change
+- [x] Archived Project/Version/Edition read-only semantics and Default-change
       non-movement semantics pass.
-- [ ] Audit/Access evidence and command/table/route coverage pass for every new
+- [x] Audit/Access evidence and command/table/route coverage pass for every new
       writer and mutable table.
-- [ ] Existing Default publication/public-reader behavior passes through the
+- [x] Existing Default publication/public-reader behavior passes through the
       temporary compatibility boundary; named-version publication creation is
       deferred, and existing link management remains reachable after a Default
       change.
-- [ ] Fresh migration, retained-data refusal, reset/reseed, runtime grants,
+- [x] Fresh migration, retained-data refusal, reset/reseed, runtime grants,
       empty DOWN/UP, DB integration, and smoke pass.
-- [ ] Focused, broad, and mandatory browser checks pass or have precise honest
+- [x] Focused, broad, and mandatory browser checks pass or have precise honest
       capability blockers.
-- [ ] Child `119` can snapshot and carry forward relational Working Drafts
+- [x] Child `119` can snapshot and carry forward relational Working Drafts
       without changing Artifact/Edition/Draft ownership again.
 
 ## Delivery And Closeout Checklist
@@ -1263,56 +1267,82 @@ unavailable, mark only that capability blocked; do not fabricate evidence.
       input, FK deletion, verification-command, and file-manifest gaps.
 - [x] No unresolved critical product/domain decision remains.
 
-### Implementation remains pending
+### Implementation completed on 2026-07-19
 
 - [x] Recheck this expanded plan against current `HEAD`, master `005`, and the
       implemented child `117` result before coding.
-- [ ] Establish failing tests before each behavior change.
-- [ ] Implement only this child boundary and preserve unrelated worktree changes.
-- [ ] Run and record all required verification.
-- [ ] Update this file's status, checklist, implementation log, verification
+- [x] Establish failing tests before each behavior change.
+- [x] Implement only this child boundary and preserve unrelated worktree changes.
+- [x] Run and record all required verification.
+- [x] Update this file's status, checklist, implementation log, verification
       notes, leftovers, and handoff.
-- [ ] Update master `005` only for completed child `118` items.
-- [ ] Commit only attributable changes in small logical commits.
+- [x] Update master `005` only for completed child `118` items.
+- [x] Commit only attributable changes in small logical commits.
 
 ## Implementation Log
 
-Not implemented. This expansion changed documentation only.
+Implementation completed on 2026-07-19:
 
-Implementation-readiness recheck on 2026-07-19:
-
-- corrected the authored Asset boundary so immediate generation provenance and
-  new selection remain Edition-Version-scoped while persisted same-Project
-  selected/background references can be reused by child `119` Carry-Forward;
-- prevented a Default change from stranding an existing legacy Publish Link by
-  separating Default-only Publication creation from Artifact-wide link
-  status/revoke/access/password management;
-- clarified that the retained publication JSON is master `005`'s staged legacy
-  boundary, not completion or an exception to the accepted ADR `0025` target;
-- assigned creation/content Audit Row Versions, derived authoring freshness,
-  strict changed-input behavior, restrictive ownership FKs, the missing
-  Project Version DB regression, typed Publish boundary error, named post-`022`
-  schema verifier, and the actual recursive broad test command;
-- found no unresolved critical decision and changed no runtime or parent
-  completion state.
+- added migration `022_guide_demo_edition_working_draft_relational_foundation.sql`
+  with identity-only Artifact roots, unique Project Version-scoped Editions,
+  exactly-one Working Draft ownership, typed relational Guide/Demo children,
+  restrictive scope FKs, runtime grants, writer guards, and pre-live retained
+  Guide/Demo/Publication refusal;
+- replaced the former dual-purpose Guide/Demo persistence with transactional
+  Artifact + Edition + Working Draft creation, exact Version scoping, aggregate
+  Working Draft optimistic concurrency, Edition archive/restore concurrency,
+  relational annotations/transitions, and source-Version-aware generation;
+- updated shared constants, contracts, domain policies, repositories, services,
+  routes, Audit snapshots/coverage, publish compatibility adapters, smoke data,
+  and database schema verification together;
+- retained Default-Edition legacy snapshot publication/public reading as the
+  deliberate child-120 compatibility seam, rejected new named-Version
+  publication, and kept artifact-wide existing-link management reachable after
+  a Default change;
+- updated portal routing and all Guide/Demo API calls to use the selected Project
+  Version, refreshed returned Working Draft Row Versions after writes, exposed
+  archive/restore, and rendered the named-Version deferred-publishing state;
+- expanded the shared database reset helper to truncate the new restrictive-FK
+  tables; this test-support file was the only justified addition beyond the
+  rechecked inventory and prevents stale relational fixtures between DB tests;
+- the final fresh-PostgreSQL closeout caught and fixed an ambiguous joined Draft
+  select, Demo creation Audit action drift, concurrent queries on one transaction
+  client, archive-transition guard logic, overlong annotation IDs, annotation
+  clearing on screenshot replacement, dense Block ordering after deletion,
+  archived Demo write translation, Version-aware generated editor redirects,
+  and stale predecessor DB assertions; each fix was rerun at its owning seam;
+- updated current-state route, operations, setup, zoom-out, and roadmap docs
+  without claiming child-119 Revisions/assets or child-120 publishing work.
 
 ## Verification Record
 
-Planning verification only:
+Verification completed on 2026-07-19:
 
-- inspected current migrations through `021`, Guide/Demo shared contracts,
-  domain policies, repositories, services, routes, Audit/Access registries,
-  Publish snapshot compatibility, portal API/routing/pages, and focused test
-  locations;
-- rechecked the accepted child-118/119/120 boundaries in master `005` and the
-  implemented child-117 generation, Project Version, database-guard, and
-  temporary-error seams;
-- confirmed starting commit `e79ed97` and a clean worktree;
-- `rtk pnpm exec prettier --check
-docs/plan/118-guide-demo-edition-working-draft-relational-foundation.md` and
+- focused constants/types/domain, server Guide/Demo/Publish/Audit, and web
+  Guide/Demo/App suites pass;
+- the complete recursive repository suite passes (`15` packages; server `357`
+  tests and web `264` tests included);
+- fresh disposable PostgreSQL migration through `022`, named schema
+  verification, runtime-grant/guard coverage, reset/reseed, the full server DB
+  integration suite, and focused relational Guide/Demo/Publish plus V1 smoke
+  (`10` tests) pass using separated maintenance
+  and runtime roles; retained-row refusal and guarded DOWN behavior are covered
+  by migration/schema tests;
+- `rtk pnpm lint`, `rtk pnpm check-types`, `rtk pnpm build`, and
   `rtk git diff --check` pass;
-- no runtime, database, unit, integration, smoke, or browser verification is
-  claimed by this planning step.
+- agent-browser session `child118` at `http://localhost:3000` with synthetic
+  local fixtures verified login, Project discovery, and Default Version
+  workspace selection at desktop width; console output contained only Vite/
+  React development messages;
+- remaining browser matrix was blocked when the authenticated
+  `/projects/.../versions/main/guides` navigation caused the pre-existing
+  authentication session-touch writer to fail `invalid_audit_transition` in
+  `authentication/session.audit.ts`. The route returned `500` before Guide/Demo
+  handling, so no child-118 browser behavior is blamed or fabricated. Safe
+  blocker screenshot: `/tmp/ossie-child118-auth-session-audit-blocker.png`.
+  Unit, integration, DB, and smoke coverage exercise the blocked child-118
+  states; a later unrelated authentication-audit repair must repeat the desktop,
+  mobile, keyboard, zoom/reflow, network, public reader/viewer, and embed matrix.
 
 ## Leftovers And Handoff To Child 119
 
@@ -1338,6 +1368,10 @@ Child `119` owns:
 - the complete Protected Shared Asset reference graph, archived-reference
   resolution, and purge blocking across Working Draft, Revision, and current
   Published Artifact references.
+
+Unrelated carry-forward: repair the authenticated session-touch Audit
+transition and rerun the blocked browser matrix. Do not fold that authentication
+defect into child `119`'s domain scope.
 
 Child `120` still owns removal of the temporary publication snapshot JSON,
 revision-backed Published Artifacts, Publication Sequence naming, multi-version

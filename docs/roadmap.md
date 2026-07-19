@@ -40,16 +40,16 @@ Master Plan `005` is the accepted implementation track:
 6. Project Version-scoped Capture Sessions across portal and extension.
    Completed in child `117`.
 7. Project-owned Guide/Demo Artifacts with version-scoped Editions and Working
-   Drafts.
+   Drafts. Completed in child `118`.
 8. Immutable Revisions, Carry-Forward, protected shared assets, revision-backed
    Publications, and multi-version Publish Links.
 9. Design-system and workflow-by-workflow portal, extension, authoring, reader,
    accessibility, motion, and browser modernization.
 10. Cross-workflow closeout before new artifact-family design.
 
-Items 1 through 6 are current runtime behavior. Artifact Editions/Revisions,
-revised Publications, and later UI modernization remain accepted target
-behavior rather than shipped claims.
+Items 1 through 7 are current runtime behavior. Artifact Revisions, revised
+Publications, and later UI modernization remain accepted target behavior rather
+than shipped claims.
 See `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 for gates and exact child ordering.
 

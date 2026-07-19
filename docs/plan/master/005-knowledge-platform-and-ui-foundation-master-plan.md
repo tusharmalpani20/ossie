@@ -2,8 +2,8 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `117` are complete. Child `118`
-Guide And Demo Edition And Working Draft Relational Foundation is next.
+Status: In progress. Children `109` through `118` are complete. Child `119`
+Guide And Demo Revision, Carry-Forward, And Protected Assets is next.
 
 Master plan number: 005.
 
@@ -1893,7 +1893,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `115`.
 - [x] Create, expand, recheck, implement, and close child plan `116`.
 - [x] Create, expand, recheck, implement, and close child plan `117`.
-- [ ] Create, expand, recheck, implement, and close child plan `118`.
+- [x] Create, expand, recheck, implement, and close child plan `118`.
 - [ ] Create, expand, recheck, implement, and close child plan `119`.
 - [ ] Create, expand, recheck, implement, and close child plan `120`.
 - [ ] Create, expand, recheck, implement, and close child plan `121`.
@@ -1945,7 +1945,7 @@ This master plan is complete when:
 ## 19. Immediate Next Action
 
 The next executable activity is expansion and implementation-readiness recheck
-of child `118` Guide And Demo Edition And Working Draft Relational Foundation.
+of child `119` Guide And Demo Revision, Carry-Forward, And Protected Assets.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -1954,10 +1954,11 @@ longer blocks this master-plan sequence.
 Children `109`, `110`, the deliberately early `111` grill, Audit Evidence Core
 child `112`, comprehensive existing-mutation coverage child `113`, Access
 Evidence/Owner compliance timeline child `114`, Project Membership Foundation
-child `115`, Project Version Foundation child `116`, and Capture Source Version
-Scoping child `117` are complete. Child `118` must replace the temporary
-current-Default Guide/Demo generation seam with relational Artifact, Edition,
-and Working Draft ownership while preserving immutable Capture provenance.
+child `115`, Project Version Foundation child `116`, Capture Source Version
+Scoping child `117`, and Guide/Demo Edition And Working Draft Relational
+Foundation child `118` are complete. Child `119` now builds immutable relational
+Revisions, Carry-Forward, and protected shared-asset behavior on those shipped
+Artifact, Edition, and Working Draft ownership boundaries.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with expansion and recheck of child `118`.
+continues with expansion and recheck of child `119`.
