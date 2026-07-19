@@ -65,7 +65,9 @@ Baseline reviewed on 2026-07-10:
   exhaustive current mutation command/table/route coverage, and active
   same-transaction database guards. Child `114` adds explicit relational Access
   Evidence, fail-closed protected reads, and the Owner-only combined compliance
-  timeline. Project-role visibility remains child `115` scope.
+  timeline. Child `115` adds explicit Project Membership, centralized
+  Project-role authorization, Project Admin compliance scope, and Editor
+  Activity visibility.
 - Current migrations end at `019_project_membership_foundation.sql`.
   Migration `015` implements the
   accepted clean pre-live transition and refuses populated User or Organization
@@ -964,8 +966,8 @@ Acceptance:
 
 ### 115: Project Membership Foundation
 
-Status: Complete. Implemented, verified, browser-dogfooded, and closed on
-2026-07-19.
+Status: Complete. Implemented, verified, browser-dogfooded, closed, and
+close-previous rechecked clean on 2026-07-19.
 
 Planned file:
 

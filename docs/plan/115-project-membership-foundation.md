@@ -6,8 +6,8 @@ Expanded: 2026-07-19
 
 Last rechecked: 2026-07-19
 
-Status: Complete. Implemented, verified, browser-dogfooded, and closed on
-2026-07-19.
+Status: Complete. Implemented, verified, browser-dogfooded, closed, and
+close-previous rechecked clean on 2026-07-19.
 
 Parent plan:
 
@@ -1409,6 +1409,9 @@ Implementation and closeout:
 - [x] Pass focused, DB, smoke, broad, and real-browser verification, with the
       unavailable unpacked-extension toolbar capability recorded below.
 - [x] Recheck implementation against this plan and master `005` until clean.
+- [x] Close-previous recheck confirmed the implementation diff remained inside
+      child `115`, hardened assignment eligibility/reactivation against races,
+      and completed Viewer Interactive Demo content rendering.
 - [x] Update status, implementation log, verification record, leftovers, and
       parent completed items together.
 - [x] Commit only attributable changes in small logical commits.
@@ -1434,6 +1437,13 @@ commits are:
   `purpose=capture`, preserving stale-selection clearing and diagnostics;
 - `9558311` closes a recheck gap by making Viewer and archived Project capture,
   Guide, and Interactive Demo surfaces genuinely read-only.
+- `3c3e484` closes an atomicity gap in membership assignment: the write now
+  requires an active same-Organization non-Owner Member, reactivates only a
+  revoked row, cannot overwrite a concurrently active assignment, and maps a
+  lost race through stable service errors without emitting a false Audit Event;
+- `16da436` closes the remaining Viewer Interactive Demo gap by rendering scene
+  screenshots, static hotspot overlays, and ordered hotspot content while
+  continuing to omit all authoring and publication actions.
 
 The existing feature repositories remain Organization/Project scoped as
 defense in depth; production services receive authorization through composition
@@ -1443,17 +1453,25 @@ Membership assignment, role change, removal, and stable-row reactivation use
 optimistic Row Versions and typed Audit Change Items. Activity is an allowlisted
 Audit projection; raw Project compliance remains Admin/Owner-only.
 
-Two runtime-safe adaptations were made during verification: the service does
-not lock `organization_schema.org_user` with runtime credentials because that
-table intentionally has no runtime update grant, and membership errors are
-mapped at their route boundary to avoid double replies. Database constraints
-still reject active Owner memberships and unaudited membership writes.
+Two runtime-safe adaptations were made during the original verification: the
+service does not lock `organization_schema.org_user` with runtime credentials
+because that table intentionally has no runtime update grant, and membership
+errors are mapped at their route boundary to avoid double replies. Database
+constraints still reject active Owner memberships and unaudited membership
+writes.
+
+The close-previous recheck compared the complete `a25c841..ed32619`
+implementation range with this child and the current route composition. No
+unrelated implementation file was found. It also established failing tests for
+the two gaps above before applying the smallest fixes. A real PostgreSQL run
+caught and corrected ambiguous parameter inference in the new conditional
+`INSERT ... SELECT`; the final query uses explicit identifier/role casts.
 
 ## Verification Record
 
 Completed on 2026-07-19:
 
-- `rtk pnpm -r --if-present test`: 84 server files/410 tests, 29 web
+- `rtk pnpm -r --if-present test`: 84 server files/412 tests, 29 web
   files/320 tests, 11 extension files/93 tests, and every shared-package/docs
   suite passed;
 - focused contract suites passed: constants 3, shared types 44, and Audit
@@ -1466,8 +1484,13 @@ Completed on 2026-07-19:
   and Project Membership database suites passed, populated DOWN correctly
   refused retained membership/project-role evidence, clean DOWN/UP reset passed,
   and the updated `v1-workflows` smoke suite passed;
-- database invariant tests passed for tenant FKs, Owner rejection, guarded
-  runtime writes, optimistic conflict behavior, and retained evidence;
+- schema/database suites cover tenant FKs, active-Owner rejection, guarded
+  runtime writes, and retained-evidence reset refusal; repository/service tests
+  cover optimistic conflicts and concurrent assignment/reactivation outcomes;
+- the close-previous focused suites passed 23 server tests and 9 Interactive
+  Demo portal tests; the membership database integration test and the complete
+  `v1-workflows` PostgreSQL smoke test each passed with an explicit disposable
+  local database configuration;
 - `git diff --check` passed before each implementation commit.
 
 Real browser validation used named synthetic `agent-browser` sessions against
@@ -1478,8 +1501,18 @@ capture behavior, archived discovery/read-only behavior, confirmed membership
 removal and immediate hidden/not-found revocation, Project-scoped compliance,
 curated Activity, keyboard navigation, narrow `375x812` layout, zoom/reflow,
 and console/network review. A real request exposed and drove the audited
-membership-assignment lock fix. Sessions were closed and local services were
-stopped; no browser state or screenshot is committed.
+membership-assignment lock fix.
+
+The close-previous browser pass additionally signed in as a synthetic Viewer,
+navigated through Project discovery to an Interactive Demo, confirmed the
+read-only scene/hotspot label and description, confirmed zero Save/Publish
+actions, and verified `390x844` reflow with no horizontal overflow or browser
+page errors. The scene `<img>` used the protected asset-file route; its request
+returned `404` because the database smoke fixture deliberately removes its
+temporary storage directory when setup exits, so successful image response and
+rendering remain covered by the component test rather than claimed as live-file
+evidence. Sessions were closed and local services were stopped; no browser
+state or screenshot is committed.
 
 The normal web browser runner cannot load/control the unpacked extension
 toolbar in this environment. Per the plan, that capability is recorded as
@@ -1494,6 +1527,8 @@ Child `115` has no known implementation blocker. Hand child `116`:
 - the tested future `project_version.manage` policy cell without a shipped
   Project Version route;
 - creator/Owner behavior and membership-aware Project fixtures;
+- the conditional assignment/reactivation pattern: eligibility and conflict
+  status must be enforced atomically, not only by an earlier service read;
 - same-Organization relational FK and audit/access registration patterns;
 - immediate query-time revocation semantics;
 - Project Admin raw compliance and Editor Activity scope;
