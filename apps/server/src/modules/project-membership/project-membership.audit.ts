@@ -95,7 +95,7 @@ export const build_audited_project_membership_repository = (pool: Pool): Project
       return run_audited_mutation({
         pool, event_id, command: find_audit_command("project.membership.assign"),
         context: async (client) => {
-          await client.query(`SELECT id FROM organization_schema.org_user WHERE organization_id = $1 AND id IN ($2, $3) FOR UPDATE`, [args.organization_id, args.actor_org_user_id, args.org_user_id]);
+          await client.query(`SELECT id FROM organization_schema.org_user WHERE organization_id = $1 AND id IN ($2, $3)`, [args.organization_id, args.actor_org_user_id, args.org_user_id]);
           before = await build_project_membership_repository(client).find_membership(args);
           label = await actor_label(client, args.organization_id, args.actor_org_user_id);
           return { organization_id: args.organization_id, actor_type: "org_user", source_type: current_audit_source_type() };
