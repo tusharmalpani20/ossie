@@ -27,6 +27,7 @@ describe("guide app integration", () => {
   it("mounts guide routes on the project path", async () => {
     const app = build({
       logger: false,
+      access_event_writer: { append: async () => undefined },
       authentication_session_service: {
         login: async () => {
           throw new Error("not needed");

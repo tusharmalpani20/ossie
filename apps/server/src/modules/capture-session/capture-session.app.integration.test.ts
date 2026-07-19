@@ -5,6 +5,7 @@ describe("capture session app routes", () => {
   it("mounts capture session routes under project-owned versioned API paths", async () => {
     const app = build({
       logger: false,
+      access_event_writer: { append: async () => undefined },
       authentication_session_service: {
         get_current_auth_context: async () => ({
           user: {

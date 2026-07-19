@@ -24,6 +24,7 @@ describe("authentication session app routes", () => {
   it("mounts authentication session routes under the versioned API", async () => {
     const app = build({
       logger: false,
+      access_event_writer: { append: async () => undefined },
       authentication_session_service: {
         get_current_auth_context: async () => ({
           user: {

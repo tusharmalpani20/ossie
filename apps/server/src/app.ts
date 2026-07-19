@@ -94,7 +94,23 @@ import { build_publish_service } from "./modules/publish/publish.service.js";
 import {
   audit_request_context,
   run_with_audit_request_context,
+  safe_audit_actor_label,
 } from "./modules/audit/audit-request-context.js";
+import type { AccessEvent } from "@repo/audit-domain";
+import { build_access_repository } from "./modules/access/access.repository.js";
+import { build_access_response_hook } from "./modules/access/access-response-hook.js";
+import {
+  access_request_context,
+  run_with_access_request_context,
+  set_access_auth_context,
+  set_access_resolved_resource,
+} from "./modules/access/access-request-context.js";
+import {
+  build_compliance_routes,
+  type ComplianceRouteDependencies,
+} from "./modules/compliance/compliance.routes.js";
+import { build_compliance_repository } from "./modules/compliance/compliance.repository.js";
+import { build_compliance_service } from "./modules/compliance/compliance.service.js";
 
 type BuildOptions = FastifyServerOptions & {
   public_instance_service?: PublicInstanceRouteService;
@@ -109,6 +125,10 @@ type BuildOptions = FastifyServerOptions & {
   guide_screenshot_upload_service?: GuideRouteDependencies["guide_screenshot_upload_service"];
   interactive_demo_service?: InteractiveDemoRouteDependencies["interactive_demo_service"];
   publish_service?: PublishRouteDependencies["publish_service"];
+  access_event_writer?: {
+    append(event: AccessEvent): Promise<void>;
+  };
+  compliance_service?: ComplianceRouteDependencies["compliance_service"];
   readiness_check?: () => Promise<void>;
 };
 
@@ -178,6 +198,8 @@ export const build = (opts: BuildOptions = {}) => {
     guide_screenshot_upload_service,
     interactive_demo_service,
     publish_service,
+    access_event_writer,
+    compliance_service,
     readiness_check = async () => {
       await pool.query("SELECT 1");
     },
@@ -192,8 +214,17 @@ export const build = (opts: BuildOptions = {}) => {
   const rate_limit_buckets = new Map<string, RateLimitBucket>();
 
   app.addHook("onRequest", (request, _reply, done) => {
-    run_with_audit_request_context(audit_request_context(request), done);
+    run_with_audit_request_context(audit_request_context(request), () =>
+      run_with_access_request_context(access_request_context(request), done),
+    );
   });
+
+  app.addHook(
+    "onSend",
+    build_access_response_hook(
+      access_event_writer ?? build_access_repository(pool),
+    ),
+  );
 
   app.addHook("onRequest", async (request, reply) => {
     const route = matched_rate_limited_route(request.method, request.url);
@@ -361,6 +392,52 @@ export const build = (opts: BuildOptions = {}) => {
 
   initialize_event_emitter();
 
+  const report_auth_context = (auth: Awaited<
+    ReturnType<AuthenticationSessionRouteService["get_current_auth_context"]>
+  >) => {
+    if (auth.org_user.role !== "owner" && auth.org_user.role !== "member")
+      return;
+    set_access_auth_context({
+      organization_id: auth.organization.id,
+      org_user_id: auth.org_user.id,
+      actor_label: safe_audit_actor_label(auth.user.display_name),
+      organization_role: auth.org_user.role,
+      auth_session_id: auth.session.id,
+    });
+  };
+  const built_authentication_session_service =
+    build_authentication_session_service(
+      build_authentication_session_repository(pool),
+      {
+        on_auth_context_resolved: report_auth_context,
+        on_login_identity_resolved: (identity) =>
+          set_access_resolved_resource({
+            organization_id: identity.organization.id,
+            project_id: null,
+            root_resource_type: "organization",
+            root_resource_id: identity.organization.id,
+          }),
+      },
+    );
+  const default_authentication_session_service = authentication_session_service
+    ? {
+        get_current_auth_context: async (session_token?: string) => {
+          const auth =
+            await authentication_session_service.get_current_auth_context(
+              session_token,
+            );
+          report_auth_context(auth);
+          return auth;
+        },
+        login: async (...args: Parameters<AuthenticationSessionRouteService["login"]>) => {
+          const result = await authentication_session_service.login(...args);
+          report_auth_context(result.auth);
+          return result;
+        },
+        logout: authentication_session_service.logout,
+      }
+    : built_authentication_session_service;
+
   app.register(
     build_public_instance_routes(
       public_instance_service ??
@@ -383,21 +460,12 @@ export const build = (opts: BuildOptions = {}) => {
 
   app.register(
     build_authentication_session_routes(
-      authentication_session_service ??
-        build_authentication_session_service(
-          build_authentication_session_repository(pool),
-        ),
+      default_authentication_session_service,
     ),
     {
       prefix: "/api/v1/authentication",
     },
   );
-
-  const default_authentication_session_service =
-    authentication_session_service ??
-    build_authentication_session_service(
-      build_authentication_session_repository(pool),
-    );
 
   app.register(
     build_organization_invites_routes({
@@ -409,6 +477,15 @@ export const build = (opts: BuildOptions = {}) => {
         organization_invites_service ??
         build_organization_invites_service(
           build_organization_invites_repository(pool),
+          {
+            on_public_invite_resolved: (invite) =>
+              set_access_resolved_resource({
+                organization_id: invite.organization_id,
+                project_id: null,
+                root_resource_type: "org_invite",
+                root_resource_id: invite.invite_id,
+              }),
+          },
         ),
     }),
     {
@@ -541,10 +618,32 @@ export const build = (opts: BuildOptions = {}) => {
         publish_service ??
         build_publish_service(build_audited_publish_repository(pool), {
           file_storage: default_capture_file_storage,
+          on_public_publish_link_resolved: (link) =>
+            set_access_resolved_resource({
+              organization_id: link.organization_id,
+              project_id: link.project_id,
+              root_resource_type: "publish_link",
+              root_resource_id: link.publish_link_id,
+            }),
         }),
     }),
     {
       prefix: "/api/v1",
+    },
+  );
+
+  app.register(
+    build_compliance_routes({
+      auth_service: {
+        get_current_auth_context:
+          default_authentication_session_service.get_current_auth_context,
+      },
+      compliance_service:
+        compliance_service ??
+        build_compliance_service(build_compliance_repository(pool)),
+    }),
+    {
+      prefix: "/api/v1/organization/compliance",
     },
   );
 

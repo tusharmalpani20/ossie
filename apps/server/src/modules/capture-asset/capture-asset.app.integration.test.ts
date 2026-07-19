@@ -35,6 +35,7 @@ describe("capture asset app integration", () => {
   it("mounts capture asset routes on the project capture session path", async () => {
     const app = build({
       logger: false,
+      access_event_writer: { append: async () => undefined },
       authentication_session_service: {
         login: async () => {
           throw new Error("not needed");

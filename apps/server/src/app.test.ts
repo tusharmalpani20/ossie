@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { build } from "./app";
 import { InvalidCredentialsError, UnauthenticatedSessionError } from "./modules/authentication/session.routes";
+import { AccessDomainError } from "@repo/audit-domain";
 
 describe("app configuration", () => {
   const original_env = { ...process.env };
@@ -247,6 +248,109 @@ describe("app configuration", () => {
 
     expect(response.statusCode).toBe(413);
 
+    await app.close();
+  });
+
+  it("records protected reads and fails closed when Access Evidence is unavailable", async () => {
+    const auth = {
+      user: {
+        id: "01J00000000000000000000001",
+        email: "owner@example.test",
+        display_name: "Synthetic owner",
+      },
+      organization: {
+        id: "01J00000000000000000000002",
+        name: "Synthetic organization",
+      },
+      org_user: { id: "01J00000000000000000000003", role: "owner" },
+      session: {
+        id: "01J00000000000000000000004",
+        session_type: "web",
+        expires_at: "2026-08-19T12:00:00.000Z",
+      },
+    };
+    const append = vi.fn(async () => undefined);
+    const service = {
+      get_current_auth_context: vi.fn(async () => auth),
+      login: vi.fn(),
+      logout: vi.fn(),
+    };
+    const app = build({
+      logger: false,
+      authentication_session_service: service,
+      access_event_writer: { append },
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/authentication/me",
+      cookies: { ossie_session: "synthetic-session" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organization_id: auth.organization.id,
+        actor_org_user_id: auth.org_user.id,
+        action: "authentication.session.viewed",
+      }),
+    );
+    await app.close();
+
+    const unavailable = build({
+      logger: false,
+      authentication_session_service: service,
+      access_event_writer: {
+        append: async () => {
+          throw new Error("private database detail");
+        },
+      },
+    });
+    const failed = await unavailable.inject({
+      method: "GET",
+      url: "/api/v1/authentication/me",
+      cookies: { ossie_session: "synthetic-session" },
+    });
+    expect(failed.statusCode).toBe(503);
+    expect(failed.json()).toEqual({
+      error: {
+        type: "access_evidence_unavailable",
+        message: "Access evidence is temporarily unavailable",
+      },
+    });
+    expect(failed.body).not.toContain("owner@example.test");
+    await unavailable.close();
+  });
+
+  it("maps atomic Access Evidence failures to the stable 503 response", async () => {
+    const app = build({
+      logger: false,
+      authentication_session_service: {
+        get_current_auth_context: vi.fn(),
+        login: async () => {
+          throw new AccessDomainError();
+        },
+        logout: vi.fn(),
+      },
+      access_event_writer: { append: vi.fn(async () => undefined) },
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/authentication/login",
+      payload: {
+        email: "owner@example.test",
+        password: "synthetic password",
+      },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      error: {
+        type: "access_evidence_unavailable",
+        message: "Access evidence is temporarily unavailable",
+      },
+    });
     await app.close();
   });
 });

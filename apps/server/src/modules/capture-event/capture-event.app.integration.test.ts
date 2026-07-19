@@ -38,6 +38,7 @@ describe("capture event app integration", () => {
   it("mounts capture event routes on the project capture session path", async () => {
     const app = build({
       logger: false,
+      access_event_writer: { append: async () => undefined },
       authentication_session_service: {
         login: async () => {
           throw new Error("not needed");
