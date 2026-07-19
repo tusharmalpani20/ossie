@@ -16,6 +16,8 @@ import {
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
 import type { Project, UpdateProjectInput } from "./types";
+import { ProjectMembershipSection } from "./ProjectMembershipSection";
+import { projectRoleLabel } from "./useProjectAccess";
 import styles from "./ProjectSettingsPage.module.css";
 
 type LoadState =
@@ -275,6 +277,17 @@ export const ProjectSettingsPage = ({
   }
 
   const project = state.project;
+  if (project.access.role !== "project_admin") {
+    return (
+      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+        <section className={styles.header}>
+          <div><div className={styles.eyebrow}>Project settings</div><h1 className={styles.title}>Settings unavailable</h1></div>
+          <a className={styles.backLink} href={workspaceUrl(projectId)}>Back to workspace</a>
+        </section>
+        <div className={styles.state}>Your {projectRoleLabel(project)} role can view Project content but cannot manage settings.</div>
+      </PortalShell>
+    );
+  }
   const detailsDirty = !sameForm(form, savedForm);
   const isSaving = submitState === "saving";
   const isUpdatingStatus = submitState === "updating_status";
@@ -359,6 +372,7 @@ export const ProjectSettingsPage = ({
             </Button>
           </CardContent>
         </Card>
+        <ProjectMembershipSection projectId={projectId} />
       </div>
     </PortalShell>
   );

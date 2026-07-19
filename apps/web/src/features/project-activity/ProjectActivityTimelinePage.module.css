@@ -1,0 +1,8 @@
+.page { min-height: 100vh; background: var(--background); }
+.main { width: min(70rem, calc(100% - 2rem)); margin: 0 auto; padding: 2rem 0 4rem; }
+.header, .meta { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.eyebrow { color: var(--muted-foreground); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
+.timeline { list-style: none; padding: 0; display: grid; gap: 1rem; }
+.timeline h2 { font-size: 1.05rem; }
+.state { padding: 2rem; text-align: center; }
+@media (max-width: 40rem) { .header { align-items: flex-start; flex-direction: column; } }

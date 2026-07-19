@@ -26,7 +26,7 @@ describe("App", () => {
         return jsonResponse(readyInstanceStatus);
       }
 
-      if (url.endsWith("/api/v1/projects")) {
+      if (url.includes("/api/v1/projects?status=active")) {
         return jsonResponse({
           projects: [{
             id: "project_1",
@@ -42,6 +42,7 @@ describe("App", () => {
             version: 1,
             created_at: "2026-06-05T10:00:00.000Z",
             updated_at: "2026-06-05T10:05:00.000Z",
+            access: { role: "project_admin", source: "organization_owner" },
           }],
         });
       }
@@ -171,6 +172,7 @@ describe("App", () => {
         version: 1,
         created_at: "2026-06-05T10:00:00.000Z",
         updated_at: "2026-06-05T10:05:00.000Z",
+        access: { role: "project_admin", source: "organization_owner" },
       },
     }), {
       status: 200,
@@ -188,8 +190,8 @@ describe("App", () => {
 
   it("renders project settings routes", async () => {
     window.history.pushState({}, "", "/projects/project_1/settings?tab=lifecycle");
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      project: {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => new Response(JSON.stringify(
+      input.toString().endsWith("/memberships") ? { members: [] } : { project: {
         id: "project_1",
         organization_id: "organization_1",
         name: "Internal onboarding demos",
@@ -203,6 +205,7 @@ describe("App", () => {
         version: 1,
         created_at: "2026-06-05T10:00:00.000Z",
         updated_at: "2026-06-05T10:05:00.000Z",
+        access: { role: "project_admin", source: "organization_owner" },
       },
     }), {
       status: 200,

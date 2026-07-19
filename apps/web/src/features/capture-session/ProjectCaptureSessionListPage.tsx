@@ -15,6 +15,7 @@ import {
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
+import { projectIsWritable, useProjectAccess } from "../project/useProjectAccess";
 import type { CaptureSession, CreateCaptureSessionInput } from "./types";
 import styles from "./ProjectCaptureSessionListPage.module.css";
 
@@ -35,6 +36,7 @@ type ProjectCaptureSessionListPageProps = {
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  canWrite?: boolean;
 };
 
 type CreateCaptureSessionFormState = {
@@ -146,7 +148,10 @@ export const ProjectCaptureSessionListPage = ({
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
+  canWrite,
 }: ProjectCaptureSessionListPageProps) => {
+  const projectAccess = useProjectAccess(projectId).state;
+  const writable = canWrite ?? (projectAccess.status === "loaded" && Boolean(projectAccess.project) && projectIsWritable(projectAccess.project));
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -281,9 +286,9 @@ export const ProjectCaptureSessionListPage = ({
           <h1 className={styles.title}>Capture sessions</h1>
           <p className={styles.description}>{projectId}</p>
         </div>
-        <Button type="button" onClick={openCreateForm}>
+        {writable ? <Button type="button" onClick={openCreateForm}>
           New Capture Session
-        </Button>
+        </Button> : <Badge>Read only</Badge>}
       </section>
 
       {showCreateForm ? (

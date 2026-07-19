@@ -16,6 +16,7 @@ import {
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
 import type { CreateProjectInput, Project } from "./types";
+import { projectRoleLabel } from "./useProjectAccess";
 import styles from "./ProjectListPage.module.css";
 
 type LoadState =
@@ -25,7 +26,7 @@ type LoadState =
   | { status: "error" };
 
 type ProjectListPageProps = {
-  loadProjects?: () => Promise<ProjectListResponse>;
+  loadProjects?: (options?: { status?: "active" | "archived" }) => Promise<ProjectListResponse>;
   createProject?: (input: CreateProjectInput) => Promise<ProjectCreateResponse>;
   currentPath?: string;
   performLogout?: () => Promise<void>;
@@ -105,6 +106,7 @@ export const ProjectListPage = ({
 }: ProjectListPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<"active" | "archived">("active");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createForm, setCreateForm] = useState<CreateProjectFormState>({
     name: "",
@@ -119,7 +121,7 @@ export const ProjectListPage = ({
     let active = true;
     setState({ status: "loading" });
 
-    loadProjects()
+    loadProjects({ status: statusFilter })
       .then((response) => {
         if (active) {
           setState({ status: "loaded", projects: response.projects });
@@ -134,7 +136,7 @@ export const ProjectListPage = ({
     return () => {
       active = false;
     };
-  }, [loadProjects, reloadKey]);
+  }, [loadProjects, reloadKey, statusFilter]);
 
   useEffect(() => {
     if (showCreateForm) {
@@ -279,7 +281,9 @@ export const ProjectListPage = ({
       ) : null}
 
       <section className={styles.content} aria-labelledby="projects-heading">
-        <h2 className={styles.sectionTitle} id="projects-heading">All projects</h2>
+        <div className={styles.titleRow}><h2 className={styles.sectionTitle} id="projects-heading">{statusFilter === "active" ? "Active" : "Archived"} projects</h2>
+          <label>Project status <select aria-label="Project status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "active" | "archived")}><option value="active">Active</option><option value="archived">Archived</option></select></label>
+        </div>
         {state.projects.length === 0 ? (
           <Card className={styles.empty}>No projects yet.</Card>
         ) : (
@@ -315,6 +319,7 @@ const ProjectCard = ({ project }: { project: Project }) => (
       <div className={styles.titleRow}>
         <h3 className={styles.projectTitle}>{project.name}</h3>
         <Badge variant={project.status === "active" ? "success" : "default"}>{project.status}</Badge>
+        <Badge>{projectRoleLabel(project)}</Badge>
       </div>
       {project.description ? (
         <p className={styles.description}>{project.description}</p>

@@ -83,6 +83,7 @@ const renderPage = (overrides: {
   render(
     <ProjectCaptureSessionListPage
       projectId={overrides.projectId ?? "project_1"}
+      canWrite
       loadCaptureSessions={loadCaptureSessions}
       createCaptureSession={createCaptureSession}
       currentPath={overrides.currentPath}
@@ -295,6 +296,7 @@ describe("ProjectCaptureSessionListPage", () => {
     const { rerender } = render(
       <ProjectCaptureSessionListPage
         projectId="project_1"
+        canWrite
         loadCaptureSessions={async () => ({ capture_sessions: captureSessions })}
         createCaptureSession={async () => {
           throw new ApiClientError({
@@ -317,6 +319,7 @@ describe("ProjectCaptureSessionListPage", () => {
     rerender(
       <ProjectCaptureSessionListPage
         projectId="missing"
+        canWrite
         loadCaptureSessions={async () => ({ capture_sessions: captureSessions })}
         createCaptureSession={async () => {
           throw new ApiClientError({

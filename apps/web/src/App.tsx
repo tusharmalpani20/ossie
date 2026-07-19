@@ -17,6 +17,7 @@ import { ComplianceTimelinePage } from "./features/compliance/ComplianceTimeline
 import { ProjectListPage } from "./features/project/ProjectListPage";
 import { ProjectSettingsPage } from "./features/project/ProjectSettingsPage";
 import { ProjectWorkspacePage } from "./features/project/ProjectWorkspacePage";
+import { ProjectActivityTimelinePage } from "./features/project-activity/ProjectActivityTimelinePage";
 import { FirstRunSetupPage } from "./features/setup/FirstRunSetupPage";
 import { getPublicInstanceStatus } from "./lib/api";
 import { parsePortalRoute, type PortalRoute } from "./lib/routes";
@@ -30,6 +31,8 @@ const setupGuardedRouteTypes = new Set<PortalRoute["type"]>([
   "organization_compliance",
   "project_workspace",
   "project_settings",
+  "project_compliance",
+  "project_activity",
   "capture_session_detail",
   "project_capture_session_list",
   "guide_detail",
@@ -207,6 +210,14 @@ export default function App() {
         currentPath={currentPath}
       />
     );
+  }
+
+  if (route.type === "project_compliance") {
+    return <ComplianceTimelinePage projectId={route.projectId} currentPath={currentPath} />;
+  }
+
+  if (route.type === "project_activity") {
+    return <ProjectActivityTimelinePage projectId={route.projectId} currentPath={currentPath} />;
   }
 
   if (route.type === "capture_session_detail") {

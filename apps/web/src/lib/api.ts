@@ -1,4 +1,4 @@
-import type { CaptureSessionStatus, ProjectStatus } from "@repo/constants";
+import type { CaptureSessionStatus, ProjectRole, ProjectStatus } from "@repo/constants";
 import type { AuthResponse, LoginRequest } from "@repo/types/auth";
 import type {
   CaptureSessionCreateResponse,
@@ -81,6 +81,11 @@ import type {
   ComplianceEventsResponse,
   ComplianceKind,
 } from "@repo/types/compliance";
+import type { ProjectActivityResponse } from "@repo/types/project-activity";
+import type {
+  ProjectMembershipListResponse,
+  ProjectMembershipResponse,
+} from "@repo/types/project-membership";
 import type {
   UploadCaptureAssetInput,
   UploadCaptureAssetResponse,
@@ -359,6 +364,36 @@ export const listProjects = async (
 
   return requestJson<ProjectListResponse>(`/api/v1/projects${query}`);
 };
+
+export const listProjectMemberships = async (projectId: string): Promise<ProjectMembershipListResponse> => (
+  requestJson(`/api/v1/projects/${encodeURIComponent(projectId)}/memberships`)
+);
+
+export const assignProjectMembership = async (
+  projectId: string,
+  input: { org_user_id: string; role: ProjectRole },
+): Promise<ProjectMembershipResponse> => requestJson(
+  `/api/v1/projects/${encodeURIComponent(projectId)}/memberships`,
+  { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) },
+);
+
+export const changeProjectMembershipRole = async (
+  projectId: string,
+  membershipId: string,
+  input: { role: ProjectRole; expected_version: number },
+): Promise<ProjectMembershipResponse> => requestJson(
+  `/api/v1/projects/${encodeURIComponent(projectId)}/memberships/${encodeURIComponent(membershipId)}`,
+  { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input) },
+);
+
+export const removeProjectMembership = async (
+  projectId: string,
+  membershipId: string,
+  expectedVersion: number,
+): Promise<void> => requestJson(
+  `/api/v1/projects/${encodeURIComponent(projectId)}/memberships/${encodeURIComponent(membershipId)}?expected_version=${expectedVersion}`,
+  { method: "DELETE" },
+);
 
 export const createProject = async (
   input: CreateProjectInput
@@ -724,6 +759,34 @@ export const getComplianceAuditEvent = async (
     `/api/v1/organization/compliance/audit-events/${encodeURIComponent(auditEventId)}`,
   )
 );
+
+export const listProjectComplianceEvents = async (projectId: string, input: {
+  kind?: ComplianceKind; cursor?: string; limit?: number;
+} = {}): Promise<ComplianceEventsResponse> => {
+  const query = new URLSearchParams();
+  if (input.kind && input.kind !== "all") query.set("kind", input.kind);
+  if (input.cursor) query.set("cursor", input.cursor);
+  if (input.limit) query.set("limit", String(input.limit));
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  return requestJson(`/api/v1/projects/${encodeURIComponent(projectId)}/compliance/events${suffix}`);
+};
+
+export const getProjectComplianceAuditEvent = async (
+  projectId: string,
+  auditEventId: string,
+): Promise<ComplianceAuditEventDetailResponse> => requestJson(
+  `/api/v1/projects/${encodeURIComponent(projectId)}/compliance/audit-events/${encodeURIComponent(auditEventId)}`,
+);
+
+export const listProjectActivity = async (projectId: string, input: {
+  cursor?: string; limit?: number;
+} = {}): Promise<ProjectActivityResponse> => {
+  const query = new URLSearchParams();
+  if (input.cursor) query.set("cursor", input.cursor);
+  if (input.limit) query.set("limit", String(input.limit));
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  return requestJson(`/api/v1/projects/${encodeURIComponent(projectId)}/activity${suffix}`);
+};
 
 export const listProjectGuides = async (
   projectId: string

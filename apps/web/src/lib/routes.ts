@@ -26,6 +26,8 @@ export type PortalRoute =
     type: "project_settings";
     projectId: string;
   }
+  | { type: "project_compliance"; projectId: string }
+  | { type: "project_activity"; projectId: string }
   | {
     type: "capture_session_detail";
     projectId: string;
@@ -234,6 +236,12 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
       type: "project_settings",
       projectId: decodeURIComponent(projectId),
     };
+  }
+
+  if (segments.length === 3 && segments[0] === "projects" && (segments[2] === "compliance" || segments[2] === "activity")) {
+    const projectId = segments[1];
+    if (!projectId) return { type: "unsupported" };
+    return { type: segments[2] === "compliance" ? "project_compliance" : "project_activity", projectId: decodeURIComponent(projectId) };
   }
 
   if (

@@ -6,6 +6,7 @@ import { ApiClientError, getProject, type ProjectDetailResponse } from "../../li
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
 import type { Project } from "./types";
+import { projectRoleLabel } from "./useProjectAccess";
 import styles from "./ProjectWorkspacePage.module.css";
 
 type LoadState =
@@ -65,6 +66,8 @@ const interactiveDemosUrl = (projectId: string) => (
 const settingsUrl = (projectId: string) => (
   `/projects/${encodeURIComponent(projectId)}/settings`
 );
+const complianceUrl = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/compliance`;
+const activityUrl = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/activity`;
 
 export const ProjectWorkspacePage = ({
   projectId,
@@ -145,6 +148,8 @@ export const ProjectWorkspacePage = ({
           <div className={styles.titleRow}>
             <h1 className={styles.title}>{state.project.name}</h1>
             <Badge variant={state.project.status === "active" ? "success" : "default"}>{state.project.status}</Badge>
+            <Badge>{projectRoleLabel(state.project)}</Badge>
+            {state.project.access.source === "organization_owner" ? <span>Organization owner</span> : null}
           </div>
           {state.project.description ? (
             <p className={styles.description}>{state.project.description}</p>
@@ -155,9 +160,10 @@ export const ProjectWorkspacePage = ({
             <span>Created {formatDateTime(state.project.created_at)}</span>
           </div>
         </div>
-        <a className={styles.settingsLink} href={settingsUrl(projectId)}>
-          Project settings
-        </a>
+        {state.project.access.role === "project_admin" ? <div>
+          <a className={styles.settingsLink} href={settingsUrl(projectId)}>Project settings</a>
+          <a className={styles.settingsLink} href={complianceUrl(projectId)}>Compliance</a>
+        </div> : null}
       </section>
 
       <section className={styles.content} aria-labelledby="workspace-heading">
@@ -169,6 +175,12 @@ export const ProjectWorkspacePage = ({
             href={captureSessionsUrl(projectId)}
             linkLabel="Open capture sessions"
           />
+          {state.project.access.role !== "viewer" ? <WorkspaceAction
+            title="Activity"
+            description="Review curated Project changes without raw security evidence."
+            href={activityUrl(projectId)}
+            linkLabel="Open activity"
+          /> : null}
           <WorkspaceAction
             title="Guides"
             description="Open prepared docs and demos for this project."

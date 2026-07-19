@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import type {
   ComplianceAuditEventDetailResponse,
   ComplianceAuditState,
@@ -11,7 +11,9 @@ import { Card, CardContent } from "@repo/ui/card";
 import {
   ApiClientError,
   getComplianceAuditEvent,
+  getProjectComplianceAuditEvent,
   listComplianceEvents,
+  listProjectComplianceEvents,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
@@ -22,6 +24,7 @@ type PageState =
   | { status: "loaded"; response: ComplianceEventsResponse }
   | { status: "unauthenticated" }
   | { status: "forbidden" }
+  | { status: "not_found" }
   | { status: "error" };
 type DetailState =
   | { status: "loading" }
@@ -29,6 +32,7 @@ type DetailState =
   | { status: "loaded"; response: ComplianceAuditEventDetailResponse };
 
 type Props = {
+  projectId?: string;
   loadEvents?: typeof listComplianceEvents;
   loadAuditDetail?: typeof getComplianceAuditEvent;
   currentPath?: string;
@@ -41,6 +45,8 @@ const pageStateFromError = (error: unknown): PageState => {
     return { status: "unauthenticated" };
   if (error instanceof ApiClientError && error.kind === "forbidden")
     return { status: "forbidden" };
+  if (error instanceof ApiClientError && error.kind === "not_found")
+    return { status: "not_found" };
   return { status: "error" };
 };
 
@@ -56,12 +62,19 @@ const displayState = (state: ComplianceAuditState) => {
 };
 
 export const ComplianceTimelinePage = ({
-  loadEvents = listComplianceEvents,
-  loadAuditDetail = getComplianceAuditEvent,
+  projectId,
+  loadEvents,
+  loadAuditDetail,
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
 }: Props) => {
+  const resolvedLoadEvents = useMemo(() => loadEvents ?? (projectId
+    ? (input: Parameters<typeof listComplianceEvents>[0]) => listProjectComplianceEvents(projectId, input)
+    : listComplianceEvents), [loadEvents, projectId]);
+  const resolvedLoadDetail = useMemo(() => loadAuditDetail ?? (projectId
+    ? (auditEventId: string) => getProjectComplianceAuditEvent(projectId, auditEventId)
+    : getComplianceAuditEvent), [loadAuditDetail, projectId]);
   const [kind, setKind] = useState<ComplianceKind>("all");
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<PageState>({ status: "loading" });
@@ -73,18 +86,18 @@ export const ComplianceTimelinePage = ({
     let active = true;
     setState({ status: "loading" });
     setDetails({});
-    loadEvents({ kind })
+    resolvedLoadEvents({ kind })
       .then((response) => active && setState({ status: "loaded", response }))
       .catch((error: unknown) => active && setState(pageStateFromError(error)));
     return () => { active = false; };
-  }, [kind, loadEvents, reloadKey]);
+  }, [kind, resolvedLoadEvents, reloadKey]);
 
   const loadMore = async () => {
     if (state.status !== "loaded" || !state.response.page.next_cursor) return;
     setLoadingMore(true);
     setLoadMoreError(false);
     try {
-      const next = await loadEvents({ kind, cursor: state.response.page.next_cursor });
+      const next = await resolvedLoadEvents({ kind, cursor: state.response.page.next_cursor });
       setState({
         status: "loaded",
         response: {
@@ -103,7 +116,7 @@ export const ComplianceTimelinePage = ({
     if (!retry && details[id]) return;
     setDetails((current) => ({ ...current, [id]: { status: "loading" } }));
     try {
-      const response = await loadAuditDetail(id);
+      const response = await resolvedLoadDetail(id);
       setDetails((current) => ({ ...current, [id]: { status: "loaded", response } }));
     } catch {
       setDetails((current) => ({ ...current, [id]: { status: "error" } }));
@@ -111,19 +124,21 @@ export const ComplianceTimelinePage = ({
   };
 
   return (
-    <Shell performLogout={performLogout} navigate={navigate}>
+    <Shell projectId={projectId} performLogout={performLogout} navigate={navigate}>
       <header className={styles.header}>
         <div>
-          <div className={styles.eyebrow}>Retained organization evidence</div>
-          <h1 className={styles.title}>Compliance timeline</h1>
+          <div className={styles.eyebrow}>{projectId ? "Retained Project evidence" : "Retained organization evidence"}</div>
+          <h1 className={styles.title}>{projectId ? "Project compliance" : "Compliance timeline"}</h1>
         </div>
-        <a className={styles.backLink} href="/organization/members">Organization members</a>
+        <a className={styles.backLink} href={projectId ? `/projects/${encodeURIComponent(projectId)}` : "/organization/members"}>{projectId ? "Project workspace" : "Organization members"}</a>
       </header>
 
       {state.status === "unauthenticated" ? (
         <StateMessage>Sign in to view compliance evidence. <a href={signInUrl(currentPath)}>Sign in</a></StateMessage>
       ) : state.status === "forbidden" ? (
-        <StateMessage>Only organization owners can view compliance evidence.</StateMessage>
+        <StateMessage>{projectId ? "Only Project admins can view Project compliance evidence." : "Only organization owners can view compliance evidence."}</StateMessage>
+      ) : state.status === "not_found" ? (
+        <StateMessage>Project was not found.</StateMessage>
       ) : state.status === "error" ? (
         <StateMessage>Could not load compliance evidence. <Button size="sm" variant="secondary" onClick={() => setReloadKey((value) => value + 1)}>Retry</Button></StateMessage>
       ) : state.status === "loading" ? (
@@ -218,4 +233,4 @@ const AuditDetail = ({ state, retry }: { state?: DetailState; retry: () => void 
 const Meta = ({ label, value }: { label: string; value: string }) => <div><dt>{label}</dt><dd>{value}</dd></div>;
 const Metric = ({ label, value }: { label: string; value: number }) => <Card><CardContent><strong className={styles.metricValue}>{new Intl.NumberFormat().format(value)}</strong><span className={styles.metricLabel}>{label}</span></CardContent></Card>;
 const StateMessage = ({ children }: { children: ReactNode }) => <div className={styles.state}>{children}</div>;
-const Shell = ({ children, performLogout, navigate }: { children: ReactNode; performLogout?: () => Promise<void>; navigate?: (path: string) => void }) => <div className={styles.page}><PortalTopbar context="Organization" performLogout={performLogout} navigate={navigate} /><main className={styles.main}>{children}</main></div>;
+const Shell = ({ children, projectId, performLogout, navigate }: { children: ReactNode; projectId?: string; performLogout?: () => Promise<void>; navigate?: (path: string) => void }) => <div className={styles.page}><PortalTopbar context={projectId ?? "Organization"} performLogout={performLogout} navigate={navigate} /><main className={styles.main}>{children}</main></div>;

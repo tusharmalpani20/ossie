@@ -18,6 +18,7 @@ const project: Project = {
   version: 1,
   created_at: "2026-06-05T10:00:00.000Z",
   updated_at: "2026-06-05T10:05:00.000Z",
+  access: { role: "project_admin", source: "organization_owner" },
 };
 
 const renderPage = (overrides: {

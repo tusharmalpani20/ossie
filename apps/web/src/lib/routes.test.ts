@@ -141,6 +141,11 @@ describe("parsePortalRoute", () => {
     });
   });
 
+  it("parses Project compliance and Activity routes", () => {
+    expect(parsePortalRoute("/projects/project%201/compliance")).toEqual({ type: "project_compliance", projectId: "project 1" });
+    expect(parsePortalRoute("/projects/project_1/activity")).toEqual({ type: "project_activity", projectId: "project_1" });
+  });
+
   it("parses public guide reader routes", () => {
     expect(parsePortalRoute("/p/abc123")).toEqual({
       type: "public_guide_reader",

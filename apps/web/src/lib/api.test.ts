@@ -31,6 +31,10 @@ import {
   listOrganizationInvites,
   listOrganizationMembers,
   listComplianceEvents,
+  listProjectComplianceEvents,
+  listProjectActivity,
+  listProjectMemberships,
+  assignProjectMembership,
   listProjectScreenshotAssets,
   listProjects,
   listProjectCaptureSessions,
@@ -2614,6 +2618,19 @@ describe("api client", () => {
       "/api/v1/organization/compliance/audit-events/audit%2Fid",
       expect.objectContaining({ credentials: "include" }),
     );
+  });
+
+  it("uses only path-scoped Project membership, compliance, and Activity endpoints", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ members: [], events: [], page: { next_cursor: null, has_more: false }, totals: { audit_events: 0, audit_change_items: 0, access_events: 0, oldest_occurred_at: null, newest_occurred_at: null } }), { status: 200, headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetch);
+    await listProjectMemberships("project/id");
+    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/memberships", expect.anything());
+    await assignProjectMembership("project/id", { org_user_id: "member-1", role: "viewer" });
+    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/memberships", expect.objectContaining({ method: "POST" }));
+    await listProjectComplianceEvents("project/id", { kind: "audit" });
+    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/compliance/events?kind=audit", expect.anything());
+    await listProjectActivity("project/id", { limit: 10 });
+    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/activity?limit=10", expect.anything());
   });
 
   it("maps compliance permission denials separately from authentication", async () => {
