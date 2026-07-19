@@ -1,15 +1,10 @@
 import { createHash, randomBytes } from "node:crypto";
-import type {
-  FileStorageProvider,
-  PublishArtifactType,
-  PublishVisibility,
-} from "@repo/constants";
+import type { FileStorageProvider, PublishArtifactType } from "@repo/constants";
 import {
   assert_public_publish_link_access,
   assert_public_viewer_session_access,
   InvalidPublicViewerPasswordError,
   public_viewer_session_expires_at,
-  PublishLinkPasswordRequiredError,
   PublishLinkNotFoundError,
   validate_publish_password_input,
 } from "@repo/publish-domain";
@@ -278,13 +273,13 @@ export const build_publish_service = (
       version_slug: string | null;
       viewer_token?: string;
     }) {
-      const {
-        access_context: _context,
-        password_hash: _hash,
-        password_salt: _salt,
-        ...response
-      } = await public_access(input);
-      return response;
+      const resolved = await public_access(input);
+      return {
+        publish_link: resolved.publish_link,
+        selected_entry: resolved.selected_entry,
+        published_artifact: resolved.published_artifact,
+        canonical_public_url: resolved.canonical_public_url,
+      };
     },
     async create_public_publish_viewer_session(input: {
       slug: string;

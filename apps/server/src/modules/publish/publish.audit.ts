@@ -522,7 +522,9 @@ export const build_audited_publish_repository = (
       } catch (error) {
         try {
           await client.query("ROLLBACK");
-        } catch {}
+        } catch {
+          // Preserve the original mutation failure when rollback also fails.
+        }
         throw error;
       } finally {
         client.release();

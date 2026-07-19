@@ -17,7 +17,10 @@ describe("relational publish repository", () => {
     expect(client.release).toHaveBeenCalledOnce();
   });
   it("rolls back an atomic workflow on failure", async () => {
-    const query = vi.fn(async (_sql: string) => ({ rows: [] }));
+    const query = vi.fn(async (sql: string) => {
+      void sql;
+      return { rows: [] };
+    });
     const client = { query, release: vi.fn() };
     const repository = build_publish_repository({
       query,
