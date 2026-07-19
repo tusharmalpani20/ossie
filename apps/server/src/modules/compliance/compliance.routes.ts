@@ -19,6 +19,7 @@ import {
   ComplianceCursorError,
   CompliancePermissionError,
 } from "./compliance.service";
+import { ProjectNotFoundError, ProjectPermissionDeniedError } from "../project-membership/project-membership.service";
 
 const EvidenceIdSchema = z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/u);
 
@@ -67,6 +68,10 @@ const handle_error = (error: unknown, reply: FastifyReply) => {
           "Only organization owners can view compliance evidence.",
         ),
       );
+  if (error instanceof ProjectNotFoundError)
+    return reply.status(404).send(error_response("project_not_found", error.message));
+  if (error instanceof ProjectPermissionDeniedError)
+    return reply.status(403).send(error_response("project_permission_denied", error.message));
   if (error instanceof ComplianceCursorError)
     return reply
       .status(400)
@@ -141,3 +146,31 @@ export const build_compliance_routes = (
       },
     );
   };
+
+export const build_project_compliance_routes = (dependencies: {
+  auth_service: { get_current_auth_context(session_token?: string): Promise<AuthContext> };
+  compliance_service: {
+    list_events(input: { auth: { organization_id: string; actor_org_user_id: string }; project_id: string; query: ComplianceQuery }): Promise<ComplianceEventsResponse>;
+    get_audit_event_detail(input: { auth: { organization_id: string; actor_org_user_id: string }; project_id: string; audit_event_id: string }): Promise<ComplianceAuditEventDetailResponse>;
+  };
+}): FastifyPluginAsync => async (fastify) => {
+  const current = async (request: Parameters<typeof session_token_from_request>[0]) => {
+    const auth = await dependencies.auth_service.get_current_auth_context(session_token_from_request(request));
+    return { organization_id: auth.organization.id, actor_org_user_id: auth.org_user.id };
+  };
+  fastify.get<{ Params: { project_id: string }; Querystring: ComplianceQuery }>("/:project_id/compliance/events", {
+    schema: { querystring: QuerySchema.omit({ project_id: true }), response: { 200: ComplianceEventsResponseSchema } },
+  }, async (request, reply) => {
+    try { return reply.status(200).send(await dependencies.compliance_service.list_events({
+      auth: await current(request), project_id: request.params.project_id, query: request.query,
+    })); } catch (error) { return handle_error(error, reply); }
+  });
+  fastify.get<{ Params: { project_id: string; audit_event_id: string } }>("/:project_id/compliance/audit-events/:audit_event_id", {
+    schema: { params: DetailParamsSchema.extend({ project_id: EvidenceIdSchema }), response: { 200: ComplianceAuditEventDetailResponseSchema } },
+  }, async (request, reply) => {
+    try { return reply.status(200).send(await dependencies.compliance_service.get_audit_event_detail({
+      auth: await current(request), project_id: request.params.project_id,
+      audit_event_id: request.params.audit_event_id,
+    })); } catch (error) { return handle_error(error, reply); }
+  });
+};

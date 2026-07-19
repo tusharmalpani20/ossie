@@ -87,7 +87,9 @@ const mutation_registrations = [...mutation_routes.entries()].map(
       project_parameter: route.includes(":project_id") ? "project_id" : null,
       policy: "extension_conditional",
       surface: "portal",
-      authorization_type: "organization_role",
+      authorization_type: route.includes("/api/v1/projects/:")
+        ? "project_role"
+        : "organization_role",
       atomic_commands: command.commands,
     });
   },
@@ -158,7 +160,12 @@ const overrides = new Map<
 
 const mutations = mutation_registrations.map((item) => {
   const override = overrides.get(`${item.method} ${item.route_template}`);
-  return override ? { ...item, ...override } : item;
+  const membership = item.route_template.includes("/memberships");
+  return {
+    ...item,
+    ...(membership ? { denied_action: "project.membership_access_denied" } : {}),
+    ...(override ?? {}),
+  };
 });
 
 const read = (
@@ -179,7 +186,9 @@ const read = (
     project_parameter,
     policy: "meaningful_read",
     surface,
-    authorization_type: "organization_role",
+    authorization_type: route.includes("/api/v1/projects/:")
+      ? "project_role"
+      : "organization_role",
     atomic_commands: [],
   });
 
@@ -187,6 +196,12 @@ const reads: AccessRouteRegistration[] = [
   read("GET /api/v1/authentication/me", "authentication.session.viewed", "auth_session", null, "authentication"),
   read("GET /api/v1/projects", "project.list_viewed", "organization", null),
   read("GET /api/v1/projects/:id", "project.viewed", "project", "id"),
+  read("GET /api/v1/projects/:project_id/memberships", "project.membership_list_viewed", "project", "project_id"),
+  registration("GET /api/v1/projects/:project_id/activity", {
+    action: "project.activity_viewed", denied_action: "project.activity_access_denied",
+    root_resource_type: "project", root_parameter: "project_id", project_parameter: "project_id",
+    policy: "meaningful_read", surface: "portal", authorization_type: "project_role", atomic_commands: [],
+  }),
   read("GET /api/v1/organization/members", "organization.members_viewed", "organization", null),
   read("GET /api/v1/organization/invites", "organization.invites_viewed", "organization", null),
   read("GET /api/v1/projects/:project_id/capture-sessions", "capture_session.list_viewed", "project", "project_id"),
@@ -274,6 +289,16 @@ const compliance_routes: AccessRouteRegistration[] = [
     "compliance",
     null,
   ),
+  registration("GET /api/v1/projects/:project_id/compliance/events", {
+    action: "compliance.timeline_viewed", denied_action: "compliance.timeline_access_denied",
+    root_resource_type: "project", root_parameter: "project_id", project_parameter: "project_id",
+    policy: "meaningful_read", surface: "compliance", authorization_type: "project_role", atomic_commands: [],
+  }),
+  registration("GET /api/v1/projects/:project_id/compliance/audit-events/:audit_event_id", {
+    action: "compliance.audit_event_viewed", denied_action: "compliance.audit_event_access_denied",
+    root_resource_type: "audit_event", root_parameter: "audit_event_id", project_parameter: "project_id",
+    policy: "meaningful_read", surface: "compliance", authorization_type: "project_role", atomic_commands: [],
+  }),
 ];
 
 export const ACCESS_ROUTE_COVERAGE_REGISTRY = [

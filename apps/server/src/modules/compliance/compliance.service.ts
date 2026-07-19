@@ -51,6 +51,7 @@ type ComplianceRepository = {
   get_audit_event_detail(input: {
     organization_id: string;
     audit_event_id: string;
+    project_id?: string;
   }): Promise<{
     event: ComplianceAuditEventSummary;
     change_items: ComplianceAuditChangeItem[];
@@ -172,3 +173,43 @@ export const build_compliance_service = (repository: ComplianceRepository) => ({
     };
   },
 });
+
+export const build_project_compliance_service = (
+  repository: ComplianceRepository,
+  access: { authorize(input: {
+    auth: { organization_id: string; actor_org_user_id: string };
+    project_id: string;
+    capability: "project.compliance.read";
+  }): Promise<unknown> },
+) => {
+  const owner_service = build_compliance_service(repository);
+  return {
+    async list_events(input: {
+      auth: { organization_id: string; actor_org_user_id: string };
+      project_id: string;
+      query: { limit?: number; cursor?: string | null; kind?: ComplianceKind; project_id?: string | null };
+    }) {
+      await access.authorize({ auth: input.auth, project_id: input.project_id, capability: "project.compliance.read" });
+      return owner_service.list_events({
+        auth: { organization_id: input.auth.organization_id, actor_role: "owner" },
+        query: { ...input.query, project_id: input.project_id },
+      });
+    },
+    async get_audit_event_detail(input: {
+      auth: { organization_id: string; actor_org_user_id: string };
+      project_id: string;
+      audit_event_id: string;
+    }) {
+      await access.authorize({ auth: input.auth, project_id: input.project_id, capability: "project.compliance.read" });
+      const result = await repository.get_audit_event_detail({
+        organization_id: input.auth.organization_id,
+        project_id: input.project_id,
+        audit_event_id: input.audit_event_id,
+      });
+      if (!result) throw new ComplianceAuditEventNotFoundError();
+      if (result.event.change_item_count !== result.change_items.length)
+        throw new ComplianceEvidenceIntegrityError();
+      return { event: { ...result.event, change_items: result.change_items } };
+    },
+  };
+};

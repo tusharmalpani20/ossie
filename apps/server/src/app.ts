@@ -107,10 +107,19 @@ import {
 } from "./modules/access/access-request-context.js";
 import {
   build_compliance_routes,
+  build_project_compliance_routes,
   type ComplianceRouteDependencies,
 } from "./modules/compliance/compliance.routes.js";
 import { build_compliance_repository } from "./modules/compliance/compliance.repository.js";
-import { build_compliance_service } from "./modules/compliance/compliance.service.js";
+import { build_compliance_service, build_project_compliance_service } from "./modules/compliance/compliance.service.js";
+import { build_project_membership_repository } from "./modules/project-membership/project-membership.repository.js";
+import { build_audited_project_membership_repository } from "./modules/project-membership/project-membership.audit.js";
+import { build_project_access_service, build_project_membership_service } from "./modules/project-membership/project-membership.service.js";
+import { build_project_membership_routes } from "./modules/project-membership/project-membership.routes.js";
+import { with_project_authorization } from "./modules/project-membership/project-service-authorization.js";
+import { build_project_activity_repository } from "./modules/project-activity/project-activity.repository.js";
+import { build_project_activity_service } from "./modules/project-activity/project-activity.service.js";
+import { build_project_activity_routes } from "./modules/project-activity/project-activity.routes.js";
 
 type BuildOptions = FastifyServerOptions & {
   public_instance_service?: PublicInstanceRouteService;
@@ -496,12 +505,23 @@ export const build = (opts: BuildOptions = {}) => {
   const default_capture_file_storage = build_local_file_storage_provider({
     root: default_local_storage_root(),
   });
+  const project_access_service = build_project_access_service(
+    build_project_membership_repository(pool),
+  );
   const default_capture_asset_service =
     capture_asset_service ??
-    build_capture_asset_service(build_capture_asset_repository(pool), {
-      file_storage: default_capture_file_storage,
-      max_upload_bytes: max_screenshot_upload_bytes,
-    });
+    (() => {
+      const service = build_capture_asset_service(build_capture_asset_repository(pool), {
+        file_storage: default_capture_file_storage,
+        max_upload_bytes: max_screenshot_upload_bytes,
+      });
+      return with_project_authorization(service, project_access_service, {
+        create_capture_asset: "capture.write", upload_capture_asset: "capture.write",
+        list_capture_assets: "capture.read", list_project_capture_assets: "capture.read",
+        get_capture_asset: "capture.read", get_capture_asset_file: "capture.read",
+        delete_capture_asset: "capture.write",
+      });
+    })();
 
   app.register(
     build_project_routes({
@@ -509,16 +529,53 @@ export const build = (opts: BuildOptions = {}) => {
         get_current_auth_context:
           default_authentication_session_service.get_current_auth_context,
       },
-      project_service:
-        project_service ??
-        build_project_service(build_audited_project_repository(pool), {
+      project_service: project_service ?? (() => {
+        const service = build_project_service(build_audited_project_repository(pool), {
           create_project: build_project_creation_writer(pool),
-        }),
+        });
+        return {
+          ...service,
+          async get_project(input) {
+            const access = await project_access_service.authorize({ ...input, capability: "project.read" });
+            return { ...(await service.get_project(input)), access };
+          },
+          async update_project(input) {
+            const access = await project_access_service.authorize({ ...input, capability: "project.settings.manage" });
+            return { ...(await service.update_project(input)), access };
+          },
+          async delete_project(input) {
+            await project_access_service.authorize({ ...input, capability: "project.settings.manage" });
+            return service.delete_project(input);
+          },
+        };
+      })(),
     }),
     {
       prefix: "/api/v1/projects",
     },
   );
+
+  app.register(build_project_membership_routes({
+    auth_service: { get_current_auth_context: default_authentication_session_service.get_current_auth_context },
+    membership_service: build_project_membership_service({
+      access: project_access_service,
+      repository: build_audited_project_membership_repository(pool),
+    }),
+  }), { prefix: "/api/v1/projects" });
+
+  app.register(build_project_activity_routes({
+    auth_service: { get_current_auth_context: default_authentication_session_service.get_current_auth_context },
+    activity_service: build_project_activity_service(
+      build_project_activity_repository(pool), project_access_service,
+    ),
+  }), { prefix: "/api/v1/projects" });
+
+  app.register(build_project_compliance_routes({
+    auth_service: { get_current_auth_context: default_authentication_session_service.get_current_auth_context },
+    compliance_service: build_project_compliance_service(
+      build_compliance_repository(pool), project_access_service,
+    ),
+  }), { prefix: "/api/v1/projects" });
 
   app.register(
     build_capture_session_routes({
@@ -528,9 +585,15 @@ export const build = (opts: BuildOptions = {}) => {
       },
       capture_session_service:
         capture_session_service ??
-        build_capture_session_service(
-          build_audited_capture_session_repository(pool),
-        ),
+        (() => {
+          const service = build_capture_session_service(build_audited_capture_session_repository(pool));
+          return with_project_authorization(service, project_access_service, {
+            create_capture_session: "capture.write", list_capture_sessions: "capture.read",
+            get_capture_session: "capture.read", get_capture_session_detail: "capture.read",
+            update_capture_session: "capture.write", complete_capture_session: "capture.write",
+            delete_capture_session: "capture.write",
+          });
+        })(),
     }),
     {
       prefix: "/api/v1/projects",
@@ -558,9 +621,14 @@ export const build = (opts: BuildOptions = {}) => {
       },
       capture_event_service:
         capture_event_service ??
-        build_capture_event_service(
-          build_audited_capture_event_repository(pool),
-        ),
+        (() => {
+          const service = build_capture_event_service(build_audited_capture_event_repository(pool));
+          return with_project_authorization(service, project_access_service, {
+            create_capture_event: "capture.write", list_capture_events: "capture.read",
+            get_capture_event: "capture.read", delete_capture_event: "capture.write",
+            reorder_capture_events: "capture.write", update_capture_event: "capture.write",
+          });
+        })(),
     }),
     {
       prefix: "/api/v1/projects",
@@ -575,16 +643,28 @@ export const build = (opts: BuildOptions = {}) => {
       },
       guide_service:
         guide_service ??
-        build_guide_service(build_audited_guide_repository(pool), {
-          public_base_url: process.env.API_URL,
-          file_storage: default_capture_file_storage,
-        }),
+        (() => {
+          const service = build_guide_service(build_audited_guide_repository(pool), {
+            public_base_url: process.env.API_URL, file_storage: default_capture_file_storage,
+          });
+          return with_project_authorization(service, project_access_service, {
+            create_guide_from_capture: "artifact.write", list_guides: "artifact.read",
+            get_guide_detail: "artifact.read", export_guide_markdown: "artifact.read",
+            export_guide_html_zip: "artifact.read", update_guide: "artifact.write",
+            update_guide_step: "artifact.write", reorder_guide_blocks: "artifact.write",
+            create_guide_block: "artifact.write", update_guide_block: "artifact.write",
+            update_guide_block_screenshot: "artifact.write", update_guide_block_annotations: "artifact.write",
+            prepare_guide_block_screenshot_upload: "artifact.write", delete_guide_block: "artifact.write",
+          });
+        })(),
       guide_screenshot_upload_service:
         guide_screenshot_upload_service ??
-        build_audited_guide_screenshot_upload_service(pool, {
-          file_storage: default_capture_file_storage,
-          max_upload_bytes: max_screenshot_upload_bytes,
-        }),
+        (() => {
+          const service = build_audited_guide_screenshot_upload_service(pool, {
+            file_storage: default_capture_file_storage, max_upload_bytes: max_screenshot_upload_bytes,
+          });
+          return with_project_authorization(service, project_access_service, { upload: "artifact.write" });
+        })(),
     }),
     {
       prefix: "/api/v1/projects",
@@ -599,9 +679,19 @@ export const build = (opts: BuildOptions = {}) => {
       },
       interactive_demo_service:
         interactive_demo_service ??
-        build_interactive_demo_service(
-          build_audited_interactive_demo_repository(pool),
-        ),
+        (() => {
+          const service = build_interactive_demo_service(build_audited_interactive_demo_repository(pool));
+          return with_project_authorization(service, project_access_service, {
+            create_interactive_demo_from_capture: "artifact.write", create_interactive_demo: "artifact.write",
+            list_interactive_demos: "artifact.read", get_interactive_demo: "artifact.read",
+            update_interactive_demo: "artifact.write", delete_interactive_demo: "artifact.write",
+            create_demo_scene: "artifact.write", list_demo_scenes: "artifact.read",
+            update_demo_scene: "artifact.write", reorder_demo_scenes: "artifact.write",
+            delete_demo_scene: "artifact.write", create_demo_hotspot: "artifact.write",
+            list_demo_hotspots: "artifact.read", update_demo_hotspot: "artifact.write",
+            reorder_demo_hotspots: "artifact.write", delete_demo_hotspot: "artifact.write",
+          });
+        })(),
     }),
     {
       prefix: "/api/v1/projects",
@@ -616,7 +706,8 @@ export const build = (opts: BuildOptions = {}) => {
       },
       publish_service:
         publish_service ??
-        build_publish_service(build_audited_publish_repository(pool), {
+        (() => {
+          const service = build_publish_service(build_audited_publish_repository(pool), {
           file_storage: default_capture_file_storage,
           on_public_publish_link_resolved: (link) =>
             set_access_resolved_resource({
@@ -625,7 +716,15 @@ export const build = (opts: BuildOptions = {}) => {
               root_resource_type: "publish_link",
               root_resource_id: link.publish_link_id,
             }),
-        }),
+          });
+          return with_project_authorization(service, project_access_service, {
+            publish_guide: "publication.manage", publish_interactive_demo: "publication.manage",
+            get_guide_publish_status: "publication.read", get_interactive_demo_publish_status: "publication.read",
+            revoke_guide_publish_link: "publication.manage", revoke_interactive_demo_publish_link: "publication.manage",
+            update_guide_publish_access: "publication.manage", update_interactive_demo_publish_access: "publication.manage",
+            update_guide_publish_password: "publication.manage", update_interactive_demo_publish_password: "publication.manage",
+          });
+        })(),
     }),
     {
       prefix: "/api/v1",

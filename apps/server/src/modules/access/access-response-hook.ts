@@ -81,7 +81,9 @@ export const build_access_response_hook = (options: {
     const parameter_id =
       success && typeof parameter_value === "string" ? parameter_value : null;
     const resolved = context.resolved_resource;
-    const root_resource_id = resolved
+    const resolved_is_project_boundary = success && resolved?.root_resource_type === "project"
+      && route.root_resource_type !== "project";
+    const root_resource_id = resolved && !resolved_is_project_boundary
       ? resolved.root_resource_id
       : route.root_resource_type === "organization"
         ? organization_id
@@ -111,8 +113,9 @@ export const build_access_response_hook = (options: {
       id: generate_id(),
       organization_id,
       project_id,
-      root_resource_type:
-        resolved?.root_resource_type ?? route.root_resource_type,
+      root_resource_type: resolved && !resolved_is_project_boundary
+        ? resolved.root_resource_type
+        : route.root_resource_type,
       root_resource_id,
       action: success ? route.action : route.denied_action,
       source_type: context.source_type,
@@ -128,11 +131,11 @@ export const build_access_response_hook = (options: {
           : context.source_type === "extension" && route.surface === "portal"
             ? "extension"
             : route.surface,
-      authorization_type: route.authorization_type,
-      authorization_role:
+      authorization_type: context.authorization?.authorization_type ?? route.authorization_type,
+      authorization_role: context.authorization?.authorization_role ?? (
         route.authorization_type === "organization_role"
           ? (context.auth?.organization_role ?? null)
-          : null,
+          : null),
       outcome: success
         ? "succeeded"
         : reply.statusCode === 404

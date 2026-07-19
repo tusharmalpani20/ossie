@@ -39,11 +39,11 @@ export const write_atomic_access_for_audit = async (input: {
     route_template: route.route_template,
     access_surface:
       route.policy === "extension_conditional" ? "extension" : route.surface,
-    authorization_type: route.authorization_type,
-    authorization_role:
+    authorization_type: context.authorization?.authorization_type ?? route.authorization_type,
+    authorization_role: context.authorization?.authorization_role ?? (
       route.authorization_type === "organization_role"
         ? (context.auth?.organization_role ?? null)
-        : null,
+        : null),
     outcome: "succeeded",
     reason_code: null,
     response_bytes: null,

@@ -312,6 +312,7 @@ export const build_compliance_repository = (db: Queryable) => ({
   async get_audit_event_detail(input: {
     organization_id: string;
     audit_event_id: string;
+    project_id?: string;
   }) {
     const event_result = await db.query<Record<string, unknown>>(
       `
@@ -322,9 +323,10 @@ export const build_compliance_repository = (db: Queryable) => ({
         ON audit_change_item.audit_event_id = audit_event.id
         AND audit_change_item.organization_id = audit_event.organization_id
       WHERE audit_event.organization_id = $1 AND audit_event.id = $2
+        AND ($3::text IS NULL OR audit_event.project_id = $3)
       GROUP BY audit_event.id
       `,
-      [input.organization_id, input.audit_event_id],
+      [input.organization_id, input.audit_event_id, input.project_id ?? null],
     );
     const event_row = event_result.rows[0];
     if (!event_row) return null;
@@ -336,9 +338,10 @@ export const build_compliance_repository = (db: Queryable) => ({
         ON audit_event.id = item.audit_event_id
         AND audit_event.organization_id = item.organization_id
       WHERE audit_event.organization_id = $1 AND audit_event.id = $2
+        AND ($3::text IS NULL OR audit_event.project_id = $3)
       ORDER BY item.created_at, item.id
       `,
-      [input.organization_id, input.audit_event_id],
+      [input.organization_id, input.audit_event_id, input.project_id ?? null],
     );
     return {
       event: map_event(event_row) as ComplianceAuditEventSummary,

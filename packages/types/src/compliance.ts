@@ -1,5 +1,6 @@
 import {
   ACCESS_AUTHORIZATION_TYPES,
+  ACCESS_AUTHORIZATION_ROLES,
   ACCESS_OUTCOMES,
   ACCESS_REASON_CODES,
   ACCESS_SURFACES,
@@ -55,7 +56,7 @@ export const ComplianceAccessEventSchema = CommonSchema.extend({
   route_template: z.string().min(1).max(255).nullable(),
   access_surface: z.enum(ACCESS_SURFACES),
   authorization_type: z.enum(ACCESS_AUTHORIZATION_TYPES),
-  authorization_role: z.enum(["owner", "member"]).nullable(),
+  authorization_role: z.enum(ACCESS_AUTHORIZATION_ROLES).nullable(),
   reason_code: z.enum(ACCESS_REASON_CODES).nullable(),
   response_bytes: z.number().int().nonnegative().nullable(),
 }).strict();

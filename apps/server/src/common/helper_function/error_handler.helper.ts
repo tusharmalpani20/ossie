@@ -1,6 +1,11 @@
 import { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { AccessDomainError } from "@repo/audit-domain";
 import { hasZodFastifySchemaValidationErrors, isResponseSerializationError } from "fastify-type-provider-zod";
+import {
+    ProjectArchivedError,
+    ProjectNotFoundError,
+    ProjectPermissionDeniedError,
+} from "../../modules/project-membership/project-membership.service";
 
 const response_message = {
     enum: {
@@ -28,6 +33,16 @@ export const error_handler = (
                 message: "Access evidence is temporarily unavailable",
             },
         });
+    }
+
+    if (error instanceof ProjectNotFoundError) {
+        return reply.status(404).send({ error: { type: "project_not_found", message: error.message } });
+    }
+    if (error instanceof ProjectPermissionDeniedError) {
+        return reply.status(403).send({ error: { type: "project_permission_denied", message: error.message } });
+    }
+    if (error instanceof ProjectArchivedError) {
+        return reply.status(409).send({ error: { type: "project_archived", message: error.message } });
     }
 
     if (hasZodFastifySchemaValidationErrors(error)) {

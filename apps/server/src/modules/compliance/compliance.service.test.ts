@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   build_compliance_service,
+  build_project_compliance_service,
   ComplianceCursorError,
   CompliancePermissionError,
 } from "./compliance.service";
@@ -8,6 +9,27 @@ import {
 const auth = (role: "owner" | "member" = "owner") => ({
   organization_id: "01J00000000000000000000001",
   actor_role: role,
+});
+
+describe("Project compliance service", () => {
+  it("authorizes Project compliance and forces the path Project scope", async () => {
+    const repository = {
+      list_events: vi.fn().mockResolvedValue({ events: [], has_more: false, totals: {
+        audit_events: 0, audit_change_items: 0, access_events: 0,
+        oldest_occurred_at: null, newest_occurred_at: null,
+      } }),
+      get_audit_event_detail: vi.fn(),
+    };
+    const access = { authorize: vi.fn().mockResolvedValue({ role: "project_admin" }) };
+    const service = build_project_compliance_service(repository, access);
+    await service.list_events({
+      auth: { organization_id: auth().organization_id, actor_org_user_id: "admin-1" },
+      project_id: "01J00000000000000000000009",
+      query: { project_id: "01J00000000000000000000008" },
+    });
+    expect(access.authorize).toHaveBeenCalledWith(expect.objectContaining({ capability: "project.compliance.read" }));
+    expect(repository.list_events).toHaveBeenCalledWith(expect.objectContaining({ project_id: "01J00000000000000000000009" }));
+  });
 });
 
 describe("compliance service", () => {

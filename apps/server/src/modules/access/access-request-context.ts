@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { AccessRouteRegistration } from "./access-coverage-registry";
+import type { AccessAuthorizationRole, AccessAuthorizationType } from "@repo/constants";
 import { access_route_registration } from "./access-coverage-registry";
 
 export type AccessAuthContext = {
@@ -26,6 +27,10 @@ export type AccessRequestContext = {
   public_surface: "public_reader" | "public_embed" | null;
   atomic_access_event_id: string | null;
   response_access_event_id: string | null;
+  authorization: {
+    authorization_type: AccessAuthorizationType;
+    authorization_role: AccessAuthorizationRole | null;
+  } | null;
 };
 
 const storage = new AsyncLocalStorage<AccessRequestContext>();
@@ -47,6 +52,13 @@ export const set_access_resolved_resource = (
 ) => {
   const context = storage.getStore();
   if (context) context.resolved_resource = resource;
+};
+
+export const set_access_authorization_context = (
+  authorization: NonNullable<AccessRequestContext["authorization"]>,
+) => {
+  const context = storage.getStore();
+  if (context) context.authorization = authorization;
 };
 
 type RequestLike = {
@@ -74,4 +86,5 @@ export const access_request_context = (
       : null,
   atomic_access_event_id: null,
   response_access_event_id: null,
+  authorization: null,
 });
