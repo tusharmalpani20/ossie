@@ -22,6 +22,7 @@ type LoadState =
 
 type ProjectGuideListPageProps = {
   projectId: string;
+  projectVersionId: string;
   loadGuides?: (projectId: string) => Promise<ProjectGuideListResponse>;
   loadPublishStatus?: (projectId: string, guideId: string) => Promise<GuidePublishStatusResponse>;
   currentPath?: string;
@@ -83,8 +84,9 @@ const guidePreviewUrl = (projectId: string, guideId: string, versionSlug?: strin
 
 export const ProjectGuideListPage = ({
   projectId,
-  loadGuides = listProjectGuides,
-  loadPublishStatus = getGuidePublishStatus,
+  projectVersionId,
+  loadGuides = (id) => listProjectGuides(id, projectVersionId),
+  loadPublishStatus = (id, guideId) => getGuidePublishStatus(id, guideId, projectVersionId),
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
@@ -101,7 +103,7 @@ export const ProjectGuideListPage = ({
     loadGuides(projectId)
       .then((response) => {
         if (active) {
-          setState({ status: "loaded", guides: response.guides });
+          setState({ status: "loaded", guides: response.guide_editions.map((item) => ({ ...item.edition, id: item.artifact.id })) });
         }
       })
       .catch((error: unknown) => {
@@ -113,7 +115,9 @@ export const ProjectGuideListPage = ({
     return () => {
       active = false;
     };
-  }, [projectId, loadGuides, reloadKey]);
+  // Route identity and reloadKey intentionally control refetching; the injected loader may be an inline adapter.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, projectVersionId, reloadKey]);
 
   useEffect(() => {
     if (state.status !== "loaded" || state.guides.length === 0) {
@@ -156,7 +160,9 @@ export const ProjectGuideListPage = ({
     return () => {
       active = false;
     };
-  }, [projectId, loadPublishStatus, state]);
+  // Loaded list identity intentionally controls status checks; the injected loader may be an inline adapter.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, projectVersionId, state]);
 
   if (state.status === "loading") {
     return (

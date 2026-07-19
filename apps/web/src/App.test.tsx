@@ -55,6 +55,22 @@ const mainProjectVersion = {
   aliases: [],
 };
 
+const artifactCreatedAt = "2026-06-05T10:00:00.000Z";
+const guideDetailResponse = {
+  artifact: { id: "guide_1", organization_id: "organization_1", project_id: "project_1", created_by_id: "org_user_1", created_at: artifactCreatedAt },
+  edition: { id: "guide_edition_1", organization_id: "organization_1", project_id: "project_1", guide_id: "guide_1", project_version_id: "version_1", source_capture_session_id: null, title: "Department guide", description: "Set up departments from the list view.", status: "draft", created_by_id: "org_user_1", updated_by_id: "org_user_1", version: 1, created_at: artifactCreatedAt, updated_at: artifactCreatedAt },
+  working_draft: { id: "guide_draft_1", organization_id: "organization_1", project_id: "project_1", guide_edition_id: "guide_edition_1", created_by_id: "org_user_1", updated_by_id: "org_user_1", version: 1, created_at: artifactCreatedAt, updated_at: artifactCreatedAt },
+  authored_updated_at: artifactCreatedAt,
+  guide_blocks: [],
+  source_capture_assets: [],
+};
+const demoDetailResponse = {
+  artifact: { id: "interactive_demo_1", organization_id: "organization_1", project_id: "project_1", created_by_id: "org_user_1", created_at: artifactCreatedAt },
+  edition: { id: "demo_edition_1", organization_id: "organization_1", project_id: "project_1", interactive_demo_id: "interactive_demo_1", project_version_id: "version_1", source_capture_session_id: "capture_session_1", title: "Department setup demo", description: "Shows how to add a department.", status: "draft", created_by_id: "org_user_1", updated_by_id: "org_user_1", version: 1, created_at: artifactCreatedAt, updated_at: artifactCreatedAt },
+  working_draft: { id: "demo_draft_1", organization_id: "organization_1", project_id: "project_1", interactive_demo_edition_id: "demo_edition_1", created_by_id: "org_user_1", updated_by_id: "org_user_1", version: 1, created_at: artifactCreatedAt, updated_at: artifactCreatedAt },
+  authored_updated_at: artifactCreatedAt,
+};
+
 describe("App", () => {
   it("renders project list home routes", async () => {
     window.history.pushState({}, "", "/projects");
@@ -202,6 +218,7 @@ describe("App", () => {
       if (url.endsWith("/api/v1/public/instance")) return jsonResponse(readyInstanceStatus);
       if (url.endsWith("/versions/resolve/main")) return jsonResponse({ resolution: "canonical", project_version: mainProjectVersion });
       if (url.endsWith("/versions")) return jsonResponse({ project_versions: [mainProjectVersion] });
+      if (url.endsWith("/versions")) return jsonResponse({ project_versions: [mainProjectVersion] });
       return jsonResponse(writableProjectResponse);
     }));
 
@@ -342,34 +359,18 @@ describe("App", () => {
   });
 
   it("renders guide editor routes", async () => {
-    window.history.pushState({}, "", "/projects/project_1/guides/guide_1");
+    window.history.pushState({}, "", "/projects/project_1/versions/main/guides/guide_1");
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
-      if (input.toString().endsWith("/api/v1/projects/project_1")) {
+      const url = input.toString();
+      if (url.endsWith("/api/v1/public/instance")) return jsonResponse(readyInstanceStatus);
+      if (url.endsWith("/versions/resolve/main")) return jsonResponse({ resolution: "canonical", project_version: mainProjectVersion });
+      if (url.endsWith("/versions")) return jsonResponse({ project_versions: [mainProjectVersion] });
+      if (url.endsWith("/api/v1/projects/project_1")) {
         return jsonResponse(writableProjectResponse);
       }
-      return new Response(JSON.stringify({
-      guide: {
-        id: "guide_1",
-        organization_id: "organization_1",
-        project_id: "project_1",
-        source_capture_session_id: null,
-        title: "Department guide",
-        description: "Set up departments from the list view.",
-        status: "draft",
-        created_by_id: "org_user_1",
-        updated_by_id: "org_user_1",
-        version: 1,
-        created_at: "2026-06-05T10:00:00.000Z",
-        updated_at: "2026-06-05T10:00:00.000Z",
-      },
-      guide_blocks: [],
-      source_capture_assets: [],
-    }), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-      });
+      if (url.includes("/guides/guide_1?project_version_id=version_1")) return jsonResponse(guideDetailResponse);
+      if (url.includes("/publish-status?project_version_id=version_1")) return jsonResponse({ publish_link: null, published_artifact: null });
+      return jsonResponse({ error: { message: `Unexpected URL: ${url}` } }, 404);
     }));
 
     render(<App />);
@@ -379,34 +380,17 @@ describe("App", () => {
   });
 
   it("renders guide preview routes", async () => {
-    window.history.pushState({}, "", "/projects/project_1/guides/guide_1/preview");
+    window.history.pushState({}, "", "/projects/project_1/versions/main/guides/guide_1/preview");
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
-      if (input.toString().endsWith("/api/v1/projects/project_1")) {
+      const url = input.toString();
+      if (url.endsWith("/api/v1/public/instance")) return jsonResponse(readyInstanceStatus);
+      if (url.endsWith("/versions/resolve/main")) return jsonResponse({ resolution: "canonical", project_version: mainProjectVersion });
+      if (url.endsWith("/versions")) return jsonResponse({ project_versions: [mainProjectVersion] });
+      if (url.endsWith("/api/v1/projects/project_1")) {
         return jsonResponse(writableProjectResponse);
       }
-      return new Response(JSON.stringify({
-      guide: {
-        id: "guide_1",
-        organization_id: "organization_1",
-        project_id: "project_1",
-        source_capture_session_id: null,
-        title: "Department guide",
-        description: "Set up departments from the list view.",
-        status: "draft",
-        created_by_id: "org_user_1",
-        updated_by_id: "org_user_1",
-        version: 1,
-        created_at: "2026-06-05T10:00:00.000Z",
-        updated_at: "2026-06-05T10:00:00.000Z",
-      },
-      guide_blocks: [],
-      source_capture_assets: [],
-    }), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-      });
+      if (url.includes("/guides/guide_1?project_version_id=version_1")) return jsonResponse(guideDetailResponse);
+      return jsonResponse({ error: { message: `Unexpected URL: ${url}` } }, 404);
     }));
 
     render(<App />);
@@ -416,27 +400,16 @@ describe("App", () => {
   });
 
   it("renders project guide list routes", async () => {
-    window.history.pushState({}, "", "/projects/project_1/guides");
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => new Response(JSON.stringify(
-      input.toString().endsWith("/api/v1/projects/project_1") ? writableProjectResponse : { guides: [{
-        id: "guide_1",
-        organization_id: "organization_1",
-        project_id: "project_1",
-        source_capture_session_id: "capture_session_1",
-        title: "Department guide",
-        description: null,
-        status: "draft",
-        created_by_id: "org_user_1",
-        updated_by_id: "org_user_1",
-        version: 1,
-        created_at: "2026-06-05T10:00:00.000Z",
-        updated_at: "2026-06-05T10:00:00.000Z",
-      }] }), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    window.history.pushState({}, "", "/projects/project_1/versions/main/guides");
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.endsWith("/api/v1/public/instance")) return jsonResponse(readyInstanceStatus);
+      if (url.endsWith("/versions/resolve/main")) return jsonResponse({ resolution: "canonical", project_version: mainProjectVersion });
+      if (url.endsWith("/versions")) return jsonResponse({ project_versions: [mainProjectVersion] });
+      if (url.endsWith("/api/v1/projects/project_1")) return jsonResponse(writableProjectResponse);
+      if (url.includes("/guides?project_version_id=version_1")) return jsonResponse({ guide_editions: [{ artifact: guideDetailResponse.artifact, edition: guideDetailResponse.edition, authored_updated_at: artifactCreatedAt }] });
+      return jsonResponse({ error: { message: `Unexpected URL: ${url}` } }, 404);
+    }));
 
     render(<App />);
 
@@ -445,7 +418,7 @@ describe("App", () => {
   });
 
   it("renders project interactive demo list routes", async () => {
-    window.history.pushState({}, "", "/projects/project_1/interactive-demos");
+    window.history.pushState({}, "", "/projects/project_1/versions/main/interactive-demos");
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = input.toString();
 
@@ -457,22 +430,12 @@ describe("App", () => {
         return jsonResponse(writableProjectResponse);
       }
 
-      if (url.endsWith("/api/v1/projects/project_1/interactive-demos")) {
+      if (url.endsWith("/versions/resolve/main")) return jsonResponse({ resolution: "canonical", project_version: mainProjectVersion });
+      if (url.endsWith("/versions")) return jsonResponse({ project_versions: [mainProjectVersion] });
+
+      if (url.includes("/api/v1/projects/project_1/interactive-demos?project_version_id=version_1")) {
         return jsonResponse({
-          interactive_demos: [{
-            id: "interactive_demo_1",
-            organization_id: "organization_1",
-            project_id: "project_1",
-            source_capture_session_id: "capture_session_1",
-            title: "Department setup demo",
-            description: null,
-            status: "draft",
-            created_by_id: "org_user_1",
-            updated_by_id: "org_user_1",
-            version: 1,
-            created_at: "2026-06-05T10:00:00.000Z",
-            updated_at: "2026-06-05T10:00:00.000Z",
-          }],
+          interactive_demo_editions: [{ artifact: demoDetailResponse.artifact, edition: demoDetailResponse.edition, authored_updated_at: artifactCreatedAt }],
         });
       }
 
@@ -486,7 +449,7 @@ describe("App", () => {
   });
 
   it("renders interactive demo editor routes", async () => {
-    window.history.pushState({}, "", "/projects/project_1/interactive-demos/interactive_demo_1");
+    window.history.pushState({}, "", "/projects/project_1/versions/main/interactive-demos/interactive_demo_1");
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = input.toString();
 
@@ -498,30 +461,21 @@ describe("App", () => {
         return jsonResponse(writableProjectResponse);
       }
 
-      if (url.endsWith("/api/v1/projects/project_1/interactive-demos/interactive_demo_1")) {
+      if (url.endsWith("/versions/resolve/main")) return jsonResponse({ resolution: "canonical", project_version: mainProjectVersion });
+      if (url.endsWith("/versions")) return jsonResponse({ project_versions: [mainProjectVersion] });
+
+      if (url.includes("/interactive-demos/interactive_demo_1?project_version_id=version_1")) {
+        return jsonResponse(demoDetailResponse);
+      }
+
+      if (url.includes("/interactive-demos/interactive_demo_1/scenes?project_version_id=version_1")) {
         return jsonResponse({
-          interactive_demo: {
-            id: "interactive_demo_1",
-            organization_id: "organization_1",
-            project_id: "project_1",
-            source_capture_session_id: "capture_session_1",
-            title: "Department setup demo",
-            description: "Shows how to add a department.",
-            status: "draft",
-            created_by_id: "org_user_1",
-            updated_by_id: "org_user_1",
-            version: 1,
-            created_at: "2026-06-05T10:00:00.000Z",
-            updated_at: "2026-06-05T10:00:00.000Z",
-          },
+          demo_scenes: [],
+          working_draft: demoDetailResponse.working_draft,
         });
       }
 
-      if (url.endsWith("/api/v1/projects/project_1/interactive-demos/interactive_demo_1/scenes")) {
-        return jsonResponse({
-          demo_scenes: [],
-        });
-      }
+      if (url.includes("/publish-status?project_version_id=version_1")) return jsonResponse({ publish_link: null, published_artifact: null });
 
       return jsonResponse({ error: { message: `Unexpected URL: ${url}` } }, 404);
     }));

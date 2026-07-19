@@ -7,6 +7,7 @@ import { Textarea } from "@repo/ui/textarea";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import {
   ApiClientError,
+  archiveGuide,
   createGuideBlock,
   deleteGuideBlock,
   exportGuideHtmlZip,
@@ -17,6 +18,7 @@ import {
   publishGuide,
   reorderGuideBlocks,
   resolveApiAssetUrl,
+  restoreGuide,
   revokeGuidePublishLink,
   updateGuidePublishPassword,
   updateGuidePublishAccess,
@@ -55,7 +57,6 @@ import {
 import { publicGuideEmbedCode, publicGuideUrl } from "./publishLinks";
 import type {
   GuideBlock,
-  GuideBlockContent,
   GuideDetail,
   GuideMarkdownExport,
   GuidePublishResult,
@@ -87,6 +88,10 @@ type PublishState =
   | { status: "loaded"; response: GuidePublishStatusResponse }
   | { status: "error" };
 
+type VersionBound<T> = T extends (...args: [...infer Args, string]) => infer Result
+  ? (...args: Args) => Result
+  : never;
+
 export type GuideEditorPageProps = {
   projectId: string;
   guideId: string;
@@ -114,29 +119,37 @@ export type GuideEditorPageProps = {
     input: UpdateGuidePublishPasswordInput,
   ) => Promise<GuidePublishStatusResponse>;
   copyText?: (text: string) => Promise<void>;
-  exportMarkdown?: typeof exportGuideMarkdown;
-  exportHtmlZip?: typeof exportGuideHtmlZip;
+  exportMarkdown?: VersionBound<typeof exportGuideMarkdown>;
+  exportHtmlZip?: VersionBound<typeof exportGuideHtmlZip>;
   downloadTextFile?: (
     filename: string,
     contents: string,
     mimeType: string,
   ) => Promise<void>;
   downloadBlobFile?: (filename: string, blob: Blob) => Promise<void>;
-  saveGuide?: typeof updateGuide;
-  saveStep?: typeof updateGuideStep;
-  createBlock?: typeof createGuideBlock;
-  saveBlock?: typeof updateGuideBlock;
+  saveGuide?: VersionBound<typeof updateGuide>;
+  saveStep?: VersionBound<typeof updateGuideStep>;
+  createBlock?: VersionBound<typeof createGuideBlock>;
+  saveBlock?: VersionBound<typeof updateGuideBlock>;
   loadScreenshotAssets?: typeof listProjectScreenshotAssets;
-  saveBlockScreenshot?: typeof updateGuideBlockScreenshot;
-  saveBlockAnnotations?: typeof updateGuideBlockAnnotations;
-  uploadBlockScreenshot?: typeof uploadGuideBlockScreenshot;
-  reorderBlocks?: typeof reorderGuideBlocks;
-  removeBlock?: typeof deleteGuideBlock;
+  saveBlockScreenshot?: VersionBound<typeof updateGuideBlockScreenshot>;
+  saveBlockAnnotations?: VersionBound<typeof updateGuideBlockAnnotations>;
+  uploadBlockScreenshot?: VersionBound<typeof uploadGuideBlockScreenshot>;
+  reorderBlocks?: VersionBound<typeof reorderGuideBlocks>;
+  removeBlock?: VersionBound<typeof deleteGuideBlock>;
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   versionSlug?: string;
-  projectVersionId?: string;
+  projectVersionId: string;
+  isDefaultVersion?: boolean;
+  changeEditionStatus?: (
+    command: "archive" | "restore",
+    projectId: string,
+    guideId: string,
+    projectVersionId: string,
+    expectedEditionVersion: number,
+  ) => Promise<{ edition: GuideDetail["edition"] }>;
 };
 
 const guidePreviewUrl = (
@@ -230,32 +243,37 @@ const publishErrorMessage = (error: unknown, fallback: string) => {
 export const GuideEditorPage = ({
   projectId,
   guideId,
-  loadDetail = getGuideDetail,
-  loadPublishStatus = getGuidePublishStatus,
-  publishCurrentGuide = publishGuide,
-  revokePublishLink = revokeGuidePublishLink,
-  updatePublishAccess = updateGuidePublishAccess,
-  updatePublishPassword = updateGuidePublishPassword,
+  projectVersionId,
+  loadDetail = (id, artifactId) => getGuideDetail(id, artifactId, projectVersionId),
+  loadPublishStatus = (id, artifactId) => getGuidePublishStatus(id, artifactId, projectVersionId),
+  publishCurrentGuide = (id, artifactId) => publishGuide(id, artifactId, projectVersionId),
+  revokePublishLink = (id, artifactId) => revokeGuidePublishLink(id, artifactId, projectVersionId),
+  updatePublishAccess = (id, artifactId, input) => updateGuidePublishAccess(id, artifactId, input, projectVersionId),
+  updatePublishPassword = (id, artifactId, input) => updateGuidePublishPassword(id, artifactId, input, projectVersionId),
   copyText = defaultCopyText,
-  exportMarkdown = exportGuideMarkdown,
-  exportHtmlZip = exportGuideHtmlZip,
+  exportMarkdown = (id, artifactId) => exportGuideMarkdown(id, artifactId, projectVersionId),
+  exportHtmlZip = (id, artifactId) => exportGuideHtmlZip(id, artifactId, projectVersionId),
   downloadTextFile = defaultDownloadTextFile,
   downloadBlobFile = defaultDownloadBlobFile,
-  saveGuide = updateGuide,
-  saveStep = updateGuideStep,
-  createBlock = createGuideBlock,
-  saveBlock = updateGuideBlock,
+  saveGuide = (id, artifactId, data) => updateGuide(id, artifactId, data, projectVersionId),
+  saveStep = (id, artifactId, stepId, data) => updateGuideStep(id, artifactId, stepId, data, projectVersionId),
+  createBlock = (id, artifactId, data) => createGuideBlock(id, artifactId, data, projectVersionId),
+  saveBlock = (id, artifactId, blockId, data) => updateGuideBlock(id, artifactId, blockId, data, projectVersionId),
   loadScreenshotAssets = listProjectScreenshotAssets,
-  saveBlockScreenshot = updateGuideBlockScreenshot,
-  saveBlockAnnotations = updateGuideBlockAnnotations,
-  uploadBlockScreenshot = uploadGuideBlockScreenshot,
-  reorderBlocks = reorderGuideBlocks,
-  removeBlock = deleteGuideBlock,
+  saveBlockScreenshot = (id, artifactId, blockId, data) => updateGuideBlockScreenshot(id, artifactId, blockId, data, projectVersionId),
+  saveBlockAnnotations = (id, artifactId, blockId, data) => updateGuideBlockAnnotations(id, artifactId, blockId, data, projectVersionId),
+  uploadBlockScreenshot = (id, artifactId, blockId, input, expected) => uploadGuideBlockScreenshot(id, artifactId, blockId, input, expected, projectVersionId),
+  reorderBlocks = (id, artifactId, blockIds, expected) => reorderGuideBlocks(id, artifactId, blockIds, expected, projectVersionId),
+  removeBlock = (id, artifactId, blockId, expected) => deleteGuideBlock(id, artifactId, blockId, expected, projectVersionId),
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
   versionSlug,
-  projectVersionId,
+  isDefaultVersion = true,
+  changeEditionStatus = (command, id, artifactId, versionId, expected) =>
+    command === "archive"
+      ? archiveGuide(id, artifactId, versionId, expected)
+      : restoreGuide(id, artifactId, versionId, expected),
 }: GuideEditorPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [publishState, setPublishState] = useState<PublishState>({
@@ -286,6 +304,9 @@ export const GuideEditorPage = ({
   const [screenshotAssetsError, setScreenshotAssetsError] = useState(false);
   const [activeScreenshotPickerBlockId, setActiveScreenshotPickerBlockId] =
     useState<string | null>(null);
+  const currentWorkingDraftVersion = state.status === "loaded"
+    ? state.detail.working_draft.version
+    : 0;
 
   useEffect(() => {
     let active = true;
@@ -296,8 +317,8 @@ export const GuideEditorPage = ({
         if (active) {
           setState({ status: "loaded", detail });
           setGuideDraft({
-            title: detail.guide.title,
-            description: detail.guide.description ?? "",
+            title: detail.edition.title,
+            description: detail.edition.description ?? "",
           });
           setStepDrafts(stepDraftsFromBlocks(detail.guide_blocks));
           setBlockContentDrafts(
@@ -314,7 +335,9 @@ export const GuideEditorPage = ({
     return () => {
       active = false;
     };
-  }, [projectId, guideId, loadDetail, reloadKey]);
+  // Route identity and reloadKey intentionally control refetching; injected loaders may be inline test adapters.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, projectVersionId, guideId, reloadKey]);
 
   useEffect(() => {
     let active = true;
@@ -335,7 +358,9 @@ export const GuideEditorPage = ({
     return () => {
       active = false;
     };
-  }, [projectId, guideId, loadPublishStatus, publishReloadKey]);
+  // Route identity and publishReloadKey intentionally control refetching; injected loaders may be inline adapters.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, projectVersionId, guideId, publishReloadKey]);
 
   useEffect(() => {
     setLocallyStalePublish(false);
@@ -559,15 +584,16 @@ export const GuideEditorPage = ({
       const response = await saveGuide(projectId, guideId, {
         title: guideDraft.title,
         description: guideDraft.description || null,
+        expected_edition_version: state.detail.edition.version,
       });
 
       patchDetail((detail) => ({
         ...detail,
-        guide: response.guide,
+        edition: response.edition,
       }));
       setGuideDraft({
-        title: response.guide.title,
-        description: response.guide.description ?? "",
+        title: response.edition.title,
+        description: response.edition.description ?? "",
       });
       markPublishedDraftStale();
     } catch (error: unknown) {
@@ -591,10 +617,12 @@ export const GuideEditorPage = ({
       const response = await saveStep(projectId, guideId, step.id, {
         title: draft.title,
         body: draft.body || null,
+        expected_working_draft_version: currentWorkingDraftVersion,
       });
 
       patchDetail((detail) => ({
         ...detail,
+        working_draft: response.working_draft,
         guide_blocks: updateStepInBlocks(
           detail.guide_blocks,
           response.guide_step,
@@ -626,18 +654,24 @@ export const GuideEditorPage = ({
       const response = await createBlock(
         projectId,
         guideId,
-        defaultBlockInput(
-          blockType,
-          afterBlock
-            ? {
-                placement: "after",
-                guide_block_id: afterBlock.id,
-              }
-            : undefined,
-        ),
+        {
+          ...defaultBlockInput(
+            blockType,
+            afterBlock
+              ? {
+                  placement: "after",
+                  guide_block_id: afterBlock.id,
+                }
+              : undefined,
+          ),
+          expected_working_draft_version: state.status === "loaded"
+            ? state.detail.working_draft.version
+            : 1,
+        },
       );
       patchDetail((detail) => ({
         ...detail,
+        working_draft: response.working_draft,
         guide_blocks: response.guide_blocks,
       }));
       setStepDrafts(stepDraftsFromBlocks(response.guide_blocks));
@@ -660,22 +694,18 @@ export const GuideEditorPage = ({
       return;
     }
 
-    const content: GuideBlockContent =
-      block.block_type === "header"
-        ? { title: draft.title }
-        : block.block_type === "paragraph"
-          ? { body: draft.body || null }
-          : { title: draft.title || null, body: draft.body || null };
-
     setBusyAction(`block:${block.id}`);
     setNotice(null);
 
     try {
       const response = await saveBlock(projectId, guideId, block.id, {
-        content,
+        title: block.block_type === "paragraph" ? null : draft.title || null,
+        body: block.block_type === "header" ? null : draft.body || null,
+        expected_working_draft_version: currentWorkingDraftVersion,
       });
       patchDetail((detail) => ({
         ...detail,
+        working_draft: response.working_draft,
         guide_blocks: updateBlockInBlocks(
           detail.guide_blocks,
           response.guide_block,
@@ -684,8 +714,8 @@ export const GuideEditorPage = ({
       setBlockContentDrafts((current) => ({
         ...current,
         [response.guide_block.id]: {
-          title: response.guide_block.content?.title ?? "",
-          body: response.guide_block.content?.body ?? "",
+          title: response.guide_block.title ?? "",
+          body: response.guide_block.body ?? "",
         },
       }));
       markPublishedDraftStale();
@@ -731,6 +761,7 @@ export const GuideEditorPage = ({
     try {
       const response = await saveBlockScreenshot(projectId, guideId, block.id, {
         capture_asset_id: captureAssetId,
+        expected_working_draft_version: currentWorkingDraftVersion,
       });
       const selectedAsset = captureAssetId
         ? screenshotAssets.find((asset) => asset.id === captureAssetId)
@@ -740,6 +771,7 @@ export const GuideEditorPage = ({
         const withAsset = mergeAssetIntoDetail(detail, selectedAsset);
         return {
           ...withAsset,
+          working_draft: response.working_draft,
           guide_blocks: updateBlockInBlocks(
             withAsset.guide_blocks,
             response.guide_block,
@@ -766,11 +798,13 @@ export const GuideEditorPage = ({
         guideId,
         block.id,
         { file },
+        currentWorkingDraftVersion,
       );
       patchDetail((detail) => {
         const withAsset = mergeAssetIntoDetail(detail, response.capture_asset);
         return {
           ...withAsset,
+          working_draft: response.working_draft,
           guide_blocks: updateBlockInBlocks(
             withAsset.guide_blocks,
             response.guide_block,
@@ -805,10 +839,11 @@ export const GuideEditorPage = ({
         projectId,
         guideId,
         block.id,
-        { annotations },
+        { annotations, expected_working_draft_version: currentWorkingDraftVersion },
       );
       patchDetail((detail) => ({
         ...detail,
+        working_draft: response.working_draft,
         guide_blocks: updateBlockInBlocks(
           detail.guide_blocks,
           response.guide_block,
@@ -867,9 +902,10 @@ export const GuideEditorPage = ({
     setNotice(null);
 
     try {
-      const response = await reorderBlocks(projectId, guideId, nextBlockIds);
+      const response = await reorderBlocks(projectId, guideId, nextBlockIds, state.detail.working_draft.version);
       patchDetail((detail) => ({
         ...detail,
+        working_draft: response.working_draft,
         guide_blocks: response.guide_blocks,
       }));
       markPublishedDraftStale();
@@ -889,11 +925,34 @@ export const GuideEditorPage = ({
     setNotice(null);
 
     try {
-      await removeBlock(projectId, guideId, block.id);
+      await removeBlock(projectId, guideId, block.id, currentWorkingDraftVersion);
       markPublishedDraftStale();
       reload();
     } catch (error: unknown) {
       handleMutationError(error, "Could not delete block.");
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const changeLifecycle = async () => {
+    if (state.status !== "loaded") return;
+    const command = state.detail.edition.status === "draft" ? "archive" : "restore";
+    if (command === "archive" && !window.confirm("Archive this guide edition?")) return;
+    setBusyAction("lifecycle");
+    setNotice(null);
+    try {
+      const response = await changeEditionStatus(
+        command,
+        projectId,
+        guideId,
+        projectVersionId,
+        state.detail.edition.version,
+      );
+      patchDetail((detail) => ({ ...detail, edition: response.edition }));
+      setNotice(command === "archive" ? "Guide archived." : "Guide restored.");
+    } catch (error: unknown) {
+      handleMutationError(error, `Could not ${command} guide.`);
     } finally {
       setBusyAction(null);
     }
@@ -1003,12 +1062,14 @@ export const GuideEditorPage = ({
       onUpdatePublishPassword={updateCurrentPublishPassword}
       onCopyPublicLink={copyCurrent}
       onCopyEmbedCode={(publicUrl) =>
-        copyCurrentEmbed(publicUrl, state.detail.guide.title)
+        copyCurrentEmbed(publicUrl, state.detail.edition.title)
       }
       onCopyMarkdown={copyMarkdown}
       onDownloadMarkdown={downloadMarkdown}
       onDownloadHtmlZip={downloadHtmlZip}
       onRetryPublishStatus={reloadPublishStatus}
+      onChangeLifecycle={changeLifecycle}
+      isDefaultVersion={isDefaultVersion}
       performLogout={performLogout}
       navigate={navigate}
       versionSlug={versionSlug}
@@ -1080,6 +1141,8 @@ const GuideEditorView = ({
   onDownloadMarkdown,
   onDownloadHtmlZip,
   onRetryPublishStatus,
+  onChangeLifecycle,
+  isDefaultVersion,
   performLogout,
   navigate,
   versionSlug,
@@ -1130,6 +1193,8 @@ const GuideEditorView = ({
   onDownloadMarkdown: () => void;
   onDownloadHtmlZip: () => void;
   onRetryPublishStatus: () => void;
+  onChangeLifecycle: () => void;
+  isDefaultVersion: boolean;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   versionSlug?: string;
@@ -1141,7 +1206,7 @@ const GuideEditorView = ({
   const [activeScreenshotId, setActiveScreenshotId] = useState<string | null>(
     null,
   );
-  const readOnly = detail.guide.status !== "draft";
+  const readOnly = detail.edition.status !== "draft";
   const assetsById = useMemo(
     () =>
       new Map(detail.source_capture_assets.map((asset) => [asset.id, asset])),
@@ -1172,9 +1237,9 @@ const GuideEditorView = ({
         <div className={styles.titleRow}>
           <div>
             <div className={styles.eyebrow}>Guide editor</div>
-            <h1 className={styles.title}>{detail.guide.title}</h1>
-            {detail.guide.description ? (
-              <p className={styles.description}>{detail.guide.description}</p>
+            <h1 className={styles.title}>{detail.edition.title}</h1>
+            {detail.edition.description ? (
+              <p className={styles.description}>{detail.edition.description}</p>
             ) : null}
           </div>
           <div className={styles.headerActions}>
@@ -1224,10 +1289,17 @@ const GuideEditorView = ({
               Preview guide
             </a>
             <Badge
-              variant={detail.guide.status === "draft" ? "warning" : "success"}
+              variant={detail.edition.status === "draft" ? "warning" : "success"}
             >
-              {detail.guide.status}
+              {detail.edition.status}
             </Badge>
+            <Button
+              variant={readOnly ? "secondary" : "destructive"}
+              disabled={busyAction === "lifecycle"}
+              onClick={onChangeLifecycle}
+            >
+              {readOnly ? "Restore guide" : "Archive guide"}
+            </Button>
           </div>
         </div>
         {readOnly ? (
@@ -1241,8 +1313,10 @@ const GuideEditorView = ({
           <PublishPanel
             state={publishState}
             readOnly={readOnly}
+            publishingDeferred={!isDefaultVersion && publishState.status === "loaded" && !publishState.response.publish_link}
+            canPublish={isDefaultVersion}
             busyAction={publishBusyAction}
-            guideUpdatedAt={detail.guide.updated_at}
+            guideUpdatedAt={detail.edition.updated_at}
             locallyStale={locallyStalePublish}
             onPublish={onPublish}
             onRevoke={onRevokePublish}
@@ -1405,6 +1479,8 @@ const expiryInputToIso = (value: string) => {
 const PublishPanel = ({
   state,
   readOnly,
+  publishingDeferred,
+  canPublish,
   busyAction,
   guideUpdatedAt,
   locallyStale,
@@ -1419,6 +1495,8 @@ const PublishPanel = ({
 }: {
   state: PublishState;
   readOnly: boolean;
+  publishingDeferred: boolean;
+  canPublish: boolean;
   busyAction: string | null;
   guideUpdatedAt: string;
   locallyStale: boolean;
@@ -1504,12 +1582,20 @@ const PublishPanel = ({
       {state.status === "loaded" && !activeLink ? (
         <div className={styles.publishStack}>
           <div className={styles.publishText}>This guide is not published.</div>
-          <p className={styles.publishNote}>
-            Publishing creates a public read-only snapshot.
-          </p>
-          <Button disabled={readOnly || isBusy} onClick={onPublish}>
-            {publishLabel}
-          </Button>
+          {publishingDeferred ? (
+            <p className={styles.publishNote}>
+              Publishing from a named Project Version is deferred until publication sequencing is available.
+            </p>
+          ) : (
+            <>
+              <p className={styles.publishNote}>
+                Publishing creates a public read-only snapshot.
+              </p>
+              <Button disabled={readOnly || isBusy || !canPublish} onClick={onPublish}>
+                {publishLabel}
+              </Button>
+            </>
+          )}
         </div>
       ) : null}
       {activeLink && publishedArtifact ? (
@@ -1681,9 +1767,11 @@ const PublishPanel = ({
             >
               Open public guide
             </a>
-            <Button disabled={readOnly || isBusy} onClick={onPublish}>
-              {republishLabel}
-            </Button>
+            {canPublish ? (
+              <Button disabled={readOnly || isBusy} onClick={onPublish}>
+                {republishLabel}
+              </Button>
+            ) : null}
             <Button variant="destructive" disabled={isBusy} onClick={onRevoke}>
               {revokeLabel}
             </Button>
@@ -2011,7 +2099,7 @@ const GuideBlockEditor = ({
                   {screenshotAssets.map((asset) => {
                     const displayName = assetDisplayName(asset);
                     const capturedAt = formatCapturedAt(asset.captured_at);
-                    const current = asset.id === block.display_capture_asset_id;
+                    const current = asset.id === block.step?.display_capture_asset_id;
                     const fileName =
                       asset.file.original_name &&
                       asset.file.original_name !== displayName

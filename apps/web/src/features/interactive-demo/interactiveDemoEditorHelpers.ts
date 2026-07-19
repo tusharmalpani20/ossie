@@ -66,7 +66,7 @@ export const hotspotDraftFromHotspot = (hotspot: DemoHotspot): HotspotDraft => (
   y: String(hotspot.y),
   width: String(hotspot.width),
   height: String(hotspot.height),
-  target_scene_id: hotspot.target_scene_id ?? "",
+  target_scene_id: hotspot.transition?.target_scene_id ?? "",
 });
 
 export const hotspotDraftsFromHotspots = (hotspotsBySceneId: Record<string, DemoHotspot[]>) => (

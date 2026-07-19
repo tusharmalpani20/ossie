@@ -20,6 +20,7 @@ import type {
   CreateDemoHotspotInput,
   CreateInteractiveDemoFromCaptureResponse,
   InteractiveDemoDetailResponse,
+  InteractiveDemoEdition,
   InteractiveDemoHotspotCreateResponse,
   InteractiveDemoHotspotListResponse,
   InteractiveDemoHotspotReorderResponse,
@@ -34,7 +35,7 @@ import type {
 } from "@repo/types/demo";
 import type {
   CreateGuideBlockInput,
-  Guide,
+  GuideEdition,
   GuideBlockResponse,
   GuideBlocksResponse,
   GuideDetail,
@@ -686,50 +687,56 @@ export const updateCaptureSessionEvent = async (
 export const getGuideDetail = async (
   projectId: string,
   guideId: string,
+  projectVersionId = "",
 ): Promise<GuideDetail> =>
   requestJson<GuideDetail>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
   );
 
 export const exportGuideMarkdown = async (
   projectId: string,
   guideId: string,
+  projectVersionId = "",
 ): Promise<GuideMarkdownExport> =>
   requestJson<GuideMarkdownExport>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/export/markdown`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/export/markdown?project_version_id=${encodeURIComponent(projectVersionId)}`,
   );
 
 export const exportGuideHtmlZip = async (
   projectId: string,
   guideId: string,
+  projectVersionId = "",
 ): Promise<{ filename: string; blob: Blob }> =>
   requestBlob(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/export/html.zip`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/export/html.zip?project_version_id=${encodeURIComponent(projectVersionId)}`,
     "guide-html-export.zip",
   );
 
 export const getGuidePublishStatus = async (
   projectId: string,
   guideId: string,
+  projectVersionId = "",
 ): Promise<GuidePublishStatusResponse> =>
   requestJson<GuidePublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
   );
 
 export const getInteractiveDemoPublishStatus = async (
   projectId: string,
   interactiveDemoId: string,
+  projectVersionId = "",
 ): Promise<InteractiveDemoPublishStatusResponse> =>
   requestJson<InteractiveDemoPublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
   );
 
 export const publishGuide = async (
   projectId: string,
   guideId: string,
+  projectVersionId = "",
 ): Promise<GuidePublishResult> =>
   requestJson<GuidePublishResult>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "POST",
     },
@@ -738,9 +745,10 @@ export const publishGuide = async (
 export const publishInteractiveDemo = async (
   projectId: string,
   interactiveDemoId: string,
+  projectVersionId = "",
 ): Promise<InteractiveDemoPublishResult> =>
   requestJson<InteractiveDemoPublishResult>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "POST",
     },
@@ -749,9 +757,10 @@ export const publishInteractiveDemo = async (
 export const revokeGuidePublishLink = async (
   projectId: string,
   guideId: string,
+  projectVersionId = "",
 ): Promise<GuideRevokePublishResult> =>
   requestJson<GuideRevokePublishResult>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "DELETE",
     },
@@ -760,9 +769,10 @@ export const revokeGuidePublishLink = async (
 export const revokeInteractiveDemoPublishLink = async (
   projectId: string,
   interactiveDemoId: string,
+  projectVersionId = "",
 ): Promise<RevokePublishResult> =>
   requestJson<RevokePublishResult>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "DELETE",
     },
@@ -772,9 +782,10 @@ export const updateGuidePublishAccess = async (
   projectId: string,
   guideId: string,
   input: UpdatePublishAccessInput,
+  projectVersionId = "",
 ): Promise<GuidePublishStatusResponse> =>
   requestJson<GuidePublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish/access`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish/access?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -788,9 +799,10 @@ export const updateInteractiveDemoPublishAccess = async (
   projectId: string,
   interactiveDemoId: string,
   input: UpdatePublishAccessInput,
+  projectVersionId = "",
 ): Promise<InteractiveDemoPublishStatusResponse> =>
   requestJson<InteractiveDemoPublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish/access`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish/access?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -804,9 +816,10 @@ export const updateGuidePublishPassword = async (
   projectId: string,
   guideId: string,
   input: UpdatePublishPasswordInput,
+  projectVersionId = "",
 ): Promise<GuidePublishStatusResponse> =>
   requestJson<GuidePublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish/password`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish/password?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -820,9 +833,10 @@ export const updateInteractiveDemoPublishPassword = async (
   projectId: string,
   interactiveDemoId: string,
   input: UpdatePublishPasswordInput,
+  projectVersionId = "",
 ): Promise<InteractiveDemoPublishStatusResponse> =>
   requestJson<InteractiveDemoPublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish/password`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish/password?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -928,14 +942,15 @@ export const listProjectActivity = async (
 
 export const listProjectGuides = async (
   projectId: string,
+  projectVersionId = "",
 ): Promise<ProjectGuideListResponse> =>
   requestJson<ProjectGuideListResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides?project_version_id=${encodeURIComponent(projectVersionId)}`,
   );
 
 export const listProjectScreenshotAssets = async (
   projectId: string,
-  projectVersionId: string,
+  projectVersionId = "",
 ): Promise<ProjectScreenshotAssetListResponse> =>
   requestJson<ProjectScreenshotAssetListResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/capture-assets?project_version_id=${encodeURIComponent(projectVersionId)}&asset_type=screenshot`,
@@ -981,26 +996,29 @@ export const createInteractiveDemoFromCaptureSession = async (
 
 export const listProjectInteractiveDemos = async (
   projectId: string,
+  projectVersionId = "",
 ): Promise<ProjectInteractiveDemoListResponse> =>
   requestJson<ProjectInteractiveDemoListResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos?project_version_id=${encodeURIComponent(projectVersionId)}`,
   );
 
 export const getInteractiveDemo = async (
   projectId: string,
   interactiveDemoId: string,
+  projectVersionId = "",
 ): Promise<InteractiveDemoDetailResponse> =>
   requestJson<InteractiveDemoDetailResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
   );
 
 export const updateInteractiveDemo = async (
   projectId: string,
   interactiveDemoId: string,
   data: UpdateInteractiveDemoInput,
+  projectVersionId = "",
 ): Promise<InteractiveDemoDetailResponse> =>
   requestJson<InteractiveDemoDetailResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -1010,23 +1028,45 @@ export const updateInteractiveDemo = async (
     },
   );
 
+const changeInteractiveDemoEditionStatus = async (
+  command: "archive" | "restore",
+  projectId: string,
+  interactiveDemoId: string,
+  projectVersionId: string,
+  expectedEditionVersion: number,
+): Promise<{ edition: InteractiveDemoEdition }> =>
+  requestJson(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/${command}?project_version_id=${encodeURIComponent(projectVersionId)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expected_edition_version: expectedEditionVersion }),
+    },
+  );
+
 export const archiveInteractiveDemo = async (
   projectId: string,
   interactiveDemoId: string,
-): Promise<void> =>
-  requestJson<void>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}`,
-    {
-      method: "DELETE",
-    },
-  );
+  projectVersionId = "",
+  expectedEditionVersion: number,
+): Promise<{ edition: InteractiveDemoEdition }> =>
+  changeInteractiveDemoEditionStatus("archive", projectId, interactiveDemoId, projectVersionId, expectedEditionVersion);
+
+export const restoreInteractiveDemo = async (
+  projectId: string,
+  interactiveDemoId: string,
+  projectVersionId: string,
+  expectedEditionVersion: number,
+): Promise<{ edition: InteractiveDemoEdition }> =>
+  changeInteractiveDemoEditionStatus("restore", projectId, interactiveDemoId, projectVersionId, expectedEditionVersion);
 
 export const listInteractiveDemoScenes = async (
   projectId: string,
   interactiveDemoId: string,
+  projectVersionId = "",
 ): Promise<InteractiveDemoSceneListResponse> =>
   requestJson<InteractiveDemoSceneListResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes?project_version_id=${encodeURIComponent(projectVersionId)}`,
   );
 
 export const updateInteractiveDemoScene = async (
@@ -1034,9 +1074,10 @@ export const updateInteractiveDemoScene = async (
   interactiveDemoId: string,
   sceneId: string,
   data: UpdateDemoSceneInput,
+  projectVersionId = "",
 ): Promise<InteractiveDemoSceneUpdateResponse> =>
   requestJson<InteractiveDemoSceneUpdateResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -1050,9 +1091,11 @@ export const reorderInteractiveDemoScenes = async (
   projectId: string,
   interactiveDemoId: string,
   sceneIds: string[],
+  expectedWorkingDraftVersion: number,
+  projectVersionId = "",
 ): Promise<InteractiveDemoSceneReorderResponse> =>
   requestJson<InteractiveDemoSceneReorderResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/order`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/order?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PUT",
       headers: {
@@ -1060,6 +1103,7 @@ export const reorderInteractiveDemoScenes = async (
       },
       body: JSON.stringify({
         scene_ids: sceneIds,
+        expected_working_draft_version: expectedWorkingDraftVersion,
       }),
     },
   );
@@ -1068,9 +1112,11 @@ export const deleteInteractiveDemoScene = async (
   projectId: string,
   interactiveDemoId: string,
   sceneId: string,
+  expectedWorkingDraftVersion: number,
+  projectVersionId = "",
 ): Promise<void> =>
   requestJson<void>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}?project_version_id=${encodeURIComponent(projectVersionId)}&expected_working_draft_version=${expectedWorkingDraftVersion}`,
     {
       method: "DELETE",
     },
@@ -1080,17 +1126,19 @@ const demoHotspotsPath = (
   projectId: string,
   interactiveDemoId: string,
   sceneId: string,
+  projectVersionId = "",
 ) =>
-  `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}/hotspots`;
+  `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}/hotspots?project_version_id=${encodeURIComponent(projectVersionId)}`;
 
 export const createInteractiveDemoHotspot = async (
   projectId: string,
   interactiveDemoId: string,
   sceneId: string,
   data: CreateDemoHotspotInput,
+  projectVersionId = "",
 ): Promise<InteractiveDemoHotspotCreateResponse> =>
   requestJson<InteractiveDemoHotspotCreateResponse>(
-    demoHotspotsPath(projectId, interactiveDemoId, sceneId),
+    demoHotspotsPath(projectId, interactiveDemoId, sceneId, projectVersionId),
     {
       method: "POST",
       headers: {
@@ -1104,9 +1152,10 @@ export const listInteractiveDemoHotspots = async (
   projectId: string,
   interactiveDemoId: string,
   sceneId: string,
+  projectVersionId = "",
 ): Promise<InteractiveDemoHotspotListResponse> =>
   requestJson<InteractiveDemoHotspotListResponse>(
-    demoHotspotsPath(projectId, interactiveDemoId, sceneId),
+    demoHotspotsPath(projectId, interactiveDemoId, sceneId, projectVersionId),
   );
 
 export const updateInteractiveDemoHotspot = async (
@@ -1115,9 +1164,10 @@ export const updateInteractiveDemoHotspot = async (
   sceneId: string,
   hotspotId: string,
   data: UpdateDemoHotspotInput,
+  projectVersionId = "",
 ): Promise<InteractiveDemoHotspotUpdateResponse> =>
   requestJson<InteractiveDemoHotspotUpdateResponse>(
-    `${demoHotspotsPath(projectId, interactiveDemoId, sceneId)}/${encodeURIComponent(hotspotId)}`,
+    `${demoHotspotsPath(projectId, interactiveDemoId, sceneId, projectVersionId).split("?")[0]}/${encodeURIComponent(hotspotId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -1132,9 +1182,11 @@ export const reorderInteractiveDemoHotspots = async (
   interactiveDemoId: string,
   sceneId: string,
   hotspotIds: string[],
+  expectedWorkingDraftVersion: number,
+  projectVersionId = "",
 ): Promise<InteractiveDemoHotspotReorderResponse> =>
   requestJson<InteractiveDemoHotspotReorderResponse>(
-    `${demoHotspotsPath(projectId, interactiveDemoId, sceneId)}/order`,
+    `${demoHotspotsPath(projectId, interactiveDemoId, sceneId, projectVersionId).split("?")[0]}/order?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PUT",
       headers: {
@@ -1142,6 +1194,7 @@ export const reorderInteractiveDemoHotspots = async (
       },
       body: JSON.stringify({
         hotspot_ids: hotspotIds,
+        expected_working_draft_version: expectedWorkingDraftVersion,
       }),
     },
   );
@@ -1151,9 +1204,11 @@ export const deleteInteractiveDemoHotspot = async (
   interactiveDemoId: string,
   sceneId: string,
   hotspotId: string,
+  expectedWorkingDraftVersion: number,
+  projectVersionId = "",
 ): Promise<void> =>
   requestJson<void>(
-    `${demoHotspotsPath(projectId, interactiveDemoId, sceneId)}/${encodeURIComponent(hotspotId)}`,
+    `${demoHotspotsPath(projectId, interactiveDemoId, sceneId, projectVersionId).split("?")[0]}/${encodeURIComponent(hotspotId)}?project_version_id=${encodeURIComponent(projectVersionId)}&expected_working_draft_version=${expectedWorkingDraftVersion}`,
     {
       method: "DELETE",
     },
@@ -1165,11 +1220,12 @@ export const updateGuide = async (
   data: {
     title?: string;
     description?: string | null;
-    status?: Guide["status"];
+    expected_edition_version: number;
   },
+  projectVersionId = "",
 ): Promise<UpdateGuideResponse> =>
   requestJson<UpdateGuideResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -1179,6 +1235,38 @@ export const updateGuide = async (
     },
   );
 
+const changeGuideEditionStatus = async (
+  command: "archive" | "restore",
+  projectId: string,
+  guideId: string,
+  projectVersionId: string,
+  expectedEditionVersion: number,
+): Promise<{ edition: GuideEdition }> =>
+  requestJson(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/${command}?project_version_id=${encodeURIComponent(projectVersionId)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expected_edition_version: expectedEditionVersion }),
+    },
+  );
+
+export const archiveGuide = (
+  projectId: string,
+  guideId: string,
+  projectVersionId: string,
+  expectedEditionVersion: number,
+): Promise<{ edition: GuideEdition }> =>
+  changeGuideEditionStatus("archive", projectId, guideId, projectVersionId, expectedEditionVersion);
+
+export const restoreGuide = (
+  projectId: string,
+  guideId: string,
+  projectVersionId: string,
+  expectedEditionVersion: number,
+): Promise<{ edition: GuideEdition }> =>
+  changeGuideEditionStatus("restore", projectId, guideId, projectVersionId, expectedEditionVersion);
+
 export const updateGuideStep = async (
   projectId: string,
   guideId: string,
@@ -1186,10 +1274,12 @@ export const updateGuideStep = async (
   data: {
     title?: string;
     body?: string | null;
+    expected_working_draft_version: number;
   },
+  projectVersionId = "",
 ): Promise<UpdateGuideStepResponse> =>
   requestJson<UpdateGuideStepResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/steps/${encodeURIComponent(stepId)}`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/steps/${encodeURIComponent(stepId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -1203,9 +1293,10 @@ export const createGuideBlock = async (
   projectId: string,
   guideId: string,
   data: CreateGuideBlockInput,
+  projectVersionId = "",
 ): Promise<GuideBlocksResponse> =>
   requestJson<GuideBlocksResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "POST",
       headers: {
@@ -1220,9 +1311,10 @@ export const updateGuideBlock = async (
   guideId: string,
   blockId: string,
   data: UpdateGuideBlockInput,
+  projectVersionId = "",
 ): Promise<GuideBlockResponse> =>
   requestJson<GuideBlockResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -1237,9 +1329,10 @@ export const updateGuideBlockScreenshot = async (
   guideId: string,
   blockId: string,
   data: UpdateGuideBlockScreenshotInput,
+  projectVersionId = "",
 ): Promise<GuideBlockResponse> =>
   requestJson<GuideBlockResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}/screenshot`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}/screenshot?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -1254,9 +1347,10 @@ export const updateGuideBlockAnnotations = async (
   guideId: string,
   blockId: string,
   data: UpdateGuideBlockAnnotationsInput,
+  projectVersionId = "",
 ): Promise<GuideBlockResponse> =>
   requestJson<GuideBlockResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}/annotations`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}/annotations?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -1271,9 +1365,12 @@ export const uploadGuideBlockScreenshot = async (
   guideId: string,
   blockId: string,
   input: UploadGuideBlockScreenshotInput,
+  expectedWorkingDraftVersion: number,
+  projectVersionId = "",
 ): Promise<UploadGuideBlockScreenshotResponse> => {
   const body = new FormData();
   body.append("file", input.file);
+  body.append("expected_working_draft_version", String(expectedWorkingDraftVersion));
 
   if (input.width !== undefined) {
     body.append("width", String(input.width));
@@ -1298,7 +1395,7 @@ export const uploadGuideBlockScreenshot = async (
   }
 
   return requestJson<UploadGuideBlockScreenshotResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}/screenshot-upload`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}/screenshot-upload?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "POST",
       body,
@@ -1310,9 +1407,11 @@ export const reorderGuideBlocks = async (
   projectId: string,
   guideId: string,
   blockIds: string[],
+  expectedWorkingDraftVersion: number,
+  projectVersionId = "",
 ): Promise<GuideBlocksResponse> =>
   requestJson<GuideBlocksResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/reorder`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/reorder?project_version_id=${encodeURIComponent(projectVersionId)}`,
     {
       method: "PATCH",
       headers: {
@@ -1320,6 +1419,7 @@ export const reorderGuideBlocks = async (
       },
       body: JSON.stringify({
         block_ids: blockIds,
+        expected_working_draft_version: expectedWorkingDraftVersion,
       }),
     },
   );
@@ -1328,9 +1428,11 @@ export const deleteGuideBlock = async (
   projectId: string,
   guideId: string,
   blockId: string,
+  expectedWorkingDraftVersion: number,
+  projectVersionId = "",
 ): Promise<void> =>
   requestJson<void>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}`,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}?project_version_id=${encodeURIComponent(projectVersionId)}&expected_working_draft_version=${expectedWorkingDraftVersion}`,
     {
       method: "DELETE",
     },

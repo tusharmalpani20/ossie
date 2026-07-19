@@ -151,41 +151,21 @@ const detail: CaptureSessionDetail = {
 };
 
 const guideDetail: GuideDetail = {
-  guide: {
-    id: "guide_1",
-    organization_id: "organization_1",
-    project_id: "project_1",
-    source_capture_session_id: "capture_session_1",
-    title: "Create department workflow",
-    description: "Source capture for the department setup guide",
-    status: "draft",
-    created_by_id: "org_user_1",
-    updated_by_id: "org_user_1",
-    version: 1,
-    created_at: "2026-06-05T10:00:00.000Z",
-    updated_at: "2026-06-05T10:00:00.000Z",
-  },
+  artifact: { id: "guide_1", organization_id: "organization_1", project_id: "project_1", created_by_id: "org_user_1", created_at: "2026-06-05T10:00:00.000Z" },
+  edition: { id: "guide_edition_1", organization_id: "organization_1", project_id: "project_1", guide_id: "guide_1", project_version_id: "version_1", source_capture_session_id: "capture_session_1", title: "Create department workflow", description: "Source capture for the department setup guide", status: "draft", created_by_id: "org_user_1", updated_by_id: "org_user_1", version: 1, created_at: "2026-06-05T10:00:00.000Z", updated_at: "2026-06-05T10:00:00.000Z" },
+  working_draft: { id: "guide_draft_1", organization_id: "organization_1", project_id: "project_1", guide_edition_id: "guide_edition_1", created_by_id: "org_user_1", updated_by_id: "org_user_1", version: 1, created_at: "2026-06-05T10:00:00.000Z", updated_at: "2026-06-05T10:00:00.000Z" },
+  authored_updated_at: "2026-06-05T10:00:00.000Z",
   guide_blocks: [],
   source_capture_assets: [],
 };
 
 const interactiveDemoFromCapture: CreateInteractiveDemoFromCaptureResponse = {
-  interactive_demo: {
-    id: "interactive_demo_1",
-    organization_id: "organization_1",
-    project_id: "project_1",
-    source_capture_session_id: "capture_session_1",
-    title: "Create department workflow",
-    description: "Source capture for the department setup guide",
-    status: "draft",
-    created_by_id: "org_user_1",
-    updated_by_id: "org_user_1",
-    version: 1,
-    created_at: "2026-06-05T10:00:00.000Z",
-    updated_at: "2026-06-05T10:00:00.000Z",
-  },
+  artifact: { id: "interactive_demo_1", organization_id: "organization_1", project_id: "project_1", created_by_id: "org_user_1", created_at: "2026-06-05T10:00:00.000Z" },
+  edition: { id: "demo_edition_1", organization_id: "organization_1", project_id: "project_1", interactive_demo_id: "interactive_demo_1", project_version_id: "version_1", source_capture_session_id: "capture_session_1", title: "Create department workflow", description: "Source capture for the department setup guide", status: "draft", created_by_id: "org_user_1", updated_by_id: "org_user_1", version: 1, created_at: "2026-06-05T10:00:00.000Z", updated_at: "2026-06-05T10:00:00.000Z" },
+  working_draft: { id: "demo_draft_1", organization_id: "organization_1", project_id: "project_1", interactive_demo_edition_id: "demo_edition_1", created_by_id: "org_user_1", updated_by_id: "org_user_1", version: 1, created_at: "2026-06-05T10:00:00.000Z", updated_at: "2026-06-05T10:00:00.000Z" },
+  authored_updated_at: "2026-06-05T10:00:00.000Z",
   demo_scenes: [],
-  redirect_path: "/projects/project_1/interactive-demos/interactive_demo_1",
+  redirect_path: "/projects/project_1/versions/version_1/interactive-demos/interactive_demo_1",
 };
 
 const uploadedAsset: CaptureAsset = {
@@ -1399,7 +1379,7 @@ describe("CaptureSessionDetailPage", () => {
       ),
     );
     expect(redirectTo).toHaveBeenCalledWith(
-      "/projects/project_1/interactive-demos/interactive_demo_1",
+      "/projects/project_1/versions/version_1/interactive-demos/interactive_demo_1",
     );
   });
 

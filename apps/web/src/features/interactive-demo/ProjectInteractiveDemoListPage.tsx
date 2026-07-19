@@ -21,6 +21,7 @@ type LoadState =
 
 export type ProjectInteractiveDemoListPageProps = {
   projectId: string;
+  projectVersionId: string;
   loadDemos?: (projectId: string) => Promise<ProjectInteractiveDemoListResponse>;
   currentPath?: string;
   performLogout?: () => Promise<void>;
@@ -58,7 +59,8 @@ const captureSessionsUrl = (projectId: string, versionSlug?: string) => (
 
 export const ProjectInteractiveDemoListPage = ({
   projectId,
-  loadDemos = listProjectInteractiveDemos,
+  projectVersionId,
+  loadDemos = (id) => listProjectInteractiveDemos(id, projectVersionId),
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
@@ -75,7 +77,7 @@ export const ProjectInteractiveDemoListPage = ({
     loadDemos(projectId)
       .then((response) => {
         if (active) {
-          setState({ status: "loaded", demos: response.interactive_demos });
+          setState({ status: "loaded", demos: response.interactive_demo_editions.map((item) => ({ ...item.edition, id: item.artifact.id })) });
         }
       })
       .catch((error: unknown) => {
@@ -87,7 +89,9 @@ export const ProjectInteractiveDemoListPage = ({
     return () => {
       active = false;
     };
-  }, [projectId, loadDemos, reloadKey]);
+  // Route identity and reloadKey intentionally control refetching; the injected loader may be an inline adapter.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, projectVersionId, reloadKey]);
 
   if (state.status === "loading") {
     return (

@@ -308,12 +308,12 @@ export default function App() {
             projectId={route.projectId}
             captureSessionId={route.captureSessionId}
             versionSlug={route.versionSlug}
-            isDefaultVersion={selected.is_default}
             projectVersions={versions}
             currentPath={currentPath}
             canWrite={
-              project.status === "active" && project.access.role !== "viewer"
+              project.status === "active" && selected.status === "active" && project.access.role !== "viewer"
             }
+            isDefaultVersion={selected.is_default}
           />
         )}
       </ProjectVersionRouteBoundary>
@@ -380,6 +380,7 @@ export default function App() {
             ) : (
               <GuidePreviewPage
                 projectId={route.projectId}
+                projectVersionId={project.default_project_version.id}
                 versionSlug={project.default_project_version.slug}
                 guideId={route.guideId}
                 currentPath={currentPath}
@@ -393,19 +394,22 @@ export default function App() {
       <ProjectVersionRouteBoundary
         projectId={route.projectId}
         versionSlug={route.versionSlug}
+        allowVersionOwnedContent
       >
         {({ project, selected }) =>
-          project.status === "active" && project.access.role !== "viewer" ? (
+          project.status === "active" && selected.status === "active" && project.access.role !== "viewer" ? (
             <GuideEditorPage
               projectId={route.projectId}
               projectVersionId={selected.id}
               versionSlug={route.versionSlug}
               guideId={route.guideId}
               currentPath={currentPath}
+              isDefaultVersion={selected.is_default}
             />
           ) : (
             <GuidePreviewPage
               projectId={route.projectId}
+              projectVersionId={selected.id}
               guideId={route.guideId}
               versionSlug={route.versionSlug}
               currentPath={currentPath}
@@ -427,6 +431,7 @@ export default function App() {
           {(project) => (
             <GuidePreviewPage
               projectId={route.projectId}
+              projectVersionId={project.default_project_version.id}
               versionSlug={project.default_project_version.slug}
               guideId={route.guideId}
               currentPath={currentPath}
@@ -441,15 +446,17 @@ export default function App() {
       <ProjectVersionRouteBoundary
         projectId={route.projectId}
         versionSlug={route.versionSlug}
+        allowVersionOwnedContent
       >
-        {({ project }) => (
+        {({ project, selected }) => (
           <GuidePreviewPage
             projectId={route.projectId}
+            projectVersionId={selected.id}
             guideId={route.guideId}
             versionSlug={route.versionSlug}
             currentPath={currentPath}
             canWrite={
-              project.status === "active" && project.access.role !== "viewer"
+              project.status === "active" && selected.status === "active" && project.access.role !== "viewer"
             }
           />
         )}
@@ -461,9 +468,10 @@ export default function App() {
     if (!route.versionSlug)
       return (
         <LegacyProjectRedirect projectId={route.projectId} suffix="/guides">
-          {() => (
+          {(project) => (
             <ProjectGuideListPage
               projectId={route.projectId}
+              projectVersionId={project.default_project_version.id}
               currentPath={currentPath}
             />
           )}
@@ -473,10 +481,12 @@ export default function App() {
       <ProjectVersionRouteBoundary
         projectId={route.projectId}
         versionSlug={route.versionSlug}
+        allowVersionOwnedContent
       >
-        {() => (
+        {({ selected }) => (
           <ProjectGuideListPage
             projectId={route.projectId}
+            projectVersionId={selected.id}
             currentPath={currentPath}
             versionSlug={route.versionSlug}
           />
@@ -495,6 +505,7 @@ export default function App() {
           {(project) => (
             <ProjectInteractiveDemoListPage
               projectId={route.projectId}
+              projectVersionId={project.default_project_version.id}
               currentPath={currentPath}
               canWrite={
                 project.status === "active" && project.access.role !== "viewer"
@@ -507,10 +518,12 @@ export default function App() {
       <ProjectVersionRouteBoundary
         projectId={route.projectId}
         versionSlug={route.versionSlug}
+        allowVersionOwnedContent
       >
-        {({ project }) => (
+        {({ project, selected }) => (
           <ProjectInteractiveDemoListPage
             projectId={route.projectId}
+            projectVersionId={selected.id}
             currentPath={currentPath}
             versionSlug={route.versionSlug}
             canWrite={
@@ -532,6 +545,7 @@ export default function App() {
           {(project) => (
             <InteractiveDemoEditorPage
               projectId={route.projectId}
+              projectVersionId={project.default_project_version.id}
               versionSlug={project.default_project_version.slug}
               interactiveDemoId={route.interactiveDemoId}
               currentPath={currentPath}
@@ -546,16 +560,19 @@ export default function App() {
       <ProjectVersionRouteBoundary
         projectId={route.projectId}
         versionSlug={route.versionSlug}
+        allowVersionOwnedContent
       >
-        {({ project }) => (
+        {({ project, selected }) => (
           <InteractiveDemoEditorPage
             projectId={route.projectId}
+            projectVersionId={selected.id}
             interactiveDemoId={route.interactiveDemoId}
             versionSlug={route.versionSlug}
             currentPath={currentPath}
             canWrite={
-              project.status === "active" && project.access.role !== "viewer"
+              project.status === "active" && selected.status === "active" && project.access.role !== "viewer"
             }
+            isDefaultVersion={selected.is_default}
           />
         )}
       </ProjectVersionRouteBoundary>

@@ -55,7 +55,7 @@ export const assetForBlock = (
   block: GuideBlock,
   assetsById: Map<string, GuideSourceCaptureAsset>
 ) => {
-  const source_capture_asset_id = block.display_capture_asset_id;
+  const source_capture_asset_id = block.step?.display_capture_asset_id ?? null;
   return source_capture_asset_id ? assetsById.get(source_capture_asset_id) : undefined;
 };
 
@@ -73,8 +73,8 @@ export const stepDraftsFromBlocks = (blocks: GuideBlock[]) => blocks.reduce<Reco
 export const blockContentDraftsFromBlocks = (blocks: GuideBlock[]) => blocks.reduce<Record<string, BlockContentDraft>>((drafts, block) => {
   if (block.block_type === "header" || block.block_type === "paragraph" || block.block_type === "tip" || block.block_type === "alert") {
     drafts[block.id] = {
-      title: block.content?.title ?? "",
-      body: block.content?.body ?? "",
+      title: block.title ?? "",
+      body: block.body ?? "",
     };
   }
 
@@ -98,7 +98,7 @@ export const updateBlockInBlocks = (blocks: GuideBlock[], guideBlock: GuideBlock
 );
 
 export const annotationsFromBlock = (block: GuideBlock): GuideScreenshotAnnotation[] => (
-  block.content?.annotations ?? []
+  block.step?.annotations.map((annotation) => ({ ...annotation, type: annotation.annotation_type })) ?? []
 );
 
 export const defaultHighlightAnnotation = (): UpdateGuideBlockAnnotationsInput["annotations"][number] => ({

@@ -648,7 +648,7 @@ const CaptureSessionDetailView = ({
         description: session.description ?? null,
       });
       redirectTo(
-        `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideDetail.guide.id)}`,
+        `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideDetail.artifact.id)}`,
       );
     } catch {
       setCreateState("error");

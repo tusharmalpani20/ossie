@@ -31,9 +31,14 @@ type LoadState =
 
 export type GuidePreviewPageProps = {
   projectId: string;
+  projectVersionId: string;
   guideId: string;
   loadDetail?: (projectId: string, guideId: string) => Promise<GuideDetail>;
-  exportMarkdown?: typeof exportGuideMarkdown;
+  exportMarkdown?: (
+    projectId: string,
+    guideId: string,
+    projectVersionId?: string,
+  ) => Promise<GuideMarkdownExport>;
   copyText?: (text: string) => Promise<void>;
   downloadTextFile?: (filename: string, contents: string, mimeType: string) => Promise<void>;
   currentPath?: string;
@@ -99,9 +104,10 @@ const defaultDownloadTextFile = async (
 
 export const GuidePreviewPage = ({
   projectId,
+  projectVersionId,
   guideId,
-  loadDetail = getGuideDetail,
-  exportMarkdown = exportGuideMarkdown,
+  loadDetail = (id, artifactId) => getGuideDetail(id, artifactId, projectVersionId),
+  exportMarkdown = (id, artifactId) => exportGuideMarkdown(id, artifactId, projectVersionId),
   copyText = defaultCopyText,
   downloadTextFile = defaultDownloadTextFile,
   currentPath = currentBrowserPath(),
@@ -131,7 +137,9 @@ export const GuidePreviewPage = ({
     return () => {
       active = false;
     };
-  }, [projectId, guideId, loadDetail]);
+  // Route identity intentionally controls refetching; the injected loader may be an inline test adapter.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, projectVersionId, guideId]);
 
   if (state.status === "loading") {
     return (
@@ -218,7 +226,7 @@ const GuidePreviewView = ({
   detail: GuideDetail;
   projectId: string;
   guideId: string;
-  exportMarkdown: typeof exportGuideMarkdown;
+  exportMarkdown: (projectId: string, guideId: string) => Promise<GuideMarkdownExport>;
   copyText: (text: string) => Promise<void>;
   downloadTextFile: (filename: string, contents: string, mimeType: string) => Promise<void>;
   performLogout?: () => Promise<void>;
@@ -283,9 +291,9 @@ const GuidePreviewView = ({
       <section className={styles.header}>
         <div>
           <div className={styles.eyebrow}>Guide preview</div>
-          <h1 className={styles.title}>{detail.guide.title}</h1>
-          {detail.guide.description ? <p className={styles.description}>{detail.guide.description}</p> : null}
-          <Badge variant={detail.guide.status === "draft" ? "warning" : "success"}>{detail.guide.status}</Badge>
+          <h1 className={styles.title}>{detail.edition.title}</h1>
+          {detail.edition.description ? <p className={styles.description}>{detail.edition.description}</p> : null}
+          <Badge variant={detail.edition.status === "draft" ? "warning" : "success"}>{detail.edition.status}</Badge>
           {notice ? <div className={styles.notice}>{notice}</div> : null}
         </div>
         <div className={styles.actions}>
@@ -337,12 +345,12 @@ const assetForBlock = (
   block: GuideBlock,
   assetsById: Map<string, GuideSourceCaptureAsset>
 ) => {
-  const source_capture_asset_id = block.display_capture_asset_id;
+  const source_capture_asset_id = block.step?.display_capture_asset_id ?? null;
   return source_capture_asset_id ? assetsById.get(source_capture_asset_id) : undefined;
 };
 
 const annotationsFromBlock = (block: GuideBlock): GuideScreenshotAnnotation[] => (
-  block.content?.annotations ?? []
+  block.step?.annotations.map((annotation) => ({ ...annotation, type: annotation.annotation_type })) ?? []
 );
 
 const annotationPercent = (value: number) => `${Number((value * 100).toFixed(4))}%`;
@@ -379,27 +387,27 @@ const GuidePreviewBlock = ({
   asset?: GuideSourceCaptureAsset;
   onOpenScreenshot: (imageId: string) => void;
 }) => {
-  if (block.block_type === "header" && block.content?.title) {
+  if (block.block_type === "header" && block.title) {
     return (
       <section className={styles.callout}>
-        <h2 className={styles.calloutTitle}>{block.content.title}</h2>
+        <h2 className={styles.calloutTitle}>{block.title}</h2>
       </section>
     );
   }
 
-  if ((block.block_type === "tip" || block.block_type === "alert") && block.content) {
+  if (block.block_type === "tip" || block.block_type === "alert") {
     return (
       <aside className={block.block_type === "alert" ? styles.alert : styles.tip}>
-        {block.content.title ? <h3 className={styles.calloutTitle}>{block.content.title}</h3> : null}
-        {block.content.body ? <p className={styles.stepBody}>{block.content.body}</p> : null}
+        {block.title ? <h3 className={styles.calloutTitle}>{block.title}</h3> : null}
+        {block.body ? <p className={styles.stepBody}>{block.body}</p> : null}
       </aside>
     );
   }
 
-  if (block.block_type === "paragraph" && block.content?.body) {
+  if (block.block_type === "paragraph" && block.body) {
     return (
       <section className={styles.callout}>
-        <p className={styles.stepBody}>{block.content.body}</p>
+        <p className={styles.stepBody}>{block.body}</p>
       </section>
     );
   }

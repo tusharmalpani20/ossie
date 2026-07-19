@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   DEMO_HOTSPOT_TYPES,
-  INTERACTIVE_DEMO_STATUSES,
   PUBLISH_VISIBILITIES,
 } from "@repo/constants";
 import { Badge } from "@repo/ui/badge";
@@ -13,6 +12,7 @@ import { Select } from "@repo/ui/select";
 import { Textarea } from "@repo/ui/textarea";
 import {
   ApiClientError,
+  archiveInteractiveDemo,
   createInteractiveDemoHotspot,
   deleteInteractiveDemoHotspot,
   deleteInteractiveDemoScene,
@@ -24,6 +24,7 @@ import {
   reorderInteractiveDemoHotspots,
   reorderInteractiveDemoScenes,
   resolveApiAssetUrl,
+  restoreInteractiveDemo,
   revokeInteractiveDemoPublishLink,
   updateInteractiveDemoHotspot,
   updateInteractiveDemo,
@@ -92,6 +93,7 @@ type LoadState =
 
 export type InteractiveDemoEditorPageProps = {
   projectId: string;
+  projectVersionId: string;
   interactiveDemoId: string;
   loadDemo?: (projectId: string, interactiveDemoId: string) => Promise<InteractiveDemoDetailResponse>;
   loadScenes?: (projectId: string, interactiveDemoId: string) => Promise<InteractiveDemoSceneListResponse>;
@@ -109,9 +111,10 @@ export type InteractiveDemoEditorPageProps = {
   reorderScenes?: (
     projectId: string,
     interactiveDemoId: string,
-    sceneIds: string[]
+    sceneIds: string[],
+    expectedWorkingDraftVersion: number
   ) => Promise<InteractiveDemoSceneReorderResponse>;
-  deleteScene?: (projectId: string, interactiveDemoId: string, sceneId: string) => Promise<void>;
+  deleteScene?: (projectId: string, interactiveDemoId: string, sceneId: string, expectedWorkingDraftVersion: number) => Promise<void>;
   loadHotspots?: (
     projectId: string,
     interactiveDemoId: string,
@@ -134,9 +137,10 @@ export type InteractiveDemoEditorPageProps = {
     projectId: string,
     interactiveDemoId: string,
     sceneId: string,
-    hotspotIds: string[]
+    hotspotIds: string[],
+    expectedWorkingDraftVersion: number
   ) => Promise<InteractiveDemoHotspotReorderResponse>;
-  deleteHotspot?: (projectId: string, interactiveDemoId: string, sceneId: string, hotspotId: string) => Promise<void>;
+  deleteHotspot?: (projectId: string, interactiveDemoId: string, sceneId: string, hotspotId: string, expectedWorkingDraftVersion: number) => Promise<void>;
   loadPublishStatus?: (projectId: string, interactiveDemoId: string) => Promise<InteractiveDemoPublishStatusResponse>;
   publishDemo?: (projectId: string, interactiveDemoId: string) => Promise<InteractiveDemoPublishResult>;
   updatePublishAccess?: (
@@ -157,6 +161,14 @@ export type InteractiveDemoEditorPageProps = {
   copyText?: (text: string) => Promise<void>;
   canWrite?: boolean;
   versionSlug?: string;
+  isDefaultVersion?: boolean;
+  changeEditionStatus?: (
+    command: "archive" | "restore",
+    projectId: string,
+    interactiveDemoId: string,
+    projectVersionId: string,
+    expectedEditionVersion: number,
+  ) => Promise<{ edition: InteractiveDemoDetailResponse["edition"] }>;
 };
 
 const loadStateFromError = (error: unknown): LoadState => {
@@ -183,31 +195,38 @@ const defaultCopyText = async (text: string) => {
 
 export const InteractiveDemoEditorPage = ({
   projectId,
+  projectVersionId,
   interactiveDemoId,
-  loadDemo = getInteractiveDemo,
-  loadScenes = listInteractiveDemoScenes,
-  saveDemo = updateInteractiveDemo,
-  saveScene = updateInteractiveDemoScene,
-  reorderScenes = reorderInteractiveDemoScenes,
-  deleteScene = deleteInteractiveDemoScene,
-  loadHotspots = listInteractiveDemoHotspots,
-  createHotspot = createInteractiveDemoHotspot,
-  saveHotspot = updateInteractiveDemoHotspot,
-  reorderHotspots = reorderInteractiveDemoHotspots,
-  deleteHotspot = deleteInteractiveDemoHotspot,
-  loadPublishStatus = getInteractiveDemoPublishStatus,
-  publishDemo = publishInteractiveDemo,
-  updatePublishAccess = updateInteractiveDemoPublishAccess,
-  updatePublishPassword = updateInteractiveDemoPublishPassword,
-  revokePublishLink = revokeInteractiveDemoPublishLink,
+  loadDemo = (id, artifactId) => getInteractiveDemo(id, artifactId, projectVersionId),
+  loadScenes = (id, artifactId) => listInteractiveDemoScenes(id, artifactId, projectVersionId),
+  saveDemo = (id, artifactId, input) => updateInteractiveDemo(id, artifactId, input, projectVersionId),
+  saveScene = (id, artifactId, sceneId, input) => updateInteractiveDemoScene(id, artifactId, sceneId, input, projectVersionId),
+  reorderScenes = (id, artifactId, sceneIds, expected) => reorderInteractiveDemoScenes(id, artifactId, sceneIds, expected, projectVersionId),
+  deleteScene = (id, artifactId, sceneId, expected) => deleteInteractiveDemoScene(id, artifactId, sceneId, expected, projectVersionId),
+  loadHotspots = (id, artifactId, sceneId) => listInteractiveDemoHotspots(id, artifactId, sceneId, projectVersionId),
+  createHotspot = (id, artifactId, sceneId, input) => createInteractiveDemoHotspot(id, artifactId, sceneId, input, projectVersionId),
+  saveHotspot = (id, artifactId, sceneId, hotspotId, input) => updateInteractiveDemoHotspot(id, artifactId, sceneId, hotspotId, input, projectVersionId),
+  reorderHotspots = (id, artifactId, sceneId, hotspotIds, expected) => reorderInteractiveDemoHotspots(id, artifactId, sceneId, hotspotIds, expected, projectVersionId),
+  deleteHotspot = (id, artifactId, sceneId, hotspotId, expected) => deleteInteractiveDemoHotspot(id, artifactId, sceneId, hotspotId, expected, projectVersionId),
+  loadPublishStatus = (id, artifactId) => getInteractiveDemoPublishStatus(id, artifactId, projectVersionId),
+  publishDemo = (id, artifactId) => publishInteractiveDemo(id, artifactId, projectVersionId),
+  updatePublishAccess = (id, artifactId, input) => updateInteractiveDemoPublishAccess(id, artifactId, input, projectVersionId),
+  updatePublishPassword = (id, artifactId, input) => updateInteractiveDemoPublishPassword(id, artifactId, input, projectVersionId),
+  revokePublishLink = (id, artifactId) => revokeInteractiveDemoPublishLink(id, artifactId, projectVersionId),
   resolveAssetUrl = resolveApiAssetUrl,
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
   copyText = defaultCopyText,
   canWrite = true,
+  isDefaultVersion = true,
+  changeEditionStatus = (command, id, artifactId, versionId, expected) =>
+    command === "archive"
+      ? archiveInteractiveDemo(id, artifactId, versionId, expected)
+      : restoreInteractiveDemo(id, artifactId, versionId, expected),
 }: InteractiveDemoEditorPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [workingDraftVersion, setWorkingDraftVersion] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -235,11 +254,12 @@ export const InteractiveDemoEditorPage = ({
         if (active) {
           setState({
             status: "loaded",
-            demo: demoResponse.interactive_demo,
+            demo: demoResponse.edition,
             scenes,
             hotspotsBySceneId: Object.fromEntries(hotspotEntries),
             publishStatus,
           });
+          setWorkingDraftVersion(demoResponse.working_draft.version);
         }
       })
       .catch((error: unknown) => {
@@ -251,7 +271,9 @@ export const InteractiveDemoEditorPage = ({
     return () => {
       active = false;
     };
-  }, [projectId, interactiveDemoId, loadDemo, loadScenes, loadHotspots, loadPublishStatus, canWrite, reloadKey]);
+  // Route identity and reloadKey intentionally control refetching; injected loaders may be inline test adapters.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, projectVersionId, interactiveDemoId, canWrite, reloadKey]);
 
   if (state.status === "loading") {
     return (
@@ -293,7 +315,19 @@ export const InteractiveDemoEditorPage = ({
     );
   }
 
-  if (!canWrite) {
+  const changeLifecycle = async () => {
+    if (state.status !== "loaded") return;
+    const command = state.demo.status === "draft" ? "archive" : "restore";
+    if (command === "archive" && !window.confirm("Archive this interactive demo edition?")) return;
+    try {
+      const response = await changeEditionStatus(command, projectId, interactiveDemoId, projectVersionId, state.demo.version);
+      setState({ ...state, demo: response.edition });
+    } catch {
+      setState({ status: "error" });
+    }
+  };
+
+  if (!canWrite || state.demo.status === "archived") {
     return (
       <PortalShell projectId={projectId} interactiveDemoId={interactiveDemoId} performLogout={performLogout} navigate={navigate}>
         <section className={styles.header}>
@@ -302,7 +336,12 @@ export const InteractiveDemoEditorPage = ({
             <h1 className={styles.title}>{state.demo.title}</h1>
             {state.demo.description ? <p className={styles.description}>{state.demo.description}</p> : null}
           </div>
-          <Badge>{state.demo.status}</Badge>
+          <div>
+            <Badge>{state.demo.status}</Badge>
+            {canWrite && state.demo.status === "archived" ? (
+              <Button variant="secondary" onClick={() => void changeLifecycle()}>Restore demo</Button>
+            ) : null}
+          </div>
         </section>
         <section aria-labelledby="demo-scenes-readonly-heading">
           <h2 id="demo-scenes-readonly-heading" className={styles.sectionTitle}>Scenes</h2>
@@ -374,6 +413,7 @@ export const InteractiveDemoEditorPage = ({
       scenes={state.scenes}
       hotspotsBySceneId={state.hotspotsBySceneId}
       publishStatus={state.publishStatus}
+      initialWorkingDraftVersion={workingDraftVersion}
       saveDemo={saveDemo}
       saveScene={saveScene}
       reorderScenes={reorderScenes}
@@ -391,6 +431,8 @@ export const InteractiveDemoEditorPage = ({
       performLogout={performLogout}
       navigate={navigate}
       copyText={copyText}
+      onChangeLifecycle={changeLifecycle}
+      isDefaultVersion={isDefaultVersion}
     />
   );
 };
@@ -421,6 +463,7 @@ const InteractiveDemoEditorLoaded = ({
   scenes,
   hotspotsBySceneId,
   publishStatus,
+  initialWorkingDraftVersion,
   saveDemo,
   saveScene,
   reorderScenes,
@@ -438,6 +481,8 @@ const InteractiveDemoEditorLoaded = ({
   performLogout,
   navigate,
   copyText,
+  onChangeLifecycle,
+  isDefaultVersion,
 }: {
   projectId: string;
   interactiveDemoId: string;
@@ -445,6 +490,7 @@ const InteractiveDemoEditorLoaded = ({
   scenes: DemoScene[];
   hotspotsBySceneId: Record<string, DemoHotspot[]>;
   publishStatus: InteractiveDemoPublishStatusResponse;
+  initialWorkingDraftVersion: number;
   saveDemo: NonNullable<InteractiveDemoEditorPageProps["saveDemo"]>;
   saveScene: NonNullable<InteractiveDemoEditorPageProps["saveScene"]>;
   reorderScenes: NonNullable<InteractiveDemoEditorPageProps["reorderScenes"]>;
@@ -467,6 +513,8 @@ const InteractiveDemoEditorLoaded = ({
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   copyText: NonNullable<InteractiveDemoEditorPageProps["copyText"]>;
+  onChangeLifecycle: () => Promise<void>;
+  isDefaultVersion: boolean;
 }) => {
   const orderedScenes = useMemo(() => sortedScenes(scenes), [scenes]);
   const [demoDraft, setDemoDraft] = useState<DemoDraft>(() => demoDraftFromDemo(demo));
@@ -475,6 +523,7 @@ const InteractiveDemoEditorLoaded = ({
   const [publishDraft, setPublishDraft] = useState<PublishDraft>(() => publishDraftFromStatus(publishStatus));
   const [message, setMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [workingDraftVersion, setWorkingDraftVersion] = useState(initialWorkingDraftVersion);
 
   const updateLoadedState = (
     nextDemo: InteractiveDemo,
@@ -525,10 +574,10 @@ const InteractiveDemoEditorLoaded = ({
       const response = await saveDemo(projectId, interactiveDemoId, {
         title: demoDraft.title.trim(),
         description: demoDraft.description.trim() || null,
-        status: demoDraft.status,
+        expected_edition_version: demo.version,
       });
-      updateLoadedState(response.interactive_demo, orderedScenes, hotspotsBySceneId);
-      setDemoDraft(demoDraftFromDemo(response.interactive_demo));
+      updateLoadedState(response.edition, orderedScenes, hotspotsBySceneId);
+      setDemoDraft(demoDraftFromDemo(response.edition));
       setMessage("Demo saved.");
     } catch {
       setMessage("Could not save demo.");
@@ -546,7 +595,9 @@ const InteractiveDemoEditorLoaded = ({
       const response = await saveScene(projectId, interactiveDemoId, scene.id, {
         title: draft.title.trim() || null,
         description: draft.description.trim() || null,
+        expected_working_draft_version: workingDraftVersion,
       });
+      setWorkingDraftVersion(response.working_draft.version);
       const nextScenes = orderedScenes.map((candidate) => (
         candidate.id === response.demo_scene.id ? response.demo_scene : candidate
       ));
@@ -580,7 +631,8 @@ const InteractiveDemoEditorLoaded = ({
     setMessage(null);
 
     try {
-      const response = await reorderScenes(projectId, interactiveDemoId, sceneIds);
+      const response = await reorderScenes(projectId, interactiveDemoId, sceneIds, workingDraftVersion);
+      setWorkingDraftVersion(response.working_draft.version);
       const nextScenes = sortedScenes(response.demo_scenes);
       updateLoadedState(demo, nextScenes, hotspotsBySceneId);
       setSceneDrafts(sceneDraftsFromScenes(nextScenes));
@@ -596,7 +648,8 @@ const InteractiveDemoEditorLoaded = ({
     setMessage(null);
 
     try {
-      await deleteScene(projectId, interactiveDemoId, scene.id);
+      await deleteScene(projectId, interactiveDemoId, scene.id, workingDraftVersion);
+      setWorkingDraftVersion((version) => version + 1);
       const nextScenes = orderedScenes.filter((candidate) => candidate.id !== scene.id);
       const nextHotspotsBySceneId = { ...hotspotsBySceneId };
       delete nextHotspotsBySceneId[scene.id];
@@ -738,7 +791,10 @@ const InteractiveDemoEditorLoaded = ({
       y: 0.35,
       width: 0.2,
       height: 0.12,
-      target_scene_id: nextTargetSceneId(scene.id),
+      transition: nextTargetSceneId(scene.id)
+        ? { target_scene_id: nextTargetSceneId(scene.id)! }
+        : null,
+      expected_working_draft_version: workingDraftVersion,
     };
 
     setPendingAction(`hotspot:create:${scene.id}`);
@@ -746,6 +802,7 @@ const InteractiveDemoEditorLoaded = ({
 
     try {
       const response = await createHotspot(projectId, interactiveDemoId, scene.id, input);
+      setWorkingDraftVersion(response.working_draft.version);
       replaceSceneHotspots(scene.id, [...(hotspotsBySceneId[scene.id] ?? []), response.demo_hotspot]);
     } catch {
       setMessage("Could not create hotspot.");
@@ -763,7 +820,10 @@ const InteractiveDemoEditorLoaded = ({
       y: Number(draft.y),
       width: Number(draft.width),
       height: Number(draft.height),
-      target_scene_id: draft.target_scene_id || null,
+      transition: draft.target_scene_id
+        ? { target_scene_id: draft.target_scene_id }
+        : null,
+      expected_working_draft_version: workingDraftVersion,
     };
 
     if (!validHotspotBox(input)) {
@@ -785,6 +845,7 @@ const InteractiveDemoEditorLoaded = ({
 
     try {
       const response = await saveHotspot(projectId, interactiveDemoId, scene.id, hotspot.id, input);
+      setWorkingDraftVersion(response.working_draft.version);
       replaceSceneHotspots(scene.id, (hotspotsBySceneId[scene.id] ?? []).map((candidate) => (
         candidate.id === response.demo_hotspot.id ? response.demo_hotspot : candidate
       )));
@@ -801,7 +862,8 @@ const InteractiveDemoEditorLoaded = ({
     setMessage(null);
 
     try {
-      await deleteHotspot(projectId, interactiveDemoId, scene.id, hotspot.id);
+      await deleteHotspot(projectId, interactiveDemoId, scene.id, hotspot.id, workingDraftVersion);
+      setWorkingDraftVersion((version) => version + 1);
       replaceSceneHotspots(scene.id, (hotspotsBySceneId[scene.id] ?? []).filter((candidate) => candidate.id !== hotspot.id));
     } catch {
       setMessage("Could not delete hotspot.");
@@ -830,7 +892,8 @@ const InteractiveDemoEditorLoaded = ({
     setMessage(null);
 
     try {
-      const response = await reorderHotspots(projectId, interactiveDemoId, scene.id, hotspotIds);
+      const response = await reorderHotspots(projectId, interactiveDemoId, scene.id, hotspotIds, workingDraftVersion);
+      setWorkingDraftVersion(response.working_draft.version);
       replaceSceneHotspots(scene.id, response.demo_hotspots);
     } catch {
       setMessage("Could not reorder hotspots.");
@@ -861,7 +924,10 @@ const InteractiveDemoEditorLoaded = ({
               ) : null}
             </div>
           </div>
-          <Badge variant={demo.status === "draft" ? "warning" : "success"}>{demo.status}</Badge>
+          <div>
+            <Badge variant={demo.status === "draft" ? "warning" : "success"}>{demo.status}</Badge>
+            <Button variant="destructive" onClick={() => void onChangeLifecycle()}>Archive demo</Button>
+          </div>
         </div>
       </section>
 
@@ -882,17 +948,6 @@ const InteractiveDemoEditorLoaded = ({
                 value={demoDraft.description}
                 onChange={(event) => updateDemoDraft("description", event.target.value)}
               />
-            </Label>
-            <Label className={styles.field}>
-              Demo status
-              <Select
-                value={demoDraft.status}
-                onChange={(event) => updateDemoDraft("status", event.target.value)}
-              >
-                {INTERACTIVE_DEMO_STATUSES.map((status) => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </Select>
             </Label>
             <Button disabled={pendingAction === "demo"} onClick={handleSaveDemo}>
               {pendingAction === "demo" ? "Saving demo..." : "Save demo"}
@@ -995,14 +1050,20 @@ const InteractiveDemoEditorLoaded = ({
                   </div>
                 </>
               ) : (
-                <p className={styles.publishNote}>This demo has not been published yet.</p>
+                <p className={styles.publishNote}>
+                  {isDefaultVersion
+                    ? "This demo has not been published yet."
+                    : "Publishing from a named Project Version is deferred until publication sequencing is available."}
+                </p>
               )}
-              <Button
-                disabled={pendingAction === "publish"}
-                onClick={() => void handlePublishDemo()}
-              >
-                Publish demo
-              </Button>
+              {isDefaultVersion ? (
+                <Button
+                  disabled={pendingAction === "publish"}
+                  onClick={() => void handlePublishDemo()}
+                >
+                  Publish demo
+                </Button>
+              ) : null}
             </div>
           </section>
         </div>
