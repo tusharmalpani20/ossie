@@ -111,7 +111,7 @@ export type ProjectMembershipRepository = {
   find_target_member(input: { organization_id: string; org_user_id: string }): Promise<TargetMember | null>;
   find_membership(input: { organization_id: string; project_id: string; org_user_id: string }): Promise<ProjectMembership | null>;
   find_membership_by_id(input: { organization_id: string; project_id: string; membership_id: string }): Promise<(ProjectMembership & { organization_status: OrganizationMemberStatus }) | null>;
-  assign_membership(input: { organization_id: string; project_id: string; org_user_id: string; role: ProjectRole; actor_org_user_id: string }): Promise<ProjectMembership>;
+  assign_membership(input: { organization_id: string; project_id: string; org_user_id: string; role: ProjectRole; actor_org_user_id: string }): Promise<ProjectMembership | null>;
   change_membership_role(input: { organization_id: string; project_id: string; membership_id: string; role: ProjectRole; expected_version: number; actor_org_user_id: string }): Promise<ProjectMembership | null>;
   remove_membership(input: { organization_id: string; project_id: string; membership_id: string; expected_version: number; actor_org_user_id: string }): Promise<boolean>;
 };
@@ -144,11 +144,25 @@ export const build_project_membership_service = (input: {
         org_user_id: args.data.org_user_id,
       });
       if (existing?.status === "active") throw new ProjectMembershipExistsError();
-      return input.repository.assign_membership({
+      const assigned = await input.repository.assign_membership({
         organization_id: args.auth.organization_id, project_id: args.project_id,
         org_user_id: args.data.org_user_id, role: args.data.role,
         actor_org_user_id: args.auth.actor_org_user_id,
       });
+      if (assigned) return assigned;
+
+      const current_target = await input.repository.find_target_member({
+        organization_id: args.auth.organization_id, org_user_id: args.data.org_user_id,
+      });
+      if (!current_target || current_target.status !== "active")
+        throw new OrganizationMemberNotFoundError();
+      if (current_target.role === "owner") throw new ProjectMembershipNotRequiredError();
+      const current_membership = await input.repository.find_membership({
+        organization_id: args.auth.organization_id, project_id: args.project_id,
+        org_user_id: args.data.org_user_id,
+      });
+      if (current_membership?.status === "active") throw new ProjectMembershipExistsError();
+      throw new ProjectMembershipConflictError();
     },
     async change_role(args: { auth: MembershipAuth; project_id: string; membership_id: string; data: { role: ProjectRole; expected_version: number } }) {
       await authorize(args.auth, args.project_id);

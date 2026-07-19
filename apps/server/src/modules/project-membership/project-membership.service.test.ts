@@ -138,6 +138,21 @@ describe("Project membership lifecycle service", () => {
     expect(repository.change_membership_role).not.toHaveBeenCalled();
   });
 
+  it("rechecks assignment eligibility when the atomic write loses a race", async () => {
+    const repository = {
+      find_target_member: vi.fn()
+        .mockResolvedValueOnce({ role: "member", status: "active" })
+        .mockResolvedValueOnce({ role: "member", status: "disabled" }),
+      find_membership: vi.fn().mockResolvedValue(null),
+      assign_membership: vi.fn().mockResolvedValue(null),
+    };
+    const service = build_project_membership_service({ access, repository: repository as never });
+
+    await expect(service.assign({
+      auth, project_id: "project-1", data: { org_user_id: "target-1", role: "editor" },
+    })).rejects.toBeInstanceOf(OrganizationMemberNotFoundError);
+  });
+
   it("maps stale role changes to a stable conflict", async () => {
     const service = build_project_membership_service({
       access,

@@ -142,14 +142,21 @@ export const build_project_membership_repository = (db: Queryable): ProjectMembe
     const result = await db.query<MembershipRow>(`
       INSERT INTO project_schema.project_membership (
         id, organization_id, project_id, org_user_id, role, status, created_by_id, updated_by_id
-      ) VALUES ($1, $2, $3, $4, $5, 'active', $6, $6)
+      )
+      SELECT $1::varchar(26), $2::varchar(26), $3::varchar(26), target.id,
+        $5::varchar(50), 'active', $6::varchar(26), $6::varchar(26)
+      FROM organization_schema.org_user target
+      WHERE target.organization_id = $2 AND target.id = $4
+        AND target.status = 'active' AND target.role = 'member'
+        AND target.is_deleted = FALSE
       ON CONFLICT (project_id, org_user_id) DO UPDATE SET
         role = EXCLUDED.role, status = 'active', revoked_by_id = NULL, revoked_at = NULL,
         updated_by_id = EXCLUDED.updated_by_id, updated_at = CURRENT_TIMESTAMP,
         version = project_membership.version + 1
+      WHERE project_membership.status = 'revoked'
       RETURNING ${membership_select.replaceAll("membership.", "")}
     `, [ulid(), input.organization_id, input.project_id, input.org_user_id, input.role, input.actor_org_user_id]);
-    return map_membership(result.rows[0]!);
+    return result.rows[0] ? map_membership(result.rows[0]) : null;
   },
 
   async change_membership_role(input) {

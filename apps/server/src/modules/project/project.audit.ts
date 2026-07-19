@@ -291,6 +291,7 @@ export const build_project_creation_writer =
             role: "project_admin",
             actor_org_user_id: input.actor_org_user_id,
           });
+          if (!creator_membership) throw new Error("Project creator is not eligible for membership");
         }
         return {
           ...project,

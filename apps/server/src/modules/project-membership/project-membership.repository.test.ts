@@ -31,6 +31,19 @@ describe("project membership repository", () => {
       role: "viewer", actor_org_user_id: "admin-1",
     });
     expect(query.mock.calls[0]?.[0]).toContain("ON CONFLICT (project_id, org_user_id) DO UPDATE");
+    expect(query.mock.calls[0]?.[0]).toContain("target.status = 'active'");
+    expect(query.mock.calls[0]?.[0]).toContain("target.role = 'member'");
+    expect(query.mock.calls[0]?.[0]).toContain("WHERE project_membership.status = 'revoked'");
     expect(query.mock.calls[0]?.[0]).toContain("version = project_membership.version + 1");
+  });
+
+  it("returns no assignment when the target or conflict is no longer eligible", async () => {
+    const query = vi.fn().mockResolvedValue({ rows: [] });
+    const repository = build_project_membership_repository({ query });
+
+    await expect(repository.assign_membership({
+      organization_id: "organization-1", project_id: "project-1", org_user_id: "member-1",
+      role: "viewer", actor_org_user_id: "admin-1",
+    })).resolves.toBeNull();
   });
 });

@@ -101,8 +101,8 @@ export const build_audited_project_membership_repository = (pool: Pool): Project
           return { organization_id: args.organization_id, actor_type: "org_user", source_type: current_audit_source_type() };
         },
         execute: (client) => build_project_membership_repository(client).assign_membership(args),
-        build_event: (after) => build_project_membership_event({ event_id, command: "project.membership.assign", before, after,
-          actor_org_user_id: args.actor_org_user_id, actor_label: label, request_id: current_audit_request_id(), occurred_at }),
+        build_event: (after) => after ? build_project_membership_event({ event_id, command: "project.membership.assign", before, after,
+          actor_org_user_id: args.actor_org_user_id, actor_label: label, request_id: current_audit_request_id(), occurred_at }) : null,
         write_audit_event,
       });
     },
