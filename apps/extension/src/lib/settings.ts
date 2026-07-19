@@ -312,6 +312,25 @@ export const saveActiveCapture = async (
   });
 };
 
+export const saveActiveCaptureVersionContext = async (
+  storage: ExtensionStorageArea,
+  input: {
+    captureSessionId: string;
+    projectId: string;
+    projectVersionId: string;
+    projectVersionSlug: string;
+    projectVersionName: string;
+  },
+) => {
+  await storage.set({
+    [keys.activeCaptureSessionId]: input.captureSessionId,
+    [keys.activeCaptureProjectId]: input.projectId,
+    [keys.activeCaptureProjectVersionId]: input.projectVersionId,
+    [keys.activeCaptureProjectVersionSlug]: input.projectVersionSlug,
+    [keys.activeCaptureProjectVersionName]: input.projectVersionName,
+  });
+};
+
 export const saveAutomaticCaptureDiagnostic = async (
   storage: ExtensionStorageArea,
   diagnostic: AutomaticCaptureDiagnostic | null,

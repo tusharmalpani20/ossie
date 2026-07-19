@@ -9,8 +9,10 @@ import type { ManualCaptureDiagnostic } from "../lib/settings";
 export const errorMessage = (error: unknown, fallback: string) =>
   error instanceof ApiClientError ? error.message : fallback;
 
-export const projectContextLabel = (project: Project) =>
-  `${project.name} / ${project.default_project_version.name}`;
+export const projectContextLabel = (
+  project: Project,
+  version: { name: string } = project.default_project_version,
+) => `${project.name} / ${version.name}`;
 
 export const persistManualCaptureDiagnostic = async (
   saveManualCaptureDiagnostic: (

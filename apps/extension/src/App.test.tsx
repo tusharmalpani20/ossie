@@ -11,6 +11,7 @@ import {
   type AuthResponse,
   type CaptureAssetResponse,
   type CaptureEventResponse,
+  type CaptureSessionResponse,
   type CompleteCaptureSessionResponse,
   type CreateCaptureEventInput,
   type LoginRequest,
@@ -91,6 +92,43 @@ const projects: Project[] = [
   },
 ];
 
+const projectVersions = [
+  {
+    id: "version_1",
+    organization_id: "organization_1",
+    project_id: "project_1",
+    name: "Main",
+    description: null,
+    slug: "main",
+    release_date: null,
+    position: 1,
+    status: "active" as const,
+    is_default: true,
+    version: 1,
+    created_by_id: "org_user_1",
+    updated_by_id: "org_user_1",
+    created_at: "2026-06-05T10:00:00.000Z",
+    updated_at: "2026-06-05T10:00:00.000Z",
+  },
+  {
+    id: "version_next",
+    organization_id: "organization_1",
+    project_id: "project_1",
+    name: "Next",
+    description: null,
+    slug: "next",
+    release_date: null,
+    position: 2,
+    status: "active" as const,
+    is_default: false,
+    version: 1,
+    created_by_id: "org_user_1",
+    updated_by_id: "org_user_1",
+    created_at: "2026-06-05T10:00:00.000Z",
+    updated_at: "2026-06-05T10:00:00.000Z",
+  },
+];
+
 const defaultSettings: ExtensionSettings = {
   instanceUrl: null,
   portalUrl: null,
@@ -105,7 +143,7 @@ const defaultSettings: ExtensionSettings = {
   manualCaptureDiagnostic: null,
 };
 
-const captureSessionResponse = {
+const captureSessionResponse: CaptureSessionResponse = {
   capture_session: {
     id: "capture_session_1",
     organization_id: "organization_1",
@@ -263,6 +301,10 @@ const renderApp = (
       instanceUrl: string,
       sessionToken: string,
     ) => Promise<{ projects: Project[] }>;
+    listProjectVersions?: () => Promise<{
+      project_versions: typeof projectVersions;
+    }>;
+    getCaptureSession?: () => Promise<typeof captureSessionResponse>;
     login?: (instanceUrl: string, data: LoginRequest) => Promise<LoginResponse>;
     createCaptureSession?: (
       instanceUrl: string,
@@ -315,6 +357,13 @@ const renderApp = (
     savePortalUrl?: (portalUrl: string | null) => Promise<void>;
     saveSessionToken?: (sessionToken: string | null) => Promise<void>;
     saveSelectedProjectId?: (projectId: string | null) => Promise<void>;
+    saveActiveCaptureVersionContext?: (input: {
+      captureSessionId: string;
+      projectId: string;
+      projectVersionId: string;
+      projectVersionSlug: string;
+      projectVersionName: string;
+    }) => Promise<void>;
     saveActiveCapture?: (input: {
       captureSessionId: string;
       projectId: string;
@@ -354,6 +403,13 @@ const renderApp = (
         (async () => ({ auth, session_token: "extension-session-token" })),
     ),
     listProjects: vi.fn(overrides.listProjects ?? (async () => ({ projects }))),
+    listProjectVersions: vi.fn(
+      overrides.listProjectVersions ??
+        (async () => ({ project_versions: projectVersions })),
+    ),
+    getCaptureSession: vi.fn(
+      overrides.getCaptureSession ?? (async () => captureSessionResponse),
+    ),
     createCaptureSession: vi.fn(
       overrides.createCaptureSession ?? (async () => captureSessionResponse),
     ),
@@ -379,6 +435,9 @@ const renderApp = (
     ),
     openPortalUrl: vi.fn(overrides.openPortalUrl ?? (async () => {})),
     saveActiveCapture: vi.fn(overrides.saveActiveCapture ?? (async () => {})),
+    saveActiveCaptureVersionContext: vi.fn(
+      overrides.saveActiveCaptureVersionContext ?? (async () => {}),
+    ),
     saveActiveCaptureMode: vi.fn(
       overrides.saveActiveCaptureMode ?? (async () => {}),
     ),
@@ -594,6 +653,152 @@ describe("extension popup App", () => {
     );
   });
 
+  it("selects an active named Project Version and starts capture in that exact Version", async () => {
+    const createCaptureSession = vi.fn(async () => ({
+      capture_session: {
+        ...captureSessionResponse.capture_session,
+        project_version_id: "version_next",
+        project_version: {
+          id: "version_next",
+          name: "Next",
+          slug: "next",
+          status: "active" as const,
+          position: 2,
+        },
+      },
+    }));
+    const dependencies = renderApp({
+      settings: {
+        ...defaultSettings,
+        instanceUrl: "https://demo.example.com",
+        sessionToken: "extension-session-token",
+        selectedProjectId: "project_1",
+        selectedProjectVersionId: "version_1",
+        selectedProjectVersionSlug: "main",
+        selectedProjectVersionName: "Main",
+      },
+      createCaptureSession,
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: /Use Next/i }));
+    await screen.findByText("Internal onboarding demos / Next");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Start automatic capture" }),
+    );
+
+    await waitFor(() =>
+      expect(createCaptureSession).toHaveBeenCalledWith(
+        "https://demo.example.com",
+        "extension-session-token",
+        "project_1",
+        expect.objectContaining({ project_version_id: "version_next" }),
+      ),
+    );
+    expect(dependencies.saveSelectedProjectId).toHaveBeenLastCalledWith(
+      "project_1",
+      expect.objectContaining({ id: "version_next", slug: "next" }),
+    );
+  });
+
+  it("repairs active Version context from the authoritative Capture Session", async () => {
+    const openPortalUrl = vi.fn(async () => {});
+    const dependencies = renderApp({
+      settings: {
+        ...defaultSettings,
+        instanceUrl: "https://demo.example.com",
+        sessionToken: "extension-session-token",
+        selectedProjectId: "project_1",
+        activeCaptureSessionId: "capture_session_1",
+        activeCaptureProjectId: "project_1",
+        activeCaptureProjectVersionId: "wrong_version",
+        activeCaptureProjectVersionSlug: "wrong",
+        activeCaptureProjectVersionName: "Wrong",
+        activeCaptureEventIndex: 0,
+        activeCaptureMode: "automatic",
+      },
+      openPortalUrl,
+    });
+
+    expect(
+      await screen.findByText("Internal onboarding demos / Current"),
+    ).toBeVisible();
+    expect(dependencies.saveActiveCaptureVersionContext).toHaveBeenCalledWith({
+      captureSessionId: "capture_session_1",
+      projectId: "project_1",
+      projectVersionId: "version_1",
+      projectVersionSlug: "current",
+      projectVersionName: "Current",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Open in portal" }));
+    await waitFor(() =>
+      expect(openPortalUrl).toHaveBeenCalledWith(
+        "https://demo.example.com/projects/project_1/versions/current/capture-sessions/capture_session_1",
+      ),
+    );
+  });
+
+  it("does not silently replace an unavailable remembered Project Version", async () => {
+    const dependencies = renderApp({
+      settings: {
+        ...defaultSettings,
+        instanceUrl: "https://demo.example.com",
+        sessionToken: "extension-session-token",
+        selectedProjectId: "project_1",
+        selectedProjectVersionId: "archived_version",
+        selectedProjectVersionSlug: "archived",
+        selectedProjectVersionName: "Archived",
+      },
+    });
+
+    expect(
+      await screen.findByText(
+        /selected Project Version is archived or unavailable/i,
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Start automatic capture" }),
+    ).toBeDisabled();
+    expect(dependencies.saveSelectedProjectId).not.toHaveBeenCalled();
+  });
+
+  it("keeps archived active Capture ownership readable but blocks mutations", async () => {
+    renderApp({
+      settings: {
+        ...defaultSettings,
+        instanceUrl: "https://demo.example.com",
+        sessionToken: "extension-session-token",
+        selectedProjectId: "project_1",
+        activeCaptureSessionId: "capture_session_1",
+        activeCaptureProjectId: "project_1",
+        activeCaptureEventIndex: 0,
+        activeCaptureMode: "automatic",
+      },
+      getCaptureSession: async () => ({
+        capture_session: {
+          ...captureSessionResponse.capture_session,
+          project_version: {
+            ...captureSessionResponse.capture_session.project_version,
+            status: "archived",
+          },
+        },
+      }),
+    });
+
+    expect(
+      await screen.findByText(/Project Version is archived/i),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Capture screenshot" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Finish capture" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Open in portal" }),
+    ).toBeEnabled();
+  });
+
   it("clears stale selected projects that are no longer returned", async () => {
     const dependencies = renderApp({
       settings: {
@@ -782,7 +987,7 @@ describe("extension popup App", () => {
       await screen.findByRole("heading", { name: "Capture active" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Internal onboarding demos / Main"),
+      screen.getByText("Internal onboarding demos / Current"),
     ).toBeInTheDocument();
     expect(screen.getByText(/capture_session_1/)).toBeInTheDocument();
     expect(
@@ -929,7 +1134,7 @@ describe("extension popup App", () => {
 
     await waitFor(() =>
       expect(dependencies.openPortalUrl).toHaveBeenCalledWith(
-        "https://demo.example.com/projects/project_1/versions/main/capture-sessions/capture_session_1",
+        "https://demo.example.com/projects/project_1/versions/current/capture-sessions/capture_session_1",
       ),
     );
     expect(dependencies.completeCaptureSession).not.toHaveBeenCalled();
@@ -961,7 +1166,7 @@ describe("extension popup App", () => {
 
     await waitFor(() =>
       expect(dependencies.openPortalUrl).toHaveBeenCalledWith(
-        "http://localhost:3000/projects/project_1/versions/main/capture-sessions/capture_session_1",
+        "http://localhost:3000/projects/project_1/versions/current/capture-sessions/capture_session_1",
       ),
     );
     expect(dependencies.completeCaptureSession).not.toHaveBeenCalled();
@@ -1011,6 +1216,13 @@ describe("extension popup App", () => {
         activeCaptureEventIndex: 0,
         activeCaptureMode: null,
         activeCapturePaused: false,
+      },
+      getCaptureSession: async () => {
+        throw new ApiClientError({
+          status: 404,
+          type: "capture_session_not_found",
+          message: "Capture session was not found",
+        });
       },
     });
 
@@ -1355,7 +1567,7 @@ describe("extension popup App", () => {
     );
     await waitFor(() =>
       expect(dependencies.openPortalUrl).toHaveBeenCalledWith(
-        "https://demo.example.com/projects/project_1/versions/main/capture-sessions/capture_session_1",
+        "https://demo.example.com/projects/project_1/versions/current/capture-sessions/capture_session_1",
       ),
     );
     expect(
@@ -1399,7 +1611,7 @@ describe("extension popup App", () => {
     );
     await waitFor(() =>
       expect(dependencies.openPortalUrl).toHaveBeenCalledWith(
-        "http://localhost:3000/projects/project_1/versions/main/capture-sessions/capture_session_1",
+        "http://localhost:3000/projects/project_1/versions/current/capture-sessions/capture_session_1",
       ),
     );
     await waitFor(() =>
@@ -1407,7 +1619,7 @@ describe("extension popup App", () => {
     );
   });
 
-  it("falls back to encoded portal route when completion redirect is unsafe", async () => {
+  it("blocks completion when authoritative active Capture context is unavailable", async () => {
     const dependencies = renderApp({
       settings: {
         instanceUrl: "https://demo.example.com",
@@ -1426,14 +1638,23 @@ describe("extension popup App", () => {
           reason: "capture_session_completed",
         },
       }),
+      getCaptureSession: async () => {
+        throw new ApiClientError({
+          status: 404,
+          type: "capture_session_not_found",
+          message: "Capture session was not found",
+        });
+      },
     });
 
     expect(
       await screen.findByRole("heading", { name: "Capture active" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Finish capture" }));
-
-    await screen.findByText("Project Version context is unavailable.");
+    await screen.findByText(/active Capture Session is no longer available/i);
+    expect(
+      screen.getByRole("button", { name: "Finish capture" }),
+    ).toBeDisabled();
+    expect(dependencies.completeCaptureSession).not.toHaveBeenCalled();
     expect(dependencies.openPortalUrl).not.toHaveBeenCalled();
   });
 

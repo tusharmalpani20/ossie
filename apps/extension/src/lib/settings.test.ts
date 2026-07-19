@@ -4,6 +4,7 @@ import {
   getSettings,
   saveActiveCaptureMode,
   saveActiveCapture,
+  saveActiveCaptureVersionContext,
   saveActiveCaptureEventIndex,
   saveAutomaticCaptureDiagnostic,
   saveManualCaptureDiagnostic,
@@ -331,6 +332,27 @@ describe("extension settings", () => {
       activeCapturePaused: false,
       automaticCaptureDiagnostic: null,
       manualCaptureDiagnostic: null,
+    });
+  });
+
+  it("repairs only the authoritative active Capture Version context", async () => {
+    await storage.set({ activeCaptureMode: "automatic" });
+
+    await saveActiveCaptureVersionContext(storage, {
+      captureSessionId: "capture_1",
+      projectId: "project_1",
+      projectVersionId: "version_next",
+      projectVersionSlug: "next",
+      projectVersionName: "Next",
+    });
+
+    expect(storage.values).toMatchObject({
+      activeCaptureSessionId: "capture_1",
+      activeCaptureProjectId: "project_1",
+      activeCaptureProjectVersionId: "version_next",
+      activeCaptureProjectVersionSlug: "next",
+      activeCaptureProjectVersionName: "Next",
+      activeCaptureMode: "automatic",
     });
   });
 

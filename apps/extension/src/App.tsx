@@ -7,7 +7,9 @@ import {
   completeCaptureSession,
   createCaptureEvent,
   createCaptureSession,
+  getCaptureSession,
   getCurrentAuth,
+  listProjectVersions,
   listProjects,
   login,
   logout,
@@ -21,6 +23,7 @@ import {
   type LoginResponse,
   type Project,
   type ProjectListResponse,
+  type ProjectVersionListResponse,
   type UploadCaptureAssetInput,
   uploadCaptureAsset,
 } from "./lib/api";
@@ -40,6 +43,7 @@ import {
   emptySettings,
   getSettings,
   saveActiveCapture,
+  saveActiveCaptureVersionContext,
   saveActiveCaptureEventIndex,
   saveActiveCaptureMode,
   saveInstanceUrl,
@@ -68,7 +72,13 @@ type Dependencies = {
   saveSessionToken: (sessionToken: string | null) => Promise<void>;
   saveSelectedProjectId: (
     projectId: string | null,
-    version?: { id: string; slug: string; name: string } | null,
+    version?: {
+      id: string;
+      slug: string;
+      name: string;
+      status?: "active" | "archived";
+      position?: number;
+    } | null,
   ) => Promise<void>;
   saveActiveCapture: (input: {
     captureSessionId: string;
@@ -78,6 +88,13 @@ type Dependencies = {
     projectVersionName: string;
     eventIndex?: number;
     mode?: "manual" | "automatic";
+  }) => Promise<void>;
+  saveActiveCaptureVersionContext: (input: {
+    captureSessionId: string;
+    projectId: string;
+    projectVersionId: string;
+    projectVersionSlug: string;
+    projectVersionName: string;
   }) => Promise<void>;
   saveActiveCaptureMode: (input: {
     mode: "manual" | "automatic";
@@ -101,6 +118,17 @@ type Dependencies = {
     instanceUrl: string,
     sessionToken: string,
   ) => Promise<ProjectListResponse>;
+  listProjectVersions: (
+    instanceUrl: string,
+    sessionToken: string,
+    projectId: string,
+  ) => Promise<ProjectVersionListResponse>;
+  getCaptureSession: (
+    instanceUrl: string,
+    sessionToken: string,
+    projectId: string,
+    captureSessionId: string,
+  ) => Promise<CaptureSessionResponse>;
   createCaptureSession: (
     instanceUrl: string,
     sessionToken: string,
@@ -149,6 +177,9 @@ type ViewState =
       };
       auth: AuthResponse["auth"];
       projects: Project[];
+      projectVersions: ProjectVersionListResponse["project_versions"];
+      activeCaptureContextAvailable: boolean;
+      activeCaptureProjectVersionStatus: "active" | "archived" | null;
     }
   | { status: "error"; settings: ExtensionSettings; message: string };
 
@@ -163,6 +194,8 @@ const buildDefaultDependencies = (): Dependencies => {
     saveSelectedProjectId: (projectId, version) =>
       saveSelectedProjectId(storage, projectId, version),
     saveActiveCapture: (input) => saveActiveCapture(storage, input),
+    saveActiveCaptureVersionContext: (input) =>
+      saveActiveCaptureVersionContext(storage, input),
     saveActiveCaptureMode: (input) => saveActiveCaptureMode(storage, input),
     saveActiveCaptureEventIndex: (eventIndex) =>
       saveActiveCaptureEventIndex(storage, eventIndex),
@@ -173,6 +206,8 @@ const buildDefaultDependencies = (): Dependencies => {
     getCurrentAuth,
     login,
     listProjects,
+    listProjectVersions,
+    getCaptureSession,
     createCaptureSession,
     getCurrentTabSnapshot,
     captureVisibleTabScreenshot,
@@ -232,12 +267,105 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
               (project) => project.id === settings.selectedProjectId,
             )
           : true;
-        const nextSettings = selectedProjectExists
+        let nextSettings = selectedProjectExists
           ? settings
-          : { ...settings, selectedProjectId: null };
+          : {
+              ...settings,
+              selectedProjectId: null,
+              selectedProjectVersionId: null,
+              selectedProjectVersionSlug: null,
+              selectedProjectVersionName: null,
+            };
+        let projectVersions: ProjectVersionListResponse["project_versions"] =
+          [];
+        let activeCaptureContextAvailable = !(
+          settings.activeCaptureSessionId && settings.activeCaptureProjectId
+        );
+        let activeCaptureProjectVersionStatus: "active" | "archived" | null =
+          null;
 
         if (!selectedProjectExists) {
           await dependencies.saveSelectedProjectId(null);
+        }
+
+        const selectedProject = nextSettings.selectedProjectId
+          ? projectResponse.projects.find(
+              (project) => project.id === nextSettings.selectedProjectId,
+            )
+          : null;
+        if (selectedProject) {
+          const versionResponse = await dependencies.listProjectVersions(
+            settings.instanceUrl,
+            settings.sessionToken,
+            selectedProject.id,
+          );
+          projectVersions = versionResponse.project_versions;
+          const storedVersion = nextSettings.selectedProjectVersionId
+            ? projectVersions.find(
+                (version) =>
+                  version.id === nextSettings.selectedProjectVersionId,
+              )
+            : null;
+          const selectedVersion = nextSettings.selectedProjectVersionId
+            ? storedVersion
+            : projectVersions.find(
+                (version) =>
+                  version.id === selectedProject.default_project_version.id,
+              );
+
+          if (selectedVersion) {
+            nextSettings = {
+              ...nextSettings,
+              selectedProjectVersionId: selectedVersion.id,
+              selectedProjectVersionSlug: selectedVersion.slug,
+              selectedProjectVersionName: selectedVersion.name,
+            };
+            await dependencies.saveSelectedProjectId(selectedProject.id, {
+              id: selectedVersion.id,
+              slug: selectedVersion.slug,
+              name: selectedVersion.name,
+            });
+          }
+        }
+
+        if (
+          settings.activeCaptureSessionId &&
+          settings.activeCaptureProjectId
+        ) {
+          try {
+            const response = await dependencies.getCaptureSession(
+              settings.instanceUrl,
+              settings.sessionToken,
+              settings.activeCaptureProjectId,
+              settings.activeCaptureSessionId,
+            );
+            const session = response.capture_session;
+            activeCaptureContextAvailable = true;
+            activeCaptureProjectVersionStatus = session.project_version.status;
+            nextSettings = {
+              ...nextSettings,
+              activeCaptureProjectId: session.project_id,
+              activeCaptureProjectVersionId: session.project_version.id,
+              activeCaptureProjectVersionSlug: session.project_version.slug,
+              activeCaptureProjectVersionName: session.project_version.name,
+            };
+            await dependencies.saveActiveCaptureVersionContext({
+              captureSessionId: session.id,
+              projectId: session.project_id,
+              projectVersionId: session.project_version.id,
+              projectVersionSlug: session.project_version.slug,
+              projectVersionName: session.project_version.name,
+            });
+          } catch (error: unknown) {
+            if (
+              error instanceof ApiClientError &&
+              (error.status === 403 || error.status === 404)
+            ) {
+              activeCaptureContextAvailable = false;
+            } else {
+              throw error;
+            }
+          }
         }
 
         if (active) {
@@ -250,6 +378,9 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
             },
             auth: authResponse.auth,
             projects: projectResponse.projects,
+            projectVersions,
+            activeCaptureContextAvailable,
+            activeCaptureProjectVersionStatus,
           });
         }
       } catch (error: unknown) {
@@ -361,6 +492,9 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
               },
               auth: result.auth,
               projects: projectResponse.projects,
+              projectVersions: [],
+              activeCaptureContextAvailable: true,
+              activeCaptureProjectVersionStatus: null,
             });
           }}
         />
@@ -397,9 +531,23 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
       <ProjectPicker
         auth={state.auth}
         projects={state.projects}
+        projectVersions={state.projectVersions}
         selectedProjectId={state.settings.selectedProjectId}
+        selectedProjectVersionId={
+          state.settings.selectedProjectVersionId ?? null
+        }
         activeCaptureSessionId={state.settings.activeCaptureSessionId}
         activeCaptureProjectId={state.settings.activeCaptureProjectId}
+        activeCaptureProjectVersionName={
+          state.settings.activeCaptureProjectVersionName ?? null
+        }
+        activeCaptureProjectVersionSlug={
+          state.settings.activeCaptureProjectVersionSlug ?? null
+        }
+        activeCaptureContextAvailable={state.activeCaptureContextAvailable}
+        activeCaptureProjectVersionStatus={
+          state.activeCaptureProjectVersionStatus
+        }
         activeCaptureEventIndex={state.settings.activeCaptureEventIndex}
         activeCaptureMode={state.settings.activeCaptureMode}
         activeCapturePaused={state.settings.activeCapturePaused}
@@ -411,21 +559,64 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
           const selected = state.projects.find(
             (project) => project.id === projectId,
           );
-          await dependencies.saveSelectedProjectId(
+          if (!selected) return;
+          const response = await dependencies.listProjectVersions(
+            state.settings.instanceUrl,
+            state.settings.sessionToken,
             projectId,
-            selected?.default_project_version ?? null,
+          );
+          const selectedVersion = response.project_versions.find(
+            (version) => version.id === selected.default_project_version.id,
+          );
+          if (!selectedVersion) {
+            throw new ApiClientError({
+              status: 409,
+              type: "project_version_conflict",
+              message:
+                "The Default Project Version is not available for capture.",
+            });
+          }
+          await dependencies.saveSelectedProjectId(projectId, {
+            id: selectedVersion.id,
+            name: selectedVersion.name,
+            slug: selectedVersion.slug,
+            status: selectedVersion.status,
+            position: selectedVersion.position,
+          });
+          setState({
+            ...state,
+            projectVersions: response.project_versions,
+            settings: {
+              ...state.settings,
+              selectedProjectId: projectId,
+              selectedProjectVersionId: selectedVersion.id,
+              selectedProjectVersionSlug: selectedVersion.slug,
+              selectedProjectVersionName: selectedVersion.name,
+            },
+          });
+        }}
+        onSelectVersion={async (projectVersionId) => {
+          const selectedVersion = state.projectVersions.find(
+            (version) => version.id === projectVersionId,
+          );
+          if (!state.settings.selectedProjectId || !selectedVersion) return;
+          await dependencies.saveSelectedProjectId(
+            state.settings.selectedProjectId,
+            {
+              id: selectedVersion.id,
+              name: selectedVersion.name,
+              slug: selectedVersion.slug,
+              status: selectedVersion.status,
+              position: selectedVersion.position,
+            },
           );
           setState({
             ...state,
             settings: {
               ...state.settings,
-              selectedProjectId: projectId,
-              selectedProjectVersionId:
-                selected?.default_project_version.id ?? null,
-              selectedProjectVersionSlug:
-                selected?.default_project_version.slug ?? null,
-              selectedProjectVersionName:
-                selected?.default_project_version.name ?? null,
+              selectedProjectVersionId: selectedVersion.id,
+              selectedProjectVersionSlug: selectedVersion.slug,
+              selectedProjectVersionName: selectedVersion.name,
             },
           });
         }}
@@ -436,9 +627,12 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
             throw new Error("Select an available project before capturing.");
           const selectedVersionId =
             state.settings.selectedProjectId === projectId
-              ? (state.settings.selectedProjectVersionId ??
-                selectedProject.default_project_version.id)
-              : selectedProject.default_project_version.id;
+              ? state.settings.selectedProjectVersionId
+              : null;
+          if (!selectedVersionId)
+            throw new Error(
+              "Select an active Project Version before capturing.",
+            );
           const tab = await dependencies.getCurrentTabSnapshot();
           const result = await dependencies.createCaptureSession(
             state.settings.instanceUrl,
@@ -465,6 +659,12 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
               ...state.settings,
               activeCaptureSessionId: result.capture_session.id,
               activeCaptureProjectId: projectId,
+              activeCaptureProjectVersionId:
+                result.capture_session.project_version.id,
+              activeCaptureProjectVersionSlug:
+                result.capture_session.project_version.slug,
+              activeCaptureProjectVersionName:
+                result.capture_session.project_version.name,
               activeCaptureEventIndex: 0,
               activeCaptureMode: "automatic",
               activeCapturePaused: false,
@@ -601,7 +801,8 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
             state.settings.portalUrl,
             result.redirect.path,
             input.projectId,
-            contextProject.default_project_version.slug,
+            state.settings.activeCaptureProjectVersionSlug ??
+              contextProject.default_project_version.slug,
             input.captureSessionId,
           );
 
@@ -643,7 +844,8 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
             state.settings.portalUrl,
             null,
             input.projectId,
-            contextProject.default_project_version.slug,
+            state.settings.activeCaptureProjectVersionSlug ??
+              contextProject.default_project_version.slug,
             input.captureSessionId,
           );
 
@@ -850,15 +1052,22 @@ const SignIn = ({
 const ProjectPicker = ({
   auth,
   projects,
+  projectVersions,
   selectedProjectId,
+  selectedProjectVersionId,
   activeCaptureSessionId,
   activeCaptureProjectId,
+  activeCaptureProjectVersionName,
+  activeCaptureProjectVersionSlug,
+  activeCaptureContextAvailable,
+  activeCaptureProjectVersionStatus,
   activeCaptureEventIndex,
   activeCaptureMode,
   activeCapturePaused,
   automaticCaptureDiagnostic,
   manualCaptureDiagnostic,
   onSelect,
+  onSelectVersion,
   onStartCapture,
   onSetActiveCaptureMode,
   onDiscardActiveCapture,
@@ -870,15 +1079,22 @@ const ProjectPicker = ({
 }: {
   auth: AuthResponse["auth"];
   projects: Project[];
+  projectVersions: ProjectVersionListResponse["project_versions"];
   selectedProjectId: string | null;
+  selectedProjectVersionId: string | null;
   activeCaptureSessionId: string | null;
   activeCaptureProjectId: string | null;
+  activeCaptureProjectVersionName: string | null;
+  activeCaptureProjectVersionSlug: string | null;
+  activeCaptureContextAvailable: boolean;
+  activeCaptureProjectVersionStatus: "active" | "archived" | null;
   activeCaptureEventIndex: number | null;
   activeCaptureMode: "manual" | "automatic" | null;
   activeCapturePaused: boolean;
   automaticCaptureDiagnostic: ExtensionSettings["automaticCaptureDiagnostic"];
   manualCaptureDiagnostic: ExtensionSettings["manualCaptureDiagnostic"];
   onSelect: (projectId: string) => Promise<void>;
+  onSelectVersion: (projectVersionId: string) => Promise<void>;
   onStartCapture: (projectId: string) => Promise<void>;
   onSetActiveCaptureMode: (input: {
     mode: "manual" | "automatic";
@@ -910,6 +1126,7 @@ const ProjectPicker = ({
   const [screenshotError, setScreenshotError] = useState<string | null>(null);
   const [finishError, setFinishError] = useState<string | null>(null);
   const [portalOpenError, setPortalOpenError] = useState<string | null>(null);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
   const [lastCaptureEventIndex, setLastCaptureEventIndex] = useState<
     number | null
   >(null);
@@ -919,6 +1136,11 @@ const ProjectPicker = ({
   const activeProject = activeCaptureProjectId
     ? (projects.find((project) => project.id === activeCaptureProjectId) ??
       null)
+    : null;
+  const selectedProjectVersion = selectedProjectVersionId
+    ? (projectVersions.find(
+        (version) => version.id === selectedProjectVersionId,
+      ) ?? null)
     : null;
   const hasActiveCapture = Boolean(
     activeCaptureSessionId && activeCaptureProjectId,
@@ -957,7 +1179,7 @@ const ProjectPicker = ({
       : "Select project";
 
   const handleStartCapture = async () => {
-    if (!selectedProject || busy) {
+    if (!selectedProject || !selectedProjectVersion || busy) {
       return;
     }
 
@@ -1069,6 +1291,30 @@ const ProjectPicker = ({
     }
   };
 
+  const handleSelectProject = async (projectId: string) => {
+    if (busy) return;
+    setSelectionError(null);
+    try {
+      await onSelect(projectId);
+    } catch (error: unknown) {
+      setSelectionError(
+        errorMessage(error, "Could not load Project Versions."),
+      );
+    }
+  };
+
+  const handleSelectVersion = async (projectVersionId: string) => {
+    if (busy) return;
+    setSelectionError(null);
+    try {
+      await onSelectVersion(projectVersionId);
+    } catch (error: unknown) {
+      setSelectionError(
+        errorMessage(error, "Could not select Project Version."),
+      );
+    }
+  };
+
   return (
     <section className="panel" aria-labelledby="project-heading">
       <div className="toolbar">
@@ -1113,9 +1359,24 @@ const ProjectPicker = ({
           </p>
           <p className="captureProject">
             {activeProject
-              ? projectContextLabel(activeProject)
+              ? projectContextLabel(activeProject, {
+                  name:
+                    activeCaptureProjectVersionName ?? "Unavailable Version",
+                })
               : "Project unavailable"}
           </p>
+          {!activeCaptureContextAvailable ? (
+            <div className="error">
+              The active Capture Session is no longer available. Discard local
+              capture state or retry after access is restored.
+            </div>
+          ) : null}
+          {activeCaptureProjectVersionStatus === "archived" ? (
+            <div className="error">
+              This Project Version is archived. Restore it before recording or
+              finishing the Capture Session.
+            </div>
+          ) : null}
           <p className="captureSession">Session {activeCaptureSessionId}</p>
           {screenshotError ? (
             <div className="error">{screenshotError}</div>
@@ -1146,7 +1407,11 @@ const ProjectPicker = ({
               <Button
                 className="secondary"
                 variant="secondary"
-                disabled={busy}
+                disabled={
+                  busy ||
+                  !activeCaptureContextAvailable ||
+                  activeCaptureProjectVersionStatus === "archived"
+                }
                 onClick={() =>
                   void handleSetAutomaticPaused(!activeCapturePaused)
                 }
@@ -1157,7 +1422,11 @@ const ProjectPicker = ({
               </Button>
             ) : null}
             <Button
-              disabled={busy}
+              disabled={
+                busy ||
+                !activeCaptureContextAvailable ||
+                activeCaptureProjectVersionStatus === "archived"
+              }
               onClick={() => void handleCaptureScreenshot()}
             >
               {capturingScreenshot ? "Capturing..." : "Capture screenshot"}
@@ -1165,12 +1434,23 @@ const ProjectPicker = ({
             <Button
               variant="secondary"
               className="secondary"
-              disabled={busy}
+              disabled={
+                busy ||
+                !activeCaptureContextAvailable ||
+                !activeCaptureProjectVersionSlug
+              }
               onClick={() => void handleOpenActiveCapture()}
             >
               {openingPortal ? "Opening..." : "Open in portal"}
             </Button>
-            <Button disabled={busy} onClick={() => void handleFinishCapture()}>
+            <Button
+              disabled={
+                busy ||
+                !activeCaptureContextAvailable ||
+                activeCaptureProjectVersionStatus === "archived"
+              }
+              onClick={() => void handleFinishCapture()}
+            >
               {finishing ? "Finishing..." : "Finish capture"}
             </Button>
             <Button
@@ -1195,11 +1475,22 @@ const ProjectPicker = ({
             Manual screenshots remain available after capture starts.
           </p>
           <p className="captureProject">
-            {projectContextLabel(selectedProject)}
+            {selectedProjectVersion
+              ? projectContextLabel(selectedProject, selectedProjectVersion)
+              : `${selectedProject.name} / Version unavailable`}
           </p>
+          {!selectedProjectVersion ? (
+            <div className="error">
+              The selected Project Version is archived or unavailable. Select an
+              active Version before starting.
+            </div>
+          ) : null}
           {startError ? <div className="error">{startError}</div> : null}
           {finishError ? <div className="error">{finishError}</div> : null}
-          <Button disabled={busy} onClick={() => void handleStartCapture()}>
+          <Button
+            disabled={busy || !selectedProjectVersion}
+            onClick={() => void handleStartCapture()}
+          >
             {starting ? "Starting..." : "Start automatic capture"}
           </Button>
         </div>
@@ -1211,6 +1502,9 @@ const ProjectPicker = ({
 
       {!hasActiveCapture && projects.length > 0 ? (
         <div className="projects">
+          {selectionError ? (
+            <div className="error">{selectionError}</div>
+          ) : null}
           {projects.map((project) => (
             <Button
               variant="secondary"
@@ -1221,7 +1515,7 @@ const ProjectPicker = ({
               }
               disabled={busy}
               key={project.id}
-              onClick={() => void onSelect(project.id)}
+              onClick={() => void handleSelectProject(project.id)}
             >
               <span>
                 Use <strong>{projectContextLabel(project)}</strong>
@@ -1229,6 +1523,26 @@ const ProjectPicker = ({
               <small>{project.status}</small>
             </Button>
           ))}
+          {selectedProject
+            ? projectVersions.map((version) => (
+                <Button
+                  variant="secondary"
+                  className={
+                    version.id === selectedProjectVersionId
+                      ? "project selected"
+                      : "project"
+                  }
+                  disabled={busy}
+                  key={version.id}
+                  onClick={() => void handleSelectVersion(version.id)}
+                >
+                  <span>
+                    Use <strong>{version.name}</strong>
+                  </span>
+                  <small>{version.is_default ? "default" : "active"}</small>
+                </Button>
+              ))
+            : null}
         </div>
       ) : null}
     </section>

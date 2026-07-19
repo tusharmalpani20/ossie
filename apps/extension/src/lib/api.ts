@@ -17,6 +17,7 @@ import type {
   LoginRequest,
 } from "@repo/types/auth";
 import type { Project, ProjectListResponse } from "@repo/types/project";
+import type { ProjectVersionListResponse } from "@repo/types/project-version";
 
 export type {
   AuthResponse,
@@ -31,6 +32,7 @@ export type {
   LoginRequest,
   Project,
   ProjectListResponse,
+  ProjectVersionListResponse,
 };
 
 export type CreateCaptureSessionInput = {
@@ -196,6 +198,39 @@ export const listProjects = async (
   requestJson<ProjectListResponse>(
     instanceUrl,
     "/api/v1/projects?status=active&purpose=capture",
+    {
+      headers: {
+        ...authHeaders(sessionToken),
+        "x-ossie-client": "extension",
+      },
+    },
+  );
+
+export const listProjectVersions = async (
+  instanceUrl: string,
+  sessionToken: string,
+  projectId: string,
+): Promise<ProjectVersionListResponse> =>
+  requestJson<ProjectVersionListResponse>(
+    instanceUrl,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/versions?status=active`,
+    {
+      headers: {
+        ...authHeaders(sessionToken),
+        "x-ossie-client": "extension",
+      },
+    },
+  );
+
+export const getCaptureSession = async (
+  instanceUrl: string,
+  sessionToken: string,
+  projectId: string,
+  captureSessionId: string,
+): Promise<CaptureSessionResponse> =>
+  requestJson<CaptureSessionResponse>(
+    instanceUrl,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}`,
     {
       headers: {
         ...authHeaders(sessionToken),

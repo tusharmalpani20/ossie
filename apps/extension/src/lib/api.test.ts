@@ -3,7 +3,9 @@ import {
   completeCaptureSession,
   createCaptureEvent,
   createCaptureSession,
+  getCaptureSession,
   getCurrentAuth,
+  listProjectVersions,
   listProjects,
   login,
   logout,
@@ -223,6 +225,65 @@ describe("extension API client", () => {
     expect(fetch).toHaveBeenNthCalledWith(
       2,
       "https://demo.example.com/api/v1/projects?status=active&purpose=capture",
+      {
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          authorization: "Bearer extension-session-token",
+          "x-ossie-client": "extension",
+        },
+      },
+    );
+  });
+
+  it("lists active Project Versions and restores an exact Capture Session", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ project_versions: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ capture_session: captureSession }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(
+      listProjectVersions(
+        "https://demo.example.com",
+        "extension-session-token",
+        "project with spaces",
+      ),
+    ).resolves.toEqual({ project_versions: [] });
+    await expect(
+      getCaptureSession(
+        "https://demo.example.com",
+        "extension-session-token",
+        "project with spaces",
+        "capture/session",
+      ),
+    ).resolves.toEqual({ capture_session: captureSession });
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      "https://demo.example.com/api/v1/projects/project%20with%20spaces/versions?status=active",
+      {
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          authorization: "Bearer extension-session-token",
+          "x-ossie-client": "extension",
+        },
+      },
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      "https://demo.example.com/api/v1/projects/project%20with%20spaces/capture-sessions/capture%2Fsession",
       {
         credentials: "include",
         headers: {
