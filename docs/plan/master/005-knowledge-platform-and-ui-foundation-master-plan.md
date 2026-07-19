@@ -1237,9 +1237,10 @@ Acceptance:
 
 ### 120: Publication And Multi-Version Publish Link Integration
 
-Status: Implemented in commits `76cb8bd`, `142ec8b`, and `5532682`; not closed
-because the required disposable PostgreSQL and freshly migrated browser gates
-are blocked by the missing `testing_maintenance` environment.
+Status: Complete on 2026-07-20. The original runtime commits `76cb8bd`,
+`142ec8b`, and `5532682` plus final closure corrections `dca1d1b` and `7520d46`
+pass fresh migration/rollback, DB, smoke, storage, broad, and real-browser
+verification.
 
 Planned file:
 
@@ -1909,7 +1910,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `117`.
 - [x] Create, expand, recheck, implement, and close child plan `118`.
 - [x] Create, expand, recheck, implement, and close child plan `119`.
-- [ ] Create, expand, recheck, implement, and close child plan `120`.
+- [x] Create, expand, recheck, implement, and close child plan `120`.
 - [ ] Create, expand, recheck, implement, and close child plan `121`.
 - [ ] Create, expand, recheck, implement, and close child plan `122`.
 - [ ] Create, expand, recheck, implement, and close child plan `123`.
@@ -1958,10 +1959,9 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is to finish child `120` verification: provision a
-safe disposable `testing_maintenance` PostgreSQL environment, run migration
-`024` up/down, DB/smoke/storage gates, and complete the authenticated/public
-browser matrix before closing `120` or beginning child `121`.
+The next executable activity is to expand and recheck child `121`, Design-System
+Foundation, against the stable contracts completed through child `120` before
+implementation begins.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -1972,10 +1972,12 @@ child `112`, comprehensive existing-mutation coverage child `113`, Access
 Evidence/Owner compliance timeline child `114`, Project Membership Foundation
 child `115`, Project Version Foundation child `116`, Capture Source Version
 Scoping child `117`, Guide/Demo Edition And Working Draft Relational Foundation
-child `118`, and Guide/Demo Revision, Carry-Forward, And Protected Assets child
-`119` are complete. Child `120` now has committed Revision-backed Publication
-and multi-version Publish Link runtime code, but its database and browser
-acceptance evidence remains blocked as recorded in the child plan.
+child `118`, Guide/Demo Revision, Carry-Forward, And Protected Assets child
+`119`, and Publication And Multi-Version Publish Link Integration child `120`
+are complete. The final prompt-pack closure audit confirmed that every completed
+child from `112` through `120` records status, checklist, implementation,
+verification, leftovers, and handoff evidence, and that the master checklist
+advances only those completed children.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with child `120` verification and closeout.
+continues with child `121` planning.

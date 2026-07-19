@@ -6,9 +6,10 @@ Date expanded: 2026-07-19
 
 Date rechecked: 2026-07-20
 
-Status: Runtime implementation committed on 2026-07-20. Closeout remains
-blocked on disposable PostgreSQL maintenance credentials and the resulting
-fresh-schema authenticated/public browser verification.
+Status: Complete on 2026-07-20 after final implementation and sequence closure
+audit. Runtime, fresh-database, migration rollback, smoke, storage, broad, and
+real-browser gates pass; closure corrections are committed in `dca1d1b` and
+`7520d46` in addition to the original implementation commits.
 
 Parent plan:
 
@@ -1069,10 +1070,10 @@ tests or a final-route screenshot for real end-to-end evidence.
 - [x] Temporary projection, legacy sequence/snapshot contracts, singular publish
       endpoints, and duplicated JSON readers/builders are removed from current
       runtime code without false compatibility aliases.
-- [ ] Audit/Access/database guards, runtime grants, migration/reset/rollback,
+- [x] Audit/Access/database guards, runtime grants, migration/reset/rollback,
       focused/broad/DB/smoke/storage checks, and authenticated/public browser
       validation pass with recorded evidence.
-- [ ] Child `121` receives stable Publication/Publish Link contracts and can
+- [x] Child `121` receives stable Publication/Publish Link contracts and can
       modernize visual primitives without reopening domain, persistence, access,
       or public URL semantics.
 
@@ -1101,11 +1102,11 @@ tests or a final-route screenshot for real end-to-end evidence.
 - [x] Establish failing tests before behavior-boundary corrections.
 - [x] Implement only child `120` and preserve unrelated user/agent changes.
 - [x] Keep Publication and manifest state relational and type-safe.
-- [ ] Run every focused, broad, migration, DB, smoke, storage, and browser gate.
+- [x] Run every focused, broad, migration, DB, smoke, storage, and browser gate.
 - [x] Update this file with status, completed checklists, implementation log,
       exact verification evidence, blockers, leftovers, and commits.
-- [x] Update master `005` only for genuinely completed child `120` items; keep
-      its completion box open while environment gates are blocked.
+- [x] Update master `005` only after all child `120` environment gates pass and
+      the implementation is genuinely complete.
 - [x] Commit attributable implementation and closeout in small logical commits.
 
 ## Implementation Log
@@ -1134,42 +1135,67 @@ separate archived-Edition Publication versus Link-management controls, removal
 of skipped singular API tests, updated relational DB/smoke fixtures, and the
 child `024` schema-verifier test.
 
+Final closure on 2026-07-20 added two scoped correction commits:
+
+- `dca1d1b` (`fix(server): close publication verification gaps`) makes the Audit
+  verifier understand DELETE-specific guard functions, trigger bits, and
+  arguments; makes the child `119` verifier projection-aware after migration
+  `024`; orders empty rollback after dependent tables; accepts route-local list
+  filters while preserving strict public contracts; awaits public resolution so
+  unavailable links become non-revealing `404` responses; and corrects
+  relational smoke expectations and the canonical protected-media URL.
+- `7520d46` (`fix(web): complete publication workflow controls`) removes
+  implicit Publish Link preselection; completes atomic new-link options,
+  settings and manifest controls, rollback/removal confirmation, keyboard
+  Escape cancellation, public-link navigation, truthful success copy, and
+  responsive layout; and keeps Guide/Demo password forms retryable with an
+  accessible error after invalid credentials.
+
 ## Verification Record
 
-Passed on 2026-07-20:
+Passed on 2026-07-20 after the final closure corrections:
 
-- `rtk pnpm -r --if-present test`: 15 workspace projects, 939 tests passed with
-  no skips; server `96` files/`394` tests and web `39` files/`257` tests;
+- `rtk pnpm -r --if-present test`: all participating workspace projects and
+  `950` tests passed with no skips; server `96` files/`395` tests and web `39`
+  files/`267` tests;
 - `rtk pnpm check-types`: 12 tasks passed;
-- `rtk pnpm lint`: all participating packages passed after the child-owned
-  frontend cleanup;
+- `rtk pnpm lint`: all participating packages passed; the server retained its
+  pre-existing warnings and reported no errors;
 - `rtk pnpm build`: 12 tasks passed;
 - `rtk git diff --check` passed;
 - focused shared/domain, server publication/audit/schema, and frontend panel,
   reader, editor, route, and API suites passed during TDD.
 
-Blocked, not passed:
+Database evidence used a disposable local `postgres:16` container and synthetic
+roles/data because `.env-cmdrc` does not define `testing_maintenance`; no
+repository environment file or persistent developer database was changed:
 
-- `rtk pnpm --filter server test:setup` stops before database creation because
-  `.env-cmdrc` has no `testing_maintenance` environment. Therefore fresh `up`
-  through `024`, status, empty `down/up`, populated-down refusal, full `test:db`,
-  `test:smoke`, runtime grants/guards, storage streaming, and rollback could not
-  be executed in this checkout.
-- `agent-browser` rendered a synthetic mocked public Guide at desktop and
-  `390x844`, proving the browser tool and route composition are available. That
-  run is deliberately excluded from acceptance evidence: without the migrated
-  API it cannot prove authenticated roles, real Publications/manifests,
-  protected media, access states, console/network cleanliness, or the required
-  end-to-end matrix.
+- fresh migration `up` through `024`, status with no pending entries, Audit
+  readiness, empty `024 down`, and re-`up` passed;
+- all `17` database test files and `63` tests passed, including runtime grants,
+  mutation guards, public access/session behavior, exact protected-media
+  streaming, tenant isolation, manifest concurrency, and rollback;
+- the full V1 DB-backed smoke workflow passed;
+- populated `024 down` refused with the expected safety error instead of losing
+  Revision-backed Publication data.
+
+`agent-browser` exercised the freshly migrated API with synthetic owner, Viewer,
+and anonymous sessions. Evidence covered unlinked publishing; explicit link
+selection; independent links; two Project Versions in one manifest; ordering,
+default switching, and canonical base/exact embed navigation; Guide and Demo
+rendering; public, restricted, password, invalid-password retry, password
+rotation/session invalidation, expiry, and revoked states; Viewer read-only
+history; rollback/removal confirmations and document-level Escape cancellation;
+desktop `1440x900`, narrow `390x844`, and 200% reflow without horizontal
+overflow. Browser error output was empty and console output contained only
+development-server/React informational messages.
 
 ## Leftovers And Handoff To Child 121
 
-No known product-code item is intentionally deferred. To close child `120`, a
-future verification turn must provide a safe disposable `testing_maintenance`
-environment, run every blocked database/migration/smoke/storage gate above, and
-then execute the complete authenticated/public `agent-browser` matrix against
-that freshly migrated API. Any failure must be fixed inside child `120` before
-the master checklist advances.
+No known child `120` product-code or verification item is deferred. The
+disposable database, synthetic credentials, and browser sessions used for
+closure are local evidence only and are not repository prerequisites or
+fixtures.
 
 Child `121` must inherit, not redesign:
 
