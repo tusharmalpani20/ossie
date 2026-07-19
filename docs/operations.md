@@ -77,9 +77,20 @@ pg_dump --format=custom --file=ossie.dump "$DATABASE_URL"
 ```
 
 Use a maintenance-capable connection for the dump and confirm that it includes
-`audit_schema`, its triggers, constraints, privileges, and rows. Audit Evidence
-is retained for the lifetime of its Organization; there is no supported cleanup
-or row-deletion command.
+`audit_schema`, its triggers, constraints, privileges, and rows. Audit and Access
+Evidence are retained for the lifetime of their Organization; there is no
+supported cleanup or row-deletion command.
+
+Monitor physical evidence growth with operator credentials; the portal totals
+are logical row counts, not storage size:
+
+```sql
+SELECT relname,
+  pg_size_pretty(pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(relname))) AS total_size
+FROM pg_stat_user_tables
+WHERE schemaname = 'audit_schema'
+ORDER BY pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(relname)) DESC;
+```
 
 Example local storage backup:
 
@@ -105,14 +116,17 @@ After restore:
 - restore or pre-provision the distinct maintenance and runtime roles before
   applying ownership and grants
 - run migrations for the target application version
-- confirm `audit_schema.audit_event` and `audit_schema.audit_change_item` exist
-  with append-only controls and generalized product-mutation guard triggers
+- confirm `audit_schema.audit_event`, `audit_schema.audit_change_item`, and
+  `audit_schema.access_event` exist with append-only controls and generalized
+  product-mutation guard triggers
 - confirm the runtime role is not a maintenance-role member and cannot update,
   delete, or truncate Audit Evidence
 - point `OSSIE_LOCAL_STORAGE_ROOT` at the restored storage path
 - set `API_URL` to the API origin used for the rehearsal environment
 - start the API
 - check `/readyz`
+- open the Owner-only `/organization/compliance` timeline and confirm retained
+  Audit and Access rows are readable
 - open a project
 - open a capture session and at least one capture asset
 - open a guide preview
@@ -159,6 +173,13 @@ API writers, run `016`, deploy the converted server, require
 `audit_schema.status = ready`, and only then reopen writes. To roll back, stop
 writers first, run `016` DOWN, deploy the prior server, and then reopen traffic;
 DOWN restores the child-112 Project-only guard and retains Audit Evidence.
+
+Migration `017_access_evidence_and_compliance_timelines.sql` additively creates
+Access Evidence and does not backfill historical reads. Deploy the migrated
+server and web together so protected responses can fail closed when Access
+Evidence is unavailable and the Owner timeline consumes the matching contracts.
+Its DOWN refuses a populated `audit_schema.access_event`; there is no supported
+automatic deletion of retained Access Evidence.
 
 Before upgrading:
 

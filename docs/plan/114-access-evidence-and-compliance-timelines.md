@@ -6,8 +6,8 @@ Date expanded: 2026-07-19
 
 Last rechecked: 2026-07-19
 
-Status: Implementation-ready. Expansion and implementation-safety recheck are
-complete; implementation has not started.
+Status: Complete on 2026-07-19. Implementation, database verification, broad
+checks, and bounded agent-browser validation passed.
 
 Parent plan:
 
@@ -1324,24 +1324,72 @@ Planning/recheck:
 
 Implementation/closeout:
 
-- [ ] Access domain validation and shared compliance contracts implemented.
-- [ ] Migration `017`, append-only controls, indexes, grants, and schema verifier implemented.
-- [ ] Request context, exhaustive route registry, writer, atomic mutation integration, and response hook implemented.
-- [ ] Meaningful protected/public/authentication/download/extension paths and exclusions verified.
-- [ ] Owner compliance API, tenant isolation, cursor, totals, and self-access behavior implemented.
-- [ ] Compliance portal and reader/embed attribution implemented.
-- [ ] Focused, DB, smoke, broad, and agent-browser verification passed or honestly recorded blocked.
-- [ ] Operations/backup/growth documentation updated.
-- [ ] Child/master status, implementation log, verification, leftovers, and handoff updated together.
+- [x] Access domain validation and shared compliance contracts implemented.
+- [x] Migration `017`, append-only controls, indexes, grants, and schema verifier implemented.
+- [x] Request context, exhaustive route registry, writer, atomic mutation integration, and response hook implemented.
+- [x] Meaningful protected/public/authentication/download/extension paths and exclusions verified.
+- [x] Owner compliance API, tenant isolation, cursor, totals, and self-access behavior implemented.
+- [x] Compliance portal and reader/embed attribution implemented.
+- [x] Focused, DB, smoke, broad, and agent-browser verification passed or honestly recorded blocked.
+- [x] Operations/backup/growth documentation updated.
+- [x] Child/master status, implementation log, verification, leftovers, and handoff updated together.
 
 ## Implementation Log
 
-Not started. Expansion only; no runtime, schema, API, or UI code was implemented
-while producing this plan.
+Implemented in four logical commits:
+
+- `8f9f7e1` (`feat(server): add append-only access evidence`) added the Access
+  literal/domain contract, strict validation, registered-action boundary,
+  migration `017`, catalog verification, append-only writer, and DB coverage.
+- `17b3554` (`feat(server): record meaningful access paths`) added request-local
+  trusted context, exhaustive OpenAPI route classification, atomic Access writes,
+  the pre-response fail-closed hook, authentication/invite/public-link context,
+  reader/embed attribution, and stable failure mapping.
+- `5f7ad39` (`feat(compliance): add owner evidence timeline api`) added shared
+  discriminated DTOs and Owner-first, tenant-scoped combined timeline/detail
+  repository, service, routes, cursor/totals behavior, and application wiring.
+- `eb6b6f2` (`feat(web): add compliance timeline`) added the setup-guarded
+  `/organization/compliance` page, member-page discovery link, filters, retained
+  evidence totals, pagination, typed Audit disclosure, Access context, distinct
+  auth/permission/error states, responsive behavior, and public surface headers.
+
+Implementation also corrected a discovered compatibility regression: public
+Publish Link lookup now resolves trusted tenant context before policy evaluation,
+while revoked links and their assets retain their previous public not-found
+behavior. No Project Membership or future Project-role behavior was introduced.
 
 ## Verification Record
 
-Planning verification only:
+Planning verification is retained above. Implementation verification:
+
+- `rtk pnpm --filter @repo/constants test`: passed, 3 tests.
+- `rtk pnpm --filter @repo/audit-domain test`: passed, 42 tests.
+- `rtk pnpm --filter @repo/types test`: passed, 39 tests.
+- `rtk pnpm --filter server test`: passed, 75 files / 362 tests.
+- `rtk pnpm --filter web test`: passed, 27 files / 313 tests.
+- Disposable PostgreSQL 16 run with distinct synthetic maintenance/runtime
+  roles: migrations `001` through `017` passed; the complete configured DB set
+  passed, 14 files / 59 tests; populated `017` DOWN refused with
+  `Refusing to remove populated Access Evidence`; after maintenance-only
+  truncation, empty DOWN and re-UP/catalog verification passed.
+- `src/smoke/v1-workflows.db.integration.test.ts`: passed, 1 test, against the
+  same disposable migrated database. The database was dropped and the helper
+  container stopped after verification.
+- `rtk pnpm check-types`, `rtk pnpm lint`, `rtk pnpm build`, and
+  `rtk git diff --check`: passed. Server and web focused lint checks were clean.
+- `agent-browser` 0.27.1 against the local Vite portal with synthetic response
+  fixtures: mixed Audit/Access ordering and totals rendered; kind selection sent
+  the normalized `kind=access` request; keyboard focus + Space opened the native
+  Audit disclosure and rendered `redacted -> Synthetic project`; desktop and
+  390x844 mobile screenshots rendered without console/app errors; measured
+  mobile and 200% CSS-zoom reflow had `scrollWidth === clientWidth`.
+- A real browser Owner-versus-Member database session was not repeated because
+  the repository `.env-cmdrc` lacks maintenance profiles. Server route/service,
+  API-client, and component tests cover 401/403 behavior; the real PostgreSQL
+  suite proves Owner scoping and cross-tenant isolation. No permission evidence
+  was fabricated from the browser interception layer.
+
+Historical planning verification:
 
 - Confirmed clean starting worktree at commit
   `27d257972ade99833652a65dfbec72cc09909810`.
@@ -1368,8 +1416,8 @@ docs/plan/114-access-evidence-and-compliance-timelines.md`: passed after
   recheck.
 - `rtk git diff --check`: passed after recheck.
 
-No implementation tests, migration runs, browser sessions, accessibility checks,
-or production evidence are claimed by this expansion.
+No production/customer data, credentials, cookies, private URLs, committed
+screenshots, or compliance-certification claim were introduced.
 
 ## Leftovers And Handoff To Child 115
 
@@ -1397,3 +1445,17 @@ Child `115` then owns:
 
 Do not solve those role semantics in child `114`. Until child `115` completes,
 only current Organization Owners may retrieve raw Audit or Access Evidence.
+
+Additional implementation handoff:
+
+- Extend `ACCESS_ROUTE_COVERAGE_REGISTRY` whenever child `115` adds membership
+  or authorization routes; the production/OpenAPI coverage test is intended to
+  fail until every new operation is classified.
+- Migrate the typed `authorization_role` constraint before emitting Project
+  Admin/Editor/Viewer context; do not overload the current Organization role.
+- Reuse the compliance service's pre-query authorization gate and repository
+  Organization predicate. Add the accepted Project filter above those layers,
+  never in the UI alone.
+- Access source `extension` remains exact-header-derived evidence, not
+  cryptographic attestation. Preserve that wording in future timeline UI.
+- There are no child-114 code leftovers blocking child `115`.

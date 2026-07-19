@@ -110,10 +110,15 @@ accepted model in this track.
 - Audit Event and typed Audit Change Item rows commit atomically with successful
   state changes.
 - Access Events capture meaningful logical-resource access or attempted access
-  without storing credentials or content.
+  in explicit relational columns without storing credentials, raw URLs, request
+  bodies, content, or a generic metadata payload.
+- Protected reads append Access Evidence before returning content; evidence
+  failure replaces the protected response with a stable unavailable response.
+- Organization Owners can query a tenant-scoped combined Audit/Access timeline;
+  current Organization Members cannot query raw compliance evidence.
 - Database and application controls enforce append-only evidence.
-- Project Admin, Editor, and Viewer permissions use one Project authorization
-  boundary rather than route-local role invention.
+- Project Admin, Editor, and Viewer permissions are accepted future direction;
+  they are not shipped by the current Organization-role authorization boundary.
 - Organization Owners retain organization-wide governance visibility.
 
 ### Assets

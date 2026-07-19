@@ -66,7 +66,14 @@ rtk pnpm --filter server run migrate:up
       triggers, privileges, and retained evidence rows.
 - [ ] Test restore on a separate database before relying on backups.
 - [ ] During restore rehearsal, confirm role ownership/grants are restored and
-      runtime credentials cannot update, delete, or truncate Audit Evidence.
+      runtime credentials cannot update, delete, or truncate Audit or Access
+      Evidence.
+- [ ] Confirm `audit_schema.access_event` is present, append-only, included in
+      backups, and visible only through the authenticated Owner compliance API.
+- [ ] Open `/organization/compliance` as an Organization Owner and verify a
+      synthetic protected read appears; verify a current Member receives 403.
+- [ ] Record and monitor physical `audit_schema` table/index growth; portal
+      totals are evidence counts and not storage metrics.
 - [ ] During restore rehearsal, verify project access, a capture asset, a guide preview, a published guide, and an interactive demo if demos exist.
 
 ## Build

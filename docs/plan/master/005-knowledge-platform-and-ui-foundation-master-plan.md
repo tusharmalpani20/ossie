@@ -2,7 +2,7 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `113` are complete. Child `114` is
+Status: In progress. Children `109` through `114` are complete. Child `115` is
 the next executable child and requires expansion/recheck before implementation.
 
 Master plan number: 005.
@@ -60,12 +60,13 @@ Baseline reviewed on 2026-07-10:
 - Existing mutable Guide, Guide Block, Guide Step, Interactive Demo, and Demo Scene rows use a `version` integer as an optimistic-concurrency counter. That counter is an implementation-level **Row Version**, not an authored Revision or Project Version.
 - `publish_schema.published_artifact.version_number` and the current public API use `version_number` as the sequence of immutable publication snapshots for one source artifact. That value is a **Publication Sequence**, not a Project Version.
 - The alpha schema currently uses JSONB for `guide_block.content`, `published_artifact.snapshot_json`, and several generic `metadata` columns. These are current implementation facts, not the accepted clean target.
-- Children `112` and `113` provide typed, append-only Audit Event/Audit Change
+- Children `112` through `114` provide typed, append-only Audit Event/Audit Change
   Item persistence, separate runtime and maintenance database credentials,
   exhaustive current mutation command/table/route coverage, and active
-  same-transaction database guards. No Audit query API or Access Evidence UI
-  exists yet; those remain child `114` scope.
-- Current migrations end at `016_existing_mutation_audit_coverage.sql`. Migration `015` implements the
+  same-transaction database guards. Child `114` adds explicit relational Access
+  Evidence, fail-closed protected reads, and the Owner-only combined compliance
+  timeline. Project-role visibility remains child `115` scope.
+- Current migrations end at `017_access_evidence_and_compliance_timelines.sql`. Migration `015` implements the
   accepted clean pre-live transition and refuses populated User or Organization
   data; no production-row backfill exists.
 - The repository is pre-live. There are no production records, external API clients, or deployed public links requiring data-preserving compatibility; development/test databases may be reset and reseeded for the clean target model.
@@ -75,8 +76,8 @@ Baseline reviewed on 2026-07-10:
 - Current pages still rely heavily on CSS Modules, hard-coded slate/hex values, repeated control styling, and only minimal global tokens. The UI track is therefore a consolidation and product-design effort, not a fresh Tailwind or icon migration.
 - Child `109` installed the accepted external design guidance as pinned, optional repository tooling and documented provenance, compatibility changes, update/removal procedure, and rejected sources in `docs/agent-workflow.md`. It remains outside application dependencies and runtime behavior.
 - The current UI works at alpha level but does not yet provide the consistency, hierarchy, density, responsive behavior, accessibility, or navigation expected from a daily internal tool.
-- Master plans `001` through `004` are complete. Children `109` through `113`
-  are complete; child `114` Access Evidence And Compliance Timelines is next.
+- Master plans `001` through `004` are complete. Children `109` through `114`
+  are complete; child `115` Project Membership Foundation is next.
   The
   optional overnight-runner tooling checkpoint was deferred on 2026-07-19 and
   is not a gate for sequential child execution.
@@ -921,7 +922,8 @@ Acceptance:
 
 ### 114: Access Evidence And Compliance Timelines
 
-Status: Not started.
+Status: Complete on 2026-07-19. Implementation, focused/DB/smoke/broad checks,
+and bounded agent-browser validation passed.
 
 Planned file:
 
@@ -1860,7 +1862,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, conduct, document, and accept the versioning grill in child plan `111`.
 - [x] Create, expand, recheck, implement, and close child plan `112`.
 - [x] Create, expand, recheck, implement, and close child plan `113`.
-- [ ] Create, expand, recheck, implement, and close child plan `114`.
+- [x] Create, expand, recheck, implement, and close child plan `114`.
 - [ ] Create, expand, recheck, implement, and close child plan `115`.
 - [ ] Create, expand, recheck, implement, and close child plan `116`.
 - [ ] Create, expand, recheck, implement, and close child plan `117`.
@@ -1915,17 +1917,18 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is expansion and recheck of child `114` Access
-Evidence And Compliance Timelines. The separate overnight-runner tooling
+The next executable activity is expansion and recheck of child `115` Project
+Membership Foundation. The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
 longer blocks this master-plan sequence.
 
 Children `109`, `110`, the deliberately early `111` grill, Audit Evidence Core
-child `112`, and comprehensive existing-mutation coverage child `113` are
-complete. Child `114` may now build separate Access Evidence and the first
-Owner-authorized compliance timeline without reopening mutation Audit semantics.
+child `112`, comprehensive existing-mutation coverage child `113`, and Access
+Evidence/Owner compliance timeline child `114` are complete. Child `115` may now
+add accepted Project Membership and role visibility by extending, not bypassing,
+the shipped evidence and authorization seams.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with `114` Access Evidence and Compliance Timelines. Project Membership begins at
-`115`, and Project Version begins at `116`.
+continues with `115` Project Membership Foundation. Project Version begins at
+`116`.
