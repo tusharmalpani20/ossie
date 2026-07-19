@@ -953,6 +953,10 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
 
   async reorder_guide_blocks(input) {
     return with_transaction(db, async (client) => {
+      const active_blocks = await read_guide_blocks(client, input);
+      const current_indexes = new Map(active_blocks.map((row) => [row.id, row.block_index]));
+      const changed_ids = input.block_ids.filter((id, index) => current_indexes.get(id) !== index + 1);
+      if (changed_ids.length === 0) return active_blocks;
       await client.query(`
         UPDATE guide_schema.guide_block
         SET
@@ -964,14 +968,17 @@ export const build_guide_repository = (db: TransactionCapable): GuideRepository 
         AND project_id = $3
         AND organization_id = $4
         AND is_deleted = FALSE
+        AND id = ANY($5::varchar[])
       `, [
         input.actor_org_user_id,
         input.guide_id,
         input.project_id,
         input.organization_id,
+        changed_ids,
       ]);
 
       for (const [index, block_id] of input.block_ids.entries()) {
+        if (!changed_ids.includes(block_id)) continue;
         await client.query(`
           UPDATE guide_schema.guide_block
           SET

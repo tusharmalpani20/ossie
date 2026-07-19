@@ -9,7 +9,11 @@ import {
 import { ulid } from "ulid";
 import { run_audited_mutation } from "../audit/audit-transaction";
 import { find_audit_command } from "../audit/audit-coverage-registry";
-import { safe_audit_actor_label } from "../audit/audit-request-context";
+import {
+  current_audit_request_id,
+  current_audit_source_type,
+  safe_audit_actor_label,
+} from "../audit/audit-request-context";
 import { write_audit_event } from "../audit/audit.repository";
 import { build_project_repository } from "./project.repository";
 import type {
@@ -81,7 +85,7 @@ export const build_project_created_event = (input: {
     root_resource_type: "project",
     root_resource_id: input.project.id,
     action: "project.created",
-    source_type: "web",
+    source_type: current_audit_source_type(),
     actor_type: "org_user",
     actor_org_user_id: input.actor_org_user_id,
     actor_label: input.actor_label,
@@ -119,7 +123,7 @@ const project_mutation_event = (
     root_resource_type: "project",
     root_resource_id: input.after.id,
     action,
-    source_type: "web",
+    source_type: current_audit_source_type(),
     actor_type: "org_user",
     actor_org_user_id: input.actor_org_user_id,
     actor_label: input.actor_label,
@@ -242,7 +246,7 @@ export const build_project_creation_writer =
       context: {
         organization_id: input.organization_id,
         actor_type: "org_user",
-        source_type: "web",
+        source_type: current_audit_source_type(),
       },
       execute: (client) =>
         build_project_repository(
@@ -334,7 +338,7 @@ export const build_audited_project_repository = (
           return {
             organization_id: input.organization_id,
             actor_type: "org_user",
-            source_type: "web",
+            source_type: current_audit_source_type(),
           };
         },
         execute: async (client) => {
@@ -354,7 +358,7 @@ export const build_audited_project_repository = (
                 after,
                 actor_org_user_id: input.actor_org_user_id,
                 actor_label,
-                request_id: null,
+                request_id: current_audit_request_id(),
                 occurred_at,
                 metadata_changed,
               })
@@ -395,7 +399,7 @@ export const build_audited_project_repository = (
           return {
             organization_id: input.organization_id,
             actor_type: "org_user",
-            source_type: "web",
+            source_type: current_audit_source_type(),
           };
         },
         execute: (client) =>
@@ -410,7 +414,7 @@ export const build_audited_project_repository = (
                 after: { ...before, version: before.version + 1 },
                 actor_org_user_id: input.actor_org_user_id,
                 actor_label,
-                request_id: null,
+                request_id: current_audit_request_id(),
                 occurred_at,
               })
             : null,

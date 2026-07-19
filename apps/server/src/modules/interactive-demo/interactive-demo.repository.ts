@@ -743,6 +743,15 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         return [];
       }
 
+      const current = await client.query<{ id: string; scene_index: number }>(`
+        SELECT id, scene_index FROM interactive_demo_schema.demo_scene
+        WHERE organization_id=$1 AND project_id=$2 AND interactive_demo_id=$3 AND is_deleted=FALSE
+      `, [input.organization_id, input.project_id, input.interactive_demo_id]);
+      const current_indexes = new Map(current.rows.map((row) => [row.id, row.scene_index]));
+      const changed_ids = input.scene_ids.filter((id, index) => current_indexes.get(id) !== index + 1);
+      if (changed_ids.length === 0)
+        return build_interactive_demo_repository(client).list_scenes(input);
+
       await client.query(`
         UPDATE interactive_demo_schema.demo_scene
         SET scene_index = scene_index + 1000000
@@ -750,13 +759,16 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         AND project_id = $2
         AND interactive_demo_id = $3
         AND is_deleted = FALSE
+        AND id = ANY($4::varchar[])
       `, [
         input.organization_id,
         input.project_id,
         input.interactive_demo_id,
+        changed_ids,
       ]);
 
       for (const [index, scene_id] of input.scene_ids.entries()) {
+        if (!changed_ids.includes(scene_id)) continue;
         const result = await client.query<DemoSceneRow>(`
           UPDATE interactive_demo_schema.demo_scene
           SET
@@ -993,6 +1005,15 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         return [];
       }
 
+      const current = await client.query<{ id: string; hotspot_index: number }>(`
+        SELECT id, hotspot_index FROM interactive_demo_schema.demo_hotspot
+        WHERE organization_id=$1 AND project_id=$2 AND interactive_demo_id=$3 AND demo_scene_id=$4 AND is_deleted=FALSE
+      `, [input.organization_id, input.project_id, input.interactive_demo_id, input.demo_scene_id]);
+      const current_indexes = new Map(current.rows.map((row) => [row.id, row.hotspot_index]));
+      const changed_ids = input.hotspot_ids.filter((id, index) => current_indexes.get(id) !== index + 1);
+      if (changed_ids.length === 0)
+        return build_interactive_demo_repository(client).list_hotspots(input);
+
       await client.query(`
         UPDATE interactive_demo_schema.demo_hotspot
         SET hotspot_index = hotspot_index + 1000000
@@ -1001,14 +1022,17 @@ export const build_interactive_demo_repository = (db: TransactionCapable): Inter
         AND interactive_demo_id = $3
         AND demo_scene_id = $4
         AND is_deleted = FALSE
+        AND id = ANY($5::varchar[])
       `, [
         input.organization_id,
         input.project_id,
         input.interactive_demo_id,
         input.demo_scene_id,
+        changed_ids,
       ]);
 
       for (const [index, hotspot_id] of input.hotspot_ids.entries()) {
+        if (!changed_ids.includes(hotspot_id)) continue;
         const result = await client.query<DemoHotspotRow>(`
           UPDATE interactive_demo_schema.demo_hotspot
           SET

@@ -5,7 +5,10 @@ import {
   type AuditChangeItem,
 } from "@repo/audit-domain";
 import { ulid } from "ulid";
-import { safe_audit_actor_label } from "../audit/audit-request-context";
+import {
+  current_audit_request_id,
+  safe_audit_actor_label,
+} from "../audit/audit-request-context";
 
 type SetupEventInput = {
   event_id: string;
@@ -115,7 +118,7 @@ export const build_first_run_setup_event = (input: SetupEventInput) => {
     actor_type: "org_user",
     actor_org_user_id: input.org_user.id,
     actor_label: safe_audit_actor_label(input.user.display_name),
-    request_id: null,
+    request_id: current_audit_request_id(),
     correlation_id: null,
     idempotency_key_hash: null,
     before_row_version: null,

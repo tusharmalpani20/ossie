@@ -91,6 +91,10 @@ import {
 } from "./modules/publish/publish.routes.js";
 import { build_audited_publish_repository } from "./modules/publish/publish.audit.js";
 import { build_publish_service } from "./modules/publish/publish.service.js";
+import {
+  audit_request_context,
+  run_with_audit_request_context,
+} from "./modules/audit/audit-request-context.js";
 
 type BuildOptions = FastifyServerOptions & {
   public_instance_service?: PublicInstanceRouteService;
@@ -184,6 +188,10 @@ export const build = (opts: BuildOptions = {}) => {
   const max_screenshot_upload_bytes = get_max_screenshot_upload_bytes();
   const rate_limit_config = get_rate_limit_config();
   const rate_limit_buckets = new Map<string, RateLimitBucket>();
+
+  app.addHook("onRequest", (request, _reply, done) => {
+    run_with_audit_request_context(audit_request_context(request), done);
+  });
 
   app.addHook("onRequest", async (request, reply) => {
     const route = matched_rate_limited_route(request.method, request.url);

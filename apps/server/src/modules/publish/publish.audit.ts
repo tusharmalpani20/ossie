@@ -85,6 +85,16 @@ const publish_event = (input: {
   changes: input.changes,
 });
 
+const password_change = (link: PublishLink): EntityAuditChange => ({
+  entity_type: "publish_link",
+  entity_id: link.id,
+  parent_entity_type: link.artifact_type,
+  parent_entity_id: link.artifact_id,
+  before: { password_hash: "before", password_salt: "before" },
+  after: { password_hash: "after", password_salt: "after" },
+  redacted_fields: ["password_hash", "password_salt"],
+});
+
 const set_context = async (client: Client, values: { event_id: string; organization_id: string; action: string; command: string; actor_type: string; source_type: string }) => {
   for (const [name, value] of [
     ["ossie.audit_event_id", values.event_id],
@@ -177,7 +187,7 @@ export const build_audited_publish_repository = (pool: Pool): PublishRepository 
       return run_actor({ command: input.artifact_type === "guide" ? "publish.guide_link.password_update" : "publish.interactive_demo_link.password_update", actor: input,
         prepare: async (client) => { await client.query("SELECT id FROM publish_schema.publish_link WHERE organization_id=$1 AND project_id=$2 AND artifact_type=$3 AND artifact_id=$4 AND status='active' FOR UPDATE", [input.organization_id, input.project_id, input.artifact_type, input.artifact_id]); before = await active(build_publish_transactional_repository(client), input); if (before?.publish_link) viewers = (await viewer_rows(client, before.publish_link.id)).rows; },
         execute: async (repository) => { if (!before?.publish_link || (!before.publish_link.password_protected && input.password_hash === null)) return before; const result = await repository.update_publish_link_password(input); await repository.revoke_public_viewer_sessions_for_publish_link({ publish_link_id: before.publish_link.id }); return result; },
-        evidence: (after, context, event_id, occurred_at) => before?.publish_link && after?.publish_link && (before.publish_link.password_protected !== after.publish_link.password_protected || input.password_hash !== null) ? publish_event({ event_id, occurred_at, actor: input, context, artifact_type: input.artifact_type, artifact_id: input.artifact_id, action: input.artifact_type === "guide" ? "guide.publish_link.password_updated" : "interactive_demo.publish_link.password_updated", before_version: null, after_version: null, changes: [...build_publish_changes({ artifact_type: input.artifact_type, artifact_id: input.artifact_id, before_link: before.publish_link, after_link: after.publish_link }), ...viewers.map((row) => ({ entity_type: "public_publish_viewer_session", entity_id: row.id, parent_entity_type: "publish_link", parent_entity_id: before!.publish_link!.id, before: { expires_at: row.expires_at.toISOString() }, after: null, safe_fields: { expires_at: "timestamp" } as const }))] }) : null,
+        evidence: (after, context, event_id, occurred_at) => before?.publish_link && after?.publish_link && (before.publish_link.password_protected !== after.publish_link.password_protected || input.password_hash !== null) ? publish_event({ event_id, occurred_at, actor: input, context, artifact_type: input.artifact_type, artifact_id: input.artifact_id, action: input.artifact_type === "guide" ? "guide.publish_link.password_updated" : "interactive_demo.publish_link.password_updated", before_version: null, after_version: null, changes: [...build_publish_changes({ artifact_type: input.artifact_type, artifact_id: input.artifact_id, before_link: before.publish_link, after_link: after.publish_link }), password_change(after.publish_link), ...viewers.map((row) => ({ entity_type: "public_publish_viewer_session", entity_id: row.id, parent_entity_type: "publish_link", parent_entity_id: before!.publish_link!.id, before: { expires_at: row.expires_at.toISOString() }, after: null, safe_fields: { expires_at: "timestamp" } as const }))] }) : null,
       });
     },
     async create_public_viewer_session(input) {

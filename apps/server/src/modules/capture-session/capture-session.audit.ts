@@ -9,7 +9,10 @@ import {
 } from "@repo/audit-domain";
 import { ulid } from "ulid";
 import { find_audit_command } from "../audit/audit-coverage-registry";
-import { safe_audit_actor_label } from "../audit/audit-request-context";
+import {
+  current_audit_request_id,
+  safe_audit_actor_label,
+} from "../audit/audit-request-context";
 import { write_audit_event } from "../audit/audit.repository";
 import { run_audited_mutation } from "../audit/audit-transaction";
 import { build_capture_session_repository } from "./capture-session.repository";
@@ -55,7 +58,7 @@ const event = (
     actor_type: "org_user",
     actor_org_user_id: input.actor_org_user_id,
     actor_label: input.actor_label,
-    request_id: null,
+    request_id: current_audit_request_id(),
     correlation_id: null,
     idempotency_key_hash: null,
     before_row_version: before?.version ?? null,

@@ -7,7 +7,11 @@ import {
 } from "@repo/audit-domain";
 import { ulid } from "ulid";
 import { find_audit_command } from "../audit/audit-coverage-registry";
-import { safe_audit_actor_label } from "../audit/audit-request-context";
+import {
+  current_audit_request_id,
+  current_audit_source_type,
+  safe_audit_actor_label,
+} from "../audit/audit-request-context";
 import { write_audit_event } from "../audit/audit.repository";
 import { run_audited_mutation } from "../audit/audit-transaction";
 import { build_authentication_session_client_repository } from "./session.repository";
@@ -42,7 +46,7 @@ const event = (
     actor_type: "org_user",
     actor_org_user_id: input.org_user_id,
     actor_label: input.actor_label,
-    request_id: null,
+    request_id: current_audit_request_id(),
     correlation_id: null,
     idempotency_key_hash: null,
     before_row_version: null,
@@ -201,7 +205,7 @@ export const build_authentication_session_repository = (
           return {
             organization_id: auth_context.organization.id,
             actor_type: "org_user",
-            source_type: "web",
+            source_type: current_audit_source_type(),
           };
         },
         execute: async (client) => {
@@ -225,7 +229,7 @@ export const build_authentication_session_repository = (
                 actor_label: safe_audit_actor_label(result.user.display_name),
                 session_id: result.session.id,
                 occurred_at,
-                source_type: "web",
+                source_type: current_audit_source_type(),
                 before,
                 after,
               })
@@ -252,7 +256,7 @@ export const build_authentication_session_repository = (
         context: {
           organization_id: input.organization_id,
           actor_type: "org_user",
-          source_type: "web",
+          source_type: current_audit_source_type(),
         },
         execute: (client) =>
           build_authentication_session_client_repository(client).create_session(
@@ -268,7 +272,7 @@ export const build_authentication_session_repository = (
             ),
             session_id: session.id,
             occurred_at,
-            source_type: "web",
+            source_type: current_audit_source_type(),
             user_id: input.user_id,
             expires_at: session.expires_at,
           }),
@@ -287,7 +291,7 @@ export const build_authentication_session_repository = (
         context: {
           organization_id: actor.organization_id,
           actor_type: "org_user",
-          source_type: "web",
+          source_type: current_audit_source_type(),
         },
         execute: async (client) => {
           const result = await client.query<{ id: string }>(
@@ -311,7 +315,7 @@ export const build_authentication_session_repository = (
                 actor_label: safe_audit_actor_label(actor.display_name),
                 session_id: session.id,
                 occurred_at,
-                source_type: "web",
+                source_type: current_audit_source_type(),
               })
             : null,
         write_audit_event,

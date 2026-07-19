@@ -1,4 +1,26 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { AuditSourceType } from "@repo/audit-domain";
+
+export type AuditRequestContext = {
+  request_id: string;
+  source_type: AuditSourceType;
+};
+
+const request_context_storage = new AsyncLocalStorage<AuditRequestContext>();
+
+export const run_with_audit_request_context = <Result>(
+  context: AuditRequestContext,
+  work: () => Result,
+) => request_context_storage.run(context, work);
+
+export const current_audit_request_context = () =>
+  request_context_storage.getStore() ?? null;
+
+export const current_audit_source_type = () =>
+  current_audit_request_context()?.source_type ?? "web";
+
+export const current_audit_request_id = () =>
+  current_audit_request_context()?.request_id ?? null;
 
 type RequestLike = {
   id: string;

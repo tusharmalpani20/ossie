@@ -9,7 +9,11 @@ import {
   type AuditValueType,
 } from "@repo/audit-domain";
 import { ulid } from "ulid";
-import { safe_audit_actor_label } from "./audit-request-context";
+import {
+  current_audit_request_id,
+  current_audit_source_type,
+  safe_audit_actor_label,
+} from "./audit-request-context";
 import type { AuditMutationContext } from "./audit-context";
 
 type EntityState = Record<string, unknown>;
@@ -43,7 +47,7 @@ export const resolve_org_user_audit_context = async (
     mutation: {
       organization_id: input.organization_id,
       actor_type: "org_user",
-      source_type: input.source_type ?? "web",
+      source_type: input.source_type ?? current_audit_source_type(),
     },
     actor_label: safe_audit_actor_label(result.rows[0]?.display_name ?? ""),
   };
@@ -153,7 +157,7 @@ export const build_entity_audit_event = (input: EntityAuditEventInput) => {
     actor_type,
     actor_org_user_id: actor_type === "org_user" ? input.actor_org_user_id : null,
     actor_label: input.actor_label,
-    request_id: null,
+    request_id: current_audit_request_id(),
     correlation_id: null,
     idempotency_key_hash: null,
     before_row_version: input.before_row_version,
