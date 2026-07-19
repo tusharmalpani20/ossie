@@ -58,6 +58,9 @@ rtk pnpm --filter server run migrate:up
       credentials and confirm `audit_schema.status` is `ready`.
 - [ ] Confirm migration `018_access_evidence_constraint_hardening.sql` is
       executed and `chk_access_event_scoped_success` is present.
+- [ ] Confirm migration `019_project_membership_foundation.sql` is executed;
+      disposable databases with preexisting Projects were reset/reseeded, and
+      the runtime role cannot bypass guarded Project Membership writes.
 - [ ] Start the API with runtime credentials only; do not reuse the migration
       process environment.
 - [ ] Before reopening writes, confirm catalog verification covers all current
@@ -74,6 +77,9 @@ rtk pnpm --filter server run migrate:up
       backups, and visible only through the authenticated Owner compliance API.
 - [ ] Open `/organization/compliance` as an Organization Owner and verify a
       synthetic protected read appears; verify a current Member receives 403.
+- [ ] With synthetic users, verify Owner implicit Project Admin access, explicit
+      Admin/Editor/Viewer discovery, immediate membership revocation, Project
+      Admin scoped compliance, and Editor-only curated Activity.
 - [ ] Record and monitor physical `audit_schema` table/index growth; portal
       totals are evidence counts and not storage metrics.
 - [ ] During restore rehearsal, verify project access, a capture asset, a guide preview, a published guide, and an interactive demo if demos exist.

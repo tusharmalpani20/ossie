@@ -6,8 +6,8 @@ Expanded: 2026-07-19
 
 Last rechecked: 2026-07-19
 
-Status: Implementation-ready. Planning only; no runtime, schema, API, UI, or
-extension implementation from this child has started.
+Status: Complete. Implemented, verified, browser-dogfooded, and closed on
+2026-07-19.
 
 Parent plan:
 
@@ -1400,52 +1400,95 @@ Planning:
 
 Implementation and closeout:
 
-- [ ] Record implementation start commit and worktree ownership.
-- [ ] Add shared contracts and additive migration through TDD.
-- [ ] Implement central Project authorization and membership lifecycle.
-- [ ] Enforce all current private Project routes and evidence paths.
-- [ ] Implement Project compliance, curated Activity, portal, and extension
+- [x] Record implementation start commit and worktree ownership.
+- [x] Add shared contracts and additive migration through TDD.
+- [x] Implement central Project authorization and membership lifecycle.
+- [x] Enforce all current private Project routes and evidence paths.
+- [x] Implement Project compliance, curated Activity, portal, and extension
       behavior.
-- [ ] Pass focused, DB, smoke, broad, and real-browser verification.
-- [ ] Recheck implementation against this plan and master `005` until clean.
-- [ ] Update status, implementation log, verification record, leftovers, and
+- [x] Pass focused, DB, smoke, broad, and real-browser verification, with the
+      unavailable unpacked-extension toolbar capability recorded below.
+- [x] Recheck implementation against this plan and master `005` until clean.
+- [x] Update status, implementation log, verification record, leftovers, and
       parent completed items together.
-- [ ] Commit only attributable changes in small logical commits.
+- [x] Commit only attributable changes in small logical commits.
 
 ## Implementation Log
 
-Not started. This expansion changes documentation only.
+Implementation started from clean commit `a25c841`. The delivered logical
+commits are:
+
+- `9a75eb2` adds shared contracts, migration `019`, schema verification,
+  relational persistence, the capability policy, audited membership lifecycle,
+  and transactional creator bootstrap;
+- `1cdc256` composes one authorization boundary across private Project,
+  capture, Guide, Interactive Demo, publish, compliance, and Activity services;
+- `4ec76d3` removes an unnecessary runtime lock on `org_user` discovered by a
+  real membership-assignment request while retaining database Audit guards;
+- `d780ca9` extends the database smoke workflow through hidden discovery,
+  assignment, and subsequent access;
+- `55cebe6` adds membership administration, effective-role display,
+  Active/Archived discovery, scoped compliance, curated Activity, and stable
+  permission/hidden states to the portal;
+- `3d42ed3` limits extension capture targets to active Admin/Editor Projects via
+  `purpose=capture`, preserving stale-selection clearing and diagnostics;
+- `9558311` closes a recheck gap by making Viewer and archived Project capture,
+  Guide, and Interactive Demo surfaces genuinely read-only.
+
+The existing feature repositories remain Organization/Project scoped as
+defense in depth; production services receive authorization through composition
+instead of duplicating role strings. Project creation writes an explicit Admin
+membership only for a non-owner creator in the same audited transaction.
+Membership assignment, role change, removal, and stable-row reactivation use
+optimistic Row Versions and typed Audit Change Items. Activity is an allowlisted
+Audit projection; raw Project compliance remains Admin/Owner-only.
+
+Two runtime-safe adaptations were made during verification: the service does
+not lock `organization_schema.org_user` with runtime credentials because that
+table intentionally has no runtime update grant, and membership errors are
+mapped at their route boundary to avoid double replies. Database constraints
+still reject active Owner memberships and unaudited membership writes.
 
 ## Verification Record
 
-Planning verification only:
+Completed on 2026-07-19:
 
-- inspected the clean `46c44c9` baseline, current migrations through `018`,
-  Project/auth/Organization schemas and contracts, Audit/Access registries and
-  validators, compliance query/API/UI, all current private Project route
-  families, portal routing/pages, and extension Project selection;
-- reconciled the plan with `CONTEXT.md`, ADRs `0015`, `0023`, `0024`, and
-  `0025`, child `111` accepted capability/timeline decisions, completed child
-  `114`, and master `005`;
-- implementation-readiness recheck removed an unsafe existing-Project backfill
-  that contradicted master `005`'s greenfield reset/reseed boundary and would
-  have violated ADR `0023` if left unaudited; it now uses an explicit non-empty
-  Project refusal and requires any future approved data migration to use system/
-  migration Audit Evidence;
-- recheck also aligned `019` with shipped `verify_evidence_schema`/`migrate.ts`,
-  preserved exact Access route/action context, added the archived-Project
-  read-only wrapper, made disabled assigned Members explainable/removable, and
-  repaired malformed schema/table examples;
-- no runtime tests, database migration, build, or browser validation is claimed
-  by this planning-only update.
+- `rtk pnpm -r --if-present test`: 84 server files/410 tests, 29 web
+  files/320 tests, 11 extension files/93 tests, and every shared-package/docs
+  suite passed;
+- focused contract suites passed: constants 3, shared types 44, and Audit
+  domain 48 tests;
+- focused Project Membership/access/Activity, Project/compliance/evidence,
+  private feature-route, portal, and extension suites passed during TDD;
+- `rtk pnpm lint`, `rtk pnpm check-types`, and `rtk pnpm build` passed for the
+  full workspace after the final read-only recheck;
+- migration `019` applied cleanly to disposable PostgreSQL, schema verification
+  and Project Membership database suites passed, populated DOWN correctly
+  refused retained membership/project-role evidence, clean DOWN/UP reset passed,
+  and the updated `v1-workflows` smoke suite passed;
+- database invariant tests passed for tenant FKs, Owner rejection, guarded
+  runtime writes, optimistic conflict behavior, and retained evidence;
+- `git diff --check` passed before each implementation commit.
+
+Real browser validation used named synthetic `agent-browser` sessions against
+local server/web processes. It covered Owner membership administration,
+invited Editor discovery before/after assignment, Editor Activity and direct
+Settings/compliance denials, Editor-to-Viewer role change, Viewer read-only
+capture behavior, archived discovery/read-only behavior, confirmed membership
+removal and immediate hidden/not-found revocation, Project-scoped compliance,
+curated Activity, keyboard navigation, narrow `375x812` layout, zoom/reflow,
+and console/network review. A real request exposed and drove the audited
+membership-assignment lock fix. Sessions were closed and local services were
+stopped; no browser state or screenshot is committed.
+
+The normal web browser runner cannot load/control the unpacked extension
+toolbar in this environment. Per the plan, that capability is recorded as
+blocked rather than claimed; extension API/App/helper tests, lint, typecheck,
+and production build passed.
 
 ## Leftovers And Handoff
 
-Implementation starts from migration `019` and must preserve all completed
-child `114` invariants. Reinspect the baseline and uncommitted work before the
-first code change.
-
-On successful closeout, hand child `116`:
+Child `115` has no known implementation blocker. Hand child `116`:
 
 - the stable `ProjectAccess` DTO and central authorization interface;
 - the tested future `project_version.manage` policy cell without a shipped
@@ -1463,5 +1506,12 @@ Edition/Revision/Publication models, reuse `artifact.read`/
 `publication.read`, and keep raw Audit/Access and Editor Activity unavailable to
 Viewer.
 
-Do not advance master `005` or mark child `115` complete merely because this
-plan is implementation-ready.
+Operational leftovers remain intentionally explicit:
+
+- real unpacked-extension toolbar validation remains blocked by the available
+  browser-control capability; do not reinterpret unit/build evidence as a real
+  extension pass;
+- child `114`'s injected failing-Access-writer browser harness remains blocked,
+  while fail-closed server/app coverage stays green;
+- ordinary Viewer Revision/Publication history remains owned by children `118`
+  through `120`; current snapshots were not relabeled as future Publications.

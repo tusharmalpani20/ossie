@@ -214,6 +214,15 @@ an invalid successful row. Resolve that data inconsistency through an explicit
 operator-reviewed maintenance process before retrying. DOWN removes only the
 named scoped-success CHECK and does not remove evidence.
 
+Migration `019_project_membership_foundation.sql` is the final clean pre-live
+authorization transition before Project Version work. It refuses any existing
+Project row or unsupported legacy Organization `admin` row rather than inventing
+unaudited access history. Reset and reseed disposable pre-`019` databases. The
+migration adds guarded relational Project Membership and Project-role Access
+Evidence validation; deploy the migrated server, portal, and extension
+together. DOWN refuses retained Project Membership rows or `project_role`
+Access Evidence and never deletes either history kind automatically.
+
 Before upgrading:
 
 1. Stop all API/background writers; do not use a rolling mixed-writer deploy.
@@ -224,7 +233,9 @@ Before upgrading:
    `audit_schema.status` to be `ready`.
 6. Start the API with runtime credentials only.
 7. Check `/readyz`.
-8. Run a smoke test through sign-in, project access, guide preview, public guide, and interactive demo viewer.
+8. Run a smoke test through sign-in, membership-aware Project discovery,
+   Project role assignment/revocation, Guide preview, public Guide, and
+   Interactive Demo viewer.
 
 ## Reverse Proxy And HTTPS
 

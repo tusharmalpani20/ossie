@@ -2,7 +2,7 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `114` are complete. Child `115` is
+Status: In progress. Children `109` through `115` are complete. Child `116` is
 the next executable child and requires expansion/recheck before implementation.
 
 Master plan number: 005.
@@ -66,7 +66,7 @@ Baseline reviewed on 2026-07-10:
   same-transaction database guards. Child `114` adds explicit relational Access
   Evidence, fail-closed protected reads, and the Owner-only combined compliance
   timeline. Project-role visibility remains child `115` scope.
-- Current migrations end at `018_access_evidence_constraint_hardening.sql`.
+- Current migrations end at `019_project_membership_foundation.sql`.
   Migration `015` implements the
   accepted clean pre-live transition and refuses populated User or Organization
   data; no production-row backfill exists.
@@ -77,8 +77,8 @@ Baseline reviewed on 2026-07-10:
 - Current pages still rely heavily on CSS Modules, hard-coded slate/hex values, repeated control styling, and only minimal global tokens. The UI track is therefore a consolidation and product-design effort, not a fresh Tailwind or icon migration.
 - Child `109` installed the accepted external design guidance as pinned, optional repository tooling and documented provenance, compatibility changes, update/removal procedure, and rejected sources in `docs/agent-workflow.md`. It remains outside application dependencies and runtime behavior.
 - The current UI works at alpha level but does not yet provide the consistency, hierarchy, density, responsive behavior, accessibility, or navigation expected from a daily internal tool.
-- Master plans `001` through `004` are complete. Children `109` through `114`
-  are complete; child `115` Project Membership Foundation is next.
+- Master plans `001` through `004` are complete. Children `109` through `115`
+  are complete; child `116` Project Version Foundation is next.
   The
   optional overnight-runner tooling checkpoint was deferred on 2026-07-19 and
   is not a gate for sequential child execution.
@@ -964,9 +964,8 @@ Acceptance:
 
 ### 115: Project Membership Foundation
 
-Status: Implementation not started. Child plan expanded and implementation-
-readiness rechecked on 2026-07-19; its planning checkpoint is ready for
-implementation.
+Status: Complete. Implemented, verified, browser-dogfooded, and closed on
+2026-07-19.
 
 Planned file:
 
@@ -1873,7 +1872,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `112`.
 - [x] Create, expand, recheck, implement, and close child plan `113`.
 - [x] Create, expand, recheck, implement, and close child plan `114`.
-- [ ] Create, expand, recheck, implement, and close child plan `115`.
+- [x] Create, expand, recheck, implement, and close child plan `115`.
 - [ ] Create, expand, recheck, implement, and close child plan `116`.
 - [ ] Create, expand, recheck, implement, and close child plan `117`.
 - [ ] Create, expand, recheck, implement, and close child plan `118`.
@@ -1927,8 +1926,8 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is implementation of child `115` Project
-Membership Foundation from its rechecked implementation-ready plan. The
+The next executable activity is expansion and implementation-readiness recheck
+of child `116` Project Version Foundation. The
 separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -1936,10 +1935,10 @@ longer blocks this master-plan sequence.
 
 Children `109`, `110`, the deliberately early `111` grill, Audit Evidence Core
 child `112`, comprehensive existing-mutation coverage child `113`, and Access
-Evidence/Owner compliance timeline child `114` are complete. Child `115` may now
-add accepted Project Membership and role visibility by extending, not bypassing,
-the shipped evidence and authorization seams.
+Evidence/Owner compliance timeline child `114`, and Project Membership
+Foundation child `115` are complete. Child `116` may now add the accepted
+Project Version foundation by reusing, not bypassing, the shipped Project
+authorization and evidence seams.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with implementation of `115` Project Membership Foundation. Project
-Version begins at `116` only after `115` closes.
+continues with expansion and recheck of `116` Project Version Foundation.
