@@ -5,6 +5,8 @@ import type {
 
 export type CreateCaptureSessionInput = {
   name: string;
+  project_version_id: string;
+  start_immediately?: boolean;
   description?: string | null;
   source_type?: CaptureSessionSourceType;
   start_url?: string | null;
@@ -42,6 +44,8 @@ export type UpdateCaptureSessionInput = Partial<{
 
 export type NormalizedCreateCaptureSessionInput = {
   name: string;
+  project_version_id: string;
+  start_immediately?: boolean;
   description?: string | null;
   source_type?: CaptureSessionSourceType;
   start_url?: string | null;
@@ -73,6 +77,7 @@ export type NormalizedUpdateCaptureSessionInput = Partial<{
 export type CaptureSessionCompletionTarget = {
   id: string;
   project_id: string;
+  project_version: { slug: string };
 };
 
 export type CaptureSessionAssetFileTarget = {

@@ -10,8 +10,11 @@ import {
   CreateCaptureAssetRequestSchema,
   CreateCaptureEventRequestSchema,
   CreateCaptureSessionRequestSchema,
+  CaptureSessionListQuerySchema,
+  ProjectCaptureAssetListQuerySchema,
   ProjectCaptureAssetListResponseSchema,
   ProjectCaptureSessionParamsSchema,
+  ReassignCaptureSessionProjectVersionRequestSchema,
   ReorderCaptureEventsRequestSchema,
   UpdateCaptureEventRequestSchema,
   UpdateCaptureSessionRequestSchema,
@@ -21,6 +24,14 @@ const captureSession = {
   id: "capture_session_1",
   organization_id: "org_1",
   project_id: "project_1",
+  project_version_id: "version_1",
+  project_version: {
+    id: "version_1",
+    name: "Main",
+    slug: "main",
+    status: "active",
+    position: 1,
+  },
   name: "Session",
   description: null,
   status: "capturing",
@@ -103,29 +114,35 @@ const captureAsset = {
 
 describe("capture contracts", () => {
   it("matches existing item route param names", () => {
-    expect(ProjectCaptureSessionParamsSchema.parse({
-      project_id: " project_1 ",
-      id: " capture_session_1 ",
-    })).toEqual({
+    expect(
+      ProjectCaptureSessionParamsSchema.parse({
+        project_id: " project_1 ",
+        id: " capture_session_1 ",
+      }),
+    ).toEqual({
       project_id: "project_1",
       id: "capture_session_1",
     });
 
-    expect(CaptureEventParamsSchema.parse({
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      id: " capture_event_1 ",
-    })).toEqual({
+    expect(
+      CaptureEventParamsSchema.parse({
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        id: " capture_event_1 ",
+      }),
+    ).toEqual({
       project_id: "project_1",
       capture_session_id: "capture_session_1",
       id: "capture_event_1",
     });
 
-    expect(CaptureAssetParamsSchema.parse({
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      id: " capture_asset_1 ",
-    })).toEqual({
+    expect(
+      CaptureAssetParamsSchema.parse({
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        id: " capture_asset_1 ",
+      }),
+    ).toEqual({
       project_id: "project_1",
       capture_session_id: "capture_session_1",
       id: "capture_asset_1",
@@ -133,15 +150,21 @@ describe("capture contracts", () => {
   });
 
   it("preserves capture session request passthrough and response shapes", () => {
-    expect(CreateCaptureSessionRequestSchema.parse({
-      name: " Session ",
-      source_type: "extension",
-      metadata: {
-        mode: "automatic",
-      },
-      ignored_but_allowed: true,
-    })).toEqual({
+    expect(
+      CreateCaptureSessionRequestSchema.parse({
+        name: " Session ",
+        project_version_id: " version_1 ",
+        start_immediately: true,
+        source_type: "extension",
+        metadata: {
+          mode: "automatic",
+        },
+        ignored_but_allowed: true,
+      }),
+    ).toEqual({
       name: "Session",
+      project_version_id: "version_1",
+      start_immediately: true,
       source_type: "extension",
       metadata: {
         mode: "automatic",
@@ -149,31 +172,71 @@ describe("capture contracts", () => {
       ignored_but_allowed: true,
     });
 
-    expect(UpdateCaptureSessionRequestSchema.parse({
-      status: "completed",
-      ignored_but_allowed: true,
-    })).toEqual({
+    expect(
+      UpdateCaptureSessionRequestSchema.parse({
+        status: "completed",
+        ignored_but_allowed: true,
+      }),
+    ).toEqual({
       status: "completed",
       ignored_but_allowed: true,
     });
 
-    expect(CompleteCaptureSessionResponseSchema.parse({
-      capture_session: captureSession,
-      redirect: {
-        path: "/projects/project_1/capture-sessions/capture_session_1",
-        reason: "capture_session_completed",
-      },
-    }).redirect.reason).toBe("capture_session_completed");
+    expect(
+      CompleteCaptureSessionResponseSchema.parse({
+        capture_session: captureSession,
+        redirect: {
+          path: "/projects/project_1/versions/main/capture-sessions/capture_session_1",
+          reason: "capture_session_completed",
+        },
+      }).redirect.reason,
+    ).toBe("capture_session_completed");
+  });
+
+  it("requires explicit Project Version collection and reassignment context", () => {
+    expect(
+      CreateCaptureSessionRequestSchema.safeParse({ name: "Session" }).success,
+    ).toBe(false);
+    expect(
+      CaptureSessionListQuerySchema.parse({
+        project_version_id: " version_1 ",
+        status: "draft",
+      }),
+    ).toEqual({ project_version_id: "version_1", status: "draft" });
+    expect(
+      CaptureSessionListQuerySchema.safeParse({ status: "draft" }).success,
+    ).toBe(false);
+    expect(
+      ProjectCaptureAssetListQuerySchema.parse({
+        project_version_id: " version_1 ",
+        asset_type: "screenshot",
+      }),
+    ).toEqual({ project_version_id: "version_1", asset_type: "screenshot" });
+    expect(
+      ReassignCaptureSessionProjectVersionRequestSchema.parse({
+        project_version_id: " version_2 ",
+        expected_version: 1,
+      }),
+    ).toEqual({ project_version_id: "version_2", expected_version: 1 });
+    expect(
+      ReassignCaptureSessionProjectVersionRequestSchema.safeParse({
+        project_version_id: "version_2",
+        expected_version: 1,
+        extra: true,
+      }).success,
+    ).toBe(false);
   });
 
   it("validates capture event create, update, reorder, and response shapes", () => {
-    expect(CreateCaptureEventRequestSchema.parse({
-      event_type: "click",
-      event_index: 1,
-      capture_asset_id: " capture_asset_1 ",
-      input_value_redacted: true,
-      raw_extra_is_allowed_until_privacy_check: "x",
-    })).toEqual({
+    expect(
+      CreateCaptureEventRequestSchema.parse({
+        event_type: "click",
+        event_index: 1,
+        capture_asset_id: " capture_asset_1 ",
+        input_value_redacted: true,
+        raw_extra_is_allowed_until_privacy_check: "x",
+      }),
+    ).toEqual({
       event_type: "click",
       event_index: 1,
       capture_asset_id: "capture_asset_1",
@@ -182,41 +245,49 @@ describe("capture contracts", () => {
     });
 
     expect(UpdateCaptureEventRequestSchema.safeParse({}).success).toBe(false);
-    expect(UpdateCaptureEventRequestSchema.safeParse({
-      note: "Updated",
-      unexpected: true,
-    }).success).toBe(false);
-    expect(ReorderCaptureEventsRequestSchema.parse({
-      event_ids: [" event_1 "],
-    })).toEqual({
+    expect(
+      UpdateCaptureEventRequestSchema.safeParse({
+        note: "Updated",
+        unexpected: true,
+      }).success,
+    ).toBe(false);
+    expect(
+      ReorderCaptureEventsRequestSchema.parse({
+        event_ids: [" event_1 "],
+      }),
+    ).toEqual({
       event_ids: ["event_1"],
     });
-    expect(CaptureEventResponseSchema.parse({ capture_event: captureEvent })).toEqual({
+    expect(
+      CaptureEventResponseSchema.parse({ capture_event: captureEvent }),
+    ).toEqual({
       capture_event: captureEvent,
     });
   });
 
   it("validates capture asset response variants and detail responses", () => {
-    expect(CreateCaptureAssetRequestSchema.parse({
-      asset_type: "screenshot",
-      width: 1440,
-      height: 900,
-      device_pixel_ratio: 2,
-      page_url: "https://example.com",
-      page_title: "Example",
-      captured_at: "2026-07-07T00:00:00.000Z",
-      metadata: { source: "manual" },
-      file: {
-        storage_provider: "local",
-        storage_key: " storage/key.png ",
-        mime_type: " image/png ",
-        size_bytes: 1024,
-        original_name: "screenshot.png",
-        checksum_sha256: null,
-        ignored_file_metadata: true,
-      },
-      ignored_but_allowed: true,
-    })).toEqual({
+    expect(
+      CreateCaptureAssetRequestSchema.parse({
+        asset_type: "screenshot",
+        width: 1440,
+        height: 900,
+        device_pixel_ratio: 2,
+        page_url: "https://example.com",
+        page_title: "Example",
+        captured_at: "2026-07-07T00:00:00.000Z",
+        metadata: { source: "manual" },
+        file: {
+          storage_provider: "local",
+          storage_key: " storage/key.png ",
+          mime_type: " image/png ",
+          size_bytes: 1024,
+          original_name: "screenshot.png",
+          checksum_sha256: null,
+          ignored_file_metadata: true,
+        },
+        ignored_but_allowed: true,
+      }),
+    ).toEqual({
       asset_type: "screenshot",
       width: 1440,
       height: 900,
@@ -237,30 +308,44 @@ describe("capture contracts", () => {
       ignored_but_allowed: true,
     });
 
-    expect(CaptureAssetListQuerySchema.parse({
-      asset_type: "screenshot",
-    })).toEqual({
+    expect(
+      CaptureAssetListQuerySchema.parse({
+        asset_type: "screenshot",
+      }),
+    ).toEqual({
       asset_type: "screenshot",
     });
 
-    expect(CaptureAssetResponseSchema.parse({ capture_asset: captureAsset })).toEqual({
+    expect(
+      CaptureAssetResponseSchema.parse({ capture_asset: captureAsset }),
+    ).toEqual({
       capture_asset: captureAsset,
     });
 
-    expect(ProjectCaptureAssetListResponseSchema.parse({
-      capture_assets: [{
-        ...captureAsset,
-        file_url: "/api/v1/projects/project_1/capture-assets/capture_asset_1/file",
-      }],
-    }).capture_assets[0]?.file_url).toContain("/file");
+    expect(
+      ProjectCaptureAssetListResponseSchema.parse({
+        capture_assets: [
+          {
+            ...captureAsset,
+            file_url:
+              "/api/v1/projects/project_1/capture-assets/capture_asset_1/file",
+          },
+        ],
+      }).capture_assets[0]?.file_url,
+    ).toContain("/file");
 
-    expect(CaptureSessionDetailResponseSchema.parse({
-      capture_session: captureSession,
-      capture_events: [captureEvent],
-      capture_assets: [{
-        ...captureAsset,
-        file_url: "/api/v1/projects/project_1/capture-assets/capture_asset_1/file",
-      }],
-    }).capture_assets).toHaveLength(1);
+    expect(
+      CaptureSessionDetailResponseSchema.parse({
+        capture_session: captureSession,
+        capture_events: [captureEvent],
+        capture_assets: [
+          {
+            ...captureAsset,
+            file_url:
+              "/api/v1/projects/project_1/capture-assets/capture_asset_1/file",
+          },
+        ],
+      }).capture_assets,
+    ).toHaveLength(1);
   });
 });

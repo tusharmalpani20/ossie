@@ -70,6 +70,67 @@ export class InvalidCaptureSessionInputError extends CaptureDomainError {
   }
 }
 
+export class CaptureSessionProjectVersionLockedError extends CaptureDomainError {
+  constructor() {
+    super({
+      code: "capture_session_project_version_locked",
+      message: "Capture Session Project Version is locked",
+      status_hint: "conflict",
+    });
+  }
+}
+
+export class CaptureSessionProjectVersionUnchangedError extends CaptureDomainError {
+  constructor() {
+    super({
+      code: "capture_session_project_version_unchanged",
+      message: "Capture Session already belongs to that Project Version",
+      status_hint: "bad_request",
+    });
+  }
+}
+
+export class CaptureSessionConflictError extends CaptureDomainError {
+  constructor() {
+    super({
+      code: "capture_session_conflict",
+      message: "Capture Session changed; reload and retry",
+      status_hint: "conflict",
+    });
+  }
+}
+
+export class CaptureProjectVersionConflictError extends CaptureDomainError {
+  constructor() {
+    super({
+      code: "project_version_conflict",
+      message: "Archived Project Versions are read-only",
+      status_hint: "conflict",
+    });
+  }
+}
+
+export class CaptureProjectVersionNotFoundError extends CaptureDomainError {
+  constructor() {
+    super({
+      code: "project_version_not_found",
+      message: "Project Version was not found",
+      status_hint: "not_found",
+    });
+  }
+}
+
+export class CaptureArtifactVersionNotReadyError extends CaptureDomainError {
+  constructor() {
+    super({
+      code: "capture_artifact_version_not_ready",
+      message:
+        "Guide and Interactive Demo creation for this Project Version is not available yet",
+      status_hint: "conflict",
+    });
+  }
+}
+
 export class CaptureAssetNotFoundError extends CaptureDomainError {
   constructor() {
     super({

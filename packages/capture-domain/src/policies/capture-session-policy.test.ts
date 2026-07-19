@@ -15,6 +15,7 @@ import {
 const capture_session = {
   id: "capture_session_1",
   project_id: "project_1",
+  project_version: { slug: "release-2" },
 };
 
 const capture_asset = {
@@ -25,21 +26,27 @@ const capture_asset = {
 
 describe("capture session policy", () => {
   it("normalizes create input strings without owning scope or lifecycle", () => {
-    expect(normalize_create_capture_session({
-      name: "  Session  ",
-      description: "  Description  ",
-      source_type: "extension",
-      start_url: "  https://example.com  ",
-      browser_name: "  Chrome  ",
-      browser_version: "  126  ",
-      operating_system: "  Linux  ",
-      viewport_width: 1440,
-      viewport_height: 900,
-      device_pixel_ratio: 2,
-      user_agent: "  Agent  ",
-      metadata: { mode: "automatic" },
-    })).toEqual({
+    expect(
+      normalize_create_capture_session({
+        name: "  Session  ",
+        project_version_id: "version_2",
+        start_immediately: true,
+        description: "  Description  ",
+        source_type: "extension",
+        start_url: "  https://example.com  ",
+        browser_name: "  Chrome  ",
+        browser_version: "  126  ",
+        operating_system: "  Linux  ",
+        viewport_width: 1440,
+        viewport_height: 900,
+        device_pixel_ratio: 2,
+        user_agent: "  Agent  ",
+        metadata: { mode: "automatic" },
+      }),
+    ).toEqual({
       name: "Session",
+      project_version_id: "version_2",
+      start_immediately: true,
       description: "Description",
       source_type: "extension",
       start_url: "https://example.com",
@@ -53,13 +60,18 @@ describe("capture session policy", () => {
       metadata: { mode: "automatic" },
     });
 
-    expect(normalize_create_capture_session({
+    expect(
+      normalize_create_capture_session({
+        name: "Session",
+        project_version_id: "version_1",
+        description: "  ",
+        start_url: null,
+        browser_name: undefined,
+      }),
+    ).toEqual({
       name: "Session",
-      description: "  ",
-      start_url: null,
-      browser_name: undefined,
-    })).toEqual({
-      name: "Session",
+      project_version_id: "version_1",
+      start_immediately: undefined,
       description: null,
       source_type: undefined,
       start_url: null,
@@ -90,24 +102,34 @@ describe("capture session policy", () => {
       browser_name: null,
       metadata: { source: "test" },
     });
-    expect(() => assert_non_empty_capture_session_update(normalized)).not.toThrow();
-    expect(() => assert_non_empty_capture_session_update({})).toThrow(EmptyCaptureSessionUpdateError);
+    expect(() =>
+      assert_non_empty_capture_session_update(normalized),
+    ).not.toThrow();
+    expect(() => assert_non_empty_capture_session_update({})).toThrow(
+      EmptyCaptureSessionUpdateError,
+    );
   });
 
   it("rejects client-managed lifecycle timestamps", () => {
-    expect(() => assert_no_client_lifecycle_timestamp_input({
-      started_at: "2026-07-07T00:00:00.000Z",
-    })).toThrow(InvalidCaptureSessionInputError);
+    expect(() =>
+      assert_no_client_lifecycle_timestamp_input({
+        started_at: "2026-07-07T00:00:00.000Z",
+      }),
+    ).toThrow(InvalidCaptureSessionInputError);
 
-    expect(() => assert_no_client_lifecycle_timestamp_input({
-      name: "Allowed",
-    })).not.toThrow();
+    expect(() =>
+      assert_no_client_lifecycle_timestamp_input({
+        name: "Allowed",
+      }),
+    ).not.toThrow();
   });
 
   it("validates completion bodies and builds response helpers", () => {
     expect(is_valid_capture_session_completion_body(undefined)).toBe(true);
     expect(is_valid_capture_session_completion_body({})).toBe(true);
-    expect(is_valid_capture_session_completion_body({ status: "completed" })).toBe(false);
+    expect(
+      is_valid_capture_session_completion_body({ status: "completed" }),
+    ).toBe(false);
     expect(() => {
       if (!is_valid_capture_session_completion_body({ status: "completed" })) {
         throw new InvalidCaptureSessionCompletionError();
@@ -115,11 +137,11 @@ describe("capture session policy", () => {
     }).toThrow(InvalidCaptureSessionCompletionError);
 
     expect(build_capture_session_completion_redirect(capture_session)).toEqual({
-      path: "/projects/project_1/capture-sessions/capture_session_1",
+      path: "/projects/project_1/versions/release-2/capture-sessions/capture_session_1",
       reason: "capture_session_completed",
     });
     expect(build_capture_session_asset_file_url(capture_asset)).toBe(
-      "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file"
+      "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
     );
   });
 });
