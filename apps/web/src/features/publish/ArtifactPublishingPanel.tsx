@@ -37,7 +37,28 @@ export const ArtifactPublishingPanel = ({
     [selected, setSelected] = useState<string[]>([]),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
-    [name, setName] = useState("Public link");
+    [name, setName] = useState("Public link"),
+    [newLinkWithPublish, setNewLinkWithPublish] = useState(false),
+    [newVisibility, setNewVisibility] = useState<"public" | "restricted">(
+      "public",
+    ),
+    [newExpiry, setNewExpiry] = useState(""),
+    [newPassword, setNewPassword] = useState(""),
+    [settings, setSettings] = useState<{
+      link: PublishLink;
+      name: string;
+      visibility: "public" | "restricted";
+      expiry: string;
+      password: string;
+      clearPassword: boolean;
+    } | null>(null),
+    [rollback, setRollback] = useState<{
+      link: PublishLink;
+      entryId: string;
+      current: PublishedArtifact;
+      target: PublishedArtifact;
+    } | null>(null),
+    [rollbackReason, setRollbackReason] = useState("");
   const active = useMemo(
     () => links.filter((link) => link.status === "active"),
     [links],
@@ -59,20 +80,24 @@ export const ArtifactPublishingPanel = ({
     ]);
     setPublications(history.publications);
     setLinks(linkList.publish_links);
-    setSelected(
-      linkList.publish_links
-        .filter((link) => link.status === "active")
-        .map((link) => link.id),
-    );
+    setSelected([]);
   }, [projectId, projectVersionId, artifactType, artifactId]);
   useEffect(() => {
     void load().catch(() => setMessage("Could not load publishing."));
   }, [load]);
+  useEffect(() => {
+    if (!rollback) return;
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) setRollback(null);
+    };
+    document.addEventListener("keydown", cancel);
+    return () => document.removeEventListener("keydown", cancel);
+  }, [busy, rollback]);
   const publish = async () => {
     setBusy(true);
     setMessage("");
     try {
-      await publishArtifact(
+      const result = await publishArtifact(
         projectId,
         artifactType,
         artifactId,
@@ -86,10 +111,25 @@ export const ArtifactPublishingPanel = ({
               publish_link_id: link.id,
               expected_link_version: link.version,
             })),
+          ...(newLinkWithPublish
+            ? {
+                create_publish_link: {
+                  name: name.trim(),
+                  visibility: newVisibility,
+                  expires_at: newExpiry
+                    ? new Date(newExpiry).toISOString()
+                    : null,
+                  password: newPassword || null,
+                },
+              }
+            : {}),
         },
       );
       await load();
-      setMessage("Publication created.");
+      setNewLinkWithPublish(false);
+      setMessage(
+        `Publication ${result.published_artifact.publication_sequence} created from Revision ${result.published_artifact.revision_number}${result.revision_reused ? " (reused)" : ""}. ${result.updated_publish_links.length + (result.created_publish_link ? 1 : 0)} Publish Link${result.updated_publish_links.length + (result.created_publish_link ? 1 : 0) === 1 ? "" : "s"} updated.`,
+      );
     } catch {
       setMessage("Could not publish. Reload and try again.");
     } finally {
@@ -109,9 +149,9 @@ export const ArtifactPublishingPanel = ({
         projectVersionId,
         {
           name,
-          visibility: "public",
-          expires_at: null,
-          password: null,
+          visibility: newVisibility,
+          expires_at: newExpiry ? new Date(newExpiry).toISOString() : null,
+          password: newPassword || null,
           published_artifact_ids: [latest.id],
           default_published_artifact_id: latest.id,
         },
@@ -120,6 +160,69 @@ export const ArtifactPublishingPanel = ({
       setMessage("Publish Link created.");
     } catch {
       setMessage("Could not create Publish Link.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const saveSettings = async () => {
+    if (!settings) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      await updateArtifactPublishLink(
+        projectId,
+        artifactType,
+        artifactId,
+        projectVersionId,
+        settings.link.id,
+        {
+          expected_link_version: settings.link.version,
+          name: settings.name.trim(),
+          visibility: settings.visibility,
+          expires_at: settings.expiry
+            ? new Date(settings.expiry).toISOString()
+            : null,
+          ...(settings.password
+            ? { password: settings.password }
+            : settings.clearPassword
+              ? { password: null }
+              : {}),
+        },
+      );
+      setSettings(null);
+      await load();
+      setMessage("Publish Link settings updated.");
+    } catch {
+      setMessage("Could not update settings. Reload and try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const confirmRollback = async () => {
+    if (!rollback) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const reason = rollbackReason.trim();
+      await rollbackArtifactPublishLinkEntry(
+        projectId,
+        artifactType,
+        artifactId,
+        projectVersionId,
+        rollback.link.id,
+        rollback.entryId,
+        {
+          expected_link_version: rollback.link.version,
+          target_published_artifact_id: rollback.target.id,
+          ...(reason ? { reason } : {}),
+        },
+      );
+      setRollback(null);
+      setRollbackReason("");
+      await load();
+      setMessage("Publish Link entry rolled back. No Publication was created.");
+    } catch {
+      setMessage("Could not roll back. Reload and try again.");
     } finally {
       setBusy(false);
     }
@@ -217,6 +320,9 @@ export const ArtifactPublishingPanel = ({
             </label>
             {link.status === "active" && (
               <div>
+                <a href={link.public_url} target="_blank" rel="noreferrer">
+                  Open {link.name}
+                </a>
                 <ol aria-label={`${link.name} versions`}>
                   {link.entries.map((entry, index) => (
                     <li key={entry.id}>
@@ -250,6 +356,12 @@ export const ArtifactPublishingPanel = ({
                             link.entries.length === 1
                           }
                           onClick={() => {
+                            if (
+                              !window.confirm(
+                                `Remove ${entry.project_version.name} from this Publish Link? The Publication will remain in history.`,
+                              )
+                            )
+                              return;
                             const remaining = link.entries.filter(
                               (item) => item.id !== entry.id,
                             );
@@ -305,19 +417,13 @@ export const ArtifactPublishingPanel = ({
                                     entry.published_artifact.edition_id &&
                                   item.id !== entry.published_artifact.id,
                               )!;
-                              void rollbackArtifactPublishLinkEntry(
-                                projectId,
-                                artifactType,
-                                artifactId,
-                                projectVersionId,
-                                link.id,
-                                entry.id,
-                                {
-                                  expected_link_version: link.version,
-                                  target_published_artifact_id: target.id,
-                                  reason: "Portal rollback",
-                                },
-                              ).then(load);
+                              setRollback({
+                                link,
+                                entryId: entry.id,
+                                current: entry.published_artifact,
+                                target,
+                              });
+                              setRollbackReason("");
                             }}
                           >
                             Roll back
@@ -326,27 +432,51 @@ export const ArtifactPublishingPanel = ({
                     </li>
                   ))}
                 </ol>
+                {showMutationControls &&
+                  publications[0] &&
+                  !link.entries.some(
+                    (entry) => entry.project_version.id === projectVersionId,
+                  ) && (
+                    <button
+                      disabled={
+                        linkManagementReadOnly ||
+                        busy ||
+                        link.entries.length >= 50
+                      }
+                      onClick={() =>
+                        void replaceManifest(
+                          link,
+                          [
+                            ...link.entries.map(
+                              (entry) => entry.published_artifact.id,
+                            ),
+                            publications[0]!.id,
+                          ],
+                          link.entries.find((entry) => entry.is_default)!
+                            .published_artifact.id,
+                        )
+                      }
+                    >
+                      Add current Project Version
+                    </button>
+                  )}
                 {showMutationControls && (
                   <button
                     disabled={linkManagementReadOnly || busy}
                     onClick={() =>
-                      void updateArtifactPublishLink(
-                        projectId,
-                        artifactType,
-                        artifactId,
-                        projectVersionId,
-                        link.id,
-                        {
-                          expected_link_version: link.version,
-                          visibility:
-                            link.visibility === "public"
-                              ? "restricted"
-                              : "public",
-                        },
-                      ).then(load)
+                      setSettings({
+                        link,
+                        name: link.name,
+                        visibility: link.visibility,
+                        expiry: link.expires_at
+                          ? link.expires_at.slice(0, 16)
+                          : "",
+                        password: "",
+                        clearPassword: false,
+                      })
                     }
                   >
-                    Set {link.visibility === "public" ? "restricted" : "public"}
+                    Edit settings
                   </button>
                 )}
                 {showMutationControls && (
@@ -377,6 +507,19 @@ export const ArtifactPublishingPanel = ({
       </div>
       {showMutationControls && (
         <div className={styles.create}>
+          {!publicationReadOnly && (
+            <label>
+              <input
+                type="checkbox"
+                checked={newLinkWithPublish}
+                disabled={busy}
+                onChange={(event) =>
+                  setNewLinkWithPublish(event.target.checked)
+                }
+              />
+              Create a Publish Link with this Publication
+            </label>
+          )}
           <label>
             New link name
             <input
@@ -385,11 +528,158 @@ export const ArtifactPublishingPanel = ({
               onChange={(event) => setName(event.target.value)}
             />
           </label>
+          <label>
+            New link visibility
+            <select
+              value={newVisibility}
+              onChange={(event) =>
+                setNewVisibility(event.target.value as "public" | "restricted")
+              }
+            >
+              <option value="public">Public</option>
+              <option value="restricted">Restricted</option>
+            </select>
+          </label>
+          <label>
+            New link expiry (optional)
+            <input
+              type="datetime-local"
+              value={newExpiry}
+              onChange={(event) => setNewExpiry(event.target.value)}
+            />
+          </label>
+          <label>
+            New link password (optional)
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+            />
+          </label>
           <button
             disabled={linkManagementReadOnly || busy || !name.trim()}
             onClick={() => void create()}
           >
             Create from latest Publication
+          </button>
+        </div>
+      )}
+      {settings && (
+        <div
+          className={styles.editor}
+          aria-label={`${settings.link.name} settings`}
+        >
+          <h4>Edit Publish Link settings</h4>
+          <label>
+            Link name
+            <input
+              maxLength={120}
+              value={settings.name}
+              onChange={(event) =>
+                setSettings({ ...settings, name: event.target.value })
+              }
+            />
+          </label>
+          <label>
+            Visibility
+            <select
+              value={settings.visibility}
+              onChange={(event) =>
+                setSettings({
+                  ...settings,
+                  visibility: event.target.value as "public" | "restricted",
+                })
+              }
+            >
+              <option value="public">Public</option>
+              <option value="restricted">Restricted</option>
+            </select>
+          </label>
+          <label>
+            Expiry (optional)
+            <input
+              type="datetime-local"
+              value={settings.expiry}
+              onChange={(event) =>
+                setSettings({ ...settings, expiry: event.target.value })
+              }
+            />
+          </label>
+          <label>
+            New password (optional)
+            <input
+              type="password"
+              value={settings.password}
+              onChange={(event) =>
+                setSettings({
+                  ...settings,
+                  password: event.target.value,
+                  clearPassword: false,
+                })
+              }
+            />
+          </label>
+          {settings.link.password_protected && (
+            <label>
+              <input
+                type="checkbox"
+                checked={settings.clearPassword}
+                disabled={Boolean(settings.password)}
+                onChange={(event) =>
+                  setSettings({
+                    ...settings,
+                    clearPassword: event.target.checked,
+                  })
+                }
+              />
+              Clear current password
+            </label>
+          )}
+          <button
+            disabled={busy || !settings.name.trim()}
+            onClick={() => void saveSettings()}
+          >
+            Save settings
+          </button>
+          <button disabled={busy} onClick={() => setSettings(null)}>
+            Cancel
+          </button>
+        </div>
+      )}
+      {rollback && (
+        <div
+          className={styles.dialog}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="rollback-heading"
+        >
+          <h4 id="rollback-heading">Confirm rollback</h4>
+          <p>
+            Current: Publication {rollback.current.publication_sequence} ·{" "}
+            {new Date(rollback.current.published_at).toLocaleString()} ·{" "}
+            {rollback.current.publisher.display_name}
+          </p>
+          <p>
+            Target: Publication {rollback.target.publication_sequence} ·{" "}
+            {new Date(rollback.target.published_at).toLocaleString()} ·{" "}
+            {rollback.target.publisher.display_name}
+          </p>
+          <p>
+            This changes the link entry only. It does not create a Publication.
+          </p>
+          <label>
+            Rollback reason (optional)
+            <textarea
+              maxLength={500}
+              value={rollbackReason}
+              onChange={(event) => setRollbackReason(event.target.value)}
+            />
+          </label>
+          <button disabled={busy} onClick={() => void confirmRollback()}>
+            Confirm rollback
+          </button>
+          <button disabled={busy} onClick={() => setRollback(null)}>
+            Cancel
           </button>
         </div>
       )}

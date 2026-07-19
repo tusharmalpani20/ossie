@@ -28,6 +28,7 @@ export const PublicInteractiveDemoViewerPage = ({
 }: PublicInteractiveDemoViewerPageProps) => {
   const [state, setState] = useState<State>({ kind: "loading" }),
     [password, setPassword] = useState(""),
+    [passwordError, setPasswordError] = useState<string | null>(null),
     [retry, setRetry] = useState(0),
     [sceneIndex, setSceneIndex] = useState(0);
   useEffect(() => {
@@ -74,9 +75,10 @@ export const PublicInteractiveDemoViewerPage = ({
     event.preventDefault();
     try {
       await createViewerSession(slug, "interactive_demo", { password }, mode);
+      setPasswordError(null);
       setRetry((v) => v + 1);
     } catch {
-      setState({ kind: "error", message: "Password is invalid." });
+      setPasswordError("Password is invalid.");
     }
   };
   if (state.kind === "loading")
@@ -90,8 +92,12 @@ export const PublicInteractiveDemoViewerPage = ({
             aria-label="Publish Link password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setPasswordError(null);
+            }}
           />
+          {passwordError && <p role="alert">{passwordError}</p>}
           <button>Continue</button>
         </form>
       </main>

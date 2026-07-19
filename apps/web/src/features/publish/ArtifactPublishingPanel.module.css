@@ -11,7 +11,8 @@
   gap: 1rem;
 }
 .panel button,
-.panel input {
+.panel input,
+.panel select {
   min-height: 2.5rem;
 }
 .links {
@@ -40,22 +41,46 @@
 .danger {
   color: #b91c1c;
 }
-.create {
+.create,
+.editor {
   display: flex;
   align-items: end;
+  flex-wrap: wrap;
   gap: 0.75rem;
 }
-.create label {
+.create label,
+.editor label,
+.dialog label {
   display: grid;
   gap: 0.35rem;
 }
-.create input {
+.create input,
+.editor input,
+.dialog textarea {
   padding: 0.4rem 0.6rem;
+}
+.dialog {
+  position: fixed;
+  z-index: 10;
+  inset: 50% auto auto 50%;
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  padding: 1.25rem;
+  border: 1px solid #94a3b8;
+  border-radius: 0.8rem;
+  background: white;
+  box-shadow: 0 1rem 3rem rgb(15 23 42 / 25%);
+}
+.dialog textarea {
+  min-height: 5rem;
 }
 @media (max-width: 40rem) {
   .panel header,
   .links article,
-  .create {
+  .create,
+  .editor {
     align-items: stretch;
     flex-direction: column;
   }

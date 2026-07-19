@@ -39,6 +39,7 @@ export const PublicGuideReaderPage = ({
 }: PublicGuideReaderPageProps) => {
   const [state, setState] = useState<State>({ kind: "loading" }),
     [password, setPassword] = useState(""),
+    [passwordError, setPasswordError] = useState<string | null>(null),
     [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
@@ -80,9 +81,10 @@ export const PublicGuideReaderPage = ({
     event.preventDefault();
     try {
       await createViewerSession(slug, "guide", { password }, mode);
+      setPasswordError(null);
       setRetry((value) => value + 1);
     } catch {
-      setState({ kind: "error", message: "Password is invalid." });
+      setPasswordError("Password is invalid.");
     }
   };
   if (state.kind === "loading")
@@ -96,8 +98,12 @@ export const PublicGuideReaderPage = ({
             aria-label="Publish Link password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setPasswordError(null);
+            }}
           />
+          {passwordError && <p role="alert">{passwordError}</p>}
           <button>Continue</button>
         </form>
       </main>

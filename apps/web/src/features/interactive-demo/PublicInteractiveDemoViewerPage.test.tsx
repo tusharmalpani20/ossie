@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { ApiClientError } from "../../lib/api";
 import { PublicInteractiveDemoViewerPage } from "./PublicInteractiveDemoViewerPage";
 describe("PublicInteractiveDemoViewerPage", () => {
   it("renders typed immutable Demo Revision content", async () => {
@@ -26,5 +27,41 @@ describe("PublicInteractiveDemoViewerPage", () => {
       />,
     );
     expect(await screen.findByRole("heading", { name: "Tour" })).toBeTruthy();
+  });
+
+  it("keeps the password form available after an invalid password", async () => {
+    const createViewerSession = vi.fn().mockRejectedValue(
+      new ApiClientError({
+        kind: "unauthenticated",
+        status: 401,
+        message: "Password is invalid.",
+        type: "publish_link_password_invalid",
+      }),
+    );
+    render(
+      <PublicInteractiveDemoViewerPage
+        slug="link"
+        loadPublishLink={async () => {
+          throw new ApiClientError({
+            kind: "unauthenticated",
+            status: 401,
+            message: "Password required.",
+            type: "publish_link_password_required",
+          });
+        }}
+        createViewerSession={createViewerSession}
+      />,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Publish Link password"), {
+      target: { value: "wrong" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Password is invalid.",
+    );
+    expect(screen.getByLabelText("Publish Link password")).toBeTruthy();
+    await waitFor(() => expect(createViewerSession).toHaveBeenCalledOnce());
   });
 });
