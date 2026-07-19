@@ -390,10 +390,14 @@ export const build_publish_transactional_repository = (
       const demo_scenes = scene_result.demo_scenes;
       const demo_hotspots: InteractiveDemoPublishDetail["demo_hotspots"] = [];
       for (const scene of demo_scenes) {
-        demo_hotspots.push(...(await demo_repository.list_hotspots({
-          ...input,
-          demo_scene_id: scene.id,
-        })).demo_hotspots);
+        demo_hotspots.push(
+          ...(
+            await demo_repository.list_hotspots({
+              ...input,
+              demo_scene_id: scene.id,
+            })
+          ).demo_hotspots,
+        );
       }
       const background_asset_ids = [
         ...new Set(
@@ -463,6 +467,7 @@ export const build_publish_transactional_repository = (
     },
 
     async create_published_artifact(input) {
+      const published_artifact_id = ulid();
       const result = await db.query<PublishedArtifactRow>(
         `
         INSERT INTO publish_schema.published_artifact (
@@ -480,7 +485,7 @@ export const build_publish_transactional_repository = (
         RETURNING ${published_artifact_select}
       `,
         [
-          ulid(),
+          published_artifact_id,
           input.organization_id,
           input.project_id,
           input.artifact_type,
@@ -496,6 +501,21 @@ export const build_publish_transactional_repository = (
       if (!row) {
         throw new Error("Failed to create published artifact");
       }
+
+      for (const capture_asset_id of extract_published_capture_asset_ids(
+        input.snapshot_json,
+      ))
+        await db.query(
+          `INSERT INTO publish_schema.published_artifact_capture_asset
+          (id,published_artifact_id,capture_asset_id,organization_id,project_id) VALUES($1,$2,$3,$4,$5)`,
+          [
+            ulid(),
+            published_artifact_id,
+            capture_asset_id,
+            input.organization_id,
+            input.project_id,
+          ],
+        );
 
       return map_published_artifact(row);
     },
@@ -1015,3 +1035,24 @@ export const build_publish_repository = (
     }
   },
 });
+export const extract_published_capture_asset_ids = (snapshot: unknown) => {
+  const ids = new Set<string>();
+  const visit = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    if (!value || typeof value !== "object") return;
+    for (const [key, child] of Object.entries(value)) {
+      if (
+        (key === "capture_asset_id" || key.endsWith("_capture_asset_id")) &&
+        typeof child === "string" &&
+        child
+      )
+        ids.add(child);
+      visit(child);
+    }
+  };
+  visit(snapshot);
+  return [...ids].sort();
+};

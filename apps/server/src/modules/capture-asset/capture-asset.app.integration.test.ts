@@ -18,6 +18,7 @@ const capture_asset: CaptureAsset = {
     checksum_sha256: null,
   },
   asset_type: "screenshot",
+  status: "active",
   width: null,
   height: null,
   device_pixel_ratio: null,
@@ -66,17 +67,34 @@ describe("capture asset app integration", () => {
         create_capture_asset: async () => capture_asset,
         upload_capture_asset: async () => capture_asset,
         list_capture_assets: async () => [capture_asset],
-        list_project_capture_assets: async () => [{
-          ...capture_asset,
-          file_url: `/api/v1/projects/${capture_asset.project_id}/capture-sessions/${capture_asset.capture_session_id}/assets/${capture_asset.id}/file`,
-        }],
+        list_project_capture_assets: async () => [
+          {
+            ...capture_asset,
+            file_url: `/api/v1/projects/${capture_asset.project_id}/capture-sessions/${capture_asset.capture_session_id}/assets/${capture_asset.id}/file`,
+          },
+        ],
         get_capture_asset: async () => capture_asset,
         get_capture_asset_file: async () => ({
           stream: Readable.from(Buffer.from("file")),
           mime_type: "image/png",
           size_bytes: 4,
         }),
-        delete_capture_asset: async () => undefined,
+        archive_capture_asset: async () => capture_asset,
+        restore_capture_asset: async () => capture_asset,
+        get_capture_asset_protection: async () => ({
+          capture_asset_id: capture_asset.id,
+          status: "active",
+          purge_operation_status: null,
+          can_purge: false,
+          total_dependency_count: 0,
+          dependencies: [],
+        }),
+        purge_capture_asset: async () => ({
+          capture_asset_id: capture_asset.id,
+          purge_operation_id: "purge_1",
+          status: "completed",
+          attempt_count: 1,
+        }),
       },
     });
 

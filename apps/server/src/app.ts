@@ -132,6 +132,12 @@ import {
 } from "./modules/project-version/project-version.routes.js";
 import { build_project_version_service } from "./modules/project-version/project-version.service.js";
 import { build_audited_project_version_repository } from "./modules/project-version/project-version.audit.js";
+import { build_artifact_revision_routes } from "./modules/artifact-revision/artifact-revision.routes.js";
+import { build_artifact_revision_service } from "./modules/artifact-revision/artifact-revision.service.js";
+import { build_audited_artifact_revision_repository } from "./modules/artifact-revision/artifact-revision.audit.js";
+import { build_artifact_carry_forward_routes } from "./modules/artifact-carry-forward/artifact-carry-forward.routes.js";
+import { build_artifact_carry_forward_service } from "./modules/artifact-carry-forward/artifact-carry-forward.service.js";
+import { build_audited_artifact_carry_forward_repository } from "./modules/artifact-carry-forward/artifact-carry-forward.audit.js";
 
 type BuildOptions = FastifyServerOptions & {
   public_instance_service?: PublicInstanceRouteService;
@@ -140,6 +146,12 @@ type BuildOptions = FastifyServerOptions & {
   organization_invites_service?: OrganizationInvitesRouteDependencies["organization_invites_service"];
   project_service?: ProjectRouteDependencies["project_service"];
   project_version_service?: ProjectVersionRouteService;
+  artifact_revision_service?: ReturnType<
+    typeof build_artifact_revision_service
+  >;
+  artifact_carry_forward_service?: ReturnType<
+    typeof build_artifact_carry_forward_service
+  >;
   capture_session_service?: CaptureSessionRouteDependencies["capture_session_service"];
   capture_asset_service?: CaptureAssetRouteDependencies["capture_asset_service"];
   capture_event_service?: CaptureEventRouteDependencies["capture_event_service"];
@@ -251,6 +263,8 @@ export const build = (opts: BuildOptions = {}) => {
     organization_invites_service,
     project_service,
     project_version_service,
+    artifact_revision_service,
+    artifact_carry_forward_service,
     capture_session_service,
     capture_asset_service,
     capture_event_service,
@@ -578,7 +592,10 @@ export const build = (opts: BuildOptions = {}) => {
         list_project_capture_assets: "capture.read",
         get_capture_asset: "capture.read",
         get_capture_asset_file: "capture.read",
-        delete_capture_asset: "capture.write",
+        archive_capture_asset: "capture.write",
+        restore_capture_asset: "capture.write",
+        get_capture_asset_protection: "asset.purge",
+        purge_capture_asset: "asset.purge",
       });
     })();
 
@@ -815,6 +832,52 @@ export const build = (opts: BuildOptions = {}) => {
     {
       prefix: "/api/v1/projects",
     },
+  );
+
+  app.register(
+    build_artifact_revision_routes({
+      auth_service: {
+        get_current_auth_context:
+          default_authentication_session_service.get_current_auth_context,
+      },
+      artifact_revision_service:
+        artifact_revision_service ??
+        (() => {
+          const service = build_artifact_revision_service(
+            build_audited_artifact_revision_repository(pool),
+          );
+          return with_project_authorization(service, project_access_service, {
+            checkpoint_guide: "revision.checkpoint_restore",
+            list_guide_revisions: "artifact.read",
+            get_guide_revision: "artifact.read",
+            restore_guide_revision: "revision.checkpoint_restore",
+            checkpoint_interactive_demo: "revision.checkpoint_restore",
+            list_interactive_demo_revisions: "artifact.read",
+            get_interactive_demo_revision: "artifact.read",
+            restore_interactive_demo_revision: "revision.checkpoint_restore",
+          });
+        })(),
+    }),
+    { prefix: "/api/v1/projects" },
+  );
+
+  app.register(
+    build_artifact_carry_forward_routes({
+      auth_service: {
+        get_current_auth_context:
+          default_authentication_session_service.get_current_auth_context,
+      },
+      artifact_carry_forward_service:
+        artifact_carry_forward_service ??
+        with_project_authorization(
+          build_artifact_carry_forward_service(
+            build_audited_artifact_carry_forward_repository(pool),
+          ),
+          project_access_service,
+          { carry_forward: "revision.carry_forward" },
+        ),
+    }),
+    { prefix: "/api/v1/projects" },
   );
 
   app.register(

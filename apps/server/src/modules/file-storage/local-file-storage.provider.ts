@@ -59,9 +59,9 @@ const file_extension_for_mime_type = (mime_type: string) => {
 
 const assert_safe_storage_key = (storage_key: string) => {
   if (
-    !storage_key
-    || path.isAbsolute(storage_key)
-    || storage_key.split("/").includes("..")
+    !storage_key ||
+    path.isAbsolute(storage_key) ||
+    storage_key.split("/").includes("..")
   ) {
     throw new UnsafeStorageKeyError();
   }
@@ -72,7 +72,10 @@ const resolve_storage_path = (root: string, storage_key: string) => {
   const resolved_root = path.resolve(root);
   const resolved_path = path.resolve(resolved_root, storage_key);
 
-  if (resolved_path !== resolved_root && !resolved_path.startsWith(`${resolved_root}${path.sep}`)) {
+  if (
+    resolved_path !== resolved_root &&
+    !resolved_path.startsWith(`${resolved_root}${path.sep}`)
+  ) {
     throw new UnsafeStorageKeyError();
   }
 
@@ -113,7 +116,10 @@ export const build_local_file_storage_provider = (input: { root: string }) => {
         chunks.push(buffer);
         size_bytes += buffer.length;
 
-        if (file.max_size_bytes !== undefined && size_bytes > file.max_size_bytes) {
+        if (
+          file.max_size_bytes !== undefined &&
+          size_bytes > file.max_size_bytes
+        ) {
           throw new FileStorageUploadTooLargeError();
         }
       }
@@ -142,7 +148,9 @@ export const build_local_file_storage_provider = (input: { root: string }) => {
     }
   };
 
-  const get = async (file: { storage_key: string }): Promise<ReadStoredFile> => {
+  const get = async (file: {
+    storage_key: string;
+  }): Promise<ReadStoredFile> => {
     const storage_path = resolve_storage_path(root, file.storage_key);
 
     try {
@@ -168,9 +176,19 @@ export const build_local_file_storage_provider = (input: { root: string }) => {
     await unlink(storage_path).catch(() => undefined);
   };
 
+  const purge_exact = async (file: { storage_key: string }) => {
+    const storage_path = resolve_storage_path(root, file.storage_key);
+    try {
+      await unlink(storage_path);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  };
+
   return {
     put,
     get,
     delete_best_effort,
+    purge_exact,
   };
 };

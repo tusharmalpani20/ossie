@@ -249,14 +249,24 @@ describe("DB-backed capture asset API", () => {
     expect(read_response.headers["cache-control"]).toBe("private, max-age=300");
     expect(read_response.body).toBe(bytes.toString());
 
+    const archive_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${capture_asset_id}/archive`,
+      cookies: { ossie_session: session_token },
+      payload: { expected_asset_version: 1 },
+    });
+    expect(archive_response.statusCode).toBe(200);
+
     const delete_response = await app.inject({
       method: "DELETE",
       url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${capture_asset_id}`,
       cookies: {
         ossie_session: session_token,
       },
+      payload: { expected_asset_version: 2 },
     });
-    expect(delete_response.statusCode).toBe(204);
+    expect(delete_response.statusCode).toBe(200);
+    expect(delete_response.json()).toMatchObject({ status: "completed" });
 
     const read_deleted_response = await app.inject({
       method: "GET",
@@ -273,7 +283,7 @@ describe("DB-backed capture asset API", () => {
     await app.close();
   });
 
-  it("creates lists gets and soft deletes screenshot asset metadata under a capture session", async () => {
+  it("creates, archives, and physically purges screenshot asset metadata under a capture session", async () => {
     const session_token = await setup_owner();
     const { project_id, project_version_id } =
       await create_project(session_token);
@@ -457,12 +467,21 @@ describe("DB-backed capture asset API", () => {
         },
       },
     });
+    const archive_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${capture_asset_id}/archive`,
+      cookies: { ossie_session: session_token },
+      payload: { expected_asset_version: 1 },
+    });
+    expect(archive_response.statusCode).toBe(200);
+
     const delete_response = await app.inject({
       method: "DELETE",
       url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${capture_asset_id}`,
       cookies: {
         ossie_session: session_token,
       },
+      payload: { expected_asset_version: 2 },
     });
 
     expect(list_response.statusCode).toBe(200);
@@ -485,8 +504,8 @@ describe("DB-backed capture asset API", () => {
     expect(missing_capture_session_response.json().error.type).toBe(
       "capture_session_not_found",
     );
-    expect(delete_response.statusCode).toBe(204);
-    expect(delete_response.body).toBe("");
+    expect(delete_response.statusCode).toBe(200);
+    expect(delete_response.json()).toMatchObject({ status: "completed" });
 
     const persisted_after_delete = await pool.query<{
       asset_deleted: boolean;
@@ -517,7 +536,7 @@ describe("DB-backed capture asset API", () => {
       file_deleted: true,
       asset_deleted_by_id: owner_context?.org_user_id,
       file_deleted_by_id: owner_context?.org_user_id,
-      asset_version: 2,
+      asset_version: 3,
       file_version: 2,
     });
 

@@ -51,13 +51,21 @@ export class InteractiveDemoNotEditableError extends DemoDomainError {
 
 export class InteractiveDemoEditionConflictError extends DemoDomainError {
   constructor() {
-    super({ code: "interactive_demo_edition_conflict", message: "Interactive Demo Edition changed; reload and retry", status_hint: "conflict" });
+    super({
+      code: "interactive_demo_edition_conflict",
+      message: "Interactive Demo Edition changed; reload and retry",
+      status_hint: "conflict",
+    });
   }
 }
 
 export class InteractiveDemoWorkingDraftConflictError extends DemoDomainError {
   constructor() {
-    super({ code: "interactive_demo_working_draft_conflict", message: "Interactive Demo Working Draft changed; reload and retry", status_hint: "conflict" });
+    super({
+      code: "interactive_demo_working_draft_conflict",
+      message: "Interactive Demo Working Draft changed; reload and retry",
+      status_hint: "conflict",
+    });
   }
 }
 

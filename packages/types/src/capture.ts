@@ -1,4 +1,5 @@
 import {
+  CAPTURE_ASSET_STATUSES,
   CAPTURE_ASSET_TYPES,
   CAPTURE_EVENT_TYPES,
   CAPTURE_SESSION_SOURCE_TYPES,
@@ -306,6 +307,7 @@ export const CaptureAssetSchema = z.object({
   capture_session_id: IdSchema,
   file: CaptureAssetFileSchema,
   asset_type: z.enum(CAPTURE_ASSET_TYPES),
+  status: z.enum(CAPTURE_ASSET_STATUSES),
   width: PositiveIntSchema.nullable(),
   height: PositiveIntSchema.nullable(),
   device_pixel_ratio: PositiveNumberSchema.nullable(),
@@ -355,15 +357,25 @@ export type CreateCaptureAssetRequest = z.infer<
 >;
 export type CreateCaptureAssetInput = CreateCaptureAssetRequest;
 
-export const CaptureAssetListQuerySchema = z.object({
-  asset_type: z.enum(CAPTURE_ASSET_TYPES).optional(),
-});
+const OptionalQueryBooleanSchema = z
+  .union([z.boolean(), z.enum(["true", "false"])])
+  .transform((value) => value === true || value === "true")
+  .optional();
+
+export const CaptureAssetListQuerySchema = z
+  .object({
+    asset_type: z.enum(CAPTURE_ASSET_TYPES).optional(),
+    include_archived: OptionalQueryBooleanSchema,
+  })
+  .strict();
 export type CaptureAssetListQuery = z.infer<typeof CaptureAssetListQuerySchema>;
 
-export const ProjectCaptureAssetListQuerySchema =
-  CaptureAssetListQuerySchema.extend({
+export const ProjectCaptureAssetListQuerySchema = z
+  .object({
+    asset_type: z.enum(CAPTURE_ASSET_TYPES).optional(),
     project_version_id: TrimmedIdParamSchema,
-  }).strict();
+  })
+  .strict();
 export type ProjectCaptureAssetListQuery = z.infer<
   typeof ProjectCaptureAssetListQuerySchema
 >;
@@ -394,6 +406,86 @@ export const CaptureAssetListResponseSchema = z.object({
 });
 export type CaptureAssetListResponse = z.infer<
   typeof CaptureAssetListResponseSchema
+>;
+
+export const CaptureAssetLifecycleRequestSchema = z
+  .object({ expected_asset_version: PositiveIntSchema })
+  .strict();
+export type CaptureAssetLifecycleRequest = z.infer<
+  typeof CaptureAssetLifecycleRequestSchema
+>;
+
+export const CaptureAssetLifecycleResponseSchema = z
+  .object({ capture_asset: CaptureAssetSchema })
+  .strict();
+
+const AuthoredAssetDependencySchema = z
+  .object({
+    dependency_type: z.enum([
+      "guide_working_draft",
+      "interactive_demo_working_draft",
+    ]),
+    artifact_id: IdSchema,
+    edition_id: IdSchema,
+  })
+  .strict();
+const RevisionAssetDependencySchema = z
+  .object({
+    dependency_type: z.enum(["guide_revision", "interactive_demo_revision"]),
+    artifact_id: IdSchema,
+    edition_id: IdSchema,
+    revision_number: PositiveIntSchema,
+  })
+  .strict();
+const PublishedAssetDependencySchema = z
+  .object({
+    dependency_type: z.literal("published_artifact"),
+    published_artifact_id: IdSchema,
+    publication_number: PositiveIntSchema,
+  })
+  .strict();
+const SharedFileAssetDependencySchema = z
+  .object({
+    dependency_type: z.literal("shared_file_asset"),
+    capture_asset_id: IdSchema,
+  })
+  .strict();
+export const CaptureAssetDependencySchema = z.discriminatedUnion(
+  "dependency_type",
+  [
+    AuthoredAssetDependencySchema,
+    RevisionAssetDependencySchema,
+    PublishedAssetDependencySchema,
+    SharedFileAssetDependencySchema,
+  ],
+);
+
+export const CaptureAssetProtectionResponseSchema = z
+  .object({
+    capture_asset_id: IdSchema,
+    status: z.enum(CAPTURE_ASSET_STATUSES),
+    purge_operation_status: z
+      .enum(["pending", "failed", "completed"])
+      .nullable(),
+    can_purge: z.boolean(),
+    total_dependency_count: z.number().int().nonnegative(),
+    dependencies: z.array(CaptureAssetDependencySchema).max(100),
+  })
+  .strict();
+
+export const CaptureAssetPurgeResponseSchema = z
+  .object({
+    capture_asset_id: IdSchema,
+    purge_operation_id: IdSchema,
+    status: z.enum(["pending", "failed", "completed"]),
+    attempt_count: PositiveIntSchema,
+  })
+  .strict();
+export type CaptureAssetProtectionResponse = z.infer<
+  typeof CaptureAssetProtectionResponseSchema
+>;
+export type CaptureAssetPurgeResponse = z.infer<
+  typeof CaptureAssetPurgeResponseSchema
 >;
 
 export const ProjectCaptureAssetListResponseSchema = z.object({

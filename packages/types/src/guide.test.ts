@@ -232,6 +232,7 @@ describe("guide shared contracts", () => {
         ...source_asset,
         organization_id: "org_1",
         project_id: "project_1",
+        status: "active",
         created_by_id: "org_user_1",
         updated_by_id: "org_user_1",
         version: 1,

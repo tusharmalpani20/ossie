@@ -203,6 +203,7 @@ const captureAssetResponse: CaptureAssetResponse = {
       checksum_sha256: null,
     },
     asset_type: "screenshot",
+    status: "active",
     width: 1440,
     height: 900,
     device_pixel_ratio: 2,

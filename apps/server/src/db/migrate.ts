@@ -3,6 +3,7 @@ import {
   verify_audit_core_schema,
   verify_audit_schema,
   verify_artifact_edition_schema,
+  verify_artifact_revision_schema,
   verify_evidence_schema,
   verify_project_membership_schema,
   verify_project_version_schema,
@@ -37,22 +38,29 @@ const run = async () => {
         );
         const artifact_edition = executed.some(
           ({ name }) =>
-            name === "022_guide_demo_edition_working_draft_relational_foundation.sql",
+            name ===
+            "022_guide_demo_edition_working_draft_relational_foundation.sql",
         );
-        await (artifact_edition
-          ? verify_artifact_edition_schema
-          : project_version
-          ? verify_project_version_schema
-          : project_membership
-            ? verify_project_membership_schema
-          : access_evidence
-            ? verify_evidence_schema
-          : comprehensive
-            ? verify_audit_schema
-            : verify_audit_core_schema)(
-          pool,
-          roles,
+        const artifact_revision = executed.some(
+          ({ name }) =>
+            name ===
+            "023_guide_demo_revision_carry_forward_protected_assets.sql",
         );
+        await (
+          artifact_revision
+            ? verify_artifact_revision_schema
+            : artifact_edition
+              ? verify_artifact_edition_schema
+              : project_version
+                ? verify_project_version_schema
+                : project_membership
+                  ? verify_project_membership_schema
+                  : access_evidence
+                    ? verify_evidence_schema
+                    : comprehensive
+                      ? verify_audit_schema
+                      : verify_audit_core_schema
+        )(pool, roles);
       }
     } else if (command === "down")
       await umzug.down(target ? { to: target } : undefined);
@@ -67,23 +75,39 @@ const run = async () => {
         ? await (
             executed.some(
               ({ name }) =>
-                name === "022_guide_demo_edition_working_draft_relational_foundation.sql",
+                name ===
+                "023_guide_demo_revision_carry_forward_protected_assets.sql",
             )
-              ? verify_artifact_edition_schema
-              : executed.some(({ name }) => name === "020_project_version_foundation.sql")
-              ? verify_project_version_schema
-              : executed.some(({ name }) => name === "019_project_membership_foundation.sql")
-                ? verify_project_membership_schema
+              ? verify_artifact_revision_schema
               : executed.some(
-              ({ name }) =>
-                name === "017_access_evidence_and_compliance_timelines.sql",
-            )
-              ? verify_evidence_schema
-              : executed.some(
-              ({ name }) => name === "016_existing_mutation_audit_coverage.sql",
-            )
-                ? verify_audit_schema
-                : verify_audit_core_schema
+                    ({ name }) =>
+                      name ===
+                      "022_guide_demo_edition_working_draft_relational_foundation.sql",
+                  )
+                ? verify_artifact_edition_schema
+                : executed.some(
+                      ({ name }) =>
+                        name === "020_project_version_foundation.sql",
+                    )
+                  ? verify_project_version_schema
+                  : executed.some(
+                        ({ name }) =>
+                          name === "019_project_membership_foundation.sql",
+                      )
+                    ? verify_project_membership_schema
+                    : executed.some(
+                          ({ name }) =>
+                            name ===
+                            "017_access_evidence_and_compliance_timelines.sql",
+                        )
+                      ? verify_evidence_schema
+                      : executed.some(
+                            ({ name }) =>
+                              name ===
+                              "016_existing_mutation_audit_coverage.sql",
+                          )
+                        ? verify_audit_schema
+                        : verify_audit_core_schema
           )(pool, roles)
         : { status: "not_installed" as const };
       console.info(

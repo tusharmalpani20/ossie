@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  build_capture_asset_created_event,
-  build_capture_asset_deleted_event,
-} from "./capture-asset.audit";
+import { build_capture_asset_created_event } from "./capture-asset.audit";
 import type { CaptureAsset } from "./capture-asset.service";
 
 const asset: CaptureAsset = {
@@ -19,6 +16,7 @@ const asset: CaptureAsset = {
     checksum_sha256: "secret-checksum",
   },
   asset_type: "screenshot",
+  status: "active",
   width: 100,
   height: 50,
   device_pixel_ratio: 1,
@@ -65,15 +63,5 @@ describe("Capture Asset Audit adapter", () => {
     );
     expect(JSON.stringify(event)).not.toContain("private.example");
     expect(JSON.stringify(event)).not.toContain("secret-checksum");
-  });
-
-  it("soft-deletes both rows in one event", () => {
-    expect(build_capture_asset_deleted_event(base).items).toEqual([
-      expect.objectContaining({
-        entity_type: "capture_asset",
-        operation: "delete",
-      }),
-      expect.objectContaining({ entity_type: "file", operation: "delete" }),
-    ]);
   });
 });

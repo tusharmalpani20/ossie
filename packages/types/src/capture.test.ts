@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   CaptureAssetParamsSchema,
   CaptureAssetListQuerySchema,
+  CaptureAssetLifecycleRequestSchema,
+  CaptureAssetProtectionResponseSchema,
+  CaptureAssetPurgeResponseSchema,
   CaptureAssetResponseSchema,
   CaptureEventParamsSchema,
   CaptureEventResponseSchema,
@@ -99,6 +102,7 @@ const captureAsset = {
     checksum_sha256: null,
   },
   asset_type: "screenshot",
+  status: "active",
   width: 1440,
   height: 900,
   device_pixel_ratio: 1,
@@ -113,6 +117,51 @@ const captureAsset = {
 };
 
 describe("capture contracts", () => {
+  it("models Capture Asset lifecycle and archived session-list inclusion", () => {
+    expect(
+      CaptureAssetResponseSchema.parse({ capture_asset: captureAsset }),
+    ).toEqual({ capture_asset: captureAsset });
+    expect(
+      CaptureAssetListQuerySchema.parse({ include_archived: "true" }),
+    ).toEqual({ include_archived: true });
+    expect(
+      ProjectCaptureAssetListQuerySchema.safeParse({
+        project_version_id: "version_1",
+        include_archived: true,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates protected Asset lifecycle, dependency, and purge results", () => {
+    expect(
+      CaptureAssetLifecycleRequestSchema.parse({ expected_asset_version: 2 }),
+    ).toEqual({ expected_asset_version: 2 });
+    expect(
+      CaptureAssetProtectionResponseSchema.parse({
+        capture_asset_id: "capture_asset_1",
+        status: "archived",
+        purge_operation_status: null,
+        can_purge: false,
+        total_dependency_count: 1,
+        dependencies: [
+          {
+            dependency_type: "guide_working_draft",
+            artifact_id: "guide_1",
+            edition_id: "edition_1",
+          },
+        ],
+      }).dependencies,
+    ).toHaveLength(1);
+    expect(
+      CaptureAssetPurgeResponseSchema.parse({
+        capture_asset_id: "capture_asset_1",
+        purge_operation_id: "purge_1",
+        status: "completed",
+        attempt_count: 1,
+      }).status,
+    ).toBe("completed");
+  });
+
   it("matches existing item route param names", () => {
     expect(
       ProjectCaptureSessionParamsSchema.parse({

@@ -18,29 +18,35 @@ export const insert_test_project = async (
     name: string;
   },
 ) => {
-  await query(`
+  await query(
+    `
     INSERT INTO project_schema.project (
       id, organization_id, name, default_project_version_id,
       created_by_id, updated_by_id
     ) VALUES ($1, $2, $3, $4, $5, $5)
-  `, [
-    input.project_id,
-    input.organization_id,
-    input.name,
-    input.project_version_id,
-    input.actor_org_user_id,
-  ]);
-  await query(`
+  `,
+    [
+      input.project_id,
+      input.organization_id,
+      input.name,
+      input.project_version_id,
+      input.actor_org_user_id,
+    ],
+  );
+  await query(
+    `
     INSERT INTO project_schema.project_version (
       id, organization_id, project_id, name, slug, position,
       status, created_by_id, updated_by_id
     ) VALUES ($1, $2, $3, 'Main', 'main', 1, 'active', $4, $4)
-  `, [
-    input.project_version_id,
-    input.organization_id,
-    input.project_id,
-    input.actor_org_user_id,
-  ]);
+  `,
+    [
+      input.project_version_id,
+      input.organization_id,
+      input.project_id,
+      input.actor_org_user_id,
+    ],
+  );
 };
 
 const assert_disposable_test_database = (
@@ -115,9 +121,23 @@ export const reset_test_database = async () =>
         audit_schema.audit_change_item,
         audit_schema.audit_event,
         audit_schema.access_event,
+        publish_schema.published_artifact_capture_asset,
         publish_schema.public_publish_viewer_session,
         publish_schema.publish_link,
         publish_schema.published_artifact,
+        interactive_demo_schema.interactive_demo_carry_forward_item,
+        guide_schema.guide_carry_forward_item,
+        project_schema.artifact_carry_forward_item,
+        project_schema.artifact_carry_forward,
+        interactive_demo_schema.demo_revision_transition,
+        interactive_demo_schema.demo_revision_hotspot,
+        interactive_demo_schema.demo_revision_scene,
+        interactive_demo_schema.interactive_demo_revision,
+        guide_schema.guide_revision_annotation,
+        guide_schema.guide_revision_step,
+        guide_schema.guide_revision_block,
+        guide_schema.guide_revision,
+        capture_schema.capture_asset_purge_operation,
         interactive_demo_schema.demo_transition,
         interactive_demo_schema.demo_hotspot,
         interactive_demo_schema.demo_scene,

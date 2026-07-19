@@ -1,4 +1,12 @@
-import type { CaptureAssetType, FileStorageProvider } from "@repo/constants";
+import type {
+  CaptureAssetStatus,
+  CaptureAssetType,
+  FileStorageProvider,
+} from "@repo/constants";
+import type {
+  CaptureAssetProtectionResponse,
+  CaptureAssetPurgeResponse,
+} from "@repo/types";
 import {
   assert_supported_screenshot_upload_mime_type,
   assert_upload_size_within_limit,
@@ -13,6 +21,9 @@ import {
   UnsupportedCaptureAssetUploadTypeError,
   UploadTooLargeError,
   assert_project_screenshot_picker_asset_type,
+  assert_capture_asset_transition,
+  CaptureAssetLifecycleConflictError,
+  CaptureAssetProtectedError,
   build_capture_session_asset_file_url,
   map_file_domain_upload_policy_error,
   normalize_create_capture_asset,
@@ -68,6 +79,7 @@ export type CaptureAsset = {
   version: number;
   created_at: string;
   updated_at: string;
+  status: CaptureAssetStatus;
 };
 
 export type CaptureAssetWithFileUrl = CaptureAsset & {
@@ -107,6 +119,7 @@ export type CaptureAssetFileStorage = {
   }) => Promise<StoredFile>;
   get: (input: { storage_key: string }) => Promise<ReadStoredFile>;
   delete_best_effort: (input: { storage_key: string }) => Promise<void>;
+  purge_exact?: (input: { storage_key: string }) => Promise<void>;
 };
 
 export type CaptureAssetRepository = {
@@ -148,6 +161,7 @@ export type CaptureAssetTransactionalRepository = {
     project_id: string;
     capture_session_id: string;
     asset_type?: CaptureAssetType;
+    include_archived?: boolean;
   }) => Promise<CaptureAsset[]>;
   list_project_capture_assets: (input: {
     organization_id: string;
@@ -167,14 +181,62 @@ export type CaptureAssetTransactionalRepository = {
     capture_session_id: string;
     capture_asset_id: string;
   }) => Promise<CaptureAssetFile | null>;
-  delete_capture_asset: (input: {
+  transition_capture_asset: (input: {
     organization_id: string;
     project_id: string;
     capture_session_id: string;
     capture_asset_id: string;
     actor_org_user_id: string;
-  }) => Promise<boolean>;
+    expected_asset_version: number;
+    status: CaptureAssetStatus;
+  }) => Promise<CaptureAsset | null>;
+  get_capture_asset_protection: (input: {
+    organization_id: string;
+    project_id: string;
+    capture_session_id: string;
+    capture_asset_id: string;
+  }) => Promise<CaptureAssetProtectionResponse | null>;
+  find_completed_capture_asset_purge: (input: {
+    organization_id: string;
+    project_id: string;
+    capture_session_id: string;
+    capture_asset_id: string;
+  }) => Promise<CaptureAssetPurgeResponse | null>;
+  begin_capture_asset_purge: (input: {
+    organization_id: string;
+    project_id: string;
+    capture_session_id: string;
+    capture_asset_id: string;
+    actor_org_user_id: string;
+    expected_asset_version: number;
+  }) => Promise<{
+    operation: CaptureAssetPurgeResponse;
+    storage_key: string;
+    completed: boolean;
+  } | null>;
+  fail_capture_asset_purge: (input: {
+    organization_id: string;
+    project_id: string;
+    capture_session_id: string;
+    capture_asset_id: string;
+    operation_id: string;
+    failure_code: string;
+    actor_org_user_id: string;
+  }) => Promise<CaptureAssetPurgeResponse>;
+  complete_capture_asset_purge: (input: {
+    organization_id: string;
+    project_id: string;
+    capture_asset_id: string;
+    operation_id: string;
+    actor_org_user_id: string;
+  }) => Promise<CaptureAssetPurgeResponse>;
 };
+
+export class CaptureAssetPurgeFailedError extends Error {
+  constructor() {
+    super("Capture Asset storage purge failed; retry the request");
+  }
+}
 
 export class ProjectNotFoundError extends Error {
   constructor() {
@@ -208,6 +270,8 @@ export {
   UnsupportedCaptureAssetTypeError,
   UnsupportedCaptureAssetUploadTypeError,
   UploadTooLargeError,
+  CaptureAssetLifecycleConflictError,
+  CaptureAssetProtectedError,
 };
 
 export const build_capture_asset_service = (
@@ -395,6 +459,7 @@ export const build_capture_asset_service = (
     project_id: string;
     capture_session_id: string;
     asset_type?: CaptureAssetType;
+    include_archived?: boolean;
   }) => {
     await ensure_project_exists({
       repository,
@@ -414,6 +479,7 @@ export const build_capture_asset_service = (
       project_id: input.project_id,
       capture_session_id: input.capture_session_id,
       asset_type: input.asset_type,
+      include_archived: input.include_archived,
     });
   };
 
@@ -527,11 +593,13 @@ export const build_capture_asset_service = (
     };
   };
 
-  const delete_capture_asset = async (input: {
+  const transition_capture_asset = async (input: {
     auth: CaptureAssetAuthContext;
     project_id: string;
     capture_session_id: string;
     capture_asset_id: string;
+    expected_asset_version: number;
+    command: "archive" | "restore";
   }) =>
     repository.transaction(async (transactional_repository) => {
       await ensure_project_exists({
@@ -547,18 +615,116 @@ export const build_capture_asset_service = (
         capture_session_id: input.capture_session_id,
       });
 
-      const deleted = await transactional_repository.delete_capture_asset({
+      const current = await transactional_repository.find_capture_asset({
+        organization_id: input.auth.organization_id,
+        project_id: input.project_id,
+        capture_session_id: input.capture_session_id,
+        capture_asset_id: input.capture_asset_id,
+      });
+      if (!current) throw new CaptureAssetNotFoundError();
+      const status = assert_capture_asset_transition(
+        current.status ?? "active",
+        input.command,
+      );
+      const changed = await transactional_repository.transition_capture_asset({
         organization_id: input.auth.organization_id,
         project_id: input.project_id,
         capture_session_id: input.capture_session_id,
         capture_asset_id: input.capture_asset_id,
         actor_org_user_id: input.auth.actor_org_user_id,
+        expected_asset_version: input.expected_asset_version,
+        status,
       });
-
-      if (!deleted) {
-        throw new CaptureAssetNotFoundError();
-      }
+      if (!changed) throw new CaptureAssetLifecycleConflictError();
+      return changed;
     });
+
+  const get_capture_asset_protection = async (input: {
+    auth: CaptureAssetAuthContext;
+    project_id: string;
+    capture_session_id: string;
+    capture_asset_id: string;
+  }) => {
+    const result = await repository.get_capture_asset_protection({
+      organization_id: input.auth.organization_id,
+      project_id: input.project_id,
+      capture_session_id: input.capture_session_id,
+      capture_asset_id: input.capture_asset_id,
+    });
+    if (!result) throw new CaptureAssetNotFoundError();
+    return result;
+  };
+
+  const purge_capture_asset = async (input: {
+    auth: CaptureAssetAuthContext;
+    project_id: string;
+    capture_session_id: string;
+    capture_asset_id: string;
+    expected_asset_version: number;
+  }) => {
+    if (!options.file_storage?.purge_exact)
+      throw new UnsupportedFileStorageProviderError();
+    const pending = await repository.transaction(
+      async (transactional_repository) => {
+        const completed =
+          await transactional_repository.find_completed_capture_asset_purge({
+            organization_id: input.auth.organization_id,
+            project_id: input.project_id,
+            capture_session_id: input.capture_session_id,
+            capture_asset_id: input.capture_asset_id,
+          });
+        if (completed)
+          return { operation: completed, storage_key: "", completed: true };
+        const protection =
+          await transactional_repository.get_capture_asset_protection({
+            organization_id: input.auth.organization_id,
+            project_id: input.project_id,
+            capture_session_id: input.capture_session_id,
+            capture_asset_id: input.capture_asset_id,
+          });
+        if (!protection) throw new CaptureAssetNotFoundError();
+        if (!protection.can_purge) throw new CaptureAssetProtectedError();
+        const value = await transactional_repository.begin_capture_asset_purge({
+          organization_id: input.auth.organization_id,
+          project_id: input.project_id,
+          capture_session_id: input.capture_session_id,
+          capture_asset_id: input.capture_asset_id,
+          actor_org_user_id: input.auth.actor_org_user_id,
+          expected_asset_version: input.expected_asset_version,
+        });
+        if (!value) throw new CaptureAssetLifecycleConflictError();
+        return value;
+      },
+    );
+    if (pending.completed) return pending.operation;
+    try {
+      await options.file_storage.purge_exact({
+        storage_key: pending.storage_key,
+      });
+    } catch {
+      await repository.transaction((transactional_repository) =>
+        transactional_repository.fail_capture_asset_purge({
+          organization_id: input.auth.organization_id,
+          project_id: input.project_id,
+          capture_session_id: input.capture_session_id,
+          capture_asset_id: input.capture_asset_id,
+          operation_id: pending.operation.purge_operation_id,
+          failure_code: "storage_delete_failed",
+          actor_org_user_id: input.auth.actor_org_user_id,
+        }),
+      );
+      throw new CaptureAssetPurgeFailedError();
+    }
+    return repository.transaction((transactional_repository) =>
+      transactional_repository.complete_capture_asset_purge({
+        organization_id: input.auth.organization_id,
+        project_id: input.project_id,
+        capture_asset_id: input.capture_asset_id,
+        operation_id: pending.operation.purge_operation_id,
+        actor_org_user_id: input.auth.actor_org_user_id,
+      }),
+    );
+  };
 
   return {
     create_capture_asset,
@@ -567,6 +733,13 @@ export const build_capture_asset_service = (
     list_project_capture_assets,
     get_capture_asset,
     get_capture_asset_file,
-    delete_capture_asset,
+    archive_capture_asset: (
+      input: Omit<Parameters<typeof transition_capture_asset>[0], "command">,
+    ) => transition_capture_asset({ ...input, command: "archive" }),
+    restore_capture_asset: (
+      input: Omit<Parameters<typeof transition_capture_asset>[0], "command">,
+    ) => transition_capture_asset({ ...input, command: "restore" }),
+    get_capture_asset_protection,
+    purge_capture_asset,
   };
 };

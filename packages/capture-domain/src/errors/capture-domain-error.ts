@@ -141,6 +141,26 @@ export class CaptureAssetNotFoundError extends CaptureDomainError {
   }
 }
 
+export class CaptureAssetLifecycleConflictError extends CaptureDomainError {
+  constructor() {
+    super({
+      code: "capture_asset_lifecycle_conflict",
+      message: "Capture Asset lifecycle changed; reload and retry",
+      status_hint: "conflict",
+    });
+  }
+}
+
+export class CaptureAssetProtectedError extends CaptureDomainError {
+  constructor() {
+    super({
+      code: "capture_asset_protected",
+      message: "Capture Asset is protected by existing references",
+      status_hint: "conflict",
+    });
+  }
+}
+
 export class InvalidCaptureAssetInputError extends CaptureDomainError {
   constructor() {
     super({

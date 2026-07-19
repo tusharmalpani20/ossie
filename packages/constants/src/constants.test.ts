@@ -7,7 +7,11 @@ import {
   ACCESS_SOURCE_TYPES,
   ACCESS_SURFACES,
   ARTIFACT_EDITION_STATUSES,
+  ARTIFACT_CARRY_FORWARD_MAX_SELECTIONS,
+  ARTIFACT_REVISION_TRIGGERS,
   CAPTURE_ASSET_TYPES,
+  CAPTURE_ASSET_PURGE_OPERATION_STATUSES,
+  CAPTURE_ASSET_STATUSES,
   CAPTURE_EVENT_TYPES,
   CAPTURE_SESSION_SOURCE_TYPES,
   CAPTURE_SESSION_STATUSES,
@@ -43,6 +47,9 @@ const exported_constant_sets = {
   ACCESS_SOURCE_TYPES,
   ACCESS_SURFACES,
   ARTIFACT_EDITION_STATUSES,
+  ARTIFACT_REVISION_TRIGGERS,
+  CAPTURE_ASSET_PURGE_OPERATION_STATUSES,
+  CAPTURE_ASSET_STATUSES,
   CAPTURE_SESSION_STATUSES,
   CAPTURE_SESSION_SOURCE_TYPES,
   CAPTURE_EVENT_TYPES,
@@ -74,7 +81,10 @@ const exported_constant_sets = {
 describe("@repo/constants", () => {
   it("exports unique tuple values for every constants set", () => {
     for (const [name, values] of Object.entries(exported_constant_sets)) {
-      expect(new Set(values), `${name} should not contain duplicate values`).toHaveLength(values.length);
+      expect(
+        new Set(values),
+        `${name} should not contain duplicate values`,
+      ).toHaveLength(values.length);
     }
   });
 
@@ -89,5 +99,20 @@ describe("@repo/constants", () => {
     expect(DEPLOYMENT_MODES).toContain("hosted");
     expect(ONBOARDING_MODES).toContain("first_run_setup");
     expect(ONBOARDING_MODES).toContain("signup");
+  });
+
+  it("exports the accepted bounded Revision and protected Asset constants", () => {
+    expect(ARTIFACT_REVISION_TRIGGERS).toEqual([
+      "manual_checkpoint",
+      "publication",
+      "carry_forward",
+    ]);
+    expect(ARTIFACT_CARRY_FORWARD_MAX_SELECTIONS).toBe(50);
+    expect(CAPTURE_ASSET_STATUSES).toEqual(["active", "archived"]);
+    expect(CAPTURE_ASSET_PURGE_OPERATION_STATUSES).toEqual([
+      "pending",
+      "failed",
+      "completed",
+    ]);
   });
 });

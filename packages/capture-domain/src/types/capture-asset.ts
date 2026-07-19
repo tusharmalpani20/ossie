@@ -1,7 +1,11 @@
 import type {
+  CaptureAssetStatus,
   CaptureAssetType,
   FileStorageProvider,
 } from "@repo/constants";
+
+export type CaptureAssetLifecycleCommand = "archive" | "restore";
+export type { CaptureAssetStatus };
 
 export type CreateCaptureAssetInput = {
   asset_type: CaptureAssetType;

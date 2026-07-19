@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   build_capture_asset_service,
   CaptureAssetNotFoundError,
+  CaptureAssetPurgeFailedError,
   CaptureSessionNotFoundError,
   FileBytesNotFoundError,
   FileStorageKeyConflictError,
@@ -35,6 +36,7 @@ const capture_asset: CaptureAsset = {
     checksum_sha256: "checksum",
   },
   asset_type: "screenshot",
+  status: "active",
   width: 1440,
   height: 900,
   device_pixel_ratio: 1,
@@ -141,9 +143,54 @@ const build_repository = (): CaptureAssetRepository & {
         },
       };
     },
-    async delete_capture_asset(input) {
+    async transition_capture_asset(input) {
       deletes.push(input);
-      return input.capture_asset_id === "capture_asset_1";
+      return input.capture_asset_id === "capture_asset_1"
+        ? { ...capture_asset, status: input.status, version: 2 }
+        : null;
+    },
+    async get_capture_asset_protection(input) {
+      return input.capture_asset_id === "capture_asset_1"
+        ? {
+            capture_asset_id: input.capture_asset_id,
+            status: "archived" as const,
+            purge_operation_status: null,
+            can_purge: true,
+            total_dependency_count: 0,
+            dependencies: [],
+          }
+        : null;
+    },
+    async find_completed_capture_asset_purge() {
+      return null;
+    },
+    async begin_capture_asset_purge(input) {
+      return {
+        operation: {
+          capture_asset_id: input.capture_asset_id,
+          purge_operation_id: "purge_1",
+          status: "pending" as const,
+          attempt_count: 1,
+        },
+        storage_key: "asset.png",
+        completed: false,
+      };
+    },
+    async fail_capture_asset_purge(input) {
+      return {
+        capture_asset_id: input.capture_asset_id,
+        purge_operation_id: input.operation_id,
+        status: "failed" as const,
+        attempt_count: 1,
+      };
+    },
+    async complete_capture_asset_purge(input) {
+      return {
+        capture_asset_id: input.capture_asset_id,
+        purge_operation_id: input.operation_id,
+        status: "completed" as const,
+        attempt_count: 1,
+      };
     },
   };
 
@@ -177,6 +224,9 @@ const build_file_storage = () => {
       };
     },
     async delete_best_effort(input: unknown) {
+      deletes.push(input);
+    },
+    async purge_exact(input: unknown) {
       deletes.push(input);
     },
   };
@@ -627,11 +677,12 @@ describe("capture asset service", () => {
       }),
     ).rejects.toBeInstanceOf(ProjectNotFoundError);
     await expect(
-      service.delete_capture_asset({
+      service.archive_capture_asset({
         auth,
         project_id: "missing_project",
         capture_session_id: "capture_session_1",
         capture_asset_id: "capture_asset_1",
+        expected_asset_version: 1,
       }),
     ).rejects.toBeInstanceOf(ProjectNotFoundError);
 
@@ -642,7 +693,7 @@ describe("capture asset service", () => {
     expect(repository.deletes).toEqual([]);
   });
 
-  it("lists gets and deletes capture assets in scope after checking the capture session", async () => {
+  it("lists, gets, and archives capture assets in scope after checking the capture session", async () => {
     const repository = build_repository();
     const service = build_capture_asset_service(repository);
 
@@ -652,6 +703,7 @@ describe("capture asset service", () => {
         project_id: "project_1",
         capture_session_id: "capture_session_1",
         asset_type: "screenshot",
+        include_archived: undefined,
       }),
     ).resolves.toEqual([capture_asset]);
     await expect(
@@ -671,13 +723,14 @@ describe("capture asset service", () => {
       }),
     ).rejects.toBeInstanceOf(CaptureAssetNotFoundError);
     await expect(
-      service.delete_capture_asset({
+      service.archive_capture_asset({
         auth,
         project_id: "project_1",
         capture_session_id: "capture_session_1",
         capture_asset_id: "capture_asset_1",
+        expected_asset_version: 1,
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toMatchObject({ status: "archived", version: 2 });
 
     expect(repository.lists).toEqual([
       {
@@ -688,7 +741,7 @@ describe("capture asset service", () => {
       },
     ]);
     expect(repository.session_checks).toHaveLength(4);
-    expect(repository.finds).toHaveLength(2);
+    expect(repository.finds).toHaveLength(3);
     expect(repository.deletes).toEqual([
       {
         organization_id: "organization_1",
@@ -696,6 +749,8 @@ describe("capture asset service", () => {
         capture_session_id: "capture_session_1",
         capture_asset_id: "capture_asset_1",
         actor_org_user_id: "org_user_1",
+        expected_asset_version: 1,
+        status: "archived",
       },
     ]);
   });
@@ -778,16 +833,82 @@ describe("capture asset service", () => {
       }),
     ).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
     await expect(
-      service.delete_capture_asset({
+      service.archive_capture_asset({
         auth,
         project_id: "project_1",
         capture_session_id: "missing",
         capture_asset_id: "capture_asset_1",
+        expected_asset_version: 1,
       }),
     ).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
 
     expect(repository.lists).toEqual([]);
     expect(repository.finds).toEqual([]);
     expect(repository.deletes).toEqual([]);
+  });
+
+  it("physically purges outside the database transaction and then completes the tombstone", async () => {
+    const repository = build_repository();
+    const file_storage = build_file_storage();
+    const service = build_capture_asset_service(repository, { file_storage });
+
+    await expect(
+      service.purge_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+        expected_asset_version: 2,
+      }),
+    ).resolves.toMatchObject({ status: "completed" });
+    expect(file_storage.deletes).toEqual([{ storage_key: "asset.png" }]);
+    expect(repository.transactions).toBe(2);
+  });
+
+  it("returns a completed purge for a stale Row Version without touching storage", async () => {
+    const repository = build_repository();
+    repository.find_completed_capture_asset_purge = async () => ({
+      capture_asset_id: "capture_asset_1",
+      purge_operation_id: "purge_1",
+      status: "completed",
+      attempt_count: 2,
+    });
+    repository.get_capture_asset_protection = async () => {
+      throw new Error("completed replay must not require a live Asset");
+    };
+    const file_storage = build_file_storage();
+    const service = build_capture_asset_service(repository, { file_storage });
+
+    await expect(
+      service.purge_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+        expected_asset_version: 1,
+      }),
+    ).resolves.toMatchObject({ status: "completed", attempt_count: 2 });
+    expect(file_storage.deletes).toEqual([]);
+    expect(repository.transactions).toBe(1);
+  });
+
+  it("records exact storage failure and surfaces a retryable purge error", async () => {
+    const repository = build_repository();
+    const file_storage = build_file_storage();
+    file_storage.purge_exact = async () => {
+      throw new Error("disk unavailable");
+    };
+    const service = build_capture_asset_service(repository, { file_storage });
+
+    await expect(
+      service.purge_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+        expected_asset_version: 2,
+      }),
+    ).rejects.toBeInstanceOf(CaptureAssetPurgeFailedError);
+    expect(repository.transactions).toBe(2);
   });
 });

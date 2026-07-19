@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createAutomaticCaptureController, handleAutomaticClickCapture, type AutomaticClickMessage } from "./automatic-capture";
+import {
+  createAutomaticCaptureController,
+  handleAutomaticClickCapture,
+  type AutomaticClickMessage,
+} from "./automatic-capture";
 import type { CaptureAssetResponse, CaptureEventResponse } from "./api";
 import type { ScreenshotCapture } from "./screenshot";
 import type { ExtensionSettings } from "./settings";
@@ -39,6 +43,7 @@ const capture_asset_response: CaptureAssetResponse = {
       checksum_sha256: null,
     },
     asset_type: "screenshot",
+    status: "active",
     width: 1440,
     height: 900,
     device_pixel_ratio: 2,
@@ -66,7 +71,7 @@ const capture_event_response: CaptureEventResponse = {
     page_url: "https://example.com/path",
     page_title: "Example Page",
     target_label: null,
-    target_selector: "button[data-testid=\"add-department\"]",
+    target_selector: 'button[data-testid="add-department"]',
     target_role: "button",
     target_test_id: "add-department",
     target_text: "Add Department",
@@ -92,7 +97,7 @@ const click_message: AutomaticClickMessage = {
     page_url: "https://example.com/path",
     page_title: "Example Page",
     target_text: "Add Department",
-    target_selector: "button[data-testid=\"add-department\"]",
+    target_selector: 'button[data-testid="add-department"]',
     target_role: "button",
     target_test_id: "add-department",
     client_x: 240,
@@ -109,7 +114,9 @@ const click_message: AutomaticClickMessage = {
   },
 };
 
-const build_dependencies = (overrides: Partial<Parameters<typeof handleAutomaticClickCapture>[1]> = {}) => ({
+const build_dependencies = (
+  overrides: Partial<Parameters<typeof handleAutomaticClickCapture>[1]> = {},
+) => ({
   getSettings: vi.fn(async () => settings),
   captureVisibleTabScreenshot: vi.fn(async () => screenshot),
   uploadCaptureAsset: vi.fn(async () => capture_asset_response),
@@ -123,7 +130,9 @@ describe("automatic capture orchestration", () => {
   it("uploads a screenshot and records one ordered click event", async () => {
     const dependencies = build_dependencies();
 
-    await expect(handleAutomaticClickCapture(click_message, dependencies)).resolves.toEqual({
+    await expect(
+      handleAutomaticClickCapture(click_message, dependencies),
+    ).resolves.toEqual({
       ok: true,
       event_index: 2,
     });
@@ -141,7 +150,7 @@ describe("automatic capture orchestration", () => {
         metadata: expect.objectContaining({
           capture_source: "extension_auto_click",
         }),
-      })
+      }),
     );
     expect(dependencies.createCaptureEvent).toHaveBeenCalledWith(
       "https://demo.example.com",
@@ -153,7 +162,7 @@ describe("automatic capture orchestration", () => {
         event_index: 2,
         capture_asset_id: "capture_asset_1",
         target_text: "Add Department",
-        target_selector: "button[data-testid=\"add-department\"]",
+        target_selector: 'button[data-testid="add-department"]',
         target_role: "button",
         target_test_id: "add-department",
         client_x: 240,
@@ -162,7 +171,7 @@ describe("automatic capture orchestration", () => {
         viewport_height: 900,
         device_pixel_ratio: 2,
         input_value_redacted: true,
-      })
+      }),
     );
     expect(dependencies.saveActiveCaptureEventIndex).toHaveBeenCalledWith(2);
     expect(dependencies.saveAutomaticCaptureDiagnostic).toHaveBeenCalledWith({
@@ -181,7 +190,9 @@ describe("automatic capture orchestration", () => {
       })),
     });
 
-    await expect(handleAutomaticClickCapture(click_message, dependencies)).resolves.toEqual({
+    await expect(
+      handleAutomaticClickCapture(click_message, dependencies),
+    ).resolves.toEqual({
       ok: false,
       reason: "automatic_capture_inactive",
     });
@@ -199,7 +210,9 @@ describe("automatic capture orchestration", () => {
       }),
     });
 
-    await expect(handleAutomaticClickCapture(click_message, dependencies)).resolves.toEqual({
+    await expect(
+      handleAutomaticClickCapture(click_message, dependencies),
+    ).resolves.toEqual({
       ok: false,
       reason: "automatic_capture_failed",
       message: "Upload failed",

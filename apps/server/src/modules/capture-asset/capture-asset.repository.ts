@@ -25,6 +25,7 @@ type CaptureAssetRow = {
   project_id: string;
   capture_session_id: string;
   asset_type: CaptureAssetType;
+  status: "active" | "archived";
   width: number | null;
   height: number | null;
   device_pixel_ratio: number | null;
@@ -64,6 +65,7 @@ const map_capture_asset = (row: CaptureAssetRow): CaptureAsset => ({
     checksum_sha256: row.file_checksum_sha256,
   },
   asset_type: row.asset_type,
+  status: row.status,
   width: row.width,
   height: row.height,
   device_pixel_ratio: row.device_pixel_ratio,
@@ -83,6 +85,7 @@ const capture_asset_select = `
   capture_asset.project_id,
   capture_asset.capture_session_id,
   capture_asset.asset_type,
+  capture_asset.status,
   capture_asset.width,
   capture_asset.height,
   capture_asset.device_pixel_ratio,
@@ -319,6 +322,7 @@ export const build_capture_asset_transactional_repository = (
     project_id: string;
     capture_session_id: string;
     asset_type?: CaptureAssetType;
+    include_archived?: boolean;
   }) {
     const values: unknown[] = [
       input.capture_session_id,
@@ -328,6 +332,9 @@ export const build_capture_asset_transactional_repository = (
     const asset_type_filter = input.asset_type
       ? "AND capture_asset.asset_type = $4"
       : "";
+    const lifecycle_filter = input.include_archived
+      ? ""
+      : "AND capture_asset.status = 'active'";
 
     if (input.asset_type) {
       values.push(input.asset_type);
@@ -343,6 +350,7 @@ export const build_capture_asset_transactional_repository = (
       AND capture_asset.organization_id = $3
       AND capture_asset.is_deleted = FALSE
       AND app_file.is_deleted = FALSE
+      ${lifecycle_filter}
       ${asset_type_filter}
       ORDER BY capture_asset.created_at DESC, capture_asset.id DESC
     `,
@@ -385,6 +393,7 @@ export const build_capture_asset_transactional_repository = (
       AND capture_session.project_version_id = $3
       AND capture_asset.is_deleted = FALSE
       AND app_file.is_deleted = FALSE
+      AND capture_asset.status = 'active'
       ${asset_type_filter}
       ORDER BY capture_asset.captured_at ASC, capture_asset.created_at ASC, capture_asset.id ASC
     `,
@@ -469,62 +478,404 @@ export const build_capture_asset_transactional_repository = (
     };
   },
 
-  async delete_capture_asset(input: {
+  async transition_capture_asset(input: {
     organization_id: string;
     project_id: string;
     capture_session_id: string;
     capture_asset_id: string;
     actor_org_user_id: string;
+    expected_asset_version: number;
+    status: "active" | "archived";
   }) {
-    const asset_result = await db.query<{ file_id: string }>(
+    const asset_result = await db.query<CaptureAssetRow>(
       `
       UPDATE capture_schema.capture_asset
       SET
-        is_deleted = TRUE,
-        deleted_at = CURRENT_TIMESTAMP,
-        deleted_by_id = $1,
-        updated_by_id = $1,
+        status = $1,
+        updated_by_id = $2,
         updated_at = CURRENT_TIMESTAMP,
         version = version + 1
-      WHERE id = $2
-      AND capture_session_id = $3
-      AND project_id = $4
-      AND organization_id = $5
-      AND is_deleted = FALSE
-      RETURNING file_id
+      FROM file_schema.file app_file
+      WHERE capture_asset.id = $4
+      AND capture_asset.capture_session_id = $5
+      AND capture_asset.project_id = $6
+      AND capture_asset.organization_id = $7
+      AND capture_asset.is_deleted = FALSE
+      AND capture_asset.version = $3
+      AND app_file.id=capture_asset.file_id AND app_file.is_deleted=FALSE
+      RETURNING ${capture_asset_select}
     `,
       [
+        input.status,
         input.actor_org_user_id,
+        input.expected_asset_version,
         input.capture_asset_id,
         input.capture_session_id,
         input.project_id,
         input.organization_id,
       ],
     );
-    const file_id = asset_result.rows[0]?.file_id;
+    const row = asset_result.rows[0];
+    return row ? map_capture_asset(row) : null;
+  },
 
-    if (!file_id) {
-      return false;
-    }
+  async get_capture_asset_protection(input: {
+    organization_id: string;
+    project_id: string;
+    capture_session_id: string;
+    capture_asset_id: string;
+  }) {
+    const asset = (
+      await db.query<{
+        status: "active" | "archived";
+        file_id: string;
+        purge_operation_status: "pending" | "failed" | "completed" | null;
+      }>(
+        `
+      SELECT asset.status,asset.file_id,operation.status AS purge_operation_status
+      FROM capture_schema.capture_asset asset LEFT JOIN capture_schema.capture_asset_purge_operation operation
+        ON operation.capture_asset_id=asset.id
+      WHERE asset.id=$1 AND asset.capture_session_id=$2 AND asset.project_id=$3 AND asset.organization_id=$4
+        AND asset.is_deleted=FALSE`,
+        [
+          input.capture_asset_id,
+          input.capture_session_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      )
+    ).rows[0];
+    if (!asset) return null;
+    const dependencies = (
+      await db.query<Record<string, unknown>>(
+        `
+      SELECT 'guide_working_draft' dependency_type,edition.guide_id artifact_id,edition.id edition_id,NULL::int revision_number,
+        NULL::varchar published_artifact_id,NULL::int publication_number,NULL::varchar capture_asset_id
+      FROM guide_schema.guide_step step JOIN guide_schema.guide_working_draft draft ON draft.id=step.guide_working_draft_id
+      JOIN guide_schema.guide_edition edition ON edition.id=draft.guide_edition_id
+      WHERE step.project_id=$1 AND step.organization_id=$2 AND step.is_deleted=FALSE AND ($3 IN (step.source_capture_asset_id,step.selected_capture_asset_id))
+      UNION ALL SELECT 'interactive_demo_working_draft',edition.interactive_demo_id,edition.id,NULL,NULL,NULL,NULL
+      FROM interactive_demo_schema.demo_scene scene JOIN interactive_demo_schema.interactive_demo_working_draft draft ON draft.id=scene.interactive_demo_working_draft_id
+      JOIN interactive_demo_schema.interactive_demo_edition edition ON edition.id=draft.interactive_demo_edition_id
+      WHERE scene.project_id=$1 AND scene.organization_id=$2 AND scene.is_deleted=FALSE AND ($3 IN (scene.source_capture_asset_id,scene.background_capture_asset_id))
+      UNION ALL SELECT 'guide_revision',revision.guide_id,revision.guide_edition_id,revision.revision_number,NULL,NULL,NULL
+      FROM guide_schema.guide_revision_step step JOIN guide_schema.guide_revision revision ON revision.id=step.guide_revision_id
+      WHERE step.project_id=$1 AND step.organization_id=$2 AND ($3 IN (step.source_capture_asset_id,step.selected_capture_asset_id))
+      UNION ALL SELECT 'interactive_demo_revision',revision.interactive_demo_id,revision.interactive_demo_edition_id,revision.revision_number,NULL,NULL,NULL
+      FROM interactive_demo_schema.demo_revision_scene scene JOIN interactive_demo_schema.interactive_demo_revision revision ON revision.id=scene.interactive_demo_revision_id
+      WHERE scene.project_id=$1 AND scene.organization_id=$2 AND ($3 IN (scene.source_capture_asset_id,scene.background_capture_asset_id))
+      UNION ALL SELECT 'published_artifact',NULL,NULL,NULL,published.id,published.version_number,NULL
+      FROM publish_schema.published_artifact_capture_asset projection JOIN publish_schema.published_artifact published ON published.id=projection.published_artifact_id
+      WHERE projection.project_id=$1 AND projection.organization_id=$2 AND projection.capture_asset_id=$3
+      UNION ALL SELECT 'shared_file_asset',NULL,NULL,NULL,NULL,NULL,other.id
+      FROM capture_schema.capture_asset other WHERE other.project_id=$1 AND other.organization_id=$2 AND other.file_id=$4
+        AND other.id<>$3 AND other.is_deleted=FALSE`,
+        [
+          input.project_id,
+          input.organization_id,
+          input.capture_asset_id,
+          asset.file_id,
+        ],
+      )
+    ).rows;
+    const safe = dependencies
+      .slice(0, 100)
+      .map((row) =>
+        Object.fromEntries(
+          Object.entries(row).filter(([, value]) => value !== null),
+        ),
+      );
+    return {
+      capture_asset_id: input.capture_asset_id,
+      status: asset.status,
+      purge_operation_status: asset.purge_operation_status,
+      can_purge:
+        asset.status === "archived" &&
+        asset.purge_operation_status !== "completed" &&
+        dependencies.length === 0,
+      total_dependency_count: dependencies.length,
+      dependencies: safe,
+    } as never;
+  },
 
+  async find_completed_capture_asset_purge(input: {
+    organization_id: string;
+    project_id: string;
+    capture_session_id: string;
+    capture_asset_id: string;
+  }) {
+    const row = (
+      await db.query<{
+        id: string;
+        status: "completed";
+        attempt_count: number;
+      }>(
+        `
+      SELECT operation.id,operation.status,operation.attempt_count
+      FROM capture_schema.capture_asset_purge_operation operation
+      JOIN capture_schema.capture_asset asset ON asset.id=operation.capture_asset_id
+      WHERE operation.capture_asset_id=$1 AND operation.project_id=$2 AND operation.organization_id=$3
+        AND asset.capture_session_id=$4 AND operation.status='completed'`,
+        [
+          input.capture_asset_id,
+          input.project_id,
+          input.organization_id,
+          input.capture_session_id,
+        ],
+      )
+    ).rows[0];
+    return row
+      ? {
+          capture_asset_id: input.capture_asset_id,
+          purge_operation_id: row.id,
+          status: row.status,
+          attempt_count: row.attempt_count,
+        }
+      : null;
+  },
+
+  async begin_capture_asset_purge(input: {
+    organization_id: string;
+    project_id: string;
+    capture_session_id: string;
+    capture_asset_id: string;
+    actor_org_user_id: string;
+    expected_asset_version: number;
+  }) {
+    const completed = (
+      await db.query<{
+        id: string;
+        status: "completed";
+        attempt_count: number;
+      }>(
+        `
+      SELECT operation.id,operation.status,operation.attempt_count
+      FROM capture_schema.capture_asset_purge_operation operation
+      JOIN capture_schema.capture_asset asset ON asset.id=operation.capture_asset_id
+      WHERE operation.capture_asset_id=$1 AND operation.project_id=$2 AND operation.organization_id=$3
+        AND asset.capture_session_id=$4 AND operation.status='completed'
+      FOR UPDATE OF operation`,
+        [
+          input.capture_asset_id,
+          input.project_id,
+          input.organization_id,
+          input.capture_session_id,
+        ],
+      )
+    ).rows[0];
+    if (completed)
+      return {
+        operation: {
+          capture_asset_id: input.capture_asset_id,
+          purge_operation_id: completed.id,
+          status: completed.status,
+          attempt_count: completed.attempt_count,
+        },
+        storage_key: "",
+        completed: true,
+      };
+    const asset = (
+      await db.query<{
+        file_id: string;
+        storage_key: string;
+        status: "active" | "archived";
+        version: number;
+      }>(
+        `
+      SELECT asset.file_id,file_record.storage_key,asset.status,asset.version FROM capture_schema.capture_asset asset
+      JOIN file_schema.file file_record ON file_record.id=asset.file_id
+      WHERE asset.id=$1 AND asset.capture_session_id=$2 AND asset.project_id=$3 AND asset.organization_id=$4
+        AND asset.is_deleted=FALSE AND file_record.is_deleted=FALSE FOR UPDATE OF asset,file_record`,
+        [
+          input.capture_asset_id,
+          input.capture_session_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      )
+    ).rows[0];
+    if (!asset) return null;
+    const existing = (
+      await db.query<{
+        id: string;
+        status: "pending" | "failed" | "completed";
+        attempt_count: number;
+      }>(
+        `
+      SELECT id,status,attempt_count FROM capture_schema.capture_asset_purge_operation WHERE capture_asset_id=$1 FOR UPDATE`,
+        [input.capture_asset_id],
+      )
+    ).rows[0];
+    if (
+      asset.status !== "archived" ||
+      asset.version !== input.expected_asset_version
+    )
+      return null;
+    let operation = existing;
+    if (existing?.status === "failed")
+      operation = (
+        await db.query<typeof existing>(
+          `UPDATE capture_schema.capture_asset_purge_operation
+      SET status='pending',failure_code=NULL,attempt_count=attempt_count+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1
+      RETURNING id,status,attempt_count`,
+          [existing.id],
+        )
+      ).rows[0];
+    if (!operation)
+      operation = (
+        await db.query<typeof existing>(
+          `INSERT INTO capture_schema.capture_asset_purge_operation
+      (id,organization_id,project_id,capture_asset_id,status,requested_by_id) VALUES($1,$2,$3,$4,'pending',$5)
+      RETURNING id,status,attempt_count`,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            input.capture_asset_id,
+            input.actor_org_user_id,
+          ],
+        )
+      ).rows[0];
+    return {
+      operation: {
+        capture_asset_id: input.capture_asset_id,
+        purge_operation_id: operation!.id,
+        status: operation!.status,
+        attempt_count: operation!.attempt_count,
+      },
+      storage_key: asset.storage_key,
+      completed: false,
+    };
+  },
+
+  async fail_capture_asset_purge(input: {
+    organization_id: string;
+    project_id: string;
+    capture_session_id: string;
+    capture_asset_id: string;
+    operation_id: string;
+    failure_code: string;
+    actor_org_user_id: string;
+  }) {
+    const row = (
+      await db.query<{ id: string; status: "failed"; attempt_count: number }>(
+        `UPDATE capture_schema.capture_asset_purge_operation
+      SET status='failed',failure_code=$1,updated_at=CURRENT_TIMESTAMP WHERE id=$2 AND capture_asset_id=$3 AND project_id=$4
+        AND organization_id=$5 AND status='pending' RETURNING id,status,attempt_count`,
+        [
+          input.failure_code,
+          input.operation_id,
+          input.capture_asset_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      )
+    ).rows[0]!;
+    return {
+      capture_asset_id: input.capture_asset_id,
+      purge_operation_id: row.id,
+      status: row.status,
+      attempt_count: row.attempt_count,
+    };
+  },
+
+  async complete_capture_asset_purge(input: {
+    organization_id: string;
+    project_id: string;
+    capture_asset_id: string;
+    operation_id: string;
+    actor_org_user_id: string;
+  }) {
+    const locked_asset = (
+      await db.query<{ file_id: string }>(
+        `
+      SELECT asset.file_id FROM capture_schema.capture_asset asset
+      JOIN file_schema.file file_record ON file_record.id=asset.file_id
+      WHERE asset.id=$1 AND asset.project_id=$2 AND asset.organization_id=$3
+      FOR UPDATE OF asset,file_record`,
+        [input.capture_asset_id, input.project_id, input.organization_id],
+      )
+    ).rows[0];
+    if (!locked_asset)
+      throw new Error("Capture Asset purge target was not found");
+    const operation = (
+      await db.query<{
+        id: string;
+        status: "pending" | "failed" | "completed";
+        attempt_count: number;
+      }>(
+        `
+      SELECT id,status,attempt_count FROM capture_schema.capture_asset_purge_operation
+      WHERE id=$1 AND capture_asset_id=$2 AND project_id=$3 AND organization_id=$4 FOR UPDATE`,
+        [
+          input.operation_id,
+          input.capture_asset_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      )
+    ).rows[0];
+    if (!operation)
+      throw new Error("Capture Asset purge operation was not found");
+    if (operation.status === "completed")
+      return {
+        capture_asset_id: input.capture_asset_id,
+        purge_operation_id: operation.id,
+        status: operation.status,
+        attempt_count: operation.attempt_count,
+      };
+    if (operation.status !== "pending")
+      throw new Error("Capture Asset purge operation is not pending");
+    const asset = (
+      await db.query<{ file_id: string }>(
+        `UPDATE capture_schema.capture_asset SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,
+      deleted_by_id=$1,updated_by_id=$1,updated_at=CURRENT_TIMESTAMP,version=version+1 WHERE id=$2 AND project_id=$3
+      AND organization_id=$4 AND is_deleted=FALSE RETURNING file_id`,
+        [
+          input.actor_org_user_id,
+          input.capture_asset_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      )
+    ).rows[0];
+    if (!asset)
+      throw new Error(
+        "Capture Asset purge completion lost its active tombstone target",
+      );
     await db.query(
-      `
-      UPDATE file_schema.file
-      SET
-        is_deleted = TRUE,
-        deleted_at = CURRENT_TIMESTAMP,
-        deleted_by_id = $1,
-        updated_by_id = $1,
-        updated_at = CURRENT_TIMESTAMP,
-        version = version + 1
-      WHERE id = $2
-      AND organization_id = $3
-      AND is_deleted = FALSE
-    `,
-      [input.actor_org_user_id, file_id, input.organization_id],
+      `UPDATE file_schema.file SET is_deleted=TRUE,deleted_at=CURRENT_TIMESTAMP,deleted_by_id=$1,updated_by_id=$1,
+      updated_at=CURRENT_TIMESTAMP,version=version+1 WHERE id=$2 AND organization_id=$3 AND is_deleted=FALSE`,
+      [input.actor_org_user_id, locked_asset.file_id, input.organization_id],
     );
-
-    return true;
+    const row = (
+      await db.query<{
+        id: string;
+        status: "completed";
+        attempt_count: number;
+      }>(
+        `UPDATE capture_schema.capture_asset_purge_operation
+      SET status='completed',failure_code=NULL,completed_by_id=$1,completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
+      WHERE id=$2 AND capture_asset_id=$3 AND project_id=$4 AND organization_id=$5 AND status='pending' RETURNING id,status,attempt_count`,
+        [
+          input.actor_org_user_id,
+          input.operation_id,
+          input.capture_asset_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      )
+    ).rows[0];
+    if (!row)
+      throw new Error(
+        "Capture Asset purge completion did not update its operation",
+      );
+    return {
+      capture_asset_id: input.capture_asset_id,
+      purge_operation_id: row.id,
+      status: row.status,
+      attempt_count: row.attempt_count,
+    };
   },
 });
 

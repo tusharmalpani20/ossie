@@ -234,6 +234,15 @@ export const build_audited_publish_repository = (
         published_artifact &&
         after_link
       ) {
+        const committed_artifact = published_artifact as PublishedArtifact;
+        const projection_rows = await client.query<{
+          id: string;
+          capture_asset_id: string;
+        }>(
+          `SELECT id,capture_asset_id
+          FROM publish_schema.published_artifact_capture_asset WHERE published_artifact_id=$1 ORDER BY capture_asset_id`,
+          [committed_artifact.id],
+        );
         const action =
           artifact_type === "guide"
             ? "guide.published"
@@ -248,13 +257,25 @@ export const build_audited_publish_repository = (
           action,
           before_version: root_version,
           after_version: root_version,
-          changes: build_publish_changes({
-            artifact_type,
-            artifact_id,
-            before_link,
-            after_link,
-            published_artifact,
-          }),
+          changes: [
+            ...build_publish_changes({
+              artifact_type,
+              artifact_id,
+              before_link,
+              after_link,
+              published_artifact: committed_artifact,
+            }),
+            ...projection_rows.rows.map(({ id, capture_asset_id }) => ({
+              entity_type: "published_artifact_capture_asset",
+              entity_id: id,
+              parent_entity_type: "published_artifact",
+              parent_entity_id: committed_artifact.id,
+              before: null,
+              after: { capture_asset_id },
+              safe_fields: {} as const,
+              redacted_fields: [],
+            })),
+          ],
         });
         if (audit) await write_audit_event(client, audit);
       }

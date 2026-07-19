@@ -1,7 +1,10 @@
 import cookie from "@fastify/cookie";
 import multipart from "@fastify/multipart";
 import fastify from "fastify";
-import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import {
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
 import { Readable } from "node:stream";
 import { describe, expect, it } from "vitest";
 import { UnauthenticatedSessionError } from "../authentication/session.service";
@@ -57,6 +60,7 @@ const capture_asset: CaptureAsset = {
     checksum_sha256: "checksum",
   },
   asset_type: "screenshot",
+  status: "active",
   width: 1440,
   height: 900,
   device_pixel_ratio: 1,
@@ -72,9 +76,13 @@ const capture_asset: CaptureAsset = {
 
 const build_test_app = async (
   overrides: {
-    auth_service?: Partial<Parameters<typeof build_capture_asset_routes>[0]["auth_service"]>;
-    capture_asset_service?: Partial<Parameters<typeof build_capture_asset_routes>[0]["capture_asset_service"]>;
-  } = {}
+    auth_service?: Partial<
+      Parameters<typeof build_capture_asset_routes>[0]["auth_service"]
+    >;
+    capture_asset_service?: Partial<
+      Parameters<typeof build_capture_asset_routes>[0]["capture_asset_service"]
+    >;
+  } = {},
 ) => {
   const app = fastify();
   app.setValidatorCompiler(validatorCompiler);
@@ -86,53 +94,85 @@ const build_test_app = async (
       fileSize: 20,
     },
   });
-  await app.register(build_capture_asset_routes({
-    auth_service: {
-      get_current_auth_context: async () => auth_context,
-      ...overrides.auth_service,
-    },
-    capture_asset_service: {
-      create_capture_asset: async () => capture_asset,
-      upload_capture_asset: async () => capture_asset,
-      list_capture_assets: async () => [capture_asset],
-      get_capture_asset: async () => capture_asset,
-      get_capture_asset_file: async () => ({
-        stream: Readable.from(Buffer.from("fake png bytes")),
-        mime_type: "image/png",
-        size_bytes: 14,
-      }),
-      delete_capture_asset: async () => undefined,
-      ...overrides.capture_asset_service,
-      list_project_capture_assets: overrides.capture_asset_service?.list_project_capture_assets ?? (async () => [{
-        ...capture_asset,
-        file_url: `/api/v1/projects/${capture_asset.project_id}/capture-sessions/${capture_asset.capture_session_id}/assets/${capture_asset.id}/file`,
-      }]),
-    },
-  }), { prefix: "/api/v1/projects" });
+  await app.register(
+    build_capture_asset_routes({
+      auth_service: {
+        get_current_auth_context: async () => auth_context,
+        ...overrides.auth_service,
+      },
+      capture_asset_service: {
+        create_capture_asset: async () => capture_asset,
+        upload_capture_asset: async () => capture_asset,
+        list_capture_assets: async () => [capture_asset],
+        get_capture_asset: async () => capture_asset,
+        get_capture_asset_file: async () => ({
+          stream: Readable.from(Buffer.from("fake png bytes")),
+          mime_type: "image/png",
+          size_bytes: 14,
+        }),
+        archive_capture_asset: async () => ({
+          ...capture_asset,
+          status: "archived",
+          version: 2,
+        }),
+        restore_capture_asset: async () => capture_asset,
+        get_capture_asset_protection: async () => ({
+          capture_asset_id: capture_asset.id,
+          status: "archived",
+          purge_operation_status: null,
+          can_purge: true,
+          total_dependency_count: 0,
+          dependencies: [],
+        }),
+        purge_capture_asset: async () => ({
+          capture_asset_id: capture_asset.id,
+          purge_operation_id: "purge_1",
+          status: "completed",
+          attempt_count: 1,
+        }),
+        ...overrides.capture_asset_service,
+        list_project_capture_assets:
+          overrides.capture_asset_service?.list_project_capture_assets ??
+          (async () => [
+            {
+              ...capture_asset,
+              file_url: `/api/v1/projects/${capture_asset.project_id}/capture-sessions/${capture_asset.capture_session_id}/assets/${capture_asset.id}/file`,
+            },
+          ]),
+      },
+    }),
+    { prefix: "/api/v1/projects" },
+  );
   return app;
 };
 
-const multipart_payload = (parts: Array<{
-  name: string;
-  value: string | Buffer;
-  filename?: string;
-  content_type?: string;
-}>) => {
+const multipart_payload = (
+  parts: Array<{
+    name: string;
+    value: string | Buffer;
+    filename?: string;
+    content_type?: string;
+  }>,
+) => {
   const boundary = "----ossie-test-boundary";
   const chunks: Buffer[] = [];
 
   for (const part of parts) {
     chunks.push(Buffer.from(`--${boundary}\r\n`));
-    chunks.push(Buffer.from(
-      `Content-Disposition: form-data; name="${part.name}"${
-        part.filename ? `; filename="${part.filename}"` : ""
-      }\r\n`
-    ));
+    chunks.push(
+      Buffer.from(
+        `Content-Disposition: form-data; name="${part.name}"${
+          part.filename ? `; filename="${part.filename}"` : ""
+        }\r\n`,
+      ),
+    );
     if (part.content_type) {
       chunks.push(Buffer.from(`Content-Type: ${part.content_type}\r\n`));
     }
     chunks.push(Buffer.from("\r\n"));
-    chunks.push(Buffer.isBuffer(part.value) ? part.value : Buffer.from(part.value));
+    chunks.push(
+      Buffer.isBuffer(part.value) ? part.value : Buffer.from(part.value),
+    );
     chunks.push(Buffer.from("\r\n"));
   }
 
@@ -169,10 +209,23 @@ describe("capture asset routes", () => {
           },
         },
       },
-      { method: "GET", url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets" },
-      { method: "GET", url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1" },
-      { method: "GET", url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file" },
-      { method: "DELETE", url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1" },
+      {
+        method: "GET",
+        url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets",
+      },
+      {
+        method: "GET",
+        url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1",
+      },
+      {
+        method: "GET",
+        url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
+      },
+      {
+        method: "POST",
+        url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/archive",
+        payload: { expected_asset_version: 1 },
+      },
     ] as const) {
       const response = await app.inject(request);
       expect(response.statusCode).toBe(401);
@@ -224,28 +277,30 @@ describe("capture asset routes", () => {
 
     expect(response.statusCode).toBe(201);
     expect(response.json()).toEqual({ capture_asset });
-    expect(seen_inputs).toEqual([{
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
+    expect(seen_inputs).toEqual([
+      {
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
+        },
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        file: {
+          stream: expect.any(Object),
+          mime_type: "image/png",
+          original_name: "screenshot.png",
+        },
+        data: {
+          width: 1440,
+          height: 900,
+          device_pixel_ratio: 2,
+          page_url: " https://example.internal ",
+          page_title: " Example ",
+          captured_at: "2026-06-05T10:00:00.000Z",
+          metadata: { step: 1 },
+        },
       },
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      file: {
-        stream: expect.any(Object),
-        mime_type: "image/png",
-        original_name: "screenshot.png",
-      },
-      data: {
-        width: 1440,
-        height: 900,
-        device_pixel_ratio: 2,
-        page_url: " https://example.internal ",
-        page_title: " Example ",
-        captured_at: "2026-06-05T10:00:00.000Z",
-        metadata: { step: 1 },
-      },
-    }]);
+    ]);
     await app.close();
   });
 
@@ -289,21 +344,23 @@ describe("capture asset routes", () => {
     expect(response.statusCode).toBe(201);
     expect(response.json()).toEqual({ capture_asset });
     expect(seen_tokens).toEqual(["extension-session-token"]);
-    expect(seen_inputs).toEqual([expect.objectContaining({
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
-      },
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      file: expect.objectContaining({
-        mime_type: "image/png",
-        original_name: "screenshot.png",
+    expect(seen_inputs).toEqual([
+      expect.objectContaining({
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
+        },
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        file: expect.objectContaining({
+          mime_type: "image/png",
+          original_name: "screenshot.png",
+        }),
+        data: {
+          captured_at: "2026-06-05T10:00:00.000Z",
+        },
       }),
-      data: {
-        captured_at: "2026-06-05T10:00:00.000Z",
-      },
-    })]);
+    ]);
     await app.close();
   });
 
@@ -407,18 +464,20 @@ describe("capture asset routes", () => {
           value: Buffer.from("fake png bytes"),
         },
       ]);
-      const response = await app.inject(test_case.service === "upload_capture_asset"
-        ? {
-          method: "POST",
-          url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/upload",
-          cookies: { ossie_session: "session-token" },
-          ...request_body,
-        }
-        : {
-          method: "GET",
-          url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
-          cookies: { ossie_session: "session-token" },
-        });
+      const response = await app.inject(
+        test_case.service === "upload_capture_asset"
+          ? {
+              method: "POST",
+              url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/upload",
+              cookies: { ossie_session: "session-token" },
+              ...request_body,
+            }
+          : {
+              method: "GET",
+              url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
+              cookies: { ossie_session: "session-token" },
+            },
+      );
 
       expect(response.statusCode).toBe(test_case.status);
       expect(response.json().error.type).toBe(test_case.type);
@@ -430,22 +489,26 @@ describe("capture asset routes", () => {
     const seen_inputs: unknown[] = [];
     const cases = [
       {
-        parts: [{
-          name: "screenshot",
-          filename: "screenshot.png",
-          content_type: "image/png",
-          value: Buffer.from("fake png bytes"),
-        }],
+        parts: [
+          {
+            name: "screenshot",
+            filename: "screenshot.png",
+            content_type: "image/png",
+            value: Buffer.from("fake png bytes"),
+          },
+        ],
         status: 400,
         type: "upload_file_required",
       },
       {
-        parts: [{
-          name: "file",
-          filename: "",
-          content_type: "image/png",
-          value: Buffer.from("fake png bytes"),
-        }],
+        parts: [
+          {
+            name: "file",
+            filename: "",
+            content_type: "image/png",
+            value: Buffer.from("fake png bytes"),
+          },
+        ],
         status: 400,
         type: "upload_file_required",
       },
@@ -569,36 +632,38 @@ describe("capture asset routes", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(seen_inputs).toEqual([{
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
-      },
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      data: {
-        asset_type: "screenshot",
-        width: 1440,
-        height: 900,
-        device_pixel_ratio: 1,
-        page_url: "https://example.internal/app/department",
-        page_title: "Department",
-        metadata: {
-          capture_mode: "manual",
+    expect(seen_inputs).toEqual([
+      {
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
         },
-        file: {
-          storage_provider: "local",
-          storage_key: "captures/org/project/session/screenshot-1.png",
-          mime_type: "image/png",
-          size_bytes: 123456,
-          original_name: "screenshot-1.png",
-          checksum_sha256: "checksum",
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        data: {
+          asset_type: "screenshot",
+          width: 1440,
+          height: 900,
+          device_pixel_ratio: 1,
+          page_url: "https://example.internal/app/department",
+          page_title: "Department",
           metadata: {
-            absolute_path: "/tmp/secret.png",
+            capture_mode: "manual",
+          },
+          file: {
+            storage_provider: "local",
+            storage_key: "captures/org/project/session/screenshot-1.png",
+            mime_type: "image/png",
+            size_bytes: 123456,
+            original_name: "screenshot-1.png",
+            checksum_sha256: "checksum",
+            metadata: {
+              absolute_path: "/tmp/secret.png",
+            },
           },
         },
       },
-    }]);
+    ]);
     expect(response.json()).toEqual({ capture_asset });
     expect(JSON.stringify(response.json())).not.toContain("storage_key");
     expect(JSON.stringify(response.json())).not.toContain("metadata");
@@ -609,7 +674,7 @@ describe("capture asset routes", () => {
     await app.close();
   });
 
-  it("lists gets and deletes capture assets through the service", async () => {
+  it("lists, gets, and archives capture assets through the service", async () => {
     const seen_inputs: unknown[] = [];
     const app = await build_test_app({
       capture_asset_service: {
@@ -621,8 +686,9 @@ describe("capture asset routes", () => {
           seen_inputs.push(input);
           return capture_asset;
         },
-        delete_capture_asset: async (input) => {
+        archive_capture_asset: async (input) => {
           seen_inputs.push(input);
+          return { ...capture_asset, status: "archived" as const, version: 2 };
         },
       },
     });
@@ -642,8 +708,9 @@ describe("capture asset routes", () => {
       },
     });
     const delete_response = await app.inject({
-      method: "DELETE",
-      url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1",
+      method: "POST",
+      url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/archive",
+      payload: { expected_asset_version: 1 },
       cookies: {
         ossie_session: "session-token",
       },
@@ -653,8 +720,7 @@ describe("capture asset routes", () => {
     expect(list_response.json()).toEqual({ capture_assets: [capture_asset] });
     expect(get_response.statusCode).toBe(200);
     expect(get_response.json()).toEqual({ capture_asset });
-    expect(delete_response.statusCode).toBe(204);
-    expect(delete_response.body).toBe("");
+    expect(delete_response.statusCode).toBe(200);
     expect(seen_inputs).toEqual([
       {
         auth: {
@@ -664,6 +730,7 @@ describe("capture asset routes", () => {
         project_id: "project_1",
         capture_session_id: "capture_session_1",
         asset_type: "screenshot",
+        include_archived: undefined,
       },
       {
         auth: {
@@ -682,6 +749,7 @@ describe("capture asset routes", () => {
         project_id: "project_1",
         capture_session_id: "capture_session_1",
         capture_asset_id: "capture_asset_1",
+        expected_asset_version: 1,
       },
     ]);
 

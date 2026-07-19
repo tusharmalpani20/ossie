@@ -46,11 +46,15 @@ describe("local file storage provider", () => {
 
     expect(stored).toEqual({
       storage_provider: "local",
-      storage_key: "organizations/org_1/projects/project_1/capture-sessions/session_1/file_1.png",
+      storage_key:
+        "organizations/org_1/projects/project_1/capture-sessions/session_1/file_1.png",
       size_bytes: bytes.length,
-      checksum_sha256: "86610c40efe63f0a46c58c4b605c164b4ffa3a3ad3f1dcf13e6ba4c59cb3ce16",
+      checksum_sha256:
+        "86610c40efe63f0a46c58c4b605c164b4ffa3a3ad3f1dcf13e6ba4c59cb3ce16",
     });
-    await expect(readFile(path.join(root, stored.storage_key))).resolves.toEqual(bytes);
+    await expect(
+      readFile(path.join(root, stored.storage_key)),
+    ).resolves.toEqual(bytes);
 
     const read = await provider.get({ storage_key: stored.storage_key });
     expect(read.size_bytes).toBe(bytes.length);
@@ -60,9 +64,15 @@ describe("local file storage provider", () => {
   it("rejects unsafe storage keys and maps missing bytes", async () => {
     const provider = build_local_file_storage_provider({ root });
 
-    await expect(provider.get({ storage_key: "../secret.png" })).rejects.toBeInstanceOf(UnsafeStorageKeyError);
-    await expect(provider.get({ storage_key: "/secret.png" })).rejects.toBeInstanceOf(UnsafeStorageKeyError);
-    await expect(provider.get({ storage_key: "missing.png" })).rejects.toBeInstanceOf(FileBytesNotFoundError);
+    await expect(
+      provider.get({ storage_key: "../secret.png" }),
+    ).rejects.toBeInstanceOf(UnsafeStorageKeyError);
+    await expect(
+      provider.get({ storage_key: "/secret.png" }),
+    ).rejects.toBeInstanceOf(UnsafeStorageKeyError);
+    await expect(
+      provider.get({ storage_key: "missing.png" }),
+    ).rejects.toBeInstanceOf(FileBytesNotFoundError);
   });
 
   it("deletes stored bytes best effort", async () => {
@@ -79,24 +89,47 @@ describe("local file storage provider", () => {
     await provider.delete_best_effort({ storage_key: stored.storage_key });
     await provider.delete_best_effort({ storage_key: stored.storage_key });
 
-    await expect(provider.get({ storage_key: stored.storage_key })).rejects.toBeInstanceOf(FileBytesNotFoundError);
+    await expect(
+      provider.get({ storage_key: stored.storage_key }),
+    ).rejects.toBeInstanceOf(FileBytesNotFoundError);
   });
 
-  it("rejects oversized uploads without leaving partial bytes", async () => {
+  it("purges exact stored bytes idempotently", async () => {
     const provider = build_local_file_storage_provider({ root });
-
-    await expect(provider.put({
+    const stored = await provider.put({
       organization_id: "org_1",
       project_id: "project_1",
       capture_session_id: "session_1",
       file_id: "file_1",
       mime_type: "image/png",
-      stream: Readable.from(Buffer.from("fake png bytes")),
-      max_size_bytes: 4,
-    })).rejects.toBeInstanceOf(FileStorageUploadTooLargeError);
+      stream: Readable.from(Buffer.from("bytes")),
+    });
+    await provider.purge_exact({ storage_key: stored.storage_key });
+    await expect(
+      provider.purge_exact({ storage_key: stored.storage_key }),
+    ).resolves.toBeUndefined();
+  });
 
-    await expect(provider.get({
-      storage_key: "organizations/org_1/projects/project_1/capture-sessions/session_1/file_1.png",
-    })).rejects.toBeInstanceOf(FileBytesNotFoundError);
+  it("rejects oversized uploads without leaving partial bytes", async () => {
+    const provider = build_local_file_storage_provider({ root });
+
+    await expect(
+      provider.put({
+        organization_id: "org_1",
+        project_id: "project_1",
+        capture_session_id: "session_1",
+        file_id: "file_1",
+        mime_type: "image/png",
+        stream: Readable.from(Buffer.from("fake png bytes")),
+        max_size_bytes: 4,
+      }),
+    ).rejects.toBeInstanceOf(FileStorageUploadTooLargeError);
+
+    await expect(
+      provider.get({
+        storage_key:
+          "organizations/org_1/projects/project_1/capture-sessions/session_1/file_1.png",
+      }),
+    ).rejects.toBeInstanceOf(FileBytesNotFoundError);
   });
 });

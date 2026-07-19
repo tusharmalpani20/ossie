@@ -103,7 +103,9 @@ describe("foundation schema migrations", () => {
     expect(event.toLowerCase()).not.toContain("json");
     expect(migration).toContain("access_event_append_only");
     expect(migration).toContain("access_event_no_truncate");
-    expect(migration).toContain("GRANT SELECT, INSERT ON audit_schema.access_event");
+    expect(migration).toContain(
+      "GRANT SELECT, INSERT ON audit_schema.access_event",
+    );
     expect(migration).toContain("Refusing to remove populated Access Evidence");
     expect(migration).not.toMatch(/GRANT[^;]*\b(?:UPDATE|DELETE|TRUNCATE)\b/iu);
 
@@ -120,39 +122,64 @@ describe("foundation schema migrations", () => {
 
   it("defines tenant-safe guarded Project Membership persistence", () => {
     const migration = readFileSync(
-      new URL("./migrations/019_project_membership_foundation.sql", import.meta.url),
+      new URL(
+        "./migrations/019_project_membership_foundation.sql",
+        import.meta.url,
+      ),
       "utf8",
     );
-    const membership = table_definition(migration, "project_schema.project_membership");
+    const membership = table_definition(
+      migration,
+      "project_schema.project_membership",
+    );
 
     expect(membership).toContain("organization_id VARCHAR(26) NOT NULL");
     expect(membership).toContain("project_id VARCHAR(26) NOT NULL");
     expect(membership).toContain("org_user_id VARCHAR(26) NOT NULL");
     expect(membership).toContain("role VARCHAR(50) NOT NULL");
-    expect(membership).toContain("status VARCHAR(50) NOT NULL DEFAULT 'active'");
+    expect(membership).toContain(
+      "status VARCHAR(50) NOT NULL DEFAULT 'active'",
+    );
     expect(membership).toContain("version INTEGER NOT NULL DEFAULT 1");
     expect(membership.toLowerCase()).not.toContain("json");
-    expect(migration).toContain("Refusing Project Membership migration while Projects exist");
-    expect(migration).toContain("Refusing Project Membership migration with unsupported organization admin role");
+    expect(migration).toContain(
+      "Refusing Project Membership migration while Projects exist",
+    );
+    expect(migration).toContain(
+      "Refusing Project Membership migration with unsupported organization admin role",
+    );
     expect(migration).toContain("project_membership_owner_guard");
     expect(migration).toContain("org_user_owner_membership_guard");
     expect(migration).toContain("project.membership.assign");
     expect(migration).toContain("project.membership.role_change");
     expect(migration).toContain("project.membership.remove");
-    expect(migration).toContain("GRANT SELECT, INSERT, UPDATE ON project_schema.project_membership");
+    expect(migration).toContain(
+      "GRANT SELECT, INSERT, UPDATE ON project_schema.project_membership",
+    );
     expect(migration).toContain("authorization_type = 'project_role'");
     expect(migration).toContain("chk_access_event_scoped_success");
-    expect(migration).toContain("Refusing to remove populated Project Membership");
+    expect(migration).toContain(
+      "Refusing to remove populated Project Membership",
+    );
     expect(migration).not.toMatch(/GRANT[^;]*\b(?:DELETE|TRUNCATE)\b/iu);
   });
 
   it("defines tenant-safe guarded Project Version persistence", () => {
     const migration = readFileSync(
-      new URL("./migrations/020_project_version_foundation.sql", import.meta.url),
+      new URL(
+        "./migrations/020_project_version_foundation.sql",
+        import.meta.url,
+      ),
       "utf8",
     );
-    const project_version = table_definition(migration, "project_schema.project_version");
-    const alias = table_definition(migration, "project_schema.project_version_alias");
+    const project_version = table_definition(
+      migration,
+      "project_schema.project_version",
+    );
+    const alias = table_definition(
+      migration,
+      "project_schema.project_version_alias",
+    );
 
     expect(project_version).toContain("organization_id VARCHAR(26) NOT NULL");
     expect(project_version).toContain("project_id VARCHAR(26) NOT NULL");
@@ -161,17 +188,27 @@ describe("foundation schema migrations", () => {
     expect(project_version).toContain("version INTEGER NOT NULL DEFAULT 1");
     expect(alias).toContain("project_version_id VARCHAR(26) NOT NULL");
     expect(`${project_version}\n${alias}`.toLowerCase()).not.toContain("json");
-    expect(migration).toContain("default_project_version_id VARCHAR(26) NOT NULL");
+    expect(migration).toContain(
+      "default_project_version_id VARCHAR(26) NOT NULL",
+    );
     expect(migration).toContain("DEFERRABLE INITIALLY DEFERRED");
     expect(migration).toContain("project_version_slug_namespace_guard");
     expect(migration).toContain("project_version_mutation_command_guard");
     expect(migration).toContain("project_version_alias_provenance_guard");
     expect(migration).toContain("project_version_legacy_content_guard");
     expect(migration).toContain("project_version.set_default");
-    expect(migration).toContain("GRANT SELECT, INSERT, UPDATE ON project_schema.project_version");
-    expect(migration).toContain("GRANT SELECT, INSERT ON project_schema.project_version_alias");
-    expect(migration).toContain("Refusing Project Version migration while Projects exist");
-    expect(migration).toContain("Refusing to remove populated Project Version foundation");
+    expect(migration).toContain(
+      "GRANT SELECT, INSERT, UPDATE ON project_schema.project_version",
+    );
+    expect(migration).toContain(
+      "GRANT SELECT, INSERT ON project_schema.project_version_alias",
+    );
+    expect(migration).toContain(
+      "Refusing Project Version migration while Projects exist",
+    );
+    expect(migration).toContain(
+      "Refusing to remove populated Project Version foundation",
+    );
     expect(migration).not.toMatch(/GRANT[^;]*\b(?:DELETE|TRUNCATE)\b/iu);
   });
 
@@ -261,9 +298,18 @@ describe("foundation schema migrations", () => {
       "utf8",
     );
 
-    const guide_edition = table_definition(migration, "guide_schema.guide_edition");
-    const guide_draft = table_definition(migration, "guide_schema.guide_working_draft");
-    const annotation = table_definition(migration, "guide_schema.guide_annotation");
+    const guide_edition = table_definition(
+      migration,
+      "guide_schema.guide_edition",
+    );
+    const guide_draft = table_definition(
+      migration,
+      "guide_schema.guide_working_draft",
+    );
+    const annotation = table_definition(
+      migration,
+      "guide_schema.guide_annotation",
+    );
     const demo_edition = table_definition(
       migration,
       "interactive_demo_schema.interactive_demo_edition",
@@ -272,23 +318,88 @@ describe("foundation schema migrations", () => {
       migration,
       "interactive_demo_schema.interactive_demo_working_draft",
     );
-    const transition = table_definition(migration, "interactive_demo_schema.demo_transition");
+    const transition = table_definition(
+      migration,
+      "interactive_demo_schema.demo_transition",
+    );
     const up = migration.split("-- DOWN:")[0] ?? migration;
 
-    expect(migration).toContain("Refusing Guide/Demo relational migration while authored or published rows exist");
+    expect(migration).toContain(
+      "Refusing Guide/Demo relational migration while authored or published rows exist",
+    );
     expect(guide_edition).toContain("project_version_id VARCHAR(26) NOT NULL");
-    expect(guide_draft).toContain("guide_edition_id VARCHAR(26) NOT NULL UNIQUE");
+    expect(guide_draft).toContain(
+      "guide_edition_id VARCHAR(26) NOT NULL UNIQUE",
+    );
     expect(annotation).toContain("guide_working_draft_id VARCHAR(26) NOT NULL");
     expect(demo_edition).toContain("project_version_id VARCHAR(26) NOT NULL");
-    expect(demo_draft).toContain("interactive_demo_edition_id VARCHAR(26) NOT NULL UNIQUE");
+    expect(demo_draft).toContain(
+      "interactive_demo_edition_id VARCHAR(26) NOT NULL UNIQUE",
+    );
     expect(transition).toContain("demo_hotspot_id VARCHAR(26) NOT NULL");
     expect(migration).toContain("guide_edition_exactly_one_working_draft");
-    expect(migration).toContain("interactive_demo_edition_exactly_one_working_draft");
+    expect(migration).toContain(
+      "interactive_demo_edition_exactly_one_working_draft",
+    );
     expect(migration).toContain("artifact_edition_mutation_command_guard");
     expect(migration).toContain("guide_working_draft_id VARCHAR(26) NOT NULL");
-    expect(migration).toContain("interactive_demo_working_draft_id VARCHAR(26) NOT NULL");
+    expect(migration).toContain(
+      "interactive_demo_working_draft_id VARCHAR(26) NOT NULL",
+    );
     expect(up).not.toContain("content JSONB");
     expect(up).not.toContain("target_scene_id VARCHAR(26) DEFAULT NULL");
-    expect(migration).toContain("Refusing to remove populated Guide/Demo relational foundation");
+    expect(migration).toContain(
+      "Refusing to remove populated Guide/Demo relational foundation",
+    );
+  });
+
+  it("adds immutable Revisions, atomic Carry-Forward, and protected Asset lifecycle", () => {
+    const migration = readFileSync(
+      new URL(
+        "./migrations/023_guide_demo_revision_carry_forward_protected_assets.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const up = migration.split("-- DOWN:")[0] ?? migration;
+    const down = migration.split("-- DOWN:")[1] ?? "";
+
+    for (const table of [
+      "guide_schema.guide_revision",
+      "guide_schema.guide_revision_block",
+      "guide_schema.guide_revision_step",
+      "guide_schema.guide_revision_annotation",
+      "interactive_demo_schema.interactive_demo_revision",
+      "interactive_demo_schema.demo_revision_scene",
+      "interactive_demo_schema.demo_revision_hotspot",
+      "interactive_demo_schema.demo_revision_transition",
+      "project_schema.artifact_carry_forward",
+      "project_schema.artifact_carry_forward_item",
+      "guide_schema.guide_carry_forward_item",
+      "interactive_demo_schema.interactive_demo_carry_forward_item",
+      "capture_schema.capture_asset_purge_operation",
+      "publish_schema.published_artifact_capture_asset",
+    ]) {
+      expect(up).toContain(`CREATE TABLE ${table}`);
+    }
+    expect(up).toContain("source_guide_revision_id");
+    expect(up).toContain("source_interactive_demo_revision_id");
+    expect(up).toContain("CAPTURE ASSET lifecycle".toLowerCase());
+    expect(up).toContain("status VARCHAR(50) NOT NULL DEFAULT 'active'");
+    expect(up).toContain("artifact_carry_forward_exactly_one_detail");
+    expect(up).toContain("prevent_immutable_revision_mutation");
+    expect(up).not.toContain("snapshot_json JSON");
+    expect(migration).toContain(
+      "Refusing to remove populated Revision and protected Asset foundation",
+    );
+    expect(down).toContain("capture_asset.delete");
+    expect(down).toContain(
+      "guide.step.update,guide.blocks.reorder,guide.block.create",
+    );
+    expect(down).toContain(
+      "interactive_demo.scene.create,interactive_demo.scene.update",
+    );
+    expect(down).not.toContain("guide.revision.restore");
+    expect(down).not.toContain("artifact.carry_forward");
   });
 });

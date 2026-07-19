@@ -13,20 +13,33 @@ import {
   UploadTooLargeError,
 } from "../errors/capture-domain-error";
 import type {
+  CaptureAssetLifecycleCommand,
+  CaptureAssetStatus,
   CreateCaptureAssetInput,
   NormalizedCreateCaptureAssetInput,
   UploadCaptureAssetInput,
 } from "../types/capture-asset";
+import { CaptureAssetLifecycleConflictError } from "../errors/capture-domain-error";
 
 export {
+  CaptureAssetLifecycleConflictError,
   InvalidCaptureAssetInputError,
   UnsupportedCaptureAssetTypeError,
   UnsupportedCaptureAssetUploadTypeError,
   UploadTooLargeError,
 };
 
+export const assert_capture_asset_transition = (
+  current: CaptureAssetStatus,
+  command: CaptureAssetLifecycleCommand,
+): CaptureAssetStatus => {
+  if (current === "active" && command === "archive") return "archived";
+  if (current === "archived" && command === "restore") return "active";
+  throw new CaptureAssetLifecycleConflictError();
+};
+
 export const normalize_create_capture_asset = (
-  input: CreateCaptureAssetInput
+  input: CreateCaptureAssetInput,
 ): NormalizedCreateCaptureAssetInput => {
   if (input.asset_type !== "screenshot") {
     throw new UnsupportedCaptureAssetTypeError();
@@ -58,7 +71,7 @@ export const normalize_create_capture_asset = (
 };
 
 export const normalize_upload_capture_asset = (
-  input: UploadCaptureAssetInput
+  input: UploadCaptureAssetInput,
 ): UploadCaptureAssetInput => ({
   width: input.width,
   height: input.height,
@@ -75,7 +88,7 @@ const project_screenshot_picker_asset_types = new Set<CaptureAssetType>([
 ]);
 
 export const assert_supported_capture_asset_type = (
-  asset_type: CaptureAssetType
+  asset_type: CaptureAssetType,
 ) => {
   if (asset_type !== "screenshot") {
     throw new UnsupportedCaptureAssetTypeError();
@@ -85,7 +98,7 @@ export const assert_supported_capture_asset_type = (
 };
 
 export const assert_project_screenshot_picker_asset_type = (
-  asset_type?: CaptureAssetType
+  asset_type?: CaptureAssetType,
 ) => {
   const normalized_asset_type = asset_type ?? "screenshot";
 

@@ -40,6 +40,9 @@ add("capture", [
   "capture_asset.created",
   "capture_asset.uploaded",
   "capture_asset.deleted",
+  "capture_asset.archived",
+  "capture_asset.restored",
+  "capture_asset.purged",
   "capture_event.created",
   "capture_event.updated",
   "capture_event.reordered",
@@ -56,6 +59,8 @@ add("content", [
   "guide.block.annotations_updated",
   "guide.block.screenshot_uploaded",
   "guide.block.deleted",
+  "guide.revision.created",
+  "guide.revision.restored",
   "interactive_demo.created",
   "interactive_demo.updated",
   "interactive_demo.deleted",
@@ -67,6 +72,9 @@ add("content", [
   "interactive_demo.hotspot.updated",
   "interactive_demo.hotspots.reordered",
   "interactive_demo.hotspot.deleted",
+  "interactive_demo.revision.created",
+  "interactive_demo.revision.restored",
+  "artifact.editions.carried_forward",
 ]);
 add("publication", [
   "guide.published",

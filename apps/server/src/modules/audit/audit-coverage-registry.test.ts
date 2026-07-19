@@ -8,26 +8,29 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(66);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(75);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(66);
+    ).toBe(75);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
     expect(AUDIT_COMMANDS).toContain("project.membership.assign");
     expect(AUDIT_COMMANDS).toContain("project_version.create");
     expect(AUDIT_COMMANDS).toContain("project_version.set_default");
+    expect(AUDIT_COMMANDS).toContain("guide.revision.checkpoint");
+    expect(AUDIT_COMMANDS).toContain("artifact.carry_forward");
+    expect(AUDIT_COMMANDS).toContain("capture_asset.purge.complete");
   });
 
-  it("covers all 28 product tables and the 49 runtime table-operation classes", () => {
+  it("covers all 42 product tables and the 64 runtime table-operation classes", () => {
     const writes = AUDIT_COVERAGE_REGISTRY.flatMap(({ writes }) => writes);
-    expect(new Set(writes.map(({ table }) => table)).size).toBe(28);
+    expect(new Set(writes.map(({ table }) => table)).size).toBe(42);
     expect(
       new Set(
         writes.map(({ table, sql_operation }) => `${table}:${sql_operation}`),
       ).size,
-    ).toBe(49);
+    ).toBe(64);
     expect(
       writes.every(({ sql_operation }) => sql_operation !== "DELETE"),
     ).toBe(true);
@@ -50,9 +53,11 @@ describe("audit coverage registry", () => {
     );
   });
 
-  it("allows persisted import provenance for every Capture-owned command", () => {
+  it("allows persisted import provenance for Capture ingestion commands", () => {
     const capture_commands = AUDIT_COVERAGE_REGISTRY.filter(({ command }) =>
-      command.startsWith("capture_"),
+      command.startsWith("capture_") && !command.startsWith("capture_asset.archive")
+        && !command.startsWith("capture_asset.restore")
+        && !command.startsWith("capture_asset.purge"),
     );
 
     expect(capture_commands).not.toHaveLength(0);
@@ -144,6 +149,13 @@ describe("audit coverage registry", () => {
       ),
       "utf8",
     );
+    const migration_023 = readFileSync(
+      new URL(
+        "../../db/migrations/023_guide_demo_revision_carry_forward_protected_assets.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
     const policy_start = migration_016.indexOf("FROM (VALUES");
     const policy_end = migration_016.indexOf(") AS policy(command, action)");
     const new_policy_start = migration_019.indexOf(
@@ -160,7 +172,7 @@ describe("audit coverage registry", () => {
       "AND selected_actor_type",
       version_policy_start,
     );
-    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}\n${migration_022}`;
+    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}\n${migration_022}\n${migration_023}`;
     const pairs = [...policy.matchAll(/\('([^']+)', '([^']+)'\)/gu)].map(
       ([, command, action]) => ({ command, action }),
     ).filter(({ command }) => AUDIT_COMMANDS.includes(command as typeof AUDIT_COMMANDS[number]));
@@ -217,9 +229,19 @@ describe("audit coverage registry", () => {
       ),
       "utf8",
     );
+    const migration_023 = readFileSync(
+      new URL(
+        "../../db/migrations/023_guide_demo_revision_carry_forward_protected_assets.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
     const rows = [
       ...`${migration_016}\n${migration_019}\n${migration_020}\n${migration_022}`.matchAll(
         /\('([^']+)', '([^']+)', '(INSERT|UPDATE)', '[^']+', '[^']+', '([^']+)'\)/gu,
+      ),
+      ...migration_023.matchAll(
+        /\('([^']+)', '([^']+)', '(INSERT|UPDATE)', '[^']+', '([^']+)'\)/gu,
       ),
     ];
     const actual = new Map(
@@ -268,6 +290,12 @@ describe("audit coverage registry", () => {
     }
     for (const [, schema, table, operation, , commands] of migration_022.matchAll(
       /\('([^']+)', '([^']+)', '(INSERT|UPDATE)', '([^']+)', '([^']+)'\)/gu,
+    )) {
+      actual.set(`${schema}.${table}:${operation}`, commands!.split(","));
+    }
+    const migration_023_up = migration_023.split("-- DOWN:")[0] ?? migration_023;
+    for (const [, schema, table, operation, commands] of migration_023_up.matchAll(
+      /\('([^']+)', '([^']+)', '(INSERT|UPDATE)', '[^']+', '([^']+)'\)/gu,
     )) {
       actual.set(`${schema}.${table}:${operation}`, commands!.split(","));
     }

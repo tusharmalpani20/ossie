@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { build_publish_transactional_repository } from "./publish.repository";
+import {
+  build_publish_transactional_repository,
+  extract_published_capture_asset_ids,
+} from "./publish.repository";
 
 const scope = {
   organization_id: "organization_1",
@@ -10,6 +13,19 @@ const scope = {
 };
 
 describe("Publish repository compound mutations", () => {
+  it("extracts a stable unique typed Capture Asset projection from a snapshot", () => {
+    expect(
+      extract_published_capture_asset_ids({
+        blocks: [
+          {
+            source_capture_asset_id: "asset_2",
+            selected_capture_asset_id: "asset_1",
+          },
+        ],
+        scenes: [{ background_capture_asset_id: "asset_2" }],
+      }),
+    ).toEqual(["asset_1", "asset_2"]);
+  });
   it("does not revoke Viewer Sessions for an access-only policy update", async () => {
     const query = vi.fn(async (sql: string, values?: unknown[]) => {
       void sql;

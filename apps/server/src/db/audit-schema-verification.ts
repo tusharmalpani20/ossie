@@ -724,3 +724,48 @@ export const verify_artifact_edition_schema = async (
   );
   return throw_verification_issues(result.rows);
 };
+
+export const verify_artifact_revision_schema = async (
+  pool: VerificationPool,
+  roles: { runtime_role: string; maintenance_role: string },
+) => {
+  await verify_artifact_edition_schema(pool, roles);
+  const result = await pool.query<{ issue: string }>(
+    `
+    -- Verify guide_schema.guide_revision and protected Asset tables explicitly.
+    WITH expected_tables(schema_name,table_name) AS (VALUES
+      ('guide_schema','guide_revision'),('guide_schema','guide_revision_block'),('guide_schema','guide_revision_step'),
+      ('guide_schema','guide_revision_annotation'),('interactive_demo_schema','interactive_demo_revision'),
+      ('interactive_demo_schema','demo_revision_scene'),('interactive_demo_schema','demo_revision_hotspot'),
+      ('interactive_demo_schema','demo_revision_transition'),('project_schema','artifact_carry_forward'),
+      ('project_schema','artifact_carry_forward_item'),('guide_schema','guide_carry_forward_item'),
+      ('interactive_demo_schema','interactive_demo_carry_forward_item'),('capture_schema','capture_asset_purge_operation'),
+      ('publish_schema','published_artifact_capture_asset')
+    ), expected_triggers(name) AS (VALUES ('capture_asset_purge_request_guard'),('capture_asset_lifecycle_guard'),
+      ('file_purge_guard'),('guide_step_asset_lifecycle_guard'),('demo_scene_asset_lifecycle_guard'),
+      ('guide_edition_lineage_guard'),('interactive_demo_edition_lineage_guard'),('guide_revision_block_shape_guard'),
+      ('artifact_carry_forward_item_detail_guard')
+    ), expected_functions(signature) AS (VALUES ('project_schema.prevent_immutable_revision_mutation()'),
+      ('project_schema.enforce_artifact_edition_lineage()'),('capture_schema.enforce_capture_asset_reference_lifecycle()'),
+      ('capture_schema.enforce_capture_asset_lifecycle_mutation()'),('capture_schema.enforce_capture_asset_purge_request()'))
+    SELECT 'table:'||schema_name||'.'||table_name FROM expected_tables
+      WHERE to_regclass(schema_name||'.'||table_name) IS NULL
+    UNION ALL SELECT 'trigger:'||name FROM expected_triggers WHERE NOT EXISTS(
+      SELECT 1 FROM pg_trigger WHERE tgname=name AND NOT tgisinternal)
+    UNION ALL SELECT 'function:'||signature FROM expected_functions WHERE to_regprocedure(signature) IS NULL
+    UNION ALL SELECT 'column:revision_history:json_forbidden' WHERE EXISTS(SELECT 1 FROM information_schema.columns
+      WHERE table_name IN ('guide_revision','guide_revision_block','guide_revision_step','guide_revision_annotation',
+        'interactive_demo_revision','demo_revision_scene','demo_revision_hotspot','demo_revision_transition',
+        'artifact_carry_forward','artifact_carry_forward_item') AND data_type IN ('json','jsonb'))
+    UNION ALL SELECT 'privilege:'||schema_name||'.'||table_name||':SELECT:true' FROM expected_tables
+      WHERE has_table_privilege($1::text,schema_name||'.'||table_name,'SELECT') IS DISTINCT FROM TRUE
+    UNION ALL SELECT 'privilege:'||schema_name||'.'||table_name||':DELETE:false' FROM expected_tables
+      WHERE has_table_privilege($1::text,schema_name||'.'||table_name,'DELETE')
+    UNION ALL SELECT 'owner:'||schema_name||'.'||table_name||':maintenance' FROM expected_tables expected
+      WHERE NOT EXISTS(SELECT 1 FROM pg_class class JOIN pg_namespace namespace ON namespace.oid=class.relnamespace
+        WHERE namespace.nspname=expected.schema_name AND class.relname=expected.table_name AND pg_get_userbyid(class.relowner)=$2::text)
+    ORDER BY 1`,
+    [roles.runtime_role, roles.maintenance_role],
+  );
+  return throw_verification_issues(result.rows);
+};

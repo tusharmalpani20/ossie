@@ -92,6 +92,7 @@ type CaptureAssetRow = {
   project_id: string;
   capture_session_id: string;
   asset_type: CaptureAssetType;
+  status:"active"|"archived";
   width: number | null;
   height: number | null;
   device_pixel_ratio: number | null;
@@ -186,6 +187,7 @@ const map_capture_asset = (row: CaptureAssetRow): CaptureAsset => ({
     checksum_sha256: row.file_checksum_sha256,
   },
   asset_type: row.asset_type,
+  status:row.status,
   width: row.width,
   height: row.height,
   device_pixel_ratio: row.device_pixel_ratio,
@@ -272,6 +274,7 @@ const capture_asset_select = `
   capture_asset.project_id,
   capture_asset.capture_session_id,
   capture_asset.asset_type,
+  capture_asset.status,
   capture_asset.width,
   capture_asset.height,
   capture_asset.device_pixel_ratio,

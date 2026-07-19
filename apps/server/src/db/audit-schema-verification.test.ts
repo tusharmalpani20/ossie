@@ -99,63 +99,149 @@ describe("Audit schema verification", () => {
 
     expect(verify).toBeTypeOf("function");
     await expect(
-      verify(pool as never, { runtime_role: "runtime", maintenance_role: "maintenance" }),
+      verify(pool as never, {
+        runtime_role: "runtime",
+        maintenance_role: "maintenance",
+      }),
     ).resolves.toEqual({ status: "ready" });
-    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("access_event_append_only");
-    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("idx_access_event_organization_cursor");
-    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("audit_schema.access_event");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "access_event_append_only",
+    );
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "idx_access_event_organization_cursor",
+    );
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "audit_schema.access_event",
+    );
   });
 
   it("verifies Project Membership and preserves the evidence verifier", async () => {
-    const pool = { query: vi.fn<(sql: string, values?: unknown[]) => Promise<{ rows: never[] }>>(async () => ({ rows: [] })) };
-    const verify = Reflect.get(verification, "verify_project_membership_schema");
+    const pool = {
+      query: vi.fn<
+        (sql: string, values?: unknown[]) => Promise<{ rows: never[] }>
+      >(async () => ({ rows: [] })),
+    };
+    const verify = Reflect.get(
+      verification,
+      "verify_project_membership_schema",
+    );
     expect(verify).toBeTypeOf("function");
-    await expect(verify(pool as never, { runtime_role: "runtime", maintenance_role: "maintenance" }))
-      .resolves.toEqual({ status: "ready" });
+    await expect(
+      verify(pool as never, {
+        runtime_role: "runtime",
+        maintenance_role: "maintenance",
+      }),
+    ).resolves.toEqual({ status: "ready" });
     expect(pool.query.mock.calls).toHaveLength(3);
-    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_schema.project_membership");
-    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_membership_owner_guard");
-    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("chk_access_event_scoped_success");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "project_schema.project_membership",
+    );
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "project_membership_owner_guard",
+    );
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "chk_access_event_scoped_success",
+    );
   });
 
   it("verifies Project Version schema after migration 020", async () => {
-    const pool = { query: vi.fn<(sql: string, values?: unknown[]) => Promise<{ rows: never[] }>>(async () => ({ rows: [] })) };
+    const pool = {
+      query: vi.fn<
+        (sql: string, values?: unknown[]) => Promise<{ rows: never[] }>
+      >(async () => ({ rows: [] })),
+    };
     const verify = Reflect.get(verification, "verify_project_version_schema");
     expect(verify).toBeTypeOf("function");
-    await expect(verify(pool as never, { runtime_role: "runtime", maintenance_role: "maintenance" }))
-      .resolves.toEqual({ status: "ready" });
+    await expect(
+      verify(pool as never, {
+        runtime_role: "runtime",
+        maintenance_role: "maintenance",
+      }),
+    ).resolves.toEqual({ status: "ready" });
     expect(pool.query.mock.calls).toHaveLength(4);
-    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_schema.project_version");
-    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_version_mutation_command_guard");
-    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_version_alias_provenance_guard");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "project_schema.project_version",
+    );
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "project_version_mutation_command_guard",
+    );
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "project_version_alias_provenance_guard",
+    );
   });
 
   it("selects Project Version verification after migration 020", () => {
-    const source = readFileSync(new URL("./migrate.ts", import.meta.url), "utf8");
+    const source = readFileSync(
+      new URL("./migrate.ts", import.meta.url),
+      "utf8",
+    );
     expect(source).toContain("verify_project_version_schema");
     expect(source).toContain("020_project_version_foundation.sql");
   });
 
   it("verifies and selects the Artifact Edition schema after migration 022", async () => {
     const pool = {
-      query: vi.fn<(sql: string, values?: unknown[]) => Promise<{ rows: never[] }>>(
-        async () => ({ rows: [] }),
-      ),
+      query: vi.fn<
+        (sql: string, values?: unknown[]) => Promise<{ rows: never[] }>
+      >(async () => ({ rows: [] })),
     };
     const verify = Reflect.get(verification, "verify_artifact_edition_schema");
     expect(verify).toBeTypeOf("function");
     await expect(
-      verify(pool as never, { runtime_role: "runtime", maintenance_role: "maintenance" }),
+      verify(pool as never, {
+        runtime_role: "runtime",
+        maintenance_role: "maintenance",
+      }),
     ).resolves.toEqual({ status: "ready" });
     expect(pool.query.mock.calls).toHaveLength(5);
-    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("guide_schema.guide_edition");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "guide_schema.guide_edition",
+    );
     expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
       "interactive_demo_schema.interactive_demo_working_draft",
     );
-    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("guide_edition_exactly_one_working_draft");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "guide_edition_exactly_one_working_draft",
+    );
 
-    const source = readFileSync(new URL("./migrate.ts", import.meta.url), "utf8");
+    const source = readFileSync(
+      new URL("./migrate.ts", import.meta.url),
+      "utf8",
+    );
     expect(source).toContain("verify_artifact_edition_schema");
-    expect(source).toContain("022_guide_demo_edition_working_draft_relational_foundation.sql");
+    expect(source).toContain(
+      "022_guide_demo_edition_working_draft_relational_foundation.sql",
+    );
+  });
+
+  it("verifies and selects the Revision and protected Asset schema after migration 023", async () => {
+    const pool = {
+      query: vi.fn<
+        (sql: string, values?: unknown[]) => Promise<{ rows: never[] }>
+      >(async () => ({ rows: [] })),
+    };
+    const verify = Reflect.get(verification, "verify_artifact_revision_schema");
+    expect(verify).toBeTypeOf("function");
+    await expect(
+      verify(pool as never, {
+        runtime_role: "runtime",
+        maintenance_role: "maintenance",
+      }),
+    ).resolves.toEqual({ status: "ready" });
+    expect(pool.query.mock.calls).toHaveLength(6);
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "guide_schema.guide_revision",
+    );
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "capture_asset_purge_request_guard",
+    );
+    const source = readFileSync(
+      new URL("./migrate.ts", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain("verify_artifact_revision_schema");
+    expect(source).toContain(
+      "023_guide_demo_revision_carry_forward_protected_assets.sql",
+    );
   });
 });

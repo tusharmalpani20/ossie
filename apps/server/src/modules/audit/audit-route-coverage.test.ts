@@ -66,6 +66,10 @@ describe("Audit mutation entry-point coverage", () => {
       AUDIT_COVERAGE_REGISTRY.filter(({ routes }) => routes.length === 0).map(
         ({ command }) => command,
       ),
-    ).toEqual(["authentication.session.touch"]);
+    ).toEqual([
+      "authentication.session.touch",
+      "capture_asset.purge.fail",
+      "capture_asset.purge.complete",
+    ]);
   });
 });

@@ -7,6 +7,7 @@ import {
   CaptureAssetListQuerySchema,
   ProjectCaptureAssetListQuerySchema,
   CreateCaptureAssetRequestSchema,
+  CaptureAssetLifecycleRequestSchema,
 } from "@repo/types/capture";
 import { z } from "zod";
 import {
@@ -17,6 +18,9 @@ import { session_token_from_request } from "../authentication/request-session-to
 import { error_response, unauthorized_response } from "../shared/http-errors";
 import {
   CaptureAssetNotFoundError,
+  CaptureAssetLifecycleConflictError,
+  CaptureAssetProtectedError,
+  CaptureAssetPurgeFailedError,
   CaptureSessionNotFoundError,
   FileBytesNotFoundError,
   FileStorageKeyConflictError,
@@ -65,6 +69,7 @@ export type CaptureAssetRouteDependencies = {
       project_id: string;
       capture_session_id: string;
       asset_type?: CaptureAssetType;
+      include_archived?: boolean;
     }) => Promise<CaptureAsset[]>;
     list_project_capture_assets: (input: {
       auth: CaptureAssetAuthContext;
@@ -84,12 +89,33 @@ export type CaptureAssetRouteDependencies = {
       capture_session_id: string;
       capture_asset_id: string;
     }) => Promise<CaptureAssetFileRead>;
-    delete_capture_asset: (input: {
+    archive_capture_asset: (input: {
       auth: CaptureAssetAuthContext;
       project_id: string;
       capture_session_id: string;
       capture_asset_id: string;
-    }) => Promise<void>;
+      expected_asset_version: number;
+    }) => Promise<CaptureAsset>;
+    restore_capture_asset: (input: {
+      auth: CaptureAssetAuthContext;
+      project_id: string;
+      capture_session_id: string;
+      capture_asset_id: string;
+      expected_asset_version: number;
+    }) => Promise<CaptureAsset>;
+    get_capture_asset_protection: (input: {
+      auth: CaptureAssetAuthContext;
+      project_id: string;
+      capture_session_id: string;
+      capture_asset_id: string;
+    }) => Promise<unknown>;
+    purge_capture_asset: (input: {
+      auth: CaptureAssetAuthContext;
+      project_id: string;
+      capture_session_id: string;
+      capture_asset_id: string;
+      expected_asset_version: number;
+    }) => Promise<unknown>;
   };
 };
 
@@ -321,6 +347,20 @@ export const build_capture_asset_routes = (
             ),
           );
       }
+      if (error instanceof CaptureAssetLifecycleConflictError)
+        return reply
+          .status(409)
+          .send(
+            error_response("capture_asset_lifecycle_conflict", error.message),
+          );
+      if (error instanceof CaptureAssetProtectedError)
+        return reply
+          .status(409)
+          .send(error_response("capture_asset_protected", error.message));
+      if (error instanceof CaptureAssetPurgeFailedError)
+        return reply
+          .status(503)
+          .send(error_response("capture_asset_purge_failed", error.message));
 
       if (error instanceof UnsupportedCaptureAssetTypeError) {
         return reply
@@ -546,6 +586,7 @@ export const build_capture_asset_routes = (
       };
       Querystring: {
         asset_type?: CaptureAssetType;
+        include_archived?: boolean;
       };
     }>(
       "/:project_id/capture-sessions/:capture_session_id/assets",
@@ -563,6 +604,7 @@ export const build_capture_asset_routes = (
               project_id: request.params.project_id,
               capture_session_id: request.params.capture_session_id,
               asset_type: request.query.asset_type,
+              include_archived: request.query.include_archived,
             });
           return reply.status(200).send({ capture_assets });
         } catch (error) {
@@ -624,24 +666,83 @@ export const build_capture_asset_routes = (
       },
     );
 
-    fastify.delete<{
-      Params: {
-        project_id: string;
-        capture_session_id: string;
-        id: string;
-      };
+    const lifecycle = (command: "archive" | "restore") =>
+      fastify.post<{
+        Params: {
+          project_id: string;
+          capture_session_id: string;
+          id: string;
+        };
+        Body: { expected_asset_version: number };
+      }>(
+        `/:project_id/capture-sessions/:capture_session_id/assets/:id/${command}`,
+        { schema: { body: CaptureAssetLifecycleRequestSchema } },
+        async (request, reply) => {
+          try {
+            const auth = await require_auth(
+              session_token_from_request(request),
+            );
+            const capture_asset = await dependencies.capture_asset_service[
+              command === "archive"
+                ? "archive_capture_asset"
+                : "restore_capture_asset"
+            ]({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              capture_asset_id: request.params.id,
+              expected_asset_version: request.body.expected_asset_version,
+            });
+            return reply.status(200).send({ capture_asset });
+          } catch (error) {
+            return handle_domain_error(error, reply);
+          }
+        },
+      );
+    lifecycle("archive");
+    lifecycle("restore");
+    fastify.get<{
+      Params: { project_id: string; capture_session_id: string; id: string };
     }>(
-      "/:project_id/capture-sessions/:capture_session_id/assets/:id",
+      "/:project_id/capture-sessions/:capture_session_id/assets/:id/protection",
       async (request, reply) => {
         try {
           const auth = await require_auth(session_token_from_request(request));
-          await dependencies.capture_asset_service.delete_capture_asset({
-            auth,
-            project_id: request.params.project_id,
-            capture_session_id: request.params.capture_session_id,
-            capture_asset_id: request.params.id,
-          });
-          return reply.status(204).send();
+          return reply
+            .status(200)
+            .send(
+              await dependencies.capture_asset_service.get_capture_asset_protection(
+                {
+                  auth,
+                  project_id: request.params.project_id,
+                  capture_session_id: request.params.capture_session_id,
+                  capture_asset_id: request.params.id,
+                },
+              ),
+            );
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
+    fastify.delete<{
+      Params: { project_id: string; capture_session_id: string; id: string };
+      Body: { expected_asset_version: number };
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/assets/:id",
+      { schema: { body: CaptureAssetLifecycleRequestSchema } },
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const result =
+            await dependencies.capture_asset_service.purge_capture_asset({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              capture_asset_id: request.params.id,
+              expected_asset_version: request.body.expected_asset_version,
+            });
+          return reply.status(200).send(result);
         } catch (error) {
           return handle_domain_error(error, reply);
         }

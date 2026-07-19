@@ -295,6 +295,17 @@ describe("v1 dogfood smoke workflow", () => {
         title: 'Click "Add Department"',
       },
     });
+    const guide_checkpoint_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/revisions/checkpoint?project_version_id=${project_version_id}`,
+      cookies: { ossie_session: owner_session },
+      payload: {
+        expected_edition_version: guide_response.json().edition.version,
+        expected_working_draft_version:
+          guide_response.json().working_draft.version,
+      },
+    });
+    expect(guide_checkpoint_response.statusCode).toBe(201);
 
     const guide_publish_response = await app.inject({
       method: "POST",
@@ -397,6 +408,56 @@ describe("v1 dogfood smoke workflow", () => {
       hotspot_type: "info",
       label: "Add Department",
     });
+    const demo_checkpoint_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/revisions/checkpoint?project_version_id=${project_version_id}`,
+      cookies: { ossie_session: owner_session },
+      payload: {
+        expected_edition_version: demo_response.json().edition.version,
+        expected_working_draft_version:
+          hotspot_response.json().working_draft.version,
+      },
+    });
+    expect(demo_checkpoint_response.statusCode).toBe(201);
+
+    const carry_forward_payload = {
+      source_project_version_id: project_version_id,
+      target_project_version_id: named_version.id,
+      artifacts: [
+        { artifact_type: "guide", artifact_id: guide_id },
+        {
+          artifact_type: "interactive_demo",
+          artifact_id: interactive_demo_id,
+        },
+      ],
+    };
+    const carry_forward_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/artifact-editions/carry-forward`,
+      cookies: { ossie_session: owner_session },
+      headers: { "idempotency-key": "v1-smoke-carry-forward-0001" },
+      payload: carry_forward_payload,
+    });
+    expect(carry_forward_response.statusCode).toBe(201);
+    expect(carry_forward_response.json()).toMatchObject({
+      replayed: false,
+      items: [
+        { artifact_type: "guide", artifact_id: guide_id },
+        {
+          artifact_type: "interactive_demo",
+          artifact_id: interactive_demo_id,
+        },
+      ],
+    });
+    const carry_forward_replay = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/artifact-editions/carry-forward`,
+      cookies: { ossie_session: owner_session },
+      headers: { "idempotency-key": "v1-smoke-carry-forward-0001" },
+      payload: carry_forward_payload,
+    });
+    expect(carry_forward_replay.statusCode).toBe(200);
+    expect(carry_forward_replay.json()).toMatchObject({ replayed: true });
 
     const demo_publish_response = await app.inject({
       method: "POST",
@@ -447,6 +508,41 @@ describe("v1 dogfood smoke workflow", () => {
     expect(JSON.stringify(public_demo_response.json())).not.toContain(
       "storage_key",
     );
+
+    const archive_asset_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${capture_asset_id}/archive`,
+      cookies: { ossie_session: owner_session },
+      payload: { expected_asset_version: 1 },
+    });
+    expect(archive_asset_response.statusCode).toBe(200);
+    const protection_response = await app.inject({
+      method: "GET",
+      url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${capture_asset_id}/protection`,
+      cookies: { ossie_session: owner_session },
+    });
+    expect(protection_response.statusCode).toBe(200);
+    expect(protection_response.json()).toMatchObject({
+      status: "archived",
+      can_purge: false,
+    });
+    expect(protection_response.json().total_dependency_count).toBeGreaterThan(0);
+    const protected_purge_response = await app.inject({
+      method: "DELETE",
+      url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${capture_asset_id}`,
+      cookies: { ossie_session: owner_session },
+      payload: { expected_asset_version: 2 },
+    });
+    expect(protected_purge_response.statusCode).toBe(409);
+    expect(protected_purge_response.json().error.type).toBe(
+      "capture_asset_protected",
+    );
+    const archived_public_asset_response = await app.inject({
+      method: "GET",
+      url: `/api/v1/public/publish-links/${guide_slug}/assets/${capture_asset_id}/file`,
+    });
+    expect(archived_public_asset_response.statusCode).toBe(200);
+    expect(archived_public_asset_response.rawPayload).toEqual(bytes);
 
     const invite_response = await app.inject({
       method: "POST",

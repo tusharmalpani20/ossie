@@ -1,4 +1,6 @@
 export * from "./auth";
+export * from "./artifact-carry-forward";
+export * from "./artifact-revision";
 export * from "./capture";
 export * from "./compliance";
 export * from "./common";

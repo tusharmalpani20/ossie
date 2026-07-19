@@ -260,6 +260,13 @@ describe("DB-backed guide publishing API", () => {
       public_url: expect.stringMatching(/^\/d\//),
       status: "active",
     });
+    const projection = await pool.query<{ capture_asset_id: string }>(
+      `SELECT capture_asset_id
+       FROM publish_schema.published_artifact_capture_asset
+       WHERE published_artifact_id=$1`,
+      [publish_response.json().published_artifact.id],
+    );
+    expect(projection.rows).toEqual([{ capture_asset_id }]);
     const slug = publish_response.json().publish_link.slug as string;
 
     const public_response = await app.inject({
