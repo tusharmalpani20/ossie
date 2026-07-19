@@ -16,11 +16,20 @@ describe("ProjectVersionRouteBoundary", () => {
     expect(await screen.findByRole("heading", { name: "Default content" })).toBeInTheDocument();
   });
 
-  it("keeps a non-default Version on the honest empty workspace", async () => {
+  it("links a non-default Version to its scoped Captures without exposing legacy artifacts", async () => {
     api.resolveProjectVersion.mockResolvedValue({ project_version: { ...version, id: "version_2", slug: "q3", name: "Q3", is_default: false }, resolution: "canonical" });
     render(<ProjectVersionRouteBoundary projectId="project_1" versionSlug="q3">{() => <h1>Legacy content</h1>}</ProjectVersionRouteBoundary>);
-    expect(await screen.findByText(/ready for version-owned content/i)).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Open capture sessions" })).toHaveAttribute("href", "/projects/project_1/versions/q3/capture-sessions");
+    expect(screen.getByText(/Guide and Interactive Demo ownership arrives in child 118/i)).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Legacy content" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Open guides" })).not.toBeInTheDocument();
+  });
+
+  it("renders Version-owned Capture content for an archived Version in read-only mode", async () => {
+    api.resolveProjectVersion.mockResolvedValue({ project_version: { ...version, status: "archived" }, resolution: "canonical" });
+    render(<ProjectVersionRouteBoundary projectId="project_1" versionSlug="main" allowVersionOwnedContent>{() => <h1>Archived captures</h1>}</ProjectVersionRouteBoundary>);
+    expect(await screen.findByRole("heading", { name: "Archived captures" })).toBeInTheDocument();
+    expect(screen.getByText(/Archived Project Version/i)).toBeInTheDocument();
   });
 
   it("canonicalizes an alias without accepting an external redirect", async () => {

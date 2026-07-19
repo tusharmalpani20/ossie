@@ -124,7 +124,7 @@ export const ProjectVersionRouteBoundary = ({
         ) : null}
         {children &&
         (legacyContentAvailable ||
-          (allowVersionOwnedContent && state.selected.status === "active")) ? (
+          allowVersionOwnedContent) ? (
           children(state)
         ) : (
           <VersionWorkspace {...state} />
@@ -163,14 +163,15 @@ const VersionWorkspace = ({ project, selected }: Loaded) => (
         </div>
       </dl>
     </div>
-    {selected.is_default &&
-    selected.status === "active" &&
-    project.status === "active" ? (
-      <div className={styles.cards}>
-        <WorkspaceLink
-          title="Capture sessions"
-          href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/capture-sessions`}
-        />
+    <div className={styles.cards}>
+      <WorkspaceLink
+        title="Capture sessions"
+        href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/capture-sessions`}
+      />
+      {selected.is_default &&
+      selected.status === "active" &&
+      project.status === "active" ? (
+        <>
         <WorkspaceLink
           title="Guides"
           href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/guides`}
@@ -179,11 +180,14 @@ const VersionWorkspace = ({ project, selected }: Loaded) => (
           title="Interactive demos"
           href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/interactive-demos`}
         />
-      </div>
-    ) : selected.status === "active" ? (
+        </>
+      ) : null}
+    </div>
+    {!selected.is_default ? (
       <Card className={styles.empty}>
-        This Project Version is ready for version-owned content in the next
-        phase. Existing Project-wide content stays with the Default Version.
+        Captures belong to this Project Version. Guide and Interactive Demo
+        ownership arrives in child 118; those existing artifacts remain with
+        the Default Project Version for now.
       </Card>
     ) : null}
   </section>
