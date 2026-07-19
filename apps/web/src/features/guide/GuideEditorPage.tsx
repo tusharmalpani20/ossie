@@ -91,23 +91,36 @@ export type GuideEditorPageProps = {
   projectId: string;
   guideId: string;
   loadDetail?: (projectId: string, guideId: string) => Promise<GuideDetail>;
-  loadPublishStatus?: (projectId: string, guideId: string) => Promise<GuidePublishStatusResponse>;
-  publishCurrentGuide?: (projectId: string, guideId: string) => Promise<GuidePublishResult>;
-  revokePublishLink?: (projectId: string, guideId: string) => Promise<GuideRevokePublishResult>;
+  loadPublishStatus?: (
+    projectId: string,
+    guideId: string,
+  ) => Promise<GuidePublishStatusResponse>;
+  publishCurrentGuide?: (
+    projectId: string,
+    guideId: string,
+  ) => Promise<GuidePublishResult>;
+  revokePublishLink?: (
+    projectId: string,
+    guideId: string,
+  ) => Promise<GuideRevokePublishResult>;
   updatePublishAccess?: (
     projectId: string,
     guideId: string,
-    input: UpdateGuidePublishAccessInput
+    input: UpdateGuidePublishAccessInput,
   ) => Promise<GuidePublishStatusResponse>;
   updatePublishPassword?: (
     projectId: string,
     guideId: string,
-    input: UpdateGuidePublishPasswordInput
+    input: UpdateGuidePublishPasswordInput,
   ) => Promise<GuidePublishStatusResponse>;
   copyText?: (text: string) => Promise<void>;
   exportMarkdown?: typeof exportGuideMarkdown;
   exportHtmlZip?: typeof exportGuideHtmlZip;
-  downloadTextFile?: (filename: string, contents: string, mimeType: string) => Promise<void>;
+  downloadTextFile?: (
+    filename: string,
+    contents: string,
+    mimeType: string,
+  ) => Promise<void>;
   downloadBlobFile?: (filename: string, blob: Blob) => Promise<void>;
   saveGuide?: typeof updateGuide;
   saveStep?: typeof updateGuideStep;
@@ -123,11 +136,15 @@ export type GuideEditorPageProps = {
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   versionSlug?: string;
+  projectVersionId?: string;
 };
 
-const guidePreviewUrl = (projectId: string, guideId: string, versionSlug?: string) => (
-  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideId)}/preview`
-);
+const guidePreviewUrl = (
+  projectId: string,
+  guideId: string,
+  versionSlug?: string,
+) =>
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideId)}/preview`;
 
 const loadStateFromError = (error: unknown): LoadState => {
   if (error instanceof ApiClientError) {
@@ -143,9 +160,8 @@ const loadStateFromError = (error: unknown): LoadState => {
   return { status: "error" };
 };
 
-const isGuideNotEditable = (error: unknown) => (
-  error instanceof ApiClientError && error.type === "guide_not_editable"
-);
+const isGuideNotEditable = (error: unknown) =>
+  error instanceof ApiClientError && error.type === "guide_not_editable";
 
 const defaultCopyText = async (text: string) => {
   if (!navigator.clipboard?.writeText) {
@@ -158,7 +174,7 @@ const defaultCopyText = async (text: string) => {
 const defaultDownloadTextFile = async (
   filename: string,
   contents: string,
-  mimeType: string
+  mimeType: string,
 ) => {
   const url = URL.createObjectURL(new Blob([contents], { type: mimeType }));
   const link = document.createElement("a");
@@ -171,10 +187,7 @@ const defaultDownloadTextFile = async (
   URL.revokeObjectURL(url);
 };
 
-const defaultDownloadBlobFile = async (
-  filename: string,
-  blob: Blob
-) => {
+const defaultDownloadBlobFile = async (filename: string, blob: Blob) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -190,7 +203,10 @@ const isDateAfter = (left: string, right: string) => {
   const leftDate = new Date(left);
   const rightDate = new Date(right);
 
-  if (!Number.isFinite(leftDate.getTime()) || !Number.isFinite(rightDate.getTime())) {
+  if (
+    !Number.isFinite(leftDate.getTime()) ||
+    !Number.isFinite(rightDate.getTime())
+  ) {
     return false;
   }
 
@@ -239,22 +255,37 @@ export const GuideEditorPage = ({
   performLogout,
   navigate,
   versionSlug,
+  projectVersionId,
 }: GuideEditorPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [publishState, setPublishState] = useState<PublishState>({ status: "loading" });
+  const [publishState, setPublishState] = useState<PublishState>({
+    status: "loading",
+  });
   const [reloadKey, setReloadKey] = useState(0);
   const [publishReloadKey, setPublishReloadKey] = useState(0);
-  const [guideDraft, setGuideDraft] = useState<GuideDraft>({ title: "", description: "" });
+  const [guideDraft, setGuideDraft] = useState<GuideDraft>({
+    title: "",
+    description: "",
+  });
   const [stepDrafts, setStepDrafts] = useState<Record<string, StepDraft>>({});
-  const [blockContentDrafts, setBlockContentDrafts] = useState<Record<string, BlockContentDraft>>({});
+  const [blockContentDrafts, setBlockContentDrafts] = useState<
+    Record<string, BlockContentDraft>
+  >({});
   const [notice, setNotice] = useState<string | null>(null);
-  const [embedCopyFallback, setEmbedCopyFallback] = useState<string | null>(null);
+  const [embedCopyFallback, setEmbedCopyFallback] = useState<string | null>(
+    null,
+  );
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  const [publishBusyAction, setPublishBusyAction] = useState<string | null>(null);
+  const [publishBusyAction, setPublishBusyAction] = useState<string | null>(
+    null,
+  );
   const [locallyStalePublish, setLocallyStalePublish] = useState(false);
-  const [screenshotAssets, setScreenshotAssets] = useState<GuideSourceCaptureAsset[]>([]);
+  const [screenshotAssets, setScreenshotAssets] = useState<
+    GuideSourceCaptureAsset[]
+  >([]);
   const [screenshotAssetsError, setScreenshotAssetsError] = useState(false);
-  const [activeScreenshotPickerBlockId, setActiveScreenshotPickerBlockId] = useState<string | null>(null);
+  const [activeScreenshotPickerBlockId, setActiveScreenshotPickerBlockId] =
+    useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -269,7 +300,9 @@ export const GuideEditorPage = ({
             description: detail.guide.description ?? "",
           });
           setStepDrafts(stepDraftsFromBlocks(detail.guide_blocks));
-          setBlockContentDrafts(blockContentDraftsFromBlocks(detail.guide_blocks));
+          setBlockContentDrafts(
+            blockContentDraftsFromBlocks(detail.guide_blocks),
+          );
         }
       })
       .catch((error: unknown) => {
@@ -327,11 +360,10 @@ export const GuideEditorPage = ({
     setNotice(fallback);
   };
 
-  const hasActivePublish = () => (
-    publishState.status === "loaded"
-    && publishState.response.publish_link?.status === "active"
-    && Boolean(publishState.response.published_artifact)
-  );
+  const hasActivePublish = () =>
+    publishState.status === "loaded" &&
+    publishState.response.publish_link?.status === "active" &&
+    Boolean(publishState.response.published_artifact);
 
   const markPublishedDraftStale = () => {
     if (hasActivePublish()) {
@@ -411,7 +443,9 @@ export const GuideEditorPage = ({
     }
   };
 
-  const updateCurrentPublishAccess = async (input: UpdateGuidePublishAccessInput) => {
+  const updateCurrentPublishAccess = async (
+    input: UpdateGuidePublishAccessInput,
+  ) => {
     setPublishBusyAction("access");
     setNotice(null);
     setEmbedCopyFallback(null);
@@ -421,13 +455,17 @@ export const GuideEditorPage = ({
       setPublishState({ status: "loaded", response });
       setNotice("Publishing access updated.");
     } catch (error: unknown) {
-      setNotice(publishErrorMessage(error, "Could not update publishing access."));
+      setNotice(
+        publishErrorMessage(error, "Could not update publishing access."),
+      );
     } finally {
       setPublishBusyAction(null);
     }
   };
 
-  const updateCurrentPublishPassword = async (input: UpdateGuidePublishPasswordInput) => {
+  const updateCurrentPublishPassword = async (
+    input: UpdateGuidePublishPasswordInput,
+  ) => {
     setPublishBusyAction("password");
     setNotice(null);
     setEmbedCopyFallback(null);
@@ -435,19 +473,22 @@ export const GuideEditorPage = ({
     try {
       const response = await updatePublishPassword(projectId, guideId, input);
       setPublishState({ status: "loaded", response });
-      setNotice(input.password === null
-        ? "Password protection cleared."
-        : "Password updated. Existing viewers must unlock again.");
+      setNotice(
+        input.password === null
+          ? "Password protection cleared."
+          : "Password updated. Existing viewers must unlock again.",
+      );
     } catch (error: unknown) {
-      setNotice(publishErrorMessage(error, "Could not update password protection."));
+      setNotice(
+        publishErrorMessage(error, "Could not update password protection."),
+      );
     } finally {
       setPublishBusyAction(null);
     }
   };
 
-  const exportCurrentMarkdown = async (): Promise<GuideMarkdownExport> => (
-    exportMarkdown(projectId, guideId)
-  );
+  const exportCurrentMarkdown = async (): Promise<GuideMarkdownExport> =>
+    exportMarkdown(projectId, guideId);
 
   const copyMarkdown = async () => {
     setBusyAction("export-copy");
@@ -470,7 +511,11 @@ export const GuideEditorPage = ({
 
     try {
       const response = await exportCurrentMarkdown();
-      await downloadTextFile(response.filename, response.markdown, "text/markdown;charset=utf-8");
+      await downloadTextFile(
+        response.filename,
+        response.markdown,
+        "text/markdown;charset=utf-8",
+      );
       setNotice("Markdown downloaded.");
     } catch {
       setNotice("Could not export Markdown.");
@@ -495,11 +540,11 @@ export const GuideEditorPage = ({
   };
 
   const patchDetail = (patch: (detail: GuideDetail) => GuideDetail) => {
-    setState((current) => (
+    setState((current) =>
       current.status === "loaded"
         ? { status: "loaded", detail: patch(current.detail) }
-        : current
-    ));
+        : current,
+    );
   };
 
   const saveGuideDraft = async () => {
@@ -550,7 +595,10 @@ export const GuideEditorPage = ({
 
       patchDetail((detail) => ({
         ...detail,
-        guide_blocks: updateStepInBlocks(detail.guide_blocks, response.guide_step),
+        guide_blocks: updateStepInBlocks(
+          detail.guide_blocks,
+          response.guide_step,
+        ),
       }));
       setStepDrafts((current) => ({
         ...current,
@@ -569,7 +617,7 @@ export const GuideEditorPage = ({
 
   const addBlock = async (
     blockType: "step" | "header" | "paragraph" | "tip" | "alert" | "divider",
-    afterBlock?: GuideBlock
+    afterBlock?: GuideBlock,
   ) => {
     setBusyAction(`create:${afterBlock?.id ?? "end"}:${blockType}`);
     setNotice(null);
@@ -578,17 +626,24 @@ export const GuideEditorPage = ({
       const response = await createBlock(
         projectId,
         guideId,
-        defaultBlockInput(blockType, afterBlock ? {
-          placement: "after",
-          guide_block_id: afterBlock.id,
-        } : undefined)
+        defaultBlockInput(
+          blockType,
+          afterBlock
+            ? {
+                placement: "after",
+                guide_block_id: afterBlock.id,
+              }
+            : undefined,
+        ),
       );
       patchDetail((detail) => ({
         ...detail,
         guide_blocks: response.guide_blocks,
       }));
       setStepDrafts(stepDraftsFromBlocks(response.guide_blocks));
-      setBlockContentDrafts(blockContentDraftsFromBlocks(response.guide_blocks));
+      setBlockContentDrafts(
+        blockContentDraftsFromBlocks(response.guide_blocks),
+      );
       markPublishedDraftStale();
       setNotice("Block added.");
     } catch (error: unknown) {
@@ -605,20 +660,26 @@ export const GuideEditorPage = ({
       return;
     }
 
-    const content: GuideBlockContent = block.block_type === "header"
-      ? { title: draft.title }
-      : block.block_type === "paragraph"
-        ? { body: draft.body || null }
-        : { title: draft.title || null, body: draft.body || null };
+    const content: GuideBlockContent =
+      block.block_type === "header"
+        ? { title: draft.title }
+        : block.block_type === "paragraph"
+          ? { body: draft.body || null }
+          : { title: draft.title || null, body: draft.body || null };
 
     setBusyAction(`block:${block.id}`);
     setNotice(null);
 
     try {
-      const response = await saveBlock(projectId, guideId, block.id, { content });
+      const response = await saveBlock(projectId, guideId, block.id, {
+        content,
+      });
       patchDetail((detail) => ({
         ...detail,
-        guide_blocks: updateBlockInBlocks(detail.guide_blocks, response.guide_block),
+        guide_blocks: updateBlockInBlocks(
+          detail.guide_blocks,
+          response.guide_block,
+        ),
       }));
       setBlockContentDrafts((current) => ({
         ...current,
@@ -648,7 +709,9 @@ export const GuideEditorPage = ({
     setScreenshotAssetsError(false);
 
     try {
-      const response = await loadScreenshotAssets(projectId);
+      if (!projectVersionId)
+        throw new Error("Project Version context is required");
+      const response = await loadScreenshotAssets(projectId, projectVersionId);
       setScreenshotAssets(response.capture_assets);
     } catch {
       setScreenshotAssetsError(true);
@@ -658,7 +721,10 @@ export const GuideEditorPage = ({
     }
   };
 
-  const saveScreenshot = async (block: GuideBlock, captureAssetId: string | null) => {
+  const saveScreenshot = async (
+    block: GuideBlock,
+    captureAssetId: string | null,
+  ) => {
     setBusyAction(`screenshot:${block.id}`);
     setNotice(null);
 
@@ -674,7 +740,10 @@ export const GuideEditorPage = ({
         const withAsset = mergeAssetIntoDetail(detail, selectedAsset);
         return {
           ...withAsset,
-          guide_blocks: updateBlockInBlocks(withAsset.guide_blocks, response.guide_block),
+          guide_blocks: updateBlockInBlocks(
+            withAsset.guide_blocks,
+            response.guide_block,
+          ),
         };
       });
       setActiveScreenshotPickerBlockId(null);
@@ -692,19 +761,27 @@ export const GuideEditorPage = ({
     setNotice(null);
 
     try {
-      const response = await uploadBlockScreenshot(projectId, guideId, block.id, { file });
+      const response = await uploadBlockScreenshot(
+        projectId,
+        guideId,
+        block.id,
+        { file },
+      );
       patchDetail((detail) => {
         const withAsset = mergeAssetIntoDetail(detail, response.capture_asset);
         return {
           ...withAsset,
-          guide_blocks: updateBlockInBlocks(withAsset.guide_blocks, response.guide_block),
+          guide_blocks: updateBlockInBlocks(
+            withAsset.guide_blocks,
+            response.guide_block,
+          ),
         };
       });
-      setScreenshotAssets((current) => (
+      setScreenshotAssets((current) =>
         current.some((asset) => asset.id === response.capture_asset.id)
           ? current
-          : [...current, response.capture_asset]
-      ));
+          : [...current, response.capture_asset],
+      );
       setScreenshotAssetsError(false);
       setActiveScreenshotPickerBlockId(null);
       markPublishedDraftStale();
@@ -718,16 +795,24 @@ export const GuideEditorPage = ({
 
   const saveAnnotations = async (
     block: GuideBlock,
-    annotations: UpdateGuideBlockAnnotationsInput["annotations"]
+    annotations: UpdateGuideBlockAnnotationsInput["annotations"],
   ) => {
     setBusyAction(`annotations:${block.id}`);
     setNotice(null);
 
     try {
-      const response = await saveBlockAnnotations(projectId, guideId, block.id, { annotations });
+      const response = await saveBlockAnnotations(
+        projectId,
+        guideId,
+        block.id,
+        { annotations },
+      );
       patchDetail((detail) => ({
         ...detail,
-        guide_blocks: updateBlockInBlocks(detail.guide_blocks, response.guide_block),
+        guide_blocks: updateBlockInBlocks(
+          detail.guide_blocks,
+          response.guide_block,
+        ),
       }));
       markPublishedDraftStale();
       setNotice("Highlights saved.");
@@ -748,7 +833,9 @@ export const GuideEditorPage = ({
   const removeHighlight = (block: GuideBlock, annotationIndex: number) => {
     void saveAnnotations(
       block,
-      annotationsFromBlock(block).filter((_, index) => index !== annotationIndex)
+      annotationsFromBlock(block).filter(
+        (_, index) => index !== annotationIndex,
+      ),
     );
   };
 
@@ -814,7 +901,12 @@ export const GuideEditorPage = ({
 
   if (state.status === "loading") {
     return (
-      <PortalShell projectId={projectId} guideId={guideId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        guideId={guideId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Loading guide...</div>
       </PortalShell>
     );
@@ -822,10 +914,17 @@ export const GuideEditorPage = ({
 
   if (state.status === "unauthenticated") {
     return (
-      <PortalShell projectId={projectId} guideId={guideId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        guideId={guideId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Sign in to edit this guide.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>Sign in</a>
+          <a className={styles.stateLink} href={signInUrl(currentPath)}>
+            Sign in
+          </a>
         </div>
       </PortalShell>
     );
@@ -833,7 +932,12 @@ export const GuideEditorPage = ({
 
   if (state.status === "not_found") {
     return (
-      <PortalShell projectId={projectId} guideId={guideId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        guideId={guideId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Guide was not found.</div>
       </PortalShell>
     );
@@ -841,7 +945,12 @@ export const GuideEditorPage = ({
 
   if (state.status === "error") {
     return (
-      <PortalShell projectId={projectId} guideId={guideId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        guideId={guideId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Could not load guide.</div>
           <Button variant="secondary" onClick={reload}>
@@ -867,8 +976,12 @@ export const GuideEditorPage = ({
       projectId={projectId}
       guideId={guideId}
       onGuideDraftChange={setGuideDraft}
-      onStepDraftChange={(stepId, draft) => setStepDrafts((current) => ({ ...current, [stepId]: draft }))}
-      onBlockContentDraftChange={(blockId, draft) => setBlockContentDrafts((current) => ({ ...current, [blockId]: draft }))}
+      onStepDraftChange={(stepId, draft) =>
+        setStepDrafts((current) => ({ ...current, [stepId]: draft }))
+      }
+      onBlockContentDraftChange={(blockId, draft) =>
+        setBlockContentDrafts((current) => ({ ...current, [blockId]: draft }))
+      }
       onSaveGuide={saveGuideDraft}
       onSaveStep={saveStepDraft}
       onSaveBlock={saveBlockDraft}
@@ -889,7 +1002,9 @@ export const GuideEditorPage = ({
       onUpdatePublishAccess={updateCurrentPublishAccess}
       onUpdatePublishPassword={updateCurrentPublishPassword}
       onCopyPublicLink={copyCurrent}
-      onCopyEmbedCode={(publicUrl) => copyCurrentEmbed(publicUrl, state.detail.guide.title)}
+      onCopyEmbedCode={(publicUrl) =>
+        copyCurrentEmbed(publicUrl, state.detail.guide.title)
+      }
       onCopyMarkdown={copyMarkdown}
       onDownloadMarkdown={downloadMarkdown}
       onDownloadHtmlZip={downloadHtmlZip}
@@ -915,7 +1030,11 @@ const PortalShell = ({
   navigate?: (path: string) => void;
 }) => (
   <div className={styles.page}>
-    <PortalTopbar context={`${projectId} / ${guideId}`} performLogout={performLogout} navigate={navigate} />
+    <PortalTopbar
+      context={`${projectId} / ${guideId}`}
+      performLogout={performLogout}
+      navigate={navigate}
+    />
     <main className={styles.main}>{children}</main>
   </div>
 );
@@ -979,7 +1098,10 @@ const GuideEditorView = ({
   guideId: string;
   onGuideDraftChange: (draft: GuideDraft) => void;
   onStepDraftChange: (stepId: string, draft: StepDraft) => void;
-  onBlockContentDraftChange: (blockId: string, draft: BlockContentDraft) => void;
+  onBlockContentDraftChange: (
+    blockId: string,
+    draft: BlockContentDraft,
+  ) => void;
   onSaveGuide: () => void;
   onSaveStep: (step: GuideStep) => void;
   onSaveBlock: (block: GuideBlock) => void;
@@ -992,7 +1114,10 @@ const GuideEditorView = ({
   onUploadScreenshot: (block: GuideBlock, file: File) => void;
   onAddHighlight: (block: GuideBlock) => void;
   onRemoveHighlight: (block: GuideBlock, annotationIndex: number) => void;
-  onAddBlock: (blockType: "step" | "header" | "paragraph" | "tip" | "alert" | "divider", afterBlock?: GuideBlock) => void;
+  onAddBlock: (
+    blockType: "step" | "header" | "paragraph" | "tip" | "alert" | "divider",
+    afterBlock?: GuideBlock,
+  ) => void;
   onMoveBlock: (blockId: string, direction: -1 | 1) => void;
   onDeleteBlock: (block: GuideBlock) => void;
   onPublish: () => void;
@@ -1009,62 +1134,105 @@ const GuideEditorView = ({
   navigate?: (path: string) => void;
   versionSlug?: string;
 }) => {
-  const sortedBlocks = useMemo(() => sortBlocks(detail.guide_blocks), [detail.guide_blocks]);
-  const [activeScreenshotId, setActiveScreenshotId] = useState<string | null>(null);
+  const sortedBlocks = useMemo(
+    () => sortBlocks(detail.guide_blocks),
+    [detail.guide_blocks],
+  );
+  const [activeScreenshotId, setActiveScreenshotId] = useState<string | null>(
+    null,
+  );
   const readOnly = detail.guide.status !== "draft";
-  const assetsById = useMemo(() => new Map(
-    detail.source_capture_assets.map((asset) => [asset.id, asset])
-  ), [detail.source_capture_assets]);
+  const assetsById = useMemo(
+    () =>
+      new Map(detail.source_capture_assets.map((asset) => [asset.id, asset])),
+    [detail.source_capture_assets],
+  );
   const screenshotImages = useMemo(
     () => screenshotImagesFromBlocks(sortedBlocks, assetsById, stepDrafts),
-    [assetsById, sortedBlocks, stepDrafts]
+    [assetsById, sortedBlocks, stepDrafts],
   );
 
   useEffect(() => {
     if (
-      activeScreenshotId
-      && !screenshotImages.some((image) => image.id === activeScreenshotId)
+      activeScreenshotId &&
+      !screenshotImages.some((image) => image.id === activeScreenshotId)
     ) {
       setActiveScreenshotId(null);
     }
   }, [activeScreenshotId, screenshotImages]);
 
   return (
-    <PortalShell projectId={projectId} guideId={guideId} performLogout={performLogout} navigate={navigate}>
+    <PortalShell
+      projectId={projectId}
+      guideId={guideId}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
       <section className={styles.header}>
         <div className={styles.titleRow}>
           <div>
             <div className={styles.eyebrow}>Guide editor</div>
             <h1 className={styles.title}>{detail.guide.title}</h1>
-            {detail.guide.description ? <p className={styles.description}>{detail.guide.description}</p> : null}
+            {detail.guide.description ? (
+              <p className={styles.description}>{detail.guide.description}</p>
+            ) : null}
           </div>
           <div className={styles.headerActions}>
             <Button
               variant="secondary"
-              disabled={busyAction === "export-copy" || busyAction === "export-download" || busyAction === "export-html"}
+              disabled={
+                busyAction === "export-copy" ||
+                busyAction === "export-download" ||
+                busyAction === "export-html"
+              }
               onClick={onCopyMarkdown}
             >
-              {busyAction === "export-copy" ? "Copying Markdown..." : "Copy Markdown"}
+              {busyAction === "export-copy"
+                ? "Copying Markdown..."
+                : "Copy Markdown"}
             </Button>
             <Button
               variant="secondary"
-              disabled={busyAction === "export-copy" || busyAction === "export-download" || busyAction === "export-html"}
+              disabled={
+                busyAction === "export-copy" ||
+                busyAction === "export-download" ||
+                busyAction === "export-html"
+              }
               onClick={onDownloadMarkdown}
             >
-              {busyAction === "export-download" ? "Downloading Markdown..." : "Download Markdown"}
+              {busyAction === "export-download"
+                ? "Downloading Markdown..."
+                : "Download Markdown"}
             </Button>
             <Button
               variant="secondary"
-              disabled={busyAction === "export-copy" || busyAction === "export-download" || busyAction === "export-html"}
+              disabled={
+                busyAction === "export-copy" ||
+                busyAction === "export-download" ||
+                busyAction === "export-html"
+              }
               onClick={onDownloadHtmlZip}
             >
-              {busyAction === "export-html" ? "Exporting HTML..." : "Export HTML"}
+              {busyAction === "export-html"
+                ? "Exporting HTML..."
+                : "Export HTML"}
             </Button>
-            <a className={`${buttonVariants({ variant: "secondary" })} ${styles.previewLink}`} href={guidePreviewUrl(projectId, guideId, versionSlug)}>Preview guide</a>
-            <Badge variant={detail.guide.status === "draft" ? "warning" : "success"}>{detail.guide.status}</Badge>
+            <a
+              className={`${buttonVariants({ variant: "secondary" })} ${styles.previewLink}`}
+              href={guidePreviewUrl(projectId, guideId, versionSlug)}
+            >
+              Preview guide
+            </a>
+            <Badge
+              variant={detail.guide.status === "draft" ? "warning" : "success"}
+            >
+              {detail.guide.status}
+            </Badge>
           </div>
         </div>
-        {readOnly ? <div className={styles.notice}>Archived guides are read-only.</div> : null}
+        {readOnly ? (
+          <div className={styles.notice}>Archived guides are read-only.</div>
+        ) : null}
         {notice ? <div className={styles.notice}>{notice}</div> : null}
       </section>
 
@@ -1086,16 +1254,20 @@ const GuideEditorView = ({
             onRetry={onRetryPublishStatus}
           />
           <section className={styles.panel} aria-labelledby="metadata-heading">
-            <h2 className={styles.sectionTitle} id="metadata-heading">Guide metadata</h2>
+            <h2 className={styles.sectionTitle} id="metadata-heading">
+              Guide metadata
+            </h2>
             <Label className={styles.field}>
               <span>Guide title</span>
               <Input
                 value={guideDraft.title}
                 disabled={readOnly || busyAction === "guide"}
-                onChange={(event) => onGuideDraftChange({
-                  ...guideDraft,
-                  title: event.target.value,
-                })}
+                onChange={(event) =>
+                  onGuideDraftChange({
+                    ...guideDraft,
+                    title: event.target.value,
+                  })
+                }
               />
             </Label>
             <Label className={styles.field}>
@@ -1104,10 +1276,12 @@ const GuideEditorView = ({
                 value={guideDraft.description}
                 disabled={readOnly || busyAction === "guide"}
                 rows={5}
-                onChange={(event) => onGuideDraftChange({
-                  ...guideDraft,
-                  description: event.target.value,
-                })}
+                onChange={(event) =>
+                  onGuideDraftChange({
+                    ...guideDraft,
+                    description: event.target.value,
+                  })
+                }
               />
             </Label>
             <Button
@@ -1120,9 +1294,13 @@ const GuideEditorView = ({
         </div>
 
         <section className={styles.panel} aria-labelledby="blocks-heading">
-          <h2 className={styles.sectionTitle} id="blocks-heading">Guide blocks</h2>
+          <h2 className={styles.sectionTitle} id="blocks-heading">
+            Guide blocks
+          </h2>
           {sortedBlocks.length === 0 ? (
-            <div className={styles.empty}>This guide does not have any blocks yet.</div>
+            <div className={styles.empty}>
+              This guide does not have any blocks yet.
+            </div>
           ) : (
             <div className={styles.blocks}>
               {sortedBlocks.map((block, index) => (
@@ -1139,7 +1317,9 @@ const GuideEditorView = ({
                   sourceAsset={assetForBlock(block, assetsById)}
                   screenshotAssets={screenshotAssets}
                   screenshotAssetsError={screenshotAssetsError}
-                  screenshotPickerOpen={activeScreenshotPickerBlockId === block.id}
+                  screenshotPickerOpen={
+                    activeScreenshotPickerBlockId === block.id
+                  }
                   onDraftChange={onStepDraftChange}
                   onContentDraftChange={onBlockContentDraftChange}
                   onSaveStep={onSaveStep}
@@ -1203,7 +1383,9 @@ const formatExpiryInputValue = (expiresAt: string | null) => {
     return "";
   }
 
-  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60_000));
+  const localDate = new Date(
+    date.getTime() - date.getTimezoneOffset() * 60_000,
+  );
   return localDate.toISOString().slice(0, 16);
 };
 
@@ -1252,45 +1434,68 @@ const PublishPanel = ({
   const [expiryInput, setExpiryInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const isBusy = busyAction !== null;
-  const activeLink = state.status === "loaded" && state.response.publish_link?.status === "active"
-    ? state.response.publish_link
+  const activeLink =
+    state.status === "loaded" &&
+    state.response.publish_link?.status === "active"
+      ? state.response.publish_link
+      : null;
+  const publishedArtifact =
+    state.status === "loaded" ? state.response.published_artifact : null;
+  const publishedAt = publishedArtifact
+    ? formatPublishedAt(publishedArtifact.published_at)
     : null;
-  const publishedArtifact = state.status === "loaded" ? state.response.published_artifact : null;
-  const publishedAt = publishedArtifact ? formatPublishedAt(publishedArtifact.published_at) : null;
   const stale = Boolean(
-    activeLink
-    && publishedArtifact
-    && (locallyStale || isDateAfter(guideUpdatedAt, publishedArtifact.published_at))
+    activeLink &&
+    publishedArtifact &&
+    (locallyStale ||
+      isDateAfter(guideUpdatedAt, publishedArtifact.published_at)),
   );
-  const publishLabel = isBusy && busyAction === "publish" ? "Publishing..." : "Publish guide";
-  const republishLabel = isBusy && busyAction === "publish" ? "Republishing..." : "Republish";
-  const revokeLabel = isBusy && busyAction === "revoke" ? "Revoking..." : "Revoke link";
-  const copyLabel = isBusy && busyAction === "copy" ? "Copying..." : "Copy link";
-  const copyEmbedLabel = isBusy && busyAction === "copy_embed" ? "Copying..." : "Copy embed code";
+  const publishLabel =
+    isBusy && busyAction === "publish" ? "Publishing..." : "Publish guide";
+  const republishLabel =
+    isBusy && busyAction === "publish" ? "Republishing..." : "Republish";
+  const revokeLabel =
+    isBusy && busyAction === "revoke" ? "Revoking..." : "Revoke link";
+  const copyLabel =
+    isBusy && busyAction === "copy" ? "Copying..." : "Copy link";
+  const copyEmbedLabel =
+    isBusy && busyAction === "copy_embed" ? "Copying..." : "Copy embed code";
   const accessLabel = isBusy && busyAction === "access" ? "Updating..." : null;
-  const passwordLabel = isBusy && busyAction === "password"
-    ? "Updating..."
-    : activeLink?.password_protected
-      ? "Update password"
-      : "Set password";
-  const expired = activeLink ? isExpiredPublishLink(activeLink.expires_at) : false;
-  const canCopyEmbed = Boolean(activeLink && activeLink.visibility === "public" && !expired);
-  const accessText = activeLink?.visibility === "restricted"
-    ? "Public access is off"
-    : expired
-      ? "Public link has expired"
-      : "Public access is on";
-  const expiryDisplay = activeLink?.expires_at ? formatPublishedAt(activeLink.expires_at) : null;
+  const passwordLabel =
+    isBusy && busyAction === "password"
+      ? "Updating..."
+      : activeLink?.password_protected
+        ? "Update password"
+        : "Set password";
+  const expired = activeLink
+    ? isExpiredPublishLink(activeLink.expires_at)
+    : false;
+  const canCopyEmbed = Boolean(
+    activeLink && activeLink.visibility === "public" && !expired,
+  );
+  const accessText =
+    activeLink?.visibility === "restricted"
+      ? "Public access is off"
+      : expired
+        ? "Public link has expired"
+        : "Public access is on";
+  const expiryDisplay = activeLink?.expires_at
+    ? formatPublishedAt(activeLink.expires_at)
+    : null;
 
   return (
     <section className={styles.panel} aria-labelledby="publishing-heading">
-      <h2 className={styles.sectionTitle} id="publishing-heading">Publishing</h2>
+      <h2 className={styles.sectionTitle} id="publishing-heading">
+        Publishing
+      </h2>
       {state.status === "loading" ? (
         <div className={styles.publishText}>Loading publishing status...</div>
       ) : null}
       {state.status === "error" ? (
         <div className={styles.publishStack}>
-          <div className={styles.publishText}>Could not load publishing status.</div>
+          <div className={styles.publishText}>
+            Could not load publishing status.
+          </div>
           <Button variant="secondary" onClick={onRetry}>
             Retry
           </Button>
@@ -1299,11 +1504,10 @@ const PublishPanel = ({
       {state.status === "loaded" && !activeLink ? (
         <div className={styles.publishStack}>
           <div className={styles.publishText}>This guide is not published.</div>
-          <p className={styles.publishNote}>Publishing creates a public read-only snapshot.</p>
-          <Button
-            disabled={readOnly || isBusy}
-            onClick={onPublish}
-          >
+          <p className={styles.publishNote}>
+            Publishing creates a public read-only snapshot.
+          </p>
+          <Button disabled={readOnly || isBusy} onClick={onPublish}>
             {publishLabel}
           </Button>
         </div>
@@ -1313,19 +1517,26 @@ const PublishPanel = ({
           <div className={styles.publishText}>Public guide is live</div>
           {publishedAt ? (
             <div className={styles.publishNote}>
-              Published version {publishedArtifact.version_number} on {publishedAt}
+              Published version {publishedArtifact.version_number} on{" "}
+              {publishedAt}
             </div>
           ) : (
-            <div className={styles.publishNote}>Published version {publishedArtifact.version_number}</div>
+            <div className={styles.publishNote}>
+              Published version {publishedArtifact.version_number}
+            </div>
           )}
           {stale ? (
-            <div className={styles.staleNotice}>Draft has changes not yet published.</div>
+            <div className={styles.staleNotice}>
+              Draft has changes not yet published.
+            </div>
           ) : null}
           <div className={styles.accessPanel}>
             <div>
               <div className={styles.publishText}>{accessText}</div>
               <p className={styles.publishNote}>
-                {expiryDisplay ? `Expires on ${expiryDisplay}` : "No expiry is set."}
+                {expiryDisplay
+                  ? `Expires on ${expiryDisplay}`
+                  : "No expiry is set."}
               </p>
             </div>
             <div className={styles.publishActions}>
@@ -1333,7 +1544,12 @@ const PublishPanel = ({
                 <Button
                   variant="secondary"
                   disabled={readOnly || isBusy}
-                  onClick={() => onUpdateAccess({ visibility: "restricted", expires_at: null })}
+                  onClick={() =>
+                    onUpdateAccess({
+                      visibility: "restricted",
+                      expires_at: null,
+                    })
+                  }
                 >
                   {accessLabel ?? "Disable public access"}
                 </Button>
@@ -1341,7 +1557,9 @@ const PublishPanel = ({
                 <Button
                   variant="secondary"
                   disabled={readOnly || isBusy}
-                  onClick={() => onUpdateAccess({ visibility: "public", expires_at: null })}
+                  onClick={() =>
+                    onUpdateAccess({ visibility: "public", expires_at: null })
+                  }
                 >
                   {accessLabel ?? "Enable public access"}
                 </Button>
@@ -1351,7 +1569,9 @@ const PublishPanel = ({
               <span>Expiry</span>
               <Input
                 type="datetime-local"
-                value={expiryInput || formatExpiryInputValue(activeLink.expires_at)}
+                value={
+                  expiryInput || formatExpiryInputValue(activeLink.expires_at)
+                }
                 disabled={readOnly || isBusy}
                 onChange={(event) => setExpiryInput(event.target.value)}
               />
@@ -1359,11 +1579,16 @@ const PublishPanel = ({
             <div className={styles.publishActions}>
               <Button
                 variant="secondary"
-                disabled={readOnly || isBusy || !(expiryInput || activeLink.expires_at)}
+                disabled={
+                  readOnly || isBusy || !(expiryInput || activeLink.expires_at)
+                }
                 onClick={() => {
                   onUpdateAccess({
                     visibility: activeLink.visibility,
-                    expires_at: expiryInputToIso(expiryInput || formatExpiryInputValue(activeLink.expires_at)),
+                    expires_at: expiryInputToIso(
+                      expiryInput ||
+                        formatExpiryInputValue(activeLink.expires_at),
+                    ),
                   });
                   setExpiryInput("");
                 }}
@@ -1374,7 +1599,10 @@ const PublishPanel = ({
                 variant="secondary"
                 disabled={readOnly || isBusy || !activeLink.expires_at}
                 onClick={() => {
-                  onUpdateAccess({ visibility: activeLink.visibility, expires_at: null });
+                  onUpdateAccess({
+                    visibility: activeLink.visibility,
+                    expires_at: null,
+                  });
                   setExpiryInput("");
                 }}
               >
@@ -1385,7 +1613,9 @@ const PublishPanel = ({
           <div className={styles.accessPanel}>
             <div>
               <div className={styles.publishText}>
-                {activeLink.password_protected ? "Password protection is on." : "Password protection is off."}
+                {activeLink.password_protected
+                  ? "Password protection is on."
+                  : "Password protection is off."}
               </div>
               <p className={styles.publishNote}>
                 Updating the password requires existing viewers to unlock again.
@@ -1451,21 +1681,16 @@ const PublishPanel = ({
             >
               Open public guide
             </a>
-            <Button
-              disabled={readOnly || isBusy}
-              onClick={onPublish}
-            >
+            <Button disabled={readOnly || isBusy} onClick={onPublish}>
               {republishLabel}
             </Button>
-            <Button
-              variant="destructive"
-              disabled={isBusy}
-              onClick={onRevoke}
-            >
+            <Button variant="destructive" disabled={isBusy} onClick={onRevoke}>
               {revokeLabel}
             </Button>
           </div>
-          {embedCopyFallback ? <div className={styles.publicUrl}>{embedCopyFallback}</div> : null}
+          {embedCopyFallback ? (
+            <div className={styles.publicUrl}>{embedCopyFallback}</div>
+          ) : null}
         </div>
       ) : null}
     </section>
@@ -1475,25 +1700,33 @@ const PublishPanel = ({
 const screenshotImagesFromBlocks = (
   blocks: GuideBlock[],
   assetsById: Map<string, GuideSourceCaptureAsset>,
-  stepDrafts: Record<string, StepDraft>
-): GuideScreenshotViewerImage[] => blocks.flatMap((block, index) => {
-  const asset = assetForBlock(block, assetsById);
+  stepDrafts: Record<string, StepDraft>,
+): GuideScreenshotViewerImage[] =>
+  blocks.flatMap((block, index) => {
+    const asset = assetForBlock(block, assetsById);
 
-  if (block.block_type !== "step" || !block.step || !asset) {
-    return [];
-  }
+    if (block.block_type !== "step" || !block.step || !asset) {
+      return [];
+    }
 
-  const stepNumber = index + 1;
-  const draftTitle = stepDrafts[block.step.id]?.title;
+    const stepNumber = index + 1;
+    const draftTitle = stepDrafts[block.step.id]?.title;
 
-  return [{
-    id: screenshotViewerImageId(block, asset),
-    sourceAssetId: asset.id,
-    src: resolveApiAssetUrl(asset.file_url),
-    alt: assetAltText(asset, stepNumber),
-    title: draftTitle || block.step.title || asset.page_title || asset.file.original_name || `Step ${stepNumber} screenshot`,
-  }];
-});
+    return [
+      {
+        id: screenshotViewerImageId(block, asset),
+        sourceAssetId: asset.id,
+        src: resolveApiAssetUrl(asset.file_url),
+        alt: assetAltText(asset, stepNumber),
+        title:
+          draftTitle ||
+          block.step.title ||
+          asset.page_title ||
+          asset.file.original_name ||
+          `Step ${stepNumber} screenshot`,
+      },
+    ];
+  });
 
 const GuideBlockEditor = ({
   block,
@@ -1545,19 +1778,28 @@ const GuideBlockEditor = ({
   onUploadScreenshot: (block: GuideBlock, file: File) => void;
   onAddHighlight: (block: GuideBlock) => void;
   onRemoveHighlight: (block: GuideBlock, annotationIndex: number) => void;
-  onAddBlock: (blockType: "step" | "header" | "paragraph" | "tip" | "alert" | "divider", afterBlock?: GuideBlock) => void;
+  onAddBlock: (
+    blockType: "step" | "header" | "paragraph" | "tip" | "alert" | "divider",
+    afterBlock?: GuideBlock,
+  ) => void;
   onMoveBlock: (blockId: string, direction: -1 | 1) => void;
   onDeleteBlock: (block: GuideBlock) => void;
   onOpenScreenshot: (imageId: string) => void;
 }) => {
   const step = block.step;
-  const actionLabel = step ? "step" : labelForBlockType(block.block_type).toLowerCase();
+  const actionLabel = step
+    ? "step"
+    : labelForBlockType(block.block_type).toLowerCase();
   const actionBusy = busyAction !== null;
   const uploadBusy = busyAction === `upload-screenshot:${block.id}`;
   const pickerLoading = busyAction === `screenshots:${block.id}`;
   const annotationsBusy = busyAction === `annotations:${block.id}`;
   const annotations = annotationsFromBlock(block);
-  const editableContentBlock = block.block_type === "header" || block.block_type === "paragraph" || block.block_type === "tip" || block.block_type === "alert";
+  const editableContentBlock =
+    block.block_type === "header" ||
+    block.block_type === "paragraph" ||
+    block.block_type === "tip" ||
+    block.block_type === "alert";
 
   return (
     <article className={styles.block}>
@@ -1567,7 +1809,9 @@ const GuideBlockEditor = ({
           <div className={styles.blockType}>{block.block_type}</div>
           {sourceAsset ? (
             <div className={styles.blockMeta}>
-              {sourceAsset.page_title ?? sourceAsset.file.original_name ?? "Source screenshot"}
+              {sourceAsset.page_title ??
+                sourceAsset.file.original_name ??
+                "Source screenshot"}
             </div>
           ) : null}
         </div>
@@ -1608,10 +1852,12 @@ const GuideBlockEditor = ({
               aria-label={`Step title ${blockNumber}`}
               value={draft.title}
               disabled={readOnly || busyAction === `step:${step.id}`}
-              onChange={(event) => onDraftChange(step.id, {
-                ...draft,
-                title: event.target.value,
-              })}
+              onChange={(event) =>
+                onDraftChange(step.id, {
+                  ...draft,
+                  title: event.target.value,
+                })
+              }
             />
           </Label>
           <Label className={styles.field}>
@@ -1621,10 +1867,12 @@ const GuideBlockEditor = ({
               value={draft.body}
               disabled={readOnly || busyAction === `step:${step.id}`}
               rows={4}
-              onChange={(event) => onDraftChange(step.id, {
-                ...draft,
-                body: event.target.value,
-              })}
+              onChange={(event) =>
+                onDraftChange(step.id, {
+                  ...draft,
+                  body: event.target.value,
+                })
+              }
             />
           </Label>
           <Button
@@ -1640,7 +1888,9 @@ const GuideBlockEditor = ({
                 className={styles.mediaButton}
                 type="button"
                 aria-label={`Open screenshot for step ${blockNumber}`}
-                onClick={() => onOpenScreenshot(screenshotViewerImageId(block, sourceAsset))}
+                onClick={() =>
+                  onOpenScreenshot(screenshotViewerImageId(block, sourceAsset))
+                }
               >
                 <span className={styles.annotationFrame}>
                   <img
@@ -1654,8 +1904,12 @@ const GuideBlockEditor = ({
             </div>
           ) : null}
           <div className={styles.mediaActions}>
-            <Label className={`${buttonVariants({ variant: "secondary" })} ${styles.uploadButton}`}>
-              {uploadBusy ? `Uploading screenshot for step ${blockNumber}` : `Upload screenshot for step ${blockNumber}`}
+            <Label
+              className={`${buttonVariants({ variant: "secondary" })} ${styles.uploadButton}`}
+            >
+              {uploadBusy
+                ? `Uploading screenshot for step ${blockNumber}`
+                : `Upload screenshot for step ${blockNumber}`}
               <input
                 aria-label={`Upload screenshot for step ${blockNumber}`}
                 className={styles.fileInput}
@@ -1677,7 +1931,9 @@ const GuideBlockEditor = ({
               disabled={readOnly || actionBusy}
               onClick={() => onOpenScreenshotPicker(block)}
             >
-              {sourceAsset ? `Change screenshot for step ${blockNumber}` : `Attach screenshot for step ${blockNumber}`}
+              {sourceAsset
+                ? `Change screenshot for step ${blockNumber}`
+                : `Attach screenshot for step ${blockNumber}`}
             </Button>
             {sourceAsset ? (
               <Button
@@ -1691,25 +1947,35 @@ const GuideBlockEditor = ({
             {sourceAsset ? (
               <Button
                 variant="secondary"
-                disabled={readOnly || actionBusy || annotationsBusy || annotations.length >= 10}
+                disabled={
+                  readOnly ||
+                  actionBusy ||
+                  annotationsBusy ||
+                  annotations.length >= 10
+                }
                 onClick={() => onAddHighlight(block)}
               >
                 Add highlight for step {blockNumber}
               </Button>
             ) : null}
-            {sourceAsset ? annotations.map((annotation, index) => (
-              <Button
-                variant="secondary"
-                key={annotation.id}
-                disabled={readOnly || actionBusy || annotationsBusy}
-                onClick={() => onRemoveHighlight(block, index)}
-              >
-                Remove highlight {index + 1} from step {blockNumber}
-              </Button>
-            )) : null}
+            {sourceAsset
+              ? annotations.map((annotation, index) => (
+                  <Button
+                    variant="secondary"
+                    key={annotation.id}
+                    disabled={readOnly || actionBusy || annotationsBusy}
+                    onClick={() => onRemoveHighlight(block, index)}
+                  >
+                    Remove highlight {index + 1} from step {blockNumber}
+                  </Button>
+                ))
+              : null}
           </div>
           {screenshotPickerOpen ? (
-            <div className={styles.screenshotPicker} aria-label={`Screenshot choices for step ${blockNumber}`}>
+            <div
+              className={styles.screenshotPicker}
+              aria-label={`Screenshot choices for step ${blockNumber}`}
+            >
               <div className={styles.screenshotPickerHeader}>
                 <span>Choose screenshot</span>
                 <Button
@@ -1734,7 +2000,9 @@ const GuideBlockEditor = ({
                     </Button>
                   </div>
                 ) : pickerLoading ? (
-                  <div className={styles.pickerState} role="status">Loading screenshots...</div>
+                  <div className={styles.pickerState} role="status">
+                    Loading screenshots...
+                  </div>
                 ) : (
                   <div className={styles.empty}>No screenshots available.</div>
                 )
@@ -1744,9 +2012,11 @@ const GuideBlockEditor = ({
                     const displayName = assetDisplayName(asset);
                     const capturedAt = formatCapturedAt(asset.captured_at);
                     const current = asset.id === block.display_capture_asset_id;
-                    const fileName = asset.file.original_name && asset.file.original_name !== displayName
-                      ? asset.file.original_name
-                      : null;
+                    const fileName =
+                      asset.file.original_name &&
+                      asset.file.original_name !== displayName
+                        ? asset.file.original_name
+                        : null;
 
                     return (
                       <button
@@ -1762,12 +2032,24 @@ const GuideBlockEditor = ({
                           alt=""
                           aria-hidden="true"
                         />
-                        <span className={styles.screenshotChoiceTitle}>{displayName}</span>
-                        {fileName ? <span className={styles.screenshotChoiceMeta}>{fileName}</span> : null}
-                        {capturedAt ? (
-                          <span className={styles.screenshotChoiceMeta}>Captured {capturedAt}</span>
+                        <span className={styles.screenshotChoiceTitle}>
+                          {displayName}
+                        </span>
+                        {fileName ? (
+                          <span className={styles.screenshotChoiceMeta}>
+                            {fileName}
+                          </span>
                         ) : null}
-                        {current ? <span className={styles.currentBadge}>Current screenshot</span> : null}
+                        {capturedAt ? (
+                          <span className={styles.screenshotChoiceMeta}>
+                            Captured {capturedAt}
+                          </span>
+                        ) : null}
+                        {current ? (
+                          <span className={styles.currentBadge}>
+                            Current screenshot
+                          </span>
+                        ) : null}
                       </button>
                     );
                   })}
@@ -1780,15 +2062,21 @@ const GuideBlockEditor = ({
         <div className={styles.stepForm}>
           {block.block_type !== "paragraph" ? (
             <Label className={styles.field}>
-              <span>{block.block_type === "header" ? "Header title" : `${block.block_type} title`}</span>
+              <span>
+                {block.block_type === "header"
+                  ? "Header title"
+                  : `${block.block_type} title`}
+              </span>
               <Input
                 aria-label={`${labelForBlockType(block.block_type)} title ${blockNumber}`}
                 value={contentDraft.title}
                 disabled={readOnly || busyAction === `block:${block.id}`}
-                onChange={(event) => onContentDraftChange(block.id, {
-                  ...contentDraft,
-                  title: event.target.value,
-                })}
+                onChange={(event) =>
+                  onContentDraftChange(block.id, {
+                    ...contentDraft,
+                    title: event.target.value,
+                  })
+                }
               />
             </Label>
           ) : null}
@@ -1800,10 +2088,12 @@ const GuideBlockEditor = ({
                 value={contentDraft.body}
                 disabled={readOnly || busyAction === `block:${block.id}`}
                 rows={4}
-                onChange={(event) => onContentDraftChange(block.id, {
-                  ...contentDraft,
-                  body: event.target.value,
-                })}
+                onChange={(event) =>
+                  onContentDraftChange(block.id, {
+                    ...contentDraft,
+                    body: event.target.value,
+                  })
+                }
               />
             </Label>
           ) : null}
@@ -1889,25 +2179,60 @@ const BlockInsertControls = ({
 }: {
   blockNumber: number;
   disabled: boolean;
-  onAdd: (blockType: "step" | "header" | "paragraph" | "tip" | "alert" | "divider") => void;
+  onAdd: (
+    blockType: "step" | "header" | "paragraph" | "tip" | "alert" | "divider",
+  ) => void;
 }) => (
-  <div className={styles.insertControls} aria-label={`Add block after block ${blockNumber}`}>
-    <Button variant="secondary" size="sm" disabled={disabled} onClick={() => onAdd("step")}>
+  <div
+    className={styles.insertControls}
+    aria-label={`Add block after block ${blockNumber}`}
+  >
+    <Button
+      variant="secondary"
+      size="sm"
+      disabled={disabled}
+      onClick={() => onAdd("step")}
+    >
       Add step after block {blockNumber}
     </Button>
-    <Button variant="secondary" size="sm" disabled={disabled} onClick={() => onAdd("header")}>
+    <Button
+      variant="secondary"
+      size="sm"
+      disabled={disabled}
+      onClick={() => onAdd("header")}
+    >
       Add header after block {blockNumber}
     </Button>
-    <Button variant="secondary" size="sm" disabled={disabled} onClick={() => onAdd("paragraph")}>
+    <Button
+      variant="secondary"
+      size="sm"
+      disabled={disabled}
+      onClick={() => onAdd("paragraph")}
+    >
       Add paragraph after block {blockNumber}
     </Button>
-    <Button variant="secondary" size="sm" disabled={disabled} onClick={() => onAdd("tip")}>
+    <Button
+      variant="secondary"
+      size="sm"
+      disabled={disabled}
+      onClick={() => onAdd("tip")}
+    >
       Add tip after block {blockNumber}
     </Button>
-    <Button variant="secondary" size="sm" disabled={disabled} onClick={() => onAdd("alert")}>
+    <Button
+      variant="secondary"
+      size="sm"
+      disabled={disabled}
+      onClick={() => onAdd("alert")}
+    >
       Add alert after block {blockNumber}
     </Button>
-    <Button variant="secondary" size="sm" disabled={disabled} onClick={() => onAdd("divider")}>
+    <Button
+      variant="secondary"
+      size="sm"
+      disabled={disabled}
+      onClick={() => onAdd("divider")}
+    >
       Add divider after block {blockNumber}
     </Button>
   </div>

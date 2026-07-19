@@ -44,31 +44,60 @@ const setupGuardedRouteTypes = new Set<PortalRoute["type"]>([
   "interactive_demo_detail",
 ]);
 
-const shouldCheckSetup = (route: PortalRoute) => setupGuardedRouteTypes.has(route.type);
-const shouldCheckSetupInBackground = (route: PortalRoute) => (
-  route.type === "login" || shouldCheckSetup(route)
-);
+const shouldCheckSetup = (route: PortalRoute) =>
+  setupGuardedRouteTypes.has(route.type);
+const shouldCheckSetupInBackground = (route: PortalRoute) =>
+  route.type === "login" || shouldCheckSetup(route);
 
-const LegacyProjectRedirect = ({ projectId, suffix = "", children }: { projectId: string; suffix?: string; children?: (project: import("@repo/types/project").Project) => React.ReactNode }) => {
+const LegacyProjectRedirect = ({
+  projectId,
+  suffix = "",
+  children,
+}: {
+  projectId: string;
+  suffix?: string;
+  children?: (
+    project: import("@repo/types/project").Project,
+  ) => React.ReactNode;
+}) => {
   const [failed, setFailed] = useState(false);
-  const [project, setProject] = useState<import("@repo/types/project").Project | null>(null);
+  const [project, setProject] = useState<
+    import("@repo/types/project").Project | null
+  >(null);
   useEffect(() => {
     let active = true;
-    getProject(projectId).then(({ project }) => {
-      if (!active) return;
-      const path = `${projectVersionWorkspaceUrl(project.id, project.default_project_version.slug)}${suffix}${window.location.search}${window.location.hash}`;
-      window.history.replaceState({}, "", path);
-      setProject(project);
-    }).catch(() => { if (active) setFailed(true); });
-    return () => { active = false; };
+    getProject(projectId)
+      .then(({ project }) => {
+        if (!active) return;
+        const path = `${projectVersionWorkspaceUrl(project.id, project.default_project_version.slug)}${suffix}${window.location.search}${window.location.hash}`;
+        window.history.replaceState({}, "", path);
+        setProject(project);
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
+    return () => {
+      active = false;
+    };
   }, [projectId, suffix]);
-  if (project) return children ? children(project) : (
-    <ProjectVersionRouteBoundary
-      projectId={projectId}
-      versionSlug={project.default_project_version.slug}
-    />
+  if (project)
+    return children ? (
+      children(project)
+    ) : (
+      <ProjectVersionRouteBoundary
+        projectId={projectId}
+        versionSlug={project.default_project_version.slug}
+      />
+    );
+  return (
+    <div className={styles.page}>
+      <main className={styles.main}>
+        {failed
+          ? "Project was not found."
+          : "Opening the Default Project Version..."}
+      </main>
+    </div>
   );
-  return <div className={styles.page}><main className={styles.main}>{failed ? "Project was not found." : "Opening the Default Project Version..."}</main></div>;
 };
 
 export default function App() {
@@ -77,7 +106,7 @@ export default function App() {
   const setupCheckRequired = shouldCheckSetup(route);
   const backgroundSetupCheckRequired = shouldCheckSetupInBackground(route);
   const [setupGateState, setSetupGateState] = useState<SetupGateState>(
-    setupCheckRequired ? "checking" : "ready"
+    setupCheckRequired ? "checking" : "ready",
   );
 
   useEffect(() => {
@@ -113,60 +142,50 @@ export default function App() {
   }, [backgroundSetupCheckRequired, currentPath, route.type]);
 
   if (setupGateState === "setup_required") {
-    return (
-      <FirstRunSetupPage />
-    );
+    return <FirstRunSetupPage />;
   }
 
   if (route.type === "login") {
     return (
       <LoginPage
-        nextPath={new URLSearchParams(window.location.search).get("next") ?? "/projects"}
+        nextPath={
+          new URLSearchParams(window.location.search).get("next") ?? "/projects"
+        }
       />
     );
   }
 
   if (route.type === "setup") {
-    return (
-      <FirstRunSetupPage />
-    );
+    return <FirstRunSetupPage />;
   }
 
   if (route.type === "public_guide_reader") {
-    return (
-      <PublicGuideReaderPage slug={route.slug} />
-    );
+    return <PublicGuideReaderPage slug={route.slug} />;
   }
 
   if (route.type === "public_guide_embed") {
-    return (
-      <PublicGuideReaderPage slug={route.slug} mode="embed" />
-    );
+    return <PublicGuideReaderPage slug={route.slug} mode="embed" />;
   }
 
   if (route.type === "public_interactive_demo_reader") {
-    return (
-      <PublicInteractiveDemoViewerPage slug={route.slug} />
-    );
+    return <PublicInteractiveDemoViewerPage slug={route.slug} />;
   }
 
   if (route.type === "public_interactive_demo_embed") {
-    return (
-      <PublicInteractiveDemoViewerPage slug={route.slug} mode="embed" />
-    );
+    return <PublicInteractiveDemoViewerPage slug={route.slug} mode="embed" />;
   }
 
   if (route.type === "organization_invite_accept") {
-    return (
-      <InviteAcceptPage token={route.token} />
-    );
+    return <InviteAcceptPage token={route.token} />;
   }
 
   if (setupGateState === "checking") {
     return (
       <div className={styles.page}>
         <header className={styles.topbar}>
-          <a className={styles.brand} href="/projects"><OssieBrand /></a>
+          <a className={styles.brand} href="/projects">
+            <OssieBrand />
+          </a>
         </header>
         <main className={styles.main}>
           <Card className={styles.emptyState}>
@@ -186,12 +205,16 @@ export default function App() {
     return (
       <div className={styles.page}>
         <header className={styles.topbar}>
-          <a className={styles.brand} href="/projects"><OssieBrand /></a>
+          <a className={styles.brand} href="/projects">
+            <OssieBrand />
+          </a>
         </header>
         <main className={styles.main}>
           <Card className={styles.emptyState}>
             <CardHeader>
-              <CardTitle className={styles.title}>Setup status unavailable</CardTitle>
+              <CardTitle className={styles.title}>
+                Setup status unavailable
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p>Could not load instance setup status.</p>
@@ -203,15 +226,11 @@ export default function App() {
   }
 
   if (route.type === "project_list") {
-    return (
-      <ProjectListPage currentPath={currentPath} />
-    );
+    return <ProjectListPage currentPath={currentPath} />;
   }
 
   if (route.type === "organization_members") {
-    return (
-      <OrganizationMembersPage currentPath={currentPath} />
-    );
+    return <OrganizationMembersPage currentPath={currentPath} />;
   }
 
   if (route.type === "organization_compliance") {
@@ -223,7 +242,12 @@ export default function App() {
   }
 
   if (route.type === "project_version_workspace") {
-    return <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug} />;
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+      />
+    );
   }
 
   if (route.type === "project_settings") {
@@ -236,24 +260,60 @@ export default function App() {
   }
 
   if (route.type === "project_compliance") {
-    return <ComplianceTimelinePage projectId={route.projectId} currentPath={currentPath} />;
+    return (
+      <ComplianceTimelinePage
+        projectId={route.projectId}
+        currentPath={currentPath}
+      />
+    );
   }
 
   if (route.type === "project_activity") {
-    return <ProjectActivityTimelinePage projectId={route.projectId} currentPath={currentPath} />;
+    return (
+      <ProjectActivityTimelinePage
+        projectId={route.projectId}
+        currentPath={currentPath}
+      />
+    );
   }
 
   if (route.type === "capture_session_detail") {
-    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix={`/capture-sessions/${encodeURIComponent(route.captureSessionId)}`}>{(project) => <CaptureSessionDetailPage projectId={route.projectId} versionSlug={project.default_project_version.slug} captureSessionId={route.captureSessionId} currentPath={currentPath} canWrite={project.status === "active" && project.access.role !== "viewer"} />}</LegacyProjectRedirect>;
+    if (!route.versionSlug)
+      return (
+        <LegacyProjectRedirect
+          projectId={route.projectId}
+          suffix={`/capture-sessions/${encodeURIComponent(route.captureSessionId)}`}
+        >
+          {(project) => (
+            <CaptureSessionDetailPage
+              projectId={route.projectId}
+              versionSlug={project.default_project_version.slug}
+              captureSessionId={route.captureSessionId}
+              currentPath={currentPath}
+              canWrite={
+                project.status === "active" && project.access.role !== "viewer"
+              }
+            />
+          )}
+        </LegacyProjectRedirect>
+      );
     return (
-      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
-        {({ project }) => (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+      >
+        {({ project, selected, versions }) => (
           <CaptureSessionDetailPage
             projectId={route.projectId}
             captureSessionId={route.captureSessionId}
             versionSlug={route.versionSlug}
+            isDefaultVersion={selected.is_default}
+            projectVersions={versions}
             currentPath={currentPath}
-            canWrite={project.status === "active" && project.access.role !== "viewer"}
+            canWrite={
+              project.status === "active" && project.access.role !== "viewer"
+            }
           />
         )}
       </ProjectVersionRouteBoundary>
@@ -261,15 +321,40 @@ export default function App() {
   }
 
   if (route.type === "project_capture_session_list") {
-    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix="/capture-sessions">{(project) => <ProjectCaptureSessionListPage projectId={route.projectId} versionSlug={project.default_project_version.slug} currentPath={currentPath} canWrite={project.status === "active" && project.access.role !== "viewer"} />}</LegacyProjectRedirect>;
+    if (!route.versionSlug)
+      return (
+        <LegacyProjectRedirect
+          projectId={route.projectId}
+          suffix="/capture-sessions"
+        >
+          {(project) => (
+            <ProjectCaptureSessionListPage
+              projectId={route.projectId}
+              projectVersionId={project.default_project_version.id}
+              versionSlug={project.default_project_version.slug}
+              currentPath={currentPath}
+              canWrite={
+                project.status === "active" && project.access.role !== "viewer"
+              }
+            />
+          )}
+        </LegacyProjectRedirect>
+      );
     return (
-      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
-        {({ project }) => (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+      >
+        {({ project, selected }) => (
           <ProjectCaptureSessionListPage
             projectId={route.projectId}
+            projectVersionId={selected.id}
             versionSlug={route.versionSlug}
             currentPath={currentPath}
-            canWrite={project.status === "active" && project.access.role !== "viewer"}
+            canWrite={
+              project.status === "active" && project.access.role !== "viewer"
+            }
           />
         )}
       </ProjectVersionRouteBoundary>
@@ -277,35 +362,95 @@ export default function App() {
   }
 
   if (route.type === "guide_detail") {
-    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix={`/guides/${encodeURIComponent(route.guideId)}`}>{(project) => project.access.role !== "viewer" ? <GuideEditorPage projectId={route.projectId} versionSlug={project.default_project_version.slug} guideId={route.guideId} currentPath={currentPath} /> : <GuidePreviewPage projectId={route.projectId} versionSlug={project.default_project_version.slug} guideId={route.guideId} currentPath={currentPath} canWrite={false} />}</LegacyProjectRedirect>;
+    if (!route.versionSlug)
+      return (
+        <LegacyProjectRedirect
+          projectId={route.projectId}
+          suffix={`/guides/${encodeURIComponent(route.guideId)}`}
+        >
+          {(project) =>
+            project.access.role !== "viewer" ? (
+              <GuideEditorPage
+                projectId={route.projectId}
+                projectVersionId={project.default_project_version.id}
+                versionSlug={project.default_project_version.slug}
+                guideId={route.guideId}
+                currentPath={currentPath}
+              />
+            ) : (
+              <GuidePreviewPage
+                projectId={route.projectId}
+                versionSlug={project.default_project_version.slug}
+                guideId={route.guideId}
+                currentPath={currentPath}
+                canWrite={false}
+              />
+            )
+          }
+        </LegacyProjectRedirect>
+      );
     return (
-      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
-        {({ project }) => project.status === "active" && project.access.role !== "viewer" ? (
-          <GuideEditorPage projectId={route.projectId} versionSlug={route.versionSlug} guideId={route.guideId} currentPath={currentPath} />
-        ) : (
-          <GuidePreviewPage
-            projectId={route.projectId}
-            guideId={route.guideId}
-            versionSlug={route.versionSlug}
-            currentPath={currentPath}
-            canWrite={false}
-          />
-        )}
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+      >
+        {({ project, selected }) =>
+          project.status === "active" && project.access.role !== "viewer" ? (
+            <GuideEditorPage
+              projectId={route.projectId}
+              projectVersionId={selected.id}
+              versionSlug={route.versionSlug}
+              guideId={route.guideId}
+              currentPath={currentPath}
+            />
+          ) : (
+            <GuidePreviewPage
+              projectId={route.projectId}
+              guideId={route.guideId}
+              versionSlug={route.versionSlug}
+              currentPath={currentPath}
+              canWrite={false}
+            />
+          )
+        }
       </ProjectVersionRouteBoundary>
     );
   }
 
   if (route.type === "guide_preview") {
-    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix={`/guides/${encodeURIComponent(route.guideId)}/preview`}>{(project) => <GuidePreviewPage projectId={route.projectId} versionSlug={project.default_project_version.slug} guideId={route.guideId} currentPath={currentPath} canWrite={project.status === "active" && project.access.role !== "viewer"} />}</LegacyProjectRedirect>;
+    if (!route.versionSlug)
+      return (
+        <LegacyProjectRedirect
+          projectId={route.projectId}
+          suffix={`/guides/${encodeURIComponent(route.guideId)}/preview`}
+        >
+          {(project) => (
+            <GuidePreviewPage
+              projectId={route.projectId}
+              versionSlug={project.default_project_version.slug}
+              guideId={route.guideId}
+              currentPath={currentPath}
+              canWrite={
+                project.status === "active" && project.access.role !== "viewer"
+              }
+            />
+          )}
+        </LegacyProjectRedirect>
+      );
     return (
-      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+      >
         {({ project }) => (
           <GuidePreviewPage
             projectId={route.projectId}
             guideId={route.guideId}
             versionSlug={route.versionSlug}
             currentPath={currentPath}
-            canWrite={project.status === "active" && project.access.role !== "viewer"}
+            canWrite={
+              project.status === "active" && project.access.role !== "viewer"
+            }
           />
         )}
       </ProjectVersionRouteBoundary>
@@ -313,36 +458,104 @@ export default function App() {
   }
 
   if (route.type === "project_guide_list") {
-    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix="/guides">{() => <ProjectGuideListPage projectId={route.projectId} currentPath={currentPath} />}</LegacyProjectRedirect>;
+    if (!route.versionSlug)
+      return (
+        <LegacyProjectRedirect projectId={route.projectId} suffix="/guides">
+          {() => (
+            <ProjectGuideListPage
+              projectId={route.projectId}
+              currentPath={currentPath}
+            />
+          )}
+        </LegacyProjectRedirect>
+      );
     return (
-      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
-        {() => <ProjectGuideListPage projectId={route.projectId} currentPath={currentPath}
-          versionSlug={route.versionSlug} />}
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+      >
+        {() => (
+          <ProjectGuideListPage
+            projectId={route.projectId}
+            currentPath={currentPath}
+            versionSlug={route.versionSlug}
+          />
+        )}
       </ProjectVersionRouteBoundary>
     );
   }
 
   if (route.type === "project_interactive_demo_list") {
-    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix="/interactive-demos">{(project) => <ProjectInteractiveDemoListPage projectId={route.projectId} currentPath={currentPath} canWrite={project.status === "active" && project.access.role !== "viewer"} />}</LegacyProjectRedirect>;
+    if (!route.versionSlug)
+      return (
+        <LegacyProjectRedirect
+          projectId={route.projectId}
+          suffix="/interactive-demos"
+        >
+          {(project) => (
+            <ProjectInteractiveDemoListPage
+              projectId={route.projectId}
+              currentPath={currentPath}
+              canWrite={
+                project.status === "active" && project.access.role !== "viewer"
+              }
+            />
+          )}
+        </LegacyProjectRedirect>
+      );
     return (
-      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
-        {({ project }) => <ProjectInteractiveDemoListPage projectId={route.projectId} currentPath={currentPath}
-          versionSlug={route.versionSlug} canWrite={project.status === "active" && project.access.role !== "viewer"} />}
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+      >
+        {({ project }) => (
+          <ProjectInteractiveDemoListPage
+            projectId={route.projectId}
+            currentPath={currentPath}
+            versionSlug={route.versionSlug}
+            canWrite={
+              project.status === "active" && project.access.role !== "viewer"
+            }
+          />
+        )}
       </ProjectVersionRouteBoundary>
     );
   }
 
   if (route.type === "interactive_demo_detail") {
-    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix={`/interactive-demos/${encodeURIComponent(route.interactiveDemoId)}`}>{(project) => <InteractiveDemoEditorPage projectId={route.projectId} versionSlug={project.default_project_version.slug} interactiveDemoId={route.interactiveDemoId} currentPath={currentPath} canWrite={project.status === "active" && project.access.role !== "viewer"} />}</LegacyProjectRedirect>;
+    if (!route.versionSlug)
+      return (
+        <LegacyProjectRedirect
+          projectId={route.projectId}
+          suffix={`/interactive-demos/${encodeURIComponent(route.interactiveDemoId)}`}
+        >
+          {(project) => (
+            <InteractiveDemoEditorPage
+              projectId={route.projectId}
+              versionSlug={project.default_project_version.slug}
+              interactiveDemoId={route.interactiveDemoId}
+              currentPath={currentPath}
+              canWrite={
+                project.status === "active" && project.access.role !== "viewer"
+              }
+            />
+          )}
+        </LegacyProjectRedirect>
+      );
     return (
-      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+      >
         {({ project }) => (
           <InteractiveDemoEditorPage
             projectId={route.projectId}
             interactiveDemoId={route.interactiveDemoId}
             versionSlug={route.versionSlug}
             currentPath={currentPath}
-            canWrite={project.status === "active" && project.access.role !== "viewer"}
+            canWrite={
+              project.status === "active" && project.access.role !== "viewer"
+            }
           />
         )}
       </ProjectVersionRouteBoundary>
@@ -352,7 +565,9 @@ export default function App() {
   return (
     <div className={styles.page}>
       <header className={styles.topbar}>
-        <a className={styles.brand} href="/projects"><OssieBrand /></a>
+        <a className={styles.brand} href="/projects">
+          <OssieBrand />
+        </a>
       </header>
       <main className={styles.main}>
         <Card className={styles.emptyState}>
@@ -360,7 +575,11 @@ export default function App() {
             <CardTitle className={styles.title}>Ossie portal</CardTitle>
           </CardHeader>
           <CardContent>
-          <p>Open the project list, a project workspace, capture session list, capture session, guide list, guide link, or interactive demo link to continue.</p>
+            <p>
+              Open the project list, a project workspace, capture session list,
+              capture session, guide list, guide link, or interactive demo link
+              to continue.
+            </p>
           </CardContent>
         </Card>
       </main>

@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import type { ProjectVersion } from "@repo/types/project-version";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
@@ -13,6 +14,7 @@ import {
   createInteractiveDemoFromCaptureSession,
   getCaptureSessionDetail,
   reorderCaptureSessionEvents,
+  reassignCaptureSessionProjectVersion,
   resolveApiAssetUrl,
   updateCaptureSessionEvent,
   uploadCaptureSessionAsset,
@@ -59,7 +61,10 @@ type EventEditDraft = {
 type CaptureSessionDetailPageProps = {
   projectId: string;
   captureSessionId: string;
-  loadDetail?: (projectId: string, captureSessionId: string) => Promise<CaptureSessionDetail>;
+  loadDetail?: (
+    projectId: string,
+    captureSessionId: string,
+  ) => Promise<CaptureSessionDetail>;
   resolveAssetUrl?: (fileUrl: string) => string;
   createGuide?: (
     projectId: string,
@@ -67,7 +72,7 @@ type CaptureSessionDetailPageProps = {
     data: {
       title: string;
       description?: string | null;
-    }
+    },
   ) => Promise<GuideDetail>;
   createInteractiveDemo?: (
     projectId: string,
@@ -75,7 +80,7 @@ type CaptureSessionDetailPageProps = {
     data: {
       title?: string;
       description?: string | null;
-    }
+    },
   ) => Promise<CreateInteractiveDemoFromCaptureResponse>;
   uploadAsset?: (
     projectId: string,
@@ -85,7 +90,7 @@ type CaptureSessionDetailPageProps = {
       page_url?: string | null;
       page_title?: string | null;
       captured_at?: string;
-    }
+    },
   ) => Promise<UploadCaptureAssetResponse>;
   createCaptureEvent?: (
     projectId: string,
@@ -99,18 +104,18 @@ type CaptureSessionDetailPageProps = {
       page_title?: string | null;
       target_label?: string | null;
       note?: string | null;
-    }
+    },
   ) => Promise<CreateCaptureEventResponse>;
   reorderEvents?: (
     projectId: string,
     captureSessionId: string,
-    input: ReorderCaptureEventsInput
+    input: ReorderCaptureEventsInput,
   ) => Promise<ReorderCaptureEventsResponse>;
   updateEvent?: (
     projectId: string,
     captureSessionId: string,
     eventId: string,
-    input: UpdateCaptureEventInput
+    input: UpdateCaptureEventInput,
   ) => Promise<UpdateCaptureEventResponse>;
   redirectTo?: (path: string) => void;
   currentPath?: string;
@@ -118,6 +123,9 @@ type CaptureSessionDetailPageProps = {
   navigate?: (path: string) => void;
   canWrite?: boolean;
   versionSlug?: string;
+  isDefaultVersion?: boolean;
+  projectVersions?: ProjectVersion[];
+  reassignProjectVersion?: typeof reassignCaptureSessionProjectVersion;
 };
 
 const formatDateTime = (value: string | null) => {
@@ -131,6 +139,8 @@ const formatDateTime = (value: string | null) => {
   }).format(new Date(value));
 };
 
+const browserRedirect = (path: string) => window.location.assign(path);
+
 const formatBytes = (value: number) => {
   if (value < 1024) {
     return `${value} B`;
@@ -143,26 +153,30 @@ const formatBytes = (value: number) => {
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
 };
 
-const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
+const plural = (count: number, noun: string) =>
+  `${count} ${noun}${count === 1 ? "" : "s"}`;
 
-const eventTitle = (event: CaptureEvent) => (
-  event.note
-  ?? event.target_label
-  ?? event.page_title
-  ?? event.target_text
-  ?? event.event_type
-);
+const eventTitle = (event: CaptureEvent) =>
+  event.note ??
+  event.target_label ??
+  event.page_title ??
+  event.target_text ??
+  event.event_type;
 
-const assetTitle = (asset: CaptureAsset) => (
-  asset.file.original_name
-  ?? asset.page_title
-  ?? asset.page_url
-  ?? asset.asset_type
-);
+const assetTitle = (asset: CaptureAsset) =>
+  asset.file.original_name ??
+  asset.page_title ??
+  asset.page_url ??
+  asset.asset_type;
 
-const assetAltText = (asset: CaptureAsset) => `${asset.page_title ?? asset.file.original_name ?? "Capture"} screenshot`;
+const assetAltText = (asset: CaptureAsset) =>
+  `${asset.page_title ?? asset.file.original_name ?? "Capture"} screenshot`;
 
-const allowedScreenshotMimeTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+const allowedScreenshotMimeTypes = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
 
 const optionalUploadField = (value: string) => {
   const trimmed = value.trim();
@@ -194,9 +208,11 @@ const inputFromDraft = (draft: EventEditDraft): UpdateCaptureEventInput => ({
   note: optionalEventField(draft.note),
 });
 
-const nextEventIndex = (events: CaptureEvent[]) => (
-  events.reduce((nextIndex, event) => Math.max(nextIndex, event.event_index + 1), 1)
-);
+const nextEventIndex = (events: CaptureEvent[]) =>
+  events.reduce(
+    (nextIndex, event) => Math.max(nextIndex, event.event_index + 1),
+    1,
+  );
 
 const uploadErrorMessage = (error: unknown) => {
   if (error instanceof ApiClientError) {
@@ -208,7 +224,10 @@ const uploadErrorMessage = (error: unknown) => {
       return "Capture session was not found.";
     }
 
-    if (error.type === "invalid_capture_asset_upload" || error.type === "upload_file_required") {
+    if (
+      error.type === "invalid_capture_asset_upload" ||
+      error.type === "upload_file_required"
+    ) {
       return "Screenshot input is invalid.";
     }
 
@@ -221,7 +240,10 @@ const uploadErrorMessage = (error: unknown) => {
 };
 
 const eventCreationAfterUploadErrorMessage = (error: unknown) => {
-  if (error instanceof ApiClientError && error.type === "capture_event_index_conflict") {
+  if (
+    error instanceof ApiClientError &&
+    error.type === "capture_event_index_conflict"
+  ) {
     return "Screenshot uploaded, but another event used that order. Reload and try again.";
   }
 
@@ -325,12 +347,15 @@ export const CaptureSessionDetailPage = ({
   createCaptureEvent: createCaptureEventAction = createCaptureSessionEvent,
   reorderEvents = reorderCaptureSessionEvents,
   updateEvent = updateCaptureSessionEvent,
-  redirectTo = (path) => window.location.assign(path),
+  redirectTo = browserRedirect,
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
   canWrite = true,
   versionSlug,
+  isDefaultVersion = true,
+  projectVersions = [],
+  reassignProjectVersion = reassignCaptureSessionProjectVersion,
 }: CaptureSessionDetailPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
@@ -342,6 +367,14 @@ export const CaptureSessionDetailPage = ({
     loadDetail(projectId, captureSessionId)
       .then((detail) => {
         if (active) {
+          if (
+            versionSlug &&
+            detail.capture_session.project_version.slug !== versionSlug
+          ) {
+            redirectTo(
+              `/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(detail.capture_session.project_version.slug)}/capture-sessions/${encodeURIComponent(captureSessionId)}`,
+            );
+          }
           setState({ status: "loaded", detail });
         }
       })
@@ -354,11 +387,23 @@ export const CaptureSessionDetailPage = ({
     return () => {
       active = false;
     };
-  }, [projectId, captureSessionId, loadDetail, reloadKey]);
+  }, [
+    projectId,
+    captureSessionId,
+    loadDetail,
+    reloadKey,
+    versionSlug,
+    redirectTo,
+  ]);
 
   if (state.status === "loading") {
     return (
-      <PortalShell projectId={projectId} captureSessionId={captureSessionId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        captureSessionId={captureSessionId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Loading capture session...</div>
       </PortalShell>
     );
@@ -366,10 +411,17 @@ export const CaptureSessionDetailPage = ({
 
   if (state.status === "unauthenticated") {
     return (
-      <PortalShell projectId={projectId} captureSessionId={captureSessionId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        captureSessionId={captureSessionId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Sign in to view this capture session.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>Sign in</a>
+          <a className={styles.stateLink} href={signInUrl(currentPath)}>
+            Sign in
+          </a>
         </div>
       </PortalShell>
     );
@@ -377,7 +429,12 @@ export const CaptureSessionDetailPage = ({
 
   if (state.status === "not_found") {
     return (
-      <PortalShell projectId={projectId} captureSessionId={captureSessionId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        captureSessionId={captureSessionId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Capture session was not found.</div>
       </PortalShell>
     );
@@ -385,10 +442,20 @@ export const CaptureSessionDetailPage = ({
 
   if (state.status === "error") {
     return (
-      <PortalShell projectId={projectId} captureSessionId={captureSessionId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        captureSessionId={captureSessionId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Could not load capture session.</div>
-          <Button variant="secondary" size="sm" type="button" onClick={() => setReloadKey((key) => key + 1)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            onClick={() => setReloadKey((key) => key + 1)}
+          >
             Retry
           </Button>
         </div>
@@ -414,6 +481,9 @@ export const CaptureSessionDetailPage = ({
       navigate={navigate}
       canWrite={canWrite}
       versionSlug={versionSlug}
+      isDefaultVersion={isDefaultVersion}
+      projectVersions={projectVersions}
+      reassignProjectVersion={reassignProjectVersion}
     />
   );
 };
@@ -432,7 +502,11 @@ const PortalShell = ({
   navigate?: (path: string) => void;
 }) => (
   <div className={styles.page}>
-    <PortalTopbar context={`${projectId} / ${captureSessionId}`} performLogout={performLogout} navigate={navigate} />
+    <PortalTopbar
+      context={`${projectId} / ${captureSessionId}`}
+      performLogout={performLogout}
+      navigate={navigate}
+    />
     <main className={styles.main}>{children}</main>
   </div>
 );
@@ -454,15 +528,22 @@ const CaptureSessionDetailView = ({
   navigate,
   canWrite,
   versionSlug,
+  isDefaultVersion,
+  projectVersions,
+  reassignProjectVersion,
 }: {
   detail: CaptureSessionDetail;
   projectId: string;
   captureSessionId: string;
   resolveAssetUrl: (fileUrl: string) => string;
   createGuide: NonNullable<CaptureSessionDetailPageProps["createGuide"]>;
-  createInteractiveDemo: NonNullable<CaptureSessionDetailPageProps["createInteractiveDemo"]>;
+  createInteractiveDemo: NonNullable<
+    CaptureSessionDetailPageProps["createInteractiveDemo"]
+  >;
   uploadAsset: NonNullable<CaptureSessionDetailPageProps["uploadAsset"]>;
-  createCaptureEvent: NonNullable<CaptureSessionDetailPageProps["createCaptureEvent"]>;
+  createCaptureEvent: NonNullable<
+    CaptureSessionDetailPageProps["createCaptureEvent"]
+  >;
   reorderEvents: NonNullable<CaptureSessionDetailPageProps["reorderEvents"]>;
   updateEvent: NonNullable<CaptureSessionDetailPageProps["updateEvent"]>;
   reloadDetail: () => void;
@@ -471,14 +552,31 @@ const CaptureSessionDetailView = ({
   navigate?: (path: string) => void;
   canWrite: boolean;
   versionSlug?: string;
+  isDefaultVersion: boolean;
+  projectVersions: ProjectVersion[];
+  reassignProjectVersion: typeof reassignCaptureSessionProjectVersion;
 }) => {
-  const [createState, setCreateState] = useState<"idle" | "creating" | "error">("idle");
-  const [createDemoState, setCreateDemoState] = useState<"idle" | "creating" | "error">("idle");
+  const [createState, setCreateState] = useState<"idle" | "creating" | "error">(
+    "idle",
+  );
+  const [createDemoState, setCreateDemoState] = useState<
+    "idle" | "creating" | "error"
+  >("idle");
   const [uploadState, setUploadState] = useState<"idle" | "uploading">("idle");
-  const [reorderState, setReorderState] = useState<"idle" | "reordering">("idle");
-  const [eventEditState, setEventEditState] = useState<"idle" | "saving">("idle");
+  const [reorderState, setReorderState] = useState<"idle" | "reordering">(
+    "idle",
+  );
+  const [reassignState, setReassignState] = useState<
+    "idle" | "saving" | "error"
+  >("idle");
+  const [reassignTarget, setReassignTarget] = useState("");
+  const [eventEditState, setEventEditState] = useState<"idle" | "saving">(
+    "idle",
+  );
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
-  const [eventEditDraft, setEventEditDraft] = useState<EventEditDraft | null>(null);
+  const [eventEditDraft, setEventEditDraft] = useState<EventEditDraft | null>(
+    null,
+  );
   const [eventEditError, setEventEditError] = useState<string | null>(null);
   const [reorderError, setReorderError] = useState<string | null>(null);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
@@ -487,21 +585,27 @@ const CaptureSessionDetailView = ({
   const [uploadPageUrl, setUploadPageUrl] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const uploadFileInputRef = useRef<HTMLInputElement | null>(null);
-  const assetById = useMemo(() => new Map(
-    detail.capture_assets.map((asset) => [asset.id, asset])
-  ), [detail.capture_assets]);
+  const assetById = useMemo(
+    () => new Map(detail.capture_assets.map((asset) => [asset.id, asset])),
+    [detail.capture_assets],
+  );
 
   const session = detail.capture_session;
   const guideTitle = session.name.trim();
   const hasCaptureEvents = detail.capture_events.length > 0;
-  const canCreateGuide = guideTitle.length > 0 && hasCaptureEvents && createState !== "creating";
-  const canCreateInteractiveDemo = guideTitle.length > 0 && hasCaptureEvents && createDemoState !== "creating";
+  const canCreateGuide =
+    guideTitle.length > 0 && hasCaptureEvents && createState !== "creating";
+  const canCreateInteractiveDemo =
+    guideTitle.length > 0 && hasCaptureEvents && createDemoState !== "creating";
   const missingTitleMessageId = "capture-session-artifact-title-message";
   const emptyCaptureMessageId = "capture-session-artifact-action-message";
-  const artifactActionDescription = [
-    guideTitle.length === 0 ? missingTitleMessageId : null,
-    !hasCaptureEvents ? emptyCaptureMessageId : null,
-  ].filter(Boolean).join(" ") || undefined;
+  const artifactActionDescription =
+    [
+      guideTitle.length === 0 ? missingTitleMessageId : null,
+      !hasCaptureEvents ? emptyCaptureMessageId : null,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
   const canUploadScreenshot = canWrite && session.source_type === "manual";
   const isUploading = uploadState === "uploading";
   const uploadButtonText = isUploading
@@ -509,14 +613,26 @@ const CaptureSessionDetailView = ({
     : uploadFiles.length > 1
       ? "Upload Screenshots"
       : "Upload Screenshot";
-  const canReorderEvents = canWrite && session.source_type === "manual" && detail.capture_events.length > 1;
+  const canReorderEvents =
+    canWrite &&
+    session.source_type === "manual" &&
+    detail.capture_events.length > 1;
   const isReordering = reorderState === "reordering";
-  const canEditEvents = (
-    canWrite
-    && session.source_type === "manual"
-    && session.status !== "archived"
-    && session.status !== "canceled"
+  const canReassignVersion =
+    canWrite &&
+    session.status === "draft" &&
+    session.started_at === null &&
+    detail.capture_events.length === 0 &&
+    detail.capture_assets.length === 0;
+  const versionTargets = projectVersions.filter(
+    (version) =>
+      version.status === "active" && version.id !== session.project_version_id,
   );
+  const canEditEvents =
+    canWrite &&
+    session.source_type === "manual" &&
+    session.status !== "archived" &&
+    session.status !== "canceled";
   const isSavingEvent = eventEditState === "saving";
 
   const handleCreateGuide = async () => {
@@ -531,7 +647,9 @@ const CaptureSessionDetailView = ({
         title: guideTitle,
         description: session.description ?? null,
       });
-      redirectTo(`/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideDetail.guide.id)}`);
+      redirectTo(
+        `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideDetail.guide.id)}`,
+      );
     } catch {
       setCreateState("error");
     }
@@ -545,10 +663,14 @@ const CaptureSessionDetailView = ({
     setCreateDemoState("creating");
 
     try {
-      const response = await createInteractiveDemo(projectId, captureSessionId, {
-        title: guideTitle,
-        description: session.description ?? null,
-      });
+      const response = await createInteractiveDemo(
+        projectId,
+        captureSessionId,
+        {
+          title: guideTitle,
+          description: session.description ?? null,
+        },
+      );
       redirectTo(response.redirect_path);
     } catch {
       setCreateDemoState("error");
@@ -567,11 +689,13 @@ const CaptureSessionDetailView = ({
 
   const updateUploadFiles = (files: File[]) => {
     setUploadFiles(files);
-    setUploadQueue(files.map((file, index) => ({
-      id: `${file.name}-${file.lastModified}-${index}`,
-      name: file.name,
-      status: "queued",
-    })));
+    setUploadQueue(
+      files.map((file, index) => ({
+        id: `${file.name}-${file.lastModified}-${index}`,
+        name: file.name,
+        status: "queued",
+      })),
+    );
     setUploadError(null);
   };
 
@@ -597,7 +721,9 @@ const CaptureSessionDetailView = ({
       return;
     }
 
-    if (uploadFiles.some((file) => !allowedScreenshotMimeTypes.has(file.type))) {
+    if (
+      uploadFiles.some((file) => !allowedScreenshotMimeTypes.has(file.type))
+    ) {
       setUploadError("Only PNG, JPEG, and WebP screenshots can be uploaded.");
       return;
     }
@@ -609,19 +735,23 @@ const CaptureSessionDetailView = ({
 
     setUploadState("uploading");
     setUploadError(null);
-    setUploadQueue(uploadFiles.map((file, index) => ({
-      id: `${file.name}-${file.lastModified}-${index}`,
-      name: file.name,
-      status: "queued",
-    })));
+    setUploadQueue(
+      uploadFiles.map((file, index) => ({
+        id: `${file.name}-${file.lastModified}-${index}`,
+        name: file.name,
+        status: "queued",
+      })),
+    );
 
     try {
       for (const [index, uploadFile] of uploadFiles.entries()) {
         const capturedAt = new Date().toISOString();
 
-        setUploadQueue((items) => items.map((item, itemIndex) => (
-          itemIndex === index ? { ...item, status: "uploading" } : item
-        )));
+        setUploadQueue((items) =>
+          items.map((item, itemIndex) =>
+            itemIndex === index ? { ...item, status: "uploading" } : item,
+          ),
+        );
 
         const uploadResponse = await uploadAsset(projectId, captureSessionId, {
           file: uploadFile,
@@ -642,33 +772,60 @@ const CaptureSessionDetailView = ({
             note: `Uploaded screenshot: ${uploadFile.name}`,
           });
         } catch (error: unknown) {
-          setUploadQueue((items) => items.map((item, itemIndex) => (
-            itemIndex === index ? { ...item, status: "failed" } : item
-          )));
+          setUploadQueue((items) =>
+            items.map((item, itemIndex) =>
+              itemIndex === index ? { ...item, status: "failed" } : item,
+            ),
+          );
           setUploadError(eventCreationAfterUploadErrorMessage(error));
           reloadDetail();
           return;
         }
 
         createdEventCount += 1;
-        setUploadQueue((items) => items.map((item, itemIndex) => (
-          itemIndex === index ? { ...item, status: "event_created" } : item
-        )));
+        setUploadQueue((items) =>
+          items.map((item, itemIndex) =>
+            itemIndex === index ? { ...item, status: "event_created" } : item,
+          ),
+        );
       }
 
       clearUploadForm();
       reloadDetail();
     } catch (error: unknown) {
       const failedIndex = createdEventCount;
-      setUploadQueue((items) => items.map((item, itemIndex) => (
-        itemIndex === failedIndex ? { ...item, status: "failed" } : item
-      )));
+      setUploadQueue((items) =>
+        items.map((item, itemIndex) =>
+          itemIndex === failedIndex ? { ...item, status: "failed" } : item,
+        ),
+      );
       setUploadError(uploadErrorMessage(error));
       if (createdEventCount > 0) {
         reloadDetail();
       }
     } finally {
       setUploadState("idle");
+    }
+  };
+
+  const handleReassign = async () => {
+    if (!reassignTarget || reassignState === "saving") return;
+    setReassignState("saving");
+    try {
+      const response = await reassignProjectVersion(
+        projectId,
+        captureSessionId,
+        {
+          project_version_id: reassignTarget,
+          expected_version: session.version,
+        },
+      );
+      redirectTo(
+        `/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(response.capture_session.project_version.slug)}/capture-sessions/${encodeURIComponent(captureSessionId)}`,
+      );
+    } catch {
+      setReassignState("error");
+      reloadDetail();
     }
   };
 
@@ -728,7 +885,9 @@ const CaptureSessionDetailView = ({
   };
 
   const updateEventDraft = (field: keyof EventEditDraft, value: string) => {
-    setEventEditDraft((draft) => draft ? { ...draft, [field]: value } : draft);
+    setEventEditDraft((draft) =>
+      draft ? { ...draft, [field]: value } : draft,
+    );
     setEventEditError(null);
   };
 
@@ -741,7 +900,12 @@ const CaptureSessionDetailView = ({
     setEventEditError(null);
 
     try {
-      await updateEvent(projectId, captureSessionId, event.id, inputFromDraft(eventEditDraft));
+      await updateEvent(
+        projectId,
+        captureSessionId,
+        event.id,
+        inputFromDraft(eventEditDraft),
+      );
       setEditingEventId(null);
       setEventEditDraft(null);
       reloadDetail();
@@ -753,126 +917,250 @@ const CaptureSessionDetailView = ({
   };
 
   return (
-    <PortalShell projectId={projectId} captureSessionId={captureSessionId} performLogout={performLogout} navigate={navigate}>
+    <PortalShell
+      projectId={projectId}
+      captureSessionId={captureSessionId}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
       <section className={styles.header}>
         <div className={styles.titleRow}>
           <div>
             <div className={styles.eyebrow}>Capture session</div>
             <h1 className={styles.title}>{session.name}</h1>
-            {session.description ? <p className={styles.description}>{session.description}</p> : null}
+            {session.description ? (
+              <p className={styles.description}>{session.description}</p>
+            ) : null}
           </div>
           <div className={styles.badges}>
-            <Badge variant={session.status === "completed" ? "success" : "default"}>{session.status}</Badge>
+            <Badge
+              variant={session.status === "completed" ? "success" : "default"}
+            >
+              {session.status}
+            </Badge>
             <Badge>{session.source_type}</Badge>
+            <Badge>{session.project_version.name}</Badge>
           </div>
         </div>
-        {canWrite ? <div className={styles.actionRow}>
-          <Button
-            type="button"
-            disabled={!canCreateGuide}
-            aria-describedby={artifactActionDescription}
-            onClick={handleCreateGuide}
-          >
-            {createState === "creating" ? "Creating guide..." : "Create guide"}
-          </Button>
-          <Button
-            variant="secondary"
-            type="button"
-            disabled={!canCreateInteractiveDemo}
-            aria-describedby={artifactActionDescription}
-            onClick={handleCreateInteractiveDemo}
-          >
-            {createDemoState === "creating" ? "Creating interactive demo..." : "Create interactive demo"}
-          </Button>
-          {guideTitle.length === 0 ? (
-            <div className={styles.actionMessage} id={missingTitleMessageId}>
-              Capture session needs a name before creating guide or demo artifacts.
-            </div>
-          ) : null}
-          {!hasCaptureEvents ? (
-            <div className={styles.actionMessage} id={emptyCaptureMessageId}>
-              Add at least one capture event before creating guide or demo artifacts.
-            </div>
-          ) : null}
-          {createState === "error" ? (
-            <div className={styles.actionMessage}>Could not create guide.</div>
-          ) : null}
-          {createDemoState === "error" ? (
-            <div className={styles.actionMessage}>Could not create interactive demo.</div>
-          ) : null}
-        </div> : <Badge>Read only</Badge>}
+        {canWrite ? (
+          <div className={styles.actionRow}>
+            {canReassignVersion && versionTargets.length > 0 ? (
+              <>
+                <Label>
+                  <span>Move empty draft to Project Version</span>
+                  <select
+                    value={reassignTarget}
+                    onChange={(event) => setReassignTarget(event.target.value)}
+                  >
+                    <option value="">Select Version</option>
+                    {versionTargets.map((version) => (
+                      <option key={version.id} value={version.id}>
+                        {version.name}
+                      </option>
+                    ))}
+                  </select>
+                </Label>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={!reassignTarget || reassignState === "saving"}
+                  onClick={handleReassign}
+                >
+                  {reassignState === "saving" ? "Moving..." : "Move draft"}
+                </Button>
+                {reassignState === "error" ? (
+                  <div className={styles.actionMessage}>
+                    The draft changed or can no longer be moved. Current data
+                    was reloaded.
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+            <Button
+              type="button"
+              disabled={!canCreateGuide || !isDefaultVersion}
+              aria-describedby={artifactActionDescription}
+              onClick={handleCreateGuide}
+            >
+              {createState === "creating"
+                ? "Creating guide..."
+                : "Create guide"}
+            </Button>
+            <Button
+              variant="secondary"
+              type="button"
+              disabled={!canCreateInteractiveDemo || !isDefaultVersion}
+              aria-describedby={artifactActionDescription}
+              onClick={handleCreateInteractiveDemo}
+            >
+              {createDemoState === "creating"
+                ? "Creating interactive demo..."
+                : "Create interactive demo"}
+            </Button>
+            {guideTitle.length === 0 ? (
+              <div className={styles.actionMessage} id={missingTitleMessageId}>
+                Capture session needs a name before creating guide or demo
+                artifacts.
+              </div>
+            ) : null}
+            {!hasCaptureEvents ? (
+              <div className={styles.actionMessage} id={emptyCaptureMessageId}>
+                Add at least one capture event before creating guide or demo
+                artifacts.
+              </div>
+            ) : null}
+            {!isDefaultVersion ? (
+              <div className={styles.actionMessage}>
+                Guide and demo generation for named Project Versions arrives in
+                the next phase.
+              </div>
+            ) : null}
+            {createState === "error" ? (
+              <div className={styles.actionMessage}>
+                Could not create guide.
+              </div>
+            ) : null}
+            {createDemoState === "error" ? (
+              <div className={styles.actionMessage}>
+                Could not create interactive demo.
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <Badge>Read only</Badge>
+        )}
 
         <div className={styles.metrics}>
-          <Metric label="Events" value={plural(detail.capture_events.length, "event")} />
-          <Metric label="Assets" value={plural(detail.capture_assets.length, "asset")} />
+          <Metric
+            label="Events"
+            value={plural(detail.capture_events.length, "event")}
+          />
+          <Metric
+            label="Assets"
+            value={plural(detail.capture_assets.length, "asset")}
+          />
           <Metric label="Started" value={formatDateTime(session.started_at)} />
-          <Metric label="Completed" value={formatDateTime(session.completed_at)} />
-          <Metric label="Browser" value={[session.browser_name, session.browser_version].filter(Boolean).join(" ") || "Not set"} />
-          <Metric label="System" value={session.operating_system ?? "Not set"} />
-          <Metric label="Viewport" value={session.viewport_width && session.viewport_height ? `${session.viewport_width} x ${session.viewport_height}` : "Not set"} />
-          <Metric label="Device scale" value={session.device_pixel_ratio ? `${session.device_pixel_ratio}x` : "Not set"} />
+          <Metric
+            label="Completed"
+            value={formatDateTime(session.completed_at)}
+          />
+          <Metric
+            label="Browser"
+            value={
+              [session.browser_name, session.browser_version]
+                .filter(Boolean)
+                .join(" ") || "Not set"
+            }
+          />
+          <Metric
+            label="System"
+            value={session.operating_system ?? "Not set"}
+          />
+          <Metric
+            label="Viewport"
+            value={
+              session.viewport_width && session.viewport_height
+                ? `${session.viewport_width} x ${session.viewport_height}`
+                : "Not set"
+            }
+          />
+          <Metric
+            label="Device scale"
+            value={
+              session.device_pixel_ratio
+                ? `${session.device_pixel_ratio}x`
+                : "Not set"
+            }
+          />
         </div>
       </section>
 
       {canUploadScreenshot ? (
-        <Card className={styles.uploadPanel} aria-labelledby="upload-screenshot-heading">
+        <Card
+          className={styles.uploadPanel}
+          aria-labelledby="upload-screenshot-heading"
+        >
           <CardHeader>
-            <h2 className={styles.uploadTitle} id="upload-screenshot-heading">Upload screenshot</h2>
+            <h2 className={styles.uploadTitle} id="upload-screenshot-heading">
+              Upload screenshot
+            </h2>
           </CardHeader>
           <CardContent>
-          <form className={styles.uploadForm} onSubmit={handleUploadScreenshot}>
-            {uploadError ? <Alert variant="destructive">{uploadError}</Alert> : null}
-            <Label className={styles.field}>
-              <span>Screenshot file</span>
-              <input
-                ref={uploadFileInputRef}
-                type="file"
-                multiple
-                accept="image/png,image/jpeg,image/webp"
-                disabled={isUploading}
-                onChange={(event) => updateUploadFiles(Array.from(event.target.files ?? []))}
-              />
-            </Label>
-            {uploadQueue.length > 0 ? (
-              <div className={styles.uploadQueue} aria-label="Selected screenshots">
-                {uploadQueue.map((item) => (
-                  <div className={styles.uploadQueueItem} key={item.id}>
-                    <span className={styles.uploadQueueName}>{item.name}</span>
-                    <span className={styles.uploadQueueStatus}>{uploadStatusLabel(item.status)}</span>
-                  </div>
-                ))}
+            <form
+              className={styles.uploadForm}
+              onSubmit={handleUploadScreenshot}
+            >
+              {uploadError ? (
+                <Alert variant="destructive">{uploadError}</Alert>
+              ) : null}
+              <Label className={styles.field}>
+                <span>Screenshot file</span>
+                <input
+                  ref={uploadFileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={isUploading}
+                  onChange={(event) =>
+                    updateUploadFiles(Array.from(event.target.files ?? []))
+                  }
+                />
+              </Label>
+              {uploadQueue.length > 0 ? (
+                <div
+                  className={styles.uploadQueue}
+                  aria-label="Selected screenshots"
+                >
+                  {uploadQueue.map((item) => (
+                    <div className={styles.uploadQueueItem} key={item.id}>
+                      <span className={styles.uploadQueueName}>
+                        {item.name}
+                      </span>
+                      <span className={styles.uploadQueueStatus}>
+                        {uploadStatusLabel(item.status)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <Label className={styles.field}>
+                <span>Page title</span>
+                <Input
+                  value={uploadPageTitle}
+                  disabled={isUploading}
+                  onChange={(event) =>
+                    updateUploadPageTitle(event.target.value)
+                  }
+                />
+              </Label>
+              <Label className={styles.field}>
+                <span>Page URL</span>
+                <Input
+                  value={uploadPageUrl}
+                  disabled={isUploading}
+                  onChange={(event) => updateUploadPageUrl(event.target.value)}
+                />
+              </Label>
+              <div className={styles.uploadActions}>
+                <Button type="submit" disabled={isUploading}>
+                  {uploadButtonText}
+                </Button>
               </div>
-            ) : null}
-            <Label className={styles.field}>
-              <span>Page title</span>
-              <Input
-                value={uploadPageTitle}
-                disabled={isUploading}
-                onChange={(event) => updateUploadPageTitle(event.target.value)}
-              />
-            </Label>
-            <Label className={styles.field}>
-              <span>Page URL</span>
-              <Input
-                value={uploadPageUrl}
-                disabled={isUploading}
-                onChange={(event) => updateUploadPageUrl(event.target.value)}
-              />
-            </Label>
-            <div className={styles.uploadActions}>
-              <Button type="submit" disabled={isUploading}>
-                {uploadButtonText}
-              </Button>
-            </div>
-          </form>
+            </form>
           </CardContent>
         </Card>
       ) : null}
 
       <div className={styles.content}>
         <section className={styles.section} aria-labelledby="events-heading">
-          <h2 className={styles.sectionTitle} id="events-heading">Events</h2>
-          {reorderError ? <Alert className={styles.sectionAlert} variant="destructive">{reorderError}</Alert> : null}
+          <h2 className={styles.sectionTitle} id="events-heading">
+            Events
+          </h2>
+          {reorderError ? (
+            <Alert className={styles.sectionAlert} variant="destructive">
+              {reorderError}
+            </Alert>
+          ) : null}
           {detail.capture_events.length === 0 ? (
             <div className={styles.empty}>No capture events yet.</div>
           ) : (
@@ -882,14 +1170,22 @@ const CaptureSessionDetailView = ({
                   key={event.id}
                   event={event}
                   stepNumber={index + 1}
-                  linkedAsset={event.capture_asset_id ? assetById.get(event.capture_asset_id) : undefined}
+                  linkedAsset={
+                    event.capture_asset_id
+                      ? assetById.get(event.capture_asset_id)
+                      : undefined
+                  }
                   canReorder={canReorderEvents}
                   disableReorder={isReordering}
                   canEdit={canEditEvents}
                   disableEdit={isSavingEvent}
                   isEditing={editingEventId === event.id}
-                  editDraft={editingEventId === event.id ? eventEditDraft : null}
-                  editError={editingEventId === event.id ? eventEditError : null}
+                  editDraft={
+                    editingEventId === event.id ? eventEditDraft : null
+                  }
+                  editError={
+                    editingEventId === event.id ? eventEditError : null
+                  }
                   isSaving={editingEventId === event.id && isSavingEvent}
                   isFirst={index === 0}
                   isLast={index === detail.capture_events.length - 1}
@@ -906,7 +1202,9 @@ const CaptureSessionDetailView = ({
         </section>
 
         <section className={styles.section} aria-labelledby="assets-heading">
-          <h2 className={styles.sectionTitle} id="assets-heading">Assets</h2>
+          <h2 className={styles.sectionTitle} id="assets-heading">
+            Assets
+          </h2>
           {detail.capture_assets.length === 0 ? (
             <div className={styles.empty}>No capture assets yet.</div>
           ) : (
@@ -977,8 +1275,11 @@ const EventRow = ({
 }) => {
   const pageLabel = eventPageLabel(event);
   const title = eventTitle(event);
-  const secondaryDetails = [event.target_label, event.target_text, event.input_intent]
-    .filter((value): value is string => Boolean(value) && value !== title);
+  const secondaryDetails = [
+    event.target_label,
+    event.target_text,
+    event.input_intent,
+  ].filter((value): value is string => Boolean(value) && value !== title);
 
   return (
     <article className={styles.event}>
@@ -992,13 +1293,17 @@ const EventRow = ({
               onSave();
             }}
           >
-            {editError ? <Alert variant="destructive">{editError}</Alert> : null}
+            {editError ? (
+              <Alert variant="destructive">{editError}</Alert>
+            ) : null}
             <Label className={styles.field}>
               <span>Event page title</span>
               <Input
                 value={editDraft.page_title}
                 disabled={isSaving}
-                onChange={(changeEvent) => onChangeDraft("page_title", changeEvent.target.value)}
+                onChange={(changeEvent) =>
+                  onChangeDraft("page_title", changeEvent.target.value)
+                }
               />
             </Label>
             <Label className={styles.field}>
@@ -1006,7 +1311,9 @@ const EventRow = ({
               <Input
                 value={editDraft.page_url}
                 disabled={isSaving}
-                onChange={(changeEvent) => onChangeDraft("page_url", changeEvent.target.value)}
+                onChange={(changeEvent) =>
+                  onChangeDraft("page_url", changeEvent.target.value)
+                }
               />
             </Label>
             <Label className={styles.field}>
@@ -1014,7 +1321,9 @@ const EventRow = ({
               <Input
                 value={editDraft.target_label}
                 disabled={isSaving}
-                onChange={(changeEvent) => onChangeDraft("target_label", changeEvent.target.value)}
+                onChange={(changeEvent) =>
+                  onChangeDraft("target_label", changeEvent.target.value)
+                }
               />
             </Label>
             <Label className={styles.field}>
@@ -1022,7 +1331,9 @@ const EventRow = ({
               <Input
                 value={editDraft.target_text}
                 disabled={isSaving}
-                onChange={(changeEvent) => onChangeDraft("target_text", changeEvent.target.value)}
+                onChange={(changeEvent) =>
+                  onChangeDraft("target_text", changeEvent.target.value)
+                }
               />
             </Label>
             <Label className={styles.field}>
@@ -1030,7 +1341,9 @@ const EventRow = ({
               <Input
                 value={editDraft.input_intent}
                 disabled={isSaving}
-                onChange={(changeEvent) => onChangeDraft("input_intent", changeEvent.target.value)}
+                onChange={(changeEvent) =>
+                  onChangeDraft("input_intent", changeEvent.target.value)
+                }
               />
             </Label>
             <Label className={styles.field}>
@@ -1038,12 +1351,16 @@ const EventRow = ({
               <Textarea
                 value={editDraft.note}
                 disabled={isSaving}
-                onChange={(changeEvent) => onChangeDraft("note", changeEvent.target.value)}
+                onChange={(changeEvent) =>
+                  onChangeDraft("note", changeEvent.target.value)
+                }
               />
             </Label>
             <div className={styles.eventEditActions}>
               <Button type="submit" disabled={isSaving}>
-                {isSaving ? `Saving event ${stepNumber}` : `Save event ${stepNumber}`}
+                {isSaving
+                  ? `Saving event ${stepNumber}`
+                  : `Save event ${stepNumber}`}
               </Button>
               <Button
                 variant="secondary"
@@ -1071,7 +1388,9 @@ const EventRow = ({
                 {secondaryDetails.join(" · ")}
               </div>
             ) : null}
-            {linkedAsset ? <div className={styles.linkedAsset}>Linked screenshot</div> : null}
+            {linkedAsset ? (
+              <div className={styles.linkedAsset}>Linked screenshot</div>
+            ) : null}
           </>
         )}
       </div>
@@ -1138,14 +1457,19 @@ const AssetPreview = ({
     <div className={styles.assetBody}>
       <div className={styles.assetTitle}>{assetTitle(asset)}</div>
       <div className={styles.assetMeta}>
-        {asset.width && asset.height ? `${asset.width} x ${asset.height}` : "Dimensions unknown"}
+        {asset.width && asset.height
+          ? `${asset.width} x ${asset.height}`
+          : "Dimensions unknown"}
         {asset.device_pixel_ratio ? ` · ${asset.device_pixel_ratio}x` : ""}
       </div>
       <div className={styles.assetMeta}>
-        {asset.file.mime_type} · {formatBytes(asset.file.size_bytes)} · {formatDateTime(asset.captured_at)}
+        {asset.file.mime_type} · {formatBytes(asset.file.size_bytes)} ·{" "}
+        {formatDateTime(asset.captured_at)}
       </div>
       {asset.page_title || asset.page_url ? (
-        <div className={styles.assetMeta}>{asset.page_title ?? asset.page_url}</div>
+        <div className={styles.assetMeta}>
+          {asset.page_title ?? asset.page_url}
+        </div>
       ) : null}
     </div>
   </article>

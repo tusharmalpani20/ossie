@@ -140,24 +140,26 @@ const interactive_demo_from_capture_response = {
     created_at: "2026-06-05T10:00:00.000Z",
     updated_at: "2026-06-05T10:00:00.000Z",
   },
-  demo_scenes: [{
-    id: "demo_scene_1",
-    organization_id: "organization_1",
-    project_id: "project_1",
-    interactive_demo_id: "interactive_demo_1",
-    source_capture_session_id: "capture_session_1",
-    source_capture_event_id: "capture_event_1",
-    source_capture_asset_id: "capture_asset_1",
-    scene_index: 1,
-    title: "Click Add Department",
-    description: null,
-    background_capture_asset_id: "capture_asset_1",
-    created_by_id: "org_user_1",
-    updated_by_id: "org_user_1",
-    version: 1,
-    created_at: "2026-06-05T10:00:00.000Z",
-    updated_at: "2026-06-05T10:00:00.000Z",
-  }],
+  demo_scenes: [
+    {
+      id: "demo_scene_1",
+      organization_id: "organization_1",
+      project_id: "project_1",
+      interactive_demo_id: "interactive_demo_1",
+      source_capture_session_id: "capture_session_1",
+      source_capture_event_id: "capture_event_1",
+      source_capture_asset_id: "capture_asset_1",
+      scene_index: 1,
+      title: "Click Add Department",
+      description: null,
+      background_capture_asset_id: "capture_asset_1",
+      created_by_id: "org_user_1",
+      updated_by_id: "org_user_1",
+      version: 1,
+      created_at: "2026-06-05T10:00:00.000Z",
+      updated_at: "2026-06-05T10:00:00.000Z",
+    },
+  ],
   redirect_path: "/projects/project_1/interactive-demos/interactive_demo_1",
 };
 
@@ -303,33 +305,37 @@ const auth_response = {
 };
 
 const organization_member_response = {
-  members: [{
-    id: "org_user_1",
-    user_id: "user_1",
-    email: "owner@example.com",
-    display_name: "Owner User",
-    role: "owner",
-    status: "active",
-    created_at: "2026-06-05T10:00:00.000Z",
-    updated_at: "2026-06-05T10:00:00.000Z",
-  }],
+  members: [
+    {
+      id: "org_user_1",
+      user_id: "user_1",
+      email: "owner@example.com",
+      display_name: "Owner User",
+      role: "owner",
+      status: "active",
+      created_at: "2026-06-05T10:00:00.000Z",
+      updated_at: "2026-06-05T10:00:00.000Z",
+    },
+  ],
 };
 
 const organization_invite_response = {
-  invites: [{
-    id: "org_invite_1",
-    organization_id: "organization_1",
-    email: "teammate@example.com",
-    role: "member",
-    status: "pending",
-    expires_at: "2026-06-22T10:00:00.000Z",
-    accepted_at: null,
-    accepted_user_id: null,
-    created_by_id: "org_user_1",
-    updated_by_id: "org_user_1",
-    created_at: "2026-06-15T10:00:00.000Z",
-    updated_at: "2026-06-15T10:00:00.000Z",
-  }],
+  invites: [
+    {
+      id: "org_invite_1",
+      organization_id: "organization_1",
+      email: "teammate@example.com",
+      role: "member",
+      status: "pending",
+      expires_at: "2026-06-22T10:00:00.000Z",
+      accepted_at: null,
+      accepted_user_id: null,
+      created_by_id: "org_user_1",
+      updated_by_id: "org_user_1",
+      created_at: "2026-06-15T10:00:00.000Z",
+      updated_at: "2026-06-15T10:00:00.000Z",
+    },
+  ],
 };
 
 const organization_invite_create_response = {
@@ -356,25 +362,25 @@ describe("api client", () => {
   });
 
   it("fetches project detail with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(project_response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(project_response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
     await expect(getProject("project_1")).resolves.toEqual(project_response);
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1",
-      {
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/projects/project_1", {
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+      },
+    });
   });
 
   it("fetches public instance status", async () => {
@@ -384,34 +390,37 @@ describe("api client", () => {
       setup_required: true,
       signup_enabled: false,
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
     await expect(getPublicInstanceStatus()).resolves.toEqual(response);
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/public/instance",
-      {
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/public/instance", {
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+      },
+    });
   });
 
   it("completes first-run setup with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(auth_response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(auth_response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
     const input = {
@@ -428,71 +437,70 @@ describe("api client", () => {
 
     await expect(completeFirstRunSetup(input)).resolves.toEqual(auth_response);
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/setup/first-run",
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(input),
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/setup/first-run", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
   });
 
   it("fetches the current auth context with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(auth_response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(auth_response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
     await expect(getCurrentAuth()).resolves.toEqual(auth_response);
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/authentication/me",
-      {
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/authentication/me", {
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+      },
+    });
   });
 
   it("logs in with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(auth_response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(auth_response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(login({
-      email: "person@example.com",
-      password: "secret",
-    })).resolves.toEqual(auth_response);
+    await expect(
+      login({
+        email: "person@example.com",
+        password: "secret",
+      }),
+    ).resolves.toEqual(auth_response);
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/authentication/login",
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          email: "person@example.com",
-          password: "secret",
-        }),
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/authentication/login", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        email: "person@example.com",
+        password: "secret",
+      }),
+    });
   });
 
   it("logs out with session cookies", async () => {
@@ -501,91 +509,94 @@ describe("api client", () => {
 
     await expect(logout()).resolves.toBeUndefined();
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/authentication/logout",
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/authentication/logout", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+      },
+    });
   });
 
   it("lists organization members with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(organization_member_response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(organization_member_response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(listOrganizationMembers()).resolves.toEqual(organization_member_response);
-
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/organization/members",
-      {
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      }
+    await expect(listOrganizationMembers()).resolves.toEqual(
+      organization_member_response,
     );
+
+    expect(fetch).toHaveBeenCalledWith("/api/v1/organization/members", {
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+      },
+    });
   });
 
   it("lists organization invites with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(organization_invite_response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(organization_invite_response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(listOrganizationInvites()).resolves.toEqual(organization_invite_response);
-
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/organization/invites",
-      {
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      }
+    await expect(listOrganizationInvites()).resolves.toEqual(
+      organization_invite_response,
     );
+
+    expect(fetch).toHaveBeenCalledWith("/api/v1/organization/invites", {
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+      },
+    });
   });
 
   it("creates organization invites with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(organization_invite_create_response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(organization_invite_create_response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(createOrganizationInvite({
-      email: " teammate@example.com ",
-      role: "member",
-    })).resolves.toEqual(organization_invite_create_response);
+    await expect(
+      createOrganizationInvite({
+        email: " teammate@example.com ",
+        role: "member",
+      }),
+    ).resolves.toEqual(organization_invite_create_response);
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/organization/invites",
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          email: " teammate@example.com ",
-          role: "member",
-        }),
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/organization/invites", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        email: " teammate@example.com ",
+        role: "member",
+      }),
+    });
   });
 
   it("revokes organization invites with session cookies", async () => {
@@ -595,15 +606,20 @@ describe("api client", () => {
         status: "revoked",
       },
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(revokeOrganizationInvite("org invite/1")).resolves.toEqual(response);
+    await expect(revokeOrganizationInvite("org invite/1")).resolves.toEqual(
+      response,
+    );
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/organization/invites/org%20invite%2F1",
@@ -613,20 +629,25 @@ describe("api client", () => {
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
   it("loads public organization invite details", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(public_organization_invite_response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(public_organization_invite_response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(getPublicOrganizationInvite("token / 1")).resolves.toEqual(public_organization_invite_response);
+    await expect(getPublicOrganizationInvite("token / 1")).resolves.toEqual(
+      public_organization_invite_response,
+    );
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/public/invites/token%20%2F%201",
@@ -635,23 +656,28 @@ describe("api client", () => {
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
   it("accepts public organization invites with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(auth_response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(auth_response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(acceptPublicOrganizationInvite("token / 1", {
-      password: "safe password",
-      display_name: "New Member",
-    })).resolves.toEqual(auth_response);
+    await expect(
+      acceptPublicOrganizationInvite("token / 1", {
+        password: "safe password",
+        display_name: "New Member",
+      }),
+    ).resolves.toEqual(auth_response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/public/invites/token%20%2F%201/accept",
@@ -666,139 +692,151 @@ describe("api client", () => {
           password: "safe password",
           display_name: "New Member",
         }),
-      }
+      },
     );
   });
 
   it("URL-encodes project IDs while fetching project detail", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(project_response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(project_response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
     await getProject("project / 1");
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project%20%2F%201",
-      {
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/projects/project%20%2F%201", {
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+      },
+    });
   });
 
   it("lists projects with session cookies", async () => {
     const response = {
       projects: [project_response.project],
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
     await expect(listProjects()).resolves.toEqual(response);
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects",
-      {
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/projects", {
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+      },
+    });
   });
 
   it("lists projects filtered by status", async () => {
     const response = {
       projects: [project_response.project],
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(listProjects({ status: "archived" })).resolves.toEqual(response);
-
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects?status=archived",
-      {
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      }
+    await expect(listProjects({ status: "archived" })).resolves.toEqual(
+      response,
     );
+
+    expect(fetch).toHaveBeenCalledWith("/api/v1/projects?status=archived", {
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+      },
+    });
   });
 
   it("creates projects with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(project_response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(project_response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(createProject({
-      name: " Internal onboarding demos ",
-      description: "Reusable captures and guides.",
-      slug: "internal-onboarding",
-    })).resolves.toEqual(project_response);
+    await expect(
+      createProject({
+        name: " Internal onboarding demos ",
+        description: "Reusable captures and guides.",
+        slug: "internal-onboarding",
+      }),
+    ).resolves.toEqual(project_response);
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects",
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          name: " Internal onboarding demos ",
-          description: "Reusable captures and guides.",
-          slug: "internal-onboarding",
-        }),
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/projects", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        name: " Internal onboarding demos ",
+        description: "Reusable captures and guides.",
+        slug: "internal-onboarding",
+      }),
+    });
   });
 
   it("updates projects with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify({
-      project: {
-        ...project_response.project,
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            project: {
+              ...project_response.project,
+              name: "Internal training demos",
+              description: null,
+              slug: null,
+              status: "archived",
+              version: 2,
+            },
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        ),
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(
+      updateProject("project / 1", {
         name: "Internal training demos",
         description: null,
         slug: null,
         status: "archived",
-        version: 2,
-      },
-    }), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
-    vi.stubGlobal("fetch", fetch);
-
-    await expect(updateProject("project / 1", {
-      name: "Internal training demos",
-      description: null,
-      slug: null,
-      status: "archived",
-    })).resolves.toMatchObject({
+      }),
+    ).resolves.toMatchObject({
       project: {
         name: "Internal training demos",
         description: null,
@@ -808,35 +846,37 @@ describe("api client", () => {
       },
     });
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project%20%2F%201",
-      {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          name: "Internal training demos",
-          description: null,
-          slug: null,
-          status: "archived",
-        }),
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/projects/project%20%2F%201", {
+      method: "PATCH",
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Internal training demos",
+        description: null,
+        slug: null,
+        status: "archived",
+      }),
+    });
   });
 
   it("fetches capture session detail with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(detail_response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(detail_response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(getCaptureSessionDetail("project_1", "capture_session_1")).resolves.toEqual(detail_response);
+    await expect(
+      getCaptureSessionDetail("project_1", "capture_session_1"),
+    ).resolves.toEqual(detail_response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project_1/capture-sessions/capture_session_1/detail",
@@ -845,7 +885,7 @@ describe("api client", () => {
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
@@ -853,24 +893,31 @@ describe("api client", () => {
     const response = {
       capture_sessions: [detail_response.capture_session],
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(listProjectCaptureSessions("project_1")).resolves.toEqual(response);
+    await expect(
+      listProjectCaptureSessions("project_1", {
+        project_version_id: "version_1",
+      }),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/capture-sessions",
+      "/api/v1/projects/project_1/capture-sessions?project_version_id=version_1",
       {
         credentials: "include",
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
@@ -878,24 +925,32 @@ describe("api client", () => {
     const response = {
       capture_sessions: [detail_response.capture_session],
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(listProjectCaptureSessions("project_1", { status: "completed" })).resolves.toEqual(response);
+    await expect(
+      listProjectCaptureSessions("project_1", {
+        project_version_id: "version_1",
+        status: "completed",
+      }),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/capture-sessions?status=completed",
+      "/api/v1/projects/project_1/capture-sessions?project_version_id=version_1&status=completed",
       {
         credentials: "include",
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
@@ -903,20 +958,26 @@ describe("api client", () => {
     const response = {
       capture_session: detail_response.capture_session,
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(createProjectCaptureSession("project / 1", {
-      name: " Manual capture ",
-      description: "Portal source material",
-      source_type: "manual",
-      start_url: "https://example.internal/app",
-    })).resolves.toEqual(response);
+    await expect(
+      createProjectCaptureSession("project / 1", {
+        name: " Manual capture ",
+        project_version_id: "version_1",
+        description: "Portal source material",
+        source_type: "manual",
+        start_url: "https://example.internal/app",
+      }),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project%20%2F%201/capture-sessions",
@@ -929,11 +990,12 @@ describe("api client", () => {
         },
         body: JSON.stringify({
           name: " Manual capture ",
+          project_version_id: "version_1",
           description: "Portal source material",
           source_type: "manual",
           start_url: "https://example.internal/app",
         }),
-      }
+      },
     );
   });
 
@@ -964,24 +1026,30 @@ describe("api client", () => {
         version: 1,
         created_at: "2026-06-12T00:00:00.000Z",
         updated_at: "2026-06-12T00:00:00.000Z",
-        file_url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/asset_uploaded/file",
+        file_url:
+          "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/asset_uploaded/file",
       },
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
     const file = new File(["png"], "department.png", { type: "image/png" });
 
-    await expect(uploadCaptureSessionAsset("project / 1", "capture / 1", {
-      file,
-      page_url: "https://example.internal/app",
-      page_title: "Department",
-      captured_at: "2026-06-12T00:00:00.000Z",
-    })).resolves.toEqual(response);
+    await expect(
+      uploadCaptureSessionAsset("project / 1", "capture / 1", {
+        file,
+        page_url: "https://example.internal/app",
+        page_title: "Department",
+        captured_at: "2026-06-12T00:00:00.000Z",
+      }),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project%20%2F%201/capture-sessions/capture%20%2F%201/assets/upload",
@@ -992,7 +1060,7 @@ describe("api client", () => {
           accept: "application/json",
         },
         body: expect.any(FormData),
-      }
+      },
     );
 
     const fetchCall = fetch.mock.calls[0] as unknown as [string, RequestInit];
@@ -1037,24 +1105,29 @@ describe("api client", () => {
         updated_at: "2026-06-12T00:00:00.000Z",
       },
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(createCaptureSessionEvent("project / 1", "capture / 1", {
-      event_type: "capture",
-      event_index: 3,
-      capture_asset_id: "asset_uploaded",
-      occurred_at: "2026-06-12T00:00:00.000Z",
-      page_url: "https://example.internal/app",
-      page_title: "Department",
-      target_label: "Uploaded screenshot",
-      note: "Uploaded screenshot: department.png",
-    })).resolves.toEqual(response);
+    await expect(
+      createCaptureSessionEvent("project / 1", "capture / 1", {
+        event_type: "capture",
+        event_index: 3,
+        capture_asset_id: "asset_uploaded",
+        occurred_at: "2026-06-12T00:00:00.000Z",
+        page_url: "https://example.internal/app",
+        page_title: "Department",
+        target_label: "Uploaded screenshot",
+        note: "Uploaded screenshot: department.png",
+      }),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project%20%2F%201/capture-sessions/capture%20%2F%201/events",
@@ -1075,7 +1148,7 @@ describe("api client", () => {
           target_label: "Uploaded screenshot",
           note: "Uploaded screenshot: department.png",
         }),
-      }
+      },
     );
   });
 
@@ -1114,17 +1187,22 @@ describe("api client", () => {
         },
       ],
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(reorderCaptureSessionEvents("project / 1", "capture / 1", {
-      event_ids: ["event_2", "event_1"],
-    })).resolves.toEqual(response);
+    await expect(
+      reorderCaptureSessionEvents("project / 1", "capture / 1", {
+        event_ids: ["event_2", "event_1"],
+      }),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project%20%2F%201/capture-sessions/capture%20%2F%201/events/order",
@@ -1138,7 +1216,7 @@ describe("api client", () => {
         body: JSON.stringify({
           event_ids: ["event_2", "event_1"],
         }),
-      }
+      },
     );
   });
 
@@ -1175,20 +1253,25 @@ describe("api client", () => {
         updated_at: "2026-06-12T00:01:00.000Z",
       },
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(updateCaptureSessionEvent("project / 1", "capture / 1", "event / 1", {
-      page_title: "Department list",
-      page_url: "https://example.internal/app",
-      target_label: "Add Department",
-      note: "Open the department list.",
-    })).resolves.toEqual(response);
+    await expect(
+      updateCaptureSessionEvent("project / 1", "capture / 1", "event / 1", {
+        page_title: "Department list",
+        page_url: "https://example.internal/app",
+        target_label: "Add Department",
+        note: "Open the department list.",
+      }),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project%20%2F%201/capture-sessions/capture%20%2F%201/events/event%20%2F%201",
@@ -1205,20 +1288,25 @@ describe("api client", () => {
           target_label: "Add Department",
           note: "Open the department list.",
         }),
-      }
+      },
     );
   });
 
   it("fetches guide detail with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(guide_response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(guide_response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(getGuideDetail("project_1", "guide_1")).resolves.toEqual(guide_response);
+    await expect(getGuideDetail("project_1", "guide_1")).resolves.toEqual(
+      guide_response,
+    );
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project_1/guides/guide_1",
@@ -1227,7 +1315,7 @@ describe("api client", () => {
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
@@ -1236,15 +1324,20 @@ describe("api client", () => {
       filename: "department-guide.md",
       markdown: "# Department guide\n",
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(exportGuideMarkdown("project 1", "guide/1")).resolves.toEqual(response);
+    await expect(exportGuideMarkdown("project 1", "guide/1")).resolves.toEqual(
+      response,
+    );
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project%201/guides/guide%2F1/export/markdown",
@@ -1253,18 +1346,22 @@ describe("api client", () => {
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
   it("exports guide HTML ZIP with session cookies and content-disposition filename", async () => {
-    const fetch = vi.fn(async () => new Response("zip-bytes", {
-      status: 200,
-      headers: {
-        "content-type": "application/zip",
-        "content-disposition": "attachment; filename=\"department-guide-html-export.zip\"",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response("zip-bytes", {
+          status: 200,
+          headers: {
+            "content-type": "application/zip",
+            "content-disposition":
+              'attachment; filename="department-guide-html-export.zip"',
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
     const response = await exportGuideHtmlZip("project 1", "guide/1");
@@ -1278,20 +1375,25 @@ describe("api client", () => {
         headers: {
           accept: "application/zip",
         },
-      }
+      },
     );
   });
 
   it("fetches public publish links by slug", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(public_publish_response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(public_publish_response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(getPublicPublishLink("abc 123")).resolves.toEqual(public_publish_response);
+    await expect(getPublicPublishLink("abc 123")).resolves.toEqual(
+      public_publish_response,
+    );
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/public/publish-links/abc%20123",
@@ -1301,7 +1403,7 @@ describe("api client", () => {
           "X-Ossie-Access-Surface": "public_reader",
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
@@ -1310,15 +1412,20 @@ describe("api client", () => {
       publish_link: null,
       published_artifact: null,
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(getGuidePublishStatus("project / 1", "guide / 1")).resolves.toEqual(response);
+    await expect(
+      getGuidePublishStatus("project / 1", "guide / 1"),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project%20%2F%201/guides/guide%20%2F%201/publish",
@@ -1327,20 +1434,25 @@ describe("api client", () => {
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
   it("publishes guides with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(guide_publish_response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(guide_publish_response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(publishGuide("project_1", "guide_1")).resolves.toEqual(guide_publish_response);
+    await expect(publishGuide("project_1", "guide_1")).resolves.toEqual(
+      guide_publish_response,
+    );
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project_1/guides/guide_1/publish",
@@ -1350,7 +1462,7 @@ describe("api client", () => {
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
@@ -1362,15 +1474,20 @@ describe("api client", () => {
         revoked_at: "2026-06-11T01:00:00.000Z",
       },
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(revokeGuidePublishLink("project_1", "guide_1")).resolves.toEqual(response);
+    await expect(
+      revokeGuidePublishLink("project_1", "guide_1"),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project_1/guides/guide_1/publish",
@@ -1380,7 +1497,7 @@ describe("api client", () => {
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
@@ -1393,18 +1510,23 @@ describe("api client", () => {
         expires_at: null,
       },
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(updateGuidePublishAccess("project_1", "guide_1", {
-      visibility: "restricted",
-      expires_at: null,
-    })).resolves.toEqual(response);
+    await expect(
+      updateGuidePublishAccess("project_1", "guide_1", {
+        visibility: "restricted",
+        expires_at: null,
+      }),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project_1/guides/guide_1/publish/access",
@@ -1419,7 +1541,7 @@ describe("api client", () => {
           visibility: "restricted",
           expires_at: null,
         }),
-      }
+      },
     );
   });
 
@@ -1431,17 +1553,22 @@ describe("api client", () => {
         password_protected: true,
       },
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(updateGuidePublishPassword("project_1", "guide_1", {
-      password: "shared password",
-    })).resolves.toEqual(response);
+    await expect(
+      updateGuidePublishPassword("project_1", "guide_1", {
+        password: "shared password",
+      }),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project_1/guides/guide_1/publish/password",
@@ -1455,7 +1582,7 @@ describe("api client", () => {
         body: JSON.stringify({
           password: "shared password",
         }),
-      }
+      },
     );
   });
 
@@ -1484,46 +1611,80 @@ describe("api client", () => {
     };
     const fetch = vi
       .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(new Response(JSON.stringify(response), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(response), {
-        status: 201,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ...response,
-        publish_link: { ...response.publish_link, visibility: "restricted", expires_at: null },
-      }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ...response,
-        publish_link: { ...response.publish_link, password_protected: true },
-      }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(revoke_response), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }));
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(response), {
+          status: 201,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ...response,
+            publish_link: {
+              ...response.publish_link,
+              visibility: "restricted",
+              expires_at: null,
+            },
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ...response,
+            publish_link: {
+              ...response.publish_link,
+              password_protected: true,
+            },
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(revoke_response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(getInteractiveDemoPublishStatus("project / 1", "demo / 1")).resolves.toEqual(response);
-    await expect(publishInteractiveDemo("project / 1", "demo / 1")).resolves.toEqual(response);
-    await expect(updateInteractiveDemoPublishAccess("project / 1", "demo / 1", {
-      visibility: "restricted",
-      expires_at: null,
-    })).resolves.toMatchObject({ publish_link: { visibility: "restricted" } });
-    await expect(updateInteractiveDemoPublishPassword("project / 1", "demo / 1", {
-      password: "shared password",
-    })).resolves.toMatchObject({ publish_link: { password_protected: true } });
-    await expect(revokeInteractiveDemoPublishLink("project / 1", "demo / 1")).resolves.toEqual(revoke_response);
+    await expect(
+      getInteractiveDemoPublishStatus("project / 1", "demo / 1"),
+    ).resolves.toEqual(response);
+    await expect(
+      publishInteractiveDemo("project / 1", "demo / 1"),
+    ).resolves.toEqual(response);
+    await expect(
+      updateInteractiveDemoPublishAccess("project / 1", "demo / 1", {
+        visibility: "restricted",
+        expires_at: null,
+      }),
+    ).resolves.toMatchObject({ publish_link: { visibility: "restricted" } });
+    await expect(
+      updateInteractiveDemoPublishPassword("project / 1", "demo / 1", {
+        password: "shared password",
+      }),
+    ).resolves.toMatchObject({ publish_link: { password_protected: true } });
+    await expect(
+      revokeInteractiveDemoPublishLink("project / 1", "demo / 1"),
+    ).resolves.toEqual(revoke_response);
 
-    const base = "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/publish";
+    const base =
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/publish";
     expect(fetch).toHaveBeenNthCalledWith(1, base, {
       credentials: "include",
       headers: { accept: "application/json" },
@@ -1567,9 +1728,11 @@ describe("api client", () => {
     const fetch = vi.fn(async () => new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetch);
 
-    await expect(createPublicPublishViewerSession("abc 123", {
-      password: "shared password",
-    })).resolves.toBeUndefined();
+    await expect(
+      createPublicPublishViewerSession("abc 123", {
+        password: "shared password",
+      }),
+    ).resolves.toBeUndefined();
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/public/publish-links/abc%20123/viewer-sessions",
@@ -1584,22 +1747,31 @@ describe("api client", () => {
         body: JSON.stringify({
           password: "shared password",
         }),
-      }
+      },
     );
   });
 
   it("maps guide publish validation errors", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "guide_has_no_publishable_blocks",
-        message: "Guide has no publishable blocks",
-      },
-    }), {
-      status: 400,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "guide_has_no_publishable_blocks",
+                message: "Guide has no publishable blocks",
+              },
+            }),
+            {
+              status: 400,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
     await expect(publishGuide("project_1", "guide_1")).rejects.toMatchObject({
       kind: "validation",
@@ -1607,17 +1779,26 @@ describe("api client", () => {
       message: "Guide has no publishable blocks",
     });
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "guide_not_publishable",
-        message: "Guide is not publishable",
-      },
-    }), {
-      status: 409,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "guide_not_publishable",
+                message: "Guide is not publishable",
+              },
+            }),
+            {
+              status: 409,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
     await expect(publishGuide("project_1", "guide_1")).rejects.toMatchObject({
       kind: "validation",
@@ -1627,17 +1808,26 @@ describe("api client", () => {
   });
 
   it("maps missing or revoked public publish links to not found", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "publish_link_not_found",
-        message: "Publish link was not found",
-      },
-    }), {
-      status: 404,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "publish_link_not_found",
+                message: "Publish link was not found",
+              },
+            }),
+            {
+              status: 404,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
     await expect(getPublicPublishLink("missing")).rejects.toMatchObject({
       kind: "not_found",
@@ -1650,40 +1840,45 @@ describe("api client", () => {
     const response = {
       guides: [guide_response.guide],
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
     await expect(listProjectGuides("project_1")).resolves.toEqual(response);
 
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/guides",
-      {
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      }
-    );
+    expect(fetch).toHaveBeenCalledWith("/api/v1/projects/project_1/guides", {
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+      },
+    });
   });
 
   it("creates a guide from a capture session with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(guide_response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(guide_response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(createGuideFromCaptureSession("project_1", "capture_session_1", {
-      title: "Create department workflow",
-      description: null,
-    })).resolves.toEqual(guide_response);
+    await expect(
+      createGuideFromCaptureSession("project_1", "capture_session_1", {
+        title: "Create department workflow",
+        description: null,
+      }),
+    ).resolves.toEqual(guide_response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project_1/guides/from-capture-session/capture_session_1",
@@ -1698,20 +1893,25 @@ describe("api client", () => {
           title: "Create department workflow",
           description: null,
         }),
-      }
+      },
     );
   });
 
   it("creates an interactive demo from a capture session with session cookies", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(interactive_demo_from_capture_response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(interactive_demo_from_capture_response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(createInteractiveDemoFromCaptureSession("project / 1", "capture / 1")).resolves.toEqual(interactive_demo_from_capture_response);
+    await expect(
+      createInteractiveDemoFromCaptureSession("project / 1", "capture / 1"),
+    ).resolves.toEqual(interactive_demo_from_capture_response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project%20%2F%201/capture-sessions/capture%20%2F%201/interactive-demos",
@@ -1723,56 +1923,87 @@ describe("api client", () => {
           "content-type": "application/json",
         },
         body: JSON.stringify({}),
-      }
+      },
     );
   });
 
   it("manages interactive demos and scenes with session cookies", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(new Response(JSON.stringify(interactive_demo_list_response), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(interactive_demo_response), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(interactive_demo_response), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(demo_scene_list_response), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(demo_scene_response), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(demo_scene_list_response), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(interactive_demo_list_response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(interactive_demo_response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(interactive_demo_response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(demo_scene_list_response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(demo_scene_response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(demo_scene_list_response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetch);
 
-    await expect(listProjectInteractiveDemos("project / 1")).resolves.toEqual(interactive_demo_list_response);
-    await expect(getInteractiveDemo("project / 1", "demo / 1")).resolves.toEqual(interactive_demo_response);
-    await expect(updateInteractiveDemo("project / 1", "demo / 1", {
-      title: "Updated demo",
-      description: null,
-      status: "draft",
-    })).resolves.toEqual(interactive_demo_response);
-    await expect(listInteractiveDemoScenes("project / 1", "demo / 1")).resolves.toEqual(demo_scene_list_response);
-    await expect(updateInteractiveDemoScene("project / 1", "demo / 1", "scene / 1", {
-      title: "Updated scene",
-      description: null,
-    })).resolves.toEqual(demo_scene_response);
-    await expect(reorderInteractiveDemoScenes("project / 1", "demo / 1", ["scene / 2", "scene / 1"])).resolves.toEqual(demo_scene_list_response);
-    await expect(archiveInteractiveDemo("project / 1", "demo / 1")).resolves.toBeUndefined();
-    await expect(deleteInteractiveDemoScene("project / 1", "demo / 1", "scene / 1")).resolves.toBeUndefined();
+    await expect(listProjectInteractiveDemos("project / 1")).resolves.toEqual(
+      interactive_demo_list_response,
+    );
+    await expect(
+      getInteractiveDemo("project / 1", "demo / 1"),
+    ).resolves.toEqual(interactive_demo_response);
+    await expect(
+      updateInteractiveDemo("project / 1", "demo / 1", {
+        title: "Updated demo",
+        description: null,
+        status: "draft",
+      }),
+    ).resolves.toEqual(interactive_demo_response);
+    await expect(
+      listInteractiveDemoScenes("project / 1", "demo / 1"),
+    ).resolves.toEqual(demo_scene_list_response);
+    await expect(
+      updateInteractiveDemoScene("project / 1", "demo / 1", "scene / 1", {
+        title: "Updated scene",
+        description: null,
+      }),
+    ).resolves.toEqual(demo_scene_response);
+    await expect(
+      reorderInteractiveDemoScenes("project / 1", "demo / 1", [
+        "scene / 2",
+        "scene / 1",
+      ]),
+    ).resolves.toEqual(demo_scene_list_response);
+    await expect(
+      archiveInteractiveDemo("project / 1", "demo / 1"),
+    ).resolves.toBeUndefined();
+    await expect(
+      deleteInteractiveDemoScene("project / 1", "demo / 1", "scene / 1"),
+    ).resolves.toBeUndefined();
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
@@ -1780,7 +2011,7 @@ describe("api client", () => {
       {
         credentials: "include",
         headers: { accept: "application/json" },
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
@@ -1788,7 +2019,7 @@ describe("api client", () => {
       {
         credentials: "include",
         headers: { accept: "application/json" },
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       3,
@@ -1805,7 +2036,7 @@ describe("api client", () => {
           description: null,
           status: "draft",
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       4,
@@ -1813,7 +2044,7 @@ describe("api client", () => {
       {
         credentials: "include",
         headers: { accept: "application/json" },
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       5,
@@ -1829,7 +2060,7 @@ describe("api client", () => {
           title: "Updated scene",
           description: null,
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       6,
@@ -1844,7 +2075,7 @@ describe("api client", () => {
         body: JSON.stringify({
           scene_ids: ["scene / 2", "scene / 1"],
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       7,
@@ -1853,7 +2084,7 @@ describe("api client", () => {
         method: "DELETE",
         credentials: "include",
         headers: { accept: "application/json" },
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       8,
@@ -1862,49 +2093,81 @@ describe("api client", () => {
         method: "DELETE",
         credentials: "include",
         headers: { accept: "application/json" },
-      }
+      },
     );
   });
 
   it("manages interactive demo hotspots with session cookies", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(new Response(JSON.stringify(demo_hotspot_response), {
-        status: 201,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(demo_hotspot_list_response), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(demo_hotspot_response), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(demo_hotspot_list_response), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(demo_hotspot_response), {
+          status: 201,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(demo_hotspot_list_response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(demo_hotspot_response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(demo_hotspot_list_response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      )
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetch);
 
-    await expect(createInteractiveDemoHotspot("project / 1", "demo / 1", "scene / 1", {
-      hotspot_type: "click",
-      label: "Continue",
-      content: null,
-      x: 0.1,
-      y: 0.2,
-      width: 0.3,
-      height: 0.12,
-      target_scene_id: "scene / 2",
-    })).resolves.toEqual(demo_hotspot_response);
-    await expect(listInteractiveDemoHotspots("project / 1", "demo / 1", "scene / 1")).resolves.toEqual(demo_hotspot_list_response);
-    await expect(updateInteractiveDemoHotspot("project / 1", "demo / 1", "scene / 1", "hotspot / 1", {
-      label: "Updated",
-      target_scene_id: null,
-    })).resolves.toEqual(demo_hotspot_response);
-    await expect(reorderInteractiveDemoHotspots("project / 1", "demo / 1", "scene / 1", ["hotspot / 2", "hotspot / 1"])).resolves.toEqual(demo_hotspot_list_response);
-    await expect(deleteInteractiveDemoHotspot("project / 1", "demo / 1", "scene / 1", "hotspot / 1")).resolves.toBeUndefined();
+    await expect(
+      createInteractiveDemoHotspot("project / 1", "demo / 1", "scene / 1", {
+        hotspot_type: "click",
+        label: "Continue",
+        content: null,
+        x: 0.1,
+        y: 0.2,
+        width: 0.3,
+        height: 0.12,
+        target_scene_id: "scene / 2",
+      }),
+    ).resolves.toEqual(demo_hotspot_response);
+    await expect(
+      listInteractiveDemoHotspots("project / 1", "demo / 1", "scene / 1"),
+    ).resolves.toEqual(demo_hotspot_list_response);
+    await expect(
+      updateInteractiveDemoHotspot(
+        "project / 1",
+        "demo / 1",
+        "scene / 1",
+        "hotspot / 1",
+        {
+          label: "Updated",
+          target_scene_id: null,
+        },
+      ),
+    ).resolves.toEqual(demo_hotspot_response);
+    await expect(
+      reorderInteractiveDemoHotspots("project / 1", "demo / 1", "scene / 1", [
+        "hotspot / 2",
+        "hotspot / 1",
+      ]),
+    ).resolves.toEqual(demo_hotspot_list_response);
+    await expect(
+      deleteInteractiveDemoHotspot(
+        "project / 1",
+        "demo / 1",
+        "scene / 1",
+        "hotspot / 1",
+      ),
+    ).resolves.toBeUndefined();
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
@@ -1926,7 +2189,7 @@ describe("api client", () => {
           height: 0.12,
           target_scene_id: "scene / 2",
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
@@ -1934,7 +2197,7 @@ describe("api client", () => {
       {
         credentials: "include",
         headers: { accept: "application/json" },
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       3,
@@ -1950,7 +2213,7 @@ describe("api client", () => {
           label: "Updated",
           target_scene_id: null,
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       4,
@@ -1965,7 +2228,7 @@ describe("api client", () => {
         body: JSON.stringify({
           hotspot_ids: ["hotspot / 2", "hotspot / 1"],
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       5,
@@ -1974,24 +2237,30 @@ describe("api client", () => {
         method: "DELETE",
         credentials: "include",
         headers: { accept: "application/json" },
-      }
+      },
     );
   });
 
   it("updates guide metadata and guide steps", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify({
-      guide: guide_response.guide,
-      guide_step: {
-        id: "step_1",
-        title: "Updated step",
-        body: "Details",
-      },
-    }), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            guide: guide_response.guide,
+            guide_step: {
+              id: "step_1",
+              title: "Updated step",
+              body: "Details",
+            },
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        ),
+    );
     vi.stubGlobal("fetch", fetch);
 
     await updateGuide("project_1", "guide_1", {
@@ -2017,7 +2286,7 @@ describe("api client", () => {
           title: "Updated",
           description: null,
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
@@ -2033,26 +2302,32 @@ describe("api client", () => {
           title: "Updated step",
           body: "Details",
         }),
-      }
+      },
     );
   });
 
   it("creates updates reorders and deletes guide blocks", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify({
-      guide_blocks: [],
-      guide_block: {
-        id: "block_1",
-        content: {
-          title: "Updated tip",
-          body: "Details",
-        },
-      },
-    }), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            guide_blocks: [],
+            guide_block: {
+              id: "block_1",
+              content: {
+                title: "Updated tip",
+                body: "Details",
+              },
+            },
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        ),
+    );
     vi.stubGlobal("fetch", fetch);
 
     await createGuideBlock("project_1", "guide_1", {
@@ -2096,7 +2371,7 @@ describe("api client", () => {
             body: "Details",
           },
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
@@ -2114,7 +2389,7 @@ describe("api client", () => {
             body: "Details",
           },
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       3,
@@ -2129,7 +2404,7 @@ describe("api client", () => {
         body: JSON.stringify({
           block_ids: ["block_2", "block_1"],
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       4,
@@ -2140,19 +2415,25 @@ describe("api client", () => {
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
   });
 
   it("creates paragraph and divider guide blocks", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify({
-      guide_blocks: [],
-    }), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            guide_blocks: [],
+          }),
+          {
+            status: 201,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        ),
+    );
     vi.stubGlobal("fetch", fetch);
 
     await createGuideBlock("project_1", "guide_1", {
@@ -2193,7 +2474,7 @@ describe("api client", () => {
             body: "Add supporting context.",
           },
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
@@ -2212,18 +2493,21 @@ describe("api client", () => {
             guide_block_id: "block_paragraph",
           },
         }),
-      }
+      },
     );
   });
 
   it("lists project screenshots and updates guide block screenshots", async () => {
     const screenshot_response = {
-      capture_assets: [{
-        id: "asset_1",
-        capture_session_id: "capture_session_1",
-        asset_type: "screenshot",
-        file_url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/asset_1/file",
-      }],
+      capture_assets: [
+        {
+          id: "asset_1",
+          capture_session_id: "capture_session_1",
+          asset_type: "screenshot",
+          file_url:
+            "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/asset_1/file",
+        },
+      ],
     };
     const screenshot_update_response = {
       guide_block: {
@@ -2233,33 +2517,45 @@ describe("api client", () => {
         display_capture_asset_id: "asset_1",
       },
     };
-    const fetch = vi.fn(async (url: string) => new Response(JSON.stringify(
-      url.includes("/capture-assets") ? screenshot_response : screenshot_update_response
-    ), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async (url: string) =>
+        new Response(
+          JSON.stringify(
+            url.includes("/capture-assets")
+              ? screenshot_response
+              : screenshot_update_response,
+          ),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+            },
+          },
+        ),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(listProjectScreenshotAssets("project_1")).resolves.toEqual(screenshot_response);
-    await expect(updateGuideBlockScreenshot("project_1", "guide_1", "block_1", {
-      capture_asset_id: "asset_1",
-    })).resolves.toEqual(screenshot_update_response);
+    await expect(
+      listProjectScreenshotAssets("project_1", "version_1"),
+    ).resolves.toEqual(screenshot_response);
+    await expect(
+      updateGuideBlockScreenshot("project_1", "guide_1", "block_1", {
+        capture_asset_id: "asset_1",
+      }),
+    ).resolves.toEqual(screenshot_update_response);
     await updateGuideBlockScreenshot("project_1", "guide_1", "block_1", {
       capture_asset_id: null,
     });
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
-      "/api/v1/projects/project_1/capture-assets?asset_type=screenshot",
+      "/api/v1/projects/project_1/capture-assets?project_version_id=version_1&asset_type=screenshot",
       {
         credentials: "include",
         headers: {
           accept: "application/json",
         },
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
@@ -2274,7 +2570,7 @@ describe("api client", () => {
         body: JSON.stringify({
           capture_asset_id: "asset_1",
         }),
-      }
+      },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       3,
@@ -2289,7 +2585,7 @@ describe("api client", () => {
         body: JSON.stringify({
           capture_asset_id: null,
         }),
-      }
+      },
     );
   });
 
@@ -2298,35 +2594,44 @@ describe("api client", () => {
       guide_block: {
         id: "block_1",
         content: {
-          annotations: [{
-            id: "ann_saved",
+          annotations: [
+            {
+              id: "ann_saved",
+              type: "highlight",
+              x: 0.1,
+              y: 0.2,
+              width: 0.3,
+              height: 0.4,
+            },
+          ],
+        },
+      },
+    };
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(
+      updateGuideBlockAnnotations("project_1", "guide_1", "block_1", {
+        annotations: [
+          {
+            id: "ann_existing",
             type: "highlight",
             x: 0.1,
             y: 0.2,
             width: 0.3,
             height: 0.4,
-          }],
-        },
-      },
-    };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
-    vi.stubGlobal("fetch", fetch);
-
-    await expect(updateGuideBlockAnnotations("project_1", "guide_1", "block_1", {
-      annotations: [{
-        id: "ann_existing",
-        type: "highlight",
-        x: 0.1,
-        y: 0.2,
-        width: 0.3,
-        height: 0.4,
-      }],
-    })).resolves.toEqual(response);
+          },
+        ],
+      }),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/annotations",
@@ -2338,16 +2643,18 @@ describe("api client", () => {
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          annotations: [{
-            id: "ann_existing",
-            type: "highlight",
-            x: 0.1,
-            y: 0.2,
-            width: 0.3,
-            height: 0.4,
-          }],
+          annotations: [
+            {
+              id: "ann_existing",
+              type: "highlight",
+              x: 0.1,
+              y: 0.2,
+              width: 0.3,
+              height: 0.4,
+            },
+          ],
         }),
-      }
+      },
     );
   });
 
@@ -2363,32 +2670,42 @@ describe("api client", () => {
         id: "asset_uploaded",
         capture_session_id: "capture_session_1",
         asset_type: "screenshot",
-        file_url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/asset_uploaded/file",
+        file_url:
+          "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/asset_uploaded/file",
       },
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(upload_response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(upload_response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
-    const file = new File(["fake png bytes"], "replacement.png", { type: "image/png" });
+    const file = new File(["fake png bytes"], "replacement.png", {
+      type: "image/png",
+    });
 
-    await expect(uploadGuideBlockScreenshot("project_1", "guide_1", "block_1", {
-      file,
-      width: 1440,
-      height: 900,
-      devicePixelRatio: 2,
-      pageUrl: "https://example.test/replacement",
-      pageTitle: "Replacement",
-      capturedAt: "2026-06-05T10:00:00.000Z",
-      metadata: { source: "editor" },
-    })).resolves.toEqual(upload_response);
+    await expect(
+      uploadGuideBlockScreenshot("project_1", "guide_1", "block_1", {
+        file,
+        width: 1440,
+        height: 900,
+        devicePixelRatio: 2,
+        pageUrl: "https://example.test/replacement",
+        pageTitle: "Replacement",
+        capturedAt: "2026-06-05T10:00:00.000Z",
+        metadata: { source: "editor" },
+      }),
+    ).resolves.toEqual(upload_response);
 
     expect(fetch).toHaveBeenCalledTimes(1);
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe("/api/v1/projects/project_1/guides/guide_1/blocks/block_1/screenshot-upload");
+    expect(url).toBe(
+      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/screenshot-upload",
+    );
     expect(init).toMatchObject({
       method: "POST",
       credentials: "include",
@@ -2410,19 +2727,30 @@ describe("api client", () => {
   });
 
   it("maps known backend errors", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "unauthenticated",
-        message: "Authentication is required",
-      },
-    }), {
-      status: 401,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "unauthenticated",
+                message: "Authentication is required",
+              },
+            }),
+            {
+              status: 401,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
-    await expect(getCaptureSessionDetail("project_1", "capture_session_1")).rejects.toMatchObject({
+    await expect(
+      getCaptureSessionDetail("project_1", "capture_session_1"),
+    ).rejects.toMatchObject({
       kind: "unauthenticated",
       type: "unauthenticated",
       message: "Authentication is required",
@@ -2430,22 +2758,33 @@ describe("api client", () => {
   });
 
   it("maps invalid credentials while logging in", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "invalid_credentials",
-        message: "Email or password is incorrect",
-      },
-    }), {
-      status: 401,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "invalid_credentials",
+                message: "Email or password is incorrect",
+              },
+            }),
+            {
+              status: 401,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
-    await expect(login({
-      email: "person@example.com",
-      password: "wrong",
-    })).rejects.toMatchObject({
+    await expect(
+      login({
+        email: "person@example.com",
+        password: "wrong",
+      }),
+    ).rejects.toMatchObject({
       kind: "unauthenticated",
       type: "invalid_credentials",
       message: "Email or password is incorrect",
@@ -2453,21 +2792,32 @@ describe("api client", () => {
   });
 
   it("preserves backend error type", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "guide_not_editable",
-        message: "Guide is not editable",
-      },
-    }), {
-      status: 409,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "guide_not_editable",
+                message: "Guide is not editable",
+              },
+            }),
+            {
+              status: 409,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
-    await expect(updateGuideStep("project_1", "guide_1", "step_1", {
-      title: "Blocked",
-    })).rejects.toMatchObject({
+    await expect(
+      updateGuideStep("project_1", "guide_1", "step_1", {
+        title: "Blocked",
+      }),
+    ).rejects.toMatchObject({
       kind: "validation",
       type: "guide_not_editable",
       message: "Guide is not editable",
@@ -2475,36 +2825,58 @@ describe("api client", () => {
   });
 
   it("maps not found errors", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "capture_session_not_found",
-        message: "Capture session was not found",
-      },
-    }), {
-      status: 404,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "capture_session_not_found",
+                message: "Capture session was not found",
+              },
+            }),
+            {
+              status: 404,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
-    await expect(getCaptureSessionDetail("project_1", "missing")).rejects.toBeInstanceOf(ApiClientError);
-    await expect(getCaptureSessionDetail("project_1", "missing")).rejects.toMatchObject({
+    await expect(
+      getCaptureSessionDetail("project_1", "missing"),
+    ).rejects.toBeInstanceOf(ApiClientError);
+    await expect(
+      getCaptureSessionDetail("project_1", "missing"),
+    ).rejects.toMatchObject({
       kind: "not_found",
     });
   });
 
   it("maps project not found errors while listing guides", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "project_not_found",
-        message: "Project was not found",
-      },
-    }), {
-      status: 404,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "project_not_found",
+                message: "Project was not found",
+              },
+            }),
+            {
+              status: 404,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
     await expect(listProjectGuides("missing")).rejects.toMatchObject({
       kind: "not_found",
@@ -2514,17 +2886,26 @@ describe("api client", () => {
   });
 
   it("maps project not found errors while fetching project detail", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "project_not_found",
-        message: "Project was not found",
-      },
-    }), {
-      status: 404,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "project_not_found",
+                message: "Project was not found",
+              },
+            }),
+            {
+              status: 404,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
     await expect(getProject("missing")).rejects.toMatchObject({
       kind: "not_found",
@@ -2534,17 +2915,26 @@ describe("api client", () => {
   });
 
   it("maps unauthenticated errors while fetching project detail", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "unauthenticated",
-        message: "Authentication is required",
-      },
-    }), {
-      status: 401,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "unauthenticated",
+                message: "Authentication is required",
+              },
+            }),
+            {
+              status: 401,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
     await expect(getProject("project_1")).rejects.toMatchObject({
       kind: "unauthenticated",
@@ -2554,17 +2944,26 @@ describe("api client", () => {
   });
 
   it("maps unauthenticated errors while listing projects", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "unauthenticated",
-        message: "Authentication is required",
-      },
-    }), {
-      status: 401,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "unauthenticated",
+                message: "Authentication is required",
+              },
+            }),
+            {
+              status: 401,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
     await expect(listProjects()).rejects.toMatchObject({
       kind: "unauthenticated",
@@ -2574,19 +2973,32 @@ describe("api client", () => {
   });
 
   it("maps project not found errors while listing capture sessions", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "project_not_found",
-        message: "Project was not found",
-      },
-    }), {
-      status: 404,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "project_not_found",
+                message: "Project was not found",
+              },
+            }),
+            {
+              status: 404,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
-    await expect(listProjectCaptureSessions("missing")).rejects.toMatchObject({
+    await expect(
+      listProjectCaptureSessions("missing", {
+        project_version_id: "version_1",
+      }),
+    ).rejects.toMatchObject({
       kind: "not_found",
       type: "project_not_found",
       message: "Project was not found",
@@ -2605,13 +3017,20 @@ describe("api client", () => {
         newest_occurred_at: null,
       },
     };
-    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await listComplianceEvents({ kind: "access", cursor: "next page", limit: 10 });
+    await listComplianceEvents({
+      kind: "access",
+      cursor: "next page",
+      limit: 10,
+    });
     expect(fetch).toHaveBeenLastCalledWith(
       "/api/v1/organization/compliance/events?kind=access&cursor=next+page&limit=10",
       expect.objectContaining({ credentials: "include" }),
@@ -2624,33 +3043,102 @@ describe("api client", () => {
   });
 
   it("uses only path-scoped Project membership, compliance, and Activity endpoints", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify({ members: [], events: [], page: { next_cursor: null, has_more: false }, totals: { audit_events: 0, audit_change_items: 0, access_events: 0, oldest_occurred_at: null, newest_occurred_at: null } }), { status: 200, headers: { "content-type": "application/json" } }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            members: [],
+            events: [],
+            page: { next_cursor: null, has_more: false },
+            totals: {
+              audit_events: 0,
+              audit_change_items: 0,
+              access_events: 0,
+              oldest_occurred_at: null,
+              newest_occurred_at: null,
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    );
     vi.stubGlobal("fetch", fetch);
     await listProjectMemberships("project/id");
-    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/memberships", expect.anything());
-    await assignProjectMembership("project/id", { org_user_id: "member-1", role: "viewer" });
-    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/memberships", expect.objectContaining({ method: "POST" }));
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/projects/project%2Fid/memberships",
+      expect.anything(),
+    );
+    await assignProjectMembership("project/id", {
+      org_user_id: "member-1",
+      role: "viewer",
+    });
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/projects/project%2Fid/memberships",
+      expect.objectContaining({ method: "POST" }),
+    );
     await listProjectComplianceEvents("project/id", { kind: "audit" });
-    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/compliance/events?kind=audit", expect.anything());
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/projects/project%2Fid/compliance/events?kind=audit",
+      expect.anything(),
+    );
     await listProjectActivity("project/id", { limit: 10 });
-    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/activity?limit=10", expect.anything());
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/projects/project%2Fid/activity?limit=10",
+      expect.anything(),
+    );
   });
 
   it("encodes Project Version routes and sends optimistic mutation input", async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify({ project_versions: [], project_version: {}, resolution: "canonical" }), { status: 200, headers: { "content-type": "application/json" } }));
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            project_versions: [],
+            project_version: {},
+            resolution: "canonical",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    );
     vi.stubGlobal("fetch", fetch);
     await listProjectVersions("project/id", { status: "archived" });
-    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/versions?status=archived", expect.anything());
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/projects/project%2Fid/versions?status=archived",
+      expect.anything(),
+    );
     await resolveProjectVersion("project/id", "Q3 / old");
-    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/versions/resolve/Q3%20%2F%20old", expect.anything());
-    await updateProjectVersion("project/id", "version/id", { expected_version: 2, name: "Q3" });
-    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/versions/version%2Fid", expect.objectContaining({ method: "PATCH", body: JSON.stringify({ expected_version: 2, name: "Q3" }) }));
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/projects/project%2Fid/versions/resolve/Q3%20%2F%20old",
+      expect.anything(),
+    );
+    await updateProjectVersion("project/id", "version/id", {
+      expected_version: 2,
+      name: "Q3",
+    });
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/projects/project%2Fid/versions/version%2Fid",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ expected_version: 2, name: "Q3" }),
+      }),
+    );
   });
 
   it("maps compliance permission denials separately from authentication", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: { type: "compliance_permission_denied", message: "Owner required" },
-    }), { status: 403, headers: { "content-type": "application/json" } })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "compliance_permission_denied",
+                message: "Owner required",
+              },
+            }),
+            { status: 403, headers: { "content-type": "application/json" } },
+          ),
+      ),
+    );
 
     await expect(listComplianceEvents()).rejects.toMatchObject({
       kind: "forbidden",
@@ -2659,10 +3147,14 @@ describe("api client", () => {
   });
 
   it("resolves relative asset URLs against optional API base URLs", () => {
-    expect(resolveApiAssetUrl("/api/v1/projects/project_1/file")).toBe("/api/v1/projects/project_1/file");
-    expect(resolveApiAssetUrl(
+    expect(resolveApiAssetUrl("/api/v1/projects/project_1/file")).toBe(
       "/api/v1/projects/project_1/file",
-      "https://demo.example.com"
-    )).toBe("https://demo.example.com/api/v1/projects/project_1/file");
+    );
+    expect(
+      resolveApiAssetUrl(
+        "/api/v1/projects/project_1/file",
+        "https://demo.example.com",
+      ),
+    ).toBe("https://demo.example.com/api/v1/projects/project_1/file");
   });
 });

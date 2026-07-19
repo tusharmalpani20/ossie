@@ -1,4 +1,8 @@
-import type { CaptureSessionStatus, ProjectRole, ProjectStatus } from "@repo/constants";
+import type {
+  CaptureSessionStatus,
+  ProjectRole,
+  ProjectStatus,
+} from "@repo/constants";
 import type { AuthResponse, LoginRequest } from "@repo/types/auth";
 import type {
   CaptureSessionCreateResponse,
@@ -88,8 +92,12 @@ import type {
 } from "@repo/types/project-membership";
 import type {
   CreateProjectVersionRequest,
-  ProjectVersionListQuery, ProjectVersionListResponse, ProjectVersionResolutionResponse,
-  ProjectVersionResponse, ReorderProjectVersionsRequest, SetDefaultProjectVersionRequest,
+  ProjectVersionListQuery,
+  ProjectVersionListResponse,
+  ProjectVersionResolutionResponse,
+  ProjectVersionResponse,
+  ReorderProjectVersionsRequest,
+  SetDefaultProjectVersionRequest,
   UpdateProjectVersionRequest,
 } from "@repo/types/project-version";
 import type {
@@ -116,9 +124,7 @@ export type {
   CaptureSessionCreateResponse,
   ProjectCaptureSessionListResponse,
 } from "@repo/types/capture";
-export type {
-  ProjectGuideListResponse,
-} from "@repo/types/guide";
+export type { ProjectGuideListResponse } from "@repo/types/guide";
 export type {
   ProjectCreateResponse,
   ProjectDetailResponse,
@@ -126,9 +132,19 @@ export type {
   ProjectUpdateResponse,
 } from "@repo/types/project";
 export type { PublicInstanceStatus } from "@repo/types/instance";
-export type { ProjectVersionDetail, ProjectVersionListResponse, ProjectVersionResolutionResponse, ProjectVersionResponse } from "@repo/types/project-version";
+export type {
+  ProjectVersionDetail,
+  ProjectVersionListResponse,
+  ProjectVersionResolutionResponse,
+  ProjectVersionResponse,
+} from "@repo/types/project-version";
 
-export type ApiClientErrorKind = "unauthenticated" | "forbidden" | "not_found" | "validation" | "unknown";
+export type ApiClientErrorKind =
+  | "unauthenticated"
+  | "forbidden"
+  | "not_found"
+  | "validation"
+  | "unknown";
 
 type ApiErrorBody = {
   error?: {
@@ -142,6 +158,7 @@ export type ListProjectsOptions = {
 };
 
 export type ListCaptureSessionsOptions = {
+  project_version_id: string;
   status?: CaptureSessionStatus;
 };
 
@@ -150,7 +167,12 @@ export class ApiClientError extends Error {
   status: number;
   type: string | null;
 
-  constructor(input: { kind: ApiClientErrorKind; status: number; message: string; type?: string | null }) {
+  constructor(input: {
+    kind: ApiClientErrorKind;
+    status: number;
+    message: string;
+    type?: string | null;
+  }) {
     super(input.message);
     this.name = "ApiClientError";
     this.kind = input.kind;
@@ -191,7 +213,7 @@ const errorKind = (status: number, type?: string): ApiClientErrorKind => {
 
 const parseErrorBody = async (response: Response): Promise<ApiErrorBody> => {
   try {
-    return await response.json() as ApiErrorBody;
+    return (await response.json()) as ApiErrorBody;
   } catch {
     return {};
   }
@@ -199,19 +221,16 @@ const parseErrorBody = async (response: Response): Promise<ApiErrorBody> => {
 
 const requestJson = async <Result>(
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
 ): Promise<Result> => {
-  const response = await fetch(
-    joinUrl(apiBaseUrl(), path),
-    {
-      ...init,
-      credentials: "include",
-      headers: {
-        accept: "application/json",
-        ...init.headers,
-      },
-    }
-  );
+  const response = await fetch(joinUrl(apiBaseUrl(), path), {
+    ...init,
+    credentials: "include",
+    headers: {
+      accept: "application/json",
+      ...init.headers,
+    },
+  });
 
   if (!response.ok) {
     const body = await parseErrorBody(response);
@@ -227,12 +246,13 @@ const requestJson = async <Result>(
     return undefined as Result;
   }
 
-  return await response.json() as Result;
+  return (await response.json()) as Result;
 };
 
 const filenameFromContentDisposition = (contentDisposition: string | null) => {
-  const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/i)
-    ?? contentDisposition?.match(/filename=([^;]+)/i);
+  const filenameMatch =
+    contentDisposition?.match(/filename="([^"]+)"/i) ??
+    contentDisposition?.match(/filename=([^;]+)/i);
   const filename = filenameMatch?.[1]?.trim();
 
   return filename || null;
@@ -240,17 +260,14 @@ const filenameFromContentDisposition = (contentDisposition: string | null) => {
 
 const requestBlob = async (
   path: string,
-  fallbackFilename: string
+  fallbackFilename: string,
 ): Promise<{ filename: string; blob: Blob }> => {
-  const response = await fetch(
-    joinUrl(apiBaseUrl(), path),
-    {
-      credentials: "include",
-      headers: {
-        accept: "application/zip",
-      },
-    }
-  );
+  const response = await fetch(joinUrl(apiBaseUrl(), path), {
+    credentials: "include",
+    headers: {
+      accept: "application/zip",
+    },
+  });
 
   if (!response.ok) {
     const body = await parseErrorBody(response);
@@ -263,95 +280,93 @@ const requestBlob = async (
   }
 
   return {
-    filename: filenameFromContentDisposition(response.headers.get("content-disposition")) ?? fallbackFilename,
+    filename:
+      filenameFromContentDisposition(
+        response.headers.get("content-disposition"),
+      ) ?? fallbackFilename,
     blob: await response.blob(),
   };
 };
 
-export const resolveApiAssetUrl = (fileUrl: string, baseUrl = apiBaseUrl()) => (
-  joinUrl(baseUrl, fileUrl)
-);
+export const resolveApiAssetUrl = (fileUrl: string, baseUrl = apiBaseUrl()) =>
+  joinUrl(baseUrl, fileUrl);
 
-export const getCurrentAuth = async (): Promise<AuthResponse> => (
-  requestJson<AuthResponse>("/api/v1/authentication/me")
-);
+export const getCurrentAuth = async (): Promise<AuthResponse> =>
+  requestJson<AuthResponse>("/api/v1/authentication/me");
 
-export const getPublicInstanceStatus = async (): Promise<PublicInstanceStatus> => (
-  requestJson<PublicInstanceStatus>("/api/v1/public/instance")
-);
+export const getPublicInstanceStatus =
+  async (): Promise<PublicInstanceStatus> =>
+    requestJson<PublicInstanceStatus>("/api/v1/public/instance");
 
 export const completeFirstRunSetup = async (data: {
   owner: FirstRunSetupInput["owner"];
   organization: FirstRunSetupInput["organization"];
-}): Promise<FirstRunSetupResponse> => (
+}): Promise<FirstRunSetupResponse> =>
   requestJson<FirstRunSetupResponse>("/api/v1/setup/first-run", {
     method: "POST",
     headers: {
       "content-type": "application/json",
     },
     body: JSON.stringify(data),
-  })
-);
+  });
 
-export const login = async (data: LoginRequest): Promise<AuthResponse> => (
+export const login = async (data: LoginRequest): Promise<AuthResponse> =>
   requestJson<AuthResponse>("/api/v1/authentication/login", {
     method: "POST",
     headers: {
       "content-type": "application/json",
     },
     body: JSON.stringify(data),
-  })
-);
+  });
 
-export const logout = async (): Promise<void> => (
+export const logout = async (): Promise<void> =>
   requestJson<void>("/api/v1/authentication/logout", {
     method: "POST",
-  })
-);
+  });
 
-export const listOrganizationMembers = async (): Promise<OrganizationMemberListResponse> => (
-  requestJson<OrganizationMemberListResponse>("/api/v1/organization/members")
-);
+export const listOrganizationMembers =
+  async (): Promise<OrganizationMemberListResponse> =>
+    requestJson<OrganizationMemberListResponse>("/api/v1/organization/members");
 
-export const listOrganizationInvites = async (): Promise<OrganizationInviteListResponse> => (
-  requestJson<OrganizationInviteListResponse>("/api/v1/organization/invites")
-);
+export const listOrganizationInvites =
+  async (): Promise<OrganizationInviteListResponse> =>
+    requestJson<OrganizationInviteListResponse>("/api/v1/organization/invites");
 
 export const createOrganizationInvite = async (
-  input: OrganizationInviteCreateInput
-): Promise<OrganizationInviteCreateResponse> => (
-  requestJson<OrganizationInviteCreateResponse>("/api/v1/organization/invites", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
+  input: OrganizationInviteCreateInput,
+): Promise<OrganizationInviteCreateResponse> =>
+  requestJson<OrganizationInviteCreateResponse>(
+    "/api/v1/organization/invites",
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(input),
     },
-    body: JSON.stringify(input),
-  })
-);
+  );
 
 export const revokeOrganizationInvite = async (
-  inviteId: string
-): Promise<OrganizationInviteUpdateResponse> => (
+  inviteId: string,
+): Promise<OrganizationInviteUpdateResponse> =>
   requestJson<OrganizationInviteUpdateResponse>(
     `/api/v1/organization/invites/${encodeURIComponent(inviteId)}`,
     {
       method: "DELETE",
-    }
-  )
-);
+    },
+  );
 
 export const getPublicOrganizationInvite = async (
-  token: string
-): Promise<PublicOrganizationInviteResponse> => (
+  token: string,
+): Promise<PublicOrganizationInviteResponse> =>
   requestJson<PublicOrganizationInviteResponse>(
-    `/api/v1/public/invites/${encodeURIComponent(token)}`
-  )
-);
+    `/api/v1/public/invites/${encodeURIComponent(token)}`,
+  );
 
 export const acceptPublicOrganizationInvite = async (
   token: string,
-  input: AcceptOrganizationInviteInput
-): Promise<AuthResponse> => (
+  input: AcceptOrganizationInviteInput,
+): Promise<AuthResponse> =>
   requestJson<AuthResponse>(
     `/api/v1/public/invites/${encodeURIComponent(token)}/accept`,
     {
@@ -360,72 +375,80 @@ export const acceptPublicOrganizationInvite = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(input),
-    }
-  )
-);
+    },
+  );
 
 export const listProjects = async (
-  options: ListProjectsOptions = {}
+  options: ListProjectsOptions = {},
 ): Promise<ProjectListResponse> => {
-  const query = options.status ? `?status=${encodeURIComponent(options.status)}` : "";
+  const query = options.status
+    ? `?status=${encodeURIComponent(options.status)}`
+    : "";
 
   return requestJson<ProjectListResponse>(`/api/v1/projects${query}`);
 };
 
-export const listProjectMemberships = async (projectId: string): Promise<ProjectMembershipListResponse> => (
-  requestJson(`/api/v1/projects/${encodeURIComponent(projectId)}/memberships`)
-);
+export const listProjectMemberships = async (
+  projectId: string,
+): Promise<ProjectMembershipListResponse> =>
+  requestJson(`/api/v1/projects/${encodeURIComponent(projectId)}/memberships`);
 
 export const assignProjectMembership = async (
   projectId: string,
   input: { org_user_id: string; role: ProjectRole },
-): Promise<ProjectMembershipResponse> => requestJson(
-  `/api/v1/projects/${encodeURIComponent(projectId)}/memberships`,
-  { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) },
-);
+): Promise<ProjectMembershipResponse> =>
+  requestJson(`/api/v1/projects/${encodeURIComponent(projectId)}/memberships`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
 
 export const changeProjectMembershipRole = async (
   projectId: string,
   membershipId: string,
   input: { role: ProjectRole; expected_version: number },
-): Promise<ProjectMembershipResponse> => requestJson(
-  `/api/v1/projects/${encodeURIComponent(projectId)}/memberships/${encodeURIComponent(membershipId)}`,
-  { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input) },
-);
+): Promise<ProjectMembershipResponse> =>
+  requestJson(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/memberships/${encodeURIComponent(membershipId)}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
 
 export const removeProjectMembership = async (
   projectId: string,
   membershipId: string,
   expectedVersion: number,
-): Promise<void> => requestJson(
-  `/api/v1/projects/${encodeURIComponent(projectId)}/memberships/${encodeURIComponent(membershipId)}?expected_version=${expectedVersion}`,
-  { method: "DELETE" },
-);
+): Promise<void> =>
+  requestJson(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/memberships/${encodeURIComponent(membershipId)}?expected_version=${expectedVersion}`,
+    { method: "DELETE" },
+  );
 
 export const createProject = async (
-  input: CreateProjectInput
-): Promise<ProjectCreateResponse> => (
+  input: CreateProjectInput,
+): Promise<ProjectCreateResponse> =>
   requestJson<ProjectCreateResponse>("/api/v1/projects", {
     method: "POST",
     headers: {
       "content-type": "application/json",
     },
     body: JSON.stringify(input),
-  })
-);
+  });
 
 export const getProject = async (
-  projectId: string
-): Promise<ProjectDetailResponse> => (
+  projectId: string,
+): Promise<ProjectDetailResponse> =>
   requestJson<ProjectDetailResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}`
-  )
-);
+    `/api/v1/projects/${encodeURIComponent(projectId)}`,
+  );
 
 export const updateProject = async (
   projectId: string,
-  input: UpdateProjectInput
-): Promise<ProjectUpdateResponse> => (
+  input: UpdateProjectInput,
+): Promise<ProjectUpdateResponse> =>
   requestJson<ProjectUpdateResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}`,
     {
@@ -434,54 +457,128 @@ export const updateProject = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(input),
-    }
-  )
-);
+    },
+  );
 
-const projectVersionsUrl = (projectId: string) => `/api/v1/projects/${encodeURIComponent(projectId)}/versions`;
-export const listProjectVersions = (projectId: string, query: ProjectVersionListQuery = {}): Promise<ProjectVersionListResponse> =>
-  requestJson(`${projectVersionsUrl(projectId)}${query.status ? `?status=${encodeURIComponent(query.status)}` : ""}`);
-export const resolveProjectVersion = (projectId: string, slug: string): Promise<ProjectVersionResolutionResponse> =>
-  requestJson(`${projectVersionsUrl(projectId)}/resolve/${encodeURIComponent(slug)}`);
-export const getProjectVersion = (projectId: string, id: string): Promise<ProjectVersionResponse> =>
+const projectVersionsUrl = (projectId: string) =>
+  `/api/v1/projects/${encodeURIComponent(projectId)}/versions`;
+export const listProjectVersions = (
+  projectId: string,
+  query: ProjectVersionListQuery = {},
+): Promise<ProjectVersionListResponse> =>
+  requestJson(
+    `${projectVersionsUrl(projectId)}${query.status ? `?status=${encodeURIComponent(query.status)}` : ""}`,
+  );
+export const resolveProjectVersion = (
+  projectId: string,
+  slug: string,
+): Promise<ProjectVersionResolutionResponse> =>
+  requestJson(
+    `${projectVersionsUrl(projectId)}/resolve/${encodeURIComponent(slug)}`,
+  );
+export const getProjectVersion = (
+  projectId: string,
+  id: string,
+): Promise<ProjectVersionResponse> =>
   requestJson(`${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}`);
-export const createProjectVersion = (projectId: string, data: CreateProjectVersionRequest): Promise<ProjectVersionResponse> =>
-  requestJson(projectVersionsUrl(projectId), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
-export const updateProjectVersion = (projectId: string, id: string, data: UpdateProjectVersionRequest): Promise<ProjectVersionResponse> =>
-  requestJson(`${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
-export const reorderProjectVersions = (projectId: string, data: ReorderProjectVersionsRequest): Promise<ProjectVersionListResponse> =>
-  requestJson(`${projectVersionsUrl(projectId)}/order`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
-export const archiveProjectVersion = (projectId: string, id: string, expected_version: number): Promise<ProjectVersionResponse> =>
-  requestJson(`${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}/archive`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ expected_version }) });
-export const restoreProjectVersion = (projectId: string, id: string, expected_version: number): Promise<ProjectVersionResponse> =>
-  requestJson(`${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}/restore`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ expected_version }) });
-export const setDefaultProjectVersion = (projectId: string, id: string, data: SetDefaultProjectVersionRequest): Promise<{ project: import("@repo/types/project").Project; project_version: import("@repo/types/project-version").ProjectVersionDetail }> =>
-  requestJson(`${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}/set-default`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
+export const createProjectVersion = (
+  projectId: string,
+  data: CreateProjectVersionRequest,
+): Promise<ProjectVersionResponse> =>
+  requestJson(projectVersionsUrl(projectId), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(data),
+  });
+export const updateProjectVersion = (
+  projectId: string,
+  id: string,
+  data: UpdateProjectVersionRequest,
+): Promise<ProjectVersionResponse> =>
+  requestJson(`${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(data),
+  });
+export const reorderProjectVersions = (
+  projectId: string,
+  data: ReorderProjectVersionsRequest,
+): Promise<ProjectVersionListResponse> =>
+  requestJson(`${projectVersionsUrl(projectId)}/order`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(data),
+  });
+export const archiveProjectVersion = (
+  projectId: string,
+  id: string,
+  expected_version: number,
+): Promise<ProjectVersionResponse> =>
+  requestJson(
+    `${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}/archive`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expected_version }),
+    },
+  );
+export const restoreProjectVersion = (
+  projectId: string,
+  id: string,
+  expected_version: number,
+): Promise<ProjectVersionResponse> =>
+  requestJson(
+    `${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}/restore`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expected_version }),
+    },
+  );
+export const setDefaultProjectVersion = (
+  projectId: string,
+  id: string,
+  data: SetDefaultProjectVersionRequest,
+): Promise<{
+  project: import("@repo/types/project").Project;
+  project_version: import("@repo/types/project-version").ProjectVersionDetail;
+}> =>
+  requestJson(
+    `${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}/set-default`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(data),
+    },
+  );
 
 export const getCaptureSessionDetail = async (
   projectId: string,
-  captureSessionId: string
+  captureSessionId: string,
 ): Promise<CaptureSessionDetail> => {
   return requestJson<CaptureSessionDetail>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}/detail`
+    `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}/detail`,
   );
 };
 
 export const listProjectCaptureSessions = async (
   projectId: string,
-  options: ListCaptureSessionsOptions = {}
+  options: ListCaptureSessionsOptions,
 ): Promise<ProjectCaptureSessionListResponse> => {
-  const query = options.status ? `?status=${encodeURIComponent(options.status)}` : "";
+  const query = new URLSearchParams({
+    project_version_id: options.project_version_id,
+  });
+  if (options.status) query.set("status", options.status);
 
   return requestJson<ProjectCaptureSessionListResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions${query}`
+    `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions?${query}`,
   );
 };
 
 export const createProjectCaptureSession = async (
   projectId: string,
-  input: CreateCaptureSessionInput
-): Promise<CaptureSessionCreateResponse> => (
+  input: CreateCaptureSessionInput,
+): Promise<CaptureSessionCreateResponse> =>
   requestJson<CaptureSessionCreateResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions`,
     {
@@ -490,11 +587,28 @@ export const createProjectCaptureSession = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(input),
-    }
-  )
-);
+    },
+  );
 
-const appendOptionalFormValue = (formData: FormData, key: string, value?: string | null) => {
+export const reassignCaptureSessionProjectVersion = (
+  projectId: string,
+  captureSessionId: string,
+  data: { project_version_id: string; expected_version: number },
+): Promise<CaptureSessionCreateResponse> =>
+  requestJson(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}/reassign-project-version`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(data),
+    },
+  );
+
+const appendOptionalFormValue = (
+  formData: FormData,
+  key: string,
+  value?: string | null,
+) => {
   if (value !== undefined && value !== null) {
     formData.append(key, value);
   }
@@ -503,7 +617,7 @@ const appendOptionalFormValue = (formData: FormData, key: string, value?: string
 export const uploadCaptureSessionAsset = async (
   projectId: string,
   captureSessionId: string,
-  input: UploadCaptureAssetInput
+  input: UploadCaptureAssetInput,
 ): Promise<UploadCaptureAssetResponse> => {
   const formData = new FormData();
   formData.append("file", input.file);
@@ -516,15 +630,15 @@ export const uploadCaptureSessionAsset = async (
     {
       method: "POST",
       body: formData,
-    }
+    },
   );
 };
 
 export const createCaptureSessionEvent = async (
   projectId: string,
   captureSessionId: string,
-  input: CreateCaptureEventInput
-): Promise<CreateCaptureEventResponse> => (
+  input: CreateCaptureEventInput,
+): Promise<CreateCaptureEventResponse> =>
   requestJson<CreateCaptureEventResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}/events`,
     {
@@ -533,15 +647,14 @@ export const createCaptureSessionEvent = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(input),
-    }
-  )
-);
+    },
+  );
 
 export const reorderCaptureSessionEvents = async (
   projectId: string,
   captureSessionId: string,
-  input: ReorderCaptureEventsInput
-): Promise<ReorderCaptureEventsResponse> => (
+  input: ReorderCaptureEventsInput,
+): Promise<ReorderCaptureEventsResponse> =>
   requestJson<ReorderCaptureEventsResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}/events/order`,
     {
@@ -550,16 +663,15 @@ export const reorderCaptureSessionEvents = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(input),
-    }
-  )
-);
+    },
+  );
 
 export const updateCaptureSessionEvent = async (
   projectId: string,
   captureSessionId: string,
   eventId: string,
-  input: UpdateCaptureEventInput
-): Promise<UpdateCaptureEventResponse> => (
+  input: UpdateCaptureEventInput,
+): Promise<UpdateCaptureEventResponse> =>
   requestJson<UpdateCaptureEventResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}/events/${encodeURIComponent(eventId)}`,
     {
@@ -568,109 +680,99 @@ export const updateCaptureSessionEvent = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(input),
-    }
-  )
-);
+    },
+  );
 
 export const getGuideDetail = async (
   projectId: string,
-  guideId: string
-): Promise<GuideDetail> => (
+  guideId: string,
+): Promise<GuideDetail> =>
   requestJson<GuideDetail>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}`
-  )
-);
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}`,
+  );
 
 export const exportGuideMarkdown = async (
   projectId: string,
-  guideId: string
-): Promise<GuideMarkdownExport> => (
+  guideId: string,
+): Promise<GuideMarkdownExport> =>
   requestJson<GuideMarkdownExport>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/export/markdown`
-  )
-);
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/export/markdown`,
+  );
 
 export const exportGuideHtmlZip = async (
   projectId: string,
-  guideId: string
-): Promise<{ filename: string; blob: Blob }> => (
+  guideId: string,
+): Promise<{ filename: string; blob: Blob }> =>
   requestBlob(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/export/html.zip`,
-    "guide-html-export.zip"
-  )
-);
+    "guide-html-export.zip",
+  );
 
 export const getGuidePublishStatus = async (
   projectId: string,
-  guideId: string
-): Promise<GuidePublishStatusResponse> => (
+  guideId: string,
+): Promise<GuidePublishStatusResponse> =>
   requestJson<GuidePublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish`
-  )
-);
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish`,
+  );
 
 export const getInteractiveDemoPublishStatus = async (
   projectId: string,
-  interactiveDemoId: string
-): Promise<InteractiveDemoPublishStatusResponse> => (
+  interactiveDemoId: string,
+): Promise<InteractiveDemoPublishStatusResponse> =>
   requestJson<InteractiveDemoPublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish`
-  )
-);
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish`,
+  );
 
 export const publishGuide = async (
   projectId: string,
-  guideId: string
-): Promise<GuidePublishResult> => (
+  guideId: string,
+): Promise<GuidePublishResult> =>
   requestJson<GuidePublishResult>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish`,
     {
       method: "POST",
-    }
-  )
-);
+    },
+  );
 
 export const publishInteractiveDemo = async (
   projectId: string,
-  interactiveDemoId: string
-): Promise<InteractiveDemoPublishResult> => (
+  interactiveDemoId: string,
+): Promise<InteractiveDemoPublishResult> =>
   requestJson<InteractiveDemoPublishResult>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish`,
     {
       method: "POST",
-    }
-  )
-);
+    },
+  );
 
 export const revokeGuidePublishLink = async (
   projectId: string,
-  guideId: string
-): Promise<GuideRevokePublishResult> => (
+  guideId: string,
+): Promise<GuideRevokePublishResult> =>
   requestJson<GuideRevokePublishResult>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish`,
     {
       method: "DELETE",
-    }
-  )
-);
+    },
+  );
 
 export const revokeInteractiveDemoPublishLink = async (
   projectId: string,
-  interactiveDemoId: string
-): Promise<RevokePublishResult> => (
+  interactiveDemoId: string,
+): Promise<RevokePublishResult> =>
   requestJson<RevokePublishResult>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish`,
     {
       method: "DELETE",
-    }
-  )
-);
+    },
+  );
 
 export const updateGuidePublishAccess = async (
   projectId: string,
   guideId: string,
-  input: UpdatePublishAccessInput
-): Promise<GuidePublishStatusResponse> => (
+  input: UpdatePublishAccessInput,
+): Promise<GuidePublishStatusResponse> =>
   requestJson<GuidePublishStatusResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish/access`,
     {
@@ -679,15 +781,14 @@ export const updateGuidePublishAccess = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(input),
-    }
-  )
-);
+    },
+  );
 
 export const updateInteractiveDemoPublishAccess = async (
   projectId: string,
   interactiveDemoId: string,
-  input: UpdatePublishAccessInput
-): Promise<InteractiveDemoPublishStatusResponse> => (
+  input: UpdatePublishAccessInput,
+): Promise<InteractiveDemoPublishStatusResponse> =>
   requestJson<InteractiveDemoPublishStatusResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish/access`,
     {
@@ -696,15 +797,14 @@ export const updateInteractiveDemoPublishAccess = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(input),
-    }
-  )
-);
+    },
+  );
 
 export const updateGuidePublishPassword = async (
   projectId: string,
   guideId: string,
-  input: UpdatePublishPasswordInput
-): Promise<GuidePublishStatusResponse> => (
+  input: UpdatePublishPasswordInput,
+): Promise<GuidePublishStatusResponse> =>
   requestJson<GuidePublishStatusResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish/password`,
     {
@@ -713,15 +813,14 @@ export const updateGuidePublishPassword = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(input),
-    }
-  )
-);
+    },
+  );
 
 export const updateInteractiveDemoPublishPassword = async (
   projectId: string,
   interactiveDemoId: string,
-  input: UpdatePublishPasswordInput
-): Promise<InteractiveDemoPublishStatusResponse> => (
+  input: UpdatePublishPasswordInput,
+): Promise<InteractiveDemoPublishStatusResponse> =>
   requestJson<InteractiveDemoPublishStatusResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish/password`,
     {
@@ -730,25 +829,23 @@ export const updateInteractiveDemoPublishPassword = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(input),
-    }
-  )
-);
+    },
+  );
 
 export const getPublicPublishLink = async (
   slug: string,
-  surface: "reader" | "embed" = "reader"
-): Promise<PublicPublishLinkResponse> => (
+  surface: "reader" | "embed" = "reader",
+): Promise<PublicPublishLinkResponse> =>
   requestJson<PublicPublishLinkResponse>(
     `/api/v1/public/publish-links/${encodeURIComponent(slug)}`,
-    { headers: { "X-Ossie-Access-Surface": `public_${surface}` } }
-  )
-);
+    { headers: { "X-Ossie-Access-Surface": `public_${surface}` } },
+  );
 
 export const createPublicPublishViewerSession = async (
   slug: string,
   input: { password: string },
-  surface: "reader" | "embed" = "reader"
-): Promise<void> => (
+  surface: "reader" | "embed" = "reader",
+): Promise<void> =>
   requestJson<void>(
     `/api/v1/public/publish-links/${encodeURIComponent(slug)}/viewer-sessions`,
     {
@@ -758,16 +855,17 @@ export const createPublicPublishViewerSession = async (
         "X-Ossie-Access-Surface": `public_${surface}`,
       },
       body: JSON.stringify(input),
-    }
-  )
-);
+    },
+  );
 
-export const listComplianceEvents = async (input: {
-  kind?: ComplianceKind;
-  projectId?: string;
-  cursor?: string;
-  limit?: number;
-} = {}): Promise<ComplianceEventsResponse> => {
+export const listComplianceEvents = async (
+  input: {
+    kind?: ComplianceKind;
+    projectId?: string;
+    cursor?: string;
+    limit?: number;
+  } = {},
+): Promise<ComplianceEventsResponse> => {
   const query = new URLSearchParams();
   if (input.kind && input.kind !== "all") query.set("kind", input.kind);
   if (input.projectId) query.set("project_id", input.projectId);
@@ -781,55 +879,67 @@ export const listComplianceEvents = async (input: {
 
 export const getComplianceAuditEvent = async (
   auditEventId: string,
-): Promise<ComplianceAuditEventDetailResponse> => (
+): Promise<ComplianceAuditEventDetailResponse> =>
   requestJson<ComplianceAuditEventDetailResponse>(
     `/api/v1/organization/compliance/audit-events/${encodeURIComponent(auditEventId)}`,
-  )
-);
+  );
 
-export const listProjectComplianceEvents = async (projectId: string, input: {
-  kind?: ComplianceKind; cursor?: string; limit?: number;
-} = {}): Promise<ComplianceEventsResponse> => {
+export const listProjectComplianceEvents = async (
+  projectId: string,
+  input: {
+    kind?: ComplianceKind;
+    cursor?: string;
+    limit?: number;
+  } = {},
+): Promise<ComplianceEventsResponse> => {
   const query = new URLSearchParams();
   if (input.kind && input.kind !== "all") query.set("kind", input.kind);
   if (input.cursor) query.set("cursor", input.cursor);
   if (input.limit) query.set("limit", String(input.limit));
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
-  return requestJson(`/api/v1/projects/${encodeURIComponent(projectId)}/compliance/events${suffix}`);
+  return requestJson(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/compliance/events${suffix}`,
+  );
 };
 
 export const getProjectComplianceAuditEvent = async (
   projectId: string,
   auditEventId: string,
-): Promise<ComplianceAuditEventDetailResponse> => requestJson(
-  `/api/v1/projects/${encodeURIComponent(projectId)}/compliance/audit-events/${encodeURIComponent(auditEventId)}`,
-);
+): Promise<ComplianceAuditEventDetailResponse> =>
+  requestJson(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/compliance/audit-events/${encodeURIComponent(auditEventId)}`,
+  );
 
-export const listProjectActivity = async (projectId: string, input: {
-  cursor?: string; limit?: number;
-} = {}): Promise<ProjectActivityResponse> => {
+export const listProjectActivity = async (
+  projectId: string,
+  input: {
+    cursor?: string;
+    limit?: number;
+  } = {},
+): Promise<ProjectActivityResponse> => {
   const query = new URLSearchParams();
   if (input.cursor) query.set("cursor", input.cursor);
   if (input.limit) query.set("limit", String(input.limit));
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
-  return requestJson(`/api/v1/projects/${encodeURIComponent(projectId)}/activity${suffix}`);
+  return requestJson(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/activity${suffix}`,
+  );
 };
 
 export const listProjectGuides = async (
-  projectId: string
-): Promise<ProjectGuideListResponse> => (
+  projectId: string,
+): Promise<ProjectGuideListResponse> =>
   requestJson<ProjectGuideListResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides`
-  )
-);
+    `/api/v1/projects/${encodeURIComponent(projectId)}/guides`,
+  );
 
 export const listProjectScreenshotAssets = async (
-  projectId: string
-): Promise<ProjectScreenshotAssetListResponse> => (
+  projectId: string,
+  projectVersionId: string,
+): Promise<ProjectScreenshotAssetListResponse> =>
   requestJson<ProjectScreenshotAssetListResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/capture-assets?asset_type=screenshot`
-  )
-);
+    `/api/v1/projects/${encodeURIComponent(projectId)}/capture-assets?project_version_id=${encodeURIComponent(projectVersionId)}&asset_type=screenshot`,
+  );
 
 export const createGuideFromCaptureSession = async (
   projectId: string,
@@ -837,8 +947,8 @@ export const createGuideFromCaptureSession = async (
   data: {
     title: string;
     description?: string | null;
-  }
-): Promise<GuideDetail> => (
+  },
+): Promise<GuideDetail> =>
   requestJson<GuideDetail>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/from-capture-session/${encodeURIComponent(captureSessionId)}`,
     {
@@ -847,9 +957,8 @@ export const createGuideFromCaptureSession = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const createInteractiveDemoFromCaptureSession = async (
   projectId: string,
@@ -857,8 +966,8 @@ export const createInteractiveDemoFromCaptureSession = async (
   data: {
     title?: string;
     description?: string | null;
-  } = {}
-): Promise<CreateInteractiveDemoFromCaptureResponse> => (
+  } = {},
+): Promise<CreateInteractiveDemoFromCaptureResponse> =>
   requestJson<CreateInteractiveDemoFromCaptureResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}/interactive-demos`,
     {
@@ -867,32 +976,29 @@ export const createInteractiveDemoFromCaptureSession = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const listProjectInteractiveDemos = async (
-  projectId: string
-): Promise<ProjectInteractiveDemoListResponse> => (
+  projectId: string,
+): Promise<ProjectInteractiveDemoListResponse> =>
   requestJson<ProjectInteractiveDemoListResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos`
-  )
-);
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos`,
+  );
 
 export const getInteractiveDemo = async (
   projectId: string,
-  interactiveDemoId: string
-): Promise<InteractiveDemoDetailResponse> => (
+  interactiveDemoId: string,
+): Promise<InteractiveDemoDetailResponse> =>
   requestJson<InteractiveDemoDetailResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}`
-  )
-);
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}`,
+  );
 
 export const updateInteractiveDemo = async (
   projectId: string,
   interactiveDemoId: string,
-  data: UpdateInteractiveDemoInput
-): Promise<InteractiveDemoDetailResponse> => (
+  data: UpdateInteractiveDemoInput,
+): Promise<InteractiveDemoDetailResponse> =>
   requestJson<InteractiveDemoDetailResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}`,
     {
@@ -901,37 +1007,34 @@ export const updateInteractiveDemo = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const archiveInteractiveDemo = async (
   projectId: string,
-  interactiveDemoId: string
-): Promise<void> => (
+  interactiveDemoId: string,
+): Promise<void> =>
   requestJson<void>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}`,
     {
       method: "DELETE",
-    }
-  )
-);
+    },
+  );
 
 export const listInteractiveDemoScenes = async (
   projectId: string,
-  interactiveDemoId: string
-): Promise<InteractiveDemoSceneListResponse> => (
+  interactiveDemoId: string,
+): Promise<InteractiveDemoSceneListResponse> =>
   requestJson<InteractiveDemoSceneListResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes`
-  )
-);
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes`,
+  );
 
 export const updateInteractiveDemoScene = async (
   projectId: string,
   interactiveDemoId: string,
   sceneId: string,
-  data: UpdateDemoSceneInput
-): Promise<InteractiveDemoSceneUpdateResponse> => (
+  data: UpdateDemoSceneInput,
+): Promise<InteractiveDemoSceneUpdateResponse> =>
   requestJson<InteractiveDemoSceneUpdateResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}`,
     {
@@ -940,15 +1043,14 @@ export const updateInteractiveDemoScene = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const reorderInteractiveDemoScenes = async (
   projectId: string,
   interactiveDemoId: string,
-  sceneIds: string[]
-): Promise<InteractiveDemoSceneReorderResponse> => (
+  sceneIds: string[],
+): Promise<InteractiveDemoSceneReorderResponse> =>
   requestJson<InteractiveDemoSceneReorderResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/order`,
     {
@@ -959,37 +1061,34 @@ export const reorderInteractiveDemoScenes = async (
       body: JSON.stringify({
         scene_ids: sceneIds,
       }),
-    }
-  )
-);
+    },
+  );
 
 export const deleteInteractiveDemoScene = async (
   projectId: string,
   interactiveDemoId: string,
-  sceneId: string
-): Promise<void> => (
+  sceneId: string,
+): Promise<void> =>
   requestJson<void>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}`,
     {
       method: "DELETE",
-    }
-  )
-);
+    },
+  );
 
 const demoHotspotsPath = (
   projectId: string,
   interactiveDemoId: string,
-  sceneId: string
-) => (
-  `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}/hotspots`
-);
+  sceneId: string,
+) =>
+  `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}/hotspots`;
 
 export const createInteractiveDemoHotspot = async (
   projectId: string,
   interactiveDemoId: string,
   sceneId: string,
-  data: CreateDemoHotspotInput
-): Promise<InteractiveDemoHotspotCreateResponse> => (
+  data: CreateDemoHotspotInput,
+): Promise<InteractiveDemoHotspotCreateResponse> =>
   requestJson<InteractiveDemoHotspotCreateResponse>(
     demoHotspotsPath(projectId, interactiveDemoId, sceneId),
     {
@@ -998,27 +1097,25 @@ export const createInteractiveDemoHotspot = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const listInteractiveDemoHotspots = async (
   projectId: string,
   interactiveDemoId: string,
-  sceneId: string
-): Promise<InteractiveDemoHotspotListResponse> => (
+  sceneId: string,
+): Promise<InteractiveDemoHotspotListResponse> =>
   requestJson<InteractiveDemoHotspotListResponse>(
-    demoHotspotsPath(projectId, interactiveDemoId, sceneId)
-  )
-);
+    demoHotspotsPath(projectId, interactiveDemoId, sceneId),
+  );
 
 export const updateInteractiveDemoHotspot = async (
   projectId: string,
   interactiveDemoId: string,
   sceneId: string,
   hotspotId: string,
-  data: UpdateDemoHotspotInput
-): Promise<InteractiveDemoHotspotUpdateResponse> => (
+  data: UpdateDemoHotspotInput,
+): Promise<InteractiveDemoHotspotUpdateResponse> =>
   requestJson<InteractiveDemoHotspotUpdateResponse>(
     `${demoHotspotsPath(projectId, interactiveDemoId, sceneId)}/${encodeURIComponent(hotspotId)}`,
     {
@@ -1027,16 +1124,15 @@ export const updateInteractiveDemoHotspot = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const reorderInteractiveDemoHotspots = async (
   projectId: string,
   interactiveDemoId: string,
   sceneId: string,
-  hotspotIds: string[]
-): Promise<InteractiveDemoHotspotReorderResponse> => (
+  hotspotIds: string[],
+): Promise<InteractiveDemoHotspotReorderResponse> =>
   requestJson<InteractiveDemoHotspotReorderResponse>(
     `${demoHotspotsPath(projectId, interactiveDemoId, sceneId)}/order`,
     {
@@ -1047,23 +1143,21 @@ export const reorderInteractiveDemoHotspots = async (
       body: JSON.stringify({
         hotspot_ids: hotspotIds,
       }),
-    }
-  )
-);
+    },
+  );
 
 export const deleteInteractiveDemoHotspot = async (
   projectId: string,
   interactiveDemoId: string,
   sceneId: string,
-  hotspotId: string
-): Promise<void> => (
+  hotspotId: string,
+): Promise<void> =>
   requestJson<void>(
     `${demoHotspotsPath(projectId, interactiveDemoId, sceneId)}/${encodeURIComponent(hotspotId)}`,
     {
       method: "DELETE",
-    }
-  )
-);
+    },
+  );
 
 export const updateGuide = async (
   projectId: string,
@@ -1072,8 +1166,8 @@ export const updateGuide = async (
     title?: string;
     description?: string | null;
     status?: Guide["status"];
-  }
-): Promise<UpdateGuideResponse> => (
+  },
+): Promise<UpdateGuideResponse> =>
   requestJson<UpdateGuideResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}`,
     {
@@ -1082,9 +1176,8 @@ export const updateGuide = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const updateGuideStep = async (
   projectId: string,
@@ -1093,8 +1186,8 @@ export const updateGuideStep = async (
   data: {
     title?: string;
     body?: string | null;
-  }
-): Promise<UpdateGuideStepResponse> => (
+  },
+): Promise<UpdateGuideStepResponse> =>
   requestJson<UpdateGuideStepResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/steps/${encodeURIComponent(stepId)}`,
     {
@@ -1103,15 +1196,14 @@ export const updateGuideStep = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const createGuideBlock = async (
   projectId: string,
   guideId: string,
-  data: CreateGuideBlockInput
-): Promise<GuideBlocksResponse> => (
+  data: CreateGuideBlockInput,
+): Promise<GuideBlocksResponse> =>
   requestJson<GuideBlocksResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks`,
     {
@@ -1120,16 +1212,15 @@ export const createGuideBlock = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const updateGuideBlock = async (
   projectId: string,
   guideId: string,
   blockId: string,
-  data: UpdateGuideBlockInput
-): Promise<GuideBlockResponse> => (
+  data: UpdateGuideBlockInput,
+): Promise<GuideBlockResponse> =>
   requestJson<GuideBlockResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}`,
     {
@@ -1138,16 +1229,15 @@ export const updateGuideBlock = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const updateGuideBlockScreenshot = async (
   projectId: string,
   guideId: string,
   blockId: string,
-  data: UpdateGuideBlockScreenshotInput
-): Promise<GuideBlockResponse> => (
+  data: UpdateGuideBlockScreenshotInput,
+): Promise<GuideBlockResponse> =>
   requestJson<GuideBlockResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}/screenshot`,
     {
@@ -1156,16 +1246,15 @@ export const updateGuideBlockScreenshot = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const updateGuideBlockAnnotations = async (
   projectId: string,
   guideId: string,
   blockId: string,
-  data: UpdateGuideBlockAnnotationsInput
-): Promise<GuideBlockResponse> => (
+  data: UpdateGuideBlockAnnotationsInput,
+): Promise<GuideBlockResponse> =>
   requestJson<GuideBlockResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}/annotations`,
     {
@@ -1174,15 +1263,14 @@ export const updateGuideBlockAnnotations = async (
         "content-type": "application/json",
       },
       body: JSON.stringify(data),
-    }
-  )
-);
+    },
+  );
 
 export const uploadGuideBlockScreenshot = async (
   projectId: string,
   guideId: string,
   blockId: string,
-  input: UploadGuideBlockScreenshotInput
+  input: UploadGuideBlockScreenshotInput,
 ): Promise<UploadGuideBlockScreenshotResponse> => {
   const body = new FormData();
   body.append("file", input.file);
@@ -1214,15 +1302,15 @@ export const uploadGuideBlockScreenshot = async (
     {
       method: "POST",
       body,
-    }
+    },
   );
 };
 
 export const reorderGuideBlocks = async (
   projectId: string,
   guideId: string,
-  blockIds: string[]
-): Promise<GuideBlocksResponse> => (
+  blockIds: string[],
+): Promise<GuideBlocksResponse> =>
   requestJson<GuideBlocksResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/reorder`,
     {
@@ -1233,19 +1321,17 @@ export const reorderGuideBlocks = async (
       body: JSON.stringify({
         block_ids: blockIds,
       }),
-    }
-  )
-);
+    },
+  );
 
 export const deleteGuideBlock = async (
   projectId: string,
   guideId: string,
-  blockId: string
-): Promise<void> => (
+  blockId: string,
+): Promise<void> =>
   requestJson<void>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}`,
     {
       method: "DELETE",
-    }
-  )
-);
+    },
+  );

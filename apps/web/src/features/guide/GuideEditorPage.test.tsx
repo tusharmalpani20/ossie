@@ -486,6 +486,7 @@ const renderPage = (overrides: {
   render(
     <GuideEditorPage
       projectId="project_1"
+      projectVersionId="version_1"
       guideId="guide_1"
       loadDetail={loadDetail}
       loadPublishStatus={loadPublishStatus}
@@ -1171,7 +1172,7 @@ describe("GuideEditorPage", () => {
     expect(await screen.findByRole("heading", { name: "Department guide" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Change screenshot for step 1" }));
 
-    expect(loadScreenshotAssets).toHaveBeenCalledWith("project_1");
+    expect(loadScreenshotAssets).toHaveBeenCalledWith("project_1", "version_1");
     expect(await screen.findByRole("button", { name: "Select screenshot Review Department for step 1" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Select screenshot Review Department for step 1" }));
@@ -1512,6 +1513,7 @@ describe("GuideEditorPage", () => {
     const { rerender } = render(
       <GuideEditorPage
         projectId="project_1"
+      projectVersionId="version_1"
         guideId="guide_1"
         loadDetail={async () => guideDetail}
         loadPublishStatus={async () => ({
@@ -1530,6 +1532,7 @@ describe("GuideEditorPage", () => {
     rerender(
       <GuideEditorPage
         projectId="project_1"
+      projectVersionId="version_1"
         guideId="guide_1"
         loadDetail={async () => guideDetail}
         loadPublishStatus={async () => ({
@@ -1548,6 +1551,7 @@ describe("GuideEditorPage", () => {
     rerender(
       <GuideEditorPage
         projectId="project_1"
+      projectVersionId="version_1"
         guideId="guide_1"
         loadDetail={async () => guideDetail}
         loadPublishStatus={async () => unpublishedStatus}
@@ -1679,6 +1683,7 @@ describe("GuideEditorPage", () => {
     const { rerender } = render(
       <GuideEditorPage
         projectId="project_1"
+      projectVersionId="version_1"
         guideId="guide_1"
         loadDetail={async () => guideDetail}
         loadPublishStatus={async () => unpublishedStatus}
@@ -1693,6 +1698,7 @@ describe("GuideEditorPage", () => {
     rerender(
       <GuideEditorPage
         projectId="project_1"
+      projectVersionId="version_1"
         guideId="guide_1"
         loadDetail={async () => archivedDetail}
         loadPublishStatus={async () => unpublishedStatus}
@@ -1879,6 +1885,7 @@ describe("GuideEditorPage", () => {
     const { rerender } = render(
       <GuideEditorPage
         projectId="project_1"
+      projectVersionId="version_1"
         guideId="guide_1"
         currentPath="/projects/project_1/guides/guide_1"
         loadDetail={async () => {
@@ -1900,6 +1907,7 @@ describe("GuideEditorPage", () => {
     rerender(
       <GuideEditorPage
         projectId="project_1"
+      projectVersionId="version_1"
         guideId="missing"
         loadDetail={async () => {
           throw new ApiClientError({
@@ -1925,6 +1933,7 @@ describe("GuideEditorPage", () => {
     rerender(
       <GuideEditorPage
         projectId="project_1"
+      projectVersionId="version_1"
         guideId="guide_1"
         loadDetail={async () => guideDetail}
         saveGuide={saveGuide}

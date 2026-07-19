@@ -15,7 +15,10 @@ import {
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
-import { projectIsWritable, useProjectAccess } from "../project/useProjectAccess";
+import {
+  projectIsWritable,
+  useProjectAccess,
+} from "../project/useProjectAccess";
 import type { CaptureSession, CreateCaptureSessionInput } from "./types";
 import styles from "./ProjectCaptureSessionListPage.module.css";
 
@@ -28,16 +31,20 @@ type LoadState =
 
 type ProjectCaptureSessionListPageProps = {
   projectId: string;
-  loadCaptureSessions?: (projectId: string) => Promise<ProjectCaptureSessionListResponse>;
+  loadCaptureSessions?: (
+    projectId: string,
+    options: { project_version_id: string },
+  ) => Promise<ProjectCaptureSessionListResponse>;
   createCaptureSession?: (
     projectId: string,
-    input: CreateCaptureSessionInput
+    input: CreateCaptureSessionInput,
   ) => Promise<CaptureSessionCreateResponse>;
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   canWrite?: boolean;
   versionSlug?: string;
+  projectVersionId: string;
 };
 
 type CreateCaptureSessionFormState = {
@@ -77,9 +84,12 @@ const formatDateTime = (value: string | null) => {
   }).format(new Date(value));
 };
 
-const captureSessionUrl = (projectId: string, captureSessionId: string, versionSlug?: string) => (
-  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/capture-sessions/${encodeURIComponent(captureSessionId)}`
-);
+const captureSessionUrl = (
+  projectId: string,
+  captureSessionId: string,
+  versionSlug?: string,
+) =>
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/capture-sessions/${encodeURIComponent(captureSessionId)}`;
 
 const optionalCaptureSessionField = (value: string) => {
   const trimmed = value.trim();
@@ -109,7 +119,7 @@ const openCaptureSession = (
   projectId: string,
   captureSessionId: string,
   versionSlug?: string,
-  navigate?: (path: string) => void
+  navigate?: (path: string) => void,
 ) => {
   const path = captureSessionUrl(projectId, captureSessionId, versionSlug);
 
@@ -133,32 +143,38 @@ const startUrlLabel = (value: string | null) => {
   }
 };
 
-const browserLabel = (session: CaptureSession) => (
-  [session.browser_name, session.browser_version].filter(Boolean).join(" ")
-);
+const browserLabel = (session: CaptureSession) =>
+  [session.browser_name, session.browser_version].filter(Boolean).join(" ");
 
-const viewportLabel = (session: CaptureSession) => (
+const viewportLabel = (session: CaptureSession) =>
   session.viewport_width && session.viewport_height
     ? `${session.viewport_width} x ${session.viewport_height}`
-    : null
-);
+    : null;
 
 export const ProjectCaptureSessionListPage = ({
   projectId,
   loadCaptureSessions = listProjectCaptureSessions,
-  createCaptureSession: createCaptureSessionAction = createProjectCaptureSession,
+  createCaptureSession:
+    createCaptureSessionAction = createProjectCaptureSession,
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
   canWrite,
   versionSlug,
+  projectVersionId,
 }: ProjectCaptureSessionListPageProps) => {
   const projectAccess = useProjectAccess(projectId).state;
-  const writable = canWrite ?? (projectAccess.status === "loaded" && Boolean(projectAccess.project) && projectIsWritable(projectAccess.project));
+  const writable =
+    canWrite ??
+    (projectAccess.status === "loaded" &&
+      Boolean(projectAccess.project) &&
+      projectIsWritable(projectAccess.project));
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [createForm, setCreateForm] = useState<CreateCaptureSessionFormState>(emptyCreateCaptureSessionForm);
+  const [createForm, setCreateForm] = useState<CreateCaptureSessionFormState>(
+    emptyCreateCaptureSessionForm,
+  );
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const createNameInputRef = useRef<HTMLInputElement | null>(null);
@@ -167,10 +183,13 @@ export const ProjectCaptureSessionListPage = ({
     let active = true;
     setState({ status: "loading" });
 
-    loadCaptureSessions(projectId)
+    loadCaptureSessions(projectId, { project_version_id: projectVersionId })
       .then((response) => {
         if (active) {
-          setState({ status: "loaded", captureSessions: response.capture_sessions });
+          setState({
+            status: "loaded",
+            captureSessions: response.capture_sessions,
+          });
         }
       })
       .catch((error: unknown) => {
@@ -182,7 +201,7 @@ export const ProjectCaptureSessionListPage = ({
     return () => {
       active = false;
     };
-  }, [projectId, loadCaptureSessions, reloadKey]);
+  }, [projectId, projectVersionId, loadCaptureSessions, reloadKey]);
 
   useEffect(() => {
     if (showCreateForm) {
@@ -190,7 +209,10 @@ export const ProjectCaptureSessionListPage = ({
     }
   }, [showCreateForm]);
 
-  const updateCreateField = (field: keyof CreateCaptureSessionFormState, value: string) => {
+  const updateCreateField = (
+    field: keyof CreateCaptureSessionFormState,
+    value: string,
+  ) => {
     setCreateForm((current) => ({
       ...current,
       [field]: value,
@@ -209,7 +231,9 @@ export const ProjectCaptureSessionListPage = ({
     setCreateError(null);
   };
 
-  const submitCreateCaptureSession = async (event: FormEvent<HTMLFormElement>) => {
+  const submitCreateCaptureSession = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
 
     if (isCreating) {
@@ -229,11 +253,17 @@ export const ProjectCaptureSessionListPage = ({
     try {
       const response = await createCaptureSessionAction(projectId, {
         name,
+        project_version_id: projectVersionId,
         description: optionalCaptureSessionField(createForm.description),
         source_type: "manual",
         start_url: optionalCaptureSessionField(createForm.start_url),
       });
-      openCaptureSession(projectId, response.capture_session.id, versionSlug, navigate);
+      openCaptureSession(
+        projectId,
+        response.capture_session.id,
+        versionSlug,
+        navigate,
+      );
     } catch (error: unknown) {
       setCreateError(createCaptureSessionErrorMessage(error));
     } finally {
@@ -243,7 +273,11 @@ export const ProjectCaptureSessionListPage = ({
 
   if (state.status === "loading") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Loading capture sessions...</div>
       </PortalShell>
     );
@@ -251,10 +285,16 @@ export const ProjectCaptureSessionListPage = ({
 
   if (state.status === "unauthenticated") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Sign in to view capture sessions.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>Sign in</a>
+          <a className={styles.stateLink} href={signInUrl(currentPath)}>
+            Sign in
+          </a>
         </div>
       </PortalShell>
     );
@@ -262,7 +302,11 @@ export const ProjectCaptureSessionListPage = ({
 
   if (state.status === "not_found") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Project was not found.</div>
       </PortalShell>
     );
@@ -270,10 +314,19 @@ export const ProjectCaptureSessionListPage = ({
 
   if (state.status === "error") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Could not load capture sessions.</div>
-          <Button variant="secondary" size="sm" type="button" onClick={() => setReloadKey((key) => key + 1)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            onClick={() => setReloadKey((key) => key + 1)}
+          >
             Retry
           </Button>
         </div>
@@ -282,39 +335,61 @@ export const ProjectCaptureSessionListPage = ({
   }
 
   return (
-    <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+    <PortalShell
+      projectId={projectId}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
       <section className={styles.header}>
         <div>
           <div className={styles.eyebrow}>Project</div>
           <h1 className={styles.title}>Capture sessions</h1>
           <p className={styles.description}>{projectId}</p>
         </div>
-        {writable ? <Button type="button" onClick={openCreateForm}>
-          New Capture Session
-        </Button> : <Badge>Read only</Badge>}
+        {writable ? (
+          <Button type="button" onClick={openCreateForm}>
+            New Capture Session
+          </Button>
+        ) : (
+          <Badge>Read only</Badge>
+        )}
       </section>
 
       {showCreateForm ? (
-        <Card className={styles.createPanel} aria-labelledby="create-capture-session-heading">
+        <Card
+          className={styles.createPanel}
+          aria-labelledby="create-capture-session-heading"
+        >
           <CardHeader>
-            <h2 className={styles.formTitle} id="create-capture-session-heading">Create capture session</h2>
+            <h2
+              className={styles.formTitle}
+              id="create-capture-session-heading"
+            >
+              Create capture session
+            </h2>
           </CardHeader>
           <CardContent>
             <form className={styles.form} onSubmit={submitCreateCaptureSession}>
-              {createError ? <Alert variant="destructive">{createError}</Alert> : null}
+              {createError ? (
+                <Alert variant="destructive">{createError}</Alert>
+              ) : null}
               <Label className={styles.field}>
                 <span>Name</span>
                 <Input
                   ref={createNameInputRef}
                   value={createForm.name}
-                  onChange={(event) => updateCreateField("name", event.target.value)}
+                  onChange={(event) =>
+                    updateCreateField("name", event.target.value)
+                  }
                 />
               </Label>
               <Label className={styles.field}>
                 <span>Start URL</span>
                 <Input
                   value={createForm.start_url}
-                  onChange={(event) => updateCreateField("start_url", event.target.value)}
+                  onChange={(event) =>
+                    updateCreateField("start_url", event.target.value)
+                  }
                 />
               </Label>
               <Label className={styles.field}>
@@ -322,14 +397,23 @@ export const ProjectCaptureSessionListPage = ({
                 <Textarea
                   rows={4}
                   value={createForm.description}
-                  onChange={(event) => updateCreateField("description", event.target.value)}
+                  onChange={(event) =>
+                    updateCreateField("description", event.target.value)
+                  }
                 />
               </Label>
               <div className={styles.formActions}>
                 <Button type="submit" disabled={isCreating}>
-                  {isCreating ? "Creating Capture Session..." : "Create Capture Session"}
+                  {isCreating
+                    ? "Creating Capture Session..."
+                    : "Create Capture Session"}
                 </Button>
-                <Button variant="secondary" type="button" onClick={closeCreateForm} disabled={isCreating}>
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={closeCreateForm}
+                  disabled={isCreating}
+                >
                   Cancel
                 </Button>
               </div>
@@ -338,14 +422,24 @@ export const ProjectCaptureSessionListPage = ({
         </Card>
       ) : null}
 
-      <section className={styles.content} aria-labelledby="capture-sessions-heading">
-        <h2 className={styles.sectionTitle} id="capture-sessions-heading">Project capture sessions</h2>
+      <section
+        className={styles.content}
+        aria-labelledby="capture-sessions-heading"
+      >
+        <h2 className={styles.sectionTitle} id="capture-sessions-heading">
+          Project capture sessions
+        </h2>
         {state.captureSessions.length === 0 ? (
           <Card className={styles.empty}>No capture sessions yet.</Card>
         ) : (
           <div className={styles.list}>
             {state.captureSessions.map((captureSession) => (
-              <CaptureSessionRow key={captureSession.id} captureSession={captureSession} projectId={projectId} versionSlug={versionSlug} />
+              <CaptureSessionRow
+                key={captureSession.id}
+                captureSession={captureSession}
+                projectId={projectId}
+                versionSlug={versionSlug}
+              />
             ))}
           </div>
         )}
@@ -366,7 +460,11 @@ const PortalShell = ({
   navigate?: (path: string) => void;
 }) => (
   <div className={styles.page}>
-    <PortalTopbar context={`${projectId} / capture sessions`} performLogout={performLogout} navigate={navigate} />
+    <PortalTopbar
+      context={`${projectId} / capture sessions`}
+      performLogout={performLogout}
+      navigate={navigate}
+    />
     <main className={styles.main}>{children}</main>
   </div>
 );
@@ -388,22 +486,39 @@ const CaptureSessionRow = ({
       <div className={styles.captureSessionBody}>
         <div className={styles.captureSessionHeader}>
           <h3 className={styles.captureSessionTitle}>{captureSession.name}</h3>
-          <Badge variant={captureSession.status === "completed" ? "success" : "default"}>{captureSession.status}</Badge>
+          <Badge
+            variant={
+              captureSession.status === "completed" ? "success" : "default"
+            }
+          >
+            {captureSession.status}
+          </Badge>
           <Badge>{captureSession.source_type}</Badge>
         </div>
-        {captureSession.description ? <p className={styles.captureSessionDescription}>{captureSession.description}</p> : null}
+        {captureSession.description ? (
+          <p className={styles.captureSessionDescription}>
+            {captureSession.description}
+          </p>
+        ) : null}
         <div className={styles.meta}>
           <span>{startUrlLabel(captureSession.start_url)}</span>
           <span>Started {formatDateTime(captureSession.started_at)}</span>
           <span>Completed {formatDateTime(captureSession.completed_at)}</span>
-          {captureSession.canceled_at ? <span>Canceled {formatDateTime(captureSession.canceled_at)}</span> : null}
+          {captureSession.canceled_at ? (
+            <span>Canceled {formatDateTime(captureSession.canceled_at)}</span>
+          ) : null}
           <span>Updated {formatDateTime(captureSession.updated_at)}</span>
           {browser ? <span>{browser}</span> : null}
-          {captureSession.operating_system ? <span>{captureSession.operating_system}</span> : null}
+          {captureSession.operating_system ? (
+            <span>{captureSession.operating_system}</span>
+          ) : null}
           {viewport ? <span>{viewport}</span> : null}
         </div>
       </div>
-      <a className={styles.openLink} href={captureSessionUrl(projectId, captureSession.id, versionSlug)}>
+      <a
+        className={styles.openLink}
+        href={captureSessionUrl(projectId, captureSession.id, versionSlug)}
+      >
         Open capture session {captureSession.name}
       </a>
     </Card>

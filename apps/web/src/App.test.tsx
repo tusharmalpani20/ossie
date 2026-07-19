@@ -257,6 +257,8 @@ describe("App", () => {
         id: "capture_session_1",
         organization_id: "organization_1",
         project_id: "project_1",
+        project_version_id: "version_1",
+        project_version: { id: "version_1", name: "Main", slug: "main", status: "active", position: 1 },
         name: "Create department workflow",
         description: null,
         status: "draft",
