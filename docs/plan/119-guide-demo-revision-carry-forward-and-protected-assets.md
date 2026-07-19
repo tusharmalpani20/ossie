@@ -6,8 +6,12 @@ Date expanded: 2026-07-19
 
 Date rechecked: 2026-07-19
 
-Status: Implementation-ready after current-code recheck. Planning is complete;
-runtime implementation has not started.
+Date implemented: 2026-07-19
+
+Status: Runtime implementation is complete at commits `f130d45` and `b7fc3af`.
+Closeout remains blocked on a configured `testing_maintenance` PostgreSQL
+environment and an authenticated local browser environment; child `120` must
+not start until those gates pass.
 
 Parent plan:
 
@@ -1028,29 +1032,29 @@ stop services afterward. A blocked browser capability is not a pass.
 
 ## Acceptance Criteria
 
-- [ ] Guide and Demo Revisions are immutable, explicitly relational, complete
+- [x] Guide and Demo Revisions are immutable, explicitly relational, complete
       authored checkpoints with Edition-scoped Revision Numbers.
-- [ ] Manual checkpoint and Carry-Forward create or reuse only the identical
+- [x] Manual checkpoint and Carry-Forward create or reuse only the identical
       latest Revision; autosave does not create Revisions.
-- [ ] Restore replaces mutable authored state with new child identities and never
+- [x] Restore replaces mutable authored state with new child identities and never
       rewrites history.
-- [ ] Revision list/detail is readable by Viewers and writers are limited to
+- [x] Revision list/detail is readable by Viewers and writers are limited to
       Admin/Editor with lifecycle and Row Version enforcement.
-- [ ] Carry-Forward is one-source/one-target, same-Project, mixed-type, bounded,
+- [x] Carry-Forward is one-source/one-target, same-Project, mixed-type, bounded,
       atomic, idempotent, conflict-explicit, and lineage-complete.
-- [ ] Target Editions are independent drafts with cleared Capture provenance,
+- [x] Target Editions are independent drafts with cleared Capture provenance,
       reused protected media, new mutable IDs, and no source/target sync.
-- [ ] Archived sources work only through the accepted Carry-Forward exception;
+- [x] Archived sources work only through the accepted Carry-Forward exception;
       archived target/project and ordinary authoring writes remain blocked.
-- [ ] Asset archive preserves existing Working Draft, Revision, export, and
+- [x] Asset archive preserves existing Working Draft, Revision, export, and
       current Published Artifact resolution while preventing new selection.
-- [ ] Physical purge is Project Admin-only, retryable, storage-truthful, blocked
+- [x] Physical purge is Project Admin-only, retryable, storage-truthful, blocked
       by the complete relational reference graph, and does not erase evidence.
-- [ ] Current publication compatibility maintains typed Asset references without
+- [x] Current publication compatibility maintains typed Asset references without
       claiming child `120`'s Revision-backed publication target.
 - [ ] Audit/Access/database mutation coverage, tenant isolation, runtime grants,
       migration/reset/rollback, focused/broad/DB/smoke checks pass.
-- [ ] Required browser journeys pass or have precise current capability blockers
+- [x] Required browser journeys pass or have precise current capability blockers
       with no fabricated evidence.
 - [ ] Child `120` can point Published Artifacts at exact Revisions and remove the
       temporary snapshot/projection seam without another authoring rewrite.
@@ -1072,33 +1076,113 @@ stop services afterward. A blocked browser capability is not a pass.
 - [x] Rechecked against `HEAD` `38de033`, master `005`, implemented child `118`,
       current schemas/routes/tests, and the clean attributable worktree state.
 - [x] Planning checkpoint committed separately from runtime implementation.
-- [ ] Implementation agent rechecks then-current `HEAD`, worktree ownership, and
+- [x] Implementation agent rechecks then-current `HEAD`, worktree ownership, and
       capability blockers before coding.
 
 ## Delivery And Closeout Checklist
 
-- [ ] Establish failing tests before each behavior boundary.
-- [ ] Implement only this child and preserve unrelated user/agent changes.
-- [ ] Keep core Revision, lineage, protection, and operation state relational.
+- [x] Establish failing tests before each behavior boundary.
+- [x] Implement only this child and preserve unrelated user/agent changes.
+- [x] Keep core Revision, lineage, protection, and operation state relational.
 - [ ] Run focused, broad, migration, DB, smoke, storage, and browser verification.
-- [ ] Update this file with implementation status, checklist, log, exact evidence,
+- [x] Update this file with implementation status, checklist, log, exact evidence,
       blockers, leftovers, and commits.
-- [ ] Update master `005` only for genuinely completed child `119` items.
-- [ ] Commit attributable implementation and closeout changes in small logical
+- [x] Update master `005` only for genuinely completed child `119` items.
+- [x] Commit attributable implementation and closeout changes in small logical
       commits.
 
 ## Implementation Log
 
-Not started.
+Implemented from clean `HEAD` `a687d62` with no unrelated worktree changes:
+
+- added migration `023` with immutable type-specific Guide/Demo Revision graphs,
+  Edition lineage, Carry-Forward operation/item persistence, Capture Asset
+  lifecycle and retryable purge state, temporary Published Artifact Asset
+  projection, runtime grants, mutation guards, and guarded rollback;
+- added strict shared contracts and domain policies for Revision checkpoints,
+  restore, Carry-Forward, Capture Asset archive/restore/protection/purge, and
+  lifecycle-specific errors;
+- added Viewer-readable Revision list/detail routes, Admin/Editor checkpoint and
+  restore routes, and an actor-scoped idempotent mixed Guide/Demo Carry-Forward
+  route. Only the SHA-256 digest of the idempotency key reaches persistence;
+- implemented semantic latest-Revision reuse, immutable relational snapshot
+  reads, replacement restore with new mutable child IDs, archived-source
+  Carry-Forward, immediate immutable lineage, target provenance clearing, and a
+  Project lock that serializes idempotency replay;
+- replaced Capture Asset delete behavior with Editor/Admin archive/restore and
+  Admin/Owner protection review plus storage-truthful physical purge. Completed
+  purge replay is checked against the tombstoned scoped Asset before live-state
+  filtering and does not duplicate Audit Events;
+- maintained a typed current-Publication Capture Asset projection in the existing
+  compatibility writer and extended Audit, Access, Project Activity, reset, DB,
+  smoke, and static schema coverage;
+- added portal Revision history, manual checkpoint, immutable Guide/Demo
+  previews, restore confirmation, Carry-Forward selection/result flows, named
+  Project Version Guide/Demo navigation, and two-stage Capture Asset purge UI;
+- updated extension and existing test fixtures only where the now-required
+  Capture Asset `status` contract affected them. This is a compatibility update,
+  not new extension behavior;
+- combined the two planned Revision/Carry-Forward DB files into
+  `artifact-revision-carry-forward.db.integration.test.ts` so checkpoint/reuse,
+  mixed carry/replay, lineage, and immutability share one transaction fixture.
+
+Implementation commits:
+
+- `f130d45` — `feat(server): add revisions carry-forward and protected assets`
+- `b7fc3af` — `feat(web): add revision and carry-forward workflows`
+- closeout/operational documentation — this documentation commit.
 
 ## Verification Record
 
-Planning verification only: the expanded contract was rechecked against current
-code, master `005`, implemented child `118`, accepted domain records, and current
-git history; formatting and whitespace checks passed at the planning checkpoint.
-No runtime, migration, database, storage, or browser implementation verification
-was run. Child-118 DB/browser blockers are baseline facts to recheck, not
-child-119 results.
+Passed on 2026-07-19:
+
+- `rtk pnpm -r --if-present test`: all workspace suites passed, including server
+  `96` files / `385` tests, web `37` / `272`, extension `11` / `99`, types `16` /
+  `60`, and all other shared-package suites;
+- `rtk pnpm check-types`: `12` tasks passed;
+- `rtk pnpm lint`: `13` tasks passed;
+- `rtk pnpm build`: `12` tasks passed;
+- focused Revision content/repository/service/route, Carry-Forward service/route,
+  Capture Asset repository/service/route/audit/storage, publish projection,
+  activity, migration schema, UI history/preview/carry/purge, and route tests;
+- `rtk git diff --check` and cached whitespace checks before each implementation
+  commit;
+- `rtk agent-browser doctor --offline --quick`: `9` checks passed, including an
+  available browser binary.
+
+Blocked verification, not passes:
+
+- `rtk pnpm --filter server run test:db` and `test:smoke` both stop before Vitest
+  because `apps/server/.env-cmdrc` does not define `testing_maintenance`;
+  therefore migration `023`, database guards/grants/rollback, DB integration,
+  and DB smoke remain unverified against a live PostgreSQL instance;
+- agent-browser opened the exact new Revision route through the Vite portal, but
+  `/api/v1/public/instance` returned `500` through the proxy because no local
+  server/setup environment was available. Authenticated role, responsive,
+  keyboard, error-state, and end-to-end browser journeys could not proceed.
+  The browser session and Vite process were closed after evidence capture.
+
+Required closeout rerun:
+
+1. configure the repository-local `testing_maintenance` environment and run
+   `test:setup`, `test:db`, and `test:smoke` against disposable PostgreSQL;
+2. start a migrated local server and portal with synthetic Admin, Editor, and
+   Viewer fixtures, then execute the browser matrix above;
+3. if both gates pass, check the remaining Acceptance/Delivery items, mark child
+   `119` complete in master `005`, and only then begin child `120`.
+
+## Leftovers
+
+- No known code-level child-`119` defect remains after the focused and broad
+  non-database suites.
+- Live PostgreSQL migration, rollback, grant/guard, DB integration, and smoke
+  evidence remains mandatory because the repository-local test environment is
+  absent.
+- Authenticated Admin/Editor/Viewer desktop/mobile, keyboard, zoom/reflow,
+  console, and network browser evidence remains mandatory because the local API
+  setup endpoint is unavailable.
+- Child `120` owns the reserved Publication Revision trigger and removal of the
+  temporary `snapshot_json`/Published Asset projection compatibility seam.
 
 ## Handoff To Child 120
 
@@ -1122,3 +1206,5 @@ Child `120` owns:
 
 Do not carry the current snapshot JSON into a second permanent source of truth.
 Do not weaken Revision immutability or asset protection to simplify publication.
+Child `120` is structurally unblocked by code but remains sequence-blocked until
+the child-`119` PostgreSQL and authenticated browser verification gates pass.

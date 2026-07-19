@@ -244,6 +244,15 @@ server and portal together because Guide/Demo contracts now require a selected
 Project Version and distinct Edition/Working Draft Row Versions. DOWN is guarded
 and must not be used to discard retained relational authoring or evidence.
 
+Migration `023_guide_demo_revision_carry_forward_protected_assets.sql` is a
+coordinated pre-live transition. Deploy server, portal, and extension contracts
+together. It reserves immutable Revision history, adds idempotent Carry-Forward,
+and replaces Capture Asset deletion with archive plus reference-safe physical
+byte purge. DOWN refuses any retained Revision, lineage, Carry-Forward, purge,
+Published Asset projection, or non-active Asset state; an empty DOWN restores
+the migration-022 mutation guards. Back up both PostgreSQL and local file
+storage before upgrading, because database rollback cannot restore purged bytes.
+
 Before upgrading:
 
 1. Stop all API/background writers; do not use a rolling mixed-writer deploy.

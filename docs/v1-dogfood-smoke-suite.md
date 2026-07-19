@@ -61,6 +61,9 @@ The DB-backed smoke test covers:
 - organization invite creation
 - invite acceptance by a new teammate
 - teammate access to the authenticated project list
+- Guide and Interactive Demo manual Revision checkpoint/history
+- named Project Version Carry-Forward with exact replay of one idempotency key
+- Capture Asset archive plus protected-purge rejection for referenced media
 
 ## Manual Portal Checklist
 
@@ -75,6 +78,8 @@ Use safe synthetic screenshots only.
       reopen a synthetic named Project Version.
 - [ ] Confirm non-default Versions do not request current unscoped Capture,
       Guide, or Interactive Demo data.
+- [ ] Confirm named Project Versions expose their scoped Guide/Demo libraries
+      and Carry Forward Editions entry point.
 - [ ] Create a manual capture session.
 - [ ] Upload one or more screenshots.
 - [ ] Create screenshot-backed capture events.
@@ -84,6 +89,8 @@ Use safe synthetic screenshots only.
 - [ ] Edit guide title/body for a step.
 - [ ] Add or edit screenshot annotation data.
 - [ ] Open guide preview.
+- [ ] Create a Guide checkpoint, open its immutable Revision preview, change the
+      Working Draft, and restore the checkpoint.
 - [ ] Export guide markdown.
 - [ ] Export guide HTML ZIP.
 - [ ] Publish the guide.
@@ -93,12 +100,17 @@ Use safe synthetic screenshots only.
 - [ ] Create an interactive demo from the same capture session.
 - [ ] Edit a scene title.
 - [ ] Create a hotspot.
+- [ ] Create and open an Interactive Demo Revision checkpoint.
 - [ ] Publish the interactive demo.
 - [ ] Open the public demo viewer.
 - [ ] Open demo embed route.
 - [ ] Invite a teammate.
 - [ ] Accept the invite as the teammate.
 - [ ] Confirm the teammate can access the project.
+- [ ] Carry a Guide and Interactive Demo to a different active Project Version,
+      retry the same request safely, and confirm source/target independence.
+- [ ] Archive a referenced Capture Asset, confirm existing authored/public views
+      still resolve it, and confirm Review purge reports the dependency.
 - [ ] Check `/healthz`.
 - [ ] Check `/readyz`.
 

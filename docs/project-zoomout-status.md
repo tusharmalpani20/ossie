@@ -132,11 +132,13 @@ Master Plan `005` is the accepted next track:
    through child `117`.
 2. Completed in child `118`: Project-owned Guide/Demo Artifact identities,
    Project Version-scoped Editions, and relational mutable Working Drafts.
-3. Next: add immutable Revisions, Carry-Forward, protected assets,
-   revision-backed Publications, and multi-version Publish Links.
-4. Establish the design system and modernize each existing workflow with browser, accessibility, motion, and responsive evidence.
-5. Close the foundation at child `130`, then conduct the mandatory Product Documentation domain grill at child `131`.
+3. Implemented in child `119`: immutable Guide/Demo Revisions, Carry-Forward,
+   and protected Capture Asset archive/purge boundaries. PostgreSQL and
+   authenticated browser closeout remain environment-blocked.
+4. Next: revision-backed Publications and multi-version Publish Links.
+5. Establish the design system and modernize each existing workflow with browser, accessibility, motion, and responsive evidence.
+6. Close the foundation at child `130`, then conduct the mandatory Product Documentation domain grill at child `131`.
 
-The accepted Project Version and Artifact Edition decisions are recorded in `CONTEXT.md`, ADRs `0021` through `0026`, the completed grill record, and `docs/plan/111-project-version-and-artifact-edition-grill.md`. Project Versions, Capture ownership, Guide/Demo Artifact identities, Editions, and relational Working Drafts are implemented; the later Revision/Publication model is not.
+The accepted Project Version and Artifact Edition decisions are recorded in `CONTEXT.md`, ADRs `0021` through `0026`, the completed grill record, and `docs/plan/111-project-version-and-artifact-edition-grill.md`. Project Versions, Capture ownership, Guide/Demo Artifact identities, Editions, and relational Working Drafts are closed. Revisions, Carry-Forward, and protected Asset lifecycle are implemented but await child-`119` PostgreSQL/browser closeout. Revision-backed Publication follows only after that gate.
 
 Product Documentation implementation begins only after child `131` and new `132+` plans. Loom-style Video remains a later direction with no accepted runtime model.

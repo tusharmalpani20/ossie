@@ -3,7 +3,8 @@
 Date: 2026-07-10
 
 Status: In progress. Children `109` through `118` are complete. Child `119`
-Guide And Demo Revision, Carry-Forward, And Protected Assets is next.
+runtime implementation is committed; its PostgreSQL and authenticated browser
+closeout gates remain blocked by the local environment.
 
 Master plan number: 005.
 
@@ -76,7 +77,8 @@ Baseline reviewed on 2026-07-10:
   content. Child `117` adds mandatory Capture Session Project Version ownership,
   version-scoped portal/extension Capture behavior, and the temporary guarded
   current-Default seam for Guide/Demo generation until child `118`.
-- Current migrations end at `021_capture_source_version_scoping.sql`.
+- Current migrations end at
+  `023_guide_demo_revision_carry_forward_protected_assets.sql`.
   Migration `015` implements the
   accepted clean pre-live transition and refuses populated User or Organization
   data; no production-row backfill exists.
@@ -88,7 +90,8 @@ Baseline reviewed on 2026-07-10:
 - Child `109` installed the accepted external design guidance as pinned, optional repository tooling and documented provenance, compatibility changes, update/removal procedure, and rejected sources in `docs/agent-workflow.md`. It remains outside application dependencies and runtime behavior.
 - The current UI works at alpha level but does not yet provide the consistency, hierarchy, density, responsive behavior, accessibility, or navigation expected from a daily internal tool.
 - Master plans `001` through `004` are complete. Children `109` through `118`
-  are complete; child `119` is next.
+  are complete. Child `119` is implemented but not closed because its database
+  and authenticated browser verification cannot run in the current environment.
   The
   optional overnight-runner tooling checkpoint was deferred on 2026-07-19 and
   is not a gate for sequential child execution.
@@ -1193,7 +1196,9 @@ Acceptance:
 
 ### 119: Guide And Demo Revision, Carry-Forward, And Protected Assets
 
-Status: Not started.
+Status: Implemented at `f130d45` and `b7fc3af`; closeout blocked on configured
+PostgreSQL DB/smoke and authenticated browser verification. The master checklist
+remains open until those gates pass.
 
 Planned file:
 
@@ -1950,8 +1955,10 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is expansion and implementation-readiness recheck
-of child `119` Guide And Demo Revision, Carry-Forward, And Protected Assets.
+The next executable activity is child `119` verification closeout: provision the
+repository-local `testing_maintenance` PostgreSQL environment, run migration/DB/
+smoke checks, then run the authenticated Admin/Editor/Viewer browser matrix.
+Child `120` must not start until those gates pass and child `119` is closed.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -1962,9 +1969,10 @@ child `112`, comprehensive existing-mutation coverage child `113`, Access
 Evidence/Owner compliance timeline child `114`, Project Membership Foundation
 child `115`, Project Version Foundation child `116`, Capture Source Version
 Scoping child `117`, and Guide/Demo Edition And Working Draft Relational
-Foundation child `118` are complete. Child `119` now builds immutable relational
-Revisions, Carry-Forward, and protected shared-asset behavior on those shipped
-Artifact, Edition, and Working Draft ownership boundaries.
+Foundation child `118` are complete. Child `119` has implemented immutable
+relational Revisions, Carry-Forward, and protected shared-asset behavior on those
+shipped Artifact, Edition, and Working Draft ownership boundaries; only its
+environment-blocked verification and closeout remain.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with expansion and recheck of child `119`.
+continues with child `119` verification closeout.

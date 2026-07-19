@@ -126,6 +126,12 @@ commands at retained or production data. The migrated portal/server pair uses
 explicit Project Version-scoped Guide/Demo Editions and relational Working
 Draft content, so mixed old/new clients are unsupported.
 
+Migration `023` adds immutable Guide/Demo Revisions, Carry-Forward lineage and
+operations, Capture Asset lifecycle/purge operations, and the temporary typed
+Published Artifact Asset projection. It refuses retained legacy tombstones or
+Published Artifacts that cannot be classified safely. Reset and reseed a
+disposable pre-`023` database; do not bypass the refusal for retained data.
+
 ## Running Apps
 
 Server:
