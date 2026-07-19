@@ -87,8 +87,8 @@ Baseline reviewed on 2026-07-10:
 - Current pages still rely heavily on CSS Modules, hard-coded slate/hex values, repeated control styling, and only minimal global tokens. The UI track is therefore a consolidation and product-design effort, not a fresh Tailwind or icon migration.
 - Child `109` installed the accepted external design guidance as pinned, optional repository tooling and documented provenance, compatibility changes, update/removal procedure, and rejected sources in `docs/agent-workflow.md`. It remains outside application dependencies and runtime behavior.
 - The current UI works at alpha level but does not yet provide the consistency, hierarchy, density, responsive behavior, accessibility, or navigation expected from a daily internal tool.
-- Master plans `001` through `004` are complete. Children `109` through `117`
-  are complete; child `118` is next.
+- Master plans `001` through `004` are complete. Children `109` through `118`
+  are complete; child `119` is next.
   The
   optional overnight-runner tooling checkpoint was deferred on 2026-07-19 and
   is not a gate for sequential child execution.
@@ -1135,7 +1135,13 @@ Acceptance:
 
 ### 118: Guide And Demo Edition And Working Draft Relational Foundation
 
-Status: Not started.
+Status: Complete after implementation closeout recheck on 2026-07-19. The
+relational Artifact/Edition/Working Draft foundation, exact Project Version
+contracts, lifecycle permissions, stable typed-child updates, and authoritative
+mutation responses are implemented. Focused and broad non-DB gates pass. Fresh
+DB and browser reruns are precisely blocked by the missing
+`testing_maintenance` profile and a local public-instance `500`; child `118`
+does not claim those blocked checks as new passing evidence.
 
 Planned file:
 

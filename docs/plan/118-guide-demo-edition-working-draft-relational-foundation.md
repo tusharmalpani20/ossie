@@ -8,9 +8,13 @@ Date rechecked: 2026-07-19
 
 Date implemented and closed: 2026-07-19
 
+Date implementation rechecked: 2026-07-19
+
 Status: Complete. Relational Guide/Demo Artifact, Edition, Working Draft, and
-typed child ownership is implemented. Mandatory browser dogfood is recorded
-with one precise pre-existing authentication Audit blocker.
+typed child ownership is implemented and the close-previous code audit is
+clean. Focused and broad non-DB verification passes. Fresh database and browser
+reruns have precise local-environment blockers recorded below; no evidence is
+fabricated.
 
 Parent plan:
 
@@ -1244,8 +1248,10 @@ unavailable, mark only that capability blocked; do not fabricate evidence.
       temporary compatibility boundary; named-version publication creation is
       deferred, and existing link management remains reachable after a Default
       change.
-- [x] Fresh migration, retained-data refusal, reset/reseed, runtime grants,
-      empty DOWN/UP, DB integration, and smoke pass.
+- [x] Migration, retained-data refusal, reset/reseed, runtime grants, empty
+      DOWN/UP, DB integration, and smoke coverage exists, and the initial
+      implementation closeout recorded it passing. The fresh close-previous
+      rerun is explicitly blocked by the missing `testing_maintenance` profile.
 - [x] Focused, broad, and mandatory browser checks pass or have precise honest
       capability blockers.
 - [x] Child `119` can snapshot and carry forward relational Working Drafts
@@ -1278,6 +1284,20 @@ unavailable, mark only that capability blocked; do not fabricate evidence.
       notes, leftovers, and handoff.
 - [x] Update master `005` only for completed child `118` items.
 - [x] Commit only attributable changes in small logical commits.
+
+### Implementation closeout rechecked on 2026-07-19
+
+- [x] Re-audited the implemented schema, contracts, authorization wrappers,
+      routes, repositories, services, portal clients, tests, and plan records
+      against child `118` and master `005`.
+- [x] Fixed every confirmed in-scope contract, permission, concurrency,
+      relational-identity, and error-translation gap found by the audit.
+- [x] Re-ran focused and repository-wide non-DB verification.
+- [x] Attempted fresh DB and real-browser validation and recorded the exact
+      environment blockers instead of carrying historical evidence forward as
+      a new pass.
+- [x] Recorded the child-`119` handoff and kept unrelated changes out of both
+      commits.
 
 ## Implementation Log
 
@@ -1314,9 +1334,30 @@ Implementation completed on 2026-07-19:
 - updated current-state route, operations, setup, zoom-out, and roadmap docs
   without claiming child-119 Revisions/assets or child-120 publishing work.
 
+Implementation closeout recheck on 2026-07-19:
+
+- added the missing `artifact.write` authorization mappings for Guide and Demo
+  Edition archive/restore so Project Viewers cannot invoke lifecycle writers;
+- removed every empty-string `projectVersionId` fallback from Guide, Demo, and
+  publication authoring clients, making exact Project Version selection a
+  required caller contract;
+- aligned Demo mutations with the Guide aggregate contract: archived Editions
+  reject metadata writes, semantic no-ops do not bump Working Draft Row Version
+  or emit Audit history, and stale expected versions still conflict before
+  no-op detection;
+- translated Project Version, Edition, and authored-Asset database guards into
+  safe typed `4xx` responses instead of leaking them as generic `500` failures;
+- fixed relational child updates so retained Guide Annotation and Demo
+  Transition identities are updated in place with child Row Version increments,
+  while removed children are tombstoned and new children receive new IDs;
+- made Guide/Demo delete mutation responses return the authoritative persisted
+  Working Draft and updated the Demo editor to consume its exact Row Version;
+- added shared-contract, authorization, service, route, API, editor, and
+  database-integration regression coverage for these fixes.
+
 ## Verification Record
 
-Verification completed on 2026-07-19:
+Initial implementation verification recorded on 2026-07-19:
 
 - focused constants/types/domain, server Guide/Demo/Publish/Audit, and web
   Guide/Demo/App suites pass;
@@ -1344,6 +1385,35 @@ Verification completed on 2026-07-19:
   states; a later unrelated authentication-audit repair must repeat the desktop,
   mobile, keyboard, zoom/reflow, network, public reader/viewer, and embed matrix.
 
+Fresh implementation closeout verification on 2026-07-19:
+
+- focused shared contracts: `3` files / `15` tests pass;
+- focused server authorization, Guide/Demo routes, and Demo service: `4` files /
+  `21` tests pass;
+- focused web Guide/Demo API and Demo editor: `2` files / `67` tests pass;
+- the recursive non-DB repository suite passes: types `50`, Guide domain `10`,
+  Demo domain `14`, server `365`, web `264`, extension `99`, and every other
+  package suite reported green;
+- `rtk pnpm check-types` passes (`12` tasks), `rtk pnpm lint` passes (`13`
+  tasks), `rtk pnpm build` passes (`12` tasks), and
+  `rtk git diff --check` passes;
+- a fresh `test:db` attempt was blocked before PostgreSQL connection because
+  `.env-cmdrc` provides `development` and `testing` but not the required
+  `testing_maintenance` environment. The new stable-Annotation and
+  stable-Transition DB regressions are committed but were not represented as a
+  fresh DB pass;
+- real-browser session `child118-close` opened `http://localhost:3000`, loaded
+  the Vite application without console errors beyond normal development logs,
+  and captured the actual blocking state. Both
+  `GET /api/v1/public/instance` requests returned `500`, leaving the setup shell
+  at `Setup status unavailable` before authentication or any Guide/Demo route
+  could be exercised. Evidence screenshot:
+  `/tmp/ossie-child118-close-setup-blocker.png`. Desktop, narrow mobile,
+  keyboard, zoom/reflow, permission, destructive, public-reader/viewer, and
+  embed validation remain blocked at that prerequisite; they are not marked as
+  passing. The earlier authentication session-touch failure remains historical
+  evidence but was not reachable in this fresh run.
+
 ## Leftovers And Handoff To Child 119
 
 Child `119` must build on, not replace, these child-118 foundations:
@@ -1370,8 +1440,18 @@ Child `119` owns:
   Published Artifact references.
 
 Unrelated carry-forward: repair the authenticated session-touch Audit
-transition and rerun the blocked browser matrix. Do not fold that authentication
-defect into child `119`'s domain scope.
+transition, restore a working local public-instance/setup response, and rerun
+the blocked browser matrix. Restore the `testing_maintenance` test profile and
+rerun the migration, full DB integration, and smoke suites before relying on
+fresh database evidence for child `119`. These are environment/adjacent-system
+verification blockers, not permission to expand child `119`'s domain scope.
+
+Child `119` may rely on the closeout fixes that retained Annotation and
+Transition identities survive edits, all artifact lifecycle writers require
+`artifact.write`, delete responses carry the authoritative Working Draft, and
+exact Project Version IDs are mandatory at the web API boundary. Its copy and
+restore logic must preserve those contracts while issuing new IDs only for
+copied mutable structures as already accepted.
 
 Child `120` still owns removal of the temporary publication snapshot JSON,
 revision-backed Published Artifacts, Publication Sequence naming, multi-version
