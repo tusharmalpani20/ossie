@@ -200,10 +200,14 @@ The latest manual screenshot outcome is stored separately from automatic capture
 Opening an active capture in the portal uses:
 
 ```text
-{portal_url_or_instance_url}/projects/:project_id/capture-sessions/:capture_session_id
+{portal_url_or_instance_url}/projects/:project_id/versions/:default_version_slug/capture-sessions/:capture_session_id
 ```
 
-This action does not complete the backend capture session and does not clear local active capture state. Use it when you want to inspect the capture session while continuing manual screenshot capture from the extension.
+This action uses the Default Project Version returned with the selected Project.
+It does not imply that Capture persistence is version-scoped yet, does not
+complete the backend capture session, and does not clear local active capture
+state. Child `117` owns stored Version selection and mandatory Capture Version
+ownership.
 
 ## Capture Finish
 

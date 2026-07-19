@@ -49,6 +49,7 @@ import { buildPortalCaptureSessionUrl, normalizeInstanceUrl } from "./lib/url";
 import {
   buildCaptureSessionInput,
   errorMessage,
+  projectContextLabel,
   persistManualCaptureDiagnostic,
   screenshotFileName,
 } from "./popup/helpers";
@@ -495,6 +496,8 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
           }
         }}
         onFinishCapture={async (input) => {
+          const contextProject = state.projects.find(({ id }) => id === input.projectId);
+          if (!contextProject) throw new ApiClientError({ status: 404, type: "project_not_found", message: "Project Version context is unavailable." });
           const result = await dependencies.completeCaptureSession(
             state.settings.instanceUrl,
             state.settings.sessionToken,
@@ -506,6 +509,7 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
             state.settings.portalUrl,
             result.redirect.path,
             input.projectId,
+            contextProject.default_project_version.slug,
             input.captureSessionId
           );
 
@@ -533,11 +537,14 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
           }
         }}
         onOpenActiveCapture={async (input) => {
+          const contextProject = state.projects.find(({ id }) => id === input.projectId);
+          if (!contextProject) throw new ApiClientError({ status: 404, type: "project_not_found", message: "Project Version context is unavailable." });
           const portalUrl = buildPortalCaptureSessionUrl(
             state.settings.instanceUrl,
             state.settings.portalUrl,
             null,
             input.projectId,
+            contextProject.default_project_version.slug,
             input.captureSessionId
           );
 
@@ -951,7 +958,7 @@ const ProjectPicker = ({
                 : "Clicks on supported pages create ordered screenshot-backed steps."
               : "Capture one screenshot for each step you want in the guide."}
           </p>
-          <p className="captureProject">{activeProject?.name ?? "Project unavailable"}</p>
+          <p className="captureProject">{activeProject ? projectContextLabel(activeProject) : "Project unavailable"}</p>
           <p className="captureSession">Session {activeCaptureSessionId}</p>
           {screenshotError ? <div className="error">{screenshotError}</div> : null}
           {automaticCaptureDiagnosticMessage ? <div className="error">{automaticCaptureDiagnosticMessage}</div> : null}
@@ -993,7 +1000,7 @@ const ProjectPicker = ({
           <p className="captureMode">Automatic click capture</p>
           <p className="captureHelp">Clicks on supported pages create ordered screenshot-backed steps.</p>
           <p className="captureHelp">Manual screenshots remain available after capture starts.</p>
-          <p className="captureProject">{selectedProject.name}</p>
+          <p className="captureProject">{projectContextLabel(selectedProject)}</p>
           {startError ? <div className="error">{startError}</div> : null}
           {finishError ? <div className="error">{finishError}</div> : null}
           <Button disabled={busy} onClick={() => void handleStartCapture()}>
@@ -1016,7 +1023,7 @@ const ProjectPicker = ({
               key={project.id}
               onClick={() => void onSelect(project.id)}
             >
-              <span>Use <strong>{project.name}</strong></span>
+              <span>Use <strong>{projectContextLabel(project)}</strong></span>
               <small>{project.status}</small>
             </Button>
           ))}

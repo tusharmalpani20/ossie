@@ -29,9 +29,10 @@ export const normalizeInstanceUrl = (value: string): NormalizedInstanceUrlResult
 
 const buildFallbackCaptureSessionPath = (
   projectId: string,
+  versionSlug: string,
   captureSessionId: string
 ) => (
-  `/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}`
+  `/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/capture-sessions/${encodeURIComponent(captureSessionId)}`
 );
 
 const safeRedirectPath = (
@@ -53,11 +54,13 @@ export const buildPortalCaptureSessionUrl = (
   portalUrl: string | null | undefined,
   redirectPath: string | null | undefined,
   projectId: string,
+  versionSlug: string,
   captureSessionId: string
 ) => {
   const origin = (portalUrl ?? instanceUrl).replace(/\/+$/, "");
-  const path = safeRedirectPath(redirectPath)
-    ?? buildFallbackCaptureSessionPath(projectId, captureSessionId);
+  const safe = safeRedirectPath(redirectPath);
+  const path = safe?.includes("/versions/") ? safe
+    : buildFallbackCaptureSessionPath(projectId, versionSlug, captureSessionId);
 
   return `${origin}${path}`;
 };

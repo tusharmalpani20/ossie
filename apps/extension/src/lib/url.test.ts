@@ -32,8 +32,9 @@ describe("buildPortalCaptureSessionUrl", () => {
       null,
       "/projects/project_1/capture-sessions/capture_session_1",
       "fallback_project",
+      "main",
       "fallback_session"
-    )).toBe("https://demo.example.com/projects/project_1/capture-sessions/capture_session_1");
+    )).toBe("https://demo.example.com/projects/fallback_project/versions/main/capture-sessions/fallback_session");
   });
 
   it("falls back to encoded local paths when redirect paths are missing or unsafe", () => {
@@ -42,24 +43,27 @@ describe("buildPortalCaptureSessionUrl", () => {
       null,
       null,
       "project with spaces",
+      "Q3 latest",
       "capture/session"
-    )).toBe("https://demo.example.com/projects/project%20with%20spaces/capture-sessions/capture%2Fsession");
+    )).toBe("https://demo.example.com/projects/project%20with%20spaces/versions/Q3%20latest/capture-sessions/capture%2Fsession");
 
     expect(buildPortalCaptureSessionUrl(
       "https://demo.example.com",
       null,
       "https://evil.example/projects/project_1",
       "project with spaces",
+      "main",
       "capture/session"
-    )).toBe("https://demo.example.com/projects/project%20with%20spaces/capture-sessions/capture%2Fsession");
+    )).toBe("https://demo.example.com/projects/project%20with%20spaces/versions/main/capture-sessions/capture%2Fsession");
 
     expect(buildPortalCaptureSessionUrl(
       "https://demo.example.com",
       null,
       "//evil.example/projects/project_1",
       "project with spaces",
+      "main",
       "capture/session"
-    )).toBe("https://demo.example.com/projects/project%20with%20spaces/capture-sessions/capture%2Fsession");
+    )).toBe("https://demo.example.com/projects/project%20with%20spaces/versions/main/capture-sessions/capture%2Fsession");
   });
 
   it("uses a separate portal origin for split API and web deployments", () => {
@@ -68,15 +72,17 @@ describe("buildPortalCaptureSessionUrl", () => {
       "http://localhost:3000",
       "/projects/project_1/capture-sessions/capture_session_1",
       "fallback_project",
+      "main",
       "fallback_session"
-    )).toBe("http://localhost:3000/projects/project_1/capture-sessions/capture_session_1");
+    )).toBe("http://localhost:3000/projects/fallback_project/versions/main/capture-sessions/fallback_session");
 
     expect(buildPortalCaptureSessionUrl(
       "http://localhost:4021",
       "http://localhost:3000/",
       "https://evil.example/projects/project_1",
       "project with spaces",
+      "main",
       "capture/session"
-    )).toBe("http://localhost:3000/projects/project%20with%20spaces/capture-sessions/capture%2Fsession");
+    )).toBe("http://localhost:3000/projects/project%20with%20spaces/versions/main/capture-sessions/capture%2Fsession");
   });
 });

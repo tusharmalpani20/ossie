@@ -6,6 +6,9 @@ export const errorMessage = (error: unknown, fallback: string) => (
   error instanceof ApiClientError ? error.message : fallback
 );
 
+export const projectContextLabel = (project: Project) =>
+  `${project.name} / ${project.default_project_version.name}`;
+
 export const persistManualCaptureDiagnostic = async (
   saveManualCaptureDiagnostic: (diagnostic: ManualCaptureDiagnostic | null) => Promise<void>,
   diagnostic: ManualCaptureDiagnostic

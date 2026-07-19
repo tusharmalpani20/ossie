@@ -42,6 +42,7 @@ const projects: Project[] = [
     created_at: "2026-06-05T09:00:00.000Z",
     updated_at: "2026-06-05T09:30:00.000Z",
     access: { role: "project_admin", source: "organization_owner" },
+    default_project_version: { id: "version_2", name: "Main", slug: "main", status: "active", position: 1 },
   },
   {
     id: "project_1",
@@ -58,6 +59,7 @@ const projects: Project[] = [
     created_at: "2026-06-05T10:00:00.000Z",
     updated_at: "2026-06-05T10:05:00.000Z",
     access: { role: "editor", source: "project_membership" },
+    default_project_version: { id: "version_1", name: "Main", slug: "main", status: "active", position: 1 },
   },
 ];
 
@@ -430,8 +432,8 @@ describe("extension popup App", () => {
     expect(screen.getByText("Acme")).toBeInTheDocument();
     const projectButtons = screen.getAllByRole("button", { name: /Use / });
     expect(projectButtons).toHaveLength(2);
-    expect(within(projectButtons[0]!).getByText("Archived onboarding demos")).toBeInTheDocument();
-    expect(within(projectButtons[1]!).getByText("Internal onboarding demos")).toBeInTheDocument();
+    expect(within(projectButtons[0]!).getByText("Archived onboarding demos / Main")).toBeInTheDocument();
+    expect(within(projectButtons[1]!).getByText("Internal onboarding demos / Main")).toBeInTheDocument();
     expect(dependencies.login).toHaveBeenCalledWith("https://demo.example.com", {
       email: "owner@example.com",
       password: "safe password",
@@ -538,7 +540,7 @@ describe("extension popup App", () => {
     });
 
     expect(await screen.findByRole("heading", { name: "Ready to capture" })).toBeInTheDocument();
-    expect(screen.getAllByText("Internal onboarding demos")).toHaveLength(2);
+    expect(screen.getAllByText("Internal onboarding demos / Main")).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("button", { name: "Start automatic capture" }));
 
@@ -603,7 +605,7 @@ describe("extension popup App", () => {
     });
 
     expect(await screen.findByRole("heading", { name: "Capture active" })).toBeInTheDocument();
-    expect(screen.getByText("Internal onboarding demos")).toBeInTheDocument();
+    expect(screen.getByText("Internal onboarding demos / Main")).toBeInTheDocument();
     expect(screen.getByText(/capture_session_1/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start automatic capture" })).not.toBeInTheDocument();
   });
@@ -712,7 +714,7 @@ describe("extension popup App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open in portal" }));
 
     await waitFor(() => expect(dependencies.openPortalUrl).toHaveBeenCalledWith(
-      "https://demo.example.com/projects/project_1/capture-sessions/capture_session_1"
+      "https://demo.example.com/projects/project_1/versions/main/capture-sessions/capture_session_1"
     ));
     expect(dependencies.completeCaptureSession).not.toHaveBeenCalled();
     expect(dependencies.clearActiveCapture).not.toHaveBeenCalled();
@@ -738,7 +740,7 @@ describe("extension popup App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open in portal" }));
 
     await waitFor(() => expect(dependencies.openPortalUrl).toHaveBeenCalledWith(
-      "http://localhost:3000/projects/project_1/capture-sessions/capture_session_1"
+      "http://localhost:3000/projects/project_1/versions/main/capture-sessions/capture_session_1"
     ));
     expect(dependencies.completeCaptureSession).not.toHaveBeenCalled();
     expect(dependencies.clearActiveCapture).not.toHaveBeenCalled();
@@ -1070,11 +1072,11 @@ describe("extension popup App", () => {
     ));
     await waitFor(() => expect(dependencies.clearActiveCapture).toHaveBeenCalled());
     await waitFor(() => expect(dependencies.openPortalUrl).toHaveBeenCalledWith(
-      "https://demo.example.com/projects/project_1/capture-sessions/capture_session_1"
+      "https://demo.example.com/projects/project_1/versions/main/capture-sessions/capture_session_1"
     ));
     expect(screen.queryByRole("heading", { name: "Capture active" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Ready to capture" })).toBeInTheDocument();
-    expect(screen.getAllByText("Internal onboarding demos")).toHaveLength(2);
+    expect(screen.getAllByText("Internal onboarding demos / Main")).toHaveLength(2);
   });
 
   it("opens finished captures with the configured portal URL in split API and web deployments", async () => {
@@ -1102,7 +1104,7 @@ describe("extension popup App", () => {
       "capture_session_1"
     ));
     await waitFor(() => expect(dependencies.openPortalUrl).toHaveBeenCalledWith(
-      "http://localhost:3000/projects/project_1/capture-sessions/capture_session_1"
+      "http://localhost:3000/projects/project_1/versions/main/capture-sessions/capture_session_1"
     ));
     await waitFor(() => expect(dependencies.clearActiveCapture).toHaveBeenCalled());
   });
@@ -1131,9 +1133,8 @@ describe("extension popup App", () => {
     expect(await screen.findByRole("heading", { name: "Capture active" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Finish capture" }));
 
-    await waitFor(() => expect(dependencies.openPortalUrl).toHaveBeenCalledWith(
-      "https://demo.example.com/projects/project%201/capture-sessions/capture%2Fsession"
-    ));
+    await screen.findByText("Project Version context is unavailable.");
+    expect(dependencies.openPortalUrl).not.toHaveBeenCalled();
   });
 
   it("disables active capture actions while finishing", async () => {

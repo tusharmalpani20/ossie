@@ -25,6 +25,7 @@ const project = (name: string): Project => ({
   created_at: "2026-06-05T10:00:00.000Z",
   updated_at: "2026-06-05T10:05:00.000Z",
   access: { role: "editor", source: "project_membership" },
+  default_project_version: { id: "version_1", name: "Main", slug: "main", status: "active", position: 1 },
 });
 
 const tab = (input: Partial<CurrentTabSnapshot>): CurrentTabSnapshot => ({
