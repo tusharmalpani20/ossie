@@ -550,7 +550,7 @@ export const build_capture_asset_transactional_repository = (
       await db.query<Record<string, unknown>>(
         `
       SELECT 'guide_working_draft' dependency_type,edition.guide_id artifact_id,edition.id edition_id,NULL::int revision_number,
-        NULL::varchar published_artifact_id,NULL::int publication_number,NULL::varchar capture_asset_id
+        NULL::varchar published_artifact_id,NULL::int publication_sequence,NULL::varchar capture_asset_id
       FROM guide_schema.guide_step step JOIN guide_schema.guide_working_draft draft ON draft.id=step.guide_working_draft_id
       JOIN guide_schema.guide_edition edition ON edition.id=draft.guide_edition_id
       WHERE step.project_id=$1 AND step.organization_id=$2 AND step.is_deleted=FALSE AND ($3 IN (step.source_capture_asset_id,step.selected_capture_asset_id))
@@ -564,9 +564,14 @@ export const build_capture_asset_transactional_repository = (
       UNION ALL SELECT 'interactive_demo_revision',revision.interactive_demo_id,revision.interactive_demo_edition_id,revision.revision_number,NULL,NULL,NULL
       FROM interactive_demo_schema.demo_revision_scene scene JOIN interactive_demo_schema.interactive_demo_revision revision ON revision.id=scene.interactive_demo_revision_id
       WHERE scene.project_id=$1 AND scene.organization_id=$2 AND ($3 IN (scene.source_capture_asset_id,scene.background_capture_asset_id))
-      UNION ALL SELECT 'published_artifact',NULL,NULL,NULL,published.id,published.version_number,NULL
-      FROM publish_schema.published_artifact_capture_asset projection JOIN publish_schema.published_artifact published ON published.id=projection.published_artifact_id
-      WHERE projection.project_id=$1 AND projection.organization_id=$2 AND projection.capture_asset_id=$3
+      UNION ALL SELECT 'published_artifact',NULL,NULL,NULL,published.id,published.publication_sequence,NULL
+      FROM publish_schema.published_artifact published JOIN guide_schema.guide_revision revision ON revision.id=published.guide_revision_id
+      JOIN guide_schema.guide_revision_step step ON step.guide_revision_id=revision.id
+      WHERE published.project_id=$1 AND published.organization_id=$2 AND ($3 IN(step.source_capture_asset_id,step.selected_capture_asset_id))
+      UNION ALL SELECT 'published_artifact',NULL,NULL,NULL,published.id,published.publication_sequence,NULL
+      FROM publish_schema.published_artifact published JOIN interactive_demo_schema.interactive_demo_revision revision ON revision.id=published.interactive_demo_revision_id
+      JOIN interactive_demo_schema.demo_revision_scene scene ON scene.interactive_demo_revision_id=revision.id
+      WHERE published.project_id=$1 AND published.organization_id=$2 AND ($3 IN(scene.source_capture_asset_id,scene.background_capture_asset_id))
       UNION ALL SELECT 'shared_file_asset',NULL,NULL,NULL,NULL,NULL,other.id
       FROM capture_schema.capture_asset other WHERE other.project_id=$1 AND other.organization_id=$2 AND other.file_id=$4
         AND other.id<>$3 AND other.is_deleted=FALSE`,

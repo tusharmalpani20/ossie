@@ -833,7 +833,7 @@ describe("capture asset routes", () => {
         {
           dependency_type: "published_artifact",
           published_artifact_id: "publication_1",
-          publication_number: 1,
+          publication_sequence: 1,
         },
       ],
     };

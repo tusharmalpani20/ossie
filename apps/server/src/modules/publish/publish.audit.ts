@@ -1,723 +1,547 @@
 import { ulid } from "ulid";
+import type { PublishedArtifact, PublishLink } from "@repo/types/publish";
+import { find_audit_command } from "../audit/audit-coverage-registry";
 import {
   build_entity_audit_event,
   resolve_org_user_audit_context,
   type EntityAuditChange,
 } from "../audit/entity-audit";
-import { find_audit_command } from "../audit/audit-coverage-registry";
 import { write_audit_event } from "../audit/audit.repository";
-import {
-  run_audited_mutation,
-  translate_audit_transaction_error,
-} from "../audit/audit-transaction";
+import { run_audited_mutation } from "../audit/audit-transaction";
 import {
   build_publish_repository,
   build_publish_transactional_repository,
 } from "./publish.repository";
-import type {
-  PublishedArtifact,
-  PublishArtifactType,
-  PublishLink,
-  PublishRepository,
-  PublishStatus,
-} from "./publish.service";
+import type { ArtifactScope, PublishRepository } from "./publish.service";
 
 type Pool = Parameters<typeof build_publish_repository>[0];
 type Client = Parameters<
   Parameters<typeof run_audited_mutation>[0]["execute"]
 >[0];
-type Actor = {
-  organization_id: string;
-  project_id: string;
-  actor_org_user_id: string;
+type State = {
+  entity_type: string;
+  id: string;
+  version?: number;
+  status?: string;
+  last_used_at?: Date | null;
+  revoked_at?: Date | null;
+  name?: string;
+  visibility?: string;
+  expires_at?: Date | null;
+  password_protected?: boolean;
+  project_version_id?: string;
+  published_artifact_id?: string;
+  revision_id?: string;
+  edition_id?: string;
+  publication_sequence?: number;
+  position?: number;
+  is_default?: boolean;
 };
-type ActorContext = Awaited<ReturnType<typeof resolve_org_user_audit_context>>;
-
-const artifact_fields = {
-  artifact_type: "enum",
-  artifact_id: "identifier",
-  version_number: "integer",
-  title: "text",
-  published_at: "timestamp",
-} as const;
-const link_fields = {
-  artifact_type: "enum",
-  artifact_id: "identifier",
-  published_artifact_id: "identifier",
-  visibility: "enum",
-  status: "enum",
-  published_at: "timestamp",
-  revoked_at: "timestamp",
-  expires_at: "timestamp",
-  password_protected: "boolean",
-} as const;
 
 export const build_publish_changes = (input: {
-  artifact_type: PublishArtifactType;
-  artifact_id: string;
-  before_link: PublishLink | null;
-  after_link: PublishLink | null;
+  before_link?: PublishLink | null;
+  after_link?: PublishLink | null;
   published_artifact?: PublishedArtifact | null;
 }): EntityAuditChange[] => {
   const changes: EntityAuditChange[] = [];
-  if (input.published_artifact) {
+  if (input.published_artifact)
     changes.push({
       entity_type: "published_artifact",
       entity_id: input.published_artifact.id,
-      parent_entity_type: input.artifact_type,
-      parent_entity_id: input.artifact_id,
+      parent_entity_type: input.published_artifact.artifact_type,
+      parent_entity_id: input.published_artifact.artifact_id,
       before: null,
-      after: { ...input.published_artifact, snapshot_json: true },
-      safe_fields: artifact_fields,
-      redacted_fields: ["snapshot_json"],
+      after: input.published_artifact,
+      safe_fields: {
+        artifact_type: "enum",
+        artifact_id: "identifier",
+        edition_id: "identifier",
+        project_version_id: "identifier",
+        revision_id: "identifier",
+        revision_number: "integer",
+        publication_sequence: "integer",
+        published_at: "timestamp",
+        created_at: "timestamp",
+      },
+      redacted_fields: [],
     });
-  }
   if (JSON.stringify(input.before_link) !== JSON.stringify(input.after_link)) {
-    const row = input.after_link ?? input.before_link!;
-    const clean = (value: PublishLink | null) =>
-      value ? { ...value, slug: true, public_url: undefined } : null;
-    changes.push({
-      entity_type: "publish_link",
-      entity_id: row.id,
-      parent_entity_type: input.artifact_type,
-      parent_entity_id: input.artifact_id,
-      before: clean(input.before_link),
-      after: clean(input.after_link),
-      safe_fields: link_fields,
-      redacted_fields: ["slug"],
-    });
+    const link = input.after_link ?? input.before_link;
+    if (link)
+      changes.push({
+        entity_type: "publish_link",
+        entity_id: link.id,
+        parent_entity_type: link.artifact_type,
+        parent_entity_id: link.artifact_id,
+        before: input.before_link ?? null,
+        after: input.after_link ?? null,
+        safe_fields: {
+          artifact_type: "enum",
+          artifact_id: "identifier",
+          name: "text",
+          visibility: "enum",
+          status: "enum",
+          expires_at: "timestamp",
+          password_protected: "boolean",
+          version: "integer",
+          created_at: "timestamp",
+          updated_at: "timestamp",
+          revoked_at: "timestamp",
+        },
+        redacted_fields: ["slug", "public_url", "default_public_url"],
+      });
   }
   return changes;
 };
 
-const publish_event = (input: {
-  event_id: string;
-  occurred_at: string;
-  actor: Actor;
-  context: ActorContext;
-  artifact_type: PublishArtifactType;
-  artifact_id: string;
-  action: string;
-  changes: EntityAuditChange[];
-  before_version: number | null;
-  after_version: number | null;
-}) =>
-  build_entity_audit_event({
-    id: input.event_id,
-    organization_id: input.actor.organization_id,
-    project_id: input.actor.project_id,
-    root_resource_type: input.artifact_type,
-    root_resource_id: input.artifact_id,
-    action: input.action,
-    actor_org_user_id: input.actor.actor_org_user_id,
-    actor_label: input.context.actor_label,
-    source_type: input.context.mutation.source_type,
-    occurred_at: input.occurred_at,
-    before_row_version: input.before_version,
-    after_row_version: input.after_version,
-    changes: input.changes,
-  });
-
-const password_change = (link: PublishLink): EntityAuditChange => ({
-  entity_type: "publish_link",
-  entity_id: link.id,
-  parent_entity_type: link.artifact_type,
-  parent_entity_id: link.artifact_id,
-  before: { password_hash: "before", password_salt: "before" },
-  after: { password_hash: "after", password_salt: "after" },
-  redacted_fields: ["password_hash", "password_salt"],
-});
-
-const set_context = async (
-  client: Client,
-  values: {
-    event_id: string;
-    organization_id: string;
-    action: string;
-    command: string;
-    actor_type: string;
-    source_type: string;
-  },
-) => {
-  for (const [name, value] of [
-    ["ossie.audit_event_id", values.event_id],
-    ["ossie.audit_organization_id", values.organization_id],
-    ["ossie.audit_action", values.action],
-    ["ossie.audit_command", values.command],
-    ["ossie.audit_actor_type", values.actor_type],
-    ["ossie.audit_source_type", values.source_type],
-  ])
-    await client.query("SELECT set_config($1, $2, true)", [name, value]);
+const snapshot = async (client: Client, scope: ArtifactScope) => {
+  const guide = scope.artifact_type === "guide",
+    column = guide ? "guide_id" : "interactive_demo_id";
+  const rows: State[] = [];
+  const add = (
+    entity_type: string,
+    values: Array<Record<string, unknown> & { id: string }>,
+  ) =>
+    values.forEach((row) =>
+      rows.push({
+        entity_type,
+        id: row.id,
+        ...("version" in row ? { version: Number(row.version) } : {}),
+        ...("status" in row ? { status: String(row.status) } : {}),
+        ...("last_used_at" in row
+          ? { last_used_at: row.last_used_at as Date | null }
+          : {}),
+        ...("revoked_at" in row
+          ? { revoked_at: row.revoked_at as Date | null }
+          : {}),
+        ...("name" in row ? { name: String(row.name) } : {}),
+        ...("visibility" in row ? { visibility: String(row.visibility) } : {}),
+        ...("expires_at" in row
+          ? { expires_at: row.expires_at as Date | null }
+          : {}),
+        ...("password_protected" in row
+          ? { password_protected: Boolean(row.password_protected) }
+          : {}),
+        ...("project_version_id" in row
+          ? { project_version_id: String(row.project_version_id) }
+          : {}),
+        ...("published_artifact_id" in row
+          ? { published_artifact_id: String(row.published_artifact_id) }
+          : {}),
+        ...("revision_id" in row
+          ? { revision_id: String(row.revision_id) }
+          : {}),
+        ...("edition_id" in row ? { edition_id: String(row.edition_id) } : {}),
+        ...("publication_sequence" in row
+          ? { publication_sequence: Number(row.publication_sequence) }
+          : {}),
+        ...("position" in row ? { position: Number(row.position) } : {}),
+        ...("is_default" in row ? { is_default: Boolean(row.is_default) } : {}),
+      }),
+    );
+  add(
+    "published_artifact",
+    (
+      await client.query<{ id: string }>(
+        `SELECT id,project_version_id,COALESCE(guide_edition_id,interactive_demo_edition_id) edition_id,COALESCE(guide_revision_id,interactive_demo_revision_id) revision_id,publication_sequence FROM publish_schema.published_artifact WHERE organization_id=$1 AND project_id=$2 AND artifact_type=$3 AND ${column}=$4`,
+        [
+          scope.auth.organization_id,
+          scope.project_id,
+          scope.artifact_type,
+          scope.artifact_id,
+        ],
+      )
+    ).rows,
+  );
+  const links = (
+    await client.query<{ id: string; version: number; status: string }>(
+      `SELECT id,version,status,name,visibility,expires_at,(password_hash IS NOT NULL) password_protected,revoked_at FROM publish_schema.publish_link WHERE organization_id=$1 AND project_id=$2 AND artifact_type=$3 AND ${column}=$4`,
+      [
+        scope.auth.organization_id,
+        scope.project_id,
+        scope.artifact_type,
+        scope.artifact_id,
+      ],
+    )
+  ).rows;
+  add("publish_link", links);
+  if (links.length) {
+    const ids = links.map((row) => row.id);
+    add(
+      "publish_link_entry",
+      (
+        await client.query<{ id: string; version: number }>(
+          `SELECT id,version,project_version_id,published_artifact_id,position,is_default FROM publish_schema.publish_link_entry WHERE publish_link_id=ANY($1::varchar[])`,
+          [ids],
+        )
+      ).rows,
+    );
+    add(
+      "public_publish_viewer_session",
+      (
+        await client.query<{
+          id: string;
+          last_used_at: Date | null;
+          revoked_at: Date | null;
+        }>(
+          `SELECT id,last_used_at,revoked_at FROM publish_schema.public_publish_viewer_session WHERE publish_link_id=ANY($1::varchar[])`,
+          [ids],
+        )
+      ).rows,
+    );
+  }
+  const root = guide
+      ? "guide_schema.guide_revision"
+      : "interactive_demo_schema.interactive_demo_revision",
+    root_artifact = guide ? "guide_id" : "interactive_demo_id",
+    root_type = guide ? "guide_revision" : "interactive_demo_revision",
+    root_id = guide ? "guide_revision_id" : "interactive_demo_revision_id";
+  const revisions = (
+    await client.query<{ id: string }>(
+      `SELECT id FROM ${root} WHERE organization_id=$1 AND project_id=$2 AND ${root_artifact}=$3`,
+      [scope.auth.organization_id, scope.project_id, scope.artifact_id],
+    )
+  ).rows;
+  add(root_type, revisions);
+  if (revisions.length) {
+    const ids = revisions.map((row) => row.id);
+    for (const [type, table] of guide
+      ? [
+          ["guide_revision_block", "guide_schema.guide_revision_block"],
+          ["guide_revision_step", "guide_schema.guide_revision_step"],
+          [
+            "guide_revision_annotation",
+            "guide_schema.guide_revision_annotation",
+          ],
+        ]
+      : [
+          [
+            "demo_revision_scene",
+            "interactive_demo_schema.demo_revision_scene",
+          ],
+          [
+            "demo_revision_hotspot",
+            "interactive_demo_schema.demo_revision_hotspot",
+          ],
+          [
+            "demo_revision_transition",
+            "interactive_demo_schema.demo_revision_transition",
+          ],
+        ])
+      add(
+        type!,
+        (
+          await client.query<{ id: string }>(
+            `SELECT id FROM ${table!} WHERE ${root_id}=ANY($1::varchar[])`,
+            [ids],
+          )
+        ).rows,
+      );
+  }
+  return new Map(rows.map((row) => [`${row.entity_type}:${row.id}`, row]));
+};
+const diff = (
+  before: Map<string, State>,
+  after: Map<string, State>,
+  scope: ArtifactScope,
+): EntityAuditChange[] => {
+  const result: EntityAuditChange[] = [];
+  for (const key of new Set([...before.keys(), ...after.keys()])) {
+    const prior = before.get(key) ?? null,
+      next = after.get(key) ?? null;
+    if (JSON.stringify(prior) === JSON.stringify(next)) continue;
+    const row = next ?? prior!;
+    result.push({
+      entity_type: row.entity_type,
+      entity_id: row.id,
+      parent_entity_type: scope.artifact_type,
+      parent_entity_id: scope.artifact_id,
+      before: prior,
+      after: next,
+      safe_fields: {
+        ...("version" in row ? { version: "integer" as const } : {}),
+        ...("status" in row ? { status: "enum" as const } : {}),
+        ...("last_used_at" in row
+          ? { last_used_at: "timestamp" as const }
+          : {}),
+        ...("revoked_at" in row ? { revoked_at: "timestamp" as const } : {}),
+        ...("name" in row ? { name: "text" as const } : {}),
+        ...("visibility" in row ? { visibility: "enum" as const } : {}),
+        ...("expires_at" in row ? { expires_at: "timestamp" as const } : {}),
+        ...("password_protected" in row
+          ? { password_protected: "boolean" as const }
+          : {}),
+        ...("project_version_id" in row
+          ? { project_version_id: "identifier" as const }
+          : {}),
+        ...("published_artifact_id" in row
+          ? { published_artifact_id: "identifier" as const }
+          : {}),
+        ...("revision_id" in row ? { revision_id: "identifier" as const } : {}),
+        ...("edition_id" in row ? { edition_id: "identifier" as const } : {}),
+        ...("publication_sequence" in row
+          ? { publication_sequence: "integer" as const }
+          : {}),
+        ...("position" in row ? { position: "integer" as const } : {}),
+        ...("is_default" in row ? { is_default: "boolean" as const } : {}),
+      },
+      redacted_fields: [],
+    });
+  }
+  return result;
+};
+const command_for = (method: string, type: "guide" | "interactive_demo") => {
+  const commands = {
+    guide: {
+      publish: { command: "publish.guide", action: "guide.published" },
+      create_publish_link: {
+        command: "publish.guide_link.create",
+        action: "guide.publish_link.created",
+      },
+      update_publish_link: {
+        command: "publish.guide_link.settings_update",
+        action: "guide.publish_link.settings_updated",
+      },
+      replace_publish_link_manifest: {
+        command: "publish.guide_link.manifest_update",
+        action: "guide.publish_link.manifest_updated",
+      },
+      rollback_publish_link_entry: {
+        command: "publish.guide_link.entry_rollback",
+        action: "guide.publish_link.entry_rolled_back",
+      },
+      revoke_publish_link: {
+        command: "publish.guide_link.revoke",
+        action: "guide.publish_link.revoked",
+      },
+    },
+    interactive_demo: {
+      publish: {
+        command: "publish.interactive_demo",
+        action: "interactive_demo.published",
+      },
+      create_publish_link: {
+        command: "publish.interactive_demo_link.create",
+        action: "interactive_demo.publish_link.created",
+      },
+      update_publish_link: {
+        command: "publish.interactive_demo_link.settings_update",
+        action: "interactive_demo.publish_link.settings_updated",
+      },
+      replace_publish_link_manifest: {
+        command: "publish.interactive_demo_link.manifest_update",
+        action: "interactive_demo.publish_link.manifest_updated",
+      },
+      rollback_publish_link_entry: {
+        command: "publish.interactive_demo_link.entry_rollback",
+        action: "interactive_demo.publish_link.entry_rolled_back",
+      },
+      revoke_publish_link: {
+        command: "publish.interactive_demo_link.revoke",
+        action: "interactive_demo.publish_link.revoked",
+      },
+    },
+  } as const;
+  return commands[type][method as keyof (typeof commands)[typeof type]];
 };
 
 export const build_audited_publish_repository = (
   pool: Pool,
 ): PublishRepository => {
   const base = build_publish_repository(pool);
-  const audited_transaction: PublishRepository["transaction"] = async (
-    work,
-  ) => {
-    const client = await pool.connect();
-    const event_id = ulid();
-    const occurred_at = new Date().toISOString();
-    let artifact_type: PublishArtifactType | null = null;
-    let artifact_id: string | null = null;
-    let actor: Actor | null = null;
-    let context: ActorContext | null = null;
-    let root_version: number | null = null;
-    let before_link: PublishLink | null = null;
-    let after_link: PublishLink | null = null;
-    let published_artifact: PublishedArtifact | null = null;
-    try {
-      await client.query("BEGIN");
-      const raw = build_publish_transactional_repository(client);
-      const tracked: PublishRepository = {
-        ...raw,
-        async find_guide_detail(input) {
-          const result = await raw.find_guide_detail(input);
-          if (result) root_version = result.working_draft.version;
-          return result;
-        },
-        async find_interactive_demo_detail(input) {
-          const result = await raw.find_interactive_demo_detail(input);
-          if (result) root_version = result.working_draft.version;
-          return result;
-        },
-        async find_active_publish_link(input) {
-          const result = await raw.find_active_publish_link(input);
-          before_link = result;
-          return result;
-        },
-        async create_published_artifact(input) {
-          artifact_type = input.artifact_type;
-          artifact_id = input.artifact_id;
-          actor = {
-            organization_id: input.organization_id,
-            project_id: input.project_id,
-            actor_org_user_id: input.actor_org_user_id,
-          };
-          context = await resolve_org_user_audit_context(client, actor);
-          const command =
-            artifact_type === "guide"
-              ? "publish.guide"
-              : "publish.interactive_demo";
-          const action =
-            artifact_type === "guide"
-              ? "guide.published"
-              : "interactive_demo.published";
-          await set_context(client, {
-            event_id,
-            organization_id: input.organization_id,
-            action,
-            command,
-            actor_type: "org_user",
-            source_type: context.mutation.source_type,
-          });
-          published_artifact = await raw.create_published_artifact(input);
-          return published_artifact;
-        },
-        async create_publish_link(input) {
-          after_link = await raw.create_publish_link(input);
-          return after_link;
-        },
-        async update_publish_link_target(input) {
-          after_link = await raw.update_publish_link_target(input);
-          return after_link;
-        },
-      };
-      const result = await work(tracked);
-      if (
-        artifact_type &&
-        artifact_id &&
-        actor &&
-        context &&
-        published_artifact &&
-        after_link
-      ) {
-        const committed_artifact = published_artifact as PublishedArtifact;
-        const projection_rows = await client.query<{
-          id: string;
-          capture_asset_id: string;
-        }>(
-          `SELECT id,capture_asset_id
-          FROM publish_schema.published_artifact_capture_asset WHERE published_artifact_id=$1 ORDER BY capture_asset_id`,
-          [committed_artifact.id],
-        );
-        const action =
-          artifact_type === "guide"
-            ? "guide.published"
-            : "interactive_demo.published";
-        const audit = publish_event({
-          event_id,
-          occurred_at,
-          actor,
-          context,
-          artifact_type,
-          artifact_id,
-          action,
-          before_version: root_version,
-          after_version: root_version,
-          changes: [
-            ...build_publish_changes({
-              artifact_type,
-              artifact_id,
-              before_link,
-              after_link,
-              published_artifact: committed_artifact,
-            }),
-            ...projection_rows.rows.map(({ id, capture_asset_id }) => ({
-              entity_type: "published_artifact_capture_asset",
-              entity_id: id,
-              parent_entity_type: "published_artifact",
-              parent_entity_id: committed_artifact.id,
-              before: null,
-              after: { capture_asset_id },
-              safe_fields: {} as const,
-              redacted_fields: [],
-            })),
-          ],
-        });
-        if (audit) await write_audit_event(client, audit);
-      }
-      await client.query("COMMIT");
-      return result;
-    } catch (error) {
-      try {
-        await client.query("ROLLBACK");
-      } catch {
-        /* preserve the mutation error */
-      }
-      throw translate_audit_transaction_error(error);
-    } finally {
-      client.release();
-    }
-  };
-
-  const run_actor = async <Result>(input: {
-    command: Parameters<typeof find_audit_command>[0];
-    actor: Actor;
-    prepare: (client: Client) => Promise<void>;
-    execute: (repository: PublishRepository, client: Client) => Promise<Result>;
-    evidence: (
-      result: Result,
-      context: ActorContext,
-      event_id: string,
-      occurred_at: string,
-    ) => ReturnType<typeof build_entity_audit_event>;
+  const viewer_mutation = async <Result>(input: {
+    command: "publish.viewer_session.create" | "publish.viewer_session.touch";
+    publish_link_id: string;
+    token_hash: string;
+    execute: (repository: PublishRepository) => Promise<Result>;
   }) => {
-    const event_id = ulid();
-    const occurred_at = new Date().toISOString();
-    let context: ActorContext | null = null;
+    let scope: { organization_id: string; project_id: string } | null = null,
+      before: State | null = null,
+      after: State | null = null;
+    const event_id = ulid(),
+      occurred_at = new Date().toISOString(),
+      coverage = find_audit_command(input.command);
     return run_audited_mutation({
       pool,
       event_id,
-      command: find_audit_command(input.command),
+      command: coverage,
       context: async (client) => {
-        await input.prepare(client);
-        context = await resolve_org_user_audit_context(client, input.actor);
-        return context.mutation;
+        scope =
+          (
+            await client.query<{ organization_id: string; project_id: string }>(
+              `SELECT organization_id,project_id FROM publish_schema.publish_link WHERE id=$1`,
+              [input.publish_link_id],
+            )
+          ).rows[0] ?? null;
+        const row = (
+          await client.query<{
+            id: string;
+            last_used_at: Date | null;
+            revoked_at: Date | null;
+          }>(
+            `SELECT id,last_used_at,revoked_at FROM publish_schema.public_publish_viewer_session WHERE publish_link_id=$1 AND token_hash=$2`,
+            [input.publish_link_id, input.token_hash],
+          )
+        ).rows[0];
+        before = row
+          ? { entity_type: "public_publish_viewer_session", ...row }
+          : null;
+        return {
+          organization_id: scope!.organization_id,
+          actor_type: "system" as const,
+          source_type: "system" as const,
+        };
       },
-      execute: (client) =>
-        input.execute(build_publish_transactional_repository(client), client),
-      build_event: (result) =>
-        input.evidence(result, context!, event_id, occurred_at),
+      execute: async (client) => {
+        const repository = build_publish_transactional_repository(client);
+        const result = await input.execute(repository);
+        const row = (
+          await client.query<{
+            id: string;
+            last_used_at: Date | null;
+            revoked_at: Date | null;
+          }>(
+            `SELECT id,last_used_at,revoked_at FROM publish_schema.public_publish_viewer_session WHERE publish_link_id=$1 AND token_hash=$2`,
+            [input.publish_link_id, input.token_hash],
+          )
+        ).rows[0];
+        after = row
+          ? { entity_type: "public_publish_viewer_session", ...row }
+          : null;
+        return result;
+      },
+      build_event: () =>
+        build_entity_audit_event({
+          id: event_id,
+          organization_id: scope!.organization_id,
+          project_id: scope!.project_id,
+          root_resource_type: "publish_link",
+          root_resource_id: input.publish_link_id,
+          action: coverage.action,
+          actor_org_user_id: null,
+          actor_label: "Public viewer",
+          actor_type: "system",
+          source_type: "system",
+          occurred_at,
+          before_row_version: null,
+          after_row_version: null,
+          changes:
+            before || after
+              ? [
+                  {
+                    entity_type: "public_publish_viewer_session",
+                    entity_id: (after ?? before)!.id,
+                    parent_entity_type: "publish_link",
+                    parent_entity_id: input.publish_link_id,
+                    before,
+                    after,
+                    safe_fields: {
+                      last_used_at: "timestamp",
+                      revoked_at: "timestamp",
+                    },
+                    redacted_fields: [],
+                  },
+                ]
+              : [],
+        }),
       write_audit_event,
     });
   };
-
-  const active = (
-    repository: PublishRepository,
-    input: {
-      organization_id: string;
-      project_id: string;
-      artifact_type: PublishArtifactType;
-      artifact_id: string;
-    },
-  ) => repository.find_publish_status(input);
-  const viewer_rows = (client: Client, publish_link_id: string) =>
-    client.query<{
-      id: string;
-      expires_at: Date;
-      last_used_at: Date | null;
-      revoked_at: Date | null;
-    }>(
-      "SELECT id, expires_at, last_used_at, revoked_at FROM publish_schema.public_publish_viewer_session WHERE publish_link_id=$1 AND revoked_at IS NULL FOR UPDATE",
-      [publish_link_id],
-    );
-  const revoked_viewer_rows = (client: Client, ids: readonly string[]) =>
-    ids.length === 0
-      ? Promise.resolve({ rows: [] as { id: string; revoked_at: Date }[] })
-      : client.query<{ id: string; revoked_at: Date }>(
-          "SELECT id, revoked_at FROM publish_schema.public_publish_viewer_session WHERE id = ANY($1::varchar[])",
-          [ids],
-        );
-
   return {
     ...base,
-    transaction: audited_transaction,
-    async revoke_active_publish_link(input) {
-      let before: PublishStatus | null = null;
-      let viewers: Awaited<ReturnType<typeof viewer_rows>>["rows"] = [];
-      let revoked_viewers: Awaited<
-        ReturnType<typeof revoked_viewer_rows>
-      >["rows"] = [];
-      return run_actor({
-        command:
-          input.artifact_type === "guide"
-            ? "publish.guide_link.revoke"
-            : "publish.interactive_demo_link.revoke",
-        actor: input,
-        prepare: async (client) => {
-          await client.query(
-            "SELECT id FROM publish_schema.publish_link WHERE organization_id=$1 AND project_id=$2 AND artifact_type=$3 AND artifact_id=$4 AND status='active' FOR UPDATE",
-            [
-              input.organization_id,
-              input.project_id,
-              input.artifact_type,
-              input.artifact_id,
-            ],
-          );
-          const repository = build_publish_transactional_repository(client);
-          before = await active(repository, input);
-          if (before?.publish_link)
-            viewers = (await viewer_rows(client, before.publish_link.id)).rows;
-        },
-        execute: async (repository, client) => {
-          if (!before?.publish_link) return null;
-          const link = await repository.revoke_active_publish_link(input);
-          revoked_viewers = (
-            await revoked_viewer_rows(
-              client,
-              viewers.map(({ id }) => id),
-            )
-          ).rows;
-          return link;
-        },
-        evidence: (link, context, event_id, occurred_at) =>
-          link && before?.publish_link
-            ? publish_event({
-                event_id,
-                occurred_at,
-                actor: input,
-                context,
-                artifact_type: input.artifact_type,
-                artifact_id: input.artifact_id,
-                action:
-                  input.artifact_type === "guide"
-                    ? "guide.publish_link.revoked"
-                    : "interactive_demo.publish_link.revoked",
-                before_version: null,
-                after_version: null,
-                changes: [
-                  ...build_publish_changes({
-                    artifact_type: input.artifact_type,
-                    artifact_id: input.artifact_id,
-                    before_link: before.publish_link,
-                    after_link: link,
-                  }),
-                  ...viewers.map((row) => ({
-                    entity_type: "public_publish_viewer_session",
-                    entity_id: row.id,
-                    parent_entity_type: "publish_link",
-                    parent_entity_id: before!.publish_link!.id,
-                    before: { revoked_at: null },
-                    after: {
-                      revoked_at: revoked_viewers
-                        .find(({ id }) => id === row.id)!
-                        .revoked_at.toISOString(),
-                    },
-                    safe_fields: { revoked_at: "timestamp" } as const,
-                  })),
-                ],
-              })
-            : null,
-      });
-    },
-    async update_publish_link_access(input) {
-      let before: PublishStatus | null = null;
-      return run_actor({
-        command:
-          input.artifact_type === "guide"
-            ? "publish.guide_link.access_update"
-            : "publish.interactive_demo_link.access_update",
-        actor: input,
-        prepare: async (client) => {
-          await client.query(
-            "SELECT id FROM publish_schema.publish_link WHERE organization_id=$1 AND project_id=$2 AND artifact_type=$3 AND artifact_id=$4 AND status='active' FOR UPDATE",
-            [
-              input.organization_id,
-              input.project_id,
-              input.artifact_type,
-              input.artifact_id,
-            ],
-          );
-          before = await active(
-            build_publish_transactional_repository(client),
-            input,
-          );
-        },
-        execute: (repository) =>
-          before?.publish_link &&
-          (before.publish_link.visibility !== input.visibility ||
-            before.publish_link.expires_at !== input.expires_at)
-            ? repository.update_publish_link_access(input)
-            : Promise.resolve(before),
-        evidence: (after, context, event_id, occurred_at) =>
-          before?.publish_link &&
-          after?.publish_link &&
-          JSON.stringify(before.publish_link) !==
-            JSON.stringify(after.publish_link)
-            ? publish_event({
-                event_id,
-                occurred_at,
-                actor: input,
-                context,
-                artifact_type: input.artifact_type,
-                artifact_id: input.artifact_id,
-                action:
-                  input.artifact_type === "guide"
-                    ? "guide.publish_link.access_updated"
-                    : "interactive_demo.publish_link.access_updated",
-                before_version: null,
-                after_version: null,
-                changes: build_publish_changes({
-                  artifact_type: input.artifact_type,
-                  artifact_id: input.artifact_id,
-                  before_link: before.publish_link,
-                  after_link: after.publish_link,
-                }),
-              })
-            : null,
-      });
-    },
-    async update_publish_link_password(input) {
-      let before: PublishStatus | null = null;
-      let viewers: Awaited<ReturnType<typeof viewer_rows>>["rows"] = [];
-      let revoked_viewers: Awaited<
-        ReturnType<typeof revoked_viewer_rows>
-      >["rows"] = [];
-      return run_actor({
-        command:
-          input.artifact_type === "guide"
-            ? "publish.guide_link.password_update"
-            : "publish.interactive_demo_link.password_update",
-        actor: input,
-        prepare: async (client) => {
-          await client.query(
-            "SELECT id FROM publish_schema.publish_link WHERE organization_id=$1 AND project_id=$2 AND artifact_type=$3 AND artifact_id=$4 AND status='active' FOR UPDATE",
-            [
-              input.organization_id,
-              input.project_id,
-              input.artifact_type,
-              input.artifact_id,
-            ],
-          );
-          before = await active(
-            build_publish_transactional_repository(client),
-            input,
-          );
-          if (before?.publish_link)
-            viewers = (await viewer_rows(client, before.publish_link.id)).rows;
-        },
-        execute: async (repository, client) => {
-          if (
-            !before?.publish_link ||
-            (!before.publish_link.password_protected &&
-              input.password_hash === null)
-          )
-            return before;
-          const result = await repository.update_publish_link_password(input);
-          revoked_viewers = (
-            await revoked_viewer_rows(
-              client,
-              viewers.map(({ id }) => id),
-            )
-          ).rows;
-          return result;
-        },
-        evidence: (after, context, event_id, occurred_at) =>
-          before?.publish_link &&
-          after?.publish_link &&
-          (before.publish_link.password_protected !==
-            after.publish_link.password_protected ||
-            input.password_hash !== null)
-            ? publish_event({
-                event_id,
-                occurred_at,
-                actor: input,
-                context,
-                artifact_type: input.artifact_type,
-                artifact_id: input.artifact_id,
-                action:
-                  input.artifact_type === "guide"
-                    ? "guide.publish_link.password_updated"
-                    : "interactive_demo.publish_link.password_updated",
-                before_version: null,
-                after_version: null,
-                changes: [
-                  ...build_publish_changes({
-                    artifact_type: input.artifact_type,
-                    artifact_id: input.artifact_id,
-                    before_link: before.publish_link,
-                    after_link: after.publish_link,
-                  }),
-                  password_change(after.publish_link),
-                  ...viewers.map((row) => ({
-                    entity_type: "public_publish_viewer_session",
-                    entity_id: row.id,
-                    parent_entity_type: "publish_link",
-                    parent_entity_id: before!.publish_link!.id,
-                    before: { revoked_at: null },
-                    after: {
-                      revoked_at: revoked_viewers
-                        .find(({ id }) => id === row.id)!
-                        .revoked_at.toISOString(),
-                    },
-                    safe_fields: { revoked_at: "timestamp" } as const,
-                  })),
-                ],
-              })
-            : null,
-      });
-    },
-    async create_public_viewer_session(input) {
-      const event_id = ulid();
-      const occurred_at = new Date().toISOString();
-      let owner: {
-        organization_id: string;
-        project_id: string;
-        artifact_type: PublishArtifactType;
-        artifact_id: string;
-      } | null = null;
-      let viewer_id: string | null = null;
-      return run_audited_mutation({
-        pool,
-        event_id,
-        command: find_audit_command("publish.viewer_session.create"),
-        context: async (client) => {
-          const result = await client.query<NonNullable<typeof owner>>(
-            "SELECT organization_id, project_id, artifact_type, artifact_id FROM publish_schema.publish_link WHERE id=$1 AND status='active'",
-            [input.publish_link_id],
-          );
-          owner = result.rows[0] ?? null;
-          return {
-            organization_id: owner!.organization_id,
-            actor_type: "system",
-            source_type: "system",
+    async transaction(work) {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const raw = build_publish_transactional_repository(client);
+        let used = false;
+        const tracked = { ...raw } as PublishRepository;
+        for (const method of [
+          "publish",
+          "create_publish_link",
+          "update_publish_link",
+          "replace_publish_link_manifest",
+          "rollback_publish_link_entry",
+          "revoke_publish_link",
+        ] as const) {
+          (tracked[method] as unknown) = async (
+            input: ArtifactScope & Record<string, unknown>,
+          ) => {
+            if (used)
+              throw new Error(
+                "Only one audited publish mutation is allowed per transaction",
+              );
+            used = true;
+            const selected = command_for(method, input.artifact_type);
+            const coverage = find_audit_command(selected.command);
+            const event_id = ulid(),
+              occurred_at = new Date().toISOString(),
+              context = await resolve_org_user_audit_context(
+                client,
+                input.auth,
+              );
+            for (const [name, value] of [
+              ["ossie.audit_event_id", event_id],
+              ["ossie.audit_organization_id", input.auth.organization_id],
+              ["ossie.audit_action", selected.action],
+              ["ossie.audit_command", selected.command],
+              ["ossie.audit_actor_type", "org_user"],
+              ["ossie.audit_source_type", context.mutation.source_type],
+            ])
+              await client.query("SELECT set_config($1,$2,true)", [
+                name,
+                value,
+              ]);
+            const before = await snapshot(client, input);
+            const output = await (
+              raw[method] as (value: unknown) => Promise<unknown>
+            ).call(raw, input);
+            const after = await snapshot(client, input);
+            const event = build_entity_audit_event({
+              id: event_id,
+              organization_id: input.auth.organization_id,
+              project_id: input.project_id,
+              root_resource_type: input.artifact_type,
+              root_resource_id: input.artifact_id,
+              action: coverage.action,
+              actor_org_user_id: input.auth.actor_org_user_id,
+              actor_label: context.actor_label,
+              source_type: context.mutation.source_type,
+              occurred_at,
+              before_row_version: null,
+              after_row_version: null,
+              changes: diff(before, after, input),
+            });
+            if (event) await write_audit_event(client, event);
+            return output;
           };
-        },
-        execute: async (client) => {
-          const result =
-            await build_publish_transactional_repository(
-              client,
-            ).create_public_viewer_session(input);
-          const row = await client.query<{ id: string }>(
-            "SELECT id FROM publish_schema.public_publish_viewer_session WHERE token_hash=$1",
-            [input.token_hash],
-          );
-          viewer_id = row.rows[0]!.id;
-          return result;
-        },
-        build_event: () =>
-          build_entity_audit_event({
-            id: event_id,
-            organization_id: owner!.organization_id,
-            project_id: owner!.project_id,
-            root_resource_type: "publish_link",
-            root_resource_id: input.publish_link_id,
-            action: "publish.viewer_session.created",
-            actor_type: "system",
-            actor_org_user_id: null,
-            actor_label: "public-viewer-session",
-            source_type: "system",
-            occurred_at,
-            before_row_version: null,
-            after_row_version: null,
-            changes: [
-              {
-                entity_type: "public_publish_viewer_session",
-                entity_id: viewer_id!,
-                parent_entity_type: "publish_link",
-                parent_entity_id: input.publish_link_id,
-                before: null,
-                after: { expires_at: input.expires_at, token_hash: true },
-                safe_fields: { expires_at: "timestamp" },
-                redacted_fields: ["token_hash"],
-              },
-            ],
-          }),
-        write_audit_event,
+        }
+        const result = await work(tracked);
+        await client.query("COMMIT");
+        return result;
+      } catch (error) {
+        try {
+          await client.query("ROLLBACK");
+        } catch {}
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+    create_public_viewer_session(input) {
+      return viewer_mutation({
+        command: "publish.viewer_session.create",
+        publish_link_id: input.publish_link_id,
+        token_hash: input.token_hash,
+        execute: (repository) => repository.create_public_viewer_session(input),
       });
     },
-    async touch_public_viewer_session(input) {
-      const event_id = ulid();
-      const occurred_at = new Date().toISOString();
-      let row: {
-        id: string;
-        organization_id: string;
-        project_id: string;
-        publish_link_id: string;
-        last_used_at: Date | null;
-      } | null = null;
-      let after: Date | null = null;
-      await run_audited_mutation({
-        pool,
-        event_id,
-        command: find_audit_command("publish.viewer_session.touch"),
-        context: async (client) => {
-          const result = await client.query<NonNullable<typeof row>>(
-            "SELECT viewer.id, link.organization_id, link.project_id, viewer.publish_link_id, viewer.last_used_at FROM publish_schema.public_publish_viewer_session viewer JOIN publish_schema.publish_link link ON link.id=viewer.publish_link_id WHERE viewer.token_hash=$1 FOR UPDATE",
-            [input.token_hash],
-          );
-          row = result.rows[0] ?? null;
-          return {
-            organization_id: row!.organization_id,
-            actor_type: "system",
-            source_type: "system",
-          };
-        },
-        execute: async (client) => {
-          await build_publish_transactional_repository(
-            client,
-          ).touch_public_viewer_session(input);
-          const result = await client.query<{ last_used_at: Date }>(
-            "SELECT last_used_at FROM publish_schema.public_publish_viewer_session WHERE id=$1",
-            [row!.id],
-          );
-          after = result.rows[0]!.last_used_at;
-        },
-        build_event: () =>
-          row && after
-            ? build_entity_audit_event({
-                id: event_id,
-                organization_id: row.organization_id,
-                project_id: row.project_id,
-                root_resource_type: "publish_link",
-                root_resource_id: row.publish_link_id,
-                action: "publish.viewer_session.activity_recorded",
-                actor_type: "system",
-                actor_org_user_id: null,
-                actor_label: "public-viewer-session",
-                source_type: "system",
-                occurred_at,
-                before_row_version: null,
-                after_row_version: null,
-                changes: [
-                  {
-                    entity_type: "public_publish_viewer_session",
-                    entity_id: row.id,
-                    parent_entity_type: "publish_link",
-                    parent_entity_id: row.publish_link_id,
-                    before: {
-                      last_used_at: row.last_used_at?.toISOString() ?? null,
-                    },
-                    after: { last_used_at: after.toISOString() },
-                    safe_fields: { last_used_at: "timestamp" },
-                  },
-                ],
-              })
-            : null,
-        write_audit_event,
+    touch_public_viewer_session(input) {
+      return viewer_mutation({
+        command: "publish.viewer_session.touch",
+        publish_link_id: input.publish_link_id,
+        token_hash: input.token_hash,
+        execute: (repository) => repository.touch_public_viewer_session(input),
       });
     },
   };

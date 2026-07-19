@@ -11,7 +11,8 @@ export type ProjectCapability =
   | "artifact.read"
   | "artifact.write"
   | "publication.read"
-  | "publication.manage"
+  | "publication.create"
+  | "publish_link.manage"
   | "project_version.manage"
   | "revision.checkpoint_restore"
   | "revision.carry_forward"
@@ -19,19 +20,41 @@ export type ProjectCapability =
 
 const capabilities: Record<ProjectRole, ReadonlySet<ProjectCapability>> = {
   project_admin: new Set<ProjectCapability>([
-    "project.read", "project.settings.manage", "project.membership.manage",
-    "project.compliance.read", "project.activity.read", "capture.read",
-    "capture.write", "artifact.read", "artifact.write", "publication.read",
-    "publication.manage", "project_version.manage", "revision.checkpoint_restore",
-    "revision.carry_forward", "asset.purge",
+    "project.read",
+    "project.settings.manage",
+    "project.membership.manage",
+    "project.compliance.read",
+    "project.activity.read",
+    "capture.read",
+    "capture.write",
+    "artifact.read",
+    "artifact.write",
+    "publication.read",
+    "publication.create",
+    "publish_link.manage",
+    "project_version.manage",
+    "revision.checkpoint_restore",
+    "revision.carry_forward",
+    "asset.purge",
   ]),
   editor: new Set<ProjectCapability>([
-    "project.read", "project.activity.read", "capture.read", "capture.write",
-    "artifact.read", "artifact.write", "publication.read", "publication.manage",
-    "revision.checkpoint_restore", "revision.carry_forward",
+    "project.read",
+    "project.activity.read",
+    "capture.read",
+    "capture.write",
+    "artifact.read",
+    "artifact.write",
+    "publication.read",
+    "publication.create",
+    "publish_link.manage",
+    "revision.checkpoint_restore",
+    "revision.carry_forward",
   ]),
   viewer: new Set<ProjectCapability>([
-    "project.read", "capture.read", "artifact.read", "publication.read",
+    "project.read",
+    "capture.read",
+    "artifact.read",
+    "publication.read",
   ]),
 };
 
@@ -41,9 +64,13 @@ export const project_role_has_capability = (
 ) => capabilities[role].has(capability);
 
 export const is_project_content_mutation = (capability: ProjectCapability) =>
-  capability === "capture.write" || capability === "artifact.write" ||
-  capability === "publication.manage" || capability === "revision.checkpoint_restore" ||
-  capability === "revision.carry_forward" || capability === "asset.purge" ||
+  capability === "capture.write" ||
+  capability === "artifact.write" ||
+  capability === "publication.create" ||
+  capability === "publish_link.manage" ||
+  capability === "revision.checkpoint_restore" ||
+  capability === "revision.carry_forward" ||
+  capability === "asset.purge" ||
   capability === "project_version.manage";
 
 export const project_route_capability = (
@@ -56,14 +83,23 @@ export const project_route_capability = (
     return read ? "project.read" : "project.settings.manage";
   if (route_template.includes("/versions"))
     return read ? "project.read" : "project_version.manage";
-  if (route_template.includes("/memberships")) return "project.membership.manage";
+  if (route_template.includes("/memberships"))
+    return "project.membership.manage";
   if (route_template.includes("/compliance/")) return "project.compliance.read";
   if (route_template.endsWith("/activity")) return "project.activity.read";
-  if (route_template.includes("/capture-sessions") || route_template.includes("/capture-assets"))
+  if (
+    route_template.includes("/capture-sessions") ||
+    route_template.includes("/capture-assets")
+  )
     return read ? "capture.read" : "capture.write";
-  if (route_template.includes("/guides") || route_template.includes("/interactive-demos")) {
-    if (route_template.includes("/publish"))
-      return read ? "publication.read" : "publication.manage";
+  if (
+    route_template.includes("/guides") ||
+    route_template.includes("/interactive-demos")
+  ) {
+    if (route_template.includes("/publications"))
+      return read ? "publication.read" : "publication.create";
+    if (route_template.includes("/publish-links"))
+      return read ? "publication.read" : "publish_link.manage";
     return read ? "artifact.read" : "artifact.write";
   }
   return null;

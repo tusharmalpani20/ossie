@@ -441,7 +441,7 @@ const PublishedAssetDependencySchema = z
   .object({
     dependency_type: z.literal("published_artifact"),
     published_artifact_id: IdSchema,
-    publication_number: PositiveIntSchema,
+    publication_sequence: PositiveIntSchema,
   })
   .strict();
 const SharedFileAssetDependencySchema = z

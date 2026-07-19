@@ -1,89 +1,65 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  build_publish_transactional_repository,
-  extract_published_capture_asset_ids,
-} from "./publish.repository";
+import { build_publish_repository } from "./publish.repository";
+import { PublishSlugConflictError } from "./publish.service";
 
-const scope = {
-  organization_id: "organization_1",
-  project_id: "project_1",
-  artifact_type: "guide" as const,
-  artifact_id: "guide_1",
-  actor_org_user_id: "org_user_1",
-};
-
-describe("Publish repository compound mutations", () => {
-  it("extracts a stable unique typed Capture Asset projection from a snapshot", () => {
-    expect(
-      extract_published_capture_asset_ids({
-        blocks: [
-          {
-            type: "step",
-            source_asset: { id: "asset_2" },
-          },
-        ],
-        scenes: [{ background_asset: { id: "asset_1" } }],
-        guide: { id: "not_a_capture_asset" },
-      }),
-    ).toEqual(["asset_1", "asset_2"]);
-  });
-  it("does not revoke Viewer Sessions for an access-only policy update", async () => {
-    const query = vi.fn(async (sql: string, values?: unknown[]) => {
-      void sql;
-      void values;
-      return { rows: [] };
-    });
-    const repository = build_publish_transactional_repository({
+describe("relational publish repository", () => {
+  it("commits an atomic publication workflow", async () => {
+    const query = vi.fn(async (sql: string) => ({
+      rows: sql === "BEGIN" || sql === "COMMIT" ? [] : [],
+    }));
+    const client = { query, release: vi.fn() };
+    const repository = build_publish_repository({
       query,
-    } as never);
-
-    await repository.update_publish_link_access({
-      ...scope,
-      visibility: "restricted",
-      expires_at: null,
+      connect: vi.fn(async () => client),
     });
-
-    expect(query.mock.calls[0]?.[0]).not.toContain(
-      "UPDATE publish_schema.public_publish_viewer_session",
-    );
+    await repository.transaction(async () => "done");
+    expect(query.mock.calls.map(([sql]) => sql)).toEqual(["BEGIN", "COMMIT"]);
+    expect(client.release).toHaveBeenCalledOnce();
   });
-
-  it.each([
-    [
-      "link revocation",
-      async (
-        repository: ReturnType<typeof build_publish_transactional_repository>,
-      ) => repository.revoke_active_publish_link(scope),
-    ],
-    [
-      "password change",
-      async (
-        repository: ReturnType<typeof build_publish_transactional_repository>,
-      ) =>
-        repository.update_publish_link_password({
-          ...scope,
-          password_hash: "hash",
-          password_salt: "salt",
-        }),
-    ],
-  ])(
-    "revokes Viewer Sessions in the same SQL command as %s",
-    async (_name, mutate) => {
-      const query = vi.fn(async (sql: string, values?: unknown[]) => {
-        void sql;
-        void values;
-        return { rows: [] };
-      });
-      const repository = build_publish_transactional_repository({
-        query,
-      } as never);
-
-      await mutate(repository);
-
-      expect(query).toHaveBeenCalledOnce();
-      expect(query.mock.calls[0]?.[0]).toContain(
-        "UPDATE publish_schema.public_publish_viewer_session",
-      );
-    },
-  );
+  it("rolls back an atomic workflow on failure", async () => {
+    const query = vi.fn(async (_sql: string) => ({ rows: [] }));
+    const client = { query, release: vi.fn() };
+    const repository = build_publish_repository({
+      query,
+      connect: vi.fn(async () => client),
+    });
+    await expect(
+      repository.transaction(async () => {
+        throw new Error("nope");
+      }),
+    ).rejects.toThrow("nope");
+    expect(query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
+  });
+  it("uses a non-aborting insert so random slug collisions can be retried", async () => {
+    const query = vi.fn(async (sql: string) => ({
+      rows: sql.includes("INSERT INTO publish_schema.publish_link") ? [] : [],
+    }));
+    const repository = build_publish_repository({
+      query,
+      connect: vi.fn() as never,
+    });
+    await expect(
+      repository.create_publish_link({
+        auth: { organization_id: "org_1", actor_org_user_id: "member_1" },
+        project_id: "project_1",
+        project_version_id: "pv_1",
+        artifact_type: "guide",
+        artifact_id: "guide_1",
+        name: "Public",
+        visibility: "public",
+        expires_at: null,
+        password: null,
+        password_hash: null,
+        password_salt: null,
+        published_artifact_ids: ["publication_1"],
+        default_published_artifact_id: "publication_1",
+      }),
+    ).rejects.toBeInstanceOf(PublishSlugConflictError);
+    expect(
+      query.mock.calls.filter(([sql]) =>
+        String(sql).includes("INSERT INTO publish_schema.publish_link"),
+      ),
+    ).toHaveLength(5);
+    expect(query.mock.calls[0]?.[0]).toContain("ON CONFLICT (slug) DO NOTHING");
+  });
 });

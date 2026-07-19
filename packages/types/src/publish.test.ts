@@ -1,224 +1,248 @@
 import { describe, expect, it } from "vitest";
 import {
+  CreatePublishLinkRequestSchema,
   CreatePublicViewerSessionRequestSchema,
-  PublishedGuideSnapshotSchema,
-  PublishedInteractiveDemoSnapshotSchema,
+  PublicPublishLinkQuerySchema,
   PublicPublishLinkResponseSchema,
-  PublishResultSchema,
-  PublishStatusResponseSchema,
-  RevokePublishResultSchema,
-  UpdatePublishAccessRequestSchema,
-  UpdatePublishPasswordRequestSchema,
+  PublishArtifactRequestSchema,
+  PublishArtifactResponseSchema,
+  PublishLinkSchema,
+  ReplacePublishLinkManifestRequestSchema,
+  RollbackPublishLinkEntryRequestSchema,
+  UpdatePublishLinkSettingsRequestSchema,
 } from "./publish";
 
-const publish_link = {
-  id: "publish_link_1",
+const revision = {
+  id: "revision_1",
+  edition_id: "edition_1",
+  revision_number: 2,
+  trigger: "publication",
+  title: "Configure SSO",
+  description: null,
+  source_working_draft_version: 7,
+  created_by_id: "member_1",
+  created_at: "2026-07-20T00:00:00.000Z",
+};
+
+const publication = {
+  id: "publication_1",
   artifact_type: "guide",
   artifact_id: "guide_1",
-  published_artifact_id: "published_artifact_1",
-  slug: "abc123",
+  edition_id: "edition_1",
+  project_version_id: "project_version_1",
+  revision_id: "revision_1",
+  revision_number: 2,
+  publication_sequence: 3,
+  publisher: { id: "member_1", display_name: "Editor" },
+  published_at: "2026-07-20T00:00:00.000Z",
+  created_at: "2026-07-20T00:00:00.000Z",
+};
+
+const entry = {
+  id: "entry_1",
+  project_version: {
+    id: "project_version_1",
+    name: "2.0",
+    slug: "2-0",
+    status: "active",
+  },
+  position: 1,
+  is_default: true,
+  version: 1,
+  published_artifact: publication,
+};
+
+const link = {
+  id: "link_1",
+  artifact_type: "guide",
+  artifact_id: "guide_1",
+  name: "Customer docs",
+  slug: "opaque-link",
   visibility: "public",
   status: "active",
-  published_at: "2026-07-07T00:00:00.000Z",
-  revoked_at: null,
   expires_at: null,
   password_protected: false,
-  public_url: "/p/abc123",
+  version: 1,
+  entries: [entry],
+  public_url: "/p/opaque-link",
+  default_public_url: "/p/opaque-link/versions/2-0",
+  created_at: "2026-07-20T00:00:00.000Z",
+  updated_at: "2026-07-20T00:00:00.000Z",
+  revoked_at: null,
 };
 
-const published_artifact = {
-  id: "published_artifact_1",
-  artifact_type: "guide",
-  artifact_id: "guide_1",
-  version_number: 1,
-  title: "Publish guide",
-  published_at: "2026-07-07T00:00:00.000Z",
-};
-
-const snapshot_asset = {
-  id: "asset_1",
-  asset_type: "screenshot",
-  width: 1440,
-  height: 900,
-  page_title: "Dashboard",
-  page_url: "https://example.test/dashboard",
-  file: {
-    id: "file_1",
-    original_name: "dashboard.png",
-    mime_type: "image/png",
-    size_bytes: 1234,
-  },
-  file_url: "/api/v1/public/publish-links/abc123/assets/asset_1/file",
-};
-
-describe("publish contracts", () => {
-  it("parses publish status responses", () => {
-    expect(PublishStatusResponseSchema.parse({
-      publish_link,
-      published_artifact,
-    })).toEqual({
-      publish_link,
-      published_artifact,
-    });
-
-    expect(PublishStatusResponseSchema.parse({
-      publish_link: null,
-      published_artifact: null,
-    })).toEqual({
-      publish_link: null,
-      published_artifact: null,
+describe("publication and Publish Link contracts", () => {
+  it("parses relational Publication and manifest responses", () => {
+    expect(PublishLinkSchema.parse(link)).toEqual(link);
+    expect(
+      PublishArtifactResponseSchema.parse({
+        revision,
+        revision_reused: false,
+        published_artifact: publication,
+        updated_publish_links: [link],
+        created_publish_link: null,
+      }),
+    ).toEqual({
+      revision,
+      revision_reused: false,
+      published_artifact: publication,
+      updated_publish_links: [link],
+      created_publish_link: null,
     });
   });
 
-  it("parses publish and revoke result responses with full publish links", () => {
-    expect(PublishResultSchema.parse({
-      publish_link,
-      published_artifact,
-    })).toEqual({
-      publish_link,
-      published_artifact,
+  it("requires explicit link Row Versions and rejects legacy publish fields", () => {
+    expect(
+      PublishArtifactRequestSchema.parse({
+        expected_edition_version: 4,
+        expected_working_draft_version: 7,
+        update_publish_links: [
+          {
+            publish_link_id: "link_1",
+            expected_link_version: 2,
+          },
+        ],
+      }),
+    ).toEqual({
+      expected_edition_version: 4,
+      expected_working_draft_version: 7,
+      update_publish_links: [
+        {
+          publish_link_id: "link_1",
+          expected_link_version: 2,
+        },
+      ],
     });
 
-    const revoked_link = {
-      ...publish_link,
-      status: "revoked",
-      revoked_at: "2026-07-07T01:00:00.000Z",
-    };
-
-    expect(RevokePublishResultSchema.parse({
-      publish_link: revoked_link,
-    })).toEqual({
-      publish_link: revoked_link,
-    });
+    expect(() =>
+      PublishArtifactRequestSchema.parse({
+        expected_edition_version: 4,
+        expected_working_draft_version: 7,
+        update_publish_links: [],
+        version_number: 1,
+      }),
+    ).toThrow();
+    expect(() =>
+      PublishArtifactRequestSchema.parse({
+        expected_edition_version: 4,
+        expected_working_draft_version: 7,
+        update_publish_links: [
+          { publish_link_id: "link_1", expected_link_version: 1 },
+          { publish_link_id: "link_1", expected_link_version: 1 },
+        ],
+      }),
+    ).toThrow();
   });
 
-  it("parses public publish link responses with unknown snapshots", () => {
+  it("validates complete ordered manifests and defaults", () => {
+    expect(
+      CreatePublishLinkRequestSchema.parse({
+        name: "Customer docs",
+        visibility: "public",
+        expires_at: null,
+        password: null,
+        published_artifact_ids: ["publication_1", "publication_2"],
+        default_published_artifact_id: "publication_2",
+      }).published_artifact_ids,
+    ).toEqual(["publication_1", "publication_2"]);
+
+    expect(() =>
+      ReplacePublishLinkManifestRequestSchema.parse({
+        expected_link_version: 2,
+        published_artifact_ids: ["publication_1"],
+        default_published_artifact_id: "publication_2",
+      }),
+    ).toThrow();
+    expect(() =>
+      ReplacePublishLinkManifestRequestSchema.parse({
+        expected_link_version: 2,
+        published_artifact_ids: ["publication_1", "publication_1"],
+        default_published_artifact_id: "publication_1",
+      }),
+    ).toThrow();
+  });
+
+  it("keeps settings, rollback, and password inputs strict and write-only", () => {
+    expect(
+      UpdatePublishLinkSettingsRequestSchema.parse({
+        expected_link_version: 2,
+        name: "Support",
+        password: null,
+      }),
+    ).toEqual({ expected_link_version: 2, name: "Support", password: null });
+    expect(() =>
+      UpdatePublishLinkSettingsRequestSchema.parse({
+        expected_link_version: 2,
+      }),
+    ).toThrow();
+    expect(
+      RollbackPublishLinkEntryRequestSchema.parse({
+        expected_link_version: 2,
+        target_published_artifact_id: "publication_1",
+        reason: "  Restore approved release  ",
+      }).reason,
+    ).toBe("Restore approved release");
+    expect(() =>
+      CreatePublicViewerSessionRequestSchema.parse({
+        password: "password123",
+        token: "must-not-pass",
+      }),
+    ).toThrow();
+  });
+
+  it("parses typed public Revision content without snapshot aliases", () => {
     const response = {
       publish_link: {
-        slug: "abc123",
+        slug: "opaque-link",
         artifact_type: "guide",
         visibility: "public",
         status: "active",
         expires_at: null,
         password_protected: false,
+        entries: [
+          {
+            project_version_name: "2.0",
+            project_version_slug: "2-0",
+            position: 1,
+            is_default: true,
+            publication_sequence: 3,
+            public_url: "/p/opaque-link/versions/2-0",
+          },
+        ],
+      },
+      selected_entry: {
+        project_version_name: "2.0",
+        project_version_slug: "2-0",
+        position: 1,
+        is_default: true,
+        publication_sequence: 3,
+        public_url: "/p/opaque-link/versions/2-0",
       },
       published_artifact: {
-        ...published_artifact,
-        snapshot: { any: "snapshot" },
+        artifact_type: "guide",
+        publication_sequence: 3,
+        revision,
+        guide_blocks: [],
+        capture_assets: [],
       },
+      canonical_public_url: "/p/opaque-link/versions/2-0",
     };
 
     expect(PublicPublishLinkResponseSchema.parse(response)).toEqual(response);
-  });
-
-  it("parses published guide snapshots", () => {
-    const snapshot = {
-      artifact_type: "guide",
-      guide: {
-        id: "guide_1",
-        title: "Publish guide",
-        description: null,
-        source_capture_session_id: "capture_session_1",
-        published_version: 1,
-        published_at: "2026-07-07T00:00:00.000Z",
-      },
-      blocks: [{
-        id: "block_1",
-        block_type: "step",
-        block_index: 1,
-        content: {
-          annotations: [{
-            id: "annotation_1",
-            type: "highlight",
-            x: 0.1,
-            y: 0.2,
-            width: 0.3,
-            height: 0.4,
-          }],
-        },
-        step: {
-          id: "step_1",
-          title: "Open dashboard",
-          body: null,
-        },
-        source_asset: snapshot_asset,
-      }],
-    };
-
-    expect(PublishedGuideSnapshotSchema.parse(snapshot)).toEqual(snapshot);
-  });
-
-  it("parses published interactive demo snapshots", () => {
-    const snapshot = {
-      artifact_type: "interactive_demo",
-      schema_version: 1,
-      interactive_demo: {
-        id: "interactive_demo_1",
-        title: "Demo",
-        description: null,
-        source_capture_session_id: "capture_session_1",
-        published_version: 1,
-        published_at: "2026-07-07T00:00:00.000Z",
-      },
-      scenes: [{
-        id: "scene_1",
-        scene_index: 1,
-        title: "Scene",
-        description: null,
-        background_asset: snapshot_asset,
-        hotspots: [{
-          id: "hotspot_1",
-          hotspot_type: "click",
-          label: "Continue",
-          content: null,
-          x: 0.1,
-          y: 0.2,
-          width: 0.3,
-          height: 0.4,
-          target_scene_id: null,
-          hotspot_index: 1,
-        }],
-      }],
-    };
-
-    expect(PublishedInteractiveDemoSnapshotSchema.parse(snapshot)).toEqual(snapshot);
-  });
-
-  it("validates publish request bodies", () => {
-    expect(UpdatePublishAccessRequestSchema.parse({
-      visibility: "restricted",
-      expires_at: "2026-07-08T00:00:00.000Z",
-    })).toEqual({
-      visibility: "restricted",
-      expires_at: "2026-07-08T00:00:00.000Z",
-    });
-    expect(UpdatePublishPasswordRequestSchema.parse({ password: null })).toEqual({ password: null });
-    expect(CreatePublicViewerSessionRequestSchema.parse({ password: "password123" })).toEqual({
-      password: "password123",
-    });
-  });
-
-  it("rejects invalid publish enum values", () => {
-    expect(() => PublishStatusResponseSchema.parse({
-      publish_link: {
-        ...publish_link,
-        visibility: "private",
-      },
-      published_artifact,
-    })).toThrow();
-    expect(() => PublicPublishLinkResponseSchema.parse({
-      publish_link: {
-        slug: "abc123",
-        artifact_type: "unknown",
-        visibility: "public",
-        status: "active",
-        expires_at: null,
-        password_protected: false,
-      },
-      published_artifact: {
-        ...published_artifact,
+    expect(() =>
+      PublicPublishLinkResponseSchema.parse({
+        ...response,
         snapshot: {},
-      },
-    })).toThrow();
+      }),
+    ).toThrow();
+  });
+
+  it("requires public callers to identify the browser artifact family", () => {
+    expect(
+      PublicPublishLinkQuerySchema.parse({ artifact_type: "guide" }),
+    ).toEqual({
+      artifact_type: "guide",
+    });
+    expect(() => PublicPublishLinkQuerySchema.parse({})).toThrow();
   });
 });

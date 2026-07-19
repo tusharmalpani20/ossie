@@ -7,6 +7,7 @@ import {
   verify_evidence_schema,
   verify_project_membership_schema,
   verify_project_version_schema,
+  verify_publication_schema,
 } from "./audit-schema-verification";
 
 const command = process.argv[2];
@@ -44,22 +45,31 @@ const run = async () => {
         const artifact_revision = executed.some(
           ({ name }) =>
             name ===
-            "023_guide_demo_revision_carry_forward_protected_assets.sql",
+              "023_guide_demo_revision_carry_forward_protected_assets.sql" ||
+            name ===
+              "024_revision_backed_publication_and_publish_link_manifests.sql",
+        );
+        const publication = executed.some(
+          ({ name }) =>
+            name ===
+            "024_revision_backed_publication_and_publish_link_manifests.sql",
         );
         await (
-          artifact_revision
-            ? verify_artifact_revision_schema
-            : artifact_edition
-              ? verify_artifact_edition_schema
-              : project_version
-                ? verify_project_version_schema
-                : project_membership
-                  ? verify_project_membership_schema
-                  : access_evidence
-                    ? verify_evidence_schema
-                    : comprehensive
-                      ? verify_audit_schema
-                      : verify_audit_core_schema
+          publication
+            ? verify_publication_schema
+            : artifact_revision
+              ? verify_artifact_revision_schema
+              : artifact_edition
+                ? verify_artifact_edition_schema
+                : project_version
+                  ? verify_project_version_schema
+                  : project_membership
+                    ? verify_project_membership_schema
+                    : access_evidence
+                      ? verify_evidence_schema
+                      : comprehensive
+                        ? verify_audit_schema
+                        : verify_audit_core_schema
         )(pool, roles);
       }
     } else if (command === "down")
@@ -76,38 +86,46 @@ const run = async () => {
             executed.some(
               ({ name }) =>
                 name ===
-                "023_guide_demo_revision_carry_forward_protected_assets.sql",
+                "024_revision_backed_publication_and_publish_link_manifests.sql",
             )
-              ? verify_artifact_revision_schema
+              ? verify_publication_schema
               : executed.some(
                     ({ name }) =>
                       name ===
-                      "022_guide_demo_edition_working_draft_relational_foundation.sql",
+                        "023_guide_demo_revision_carry_forward_protected_assets.sql" ||
+                      name ===
+                        "024_revision_backed_publication_and_publish_link_manifests.sql",
                   )
-                ? verify_artifact_edition_schema
+                ? verify_artifact_revision_schema
                 : executed.some(
                       ({ name }) =>
-                        name === "020_project_version_foundation.sql",
+                        name ===
+                        "022_guide_demo_edition_working_draft_relational_foundation.sql",
                     )
-                  ? verify_project_version_schema
+                  ? verify_artifact_edition_schema
                   : executed.some(
                         ({ name }) =>
-                          name === "019_project_membership_foundation.sql",
+                          name === "020_project_version_foundation.sql",
                       )
-                    ? verify_project_membership_schema
+                    ? verify_project_version_schema
                     : executed.some(
                           ({ name }) =>
-                            name ===
-                            "017_access_evidence_and_compliance_timelines.sql",
+                            name === "019_project_membership_foundation.sql",
                         )
-                      ? verify_evidence_schema
+                      ? verify_project_membership_schema
                       : executed.some(
                             ({ name }) =>
                               name ===
-                              "016_existing_mutation_audit_coverage.sql",
+                              "017_access_evidence_and_compliance_timelines.sql",
                           )
-                        ? verify_audit_schema
-                        : verify_audit_core_schema
+                        ? verify_evidence_schema
+                        : executed.some(
+                              ({ name }) =>
+                                name ===
+                                "016_existing_mutation_audit_coverage.sql",
+                            )
+                          ? verify_audit_schema
+                          : verify_audit_core_schema
           )(pool, roles)
         : { status: "not_installed" as const };
       console.info(

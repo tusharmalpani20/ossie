@@ -244,4 +244,39 @@ describe("Audit schema verification", () => {
       "023_guide_demo_revision_carry_forward_protected_assets.sql",
     );
   });
+
+  it("verifies and selects the relational Publication schema after migration 024", async () => {
+    const pool = {
+      query: vi.fn<
+        (sql: string, values?: unknown[]) => Promise<{ rows: never[] }>
+      >(async () => ({ rows: [] })),
+    };
+    const verify = Reflect.get(verification, "verify_publication_schema");
+    expect(verify).toBeTypeOf("function");
+    await expect(
+      verify(pool as never, {
+        runtime_role: "runtime",
+        maintenance_role: "maintenance",
+      }),
+    ).resolves.toEqual({ status: "ready" });
+    expect(pool.query.mock.calls).toHaveLength(7);
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "publish_schema.publish_link_entry",
+    );
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "published_artifact_immutable_guard",
+    );
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "publish_link_entry_manifest_guard",
+    );
+
+    const source = readFileSync(
+      new URL("./migrate.ts", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain("verify_publication_schema");
+    expect(source).toContain(
+      "024_revision_backed_publication_and_publish_link_manifests.sql",
+    );
+  });
 });

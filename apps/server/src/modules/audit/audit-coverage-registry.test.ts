@@ -8,10 +8,10 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(75);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(79);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(75);
+    ).toBe(79);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
@@ -23,17 +23,22 @@ describe("audit coverage registry", () => {
     expect(AUDIT_COMMANDS).toContain("capture_asset.purge.complete");
   });
 
-  it("covers all 42 product tables and the 64 runtime table-operation classes", () => {
+  it("covers all product tables and the relational Publish Link DELETE boundary", () => {
     const writes = AUDIT_COVERAGE_REGISTRY.flatMap(({ writes }) => writes);
     expect(new Set(writes.map(({ table }) => table)).size).toBe(42);
     expect(
       new Set(
         writes.map(({ table, sql_operation }) => `${table}:${sql_operation}`),
       ).size,
-    ).toBe(64);
+    ).toBe(66);
     expect(
-      writes.every(({ sql_operation }) => sql_operation !== "DELETE"),
-    ).toBe(true);
+      writes
+        .filter(({ sql_operation }) => sql_operation === "DELETE")
+        .map(({ table }) => table),
+    ).toEqual([
+      "publish_schema.publish_link_entry",
+      "publish_schema.publish_link_entry",
+    ]);
   });
 
   it("keeps public viewer maintenance system-only and normal commands org-user-only", () => {
@@ -54,10 +59,12 @@ describe("audit coverage registry", () => {
   });
 
   it("allows persisted import provenance for Capture ingestion commands", () => {
-    const capture_commands = AUDIT_COVERAGE_REGISTRY.filter(({ command }) =>
-      command.startsWith("capture_") && !command.startsWith("capture_asset.archive")
-        && !command.startsWith("capture_asset.restore")
-        && !command.startsWith("capture_asset.purge"),
+    const capture_commands = AUDIT_COVERAGE_REGISTRY.filter(
+      ({ command }) =>
+        command.startsWith("capture_") &&
+        !command.startsWith("capture_asset.archive") &&
+        !command.startsWith("capture_asset.restore") &&
+        !command.startsWith("capture_asset.purge"),
     );
 
     expect(capture_commands).not.toHaveLength(0);
@@ -77,8 +84,8 @@ describe("audit coverage registry", () => {
       "organization.invite.revoke",
       "publish.guide_link.revoke",
       "publish.interactive_demo_link.revoke",
-      "publish.guide_link.password_update",
-      "publish.interactive_demo_link.password_update",
+      "publish.guide_link.settings_update",
+      "publish.interactive_demo_link.settings_update",
     ]) {
       expect(
         find_audit_command(command).writes.every(({ evidence_operations }) =>
@@ -156,6 +163,13 @@ describe("audit coverage registry", () => {
       ),
       "utf8",
     );
+    const migration_024 = readFileSync(
+      new URL(
+        "../../db/migrations/024_revision_backed_publication_and_publish_link_manifests.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
     const policy_start = migration_016.indexOf("FROM (VALUES");
     const policy_end = migration_016.indexOf(") AS policy(command, action)");
     const new_policy_start = migration_019.indexOf(
@@ -172,11 +186,15 @@ describe("audit coverage registry", () => {
       "AND selected_actor_type",
       version_policy_start,
     );
-    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}\n${migration_022}\n${migration_023}`;
-    const pairs = [...policy.matchAll(/\('([^']+)', '([^']+)'\)/gu)].map(
-      ([, command, action]) => ({ command, action }),
-    ).filter(({ command }) => AUDIT_COMMANDS.includes(command as typeof AUDIT_COMMANDS[number]));
-    const current_pairs = [...new Map(pairs.map((pair) => [pair.command, pair])).values()];
+    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}\n${migration_022}\n${migration_023}\n${migration_024}`;
+    const pairs = [...policy.matchAll(/\('([^']+)',\s*'([^']+)'\)/gu)]
+      .map(([, command, action]) => ({ command, action }))
+      .filter(({ command }) =>
+        AUDIT_COMMANDS.includes(command as (typeof AUDIT_COMMANDS)[number]),
+      );
+    const current_pairs = [
+      ...new Map(pairs.map((pair) => [pair.command, pair])).values(),
+    ];
 
     expect(
       [...current_pairs].sort((left, right) =>
@@ -236,6 +254,13 @@ describe("audit coverage registry", () => {
       ),
       "utf8",
     );
+    const migration_024 = readFileSync(
+      new URL(
+        "../../db/migrations/024_revision_backed_publication_and_publish_link_manifests.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
     const rows = [
       ...`${migration_016}\n${migration_019}\n${migration_020}\n${migration_022}`.matchAll(
         /\('([^']+)', '([^']+)', '(INSERT|UPDATE)', '[^']+', '[^']+', '([^']+)'\)/gu,
@@ -286,19 +311,55 @@ describe("audit coverage registry", () => {
     actual.delete("guide_schema.guide:UPDATE");
     actual.delete("interactive_demo_schema.interactive_demo:UPDATE");
     for (const key of [...actual.keys()]) {
-      if (key.startsWith("guide_schema.") || key.startsWith("interactive_demo_schema.")) actual.delete(key);
+      if (
+        key.startsWith("guide_schema.") ||
+        key.startsWith("interactive_demo_schema.")
+      )
+        actual.delete(key);
     }
-    for (const [, schema, table, operation, , commands] of migration_022.matchAll(
+    for (const [
+      ,
+      schema,
+      table,
+      operation,
+      ,
+      commands,
+    ] of migration_022.matchAll(
       /\('([^']+)', '([^']+)', '(INSERT|UPDATE)', '([^']+)', '([^']+)'\)/gu,
     )) {
       actual.set(`${schema}.${table}:${operation}`, commands!.split(","));
     }
-    const migration_023_up = migration_023.split("-- DOWN:")[0] ?? migration_023;
-    for (const [, schema, table, operation, commands] of migration_023_up.matchAll(
+    const migration_023_up =
+      migration_023.split("-- DOWN:")[0] ?? migration_023;
+    for (const [
+      ,
+      schema,
+      table,
+      operation,
+      commands,
+    ] of migration_023_up.matchAll(
       /\('([^']+)', '([^']+)', '(INSERT|UPDATE)', '[^']+', '([^']+)'\)/gu,
     )) {
       actual.set(`${schema}.${table}:${operation}`, commands!.split(","));
     }
+    const migration_024_up =
+      migration_024.split("-- DOWN:")[0] ?? migration_024;
+    for (const [, table, operation, , commands] of migration_024_up.matchAll(
+      /\('([^']+)',\s*'(INSERT|UPDATE)',\s*'([^']+)',\s*'([^']+)'\)/gu,
+    )) {
+      actual.set(`publish_schema.${table}:${operation}`, commands!.split(","));
+    }
+    for (const [, schema, table, , commands] of migration_024_up.matchAll(
+      /\('([^']+)',\s*'([^']+)',\s*'([^']+)',\s*'([^']+)'\)/gu,
+    )) {
+      if (schema?.endsWith("_schema"))
+        actual.set(`${schema}.${table}:INSERT`, commands!.split(","));
+    }
+    actual.set("publish_schema.publish_link_entry:DELETE", [
+      "publish.guide_link.manifest_update",
+      "publish.interactive_demo_link.manifest_update",
+    ]);
+    actual.delete("publish_schema.published_artifact_capture_asset:INSERT");
 
     expect(actual).toEqual(expected);
   });

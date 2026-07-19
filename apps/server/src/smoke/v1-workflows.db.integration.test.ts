@@ -142,6 +142,8 @@ describe("v1 dogfood smoke workflow", () => {
     const project_id = project_response.json().project.id as string;
     const project_version_id = project_response.json().project
       .default_project_version.id as string;
+    const project_version_slug = project_response.json().project
+      .default_project_version.slug as string;
     expect(
       project_response.json().project.default_project_version,
     ).toMatchObject({
@@ -169,7 +171,10 @@ describe("v1 dogfood smoke workflow", () => {
         slug: "summer-release",
       },
     });
-    expect(renamed_version_response.statusCode, renamed_version_response.body).toBe(200);
+    expect(
+      renamed_version_response.statusCode,
+      renamed_version_response.body,
+    ).toBe(200);
     const alias_response = await app.inject({
       method: "GET",
       url: `/api/v1/projects/${project_id}/versions/resolve/summer-2026`,
@@ -309,41 +314,45 @@ describe("v1 dogfood smoke workflow", () => {
 
     const guide_publish_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publications?project_version_id=${project_version_id}`,
       cookies: { ossie_session: owner_session },
+      payload: {
+        expected_edition_version: guide_response.json().edition.version,
+        expected_working_draft_version:
+          guide_response.json().working_draft.version,
+        update_publish_links: [],
+        create_publish_link: {
+          name: "Guide smoke link",
+          visibility: "public",
+          expires_at: null,
+          password: null,
+        },
+      },
     });
 
     expect(guide_publish_response.statusCode).toBe(201);
-    expect(guide_publish_response.json().publish_link).toMatchObject({
+    expect(guide_publish_response.json().created_publish_link).toMatchObject({
       artifact_type: "guide",
       artifact_id: guide_id,
       status: "active",
       visibility: "public",
     });
-    const guide_slug = guide_publish_response.json().publish_link
+    const guide_slug = guide_publish_response.json().created_publish_link
       .slug as string;
 
     const public_guide_response = await app.inject({
       method: "GET",
-      url: `/api/v1/public/publish-links/${guide_slug}`,
+      url: `/api/v1/public/publish-links/${guide_slug}?artifact_type=guide`,
       headers: { "x-ossie-access-surface": "public_reader" },
     });
 
     expect(public_guide_response.statusCode).toBe(200);
-    expect(
-      public_guide_response.json().published_artifact.snapshot,
-    ).toMatchObject({
+    expect(public_guide_response.json().published_artifact).toMatchObject({
       artifact_type: "guide",
-      guide: {
-        id: guide_id,
-        title: "Department setup guide",
-      },
-      blocks: [
+      revision: { title: "Department setup guide" },
+      guide_blocks: [
         {
-          source_asset: {
-            id: capture_asset_id,
-            file_url: `/api/v1/public/publish-links/${guide_slug}/assets/${capture_asset_id}/file`,
-          },
+          step: { source_capture_asset_id: capture_asset_id },
         },
       ],
     });
@@ -353,7 +362,7 @@ describe("v1 dogfood smoke workflow", () => {
 
     const public_asset_response = await app.inject({
       method: "GET",
-      url: `/api/v1/public/publish-links/${guide_slug}/assets/${capture_asset_id}/file`,
+      url: `/api/v1/public/publish-links/${guide_slug}/versions/${project_version_slug}/assets/${capture_asset_id}/file?artifact_type=guide`,
     });
     expect(public_asset_response.statusCode).toBe(200);
     expect(public_asset_response.rawPayload).toEqual(bytes);
@@ -365,12 +374,8 @@ describe("v1 dogfood smoke workflow", () => {
       payload: {},
     });
 
-    expect(
-      demo_response.statusCode,
-      demo_response.body,
-    ).toBe(201);
-    const interactive_demo_id = demo_response.json().artifact
-      .id as string;
+    expect(demo_response.statusCode, demo_response.body).toBe(201);
+    const interactive_demo_id = demo_response.json().artifact.id as string;
     const scene_id = demo_response.json().demo_scenes[0].id as string;
     expect(demo_response.json().edition).toMatchObject({
       interactive_demo_id,
@@ -398,7 +403,8 @@ describe("v1 dogfood smoke workflow", () => {
         y: 0.08,
         width: 0.18,
         height: 0.1,
-        expected_working_draft_version: demo_response.json().working_draft.version,
+        expected_working_draft_version:
+          demo_response.json().working_draft.version,
       },
     });
 
@@ -461,41 +467,46 @@ describe("v1 dogfood smoke workflow", () => {
 
     const demo_publish_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/publish?project_version_id=${project_version_id}`,
+      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/publications?project_version_id=${project_version_id}`,
       cookies: { ossie_session: owner_session },
+      payload: {
+        expected_edition_version: demo_response.json().edition.version,
+        expected_working_draft_version:
+          hotspot_response.json().working_draft.version,
+        update_publish_links: [],
+        create_publish_link: {
+          name: "Demo smoke link",
+          visibility: "public",
+          expires_at: null,
+          password: null,
+        },
+      },
     });
 
     expect(demo_publish_response.statusCode).toBe(201);
-    expect(demo_publish_response.json().publish_link).toMatchObject({
+    expect(demo_publish_response.json().created_publish_link).toMatchObject({
       artifact_type: "interactive_demo",
       artifact_id: interactive_demo_id,
       status: "active",
       visibility: "public",
     });
-    const demo_slug = demo_publish_response.json().publish_link.slug as string;
+    const demo_slug = demo_publish_response.json().created_publish_link
+      .slug as string;
 
     const public_demo_response = await app.inject({
       method: "GET",
-      url: `/api/v1/public/publish-links/${demo_slug}`,
+      url: `/api/v1/public/publish-links/${demo_slug}?artifact_type=interactive_demo`,
       headers: { "x-ossie-access-surface": "public_embed" },
     });
 
     expect(public_demo_response.statusCode).toBe(200);
-    expect(
-      public_demo_response.json().published_artifact.snapshot,
-    ).toMatchObject({
+    expect(public_demo_response.json().published_artifact).toMatchObject({
       artifact_type: "interactive_demo",
-      interactive_demo: {
-        id: interactive_demo_id,
-        title: "Create department workflow",
-      },
-      scenes: [
+      revision: { title: "Create department workflow" },
+      demo_scenes: [
         {
           id: scene_id,
-          background_asset: {
-            id: capture_asset_id,
-            file_url: `/api/v1/public/publish-links/${demo_slug}/assets/${capture_asset_id}/file`,
-          },
+          background_capture_asset_id: capture_asset_id,
           hotspots: [
             {
               hotspot_type: "info",
@@ -526,7 +537,9 @@ describe("v1 dogfood smoke workflow", () => {
       status: "archived",
       can_purge: false,
     });
-    expect(protection_response.json().total_dependency_count).toBeGreaterThan(0);
+    expect(protection_response.json().total_dependency_count).toBeGreaterThan(
+      0,
+    );
     const protected_purge_response = await app.inject({
       method: "DELETE",
       url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${capture_asset_id}`,

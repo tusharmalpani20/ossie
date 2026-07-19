@@ -131,3 +131,83 @@ export class InteractiveDemoHasNoPublishableScenesError extends PublishDomainErr
     });
   }
 }
+
+export class ArtifactNotPublishableError extends PublishDomainError {
+  constructor() {
+    super({
+      code: "artifact_not_publishable",
+      message: "Artifact is not publishable",
+      status_hint: "conflict",
+    });
+  }
+}
+
+export class ArtifactHasNoPublishableContentError extends PublishDomainError {
+  constructor() {
+    super({
+      code: "artifact_has_no_publishable_content",
+      message: "Artifact has no publishable content",
+      status_hint: "bad_request",
+    });
+  }
+}
+
+export class PublicationRowVersionConflictError extends PublishDomainError {
+  constructor() {
+    super({
+      code: "publication_row_version_conflict",
+      message: "Publication source changed",
+      status_hint: "conflict",
+    });
+  }
+}
+
+export class PublishLinkNotFoundError extends PublishDomainError {
+  constructor() {
+    super({
+      code: "publish_link_not_found",
+      message: "Publish link not found",
+      status_hint: "not_found",
+    });
+  }
+}
+
+export class PublishLinkConflictError extends PublishDomainError {
+  constructor() {
+    super({
+      code: "publish_link_conflict",
+      message: "Publish link changed",
+      status_hint: "conflict",
+    });
+  }
+}
+
+export class PublishLinkManifestInvalidError extends PublishDomainError {
+  constructor() {
+    super({
+      code: "publish_link_manifest_invalid",
+      message: "Publish link manifest is invalid",
+      status_hint: "bad_request",
+    });
+  }
+}
+
+export class PublishLinkEntryNotFoundError extends PublishDomainError {
+  constructor() {
+    super({
+      code: "publish_link_entry_not_found",
+      message: "Publish link entry not found",
+      status_hint: "not_found",
+    });
+  }
+}
+
+export class PublishLinkRollbackInvalidError extends PublishDomainError {
+  constructor() {
+    super({
+      code: "publish_link_rollback_invalid",
+      message: "Publish link entry cannot use that Publication",
+      status_hint: "conflict",
+    });
+  }
+}

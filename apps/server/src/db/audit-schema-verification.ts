@@ -769,3 +769,26 @@ export const verify_artifact_revision_schema = async (
   );
   return throw_verification_issues(result.rows);
 };
+
+export const verify_publication_schema = async (
+  pool: VerificationPool,
+  roles: { runtime_role: string; maintenance_role: string },
+) => {
+  await verify_artifact_revision_schema(pool, roles);
+  const result = await pool.query<{ issue: string }>(
+    `
+    WITH expected_tables(name) AS (VALUES ('published_artifact'),('publish_link'),('publish_link_entry'),('public_publish_viewer_session'))
+    SELECT 'table:publish_schema.'||name FROM expected_tables WHERE to_regclass('publish_schema.'||name) IS NULL
+    UNION ALL SELECT 'legacy:published_artifact_capture_asset' WHERE to_regclass('publish_schema.published_artifact_capture_asset') IS NOT NULL
+    UNION ALL SELECT 'column:snapshot_json' WHERE EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='publish_schema' AND column_name IN('snapshot_json','version_number','published_artifact_id') AND table_name IN('published_artifact','publish_link'))
+    UNION ALL SELECT 'trigger:published_artifact_immutable_guard' WHERE NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgname='published_artifact_immutable_guard' AND NOT tgisinternal)
+    UNION ALL SELECT 'trigger:publish_link_entry_manifest_guard' WHERE NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgname='publish_link_entry_manifest_guard' AND NOT tgisinternal)
+    UNION ALL SELECT 'privilege:published_artifact:UPDATE' WHERE has_table_privilege($1::text,'publish_schema.published_artifact','UPDATE')
+    UNION ALL SELECT 'privilege:published_artifact:DELETE' WHERE has_table_privilege($1::text,'publish_schema.published_artifact','DELETE')
+    UNION ALL SELECT 'privilege:publish_link_entry:DELETE' WHERE has_table_privilege($1::text,'publish_schema.publish_link_entry','DELETE') IS DISTINCT FROM TRUE
+    UNION ALL SELECT 'owner:publish_schema.'||name FROM expected_tables expected WHERE NOT EXISTS(SELECT 1 FROM pg_class class JOIN pg_namespace namespace ON namespace.oid=class.relnamespace WHERE namespace.nspname='publish_schema' AND class.relname=expected.name AND pg_get_userbyid(class.relowner)=$2::text)
+    ORDER BY 1`,
+    [roles.runtime_role, roles.maintenance_role],
+  );
+  return throw_verification_issues(result.rows);
+};

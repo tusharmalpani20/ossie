@@ -6,6 +6,7 @@ import type {
 import { ulid } from "ulid";
 import { assert_guide_revision_writable } from "@repo/guide-domain";
 import { assert_interactive_demo_revision_writable } from "@repo/demo-domain";
+import { ArtifactHasNoPublishableContentError } from "@repo/publish-domain";
 import { build_guide_repository } from "../guide/guide.repository";
 import { build_interactive_demo_repository } from "../interactive-demo/interactive-demo.repository";
 import {
@@ -196,7 +197,10 @@ const insert_guide_revision = async (
   locked: LockedEdition,
   content: Awaited<ReturnType<typeof current_guide_content>> & {},
   digest: string,
-  trigger: "manual_checkpoint" | "carry_forward" = "manual_checkpoint",
+  trigger:
+    | "manual_checkpoint"
+    | "publication"
+    | "carry_forward" = "manual_checkpoint",
 ) => {
   const latest = await latest_revision(db, locked.edition_id, "guide");
   if (latest?.content_sha256 === digest)
@@ -294,7 +298,10 @@ const insert_demo_revision = async (
   locked: LockedEdition,
   content: Awaited<ReturnType<typeof current_demo_content>> & {},
   digest: string,
-  trigger: "manual_checkpoint" | "carry_forward" = "manual_checkpoint",
+  trigger:
+    | "manual_checkpoint"
+    | "publication"
+    | "carry_forward" = "manual_checkpoint",
 ) => {
   const latest = await latest_revision(
     db,
@@ -443,6 +450,70 @@ const checkpoint_demo = async (
     content,
     hash_revision_content(content.canonical),
   );
+};
+
+export const create_or_reuse_guide_revision_for_publication = async (
+  db: RevisionQueryable,
+  input: ScopeBase & {
+    guide_id: string;
+    expected_edition_version: number;
+    expected_working_draft_version: number;
+  },
+) => {
+  const locked = await lock_edition(
+    db,
+    { ...input, artifact_id: input.guide_id },
+    "guide",
+  );
+  if (!locked) throw new ArtifactEditionNotFoundError();
+  assert_writable(locked, input, "guide");
+  const content = await current_guide_content(db, input);
+  if (!content) throw new ArtifactEditionNotFoundError();
+  if (content.detail.guide_blocks.length === 0)
+    throw new ArtifactHasNoPublishableContentError();
+  return {
+    locked,
+    ...(await insert_guide_revision(
+      db,
+      input,
+      locked,
+      content,
+      hash_revision_content(content.canonical),
+      "publication",
+    )),
+  };
+};
+
+export const create_or_reuse_demo_revision_for_publication = async (
+  db: RevisionQueryable,
+  input: ScopeBase & {
+    interactive_demo_id: string;
+    expected_edition_version: number;
+    expected_working_draft_version: number;
+  },
+) => {
+  const locked = await lock_edition(
+    db,
+    { ...input, artifact_id: input.interactive_demo_id },
+    "interactive_demo",
+  );
+  if (!locked) throw new ArtifactEditionNotFoundError();
+  assert_writable(locked, input, "interactive_demo");
+  const content = await current_demo_content(db, input);
+  if (!content) throw new ArtifactEditionNotFoundError();
+  if (content.demo_scenes.length === 0)
+    throw new ArtifactHasNoPublishableContentError();
+  return {
+    locked,
+    ...(await insert_demo_revision(
+      db,
+      input,
+      locked,
+      content,
+      hash_revision_content(content.canonical),
+      "publication",
+    )),
+  };
 };
 
 export const create_or_reuse_guide_revision_for_carry_forward = async (

@@ -14,6 +14,12 @@ const read_migrations = () => {
     .join("\n");
 };
 
+const without_publish_link_entry_delete_grant = (sql: string) =>
+  sql.replace(
+    "GRANT SELECT,INSERT,UPDATE,DELETE ON publish_schema.publish_link_entry TO __OSSIE_RUNTIME_DB_ROLE__;",
+    "",
+  );
+
 const table_definition = (sql: string, table_name: string) => {
   const escaped_table_name = table_name.replaceAll(".", "\\.");
   const match = sql.match(
@@ -51,7 +57,12 @@ describe("foundation schema migrations", () => {
     expect(sql).not.toContain(
       "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES",
     );
-    expect(sql).not.toMatch(/GRANT[^;]*\bDELETE\b/iu);
+    expect(sql).toContain(
+      "GRANT SELECT,INSERT,UPDATE,DELETE ON publish_schema.publish_link_entry TO __OSSIE_RUNTIME_DB_ROLE__;",
+    );
+    expect(without_publish_link_entry_delete_grant(sql)).not.toMatch(
+      /GRANT[^;]*\bDELETE\b/iu,
+    );
   });
 
   it("installs generalized mutation guards for every runtime-writable product operation", () => {
@@ -82,7 +93,9 @@ describe("foundation schema migrations", () => {
     expect(migration).toContain(
       "DROP TRIGGER IF EXISTS project_insert_audit_context_guard",
     );
-    expect(sql).not.toMatch(/GRANT[^;]*\bDELETE\b/iu);
+    expect(without_publish_link_entry_delete_grant(sql)).not.toMatch(
+      /GRANT[^;]*\bDELETE\b/iu,
+    );
   });
 
   it("defines typed relational append-only Access Evidence", () => {
@@ -410,5 +423,35 @@ describe("foundation schema migrations", () => {
     );
     expect(down).not.toContain("guide.revision.restore");
     expect(down).not.toContain("artifact.carry_forward");
+  });
+
+  it("replaces publish snapshots with Revision-backed Publications and manifests", () => {
+    const migration = readFileSync(
+      new URL(
+        "./migrations/024_revision_backed_publication_and_publish_link_manifests.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const up = migration.split("-- DOWN:")[0] ?? migration;
+    const down = migration.split("-- DOWN:")[1] ?? "";
+
+    expect(up).toContain("CREATE TABLE publish_schema.published_artifact");
+    expect(up).toContain("publication_sequence INTEGER NOT NULL");
+    expect(up).toContain("guide_revision_id VARCHAR(26)");
+    expect(up).toContain("interactive_demo_revision_id VARCHAR(26)");
+    expect(up).toContain("CREATE TABLE publish_schema.publish_link_entry");
+    expect(up).toContain("publish_link_manifest_guard");
+    expect(up).toContain("prevent_published_artifact_mutation");
+    expect(up).toContain("publish_link_entry_d_audit_ctx");
+    expect(up).toContain("publish.guide");
+    expect(up).toContain("interactive_demo.publish_link.entry_rolled_back");
+    expect(up).not.toContain("snapshot_json JSON");
+    expect(up).not.toContain("version_number INTEGER");
+    expect(up).not.toContain("published_artifact_capture_asset (");
+    expect(down).toContain(
+      "Refusing to roll back populated Revision-backed Publication schema",
+    );
+    expect(down).toContain("snapshot_json JSONB NOT NULL");
   });
 });

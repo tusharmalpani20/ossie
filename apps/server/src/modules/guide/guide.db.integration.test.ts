@@ -1204,27 +1204,34 @@ describe("DB-backed guide API", () => {
 
     const publish_response = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publications?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
+      payload: {
+        expected_edition_version: detail_response.json().edition.version,
+        expected_working_draft_version:
+          detail_response.json().working_draft.version,
+        update_publish_links: [],
+        create_publish_link: {
+          name: "Guide asset test",
+          visibility: "public",
+          expires_at: null,
+          password: null,
+        },
+      },
     });
     expect(publish_response.statusCode).toBe(201);
-    const slug = publish_response.json().publish_link.slug as string;
+    const slug = publish_response.json().created_publish_link.slug as string;
 
     const public_response = await app.inject({
       method: "GET",
-      url: `/api/v1/public/publish-links/${slug}`,
+      url: `/api/v1/public/publish-links/${slug}?artifact_type=guide`,
     });
     expect(public_response.statusCode).toBe(200);
     expect(
-      public_response.json().published_artifact.snapshot.blocks[0].source_asset,
+      public_response.json().published_artifact.capture_assets[0],
     ).toMatchObject({
       id: uploaded_asset_id,
-      file_url: `/api/v1/public/publish-links/${slug}/assets/${uploaded_asset_id}/file`,
-      file: {
-        original_name: "replacement.png",
-        mime_type: "image/png",
-        size_bytes: uploaded_bytes.length,
-      },
+      mime_type: "image/png",
     });
 
     await app.close();

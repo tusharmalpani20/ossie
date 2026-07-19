@@ -1,7 +1,4 @@
-import type {
-  AccessAuthorizationType,
-  AccessSurface,
-} from "@repo/constants";
+import type { AccessAuthorizationType, AccessSurface } from "@repo/constants";
 import { AUDIT_COVERAGE_REGISTRY } from "../audit/audit-coverage-registry";
 
 export type AccessRoutePolicy =
@@ -41,7 +38,11 @@ const registration = (
 const root_for_route = (route: string) => {
   if (route.includes("/versions/:project_version_id"))
     return { type: "project_version", parameter: "project_version_id" };
-  if (route.includes("/interactive-demos/:interactive_demo_id/scenes/:scene_id/hotspots"))
+  if (
+    route.includes(
+      "/interactive-demos/:interactive_demo_id/scenes/:scene_id/hotspots",
+    )
+  )
     return { type: "demo_scene", parameter: "scene_id" };
   if (route.includes("/interactive-demos/:interactive_demo_id"))
     return { type: "interactive_demo", parameter: "interactive_demo_id" };
@@ -165,7 +166,9 @@ const mutations = mutation_registrations.map((item) => {
   const membership = item.route_template.includes("/memberships");
   return {
     ...item,
-    ...(membership ? { denied_action: "project.membership_access_denied" } : {}),
+    ...(membership
+      ? { denied_action: "project.membership_access_denied" }
+      : {}),
     ...(override ?? {}),
   };
 });
@@ -195,44 +198,221 @@ const read = (
   });
 
 const reads: AccessRouteRegistration[] = [
-  read("GET /api/v1/authentication/me", "authentication.session.viewed", "auth_session", null, "authentication"),
+  read(
+    "GET /api/v1/authentication/me",
+    "authentication.session.viewed",
+    "auth_session",
+    null,
+    "authentication",
+  ),
   read("GET /api/v1/projects", "project.list_viewed", "organization", null),
   read("GET /api/v1/projects/:id", "project.viewed", "project", "id"),
-  read("GET /api/v1/projects/:project_id/versions", "project_version.list_viewed", "project", "project_id"),
-  read("GET /api/v1/projects/:project_id/versions/resolve/:slug", "project_version.viewed", "project", "project_id"),
-  read("GET /api/v1/projects/:project_id/versions/:project_version_id", "project_version.viewed", "project_version", "project_version_id"),
-  read("GET /api/v1/projects/:project_id/memberships", "project.membership_list_viewed", "project", "project_id"),
+  read(
+    "GET /api/v1/projects/:project_id/versions",
+    "project_version.list_viewed",
+    "project",
+    "project_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/resolve/:slug",
+    "project_version.viewed",
+    "project",
+    "project_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:project_version_id",
+    "project_version.viewed",
+    "project_version",
+    "project_version_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/memberships",
+    "project.membership_list_viewed",
+    "project",
+    "project_id",
+  ),
   registration("GET /api/v1/projects/:project_id/activity", {
-    action: "project.activity_viewed", denied_action: "project.activity_access_denied",
-    root_resource_type: "project", root_parameter: "project_id", project_parameter: "project_id",
-    policy: "meaningful_read", surface: "portal", authorization_type: "project_role", atomic_commands: [],
+    action: "project.activity_viewed",
+    denied_action: "project.activity_access_denied",
+    root_resource_type: "project",
+    root_parameter: "project_id",
+    project_parameter: "project_id",
+    policy: "meaningful_read",
+    surface: "portal",
+    authorization_type: "project_role",
+    atomic_commands: [],
   }),
-  read("GET /api/v1/organization/members", "organization.members_viewed", "organization", null),
-  read("GET /api/v1/organization/invites", "organization.invites_viewed", "organization", null),
-  read("GET /api/v1/projects/:project_id/capture-sessions", "capture_session.list_viewed", "project", "project_id"),
-  read("GET /api/v1/projects/:project_id/capture-sessions/:id", "capture_session.viewed", "capture_session", "id"),
-  read("GET /api/v1/projects/:project_id/capture-sessions/:id/detail", "capture_session.detail_viewed", "capture_session", "id"),
-  read("GET /api/v1/projects/:project_id/capture-assets", "capture_asset.project_list_viewed", "project", "project_id"),
-  read("GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets", "capture_asset.list_viewed", "capture_session", "capture_session_id"),
-  read("GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets/:id", "capture_asset.viewed", "capture_asset", "id"),
-  read("GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets/:id/file", "capture_asset.downloaded", "capture_asset", "id", "download"),
-  read("GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets/:id/protection", "capture_asset.protection_viewed", "capture_asset", "id"),
-  read("GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/events", "capture_event.list_viewed", "capture_session", "capture_session_id"),
-  read("GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/events/:id", "capture_event.viewed", "capture_event", "id"),
-  read("GET /api/v1/projects/:project_id/guides", "guide.list_viewed", "project", "project_id"),
-  read("GET /api/v1/projects/:project_id/guides/:guide_id", "guide.viewed", "guide", "guide_id"),
-  read("GET /api/v1/projects/:project_id/guides/:guide_id/revisions", "guide.revision_history_viewed", "guide", "guide_id"),
-  read("GET /api/v1/projects/:project_id/guides/:guide_id/revisions/:revision_number", "guide.revision_viewed", "guide", "guide_id"),
-  read("GET /api/v1/projects/:project_id/guides/:guide_id/export/markdown", "guide.markdown_exported", "guide", "guide_id", "download"),
-  read("GET /api/v1/projects/:project_id/guides/:guide_id/export/html.zip", "guide.html_exported", "guide", "guide_id", "download"),
-  read("GET /api/v1/projects/:project_id/interactive-demos", "interactive_demo.list_viewed", "project", "project_id"),
-  read("GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id", "interactive_demo.viewed", "interactive_demo", "interactive_demo_id"),
-  read("GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/revisions", "interactive_demo.revision_history_viewed", "interactive_demo", "interactive_demo_id"),
-  read("GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/revisions/:revision_number", "interactive_demo.revision_viewed", "interactive_demo", "interactive_demo_id"),
-  read("GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes", "demo_scene.list_viewed", "interactive_demo", "interactive_demo_id"),
-  read("GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes/:scene_id/hotspots", "demo_hotspot.list_viewed", "demo_scene", "scene_id"),
-  read("GET /api/v1/projects/:project_id/guides/:guide_id/publish", "guide.publish_status_viewed", "guide", "guide_id"),
-  read("GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/publish", "interactive_demo.publish_status_viewed", "interactive_demo", "interactive_demo_id"),
+  read(
+    "GET /api/v1/organization/members",
+    "organization.members_viewed",
+    "organization",
+    null,
+  ),
+  read(
+    "GET /api/v1/organization/invites",
+    "organization.invites_viewed",
+    "organization",
+    null,
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/capture-sessions",
+    "capture_session.list_viewed",
+    "project",
+    "project_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/capture-sessions/:id",
+    "capture_session.viewed",
+    "capture_session",
+    "id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/capture-sessions/:id/detail",
+    "capture_session.detail_viewed",
+    "capture_session",
+    "id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/capture-assets",
+    "capture_asset.project_list_viewed",
+    "project",
+    "project_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets",
+    "capture_asset.list_viewed",
+    "capture_session",
+    "capture_session_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets/:id",
+    "capture_asset.viewed",
+    "capture_asset",
+    "id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets/:id/file",
+    "capture_asset.downloaded",
+    "capture_asset",
+    "id",
+    "download",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets/:id/protection",
+    "capture_asset.protection_viewed",
+    "capture_asset",
+    "id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/events",
+    "capture_event.list_viewed",
+    "capture_session",
+    "capture_session_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/capture-sessions/:capture_session_id/events/:id",
+    "capture_event.viewed",
+    "capture_event",
+    "id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/guides",
+    "guide.list_viewed",
+    "project",
+    "project_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/guides/:guide_id",
+    "guide.viewed",
+    "guide",
+    "guide_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/guides/:guide_id/revisions",
+    "guide.revision_history_viewed",
+    "guide",
+    "guide_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/guides/:guide_id/revisions/:revision_number",
+    "guide.revision_viewed",
+    "guide",
+    "guide_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/guides/:guide_id/export/markdown",
+    "guide.markdown_exported",
+    "guide",
+    "guide_id",
+    "download",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/guides/:guide_id/export/html.zip",
+    "guide.html_exported",
+    "guide",
+    "guide_id",
+    "download",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/interactive-demos",
+    "interactive_demo.list_viewed",
+    "project",
+    "project_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id",
+    "interactive_demo.viewed",
+    "interactive_demo",
+    "interactive_demo_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/revisions",
+    "interactive_demo.revision_history_viewed",
+    "interactive_demo",
+    "interactive_demo_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/revisions/:revision_number",
+    "interactive_demo.revision_viewed",
+    "interactive_demo",
+    "interactive_demo_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes",
+    "demo_scene.list_viewed",
+    "interactive_demo",
+    "interactive_demo_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/scenes/:scene_id/hotspots",
+    "demo_hotspot.list_viewed",
+    "demo_scene",
+    "scene_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/guides/:guide_id/publications",
+    "guide.publication_history_viewed",
+    "guide",
+    "guide_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/guides/:guide_id/publish-links",
+    "guide.publish_links_viewed",
+    "guide",
+    "guide_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/publications",
+    "interactive_demo.publication_history_viewed",
+    "interactive_demo",
+    "interactive_demo_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/publish-links",
+    "interactive_demo.publish_links_viewed",
+    "interactive_demo",
+    "interactive_demo_id",
+  ),
 ];
 
 const public_routes: AccessRouteRegistration[] = [
@@ -258,17 +438,34 @@ const public_routes: AccessRouteRegistration[] = [
     authorization_type: "public_link",
     atomic_commands: [],
   }),
-  registration("GET /api/v1/public/publish-links/:slug/assets/:capture_asset_id/file", {
-    action: "published_asset.downloaded",
-    denied_action: "published_asset.download_denied",
-    root_resource_type: "publish_link",
-    root_parameter: null,
-    project_parameter: null,
-    policy: "public_access",
-    surface: "download",
-    authorization_type: "public_link",
-    atomic_commands: [],
-  }),
+  registration(
+    "GET /api/v1/public/publish-links/:slug/versions/:version_slug",
+    {
+      action: "publish_link.version_viewed",
+      denied_action: "publish_link.version_view_denied",
+      root_resource_type: "publish_link",
+      root_parameter: null,
+      project_parameter: null,
+      policy: "public_access",
+      surface: "api",
+      authorization_type: "public_link",
+      atomic_commands: [],
+    },
+  ),
+  registration(
+    "GET /api/v1/public/publish-links/:slug/versions/:version_slug/assets/:capture_asset_id/file",
+    {
+      action: "published_asset.downloaded",
+      denied_action: "published_asset.download_denied",
+      root_resource_type: "publish_link",
+      root_parameter: null,
+      project_parameter: null,
+      policy: "public_access",
+      surface: "download",
+      authorization_type: "public_link",
+      atomic_commands: [],
+    },
+  ),
   registration("GET /api/v1/public/instance", {
     action: "public_instance.probed",
     denied_action: "public_instance.probe_failed",
@@ -300,15 +497,30 @@ const compliance_routes: AccessRouteRegistration[] = [
     null,
   ),
   registration("GET /api/v1/projects/:project_id/compliance/events", {
-    action: "compliance.timeline_viewed", denied_action: "compliance.timeline_access_denied",
-    root_resource_type: "project", root_parameter: "project_id", project_parameter: "project_id",
-    policy: "meaningful_read", surface: "compliance", authorization_type: "project_role", atomic_commands: [],
+    action: "compliance.timeline_viewed",
+    denied_action: "compliance.timeline_access_denied",
+    root_resource_type: "project",
+    root_parameter: "project_id",
+    project_parameter: "project_id",
+    policy: "meaningful_read",
+    surface: "compliance",
+    authorization_type: "project_role",
+    atomic_commands: [],
   }),
-  registration("GET /api/v1/projects/:project_id/compliance/audit-events/:audit_event_id", {
-    action: "compliance.audit_event_viewed", denied_action: "compliance.audit_event_access_denied",
-    root_resource_type: "audit_event", root_parameter: "audit_event_id", project_parameter: "project_id",
-    policy: "meaningful_read", surface: "compliance", authorization_type: "project_role", atomic_commands: [],
-  }),
+  registration(
+    "GET /api/v1/projects/:project_id/compliance/audit-events/:audit_event_id",
+    {
+      action: "compliance.audit_event_viewed",
+      denied_action: "compliance.audit_event_access_denied",
+      root_resource_type: "audit_event",
+      root_parameter: "audit_event_id",
+      project_parameter: "project_id",
+      policy: "meaningful_read",
+      surface: "compliance",
+      authorization_type: "project_role",
+      atomic_commands: [],
+    },
+  ),
 ];
 
 export const ACCESS_ROUTE_COVERAGE_REGISTRY = [
@@ -319,7 +531,10 @@ export const ACCESS_ROUTE_COVERAGE_REGISTRY = [
 ] as const;
 
 const allowed_actions = new Set(
-  ACCESS_ROUTE_COVERAGE_REGISTRY.flatMap((route) => [route.action, route.denied_action]),
+  ACCESS_ROUTE_COVERAGE_REGISTRY.flatMap((route) => [
+    route.action,
+    route.denied_action,
+  ]),
 );
 
 export const is_registered_access_action = (action: string) =>

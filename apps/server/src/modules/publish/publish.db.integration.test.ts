@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -15,16 +14,13 @@ const multipart_payload = (
     content_type?: string;
   }>,
 ) => {
-  const boundary = "----ossie-publish-test-boundary";
+  const boundary = "----ossie-publication-test-boundary";
   const chunks: Buffer[] = [];
-
   for (const part of parts) {
     chunks.push(Buffer.from(`--${boundary}\r\n`));
     chunks.push(
       Buffer.from(
-        `Content-Disposition: form-data; name="${part.name}"${
-          part.filename ? `; filename="${part.filename}"` : ""
-        }\r\n`,
+        `Content-Disposition: form-data; name="${part.name}"${part.filename ? `; filename="${part.filename}"` : ""}\r\n`,
       ),
     );
     if (part.content_type) {
@@ -36,13 +32,9 @@ const multipart_payload = (
     );
     chunks.push(Buffer.from("\r\n"));
   }
-
   chunks.push(Buffer.from(`--${boundary}--\r\n`));
-
   return {
-    headers: {
-      "content-type": `multipart/form-data; boundary=${boundary}`,
-    },
+    headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
     payload: Buffer.concat(chunks),
   };
 };
@@ -59,12 +51,9 @@ const setup_owner = async () => {
         first_name: "Owner",
         last_name: "User",
       },
-      organization: {
-        name: "Acme",
-      },
+      organization: { name: "Acme" },
     },
   });
-
   await app.close();
   expect(response.statusCode).toBe(201);
   return (
@@ -79,104 +68,26 @@ const create_project = async (session_token: string) => {
     method: "POST",
     url: "/api/v1/projects",
     cookies: { ossie_session: session_token },
-    payload: { name: "Onboarding Demo" },
+    payload: { name: "Publication integration" },
   });
-
   await app.close();
   expect(response.statusCode).toBe(201);
+  const project = response.json().project;
   return {
-    project_id: response.json().project.id as string,
-    project_version_id: response.json().project.default_project_version
-      .id as string,
+    project_id: project.id as string,
+    project_version_id: project.default_project_version.id as string,
+    project_version_slug: project.default_project_version.slug as string,
   };
 };
 
-const create_capture_session = async (
-  session_token: string,
-  project_id: string,
-  project_version_id: string,
-) => {
-  const app = build({ logger: false });
-  const response = await app.inject({
-    method: "POST",
-    url: `/api/v1/projects/${project_id}/capture-sessions`,
-    cookies: { ossie_session: session_token },
-    payload: {
-      name: "Create department workflow",
-      project_version_id,
-      source_type: "manual",
-    },
-  });
-
-  await app.close();
-  expect(response.statusCode).toBe(201);
-  return response.json().capture_session.id as string;
-};
-
-const upload_capture_asset = async (
-  session_token: string,
-  project_id: string,
-  capture_session_id: string,
-  bytes: Buffer,
-) => {
-  const app = build({ logger: false });
-  const response = await app.inject({
-    method: "POST",
-    url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/upload`,
-    cookies: { ossie_session: session_token },
-    ...multipart_payload([
-      {
-        name: "file",
-        filename: "department.png",
-        content_type: "image/png",
-        value: bytes,
-      },
-      { name: "width", value: "1440" },
-      { name: "height", value: "900" },
-      { name: "page_url", value: "https://example.test/departments" },
-      { name: "page_title", value: "Department List" },
-    ]),
-  });
-
-  await app.close();
-  expect(response.statusCode).toBe(201);
-  return response.json().capture_asset.id as string;
-};
-
-const create_capture_event = async (
-  session_token: string,
-  project_id: string,
-  capture_session_id: string,
-  capture_asset_id: string,
-) => {
-  const app = build({ logger: false });
-  const response = await app.inject({
-    method: "POST",
-    url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/events`,
-    cookies: { ossie_session: session_token },
-    payload: {
-      event_type: "capture",
-      event_index: 1,
-      capture_asset_id,
-      page_title: "Department List",
-      page_url: "https://example.test/departments",
-      metadata: {
-        private_note: "do not publish",
-      },
-    },
-  });
-
-  await app.close();
-  expect(response.statusCode).toBe(201);
-  return response.json().capture_event.id as string;
-};
-
-describe("DB-backed guide publishing API", () => {
+describe("DB-backed relational Publication API", () => {
   let storage_root: string;
   let previous_storage_root: string | undefined;
 
   beforeEach(async () => {
-    storage_root = await mkdtemp(path.join(tmpdir(), "ossie-publish-test-"));
+    storage_root = await mkdtemp(
+      path.join(tmpdir(), "ossie-publication-test-"),
+    );
     previous_storage_root = process.env.OSSIE_LOCAL_STORAGE_ROOT;
     process.env.OSSIE_LOCAL_STORAGE_ROOT = storage_root;
     await reset_test_database();
@@ -195,518 +106,209 @@ describe("DB-backed guide publishing API", () => {
     await pool.end();
   });
 
-  it("publishes resolves and streams an interactive demo snapshot", async () => {
-    const bytes = Buffer.from("fake demo png bytes");
+  it("publishes immutable Revisions, manages independent links, resolves exact versions, streams protected media, rolls back, and revokes", async () => {
+    const bytes = Buffer.from("synthetic publication image");
     const session_token = await setup_owner();
-    const { project_id, project_version_id } =
+    const { project_id, project_version_id, project_version_slug } =
       await create_project(session_token);
-    const capture_session_id = await create_capture_session(
-      session_token,
-      project_id,
-      project_version_id,
-    );
-    const capture_asset_id = await upload_capture_asset(
-      session_token,
-      project_id,
-      capture_session_id,
-      bytes,
-    );
-    await create_capture_event(
-      session_token,
-      project_id,
-      capture_session_id,
-      capture_asset_id,
-    );
     const app = build({ logger: false });
 
-    const create_demo_response = await app.inject({
+    const capture = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/interactive-demos`,
-      cookies: { ossie_session: session_token },
-      payload: {},
-    });
-    expect(create_demo_response.statusCode).toBe(201);
-    const interactive_demo_id = create_demo_response.json().artifact
-      .id as string;
-    const scene_id = create_demo_response.json().demo_scenes[0].id as string;
-
-    const create_hotspot_response = await app.inject({
-      method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/scenes/${scene_id}/hotspots?project_version_id=${project_version_id}`,
+      url: `/api/v1/projects/${project_id}/capture-sessions`,
       cookies: { ossie_session: session_token },
       payload: {
-        hotspot_type: "info",
-        label: "Read first",
-        content: "Check the list before continuing.",
-        x: 0.1,
-        y: 0.2,
-        width: 0.3,
-        height: 0.1,
-        expected_working_draft_version:
-          create_demo_response.json().working_draft.version,
+        name: "Create department workflow",
+        project_version_id,
+        source_type: "manual",
       },
     });
-    expect(create_hotspot_response.statusCode).toBe(201);
+    expect(capture.statusCode).toBe(201);
+    const capture_session_id = capture.json().capture_session.id as string;
 
-    const publish_response = await app.inject({
+    const upload = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/interactive-demos/${interactive_demo_id}/publish?project_version_id=${project_version_id}`,
+      url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/upload`,
       cookies: { ossie_session: session_token },
-    });
-    expect(publish_response.statusCode).toBe(201);
-    expect(publish_response.json().publish_link).toMatchObject({
-      artifact_type: "interactive_demo",
-      artifact_id: interactive_demo_id,
-      public_url: expect.stringMatching(/^\/d\//),
-      status: "active",
-    });
-    const projection = await pool.query<{ capture_asset_id: string }>(
-      `SELECT capture_asset_id
-       FROM publish_schema.published_artifact_capture_asset
-       WHERE published_artifact_id=$1`,
-      [publish_response.json().published_artifact.id],
-    );
-    expect(projection.rows).toEqual([{ capture_asset_id }]);
-    const slug = publish_response.json().publish_link.slug as string;
-
-    const public_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}`,
-    });
-    expect(public_response.statusCode).toBe(200);
-    expect(public_response.json().publish_link.artifact_type).toBe(
-      "interactive_demo",
-    );
-    expect(public_response.json().published_artifact.snapshot).toMatchObject({
-      artifact_type: "interactive_demo",
-      schema_version: 1,
-      interactive_demo: {
-        id: interactive_demo_id,
-        title: "Create department workflow",
-      },
-      scenes: [
+      ...multipart_payload([
         {
-          id: scene_id,
-          scene_index: 1,
-          background_asset: {
-            id: capture_asset_id,
-            file_url: `/api/v1/public/publish-links/${slug}/assets/${capture_asset_id}/file`,
-          },
-          hotspots: [
-            {
-              hotspot_type: "info",
-              label: "Read first",
-              content: "Check the list before continuing.",
-            },
-          ],
+          name: "file",
+          filename: "department.png",
+          content_type: "image/png",
+          value: bytes,
         },
-      ],
+        { name: "width", value: "1440" },
+        { name: "height", value: "900" },
+      ]),
     });
-    expect(JSON.stringify(public_response.json())).not.toContain(
-      "organization_id",
-    );
-    expect(JSON.stringify(public_response.json())).not.toContain("storage_key");
+    expect(upload.statusCode).toBe(201);
+    const capture_asset_id = upload.json().capture_asset.id as string;
 
-    const public_asset_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}/assets/${capture_asset_id}/file`,
+    const event = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/events`,
+      cookies: { ossie_session: session_token },
+      payload: {
+        event_type: "capture",
+        event_index: 1,
+        capture_asset_id,
+        page_title: "Department List",
+        page_url: "https://example.test/departments",
+        metadata: { private_note: "must never be public" },
+      },
     });
-    expect(public_asset_response.statusCode).toBe(200);
-    expect(public_asset_response.headers["content-type"]).toBe("image/png");
-    expect(public_asset_response.body).toBe(bytes.toString());
+    expect(event.statusCode).toBe(201);
 
-    await app.close();
-  }, 30_000);
-
-  it("publishes republishes resolves streams and revokes a guide snapshot", async () => {
-    const bytes = Buffer.from("fake png bytes");
-    const session_token = await setup_owner();
-    const { project_id, project_version_id } =
-      await create_project(session_token);
-    const capture_session_id = await create_capture_session(
-      session_token,
-      project_id,
-      project_version_id,
-    );
-    const capture_asset_id = await upload_capture_asset(
-      session_token,
-      project_id,
-      capture_session_id,
-      bytes,
-    );
-    await create_capture_event(
-      session_token,
-      project_id,
-      capture_session_id,
-      capture_asset_id,
-    );
-
-    const app = build({ logger: false });
-    const create_guide_response = await app.inject({
+    const create_guide = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${project_id}/guides/from-capture-session/${capture_session_id}`,
       cookies: { ossie_session: session_token },
+      payload: { title: "Department setup guide" },
+    });
+    expect(create_guide.statusCode).toBe(201);
+    const created = create_guide.json();
+    const guide_id = created.artifact.id as string;
+
+    const first_publish = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publications?project_version_id=${project_version_id}`,
+      cookies: { ossie_session: session_token },
       payload: {
-        title: "Department setup guide",
+        expected_edition_version: created.edition.version,
+        expected_working_draft_version: created.working_draft.version,
+        update_publish_links: [],
+        create_publish_link: {
+          name: "Documentation",
+          visibility: "public",
+          expires_at: null,
+          password: null,
+        },
       },
     });
-    expect(create_guide_response.statusCode).toBe(201);
-    const guide_id = create_guide_response.json().artifact.id as string;
-
-    const publish_response = await app.inject({
-      method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
-      cookies: { ossie_session: session_token },
-    });
-    expect(publish_response.statusCode).toBe(201);
-    expect(publish_response.json().published_artifact.version_number).toBe(1);
-    expect(publish_response.json().publish_link).toMatchObject({
+    expect(first_publish.statusCode).toBe(201);
+    const first = first_publish.json();
+    expect(first.published_artifact).toMatchObject({
       artifact_type: "guide",
-      artifact_id: guide_id,
-      visibility: "public",
-      expires_at: null,
-      status: "active",
+      publication_sequence: 1,
+      project_version_id,
     });
-    const slug = publish_response.json().publish_link.slug as string;
+    expect(first.created_publish_link.entries).toHaveLength(1);
+    const first_publication_id = first.published_artifact.id as string;
+    const primary_link_id = first.created_publish_link.id as string;
+    const slug = first.created_publish_link.slug as string;
+
+    const second_link = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish-links?project_version_id=${project_version_id}`,
+      cookies: { ossie_session: session_token },
+      payload: {
+        name: "Pinned audience",
+        visibility: "public",
+        expires_at: null,
+        password: null,
+        published_artifact_ids: [first_publication_id],
+        default_published_artifact_id: first_publication_id,
+      },
+    });
+    expect(second_link.statusCode).toBe(201);
 
     const public_response = await app.inject({
       method: "GET",
-      url: `/api/v1/public/publish-links/${slug}`,
+      url: `/api/v1/public/publish-links/${slug}/versions/${project_version_slug}?artifact_type=guide`,
     });
     expect(public_response.statusCode).toBe(200);
-    expect(
-      public_response.json().published_artifact.snapshot.blocks[0].source_asset,
-    ).toMatchObject({
-      id: capture_asset_id,
-      file_url: `/api/v1/public/publish-links/${slug}/assets/${capture_asset_id}/file`,
-      file: {
-        original_name: "department.png",
-        mime_type: "image/png",
-        size_bytes: bytes.length,
+    expect(public_response.json()).toMatchObject({
+      selected_entry: { project_version_slug },
+      published_artifact: {
+        artifact_type: "guide",
+        publication_sequence: 1,
       },
     });
     expect(JSON.stringify(public_response.json())).not.toContain("storage_key");
     expect(JSON.stringify(public_response.json())).not.toContain(
       "private_note",
     );
-    expect(JSON.stringify(public_response.json())).not.toContain(
-      "organization_id",
-    );
 
-    const public_asset_response = await app.inject({
+    const asset = await app.inject({
       method: "GET",
-      url: `/api/v1/public/publish-links/${slug}/assets/${capture_asset_id}/file`,
+      url: `/api/v1/public/publish-links/${slug}/versions/${project_version_slug}/assets/${capture_asset_id}/file?artifact_type=guide`,
     });
-    expect(public_asset_response.statusCode).toBe(200);
-    expect(public_asset_response.headers["content-type"]).toBe("image/png");
-    expect(public_asset_response.headers["content-length"]).toBe(
-      String(bytes.length),
-    );
-    expect(public_asset_response.body).toBe(bytes.toString());
+    expect(asset.statusCode).toBe(200);
+    expect(asset.body).toBe(bytes.toString());
 
-    const restrict_response = await app.inject({
-      method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/access?project_version_id=${project_version_id}`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        visibility: "restricted",
-        expires_at: null,
-      },
-    });
-    expect(restrict_response.statusCode).toBe(200);
-    expect(restrict_response.json().publish_link).toMatchObject({
-      slug,
-      visibility: "restricted",
-      expires_at: null,
-      status: "active",
-    });
-
-    const restricted_public_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}`,
-    });
-    expect(restricted_public_response.statusCode).toBe(403);
-    expect(restricted_public_response.json().error.type).toBe(
-      "publish_link_not_public",
-    );
-
-    const restricted_asset_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}/assets/${capture_asset_id}/file`,
-    });
-    expect(restricted_asset_response.statusCode).toBe(403);
-    expect(restricted_asset_response.json().error.type).toBe(
-      "publish_link_not_public",
-    );
-
-    const expired_at = new Date(Date.now() - 60_000).toISOString();
-    const expire_response = await app.inject({
-      method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/access?project_version_id=${project_version_id}`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        visibility: "public",
-        expires_at: expired_at,
-      },
-    });
-    expect(expire_response.statusCode).toBe(200);
-    expect(expire_response.json().publish_link).toMatchObject({
-      slug,
-      visibility: "public",
-      expires_at: expired_at,
-    });
-
-    const expired_public_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}`,
-    });
-    expect(expired_public_response.statusCode).toBe(410);
-    expect(expired_public_response.json().error.type).toBe(
-      "publish_link_expired",
-    );
-
-    const reopen_response = await app.inject({
-      method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/access?project_version_id=${project_version_id}`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        visibility: "public",
-        expires_at: null,
-      },
-    });
-    expect(reopen_response.statusCode).toBe(200);
-    expect(reopen_response.json().publish_link).toMatchObject({
-      slug,
-      visibility: "public",
-      expires_at: null,
-    });
-
-    const reopened_public_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}`,
-    });
-    expect(reopened_public_response.statusCode).toBe(200);
-
-    const set_password_response = await app.inject({
-      method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/password?project_version_id=${project_version_id}`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        password: "shared password",
-      },
-    });
-    expect(set_password_response.statusCode).toBe(200);
-    expect(set_password_response.json().publish_link.password_protected).toBe(
-      true,
-    );
-    expect(JSON.stringify(set_password_response.json())).not.toContain(
-      "shared password",
-    );
-
-    const protected_public_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}`,
-    });
-    expect(protected_public_response.statusCode).toBe(401);
-    expect(protected_public_response.json().error.type).toBe(
-      "publish_link_password_required",
-    );
-
-    const wrong_password_response = await app.inject({
-      method: "POST",
-      url: `/api/v1/public/publish-links/${slug}/viewer-sessions`,
-      payload: {
-        password: "wrong password",
-      },
-    });
-    expect(wrong_password_response.statusCode).toBe(400);
-    expect(wrong_password_response.json().error.type).toBe(
-      "invalid_public_viewer_password",
-    );
-
-    const viewer_session_response = await app.inject({
-      method: "POST",
-      url: `/api/v1/public/publish-links/${slug}/viewer-sessions`,
-      payload: {
-        password: "shared password",
-      },
-    });
-    expect(viewer_session_response.statusCode).toBe(204);
-    const viewer_token =
-      viewer_session_response.cookies.find(
-        (cookie) => cookie.name === "ossie_public_viewer",
-      )?.value ?? "";
-    expect(viewer_token).not.toBe("");
-
-    const unlocked_public_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}`,
-      cookies: { ossie_public_viewer: viewer_token },
-    });
-    expect(unlocked_public_response.statusCode).toBe(200);
-    expect(
-      unlocked_public_response.json().publish_link.password_protected,
-    ).toBe(true);
-
-    const unlocked_asset_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}/assets/${capture_asset_id}/file`,
-      cookies: { ossie_public_viewer: viewer_token },
-    });
-    expect(unlocked_asset_response.statusCode).toBe(200);
-    expect(unlocked_asset_response.body).toBe(bytes.toString());
-
-    const rotate_password_response = await app.inject({
-      method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/password?project_version_id=${project_version_id}`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        password: "new shared password",
-      },
-    });
-    expect(rotate_password_response.statusCode).toBe(200);
-
-    const stale_viewer_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}`,
-      cookies: { ossie_public_viewer: viewer_token },
-    });
-    expect(stale_viewer_response.statusCode).toBe(401);
-
-    const clear_password_response = await app.inject({
-      method: "PATCH",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish/password?project_version_id=${project_version_id}`,
-      cookies: { ossie_session: session_token },
-      payload: {
-        password: null,
-      },
-    });
-    expect(clear_password_response.statusCode).toBe(200);
-    expect(clear_password_response.json().publish_link.password_protected).toBe(
-      false,
-    );
-
-    const cleared_public_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}`,
-    });
-    expect(cleared_public_response.statusCode).toBe(200);
-
-    const update_response = await app.inject({
+    const update = await app.inject({
       method: "PATCH",
       url: `/api/v1/projects/${project_id}/guides/${guide_id}?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
-        title: "Edited department setup guide",
-        expected_edition_version:
-          create_guide_response.json().edition.version,
+        title: "Updated department setup guide",
+        expected_edition_version: created.edition.version,
       },
     });
-    expect(update_response.statusCode).toBe(200);
+    expect(update.statusCode).toBe(200);
 
-    const republish_response = await app.inject({
+    const second_publish = await app.inject({
       method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
-      cookies: { ossie_session: session_token },
-    });
-    expect(republish_response.statusCode).toBe(201);
-    expect(republish_response.json().publish_link.slug).toBe(slug);
-    expect(republish_response.json().publish_link).toMatchObject({
-      visibility: "public",
-      expires_at: null,
-    });
-    expect(republish_response.json().published_artifact.version_number).toBe(2);
-
-    const snapshot_rows = await pool.query<{
-      title: string;
-      version_number: number;
-      snapshot_title: string;
-    }>(
-      `
-      SELECT
-        title,
-        version_number,
-        snapshot_json #>> '{guide,title}' AS snapshot_title
-      FROM publish_schema.published_artifact
-      WHERE artifact_id = $1
-      ORDER BY version_number ASC
-    `,
-      [guide_id],
-    );
-    expect(snapshot_rows.rows).toEqual([
-      {
-        title: "Department setup guide",
-        version_number: 1,
-        snapshot_title: "Department setup guide",
-      },
-      {
-        title: "Edited department setup guide",
-        version_number: 2,
-        snapshot_title: "Edited department setup guide",
-      },
-    ]);
-
-    const revoke_response = await app.inject({
-      method: "DELETE",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
-      cookies: { ossie_session: session_token },
-    });
-    expect(revoke_response.statusCode).toBe(200);
-    expect(revoke_response.json().publish_link.status).toBe("revoked");
-
-    const revoked_public_response = await app.inject({
-      method: "GET",
-      url: `/api/v1/public/publish-links/${slug}`,
-    });
-    expect(revoked_public_response.statusCode).toBe(404);
-
-    const after_revoke_publish_response = await app.inject({
-      method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
-      cookies: { ossie_session: session_token },
-    });
-    expect(after_revoke_publish_response.statusCode).toBe(201);
-    expect(after_revoke_publish_response.json().publish_link.slug).not.toBe(
-      slug,
-    );
-    expect(
-      after_revoke_publish_response.json().published_artifact.version_number,
-    ).toBe(3);
-
-    const archive_response = await app.inject({
-      method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/archive?project_version_id=${project_version_id}`,
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publications?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
-        expected_edition_version: update_response.json().edition.version,
+        expected_edition_version: update.json().edition.version,
+        expected_working_draft_version: created.working_draft.version,
+        update_publish_links: [
+          {
+            publish_link_id: primary_link_id,
+            expected_link_version: first.created_publish_link.version,
+          },
+        ],
       },
     });
-    expect(archive_response.statusCode).toBe(200);
-    const archived_publish_response = await app.inject({
-      method: "POST",
-      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish?project_version_id=${project_version_id}`,
+    expect(second_publish.statusCode).toBe(201);
+    const second = second_publish.json();
+    expect(second.published_artifact.publication_sequence).toBe(2);
+
+    const links = await app.inject({
+      method: "GET",
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish-links?project_version_id=${project_version_id}&status=active`,
       cookies: { ossie_session: session_token },
     });
-    expect(archived_publish_response.statusCode).toBe(409);
-    expect(archived_publish_response.json().error.type).toBe(
-      "guide_not_publishable",
+    expect(links.statusCode).toBe(200);
+    expect(links.json().publish_links).toHaveLength(2);
+    expect(
+      links
+        .json()
+        .publish_links.find((link: { name: string }) =>
+          link.name.startsWith("Pinned"),
+        ).entries[0].published_artifact.id,
+    ).toBe(first_publication_id);
+
+    const updated_link = second.updated_publish_links[0];
+    const rollback = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish-links/${primary_link_id}/entries/${updated_link.entries[0].id}/rollback?project_version_id=${project_version_id}`,
+      cookies: { ossie_session: session_token },
+      payload: {
+        expected_link_version: updated_link.version,
+        target_published_artifact_id: first_publication_id,
+        reason: "Restore the previously approved Publication",
+      },
+    });
+    expect(rollback.statusCode).toBe(200);
+    expect(rollback.json().entry.published_artifact.publication_sequence).toBe(
+      1,
     );
 
-    const checksum = await pool.query<{ checksum_sha256: string }>(
-      `
-      SELECT checksum_sha256
-      FROM file_schema.file
-      WHERE id = (
-        SELECT file_id
-        FROM capture_schema.capture_asset
-        WHERE id = $1
-      )
-    `,
-      [capture_asset_id],
-    );
-    expect(checksum.rows[0]?.checksum_sha256).toBe(
-      createHash("sha256").update(bytes).digest("hex"),
-    );
+    const revoke = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish-links/${primary_link_id}/revoke?project_version_id=${project_version_id}`,
+      cookies: { ossie_session: session_token },
+      payload: { expected_link_version: rollback.json().publish_link.version },
+    });
+    expect(revoke.statusCode).toBe(200);
+    const revoked = await app.inject({
+      method: "GET",
+      url: `/api/v1/public/publish-links/${slug}?artifact_type=guide`,
+    });
+    expect(revoked.statusCode).toBe(404);
 
     await app.close();
   }, 30_000);

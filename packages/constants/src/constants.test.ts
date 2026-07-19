@@ -35,6 +35,8 @@ import {
   PROJECT_VERSION_RESOLUTION_KINDS,
   PROJECT_VERSION_STATUSES,
   PUBLISH_ARTIFACT_TYPES,
+  PUBLISH_LINK_ENTRY_MAX,
+  PUBLISH_LINK_NAME_MAX_LENGTH,
   PUBLISH_LINK_STATUSES,
   PUBLISH_VISIBILITIES,
 } from "./index";
@@ -92,6 +94,11 @@ describe("@repo/constants", () => {
     for (const block_type of GUIDE_CREATABLE_BLOCK_TYPES) {
       expect(GUIDE_BLOCK_TYPES).toContain(block_type);
     }
+  });
+
+  it("exports the bounded multi-version publish link limits", () => {
+    expect(PUBLISH_LINK_ENTRY_MAX).toBe(50);
+    expect(PUBLISH_LINK_NAME_MAX_LENGTH).toBe(120);
   });
 
   it("keeps public instance mode defaults representable by exported constants", () => {
