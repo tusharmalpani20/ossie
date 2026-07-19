@@ -12,7 +12,6 @@ import {
   build_publish_transactional_repository,
 } from "./publish.repository";
 import type {
-  InteractiveDemoPublishDetail,
   PublishedArtifact,
   PublishArtifactType,
   PublishLink,

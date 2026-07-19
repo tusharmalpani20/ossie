@@ -40,6 +40,8 @@ const row_change = (
     if (!value) return null;
     if ("block_type" in value) {
       const { step: _step, display_capture_asset_id: _display, ...persisted } = value;
+      void _step;
+      void _display;
       return persisted;
     }
     return { ...value };
