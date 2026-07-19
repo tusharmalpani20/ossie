@@ -40,6 +40,7 @@ export type GuidePreviewPageProps = {
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   canWrite?: boolean;
+  versionSlug?: string;
 };
 
 const loadStateFromError = (error: unknown): LoadState => {
@@ -60,12 +61,12 @@ const sortBlocks = (blocks: GuideBlock[]) => (
   [...blocks].sort((a, b) => a.block_index - b.block_index)
 );
 
-const guideUrl = (projectId: string, guideId: string) => (
-  `/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}`
+const guideUrl = (projectId: string, guideId: string, versionSlug?: string) => (
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideId)}`
 );
 
-const guidePreviewListUrl = (projectId: string) => (
-  `/projects/${encodeURIComponent(projectId)}/guides`
+const guidePreviewListUrl = (projectId: string, versionSlug?: string) => (
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides`
 );
 
 const assetAltText = (asset: GuideSourceCaptureAsset, stepNumber: number) => (
@@ -107,6 +108,7 @@ export const GuidePreviewPage = ({
   performLogout,
   navigate,
   canWrite = true,
+  versionSlug,
 }: GuidePreviewPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
@@ -177,6 +179,7 @@ export const GuidePreviewPage = ({
       performLogout={performLogout}
       navigate={navigate}
       canWrite={canWrite}
+      versionSlug={versionSlug}
     />
   );
 };
@@ -210,6 +213,7 @@ const GuidePreviewView = ({
   performLogout,
   navigate,
   canWrite,
+  versionSlug,
 }: {
   detail: GuideDetail;
   projectId: string;
@@ -220,6 +224,7 @@ const GuidePreviewView = ({
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   canWrite: boolean;
+  versionSlug?: string;
 }) => {
   const sortedBlocks = useMemo(() => sortBlocks(detail.guide_blocks), [detail.guide_blocks]);
   const [activeScreenshotId, setActiveScreenshotId] = useState<string | null>(null);
@@ -298,8 +303,8 @@ const GuidePreviewView = ({
           >
             {busyAction === "download-markdown" ? "Downloading Markdown..." : "Download Markdown"}
           </Button>
-          <a className={`${buttonVariants({ variant: "secondary" })} ${styles.actionLink}`} href={guidePreviewListUrl(projectId)}>Back to guides</a>
-          {canWrite ? <a className={`${buttonVariants({ variant: "primary" })} ${styles.actionLink}`} href={guideUrl(projectId, guideId)}>Edit guide</a> : <Badge>Read only</Badge>}
+          <a className={`${buttonVariants({ variant: "secondary" })} ${styles.actionLink}`} href={guidePreviewListUrl(projectId, versionSlug)}>Back to guides</a>
+          {canWrite ? <a className={`${buttonVariants({ variant: "primary" })} ${styles.actionLink}`} href={guideUrl(projectId, guideId, versionSlug)}>Edit guide</a> : <Badge>Read only</Badge>}
         </div>
       </section>
 

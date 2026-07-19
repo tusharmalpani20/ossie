@@ -22,6 +22,7 @@ export type PortalRoute =
     type: "project_workspace";
     projectId: string;
   }
+  | { type: "project_version_workspace"; projectId: string; versionSlug: string }
   | {
     type: "project_settings";
     projectId: string;
@@ -32,33 +33,40 @@ export type PortalRoute =
     type: "capture_session_detail";
     projectId: string;
     captureSessionId: string;
+    versionSlug?: string;
   }
   | {
     type: "project_capture_session_list";
     projectId: string;
+    versionSlug?: string;
   }
   | {
     type: "guide_detail";
     projectId: string;
     guideId: string;
+    versionSlug?: string;
   }
   | {
     type: "guide_preview";
     projectId: string;
     guideId: string;
+    versionSlug?: string;
   }
   | {
     type: "project_guide_list";
     projectId: string;
+    versionSlug?: string;
   }
   | {
     type: "project_interactive_demo_list";
     projectId: string;
+    versionSlug?: string;
   }
   | {
     type: "interactive_demo_detail";
     projectId: string;
     interactiveDemoId: string;
+    versionSlug?: string;
   }
   | {
     type: "public_guide_reader";
@@ -82,6 +90,27 @@ export type PortalRoute =
 
 export const parsePortalRoute = (pathname: string): PortalRoute => {
   const segments = pathname.split("/").filter(Boolean);
+
+  if (segments[0] === "projects" && segments[2] === "versions" && segments[1] && segments[3]) {
+    const projectId = decodeURIComponent(segments[1]);
+    const versionSlug = decodeURIComponent(segments[3]);
+    const rest = segments.slice(4);
+    if (rest.length === 0) return { type: "project_version_workspace", projectId, versionSlug };
+    if (rest[0] === "capture-sessions") {
+      if (rest.length === 1) return { type: "project_capture_session_list", projectId, versionSlug };
+      if (rest.length === 2 && rest[1]) return { type: "capture_session_detail", projectId, versionSlug, captureSessionId: decodeURIComponent(rest[1]) };
+    }
+    if (rest[0] === "guides") {
+      if (rest.length === 1) return { type: "project_guide_list", projectId, versionSlug };
+      if (rest.length === 2 && rest[1]) return { type: "guide_detail", projectId, versionSlug, guideId: decodeURIComponent(rest[1]) };
+      if (rest.length === 3 && rest[1] && rest[2] === "preview") return { type: "guide_preview", projectId, versionSlug, guideId: decodeURIComponent(rest[1]) };
+    }
+    if (rest[0] === "interactive-demos") {
+      if (rest.length === 1) return { type: "project_interactive_demo_list", projectId, versionSlug };
+      if (rest.length === 2 && rest[1]) return { type: "interactive_demo_detail", projectId, versionSlug, interactiveDemoId: decodeURIComponent(rest[1]) };
+    }
+    return { type: "unsupported" };
+  }
 
   if (
     segments.length === 1

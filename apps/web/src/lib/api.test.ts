@@ -40,6 +40,9 @@ import {
   listProjectCaptureSessions,
   listProjectGuides,
   listProjectInteractiveDemos,
+  listProjectVersions,
+  resolveProjectVersion,
+  updateProjectVersion,
   listInteractiveDemoScenes,
   listInteractiveDemoHotspots,
   logout,
@@ -2631,6 +2634,17 @@ describe("api client", () => {
     expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/compliance/events?kind=audit", expect.anything());
     await listProjectActivity("project/id", { limit: 10 });
     expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/activity?limit=10", expect.anything());
+  });
+
+  it("encodes Project Version routes and sends optimistic mutation input", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ project_versions: [], project_version: {}, resolution: "canonical" }), { status: 200, headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetch);
+    await listProjectVersions("project/id", { status: "archived" });
+    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/versions?status=archived", expect.anything());
+    await resolveProjectVersion("project/id", "Q3 / old");
+    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/versions/resolve/Q3%20%2F%20old", expect.anything());
+    await updateProjectVersion("project/id", "version/id", { expected_version: 2, name: "Q3" });
+    expect(fetch).toHaveBeenLastCalledWith("/api/v1/projects/project%2Fid/versions/version%2Fid", expect.objectContaining({ method: "PATCH", body: JSON.stringify({ expected_version: 2, name: "Q3" }) }));
   });
 
   it("maps compliance permission denials separately from authentication", async () => {

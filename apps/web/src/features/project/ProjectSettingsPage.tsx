@@ -17,6 +17,8 @@ import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
 import type { Project, UpdateProjectInput } from "./types";
 import { ProjectMembershipSection } from "./ProjectMembershipSection";
+import { ProjectVersionManagementSection } from "../project-version/ProjectVersionManagementSection";
+import { projectVersionWorkspaceUrl } from "../project-version/ProjectVersionContextBar";
 import { projectRoleLabel } from "./useProjectAccess";
 import styles from "./ProjectSettingsPage.module.css";
 
@@ -71,7 +73,7 @@ const formatDateTime = (value: string) => {
   }).format(date);
 };
 
-const workspaceUrl = (projectId: string) => `/projects/${encodeURIComponent(projectId)}`;
+const workspaceUrl = (project: Project) => projectVersionWorkspaceUrl(project.id, project.default_project_version.slug);
 
 const formFromProject = (project: Project): ProjectSettingsForm => ({
   name: project.name,
@@ -282,7 +284,7 @@ export const ProjectSettingsPage = ({
       <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
         <section className={styles.header}>
           <div><div className={styles.eyebrow}>Project settings</div><h1 className={styles.title}>Settings unavailable</h1></div>
-          <a className={styles.backLink} href={workspaceUrl(projectId)}>Back to workspace</a>
+          <a className={styles.backLink} href={workspaceUrl(project)}>Back to workspace</a>
         </section>
         <div className={styles.state}>Your {projectRoleLabel(project)} role can view Project content but cannot manage settings.</div>
       </PortalShell>
@@ -309,7 +311,7 @@ export const ProjectSettingsPage = ({
             <span>Created {formatDateTime(project.created_at)}</span>
           </div>
         </div>
-        <a className={styles.backLink} href={workspaceUrl(projectId)}>
+        <a className={styles.backLink} href={workspaceUrl(project)}>
           Back to workspace
         </a>
       </section>
@@ -373,6 +375,7 @@ export const ProjectSettingsPage = ({
           </CardContent>
         </Card>
         <ProjectMembershipSection projectId={projectId} />
+        <ProjectVersionManagementSection project={project} onProjectChange={applyProject} />
       </div>
     </PortalShell>
   );

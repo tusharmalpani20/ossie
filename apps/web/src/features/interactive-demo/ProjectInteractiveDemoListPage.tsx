@@ -25,6 +25,8 @@ export type ProjectInteractiveDemoListPageProps = {
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  versionSlug?: string;
+  canWrite?: boolean;
 };
 
 const loadStateFromError = (error: unknown): LoadState => {
@@ -46,12 +48,12 @@ const formatDateTime = (value: string) => new Intl.DateTimeFormat(undefined, {
   timeStyle: "short",
 }).format(new Date(value));
 
-const demoUrl = (projectId: string, demoId: string) => (
-  `/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(demoId)}`
+const demoUrl = (projectId: string, demoId: string, versionSlug?: string) => (
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/interactive-demos/${encodeURIComponent(demoId)}`
 );
 
-const captureSessionsUrl = (projectId: string) => (
-  `/projects/${encodeURIComponent(projectId)}/capture-sessions`
+const captureSessionsUrl = (projectId: string, versionSlug?: string) => (
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/capture-sessions`
 );
 
 export const ProjectInteractiveDemoListPage = ({
@@ -60,6 +62,8 @@ export const ProjectInteractiveDemoListPage = ({
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
+  versionSlug,
+  canWrite = true,
 }: ProjectInteractiveDemoListPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
@@ -140,12 +144,12 @@ export const ProjectInteractiveDemoListPage = ({
         {state.demos.length === 0 ? (
           <Card className={styles.empty}>
             <div>No interactive demos yet.</div>
-            <a className={styles.stateLink} href={captureSessionsUrl(projectId)}>Open capture sessions</a>
+            {canWrite ? <a className={styles.stateLink} href={captureSessionsUrl(projectId, versionSlug)}>Open capture sessions</a> : null}
           </Card>
         ) : (
           <div className={styles.list}>
             {state.demos.map((demo) => (
-              <DemoRow key={demo.id} demo={demo} projectId={projectId} />
+              <DemoRow key={demo.id} demo={demo} projectId={projectId} versionSlug={versionSlug} />
             ))}
           </div>
         )}
@@ -174,9 +178,11 @@ const PortalShell = ({
 const DemoRow = ({
   demo,
   projectId,
+  versionSlug,
 }: {
   demo: InteractiveDemo;
   projectId: string;
+  versionSlug?: string;
 }) => (
   <article className={styles.demo}>
     <div className={styles.demoBody}>
@@ -191,7 +197,7 @@ const DemoRow = ({
         <span>Created {formatDateTime(demo.created_at)}</span>
       </div>
     </div>
-    <a className={`${buttonVariants({ variant: "secondary" })} ${styles.openLink}`} href={demoUrl(projectId, demo.id)}>
+    <a className={`${buttonVariants({ variant: "secondary" })} ${styles.openLink}`} href={demoUrl(projectId, demo.id, versionSlug)}>
       Open demo {demo.title}
     </a>
   </article>

@@ -1,0 +1,10 @@
+.panel { scroll-margin-top:1rem; }
+.content { display:grid; gap:1.25rem; }
+.form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; align-items:end; padding-bottom:1rem; border-bottom:1px solid var(--border); }
+.form label,.edit label { display:grid; gap:.35rem; }
+.list { display:grid; gap:.75rem; }
+.version { border:1px solid var(--border); border-radius:.75rem; padding:1rem; display:grid; gap:.75rem; }
+.versionHeader,.details,.actions,.edit { display:flex; align-items:end; flex-wrap:wrap; gap:.5rem 1rem; }
+.details { color:var(--muted-foreground); font-size:.875rem; overflow-wrap:anywhere; }
+.edit label { min-width:12rem; flex:1; }
+@media (max-width: 44rem) { .form { grid-template-columns:1fr; } .edit { align-items:stretch; flex-direction:column; } }

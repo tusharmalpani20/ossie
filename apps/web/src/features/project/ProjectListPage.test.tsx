@@ -20,6 +20,7 @@ const projects: Project[] = [
     created_at: "2026-06-05T09:00:00.000Z",
     updated_at: "2026-06-05T09:30:00.000Z",
     access: { role: "project_admin", source: "organization_owner" },
+    default_project_version: { id: "version_2", name: "Main", slug: "main", status: "active", position: 1 },
   },
   {
     id: "project_1",
@@ -36,6 +37,7 @@ const projects: Project[] = [
     created_at: "2026-06-05T10:00:00.000Z",
     updated_at: "2026-06-05T10:05:00.000Z",
     access: { role: "project_admin", source: "organization_owner" },
+    default_project_version: { id: "version_1", name: "Main", slug: "main", status: "active", position: 1 },
   },
 ];
 
@@ -84,7 +86,7 @@ describe("ProjectListPage", () => {
     expect(screen.getAllByText(/Created /).length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Open project Internal onboarding demos" })).toHaveAttribute(
       "href",
-      "/projects/project_1"
+      "/projects/project_1/versions/main"
     );
     expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
     expect(loadProjects).toHaveBeenCalledWith({ status: "active" });
@@ -108,7 +110,7 @@ describe("ProjectListPage", () => {
 
     expect(await screen.findByRole("link", { name: "Open project Encoded project" })).toHaveAttribute(
       "href",
-      "/projects/project%20%2F%201"
+      "/projects/project%20%2F%201/versions/main"
     );
   });
 
@@ -173,7 +175,7 @@ describe("ProjectListPage", () => {
       slug: null,
       description: null,
     }));
-    expect(navigate).toHaveBeenCalledWith("/projects/project_created");
+    expect(navigate).toHaveBeenCalledWith("/projects/project_created/versions/main");
   });
 
   it("keeps project creation form values when creation fails", async () => {
@@ -275,7 +277,7 @@ describe("ProjectListPage", () => {
     expect(createProject).toHaveBeenCalledTimes(1);
 
     resolveCreate?.({ project: projects[1]! });
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/projects/project_1"));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/projects/project_1/versions/main"));
   });
 
   it("renders unauthenticated states with sign-in links", async () => {

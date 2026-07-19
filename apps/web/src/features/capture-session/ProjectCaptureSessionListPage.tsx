@@ -37,6 +37,7 @@ type ProjectCaptureSessionListPageProps = {
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   canWrite?: boolean;
+  versionSlug?: string;
 };
 
 type CreateCaptureSessionFormState = {
@@ -76,8 +77,8 @@ const formatDateTime = (value: string | null) => {
   }).format(new Date(value));
 };
 
-const captureSessionUrl = (projectId: string, captureSessionId: string) => (
-  `/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}`
+const captureSessionUrl = (projectId: string, captureSessionId: string, versionSlug?: string) => (
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/capture-sessions/${encodeURIComponent(captureSessionId)}`
 );
 
 const optionalCaptureSessionField = (value: string) => {
@@ -107,9 +108,10 @@ const createCaptureSessionErrorMessage = (error: unknown) => {
 const openCaptureSession = (
   projectId: string,
   captureSessionId: string,
+  versionSlug?: string,
   navigate?: (path: string) => void
 ) => {
-  const path = captureSessionUrl(projectId, captureSessionId);
+  const path = captureSessionUrl(projectId, captureSessionId, versionSlug);
 
   if (navigate) {
     navigate(path);
@@ -149,6 +151,7 @@ export const ProjectCaptureSessionListPage = ({
   performLogout,
   navigate,
   canWrite,
+  versionSlug,
 }: ProjectCaptureSessionListPageProps) => {
   const projectAccess = useProjectAccess(projectId).state;
   const writable = canWrite ?? (projectAccess.status === "loaded" && Boolean(projectAccess.project) && projectIsWritable(projectAccess.project));
@@ -230,7 +233,7 @@ export const ProjectCaptureSessionListPage = ({
         source_type: "manual",
         start_url: optionalCaptureSessionField(createForm.start_url),
       });
-      openCaptureSession(projectId, response.capture_session.id, navigate);
+      openCaptureSession(projectId, response.capture_session.id, versionSlug, navigate);
     } catch (error: unknown) {
       setCreateError(createCaptureSessionErrorMessage(error));
     } finally {
@@ -342,7 +345,7 @@ export const ProjectCaptureSessionListPage = ({
         ) : (
           <div className={styles.list}>
             {state.captureSessions.map((captureSession) => (
-              <CaptureSessionRow key={captureSession.id} captureSession={captureSession} projectId={projectId} />
+              <CaptureSessionRow key={captureSession.id} captureSession={captureSession} projectId={projectId} versionSlug={versionSlug} />
             ))}
           </div>
         )}
@@ -371,9 +374,11 @@ const PortalShell = ({
 const CaptureSessionRow = ({
   captureSession,
   projectId,
+  versionSlug,
 }: {
   captureSession: CaptureSession;
   projectId: string;
+  versionSlug?: string;
 }) => {
   const browser = browserLabel(captureSession);
   const viewport = viewportLabel(captureSession);
@@ -398,7 +403,7 @@ const CaptureSessionRow = ({
           {viewport ? <span>{viewport}</span> : null}
         </div>
       </div>
-      <a className={styles.openLink} href={captureSessionUrl(projectId, captureSession.id)}>
+      <a className={styles.openLink} href={captureSessionUrl(projectId, captureSession.id, versionSlug)}>
         Open capture session {captureSession.name}
       </a>
     </Card>

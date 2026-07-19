@@ -16,11 +16,11 @@ import { OrganizationMembersPage } from "./features/organization/OrganizationMem
 import { ComplianceTimelinePage } from "./features/compliance/ComplianceTimelinePage";
 import { ProjectListPage } from "./features/project/ProjectListPage";
 import { ProjectSettingsPage } from "./features/project/ProjectSettingsPage";
-import { ProjectWorkspacePage } from "./features/project/ProjectWorkspacePage";
+import { ProjectVersionRouteBoundary } from "./features/project-version/ProjectVersionRouteBoundary";
+import { projectVersionWorkspaceUrl } from "./features/project-version/ProjectVersionContextBar";
 import { ProjectActivityTimelinePage } from "./features/project-activity/ProjectActivityTimelinePage";
-import { projectIsWritable, useProjectAccess } from "./features/project/useProjectAccess";
 import { FirstRunSetupPage } from "./features/setup/FirstRunSetupPage";
-import { getPublicInstanceStatus } from "./lib/api";
+import { getProject, getPublicInstanceStatus } from "./lib/api";
 import { parsePortalRoute, type PortalRoute } from "./lib/routes";
 import styles from "./App.module.css";
 
@@ -31,6 +31,7 @@ const setupGuardedRouteTypes = new Set<PortalRoute["type"]>([
   "organization_members",
   "organization_compliance",
   "project_workspace",
+  "project_version_workspace",
   "project_settings",
   "project_compliance",
   "project_activity",
@@ -48,24 +49,26 @@ const shouldCheckSetupInBackground = (route: PortalRoute) => (
   route.type === "login" || shouldCheckSetup(route)
 );
 
-const ProjectContentRoute = ({ projectId, children }: {
-  projectId: string;
-  children: (canWrite: boolean) => React.ReactNode;
-}) => {
-  const { state } = useProjectAccess(projectId);
-  if (state.status === "loading") {
-    return <div className={styles.page}><main className={styles.main}>Loading Project access...</main></div>;
-  }
-  if (state.status === "unauthenticated") {
-    return <div className={styles.page}><main className={styles.main}>Sign in to view this Project.</main></div>;
-  }
-  if (state.status === "not_found") {
-    return <div className={styles.page}><main className={styles.main}>Project was not found.</main></div>;
-  }
-  if (state.status !== "loaded" || !state.project) {
-    return <div className={styles.page}><main className={styles.main}>Could not load Project access.</main></div>;
-  }
-  return children(projectIsWritable(state.project));
+const LegacyProjectRedirect = ({ projectId, suffix = "", children }: { projectId: string; suffix?: string; children?: (project: import("@repo/types/project").Project) => React.ReactNode }) => {
+  const [failed, setFailed] = useState(false);
+  const [project, setProject] = useState<import("@repo/types/project").Project | null>(null);
+  useEffect(() => {
+    let active = true;
+    getProject(projectId).then(({ project }) => {
+      if (!active) return;
+      const path = `${projectVersionWorkspaceUrl(project.id, project.default_project_version.slug)}${suffix}${window.location.search}${window.location.hash}`;
+      window.history.replaceState({}, "", path);
+      setProject(project);
+    }).catch(() => { if (active) setFailed(true); });
+    return () => { active = false; };
+  }, [projectId, suffix]);
+  if (project) return children ? children(project) : (
+    <ProjectVersionRouteBoundary
+      projectId={projectId}
+      versionSlug={project.default_project_version.slug}
+    />
+  );
+  return <div className={styles.page}><main className={styles.main}>{failed ? "Project was not found." : "Opening the Default Project Version..."}</main></div>;
 };
 
 export default function App() {
@@ -216,12 +219,11 @@ export default function App() {
   }
 
   if (route.type === "project_workspace") {
-    return (
-      <ProjectWorkspacePage
-        projectId={route.projectId}
-        currentPath={currentPath}
-      />
-    );
+    return <LegacyProjectRedirect projectId={route.projectId} />;
+  }
+
+  if (route.type === "project_version_workspace") {
+    return <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug} />;
   }
 
   if (route.type === "project_settings") {
@@ -242,96 +244,108 @@ export default function App() {
   }
 
   if (route.type === "capture_session_detail") {
+    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix={`/capture-sessions/${encodeURIComponent(route.captureSessionId)}`}>{(project) => <CaptureSessionDetailPage projectId={route.projectId} versionSlug={project.default_project_version.slug} captureSessionId={route.captureSessionId} currentPath={currentPath} canWrite={project.status === "active" && project.access.role !== "viewer"} />}</LegacyProjectRedirect>;
     return (
-      <ProjectContentRoute projectId={route.projectId}>
-        {(canWrite) => (
+      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
+        {({ project }) => (
           <CaptureSessionDetailPage
             projectId={route.projectId}
             captureSessionId={route.captureSessionId}
+            versionSlug={route.versionSlug}
             currentPath={currentPath}
-            canWrite={canWrite}
+            canWrite={project.status === "active" && project.access.role !== "viewer"}
           />
         )}
-      </ProjectContentRoute>
+      </ProjectVersionRouteBoundary>
     );
   }
 
   if (route.type === "project_capture_session_list") {
+    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix="/capture-sessions">{(project) => <ProjectCaptureSessionListPage projectId={route.projectId} versionSlug={project.default_project_version.slug} currentPath={currentPath} canWrite={project.status === "active" && project.access.role !== "viewer"} />}</LegacyProjectRedirect>;
     return (
-      <ProjectContentRoute projectId={route.projectId}>
-        {(canWrite) => (
+      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
+        {({ project }) => (
           <ProjectCaptureSessionListPage
             projectId={route.projectId}
+            versionSlug={route.versionSlug}
             currentPath={currentPath}
-            canWrite={canWrite}
+            canWrite={project.status === "active" && project.access.role !== "viewer"}
           />
         )}
-      </ProjectContentRoute>
+      </ProjectVersionRouteBoundary>
     );
   }
 
   if (route.type === "guide_detail") {
+    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix={`/guides/${encodeURIComponent(route.guideId)}`}>{(project) => project.access.role !== "viewer" ? <GuideEditorPage projectId={route.projectId} versionSlug={project.default_project_version.slug} guideId={route.guideId} currentPath={currentPath} /> : <GuidePreviewPage projectId={route.projectId} versionSlug={project.default_project_version.slug} guideId={route.guideId} currentPath={currentPath} canWrite={false} />}</LegacyProjectRedirect>;
     return (
-      <ProjectContentRoute projectId={route.projectId}>
-        {(canWrite) => canWrite ? (
-          <GuideEditorPage projectId={route.projectId} guideId={route.guideId} currentPath={currentPath} />
+      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
+        {({ project }) => project.status === "active" && project.access.role !== "viewer" ? (
+          <GuideEditorPage projectId={route.projectId} versionSlug={route.versionSlug} guideId={route.guideId} currentPath={currentPath} />
         ) : (
           <GuidePreviewPage
             projectId={route.projectId}
             guideId={route.guideId}
+            versionSlug={route.versionSlug}
             currentPath={currentPath}
             canWrite={false}
           />
         )}
-      </ProjectContentRoute>
+      </ProjectVersionRouteBoundary>
     );
   }
 
   if (route.type === "guide_preview") {
+    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix={`/guides/${encodeURIComponent(route.guideId)}/preview`}>{(project) => <GuidePreviewPage projectId={route.projectId} versionSlug={project.default_project_version.slug} guideId={route.guideId} currentPath={currentPath} canWrite={project.status === "active" && project.access.role !== "viewer"} />}</LegacyProjectRedirect>;
     return (
-      <ProjectContentRoute projectId={route.projectId}>
-        {(canWrite) => (
+      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
+        {({ project }) => (
           <GuidePreviewPage
             projectId={route.projectId}
             guideId={route.guideId}
+            versionSlug={route.versionSlug}
             currentPath={currentPath}
-            canWrite={canWrite}
+            canWrite={project.status === "active" && project.access.role !== "viewer"}
           />
         )}
-      </ProjectContentRoute>
+      </ProjectVersionRouteBoundary>
     );
   }
 
   if (route.type === "project_guide_list") {
+    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix="/guides">{() => <ProjectGuideListPage projectId={route.projectId} currentPath={currentPath} />}</LegacyProjectRedirect>;
     return (
-      <ProjectGuideListPage
-        projectId={route.projectId}
-        currentPath={currentPath}
-      />
+      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
+        {() => <ProjectGuideListPage projectId={route.projectId} currentPath={currentPath}
+          versionSlug={route.versionSlug} />}
+      </ProjectVersionRouteBoundary>
     );
   }
 
   if (route.type === "project_interactive_demo_list") {
+    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix="/interactive-demos">{(project) => <ProjectInteractiveDemoListPage projectId={route.projectId} currentPath={currentPath} canWrite={project.status === "active" && project.access.role !== "viewer"} />}</LegacyProjectRedirect>;
     return (
-      <ProjectInteractiveDemoListPage
-        projectId={route.projectId}
-        currentPath={currentPath}
-      />
+      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
+        {({ project }) => <ProjectInteractiveDemoListPage projectId={route.projectId} currentPath={currentPath}
+          versionSlug={route.versionSlug} canWrite={project.status === "active" && project.access.role !== "viewer"} />}
+      </ProjectVersionRouteBoundary>
     );
   }
 
   if (route.type === "interactive_demo_detail") {
+    if (!route.versionSlug) return <LegacyProjectRedirect projectId={route.projectId} suffix={`/interactive-demos/${encodeURIComponent(route.interactiveDemoId)}`}>{(project) => <InteractiveDemoEditorPage projectId={route.projectId} versionSlug={project.default_project_version.slug} interactiveDemoId={route.interactiveDemoId} currentPath={currentPath} canWrite={project.status === "active" && project.access.role !== "viewer"} />}</LegacyProjectRedirect>;
     return (
-      <ProjectContentRoute projectId={route.projectId}>
-        {(canWrite) => (
+      <ProjectVersionRouteBoundary projectId={route.projectId} versionSlug={route.versionSlug}>
+        {({ project }) => (
           <InteractiveDemoEditorPage
             projectId={route.projectId}
             interactiveDemoId={route.interactiveDemoId}
+            versionSlug={route.versionSlug}
             currentPath={currentPath}
-            canWrite={canWrite}
+            canWrite={project.status === "active" && project.access.role !== "viewer"}
           />
         )}
-      </ProjectContentRoute>
+      </ProjectVersionRouteBoundary>
     );
   }
 

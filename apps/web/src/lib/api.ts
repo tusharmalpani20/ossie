@@ -87,6 +87,12 @@ import type {
   ProjectMembershipResponse,
 } from "@repo/types/project-membership";
 import type {
+  CreateProjectVersionRequest,
+  ProjectVersionListQuery, ProjectVersionListResponse, ProjectVersionResolutionResponse,
+  ProjectVersionResponse, ReorderProjectVersionsRequest, SetDefaultProjectVersionRequest,
+  UpdateProjectVersionRequest,
+} from "@repo/types/project-version";
+import type {
   UploadCaptureAssetInput,
   UploadCaptureAssetResponse,
 } from "../features/capture-session/types";
@@ -120,6 +126,7 @@ export type {
   ProjectUpdateResponse,
 } from "@repo/types/project";
 export type { PublicInstanceStatus } from "@repo/types/instance";
+export type { ProjectVersionDetail, ProjectVersionListResponse, ProjectVersionResolutionResponse, ProjectVersionResponse } from "@repo/types/project-version";
 
 export type ApiClientErrorKind = "unauthenticated" | "forbidden" | "not_found" | "validation" | "unknown";
 
@@ -430,6 +437,26 @@ export const updateProject = async (
     }
   )
 );
+
+const projectVersionsUrl = (projectId: string) => `/api/v1/projects/${encodeURIComponent(projectId)}/versions`;
+export const listProjectVersions = (projectId: string, query: ProjectVersionListQuery = {}): Promise<ProjectVersionListResponse> =>
+  requestJson(`${projectVersionsUrl(projectId)}${query.status ? `?status=${encodeURIComponent(query.status)}` : ""}`);
+export const resolveProjectVersion = (projectId: string, slug: string): Promise<ProjectVersionResolutionResponse> =>
+  requestJson(`${projectVersionsUrl(projectId)}/resolve/${encodeURIComponent(slug)}`);
+export const getProjectVersion = (projectId: string, id: string): Promise<ProjectVersionResponse> =>
+  requestJson(`${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}`);
+export const createProjectVersion = (projectId: string, data: CreateProjectVersionRequest): Promise<ProjectVersionResponse> =>
+  requestJson(projectVersionsUrl(projectId), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
+export const updateProjectVersion = (projectId: string, id: string, data: UpdateProjectVersionRequest): Promise<ProjectVersionResponse> =>
+  requestJson(`${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
+export const reorderProjectVersions = (projectId: string, data: ReorderProjectVersionsRequest): Promise<ProjectVersionListResponse> =>
+  requestJson(`${projectVersionsUrl(projectId)}/order`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
+export const archiveProjectVersion = (projectId: string, id: string, expected_version: number): Promise<ProjectVersionResponse> =>
+  requestJson(`${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}/archive`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ expected_version }) });
+export const restoreProjectVersion = (projectId: string, id: string, expected_version: number): Promise<ProjectVersionResponse> =>
+  requestJson(`${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}/restore`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ expected_version }) });
+export const setDefaultProjectVersion = (projectId: string, id: string, data: SetDefaultProjectVersionRequest): Promise<{ project: import("@repo/types/project").Project; project_version: import("@repo/types/project-version").ProjectVersionDetail }> =>
+  requestJson(`${projectVersionsUrl(projectId)}/${encodeURIComponent(id)}/set-default`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
 
 export const getCaptureSessionDetail = async (
   projectId: string,

@@ -27,6 +27,7 @@ type ProjectGuideListPageProps = {
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  versionSlug?: string;
 };
 
 type PublishStatusState =
@@ -72,12 +73,12 @@ const canOpenPublicGuide = (status: PublishStatusState) => {
   );
 };
 
-const guideUrl = (projectId: string, guideId: string) => (
-  `/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}`
+const guideUrl = (projectId: string, guideId: string, versionSlug?: string) => (
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideId)}`
 );
 
-const guidePreviewUrl = (projectId: string, guideId: string) => (
-  `${guideUrl(projectId, guideId)}/preview`
+const guidePreviewUrl = (projectId: string, guideId: string, versionSlug?: string) => (
+  `${guideUrl(projectId, guideId, versionSlug)}/preview`
 );
 
 export const ProjectGuideListPage = ({
@@ -87,6 +88,7 @@ export const ProjectGuideListPage = ({
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
+  versionSlug,
 }: ProjectGuideListPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [publishStatuses, setPublishStatuses] = useState<Record<string, PublishStatusState>>({});
@@ -217,6 +219,7 @@ export const ProjectGuideListPage = ({
                 key={guide.id}
                 guide={guide}
                 projectId={projectId}
+                versionSlug={versionSlug}
                 publishStatus={publishStatuses[guide.id] ?? { status: "checking" }}
               />
             ))}
@@ -248,10 +251,12 @@ const GuideRow = ({
   guide,
   projectId,
   publishStatus,
+  versionSlug,
 }: {
   guide: Guide;
   projectId: string;
   publishStatus: PublishStatusState;
+  versionSlug?: string;
 }) => (
   <article className={styles.guide}>
     <div className={styles.guideBody}>
@@ -273,10 +278,10 @@ const GuideRow = ({
           Open public guide {guide.title}
         </a>
       ) : null}
-      <a className={styles.openLink} href={guidePreviewUrl(projectId, guide.id)}>
+      <a className={styles.openLink} href={guidePreviewUrl(projectId, guide.id, versionSlug)}>
         Preview guide {guide.title}
       </a>
-      <a className={styles.openLink} href={guideUrl(projectId, guide.id)}>
+      <a className={styles.openLink} href={guideUrl(projectId, guide.id, versionSlug)}>
         Open guide {guide.title}
       </a>
     </div>

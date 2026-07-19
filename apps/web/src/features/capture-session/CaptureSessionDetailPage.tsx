@@ -117,6 +117,7 @@ type CaptureSessionDetailPageProps = {
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   canWrite?: boolean;
+  versionSlug?: string;
 };
 
 const formatDateTime = (value: string | null) => {
@@ -329,6 +330,7 @@ export const CaptureSessionDetailPage = ({
   performLogout,
   navigate,
   canWrite = true,
+  versionSlug,
 }: CaptureSessionDetailPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
@@ -411,6 +413,7 @@ export const CaptureSessionDetailPage = ({
       performLogout={performLogout}
       navigate={navigate}
       canWrite={canWrite}
+      versionSlug={versionSlug}
     />
   );
 };
@@ -450,6 +453,7 @@ const CaptureSessionDetailView = ({
   performLogout,
   navigate,
   canWrite,
+  versionSlug,
 }: {
   detail: CaptureSessionDetail;
   projectId: string;
@@ -466,6 +470,7 @@ const CaptureSessionDetailView = ({
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   canWrite: boolean;
+  versionSlug?: string;
 }) => {
   const [createState, setCreateState] = useState<"idle" | "creating" | "error">("idle");
   const [createDemoState, setCreateDemoState] = useState<"idle" | "creating" | "error">("idle");
@@ -526,7 +531,7 @@ const CaptureSessionDetailView = ({
         title: guideTitle,
         description: session.description ?? null,
       });
-      redirectTo(`/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideDetail.guide.id)}`);
+      redirectTo(`/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideDetail.guide.id)}`);
     } catch {
       setCreateState("error");
     }

@@ -32,7 +32,27 @@ const writableProjectResponse = {
     created_at: "2026-06-05T10:00:00.000Z",
     updated_at: "2026-06-05T10:05:00.000Z",
     access: { role: "project_admin", source: "organization_owner" },
+    default_project_version: { id: "version_1", name: "Main", slug: "main", status: "active", position: 1 },
   },
+};
+
+const mainProjectVersion = {
+  id: "version_1",
+  organization_id: "organization_1",
+  project_id: "project_1",
+  name: "Main",
+  description: null,
+  slug: "main",
+  release_date: null,
+  position: 1,
+  status: "active",
+  is_default: true,
+  version: 1,
+  created_by_id: "org_user_1",
+  updated_by_id: "org_user_1",
+  created_at: "2026-07-19T10:00:00.000Z",
+  updated_at: "2026-07-19T10:00:00.000Z",
+  aliases: [],
 };
 
 describe("App", () => {
@@ -62,6 +82,7 @@ describe("App", () => {
             created_at: "2026-06-05T10:00:00.000Z",
             updated_at: "2026-06-05T10:05:00.000Z",
             access: { role: "project_admin", source: "organization_owner" },
+            default_project_version: { id: "version_1", name: "Main", slug: "main", status: "active", position: 1 },
           }],
         });
       }
@@ -176,33 +197,18 @@ describe("App", () => {
 
   it("renders project workspace routes", async () => {
     window.history.pushState({}, "", "/projects/project_1");
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      project: {
-        id: "project_1",
-        organization_id: "organization_1",
-        name: "Internal onboarding demos",
-        description: "Reusable captures and guides for internal teams.",
-        slug: "internal-onboarding-demos",
-        color: "#2563eb",
-        icon: "folder",
-        status: "active",
-        created_by_id: "org_user_1",
-        updated_by_id: "org_user_1",
-        version: 1,
-        created_at: "2026-06-05T10:00:00.000Z",
-        updated_at: "2026-06-05T10:05:00.000Z",
-        access: { role: "project_admin", source: "organization_owner" },
-      },
-    }), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.endsWith("/api/v1/public/instance")) return jsonResponse(readyInstanceStatus);
+      if (url.endsWith("/versions/resolve/main")) return jsonResponse({ resolution: "canonical", project_version: mainProjectVersion });
+      if (url.endsWith("/versions")) return jsonResponse({ project_versions: [mainProjectVersion] });
+      return jsonResponse(writableProjectResponse);
+    }));
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Internal onboarding demos" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Main" })).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/projects/project_1/versions/main");
     expect(screen.getByRole("link", { name: "Open capture sessions" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open guides" })).toBeInTheDocument();
   });
@@ -225,6 +231,7 @@ describe("App", () => {
         created_at: "2026-06-05T10:00:00.000Z",
         updated_at: "2026-06-05T10:05:00.000Z",
         access: { role: "project_admin", source: "organization_owner" },
+        default_project_version: { id: "version_1", name: "Main", slug: "main", status: "active", position: 1 },
       },
     }), {
       status: 200,
@@ -403,13 +410,13 @@ describe("App", () => {
     render(<App />);
 
     expect(await screen.findByRole("heading", { name: "Department guide" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Edit guide" })).toHaveAttribute("href", "/projects/project_1/guides/guide_1");
+    expect(screen.getByRole("link", { name: "Edit guide" })).toHaveAttribute("href", "/projects/project_1/versions/main/guides/guide_1");
   });
 
   it("renders project guide list routes", async () => {
     window.history.pushState({}, "", "/projects/project_1/guides");
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      guides: [{
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => new Response(JSON.stringify(
+      input.toString().endsWith("/api/v1/projects/project_1") ? writableProjectResponse : { guides: [{
         id: "guide_1",
         organization_id: "organization_1",
         project_id: "project_1",
@@ -422,8 +429,7 @@ describe("App", () => {
         version: 1,
         created_at: "2026-06-05T10:00:00.000Z",
         updated_at: "2026-06-05T10:00:00.000Z",
-      }],
-    }), {
+      }] }), {
       status: 200,
       headers: {
         "content-type": "application/json",

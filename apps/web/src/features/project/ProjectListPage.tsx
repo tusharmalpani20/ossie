@@ -60,7 +60,7 @@ const formatDateTime = (value: string) => {
   }).format(date);
 };
 
-const projectUrl = (projectId: string) => `/projects/${encodeURIComponent(projectId)}`;
+const projectUrl = (project: Project) => `/projects/${encodeURIComponent(project.id)}/versions/${encodeURIComponent(project.default_project_version.slug)}`;
 
 const optionalProjectField = (value: string) => {
   const trimmed = value.trim();
@@ -86,8 +86,8 @@ const createProjectErrorMessage = (error: unknown) => {
   return "Could not create project.";
 };
 
-const openProject = (projectId: string, navigate?: (path: string) => void) => {
-  const path = projectUrl(projectId);
+const openProject = (project: Project, navigate?: (path: string) => void) => {
+  const path = projectUrl(project);
 
   if (navigate) {
     navigate(path);
@@ -184,7 +184,7 @@ export const ProjectListPage = ({
         slug: optionalProjectField(createForm.slug),
         description: optionalProjectField(createForm.description),
       });
-      openProject(response.project.id, navigate);
+      openProject(response.project, navigate);
     } catch (error: unknown) {
       setCreateError(createProjectErrorMessage(error));
     } finally {
@@ -325,12 +325,13 @@ const ProjectCard = ({ project }: { project: Project }) => (
         <p className={styles.description}>{project.description}</p>
       ) : null}
       <div className={styles.meta}>
+        <span>Default: {project.default_project_version.name}</span>
         {project.slug ? <span>{project.slug}</span> : null}
         <span>Updated {formatDateTime(project.updated_at)}</span>
         <span>Created {formatDateTime(project.created_at)}</span>
       </div>
     </div>
-    <a className={styles.openLink} href={projectUrl(project.id)}>
+    <a className={styles.openLink} href={projectUrl(project)}>
       Open project {project.name}
     </a>
   </article>

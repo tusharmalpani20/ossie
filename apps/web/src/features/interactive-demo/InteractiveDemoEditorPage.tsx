@@ -156,6 +156,7 @@ export type InteractiveDemoEditorPageProps = {
   navigate?: (path: string) => void;
   copyText?: (text: string) => Promise<void>;
   canWrite?: boolean;
+  versionSlug?: string;
 };
 
 const loadStateFromError = (error: unknown): LoadState => {

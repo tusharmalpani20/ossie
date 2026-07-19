@@ -122,10 +122,11 @@ export type GuideEditorPageProps = {
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  versionSlug?: string;
 };
 
-const guidePreviewUrl = (projectId: string, guideId: string) => (
-  `/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/preview`
+const guidePreviewUrl = (projectId: string, guideId: string, versionSlug?: string) => (
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideId)}/preview`
 );
 
 const loadStateFromError = (error: unknown): LoadState => {
@@ -237,6 +238,7 @@ export const GuideEditorPage = ({
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
+  versionSlug,
 }: GuideEditorPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [publishState, setPublishState] = useState<PublishState>({ status: "loading" });
@@ -894,6 +896,7 @@ export const GuideEditorPage = ({
       onRetryPublishStatus={reloadPublishStatus}
       performLogout={performLogout}
       navigate={navigate}
+      versionSlug={versionSlug}
     />
   );
 };
@@ -960,6 +963,7 @@ const GuideEditorView = ({
   onRetryPublishStatus,
   performLogout,
   navigate,
+  versionSlug,
 }: {
   detail: GuideDetail;
   guideDraft: GuideDraft;
@@ -1003,6 +1007,7 @@ const GuideEditorView = ({
   onRetryPublishStatus: () => void;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  versionSlug?: string;
 }) => {
   const sortedBlocks = useMemo(() => sortBlocks(detail.guide_blocks), [detail.guide_blocks]);
   const [activeScreenshotId, setActiveScreenshotId] = useState<string | null>(null);
@@ -1055,7 +1060,7 @@ const GuideEditorView = ({
             >
               {busyAction === "export-html" ? "Exporting HTML..." : "Export HTML"}
             </Button>
-            <a className={`${buttonVariants({ variant: "secondary" })} ${styles.previewLink}`} href={guidePreviewUrl(projectId, guideId)}>Preview guide</a>
+            <a className={`${buttonVariants({ variant: "secondary" })} ${styles.previewLink}`} href={guidePreviewUrl(projectId, guideId, versionSlug)}>Preview guide</a>
             <Badge variant={detail.guide.status === "draft" ? "warning" : "success"}>{detail.guide.status}</Badge>
           </div>
         </div>

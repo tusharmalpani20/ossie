@@ -55,6 +55,18 @@ describe("parsePortalRoute", () => {
     });
   });
 
+  it("parses canonical Project Version workspace and content routes", () => {
+    expect(parsePortalRoute("/projects/project_1/versions/main")).toEqual({
+      type: "project_version_workspace", projectId: "project_1", versionSlug: "main",
+    });
+    expect(parsePortalRoute("/projects/project_1/versions/q3/guides/guide_1/preview")).toEqual({
+      type: "guide_preview", projectId: "project_1", versionSlug: "q3", guideId: "guide_1",
+    });
+    expect(parsePortalRoute("/projects/project_1/versions/main/capture-sessions/capture_1")).toEqual({
+      type: "capture_session_detail", projectId: "project_1", versionSlug: "main", captureSessionId: "capture_1",
+    });
+  });
+
   it("parses project settings routes", () => {
     expect(parsePortalRoute("/projects/project_1/settings")).toEqual({
       type: "project_settings",

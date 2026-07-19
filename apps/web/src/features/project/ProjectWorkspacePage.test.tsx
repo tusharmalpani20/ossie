@@ -19,6 +19,7 @@ const project: Project = {
   created_at: "2026-06-05T10:00:00.000Z",
   updated_at: "2026-06-05T10:05:00.000Z",
   access: { role: "project_admin", source: "organization_owner" },
+  default_project_version: { id: "version_1", name: "Main", slug: "main", status: "active", position: 1 },
 };
 
 const renderPage = (overrides: {
