@@ -29,10 +29,13 @@ This app currently supports in code and focused tests:
 - storing the extension session token in extension storage
 - checking current auth
 - listing accessible projects
-- selecting the project that future captures should use
-- starting a capture session for the selected project
-- storing active capture session id, capture mode, pause state, and local event index
-- restoring active capture state when the popup is reopened
+- selecting the project and active Project Version that future captures should
+  use
+- starting a capture session with the exact selected Project Version ID
+- storing active capture session id, immutable owning Version context, capture
+  mode, pause state, and local event index
+- restoring active capture state and authoritatively repairing its owning
+  Version context when the popup is reopened
 - automatically recording safe click metadata from http/https pages while automatic capture is active
 - uploading a visible-tab screenshot for each supported click
 - recording a linked `click` event after each successful automatic screenshot upload
@@ -112,7 +115,8 @@ The server keeps normal portal cookie behavior unchanged and additionally return
 Authorization: Bearer <session_token>
 ```
 
-The password is never stored. Changing the instance clears the stored token, selected project, and active capture state.
+The password is never stored. Changing the instance clears the stored token,
+selected Project and Version, and active capture state.
 
 ## Capture Session Start
 
@@ -129,7 +133,10 @@ Authorization: Bearer <session_token>
 x-ossie-client: extension
 ```
 
-The extension sends `source_type: "extension"` and safe current-tab metadata when available. Current-tab metadata is limited to the active tab URL/title and only stores `http://` or `https://` URLs.
+The extension sends `source_type: "extension"`, the exact selected
+`project_version_id`, `start_immediately: true`, and safe current-tab metadata
+when available. Current-tab metadata is limited to the active tab URL/title and
+only stores `http://` or `https://` URLs.
 
 The new session starts in automatic click capture mode. Automatic mode can be paused and resumed from the popup. The manual `Capture screenshot` button remains available while automatic capture is active.
 
@@ -200,14 +207,14 @@ The latest manual screenshot outcome is stored separately from automatic capture
 Opening an active capture in the portal uses:
 
 ```text
-{portal_url_or_instance_url}/projects/:project_id/versions/:default_version_slug/capture-sessions/:capture_session_id
+{portal_url_or_instance_url}/projects/:project_id/versions/:owning_version_slug/capture-sessions/:capture_session_id
 ```
 
-This action uses the Default Project Version returned with the selected Project.
-It does not imply that Capture persistence is version-scoped yet, does not
-complete the backend capture session, and does not clear local active capture
-state. Child `117` owns stored Version selection and mandatory Capture Version
-ownership.
+This action uses the active Capture Session's immutable owning Project Version,
+recovered authoritatively from the API when the popup is reopened. It does not
+follow a later Default change, does not complete the backend Capture Session,
+and does not clear local active Capture state. Missing, unauthorized, or
+archived ownership blocks mutations rather than silently switching Versions.
 
 ## Capture Finish
 

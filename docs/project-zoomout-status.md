@@ -64,7 +64,9 @@ Manual portal dogfood smoke completed with non-blocking limitations on 2026-06-2
 - Projects with create/list/get/update/archive behavior, explicit Project
   Membership, and Project Version create/read/update/order/default/alias/
   archive/restore behavior.
-- Capture sessions with create/list/get/detail/update/finalize/archive behavior.
+- Project Version-owned Capture sessions with explicit create/list/get/detail,
+  empty-draft reassignment, finalize, archive, and active/archived lifecycle
+  enforcement.
 - Capture assets with metadata creation, local multipart screenshot upload, file streaming, and archive behavior.
 - Capture events with create/list/get/edit/reorder/archive behavior and raw input-value protection.
 - Guide creation from capture sessions, guide editing, guide blocks, guide steps, screenshot selection, direct step screenshot upload, annotations, Markdown export, HTML ZIP export, and guide detail read models.
@@ -81,7 +83,8 @@ Manual portal dogfood smoke completed with non-blocking limitations on 2026-06-2
 - Project list/home, canonical Project Version workspaces, Version management,
   and project settings/archive controls.
 - Organization members and invite acceptance screens.
-- Capture session list and detail screens.
+- Project Version-scoped Capture session list/detail/create routes, canonical
+  ownership links, and eligible empty-draft reassignment.
 - Manual screenshot upload, bulk upload status, event creation, event ordering, and safe event editing.
 - Guide list, guide editor, guide preview, screenshot viewer, screenshot selection, direct screenshot upload, rectangle annotations, block insertion/editing/reorder/delete, Markdown export, HTML ZIP export, publish controls, password controls, embed-copy controls, and public-link status labels.
 - Public guide reader and guide embed route.
@@ -94,9 +97,10 @@ Manual portal dogfood smoke completed with non-blocking limitations on 2026-06-2
 - Instance URL configuration for hosted or self-hosted API origin.
 - Login and local session persistence.
 - Current auth verification.
-- Project listing and selected project persistence.
-- Capture session creation with active-tab metadata.
-- Active capture restoration.
+- Project and active Project Version discovery/selection persistence.
+- Capture session creation with the exact selected Version and active-tab
+  metadata.
+- Authoritative active Capture restoration with its immutable owning Version.
 - Visible-tab screenshot upload.
 - Automatic click capture MVP exists in code/tests and produced two screenshot-backed `click` events from safe synthetic data in plan 103 browser validation on 2026-07-07.
 - Manual screenshot fallback exists in code/tests and produced a screenshot-backed `capture` event from direct extension-page automation in plan 101 browser validation on 2026-07-07; true toolbar-popup manual validation remains pending, and plan 103 found a direct extension-page duplicate event-index follow-up after automatic clicks.
@@ -124,12 +128,12 @@ Manual portal dogfood smoke completed with non-blocking limitations on 2026-06-2
 Master Plan `005` is the accepted next track:
 
 1. Completed: naming/documentation truth, Audit and Access Evidence, Project
-   Membership, and the Project Version foundation through child `116`.
-2. Scope Capture source to exactly one Project Version in child `117`.
-3. Introduce Project-owned Guide/Demo Artifacts with version-scoped Editions, mutable Working Drafts, immutable Revisions, Carry-Forward, protected assets, revision-backed Publications, and multi-version Publish Links.
-4. Establish the design system and modernize each existing workflow with browser, accessibility, motion, and responsive evidence.
-5. Close the foundation at child `130`, then conduct the mandatory Product Documentation domain grill at child `131`.
+   Membership, Project Versions, and Project Version-owned Capture source
+   through child `117`.
+2. Next: introduce Project-owned Guide/Demo Artifacts with version-scoped Editions, mutable Working Drafts, immutable Revisions, Carry-Forward, protected assets, revision-backed Publications, and multi-version Publish Links.
+3. Establish the design system and modernize each existing workflow with browser, accessibility, motion, and responsive evidence.
+4. Close the foundation at child `130`, then conduct the mandatory Product Documentation domain grill at child `131`.
 
-The accepted Project Version and Artifact Edition decisions are recorded in `CONTEXT.md`, ADRs `0021` through `0026`, the completed grill record, and `docs/plan/111-project-version-and-artifact-edition-grill.md`. The Project Version foundation is implemented; Artifact Editions and the later Revision/Publication model are not.
+The accepted Project Version and Artifact Edition decisions are recorded in `CONTEXT.md`, ADRs `0021` through `0026`, the completed grill record, and `docs/plan/111-project-version-and-artifact-edition-grill.md`. Project Versions and Capture ownership are implemented; Artifact Editions and the later Revision/Publication model are not.
 
 Product Documentation implementation begins only after child `131` and new `132+` plans. Loom-style Video remains a later direction with no accepted runtime model.

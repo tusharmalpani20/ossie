@@ -12,7 +12,8 @@ direction and intentionally deferred work; it does not promise dates.
 - Project Membership plus explicit Project Version release contexts, beginning
   with a transactional default `Main` record, canonical routes, aliases,
   ordering, and active/archived lifecycle management.
-- Screenshot-first portal and Chrome extension Capture Sessions.
+- Screenshot-first portal and Chrome extension Capture Sessions with mandatory,
+  immutable Project Version ownership and exact owning-Version deep links.
 - Automatic-click extension capture with screenshot-backed browser evidence;
   true toolbar-popup manual validation and one direct-page ordering follow-up
   remain open.
@@ -36,8 +37,8 @@ Master Plan `005` is the accepted implementation track:
 4. Project Membership with Project Admin, Editor, and Viewer authorization.
 5. Project Versions, beginning with a real default `Main` record. Completed in
    child `116`.
-6. Project Version-scoped Capture Sessions across portal and extension. Next in
-   child `117`.
+6. Project Version-scoped Capture Sessions across portal and extension.
+   Completed in child `117`.
 7. Project-owned Guide/Demo Artifacts with version-scoped Editions and Working
    Drafts.
 8. Immutable Revisions, Carry-Forward, protected shared assets, revision-backed
@@ -46,9 +47,9 @@ Master Plan `005` is the accepted implementation track:
    accessibility, motion, and browser modernization.
 10. Cross-workflow closeout before new artifact-family design.
 
-Items 1 through 5 are current runtime behavior. Capture ownership, Artifact
-Editions/Revisions, revised Publications, and later UI modernization remain
-accepted target behavior rather than shipped claims.
+Items 1 through 6 are current runtime behavior. Artifact Editions/Revisions,
+revised Publications, and later UI modernization remain accepted target
+behavior rather than shipped claims.
 See `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 for gates and exact child ordering.
 

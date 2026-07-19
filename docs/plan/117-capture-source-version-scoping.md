@@ -6,9 +6,9 @@ Date expanded: 2026-07-19
 
 Date rechecked: 2026-07-19
 
-Status: Complete. Implemented and verified on 2026-07-19. Automated gates pass;
-live browser validation is partially blocked by the pre-existing concurrent
-auth-session Audit transition defect recorded below.
+Status: Complete after implementation closeout recheck on 2026-07-19. Automated
+gates and bounded portal browser validation pass; genuine unpacked-extension
+toolbar-popup validation remains blocked by the available browser controls.
 
 Parent plan:
 
@@ -1317,6 +1317,25 @@ Runtime implementation on 2026-07-19:
 - committed the implementation as `247e90a`, `fa252d0`, `4f6b7c0`, `3d251d5`,
   and focused DB/smoke fixture follow-up `3e04eac`.
 
+Close-previous implementation audit on 2026-07-19:
+
+- added missing database DELETE guards for Capture Session/Event/Asset scope and
+  made audited Event/Asset mutations acquire the shared Project advisory lock
+  before child-row locks;
+- made the temporary Guide/Demo generation seam distinguish missing sources from
+  existing non-current-Default sources, return the stable planned `409`, and
+  recheck eligibility inside the advisory-first write transaction so Default or
+  lifecycle changes cannot race partial artifact creation;
+- repaired stale DB fixtures and the canonical completion redirect expectation,
+  then reran the complete DB suite and smoke workflow;
+- completed extension named-Version discovery/selection, stale-selection
+  blocking, authoritative active-Session recovery, archived-owner write
+  blocking, and exact owning-Version portal links;
+- exposed named and archived Version Capture entry points in the Version
+  workspace and allowed archived Version-owned Capture routes to render in
+  read-only mode;
+- committed the runtime corrections as `26e2507`, `c70df13`, and `b84f995`.
+
 ## Verification Record
 
 Planning verification only:
@@ -1340,28 +1359,36 @@ docs/plan/117-capture-source-version-scoping.md` and
 - implementation tests, database verification, smoke, builds, and browser
   validation were not run because the user explicitly requested planning only.
 
-Implementation verification on 2026-07-19:
+Final implementation verification on 2026-07-19:
 
 - clean reset and migrations `001` through `021` applied; Audit schema verifier
   reported ready;
-- foundation schema DB suite: 13/13 passed;
+- focused foundation/Capture DB suite: 19/19 passed;
 - focused DB Capture creation/list/update/delete and audited Project Version
   reassignment passed, including the safe `project_version_id` Change Item;
-- all DB integration files passed sequentially against the disposable test
-  database after updating explicit Version fixtures; the end-to-end smoke path
-  passed through Capture, Guide, Demo, publish, and membership workflows;
-- server unit/integration (non-DB): 433/433; portal: 327/327; extension: 93/93;
-- server, portal, and extension type checks, lint, and production builds passed;
+- all 16 DB integration files passed sequentially, 66/66, against an isolated
+  disposable PostgreSQL 16 container; the DB-backed smoke workflow passed 1/1;
+- server non-DB: 89 files and 436/436 tests; portal: 32 files and 328/328 tests;
+  extension: 11 files and 99/99 tests;
+- repository-wide type checks, lint, production builds, and
   `rtk git diff --check` passed;
-- agent-browser authenticated against the synthetic test instance and verified
-  Project and Project Version workspace/selector rendering. Loading the Capture
-  collection was blocked by concurrent protected reads exposing the existing
-  `invalid_audit_transition` defect in
-  `apps/server/src/modules/authentication/session.audit.ts`; no 117 browser
-  screenshot or success claim was manufactured;
-- real unpacked-extension toolbar automation was unavailable, so extension
-  browser evidence remains blocked; API/storage/component tests and the
-  production extension build passed.
+- agent-browser authenticated against the synthetic local instance, selected a
+  named active Project Version, followed its newly exposed Capture entry point,
+  created a Capture with the exact named Version ID, and verified canonical
+  detail ownership plus disabled Guide/Demo generation. The same detail had no
+  horizontal overflow at `390x844` or a `720` CSS-pixel reflow viewport, and no
+  uncaught browser errors were reported;
+- a previous bounded run observed a concurrent auth-session Audit transition
+  failure, but it did not recur in this clean rerun. It remains a separate
+  authentication/Audit hardening lead rather than a child-`117` completion
+  claim or scope expansion;
+- the installed `agent-browser` can load an unpacked extension but exposes no
+  control for opening the Chrome browser-action toolbar popup. Genuine toolbar
+  popup validation therefore remains blocked; component/API/storage tests and
+  the production extension build are passing evidence but are not presented as
+  toolbar evidence;
+- the isolated database container, helper container, browser session, API, and
+  portal processes started for verification were stopped after the run.
 
 ## Leftovers And Handoff
 
@@ -1385,9 +1412,9 @@ not occur.
 
 Additional carry-forward:
 
-- fix the pre-existing concurrent auth-session touch Audit transition before a
-  later browser closeout that performs parallel Version-boundary reads; this is
-  outside child `117` and does not change Capture ownership semantics;
+- if the previously observed concurrent auth-session touch Audit transition can
+  be reproduced, fix it in authentication/Audit hardening rather than folding
+  it into child `118`; the clean child-`117` closeout rerun did not reproduce it;
 - child `118` must replace the temporary Default-only Capture-to-Guide/Demo
   equality guard with relational Artifact/Edition ownership while retaining the
   immutable source Capture Project Version.
