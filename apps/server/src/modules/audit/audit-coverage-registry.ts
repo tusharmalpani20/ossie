@@ -59,6 +59,10 @@ const U = {
   session_update: (operation: AuditOperation = "update") =>
     write("auth_schema.auth_session", "UPDATE", "auth_session", [operation]),
   project_insert: () => write("project_schema.project", "INSERT", "project"),
+  project_membership_insert: () =>
+    write("project_schema.project_membership", "INSERT", "project_membership"),
+  project_membership_update: () =>
+    write("project_schema.project_membership", "UPDATE", "project_membership"),
   project_update: (operation: AuditOperation = "update") =>
     write("project_schema.project", "UPDATE", "project", [operation]),
   capture_session_insert: () =>
@@ -186,7 +190,28 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "project.create",
     "project.created",
     ["POST /api/v1/projects"],
-    [U.project_insert()],
+    [U.project_insert(), U.project_membership_insert()],
+  ),
+  command(
+    "project.membership.assign",
+    "project.membership.assigned",
+    ["POST /api/v1/projects/:project_id/memberships"],
+    [U.project_membership_insert(), U.project_membership_update()],
+    { source_types: ["web", "api"] },
+  ),
+  command(
+    "project.membership.role_change",
+    "project.membership.role_changed",
+    ["PATCH /api/v1/projects/:project_id/memberships/:membership_id"],
+    [U.project_membership_update()],
+    { source_types: ["web", "api"] },
+  ),
+  command(
+    "project.membership.remove",
+    "project.membership.removed",
+    ["DELETE /api/v1/projects/:project_id/memberships/:membership_id"],
+    [U.project_membership_update()],
+    { source_types: ["web", "api"] },
   ),
   command(
     "project.update",

@@ -5,5 +5,6 @@ export * from "./file";
 export * from "./guide";
 export * from "./organization";
 export * from "./project";
+export * from "./project-membership";
 export * from "./publish";
 export * from "./setup";

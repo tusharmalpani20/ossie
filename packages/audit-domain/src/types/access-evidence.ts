@@ -1,6 +1,7 @@
 import type {
   AccessActorType,
   AccessAuthorizationType,
+  AccessAuthorizationRole,
   AccessOutcome,
   AccessReasonCode,
   AccessSourceType,
@@ -23,7 +24,7 @@ export type AccessEvent = {
   route_template: string | null;
   access_surface: AccessSurface;
   authorization_type: AccessAuthorizationType;
-  authorization_role: "owner" | "member" | null;
+  authorization_role: AccessAuthorizationRole | null;
   outcome: AccessOutcome;
   reason_code: AccessReasonCode | null;
   response_bytes: number | null;

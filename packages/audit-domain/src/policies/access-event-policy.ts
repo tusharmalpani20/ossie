@@ -1,6 +1,7 @@
 import {
   ACCESS_ACTOR_TYPES,
   ACCESS_AUTHORIZATION_TYPES,
+  ACCESS_AUTHORIZATION_ROLES,
   ACCESS_OUTCOMES,
   ACCESS_REASON_CODES,
   ACCESS_SOURCE_TYPES,
@@ -15,6 +16,7 @@ const source_types = values(ACCESS_SOURCE_TYPES);
 const outcomes = values(ACCESS_OUTCOMES);
 const surfaces = values(ACCESS_SURFACES);
 const authorization_types = values(ACCESS_AUTHORIZATION_TYPES);
+const authorization_roles = values(ACCESS_AUTHORIZATION_ROLES);
 const reason_codes = values(ACCESS_REASON_CODES);
 const methods = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
 const ulid_pattern = /^[0-9A-HJKMNP-TV-Z]{26}$/u;
@@ -81,11 +83,14 @@ export const validate_access_event = (input: AccessEvent): AccessEvent => {
       /[?#@]/u.test(input.route_template))
   ) fail();
 
-  if (
-    input.authorization_type === "organization_role"
-      ? input.authorization_role !== "owner" && input.authorization_role !== "member"
-      : input.authorization_role !== null
-  ) fail();
+  const organization_role = input.authorization_role === "owner" || input.authorization_role === "member";
+  const project_role = input.authorization_role === "project_admin" ||
+    input.authorization_role === "editor" || input.authorization_role === "viewer";
+  if (input.authorization_role !== null && !authorization_roles.has(input.authorization_role)) fail();
+  if (input.authorization_type === "organization_role" && !organization_role) fail();
+  if (input.authorization_type === "project_role") {
+    if (input.outcome === "succeeded" ? !project_role : input.authorization_role !== null && !project_role) fail();
+  } else if (input.authorization_type !== "organization_role" && input.authorization_role !== null) fail();
 
   if (input.outcome === "succeeded" ? input.reason_code !== null : input.reason_code === null) fail();
   if (input.outcome === "succeeded" && input.root_resource_id === null) fail();

@@ -1,4 +1,9 @@
-import { PROJECT_STATUSES } from "@repo/constants";
+import {
+  PROJECT_ACCESS_SOURCES,
+  PROJECT_LIST_PURPOSES,
+  PROJECT_ROLES,
+  PROJECT_STATUSES,
+} from "@repo/constants";
 import { z } from "zod";
 import {
   IdSchema,
@@ -20,6 +25,10 @@ export const ProjectSchema = z.object({
   version: z.number().int(),
   created_at: IsoDateTimeStringSchema,
   updated_at: IsoDateTimeStringSchema,
+  access: z.object({
+    role: z.enum(PROJECT_ROLES),
+    source: z.enum(PROJECT_ACCESS_SOURCES),
+  }).strict(),
 });
 export type Project = z.infer<typeof ProjectSchema>;
 
@@ -53,6 +62,7 @@ export type UpdateProjectInput = UpdateProjectRequest;
 
 export const ProjectListQuerySchema = z.object({
   status: z.enum(PROJECT_STATUSES).optional(),
+  purpose: z.enum(PROJECT_LIST_PURPOSES).optional(),
 });
 export type ProjectListQuery = z.infer<typeof ProjectListQuerySchema>;
 

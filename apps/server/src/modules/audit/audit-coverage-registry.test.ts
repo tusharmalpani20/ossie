@@ -8,23 +8,24 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(53);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(56);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(53);
+    ).toBe(56);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
+    expect(AUDIT_COMMANDS).toContain("project.membership.assign");
   });
 
-  it("covers all 19 product tables and the 34 runtime table-operation classes", () => {
+  it("covers all 20 product tables and the 36 runtime table-operation classes", () => {
     const writes = AUDIT_COVERAGE_REGISTRY.flatMap(({ writes }) => writes);
-    expect(new Set(writes.map(({ table }) => table)).size).toBe(19);
+    expect(new Set(writes.map(({ table }) => table)).size).toBe(20);
     expect(
       new Set(
         writes.map(({ table, sql_operation }) => `${table}:${sql_operation}`),
       ).size,
-    ).toBe(34);
+    ).toBe(36);
     expect(
       writes.every(({ sql_operation }) => sql_operation !== "DELETE"),
     ).toBe(true);
@@ -102,30 +103,36 @@ describe("audit coverage registry", () => {
   });
 
   it("keeps the database command/action policy synchronized with the registry", () => {
-    const migration = readFileSync(
+    const migration_016 = readFileSync(
       new URL(
         "../../db/migrations/016_existing_mutation_audit_coverage.sql",
         import.meta.url,
       ),
       "utf8",
     );
-    const policy_start = migration.indexOf("FROM (VALUES");
-    const policy_end = migration.indexOf(") AS policy(command, action)");
-    const policy = migration.slice(policy_start, policy_end);
+    const migration_019 = readFileSync(
+      new URL("../../db/migrations/019_project_membership_foundation.sql", import.meta.url),
+      "utf8",
+    );
+    const policy_start = migration_016.indexOf("FROM (VALUES");
+    const policy_end = migration_016.indexOf(") AS policy(command, action)");
+    const new_policy_start = migration_019.indexOf("(selected_command, selected_action) IN (");
+    const new_policy_end = migration_019.indexOf("AND selected_actor_type", new_policy_start);
+    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}`;
     const pairs = [...policy.matchAll(/\('([^']+)', '([^']+)'\)/gu)].map(
       ([, command, action]) => ({ command, action }),
     );
 
-    expect(pairs).toEqual(
+    expect([...pairs].sort((left, right) => (left.command ?? "").localeCompare(right.command ?? ""))).toEqual(
       AUDIT_COVERAGE_REGISTRY.map(({ command, action }) => ({
         command,
         action,
-      })),
+      })).sort((left, right) => left.command.localeCompare(right.command)),
     );
   });
 
   it("keeps migration trigger command arguments synchronized with registry order", () => {
-    const migration = readFileSync(
+    const migration_016 = readFileSync(
       new URL(
         "../../db/migrations/016_existing_mutation_audit_coverage.sql",
         import.meta.url,
@@ -142,8 +149,12 @@ describe("audit coverage registry", () => {
         expected.set(key, commands);
       }
     }
+    const migration_019 = readFileSync(
+      new URL("../../db/migrations/019_project_membership_foundation.sql", import.meta.url),
+      "utf8",
+    );
     const rows = [
-      ...migration.matchAll(
+      ...`${migration_016}\n${migration_019}`.matchAll(
         /\('([^']+)', '([^']+)', '(INSERT|UPDATE)', '[^']+', '[^']+', '([^']+)'\)/gu,
       ),
     ];
@@ -153,6 +164,13 @@ describe("audit coverage registry", () => {
         commands!.split(","),
       ]),
     );
+    actual.set("project_schema.project_membership:INSERT", [
+      "project.create", "project.membership.assign",
+    ]);
+    actual.set("project_schema.project_membership:UPDATE", [
+      "project.membership.assign", "project.membership.role_change",
+      "project.membership.remove",
+    ]);
 
     expect(actual).toEqual(expected);
   });

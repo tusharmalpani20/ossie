@@ -13,6 +13,7 @@ export const ACCESS_SURFACES = [
 ] as const;
 export const ACCESS_AUTHORIZATION_TYPES = [
   "organization_role",
+  "project_role",
   "public_link",
   "public_link_password",
   "public_secret",
@@ -36,3 +37,12 @@ export type AccessOutcome = (typeof ACCESS_OUTCOMES)[number];
 export type AccessSurface = (typeof ACCESS_SURFACES)[number];
 export type AccessAuthorizationType = (typeof ACCESS_AUTHORIZATION_TYPES)[number];
 export type AccessReasonCode = (typeof ACCESS_REASON_CODES)[number];
+
+export const ACCESS_AUTHORIZATION_ROLES = [
+  "owner",
+  "member",
+  "project_admin",
+  "editor",
+  "viewer",
+] as const;
+export type AccessAuthorizationRole = (typeof ACCESS_AUTHORIZATION_ROLES)[number];

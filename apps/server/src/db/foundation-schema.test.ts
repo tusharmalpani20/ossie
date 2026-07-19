@@ -118,6 +118,34 @@ describe("foundation schema migrations", () => {
     expect(hardening).toContain("root_resource_id IS NOT NULL");
   });
 
+  it("defines tenant-safe guarded Project Membership persistence", () => {
+    const migration = readFileSync(
+      new URL("./migrations/019_project_membership_foundation.sql", import.meta.url),
+      "utf8",
+    );
+    const membership = table_definition(migration, "project_schema.project_membership");
+
+    expect(membership).toContain("organization_id VARCHAR(26) NOT NULL");
+    expect(membership).toContain("project_id VARCHAR(26) NOT NULL");
+    expect(membership).toContain("org_user_id VARCHAR(26) NOT NULL");
+    expect(membership).toContain("role VARCHAR(50) NOT NULL");
+    expect(membership).toContain("status VARCHAR(50) NOT NULL DEFAULT 'active'");
+    expect(membership).toContain("version INTEGER NOT NULL DEFAULT 1");
+    expect(membership.toLowerCase()).not.toContain("json");
+    expect(migration).toContain("Refusing Project Membership migration while Projects exist");
+    expect(migration).toContain("Refusing Project Membership migration with unsupported organization admin role");
+    expect(migration).toContain("project_membership_owner_guard");
+    expect(migration).toContain("org_user_owner_membership_guard");
+    expect(migration).toContain("project.membership.assign");
+    expect(migration).toContain("project.membership.role_change");
+    expect(migration).toContain("project.membership.remove");
+    expect(migration).toContain("GRANT SELECT, INSERT, UPDATE ON project_schema.project_membership");
+    expect(migration).toContain("authorization_type = 'project_role'");
+    expect(migration).toContain("chk_access_event_scoped_success");
+    expect(migration).toContain("Refusing to remove populated Project Membership");
+    expect(migration).not.toMatch(/GRANT[^;]*\b(?:DELETE|TRUNCATE)\b/iu);
+  });
+
   it("keeps the maintenance reset explicit instead of cascading to unknown tables", () => {
     const reset_source = readFileSync(
       new URL("../test-support/database.ts", import.meta.url),

@@ -22,6 +22,7 @@ import {
   type Project,
   type ProjectAuthContext,
   type ProjectStatus,
+  type ProjectListPurpose,
   type UpdateProjectInput,
 } from "./project.service";
 
@@ -38,6 +39,7 @@ export type ProjectRouteDependencies = {
     list_projects: (input: {
       auth: ProjectAuthContext;
       status?: ProjectStatus;
+      purpose?: ProjectListPurpose;
     }) => Promise<Project[]>;
     get_project: (input: {
       auth: ProjectAuthContext;
@@ -165,6 +167,7 @@ export const build_project_routes = (
     fastify.get<{
       Querystring: {
         status?: ProjectStatus;
+        purpose?: ProjectListPurpose;
       };
     }>("/", {
       schema: {
@@ -176,6 +179,7 @@ export const build_project_routes = (
         const projects = await dependencies.project_service.list_projects({
           auth,
           status: request.query.status,
+          purpose: request.query.purpose,
         });
         return reply.status(200).send({ projects });
       } catch (error) {

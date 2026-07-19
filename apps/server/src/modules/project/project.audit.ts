@@ -16,6 +16,9 @@ import {
 } from "../audit/audit-request-context";
 import { write_audit_event } from "../audit/audit.repository";
 import { build_project_repository } from "./project.repository";
+import type { ProjectMembership } from "@repo/types/project-membership";
+import { build_project_membership_event } from "../project-membership/project-membership.audit";
+import { build_project_membership_repository } from "../project-membership/project-membership.repository";
 import type {
   CreateProjectInput,
   Project,
@@ -32,6 +35,7 @@ export const build_project_created_event = (input: {
   request_id: string;
   metadata_was_present: boolean;
   occurred_at: string;
+  creator_membership?: ProjectMembership | null;
 }): AuditEvent => {
   const base = {
     organization_id: input.project.organization_id,
@@ -76,6 +80,18 @@ export const build_project_created_event = (input: {
             after: { state: "redacted" },
           }),
         ]
+      : []),
+    ...(input.creator_membership
+      ? build_project_membership_event({
+          event_id: input.event_id,
+          command: "project.membership.assign",
+          before: null,
+          after: input.creator_membership,
+          actor_org_user_id: input.actor_org_user_id,
+          actor_label: input.actor_label,
+          request_id: input.request_id,
+          occurred_at: input.occurred_at,
+        }).items
       : []),
   ];
   return validate_audit_event({
@@ -239,23 +255,50 @@ export const build_project_creation_writer =
   async (input) => {
     const event_id = ulid();
     const occurred_at = new Date().toISOString();
+    let creator_membership: ProjectMembership | null = null;
+    let creator_role: "owner" | "member" | null = null;
     return run_audited_mutation({
       pool,
       event_id,
       command: find_audit_command("project.create"),
-      context: {
-        organization_id: input.organization_id,
-        actor_type: "org_user",
-        source_type: current_audit_source_type(),
+      context: async (client) => {
+        const actor = await client.query<{ role: "owner" | "member" }>(`
+          SELECT role FROM organization_schema.org_user
+          WHERE organization_id = $1 AND id = $2 AND status = 'active'
+            AND is_deleted = FALSE
+        `, [input.organization_id, input.actor_org_user_id]);
+        creator_role = actor.rows[0]?.role ?? null;
+        return {
+          organization_id: input.organization_id,
+          actor_type: "org_user",
+          source_type: current_audit_source_type(),
+        };
       },
-      execute: (client) =>
-        build_project_repository(
+      execute: async (client) => {
+        if (!creator_role) throw new Error("Project creator is not active");
+        const project = await build_project_repository(
           client as unknown as Parameters<typeof build_project_repository>[0],
         ).create_project({
           organization_id: input.organization_id,
           actor_org_user_id: input.actor_org_user_id,
           data: input.data as CreateProjectInput,
-        }),
+        });
+        if (creator_role === "member") {
+          creator_membership = await build_project_membership_repository(client).assign_membership({
+            organization_id: input.organization_id,
+            project_id: project.id,
+            org_user_id: input.actor_org_user_id,
+            role: "project_admin",
+            actor_org_user_id: input.actor_org_user_id,
+          });
+        }
+        return {
+          ...project,
+          access: creator_role === "owner"
+            ? { role: "project_admin" as const, source: "organization_owner" as const }
+            : { role: "project_admin" as const, source: "project_membership" as const },
+        };
+      },
       build_event: (project) =>
         build_project_created_event({
           event_id,
@@ -265,6 +308,7 @@ export const build_project_creation_writer =
           request_id: input.request_id,
           metadata_was_present: input.metadata_was_present,
           occurred_at,
+          creator_membership,
         }),
       write_audit_event,
     });
@@ -292,6 +336,7 @@ export const build_audited_project_repository = (
   return {
     create_project: base.create_project,
     list_projects: base.list_projects,
+    list_authorized_projects: base.list_authorized_projects,
     find_project: base.find_project,
     async update_project(input) {
       const event_id = ulid();

@@ -20,6 +20,10 @@ const project = {
   version: 1,
   created_at: "2026-07-07T00:00:00.000Z",
   updated_at: "2026-07-07T00:00:00.000Z",
+  access: {
+    role: "project_admin",
+    source: "organization_owner",
+  },
 };
 
 describe("project contracts", () => {
@@ -55,6 +59,8 @@ describe("project contracts", () => {
 
   it("validates project status query values", () => {
     expect(ProjectListQuerySchema.safeParse({ status: "active" }).success).toBe(true);
+    expect(ProjectListQuerySchema.safeParse({ purpose: "capture" }).success).toBe(true);
+    expect(ProjectListQuerySchema.safeParse({ purpose: "admin" }).success).toBe(false);
     expect(ProjectListQuerySchema.safeParse({ status: "deleted" }).success).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
-import type { ProjectStatus } from "@repo/constants";
+import type { ProjectAccessSource, ProjectListPurpose, ProjectRole, ProjectStatus } from "@repo/constants";
 
-export type { ProjectStatus };
+export type { ProjectListPurpose, ProjectStatus };
 
 export type ProjectAuthContext = {
   organization_id: string;
@@ -22,6 +22,7 @@ export type Project = {
   created_at: string;
   updated_at: string;
 };
+export type AuthorizedProject = Project & { access: { role: ProjectRole; source: ProjectAccessSource } };
 
 export type CreateProjectInput = {
   name: string;
@@ -61,6 +62,12 @@ export type ProjectRepository = {
     organization_id: string;
     status: ProjectStatus;
   }) => Promise<Project[]>;
+  list_authorized_projects?: (input: {
+    organization_id: string;
+    actor_org_user_id: string;
+    status: ProjectStatus;
+    purpose?: ProjectListPurpose;
+  }) => Promise<AuthorizedProject[]>;
   find_project: (input: {
     organization_id: string;
     project_id: string;
@@ -182,10 +189,18 @@ export const build_project_service = (
   const list_projects = async (input: {
     auth: ProjectAuthContext;
     status?: ProjectStatus;
-  }) => repository.list_projects({
-    organization_id: input.auth.organization_id,
-    status: input.status ?? "active",
-  });
+    purpose?: ProjectListPurpose;
+  }) => repository.list_authorized_projects
+    ? repository.list_authorized_projects({
+        organization_id: input.auth.organization_id,
+        actor_org_user_id: input.auth.actor_org_user_id,
+        status: input.status ?? "active",
+        purpose: input.purpose,
+      })
+    : repository.list_projects({
+        organization_id: input.auth.organization_id,
+        status: input.status ?? "active",
+      });
 
   const get_project = async (input: {
     auth: ProjectAuthContext;

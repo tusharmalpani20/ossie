@@ -402,3 +402,67 @@ export const verify_evidence_schema = async (
   );
   return throw_verification_issues(result.rows);
 };
+
+export const verify_project_membership_schema = async (
+  pool: VerificationPool,
+  roles: { runtime_role: string; maintenance_role: string },
+) => {
+  await verify_evidence_schema(pool, roles);
+  const result = await pool.query<{ issue: string }>(`
+    WITH expected_triggers(name) AS (VALUES
+      ('project_membership_owner_guard'),
+      ('org_user_owner_membership_guard'),
+      ('project_membership_i_audit_ctx'),
+      ('project_membership_i_audit_evd'),
+      ('project_membership_u_audit_ctx'),
+      ('project_membership_u_audit_evd')
+    ), expected_indexes(name) AS (VALUES
+      ('uq_project_membership_project_org_user'),
+      ('idx_project_membership_actor_discovery'),
+      ('idx_project_membership_project_authorization')
+    ), expected_constraints(name) AS (VALUES
+      ('fk_project_membership_project_organization'),
+      ('fk_project_membership_org_user_organization'),
+      ('fk_project_membership_created_by_organization'),
+      ('fk_project_membership_updated_by_organization'),
+      ('fk_project_membership_revoked_by_organization'),
+      ('chk_project_membership_role'),
+      ('chk_project_membership_status'),
+      ('chk_project_membership_version'),
+      ('chk_project_membership_identifiers'),
+      ('chk_project_membership_lifecycle'),
+      ('chk_access_event_scoped_success')
+    ), expected_privileges(privilege, expected) AS (VALUES
+      ('SELECT', true), ('INSERT', true), ('UPDATE', true),
+      ('DELETE', false), ('TRUNCATE', false), ('REFERENCES', false), ('TRIGGER', false)
+    )
+    SELECT 'table:project_schema.project_membership' AS issue
+    WHERE to_regclass('project_schema.project_membership') IS NULL
+    UNION ALL SELECT 'trigger:' || expected.name FROM expected_triggers expected
+      WHERE NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = expected.name AND NOT tgisinternal)
+    UNION ALL SELECT 'index:' || expected.name FROM expected_indexes expected
+      WHERE NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = expected.name)
+    UNION ALL SELECT 'constraint:' || expected.name FROM expected_constraints expected
+      WHERE NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = expected.name)
+    UNION ALL SELECT 'privilege:project_schema.project_membership:' || privilege || ':' || expected::text
+      FROM expected_privileges WHERE has_table_privilege($1::text, 'project_schema.project_membership', privilege) IS DISTINCT FROM expected
+    UNION ALL SELECT 'owner:project_schema.project_membership:maintenance'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_class class JOIN pg_namespace namespace ON namespace.oid = class.relnamespace
+        WHERE namespace.nspname = 'project_schema' AND class.relname = 'project_membership'
+          AND pg_get_userbyid(class.relowner) = $2::text
+      )
+    UNION ALL SELECT 'constraint:chk_access_event_authorization:project_role'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_access_event_authorization'
+          AND pg_get_constraintdef(oid) LIKE '%project_role%project_admin%editor%viewer%'
+      )
+    UNION ALL SELECT 'constraint:chk_access_event_scoped_success:preserved'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_access_event_scoped_success'
+          AND pg_get_constraintdef(oid) LIKE '%root_resource_id IS NOT NULL%'
+      )
+    ORDER BY issue
+  `, [roles.runtime_role, roles.maintenance_role]);
+  return throw_verification_issues(result.rows);
+};

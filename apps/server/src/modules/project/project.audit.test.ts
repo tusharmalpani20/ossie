@@ -54,6 +54,26 @@ describe("Project Audit adapter", () => {
     expect(JSON.stringify(event)).not.toContain("metadata-value");
   });
 
+  it("includes the non-owner creator Project Admin membership in the same Project event", () => {
+    const event = build_project_created_event({
+      event_id: "01J00000000000000000000000", project,
+      actor_org_user_id: project.created_by_id, actor_label: "Member creator",
+      request_id: "request-1", metadata_was_present: false,
+      occurred_at: "2026-07-19T00:00:00.000Z",
+      creator_membership: {
+        id: "01J00000000000000000000004", organization_id: project.organization_id,
+        project_id: project.id, org_user_id: project.created_by_id,
+        role: "project_admin", status: "active", version: 1,
+        created_by_id: project.created_by_id, updated_by_id: project.created_by_id,
+        revoked_by_id: null, revoked_at: null, created_at: "2026-07-19T00:00:00.000Z",
+        updated_at: "2026-07-19T00:00:00.000Z",
+      },
+    });
+    expect(event.items).toContainEqual(expect.objectContaining({
+      entity_type: "project_membership", operation: "create", field_name: null,
+    }));
+  });
+
   it("emits only persisted Project field changes and a root Row Version envelope", () => {
     const after = { ...project, name: "Updated", version: 2 };
     const event = build_project_updated_event({

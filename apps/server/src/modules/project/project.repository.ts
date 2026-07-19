@@ -3,6 +3,7 @@ import {
   ProjectNameConflictError,
   ProjectSlugConflictError,
   type Project,
+  type AuthorizedProject,
   type ProjectRepository,
   type ProjectStatus,
   type UpdateProjectInput,
@@ -65,6 +66,10 @@ const project_select = `
   created_at,
   updated_at
 `;
+const qualified_project_select = project_select.replace(
+  /^\s*([a-z_]+)/gmu,
+  "  project.$1",
+);
 
 const is_unique_violation = (error: unknown) => (
   typeof error === "object"
@@ -185,6 +190,34 @@ export const build_project_repository = (db: Queryable): ProjectRepository => ({
     `, [input.organization_id, input.status]);
 
     return result.rows.map(map_project);
+  },
+
+  async list_authorized_projects(input) {
+    const result = await db.query<ProjectRow & {
+      actor_role: "owner" | "member";
+      membership_role: "project_admin" | "editor" | "viewer" | null;
+    }>(`
+      SELECT ${qualified_project_select},
+        actor.role AS actor_role, membership.role AS membership_role
+      FROM project_schema.project project
+      INNER JOIN organization_schema.org_user actor
+        ON actor.organization_id = project.organization_id AND actor.id = $2
+        AND actor.status = 'active' AND actor.is_deleted = FALSE
+      LEFT JOIN project_schema.project_membership membership
+        ON membership.organization_id = project.organization_id
+        AND membership.project_id = project.id AND membership.org_user_id = actor.id
+        AND membership.status = 'active'
+      WHERE project.organization_id = $1 AND project.status = $3 AND project.is_deleted = FALSE
+        AND (actor.role = 'owner' OR membership.id IS NOT NULL)
+        AND ($4::text IS NULL OR $4 <> 'capture' OR actor.role = 'owner' OR membership.role IN ('project_admin', 'editor'))
+      ORDER BY project.created_at DESC, project.id DESC
+    `, [input.organization_id, input.actor_org_user_id, input.status, input.purpose ?? null]);
+    return result.rows.map((row): AuthorizedProject => ({
+      ...map_project(row),
+      access: row.actor_role === "owner"
+        ? { role: "project_admin", source: "organization_owner" }
+        : { role: row.membership_role!, source: "project_membership" },
+    }));
   },
 
   async find_project(input) {

@@ -104,4 +104,16 @@ describe("Audit schema verification", () => {
     expect(pool.query.mock.calls.at(-1)?.[0]).toContain("idx_access_event_organization_cursor");
     expect(pool.query.mock.calls.at(-1)?.[0]).toContain("audit_schema.access_event");
   });
+
+  it("verifies Project Membership and preserves the evidence verifier", async () => {
+    const pool = { query: vi.fn<(sql: string, values?: unknown[]) => Promise<{ rows: never[] }>>(async () => ({ rows: [] })) };
+    const verify = Reflect.get(verification, "verify_project_membership_schema");
+    expect(verify).toBeTypeOf("function");
+    await expect(verify(pool as never, { runtime_role: "runtime", maintenance_role: "maintenance" }))
+      .resolves.toEqual({ status: "ready" });
+    expect(pool.query.mock.calls).toHaveLength(3);
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_schema.project_membership");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_membership_owner_guard");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("chk_access_event_scoped_success");
+  });
 });

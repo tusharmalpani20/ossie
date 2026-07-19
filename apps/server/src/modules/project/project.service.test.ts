@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   build_project_service,
   EmptyProjectUpdateError,
@@ -86,6 +86,22 @@ const build_repository = (): ProjectRepository & {
 };
 
 describe("project service", () => {
+  it("returns only repository-authorized Projects with effective access", async () => {
+    const authorized = [{ ...project, access: { role: "editor" as const, source: "project_membership" as const } }];
+    const repository = {
+      ...build_repository(),
+      list_authorized_projects: vi.fn().mockResolvedValue(authorized),
+    };
+    const service = build_project_service(repository);
+    await expect(service.list_projects({
+      auth: { organization_id: "org_1", actor_org_user_id: "member_1" },
+      status: "active", purpose: "capture",
+    })).resolves.toEqual(authorized);
+    expect(repository.list_authorized_projects).toHaveBeenCalledWith({
+      organization_id: "org_1", actor_org_user_id: "member_1",
+      status: "active", purpose: "capture",
+    });
+  });
   it("creates projects using the current organization and actor org user", async () => {
     const repository = build_repository();
     const service = build_project_service(repository);

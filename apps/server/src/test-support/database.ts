@@ -90,6 +90,7 @@ export const reset_test_database = async () =>
         file_schema.file,
         organization_schema.org_invite,
         auth_schema.auth_session,
+        project_schema.project_membership,
         project_schema.project,
         organization_schema.org_user,
         organization_schema.organization,

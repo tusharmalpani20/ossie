@@ -68,4 +68,42 @@ describe("Access Event policy", () => {
 
     expect(validate(event)).toEqual(event);
   });
+
+  it.each(["project_admin", "editor", "viewer"])(
+    "accepts the %s project authorization role",
+    (authorization_role) => {
+      const validate = Reflect.get(audit_domain, "validate_access_event") as (value: unknown) => unknown;
+      const event = {
+        ...valid_event(),
+        authorization_type: "project_role",
+        authorization_role,
+      };
+
+      expect(validate(event)).toEqual(event);
+    },
+  );
+
+  it("accepts a hidden project denial without a resolved project role", () => {
+    const validate = Reflect.get(audit_domain, "validate_access_event") as (value: unknown) => unknown;
+    const event = {
+      ...valid_event(),
+      root_resource_id: null,
+      authorization_type: "project_role",
+      authorization_role: null,
+      outcome: "not_found",
+      reason_code: "not_found",
+    };
+
+    expect(validate(event)).toEqual(event);
+  });
+
+  it("rejects a successful project decision without a project role", () => {
+    const validate = Reflect.get(audit_domain, "validate_access_event") as (value: unknown) => unknown;
+
+    expect(() => validate({
+      ...valid_event(),
+      authorization_type: "project_role",
+      authorization_role: null,
+    })).toThrow();
+  });
 });
