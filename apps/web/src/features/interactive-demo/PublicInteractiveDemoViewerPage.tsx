@@ -31,8 +31,8 @@ type LoadState =
 export type PublicInteractiveDemoViewerPageProps = {
   slug: string;
   mode?: "page" | "embed";
-  loadPublishLink?: (slug: string) => Promise<PublicPublishLinkResponse>;
-  createViewerSession?: (slug: string, input: { password: string }) => Promise<void>;
+  loadPublishLink?: (slug: string, surface?: "reader" | "embed") => Promise<PublicPublishLinkResponse>;
+  createViewerSession?: (slug: string, input: { password: string }, surface?: "reader" | "embed") => Promise<void>;
 };
 
 const is_record = (value: unknown): value is Record<string, unknown> => (
@@ -189,7 +189,7 @@ export const PublicInteractiveDemoViewerPage = ({
     let active = true;
     setState({ status: "loading" });
 
-    loadPublishLink(slug)
+    loadPublishLink(slug, mode === "embed" ? "embed" : "reader")
       .then((response) => {
         if (!active) return;
         const snapshot = parse_snapshot(response.published_artifact.snapshot);
@@ -206,7 +206,7 @@ export const PublicInteractiveDemoViewerPage = ({
     return () => {
       active = false;
     };
-  }, [loadPublishLink, reloadKey, slug]);
+  }, [loadPublishLink, mode, reloadKey, slug]);
 
   if (state.status === "loading") return <PublicState message="Loading interactive demo..." mode={mode} />;
   if (state.status === "not_found") return <PublicState message="Interactive demo was not found." mode={mode} />;
@@ -244,7 +244,7 @@ const PasswordGate = ({
 }: {
   slug: string;
   mode: "page" | "embed";
-  createViewerSession: (slug: string, input: { password: string }) => Promise<void>;
+  createViewerSession: (slug: string, input: { password: string }, surface?: "reader" | "embed") => Promise<void>;
   onUnlocked: () => void;
 }) => {
   const [password, setPassword] = useState("");
@@ -258,7 +258,7 @@ const PasswordGate = ({
             Password
             <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
           </Label>
-          <Button disabled={password.length === 0} onClick={() => void createViewerSession(slug, { password }).then(onUnlocked)}>
+          <Button disabled={password.length === 0} onClick={() => void createViewerSession(slug, { password }, mode === "embed" ? "embed" : "reader").then(onUnlocked)}>
             {mode === "embed" ? "Unlock" : "Unlock demo"}
           </Button>
         </section>

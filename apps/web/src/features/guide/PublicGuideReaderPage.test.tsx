@@ -167,7 +167,7 @@ describe("PublicGuideReaderPage", () => {
     expect(screen.queryByText("file_1")).not.toBeInTheDocument();
     expect(screen.queryByText("organization_1")).not.toBeInTheDocument();
     expect(screen.queryByText("storage_key")).not.toBeInTheDocument();
-    expect(loadPublishLink).toHaveBeenCalledWith("abc123");
+    expect(loadPublishLink).toHaveBeenCalledWith("abc123", "reader");
   });
 
   it("renders public guide snapshots in embed mode with compact public layout", async () => {
@@ -184,7 +184,7 @@ describe("PublicGuideReaderPage", () => {
       "src",
       "/api/v1/public/publish-links/abc123/assets/asset_1/file"
     );
-    expect(loadPublishLink).toHaveBeenCalledWith("abc123");
+    expect(loadPublishLink).toHaveBeenCalledWith("abc123", "embed");
   });
 
   it("unlocks password protected public guides and reloads the snapshot", async () => {
@@ -207,7 +207,7 @@ describe("PublicGuideReaderPage", () => {
 
     await waitFor(() => expect(createViewerSession).toHaveBeenCalledWith("abc123", {
       password: "shared password",
-    }));
+    }, "reader"));
     expect(await screen.findByRole("heading", { name: "Department guide" })).toBeInTheDocument();
     expect(loadPublishLink).toHaveBeenCalledTimes(2);
   });

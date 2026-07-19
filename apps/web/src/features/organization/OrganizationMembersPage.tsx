@@ -229,6 +229,7 @@ export const OrganizationMembersPage = ({
           <div className={styles.eyebrow}>Organization</div>
           <h1 className={styles.title}>Organization members</h1>
         </div>
+        <a className={styles.complianceLink} href="/organization/compliance">Compliance timeline</a>
       </section>
 
       <Card className={styles.panel} aria-labelledby="invite-member-heading">

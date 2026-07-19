@@ -24,11 +24,13 @@ import {
   getProject,
   getPublicInstanceStatus,
   getPublicPublishLink,
+  getComplianceAuditEvent,
   getPublicOrganizationInvite,
   createPublicPublishViewerSession,
   login,
   listOrganizationInvites,
   listOrganizationMembers,
+  listComplianceEvents,
   listProjectScreenshotAssets,
   listProjects,
   listProjectCaptureSessions,
@@ -1289,6 +1291,7 @@ describe("api client", () => {
       {
         credentials: "include",
         headers: {
+          "X-Ossie-Access-Surface": "reader",
           accept: "application/json",
         },
       }
@@ -1567,6 +1570,7 @@ describe("api client", () => {
         method: "POST",
         credentials: "include",
         headers: {
+          "X-Ossie-Access-Surface": "reader",
           accept: "application/json",
           "content-type": "application/json",
         },
@@ -2579,6 +2583,47 @@ describe("api client", () => {
       kind: "not_found",
       type: "project_not_found",
       message: "Project was not found",
+    });
+  });
+
+  it("queries compliance pages and Audit detail with encoded inputs", async () => {
+    const response = {
+      events: [],
+      page: { next_cursor: null, has_more: false },
+      totals: {
+        audit_events: 0,
+        audit_change_items: 0,
+        access_events: 0,
+        oldest_occurred_at: null,
+        newest_occurred_at: null,
+      },
+    };
+    const fetch = vi.fn(async () => new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetch);
+
+    await listComplianceEvents({ kind: "access", cursor: "next page", limit: 10 });
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/organization/compliance/events?kind=access&cursor=next+page&limit=10",
+      expect.objectContaining({ credentials: "include" }),
+    );
+    await getComplianceAuditEvent("audit/id");
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/v1/organization/compliance/audit-events/audit%2Fid",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("maps compliance permission denials separately from authentication", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      error: { type: "compliance_permission_denied", message: "Owner required" },
+    }), { status: 403, headers: { "content-type": "application/json" } })));
+
+    await expect(listComplianceEvents()).rejects.toMatchObject({
+      kind: "forbidden",
+      type: "compliance_permission_denied",
     });
   });
 

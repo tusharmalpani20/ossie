@@ -27,6 +27,12 @@ describe("parsePortalRoute", () => {
     });
   });
 
+  it("parses the organization compliance route", () => {
+    expect(parsePortalRoute("/organization/compliance")).toEqual({
+      type: "organization_compliance",
+    });
+  });
+
   it("parses organization invite acceptance routes", () => {
     expect(parsePortalRoute("/invites/plain-token")).toEqual({
       type: "organization_invite_accept",

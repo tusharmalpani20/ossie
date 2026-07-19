@@ -151,7 +151,7 @@ describe("PublicInteractiveDemoViewerPage", () => {
     expect(await screen.findByRole("heading", { name: "Navigate to Department List" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Next scene" }));
     expect(await screen.findByRole("heading", { name: "Click Add Department" })).toBeInTheDocument();
-    expect(loadPublishLink).toHaveBeenCalledWith("demo123");
+    expect(loadPublishLink).toHaveBeenCalledWith("demo123", "reader");
   });
 
   it("renders compact public interactive demo embed mode", async () => {

@@ -34,8 +34,8 @@ type LoadState =
 export type PublicGuideReaderPageProps = {
   slug: string;
   mode?: "page" | "embed";
-  loadPublishLink?: (slug: string) => Promise<PublicPublishLinkResponse>;
-  createViewerSession?: (slug: string, input: { password: string }) => Promise<void>;
+  loadPublishLink?: (slug: string, surface?: "reader" | "embed") => Promise<PublicPublishLinkResponse>;
+  createViewerSession?: (slug: string, input: { password: string }, surface?: "reader" | "embed") => Promise<void>;
 };
 
 const is_record = (value: unknown): value is Record<string, unknown> => (
@@ -259,7 +259,7 @@ export const PublicGuideReaderPage = ({
     let active = true;
     setState({ status: "loading" });
 
-    loadPublishLink(slug)
+    loadPublishLink(slug, mode === "embed" ? "embed" : "reader")
       .then((response) => {
         if (!active) {
           return;
@@ -283,7 +283,7 @@ export const PublicGuideReaderPage = ({
     return () => {
       active = false;
     };
-  }, [loadPublishLink, reloadKey, slug]);
+  }, [loadPublishLink, mode, reloadKey, slug]);
 
   if (state.status === "loading") {
     return <PublicState message="Loading published guide..." mode={mode} />;
@@ -354,7 +354,7 @@ const PublicPasswordGate = ({
 }: {
   slug: string;
   mode: "page" | "embed";
-  createViewerSession: (slug: string, input: { password: string }) => Promise<void>;
+  createViewerSession: (slug: string, input: { password: string }, surface?: "reader" | "embed") => Promise<void>;
   onUnlocked: () => void;
 }) => {
   const [password, setPassword] = useState("");
@@ -367,7 +367,7 @@ const PublicPasswordGate = ({
     setError(null);
 
     try {
-      await createViewerSession(slug, { password });
+      await createViewerSession(slug, { password }, mode === "embed" ? "embed" : "reader");
       onUnlocked();
     } catch {
       setError("Password is incorrect.");

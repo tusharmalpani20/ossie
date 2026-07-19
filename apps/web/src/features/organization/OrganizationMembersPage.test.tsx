@@ -93,6 +93,7 @@ describe("OrganizationMembersPage", () => {
 
     expect(screen.getByText("Loading organization members...")).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Organization members" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Compliance timeline" })).toHaveAttribute("href", "/organization/compliance");
 
     const memberRows = screen.getAllByTestId("organization-member-row");
     expect(within(memberRows[0]!).getByText("Owner User")).toBeInTheDocument();

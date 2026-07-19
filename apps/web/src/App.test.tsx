@@ -474,6 +474,31 @@ describe("App", () => {
     expect(screen.getByText("No scenes yet.")).toBeInTheDocument();
   });
 
+  it("renders the setup-guarded compliance timeline route", async () => {
+    window.history.pushState({}, "", "/organization/compliance");
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url.endsWith("/api/v1/public/instance")) return jsonResponse(readyInstanceStatus);
+      if (url.endsWith("/api/v1/organization/compliance/events")) return jsonResponse({
+        events: [],
+        page: { next_cursor: null, has_more: false },
+        totals: {
+          audit_events: 0,
+          audit_change_items: 0,
+          access_events: 0,
+          oldest_occurred_at: null,
+          newest_occurred_at: null,
+        },
+      });
+      return jsonResponse({ error: { message: `Unexpected URL: ${url}` } }, 404);
+    }));
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Compliance timeline" })).toBeInTheDocument();
+    expect(await screen.findByText("No retained evidence matches this filter.")).toBeInTheDocument();
+  });
+
   it("renders public guide reader routes without portal navigation", async () => {
     window.history.pushState({}, "", "/p/abc123");
     const fetch = vi.fn(async () => new Response(JSON.stringify({
@@ -525,6 +550,7 @@ describe("App", () => {
       {
         credentials: "include",
         headers: {
+          "X-Ossie-Access-Surface": "reader",
           accept: "application/json",
         },
       }

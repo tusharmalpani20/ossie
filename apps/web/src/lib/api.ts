@@ -77,6 +77,11 @@ import type {
   FirstRunSetupResponse,
 } from "@repo/types/setup";
 import type {
+  ComplianceAuditEventDetailResponse,
+  ComplianceEventsResponse,
+  ComplianceKind,
+} from "@repo/types/compliance";
+import type {
   UploadCaptureAssetInput,
   UploadCaptureAssetResponse,
 } from "../features/capture-session/types";
@@ -111,7 +116,7 @@ export type {
 } from "@repo/types/project";
 export type { PublicInstanceStatus } from "@repo/types/instance";
 
-export type ApiClientErrorKind = "unauthenticated" | "not_found" | "validation" | "unknown";
+export type ApiClientErrorKind = "unauthenticated" | "forbidden" | "not_found" | "validation" | "unknown";
 
 type ApiErrorBody = {
   error?: {
@@ -155,6 +160,10 @@ const joinUrl = (baseUrl: string, path: string) => {
 const errorKind = (status: number, type?: string): ApiClientErrorKind => {
   if (status === 401 || type === "unauthenticated") {
     return "unauthenticated";
+  }
+
+  if (status === 403 || type === "compliance_permission_denied") {
+    return "forbidden";
   }
 
   if (status === 404 || type?.endsWith("_not_found")) {
@@ -664,16 +673,19 @@ export const updateInteractiveDemoPublishPassword = async (
 );
 
 export const getPublicPublishLink = async (
-  slug: string
+  slug: string,
+  surface: "reader" | "embed" = "reader"
 ): Promise<PublicPublishLinkResponse> => (
   requestJson<PublicPublishLinkResponse>(
-    `/api/v1/public/publish-links/${encodeURIComponent(slug)}`
+    `/api/v1/public/publish-links/${encodeURIComponent(slug)}`,
+    { headers: { "X-Ossie-Access-Surface": surface } }
   )
 );
 
 export const createPublicPublishViewerSession = async (
   slug: string,
-  input: { password: string }
+  input: { password: string },
+  surface: "reader" | "embed" = "reader"
 ): Promise<void> => (
   requestJson<void>(
     `/api/v1/public/publish-links/${encodeURIComponent(slug)}/viewer-sessions`,
@@ -681,9 +693,35 @@ export const createPublicPublishViewerSession = async (
       method: "POST",
       headers: {
         "content-type": "application/json",
+        "X-Ossie-Access-Surface": surface,
       },
       body: JSON.stringify(input),
     }
+  )
+);
+
+export const listComplianceEvents = async (input: {
+  kind?: ComplianceKind;
+  projectId?: string;
+  cursor?: string;
+  limit?: number;
+} = {}): Promise<ComplianceEventsResponse> => {
+  const query = new URLSearchParams();
+  if (input.kind && input.kind !== "all") query.set("kind", input.kind);
+  if (input.projectId) query.set("project_id", input.projectId);
+  if (input.cursor) query.set("cursor", input.cursor);
+  if (input.limit) query.set("limit", String(input.limit));
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  return requestJson<ComplianceEventsResponse>(
+    `/api/v1/organization/compliance/events${suffix}`,
+  );
+};
+
+export const getComplianceAuditEvent = async (
+  auditEventId: string,
+): Promise<ComplianceAuditEventDetailResponse> => (
+  requestJson<ComplianceAuditEventDetailResponse>(
+    `/api/v1/organization/compliance/audit-events/${encodeURIComponent(auditEventId)}`,
   )
 );
 

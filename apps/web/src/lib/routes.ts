@@ -12,6 +12,9 @@ export type PortalRoute =
     type: "organization_members";
   }
   | {
+    type: "organization_compliance";
+  }
+  | {
     type: "organization_invite_accept";
     token: string;
   }
@@ -108,6 +111,14 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
     && segments[1] === "members"
   ) {
     return { type: "organization_members" };
+  }
+
+  if (
+    segments.length === 2
+    && segments[0] === "organization"
+    && segments[1] === "compliance"
+  ) {
+    return { type: "organization_compliance" };
   }
 
   if (

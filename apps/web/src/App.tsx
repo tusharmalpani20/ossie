@@ -13,6 +13,7 @@ import { ProjectInteractiveDemoListPage } from "./features/interactive-demo/Proj
 import { PublicInteractiveDemoViewerPage } from "./features/interactive-demo/PublicInteractiveDemoViewerPage";
 import { InviteAcceptPage } from "./features/organization/InviteAcceptPage";
 import { OrganizationMembersPage } from "./features/organization/OrganizationMembersPage";
+import { ComplianceTimelinePage } from "./features/compliance/ComplianceTimelinePage";
 import { ProjectListPage } from "./features/project/ProjectListPage";
 import { ProjectSettingsPage } from "./features/project/ProjectSettingsPage";
 import { ProjectWorkspacePage } from "./features/project/ProjectWorkspacePage";
@@ -26,6 +27,7 @@ type SetupGateState = "checking" | "ready" | "setup_required" | "error";
 const setupGuardedRouteTypes = new Set<PortalRoute["type"]>([
   "project_list",
   "organization_members",
+  "organization_compliance",
   "project_workspace",
   "project_settings",
   "capture_session_detail",
@@ -183,6 +185,10 @@ export default function App() {
     return (
       <OrganizationMembersPage currentPath={currentPath} />
     );
+  }
+
+  if (route.type === "organization_compliance") {
+    return <ComplianceTimelinePage currentPath={currentPath} />;
   }
 
   if (route.type === "project_workspace") {
