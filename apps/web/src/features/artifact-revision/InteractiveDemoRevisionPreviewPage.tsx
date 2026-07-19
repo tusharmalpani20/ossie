@@ -45,6 +45,9 @@ export const InteractiveDemoRevisionPreviewPage = ({
     );
   }
   if (!value) return <p>Loading immutable Revision…</p>;
+  const assets = new Map(
+    value.capture_assets.map((asset) => [asset.id, asset]),
+  );
 
   return (
     <article className={styles.page}>
@@ -54,16 +57,47 @@ export const InteractiveDemoRevisionPreviewPage = ({
       </Alert>
       <h1>{value.revision.title}</h1>
       {value.revision.description ? <p>{value.revision.description}</p> : null}
-      {value.demo_scenes.map((scene) => (
-        <Card className={styles.card} key={scene.id}>
-          <h2>{scene.title ?? `Scene ${scene.scene_index}`}</h2>
-          {scene.description ? <p>{scene.description}</p> : null}
-          <small>
-            {scene.hotspots.length} hotspot
-            {scene.hotspots.length === 1 ? "" : "s"}
-          </small>
-        </Card>
-      ))}
+      {value.demo_scenes.map((scene) => {
+        const title = scene.title ?? `Scene ${scene.scene_index}`;
+        const asset = scene.background_capture_asset_id
+          ? assets.get(scene.background_capture_asset_id)
+          : null;
+        return (
+          <Card className={styles.card} key={scene.id}>
+            <h2>{title}</h2>
+            {scene.description ? <p>{scene.description}</p> : null}
+            {asset ? (
+              <div className={styles.assetPreview}>
+                <img
+                  alt={title}
+                  src={asset.file_url}
+                  width={asset.width ?? undefined}
+                  height={asset.height ?? undefined}
+                />
+                {scene.hotspots.map((hotspot) => (
+                  <span
+                    aria-label={
+                      hotspot.label ?? `Hotspot ${hotspot.hotspot_index}`
+                    }
+                    className={styles.hotspot}
+                    key={hotspot.id}
+                    style={{
+                      left: `${hotspot.x * 100}%`,
+                      top: `${hotspot.y * 100}%`,
+                      width: `${hotspot.width * 100}%`,
+                      height: `${hotspot.height * 100}%`,
+                    }}
+                  />
+                ))}
+              </div>
+            ) : null}
+            <small>
+              {scene.hotspots.length} hotspot
+              {scene.hotspots.length === 1 ? "" : "s"}
+            </small>
+          </Card>
+        );
+      })}
       <a href={historyHref}>Back to Revision history</a>
     </article>
   );

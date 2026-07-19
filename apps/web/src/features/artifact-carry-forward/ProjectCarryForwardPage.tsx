@@ -16,39 +16,59 @@ type Choice = {
   artifact_id: string;
   title: string;
 };
+type CarriedItem = {
+  artifact_type: "guide" | "interactive_demo";
+  artifact_id: string;
+  target_edition_id: string;
+};
 
-type RequestState = "loading" | "ready" | "saving" | "error";
+type RequestState = "idle" | "loading" | "ready" | "saving" | "error";
 
 const choiceKey = (choice: Pick<Choice, "artifact_type" | "artifact_id">) =>
   `${choice.artifact_type}:${choice.artifact_id}`;
 
 export const ProjectCarryForwardPage = ({
   projectId,
-  source,
+  target,
   versions,
   canWrite,
 }: {
   projectId: string;
-  source: ProjectVersion;
+  target: ProjectVersion;
   versions: ProjectVersion[];
   canWrite: boolean;
 }) => {
   const [choices, setChoices] = useState<Choice[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
-  const [target, setTarget] = useState("");
-  const [state, setState] = useState<RequestState>("loading");
+  const [sourceId, setSourceId] = useState("");
+  const [state, setState] = useState<RequestState>("idle");
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [blockers, setBlockers] = useState<
+    Array<{ artifact_type: string; artifact_id: string }>
+  >([]);
+  const [carriedItems, setCarriedItems] = useState<CarriedItem[]>([]);
   const retryIdentity = useRef<{ fingerprint: string; key: string } | null>(
     null,
   );
 
   useEffect(() => {
+    setChoices([]);
+    setSelected([]);
+    setMessage("");
+    setErrorMessage("");
+    setBlockers([]);
+    setCarriedItems([]);
+    retryIdentity.current = null;
+    if (!sourceId) {
+      setState("idle");
+      return;
+    }
     setState("loading");
     setErrorMessage("");
     void Promise.all([
-      listProjectGuides(projectId, source.id),
-      listProjectInteractiveDemos(projectId, source.id),
+      listProjectGuides(projectId, sourceId),
+      listProjectInteractiveDemos(projectId, sourceId),
     ])
       .then(([guides, demos]) => {
         setChoices([
@@ -69,14 +89,11 @@ export const ProjectCarryForwardPage = ({
         setErrorMessage("Could not load Editions from this Project Version.");
         setState("error");
       });
-  }, [projectId, source.id]);
+  }, [projectId, sourceId]);
 
-  const targets = useMemo(
-    () =>
-      versions.filter(
-        (value) => value.id !== source.id && value.status === "active",
-      ),
-    [source.id, versions],
+  const sources = useMemo(
+    () => versions.filter((value) => value.id !== target.id),
+    [target.id, versions],
   );
 
   const submit = async () => {
@@ -86,7 +103,11 @@ export const ProjectCarryForwardPage = ({
         artifact_type,
         artifact_id,
       }));
-    const fingerprint = JSON.stringify({ target, artifacts });
+    const fingerprint = JSON.stringify({
+      sourceId,
+      target: target.id,
+      artifacts,
+    });
     const idempotencyKey =
       retryIdentity.current?.fingerprint === fingerprint
         ? retryIdentity.current.key
@@ -96,12 +117,14 @@ export const ProjectCarryForwardPage = ({
     setState("saving");
     setMessage("");
     setErrorMessage("");
+    setBlockers([]);
+    setCarriedItems([]);
     try {
       const result = await carryForwardArtifactEditions(
         projectId,
         {
-          source_project_version_id: source.id,
-          target_project_version_id: target,
+          source_project_version_id: sourceId,
+          target_project_version_id: target.id,
           artifacts,
         },
         idempotencyKey,
@@ -109,6 +132,7 @@ export const ProjectCarryForwardPage = ({
       setMessage(
         `${result.items.length} Edition${result.items.length === 1 ? "" : "s"} carried forward${result.replayed ? " (replayed safely)" : ""}.`,
       );
+      setCarriedItems(result.items);
       setState("ready");
     } catch (error) {
       setErrorMessage(
@@ -116,6 +140,26 @@ export const ProjectCarryForwardPage = ({
           ? error.message
           : "Carry-Forward could not be completed. Resolve conflicts and retry.",
       );
+      const details =
+        error instanceof ApiClientError &&
+        error.details &&
+        typeof error.details === "object"
+          ? (error.details as { blockers?: unknown }).blockers
+          : null;
+      if (Array.isArray(details))
+        setBlockers(
+          details.filter(
+            (value): value is { artifact_type: string; artifact_id: string } =>
+              Boolean(
+                value &&
+                typeof value === "object" &&
+                typeof (value as { artifact_type?: unknown }).artifact_type ===
+                  "string" &&
+                typeof (value as { artifact_id?: unknown }).artifact_id ===
+                  "string",
+              ),
+          ),
+        );
       setState("error");
     }
   };
@@ -128,33 +172,65 @@ export const ProjectCarryForwardPage = ({
       </div>
       {!canWrite ? (
         <Alert>
-          This source remains readable, but your role cannot carry Editions
-          forward.
+          This target remains readable, but it is not writable by your role or
+          in its current lifecycle state.
         </Alert>
       ) : null}
       {message ? <Alert>{message}</Alert> : null}
       {errorMessage ? (
-        <Alert variant="destructive">{errorMessage}</Alert>
+        <Alert variant="destructive">
+          {errorMessage}
+          {blockers.length ? (
+            <ul>
+              {blockers.map((blocker) => (
+                <li key={`${blocker.artifact_type}:${blocker.artifact_id}`}>
+                  {blocker.artifact_type === "interactive_demo"
+                    ? "Interactive Demo"
+                    : "Guide"}{" "}
+                  {blocker.artifact_id}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </Alert>
       ) : null}
 
+      <p>
+        <strong>Target Project Version:</strong> {target.name}
+      </p>
       <label>
-        Target Project Version
+        Source Project Version
         <select
-          value={target}
+          value={sourceId}
           disabled={!canWrite || state === "saving"}
-          onChange={(event) => setTarget(event.target.value)}
+          onChange={(event) => setSourceId(event.target.value)}
         >
-          <option value="">Choose a target…</option>
-          {targets.map((value) => (
-            <option key={value.id} value={value.id}>
-              {value.name}
-            </option>
-          ))}
+          <option value="">Choose a source…</option>
+          <optgroup label="Active sources">
+            {sources
+              .filter((value) => value.status === "active")
+              .map((value) => (
+                <option key={value.id} value={value.id}>
+                  {value.name}
+                </option>
+              ))}
+          </optgroup>
+          {sources.some((value) => value.status === "archived") ? (
+            <optgroup label="Archived sources">
+              {sources
+                .filter((value) => value.status === "archived")
+                .map((value) => (
+                  <option key={value.id} value={value.id}>
+                    {value.name} (archived)
+                  </option>
+                ))}
+            </optgroup>
+          ) : null}
         </select>
       </label>
 
       {state === "loading" ? <p>Loading source Editions…</p> : null}
-      {state !== "loading" && choices.length === 0 ? (
+      {sourceId && state !== "loading" && choices.length === 0 ? (
         <Card className={styles.choice}>
           This Project Version has no Guide or Interactive Demo Editions to
           carry forward.
@@ -191,9 +267,34 @@ export const ProjectCarryForwardPage = ({
           );
         })}
       </div>
+      {carriedItems.length ? (
+        <Card className={styles.choice}>
+          <h2>Created target Editions</h2>
+          <ul>
+            {carriedItems.map((item) => {
+              const choice = choices.find(
+                (value) =>
+                  value.artifact_type === item.artifact_type &&
+                  value.artifact_id === item.artifact_id,
+              );
+              const segment =
+                item.artifact_type === "guide" ? "guides" : "interactive-demos";
+              return (
+                <li key={`${item.artifact_type}:${item.artifact_id}`}>
+                  <a
+                    href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(target.slug)}/${segment}/${encodeURIComponent(item.artifact_id)}`}
+                  >
+                    Open {choice?.title ?? item.artifact_id}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      ) : null}
       <Button
         disabled={
-          !canWrite || !target || selected.length === 0 || state === "saving"
+          !canWrite || !sourceId || selected.length === 0 || state === "saving"
         }
         onClick={() => void submit()}
       >

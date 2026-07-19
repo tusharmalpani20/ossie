@@ -12,3 +12,30 @@
 .card h2 {
   margin-top: 0;
 }
+.assetPreview {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin-block: 1rem;
+}
+.assetPreview img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+}
+.highlight,
+.hotspot {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.highlight {
+  border: 2px solid rgb(234 179 8);
+  background: rgb(250 204 21 / 25%);
+}
+.hotspot {
+  border: 2px solid rgb(37 99 235);
+  border-radius: 0.35rem;
+  background: rgb(59 130 246 / 20%);
+}

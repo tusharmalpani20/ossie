@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectVersion } from "@repo/types/project-version";
+import { ApiClientError } from "../../lib/api";
 import { ProjectCarryForwardPage } from "./ProjectCarryForwardPage";
 
 const api = vi.hoisted(() => ({
@@ -14,8 +15,12 @@ vi.mock("../../lib/api", async (original) => ({
   ...api,
 }));
 
-const version = (id: string, name: string): ProjectVersion =>
-  ({ id, name, slug: name.toLowerCase(), status: "active" }) as ProjectVersion;
+const version = (
+  id: string,
+  name: string,
+  status: "active" | "archived" = "active",
+): ProjectVersion =>
+  ({ id, name, slug: name.toLowerCase(), status }) as ProjectVersion;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -40,16 +45,18 @@ describe("ProjectCarryForwardPage", () => {
     render(
       <ProjectCarryForwardPage
         projectId="project_1"
-        source={version("version_1", "Main")}
+        target={version("version_2", "Next")}
         versions={[version("version_1", "Main"), version("version_2", "Next")]}
         canWrite
       />,
     );
 
-    fireEvent.change(await screen.findByLabelText("Target Project Version"), {
-      target: { value: "version_2" },
+    fireEvent.change(screen.getByLabelText("Source Project Version"), {
+      target: { value: "version_1" },
     });
-    fireEvent.click(screen.getByRole("checkbox", { name: /Account setup/i }));
+    fireEvent.click(
+      await screen.findByRole("checkbox", { name: /Account setup/i }),
+    );
     fireEvent.click(
       screen.getByRole("button", { name: "Carry forward selected" }),
     );
@@ -64,5 +71,94 @@ describe("ProjectCarryForwardPage", () => {
     expect(api.carryForwardArtifactEditions.mock.calls[0]?.[2]).toBe(
       api.carryForwardArtifactEditions.mock.calls[1]?.[2],
     );
+    expect(api.carryForwardArtifactEditions.mock.calls[0]?.[1]).toMatchObject({
+      source_project_version_id: "version_1",
+      target_project_version_id: "version_2",
+    });
+  });
+
+  it("separates archived sources and links successful target Editions", async () => {
+    api.carryForwardArtifactEditions.mockResolvedValueOnce({
+      items: [
+        {
+          artifact_type: "guide",
+          artifact_id: "guide_1",
+          target_edition_id: "edition_2",
+        },
+      ],
+      replayed: false,
+    });
+    render(
+      <ProjectCarryForwardPage
+        projectId="project_1"
+        target={version("version_2", "Next")}
+        versions={[
+          version("version_1", "Main"),
+          version("version_2", "Next"),
+          version("version_3", "Legacy", "archived"),
+        ]}
+        canWrite
+      />,
+    );
+
+    expect(
+      screen.getByRole("group", { name: "Archived sources" }),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Source Project Version"), {
+      target: { value: "version_3" },
+    });
+    fireEvent.click(
+      await screen.findByRole("checkbox", { name: /Account setup/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Carry forward selected" }),
+    );
+
+    expect(
+      await screen.findByRole("link", { name: /Open Account setup/i }),
+    ).toHaveAttribute(
+      "href",
+      "/projects/project_1/versions/next/guides/guide_1",
+    );
+  });
+
+  it("lists every target conflict blocker", async () => {
+    api.carryForwardArtifactEditions.mockRejectedValueOnce(
+      new ApiClientError({
+        kind: "unknown",
+        status: 409,
+        type: "carry_forward_target_conflict",
+        message: "Target Editions already exist",
+        details: {
+          blockers: [
+            { artifact_type: "guide", artifact_id: "guide_1" },
+            {
+              artifact_type: "interactive_demo",
+              artifact_id: "demo_1",
+            },
+          ],
+        },
+      }),
+    );
+    render(
+      <ProjectCarryForwardPage
+        projectId="project_1"
+        target={version("version_2", "Next")}
+        versions={[version("version_1", "Main"), version("version_2", "Next")]}
+        canWrite
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Source Project Version"), {
+      target: { value: "version_1" },
+    });
+    fireEvent.click(
+      await screen.findByRole("checkbox", { name: /Account setup/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Carry forward selected" }),
+    );
+
+    expect(await screen.findByText("Guide guide_1")).toBeInTheDocument();
+    expect(screen.getByText("Interactive Demo demo_1")).toBeInTheDocument();
   });
 });

@@ -43,6 +43,9 @@ export const GuideRevisionPreviewPage = ({
     );
   }
   if (!value) return <p>Loading immutable Revision…</p>;
+  const assets = new Map(
+    value.capture_assets.map((asset) => [asset.id, asset]),
+  );
 
   return (
     <article className={styles.page}>
@@ -52,14 +55,43 @@ export const GuideRevisionPreviewPage = ({
       </Alert>
       <h1>{value.revision.title}</h1>
       {value.revision.description ? <p>{value.revision.description}</p> : null}
-      {value.guide_blocks.map((block) => (
-        <Card className={styles.card} key={block.id}>
-          <h2>{block.title ?? block.step?.title ?? block.block_type}</h2>
-          {(block.body ?? block.step?.body) ? (
-            <p>{block.body ?? block.step?.body}</p>
-          ) : null}
-        </Card>
-      ))}
+      {value.guide_blocks.map((block) => {
+        const title = block.title ?? block.step?.title ?? block.block_type;
+        const asset = block.step?.display_capture_asset_id
+          ? assets.get(block.step.display_capture_asset_id)
+          : null;
+        return (
+          <Card className={styles.card} key={block.id}>
+            <h2>{title}</h2>
+            {(block.body ?? block.step?.body) ? (
+              <p>{block.body ?? block.step?.body}</p>
+            ) : null}
+            {asset && block.step && !block.step.screenshot_hidden ? (
+              <div className={styles.assetPreview}>
+                <img
+                  alt={title}
+                  src={asset.file_url}
+                  width={asset.width ?? undefined}
+                  height={asset.height ?? undefined}
+                />
+                {block.step.annotations.map((annotation) => (
+                  <span
+                    aria-label={`Highlight ${annotation.annotation_index}`}
+                    className={styles.highlight}
+                    key={annotation.id}
+                    style={{
+                      left: `${annotation.x * 100}%`,
+                      top: `${annotation.y * 100}%`,
+                      width: `${annotation.width * 100}%`,
+                      height: `${annotation.height * 100}%`,
+                    }}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </Card>
+        );
+      })}
       <a href={historyHref}>Back to Revision history</a>
     </article>
   );

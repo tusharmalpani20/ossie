@@ -267,10 +267,12 @@ export default function App() {
         {({ project, selected, versions }) => (
           <ProjectCarryForwardPage
             projectId={route.projectId}
-            source={selected}
+            target={selected}
             versions={versions}
             canWrite={
-              project.status === "active" && project.access.role !== "viewer"
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role !== "viewer"
             }
           />
         )}
@@ -372,9 +374,15 @@ export default function App() {
               captureSessionId={route.captureSessionId}
               currentPath={currentPath}
               canWrite={
-                project.status === "active" && project.access.role !== "viewer"
+                project.status === "active" &&
+                project.default_project_version.status === "active" &&
+                project.access.role !== "viewer"
               }
-              canPurge={project.access.role === "project_admin"}
+              canPurge={
+                project.status === "active" &&
+                project.default_project_version.status === "active" &&
+                project.access.role === "project_admin"
+              }
             />
           )}
         </LegacyProjectRedirect>
@@ -397,7 +405,11 @@ export default function App() {
               selected.status === "active" &&
               project.access.role !== "viewer"
             }
-            canPurge={project.access.role === "project_admin"}
+            canPurge={
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role === "project_admin"
+            }
             isDefaultVersion={selected.is_default}
           />
         )}

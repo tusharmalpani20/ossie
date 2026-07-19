@@ -28,14 +28,36 @@ describe("InteractiveDemoRevisionPreviewPage", () => {
           source_capture_session_id: null,
           source_capture_event_id: null,
           source_capture_asset_id: null,
-          background_capture_asset_id: null,
+          background_capture_asset_id: "01J00000000000000000000005",
           scene_index: 1,
           title: "Frozen scene",
           description: "Immutable scene body",
-          hotspots: [],
+          hotspots: [
+            {
+              id: "01J00000000000000000000006",
+              hotspot_type: "info",
+              label: "Open details",
+              content: null,
+              x: 0.1,
+              y: 0.2,
+              width: 0.2,
+              height: 0.1,
+              hotspot_index: 1,
+              transition: null,
+            },
+          ],
         },
       ],
-      capture_assets: [],
+      capture_assets: [
+        {
+          id: "01J00000000000000000000005",
+          status: "archived",
+          file_url: "/api/demo-revision-asset.png",
+          mime_type: "image/png",
+          width: 1200,
+          height: 800,
+        },
+      ],
     });
 
     render(
@@ -52,7 +74,12 @@ describe("InteractiveDemoRevisionPreviewPage", () => {
       await screen.findByRole("heading", { name: "Immutable demo" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Immutable scene body")).toBeInTheDocument();
-    expect(screen.getByText("0 hotspots")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Frozen scene" })).toHaveAttribute(
+      "src",
+      "/api/demo-revision-asset.png",
+    );
+    expect(screen.getByLabelText("Open details")).toBeInTheDocument();
+    expect(screen.getByText("1 hotspot")).toBeInTheDocument();
     expect(getArtifactRevision).toHaveBeenCalledWith(
       expect.objectContaining({
         artifactType: "interactive_demo",

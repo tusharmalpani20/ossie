@@ -31,8 +31,42 @@ describe("GuideRevisionPreviewPage", () => {
           block_index: 1,
           step: null,
         },
+        {
+          id: "01J00000000000000000000005",
+          block_type: "step",
+          title: null,
+          body: null,
+          block_index: 2,
+          step: {
+            id: "01J00000000000000000000006",
+            display_capture_asset_id: "01J00000000000000000000007",
+            screenshot_hidden: false,
+            title: "Frozen screenshot",
+            body: null,
+            annotations: [
+              {
+                id: "01J00000000000000000000008",
+                annotation_type: "highlight",
+                annotation_index: 1,
+                x: 0.1,
+                y: 0.2,
+                width: 0.3,
+                height: 0.2,
+              },
+            ],
+          },
+        },
       ],
-      capture_assets: [],
+      capture_assets: [
+        {
+          id: "01J00000000000000000000007",
+          status: "archived",
+          file_url: "/api/revision-asset.png",
+          mime_type: "image/png",
+          width: 1200,
+          height: 800,
+        },
+      ],
     });
 
     render(
@@ -49,6 +83,10 @@ describe("GuideRevisionPreviewPage", () => {
       await screen.findByRole("heading", { name: "Immutable guide" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Frozen body")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Frozen screenshot" }),
+    ).toHaveAttribute("src", "/api/revision-asset.png");
+    expect(screen.getByLabelText("Highlight 1")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Back to Revision history" }),
     ).toHaveAttribute("href", "/history");

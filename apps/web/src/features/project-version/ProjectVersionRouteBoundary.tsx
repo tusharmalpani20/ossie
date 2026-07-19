@@ -166,10 +166,14 @@ const VersionWorkspace = ({ project, selected }: Loaded) => (
         title="Capture sessions"
         href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/capture-sessions`}
       />
-      <WorkspaceLink
-        title="Carry Forward Editions"
-        href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/carry-forward`}
-      />
+      {project.status === "active" &&
+      selected.status === "active" &&
+      project.access.role !== "viewer" ? (
+        <WorkspaceLink
+          title="Carry Forward Editions"
+          href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/carry-forward`}
+        />
+      ) : null}
       <WorkspaceLink
         title="Guides"
         href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/guides`}

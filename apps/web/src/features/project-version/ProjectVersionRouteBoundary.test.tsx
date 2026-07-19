@@ -122,6 +122,36 @@ describe("ProjectVersionRouteBoundary", () => {
     expect(screen.getByText(/Archived Project Version/i)).toBeInTheDocument();
   });
 
+  it("hides Carry-Forward when the target Version is archived or the member is a Viewer", async () => {
+    api.resolveProjectVersion.mockResolvedValue({
+      project_version: { ...version, status: "archived" },
+      resolution: "canonical",
+    });
+    const { unmount } = render(
+      <ProjectVersionRouteBoundary projectId="project_1" versionSlug="main" />,
+    );
+    await screen.findByText(/Archived Project Version/i);
+    expect(
+      screen.queryByRole("link", { name: "Open carry forward editions" }),
+    ).not.toBeInTheDocument();
+    unmount();
+
+    api.resolveProjectVersion.mockResolvedValue({
+      project_version: version,
+      resolution: "canonical",
+    });
+    api.getProject.mockResolvedValue({
+      project: { ...project, access: { role: "viewer" } },
+    });
+    render(
+      <ProjectVersionRouteBoundary projectId="project_1" versionSlug="main" />,
+    );
+    await screen.findByRole("heading", { name: "Main" });
+    expect(
+      screen.queryByRole("link", { name: "Open carry forward editions" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("canonicalizes an alias without accepting an external redirect", async () => {
     const replace = vi.fn();
     api.resolveProjectVersion.mockResolvedValue({
