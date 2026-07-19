@@ -66,7 +66,8 @@ Baseline reviewed on 2026-07-10:
   same-transaction database guards. Child `114` adds explicit relational Access
   Evidence, fail-closed protected reads, and the Owner-only combined compliance
   timeline. Project-role visibility remains child `115` scope.
-- Current migrations end at `017_access_evidence_and_compliance_timelines.sql`. Migration `015` implements the
+- Current migrations end at `018_access_evidence_constraint_hardening.sql`.
+  Migration `015` implements the
   accepted clean pre-live transition and refuses populated User or Organization
   data; no production-row backfill exists.
 - The repository is pre-live. There are no production records, external API clients, or deployed public links requiring data-preserving compatibility; development/test databases may be reset and reseeded for the clean target model.
@@ -922,8 +923,10 @@ Acceptance:
 
 ### 114: Access Evidence And Compliance Timelines
 
-Status: Complete on 2026-07-19. Implementation, focused/DB/smoke/broad checks,
-and bounded agent-browser validation passed.
+Status: Complete after close-previous audit on 2026-07-19. Implementation and
+focused/DB/smoke/broad checks passed; the available real-browser matrix passed,
+with unpacked-toolbar and injected-writer browser capabilities honestly blocked
+in child `114`.
 
 Planned file:
 

@@ -120,5 +120,20 @@ or extension evidence.
 ## Leftovers And Handoff
 
 - Expansion/recheck remains required.
+- Start from the closed child `114` baseline at migration
+  `018_access_evidence_constraint_hardening.sql`. Preserve its exact registered
+  method/template/outcome action validation, successful resolved-root CHECK,
+  response re-entry completion marker, Owner-wide upper boundary, and mandatory
+  Organization predicates.
+- Add Project-role authorization literals and database constraints through the
+  next additive migration before emitting them; do not overload current
+  Organization `owner | member` evidence.
+- Register every membership/read/denial route in
+  `ACCESS_ROUTE_COVERAGE_REGISTRY`; coverage must fail before an unclassified
+  route ships.
+- Real toolbar-popup and browser-injected writer validation remain honestly
+  blocked environment capabilities from child `114`, not permission semantics
+  for this child. Preserve fail-closed behavior and use available real browser
+  evidence without making an unsupported toolbar claim.
 - Next executable child is determined by the parent sequence and verified
   predecessor closeouts; this reservation does not advance that sequence.

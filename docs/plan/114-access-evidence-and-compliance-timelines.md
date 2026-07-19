@@ -6,8 +6,10 @@ Date expanded: 2026-07-19
 
 Last rechecked: 2026-07-19
 
-Status: Complete on 2026-07-19. Implementation, database verification, broad
-checks, and bounded agent-browser validation passed.
+Status: Complete after close-previous audit on 2026-07-19. Implementation,
+focused/database/smoke/broad verification, and the available real-browser matrix
+passed; unavailable extension and injected-writer browser capabilities are
+recorded explicitly below.
 
 Parent plan:
 
@@ -395,6 +397,13 @@ Migration and rollback rules:
   expected to roll back destructively. Disposable development/test databases
   may reset/reseed; an operator must back up and make any exceptional maintenance
   decision outside application runtime.
+
+Closeout recheck found that the planned scoped-success database invariant was
+missing after `017` had already shipped. It is corrected compatibly by additive
+`018_access_evidence_constraint_hardening.sql`, which requires a resolved
+`root_resource_id` for every successful Access Event. `018` does not rewrite
+`017`, change retained rows, or add a destructive rollback path; its DOWN drops
+only that named CHECK.
 
 ## Request Context, Coverage Registry, And Write Timing
 
@@ -931,6 +940,8 @@ edge is the existing workspace `@repo/audit-domain -> @repo/constants` dependenc
 Create:
 
 - `apps/server/src/db/migrations/017_access_evidence_and_compliance_timelines.sql`
+- `apps/server/src/db/migrations/018_access_evidence_constraint_hardening.sql`
+- `apps/server/src/modules/access/access-atomic.ts`
 - `apps/server/src/modules/access/access-request-context.ts`
 - `apps/server/src/modules/access/access-request-context.test.ts`
 - `apps/server/src/modules/access/access-coverage-registry.ts`
@@ -1163,7 +1174,7 @@ rtk pnpm --filter server test:smoke
 
 Database assertions:
 
-- clean migration through `017` and schema verification ready;
+- clean migration through `018` and schema verification ready;
 - exact columns/types, no JSON/JSONB, named checks/FKs/indexes/triggers;
 - runtime SELECT/INSERT allowed and UPDATE/DELETE/TRUNCATE/trigger bypass denied;
 - maintenance ownership and runtime non-membership;
@@ -1336,7 +1347,7 @@ Implementation/closeout:
 
 ## Implementation Log
 
-Implemented in four logical commits:
+Implemented in four original logical commits plus one closeout-hardening commit:
 
 - `8f9f7e1` (`feat(server): add append-only access evidence`) added the Access
   literal/domain contract, strict validation, registered-action boundary,
@@ -1352,42 +1363,69 @@ Implemented in four logical commits:
   `/organization/compliance` page, member-page discovery link, filters, retained
   evidence totals, pagination, typed Audit disclosure, Access context, distinct
   auth/permission/error states, responsive behavior, and public surface headers.
+- `e031379` (`fix(compliance): harden access evidence closeout`) corrected
+  reader/embed and extension surface attribution, bound every HTTP Access action
+  to its exact registered method/template/outcome, prevented `onSend` re-entry
+  from duplicating one logical request, strictly rejected malformed compliance
+  IDs/cursors before repository access, added successful-root validation and
+  additive migration `018`, and expanded DB smoke coverage for public download,
+  Owner/Member compliance access, Audit detail, and later-refresh self-access.
 
 Implementation also corrected a discovered compatibility regression: public
 Publish Link lookup now resolves trusted tenant context before policy evaluation,
 while revoked links and their assets retain their previous public not-found
 behavior. No Project Membership or future Project-role behavior was introduced.
 
+Directly related file-list deviations are explicit: `access-atomic.ts` owns the
+one shared atomic companion instead of scattering calls through 53 adapters;
+existing app-integration harnesses received only the required writer stub;
+`audit-source-coverage.test.ts` covers the new runtime insert source; and
+additive migration `018` closes the scoped-success CHECK without rewriting the
+already-applied `017` history.
+
 ## Verification Record
 
 Planning verification is retained above. Implementation verification:
 
 - `rtk pnpm --filter @repo/constants test`: passed, 3 tests.
-- `rtk pnpm --filter @repo/audit-domain test`: passed, 42 tests.
+- `rtk pnpm --filter @repo/audit-domain test`: passed, 43 tests.
 - `rtk pnpm --filter @repo/types test`: passed, 39 tests.
-- `rtk pnpm --filter server test`: passed, 75 files / 362 tests.
+- `rtk pnpm --filter server test`: passed, 75 files / 370 tests.
 - `rtk pnpm --filter web test`: passed, 27 files / 313 tests.
 - Disposable PostgreSQL 16 run with distinct synthetic maintenance/runtime
-  roles: migrations `001` through `017` passed; the complete configured DB set
+  roles: migrations `001` through `018` passed; the complete configured DB set
   passed, 14 files / 59 tests; populated `017` DOWN refused with
   `Refusing to remove populated Access Evidence`; after maintenance-only
   truncation, empty DOWN and re-UP/catalog verification passed.
-- `src/smoke/v1-workflows.db.integration.test.ts`: passed, 1 test, against the
-  same disposable migrated database. The database was dropped and the helper
-  container stopped after verification.
+- `src/smoke/v1-workflows.db.integration.test.ts`: passed, 1 end-to-end test,
+  against the same disposable migrated database. It now asserts reader/embed
+  surface rows, public asset bytes/size, Member 403 evidence, Owner combined
+  timeline, Audit detail, and later-refresh timeline/detail self-access. The
+  database was dropped and the helper container stopped after verification.
 - `rtk pnpm check-types`, `rtk pnpm lint`, `rtk pnpm build`, and
   `rtk git diff --check`: passed. Server and web focused lint checks were clean.
-- `agent-browser` 0.27.1 against the local Vite portal with synthetic response
-  fixtures: mixed Audit/Access ordering and totals rendered; kind selection sent
-  the normalized `kind=access` request; keyboard focus + Space opened the native
-  Audit disclosure and rendered `redacted -> Synthetic project`; desktop and
-  390x844 mobile screenshots rendered without console/app errors; measured
-  mobile and 200% CSS-zoom reflow had `scrollWidth === clientWidth`.
-- A real browser Owner-versus-Member database session was not repeated because
-  the repository `.env-cmdrc` lacks maintenance profiles. Server route/service,
-  API-client, and component tests cover 401/403 behavior; the real PostgreSQL
-  suite proves Owner scoping and cross-tenant isolation. No permission evidence
-  was fabricated from the browser interception layer.
+- `agent-browser` 0.27.1 against real local server/web processes and a disposable
+  PostgreSQL 16 database: an Owner navigated Organization members -> Compliance
+  timeline; mixed evidence, totals, filtering, a keyboard-opened Audit
+  disclosure, and later self-access rows rendered. A current Member saw the
+  Owner-required state with a real 403/no rows; an anonymous session saw sign-in
+  with a real 401/no rows. Reader and embed rendered through real 200 API calls;
+  password-required, wrong-password, accepted-password, expired (410),
+  restricted (403), and revoked/not-found (404) states rendered, and the Owner
+  timeline showed safe outcomes/surfaces without secret input. At 390x844 and
+  200% CSS zoom, `scrollWidth === clientWidth`; no compliance-page console or
+  uncaught browser errors occurred.
+- The browser run exposed and closed two defects: reader/embed headers used
+  unrecognized values, and `onSend` re-entry could append twice for one request.
+  The latter now has a request-local completion marker and regression test.
+- Real unpacked-extension attribution was not repeated: agent-browser cannot
+  reliably control the Chrome toolbar popup in this environment. The existing
+  normalized-header tests and prior extension evidence remain the bounded
+  fallback; no toolbar claim is made.
+- A browser-launched server with an injected failing Access writer is not an
+  available production startup mode. Protected JSON and stream replacement/no-
+  byte behavior passed app/hook tests; this specific browser injection remains
+  blocked rather than represented by network interception.
 
 Historical planning verification:
 
@@ -1453,6 +1491,15 @@ Additional implementation handoff:
   fail until every new operation is classified.
 - Migrate the typed `authorization_role` constraint before emitting Project
   Admin/Editor/Viewer context; do not overload the current Organization role.
+- Begin child `115` from migration `018_access_evidence_constraint_hardening.sql`.
+  Its next migration must preserve `chk_access_event_scoped_success` while
+  extending authorization roles deliberately.
+- Preserve exact method/template/outcome-to-action validation and the
+  request-local response completion marker when new membership routes and
+  denial paths are registered.
+- The two browser capability blocks above are validation-environment debt, not
+  permission semantics for child `115`; do not weaken fail-closed behavior to
+  make either harness easier.
 - Reuse the compliance service's pre-query authorization gate and repository
   Organization predicate. Add the accepted Project filter above those layers,
   never in the UI alone.

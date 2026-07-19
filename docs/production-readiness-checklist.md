@@ -56,6 +56,8 @@ rtk pnpm --filter server run migrate:up
 
 - [ ] Run `rtk pnpm --filter server migrate:status` with maintenance
       credentials and confirm `audit_schema.status` is `ready`.
+- [ ] Confirm migration `018_access_evidence_constraint_hardening.sql` is
+      executed and `chk_access_event_scoped_success` is present.
 - [ ] Start the API with runtime credentials only; do not reuse the migration
       process environment.
 - [ ] Before reopening writes, confirm catalog verification covers all current

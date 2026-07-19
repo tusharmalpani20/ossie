@@ -81,16 +81,42 @@ Use a maintenance-capable connection for the dump and confirm that it includes
 Evidence are retained for the lifetime of their Organization; there is no
 supported cleanup or row-deletion command.
 
-Monitor physical evidence growth with operator credentials; the portal totals
-are logical row counts, not storage size:
+Monitor physical evidence growth with operator credentials. Track the three
+evidence relations separately so table and index growth are both visible:
 
 ```sql
-SELECT relname,
-  pg_size_pretty(pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(relname))) AS total_size
-FROM pg_stat_user_tables
-WHERE schemaname = 'audit_schema'
-ORDER BY pg_total_relation_size(quote_ident(schemaname) || '.' || quote_ident(relname)) DESC;
+SELECT relation,
+  pg_size_pretty(pg_relation_size(relation)) AS table_size,
+  pg_size_pretty(pg_indexes_size(relation)) AS indexes_size,
+  pg_size_pretty(pg_total_relation_size(relation)) AS total_size
+FROM unnest(ARRAY[
+  'audit_schema.audit_event'::regclass,
+  'audit_schema.audit_change_item'::regclass,
+  'audit_schema.access_event'::regclass
+]) AS relation
+ORDER BY pg_total_relation_size(relation) DESC;
 ```
+
+Compare physical size with logical retained-evidence counts:
+
+```sql
+SELECT evidence_kind, retained_rows
+FROM (
+  SELECT 'audit_event' AS evidence_kind, COUNT(*) AS retained_rows
+    FROM audit_schema.audit_event
+  UNION ALL
+  SELECT 'audit_change_item', COUNT(*)
+    FROM audit_schema.audit_change_item
+  UNION ALL
+  SELECT 'access_event', COUNT(*)
+    FROM audit_schema.access_event
+) AS evidence_counts
+ORDER BY evidence_kind;
+```
+
+Growth is a capacity-planning and alerting signal. It is not an instruction to
+delete retained evidence, and neither these queries nor the portal totals are a
+compliance-certification check.
 
 Example local storage backup:
 
@@ -180,6 +206,13 @@ server and web together so protected responses can fail closed when Access
 Evidence is unavailable and the Owner timeline consumes the matching contracts.
 Its DOWN refuses a populated `audit_schema.access_event`; there is no supported
 automatic deletion of retained Access Evidence.
+
+Migration `018_access_evidence_constraint_hardening.sql` additively requires a
+resolved logical root for every successful Access Event. It rewrites neither
+`017` nor retained rows; migration will stop safely if an older writer inserted
+an invalid successful row. Resolve that data inconsistency through an explicit
+operator-reviewed maintenance process before retrying. DOWN removes only the
+named scoped-success CHECK and does not remove evidence.
 
 Before upgrading:
 
