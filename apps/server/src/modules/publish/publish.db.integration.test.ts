@@ -7,27 +7,33 @@ import { build } from "../../app";
 import { pool } from "../../config/database.config";
 import { reset_test_database } from "../../test-support/database";
 
-const multipart_payload = (parts: Array<{
-  name: string;
-  value: string | Buffer;
-  filename?: string;
-  content_type?: string;
-}>) => {
+const multipart_payload = (
+  parts: Array<{
+    name: string;
+    value: string | Buffer;
+    filename?: string;
+    content_type?: string;
+  }>,
+) => {
   const boundary = "----ossie-publish-test-boundary";
   const chunks: Buffer[] = [];
 
   for (const part of parts) {
     chunks.push(Buffer.from(`--${boundary}\r\n`));
-    chunks.push(Buffer.from(
-      `Content-Disposition: form-data; name="${part.name}"${
-        part.filename ? `; filename="${part.filename}"` : ""
-      }\r\n`
-    ));
+    chunks.push(
+      Buffer.from(
+        `Content-Disposition: form-data; name="${part.name}"${
+          part.filename ? `; filename="${part.filename}"` : ""
+        }\r\n`,
+      ),
+    );
     if (part.content_type) {
       chunks.push(Buffer.from(`Content-Type: ${part.content_type}\r\n`));
     }
     chunks.push(Buffer.from("\r\n"));
-    chunks.push(Buffer.isBuffer(part.value) ? part.value : Buffer.from(part.value));
+    chunks.push(
+      Buffer.isBuffer(part.value) ? part.value : Buffer.from(part.value),
+    );
     chunks.push(Buffer.from("\r\n"));
   }
 
@@ -61,7 +67,10 @@ const setup_owner = async () => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  return response.cookies.find((cookie) => cookie.name === "ossie_session")?.value ?? "";
+  return (
+    response.cookies.find((cookie) => cookie.name === "ossie_session")?.value ??
+    ""
+  );
 };
 
 const create_project = async (session_token: string) => {
@@ -75,10 +84,18 @@ const create_project = async (session_token: string) => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  return response.json().project.id as string;
+  return {
+    project_id: response.json().project.id as string,
+    project_version_id: response.json().project.default_project_version
+      .id as string,
+  };
 };
 
-const create_capture_session = async (session_token: string, project_id: string) => {
+const create_capture_session = async (
+  session_token: string,
+  project_id: string,
+  project_version_id: string,
+) => {
   const app = build({ logger: false });
   const response = await app.inject({
     method: "POST",
@@ -86,7 +103,8 @@ const create_capture_session = async (session_token: string, project_id: string)
     cookies: { ossie_session: session_token },
     payload: {
       name: "Create department workflow",
-      source_type: "extension",
+      project_version_id,
+      source_type: "manual",
     },
   });
 
@@ -99,7 +117,7 @@ const upload_capture_asset = async (
   session_token: string,
   project_id: string,
   capture_session_id: string,
-  bytes: Buffer
+  bytes: Buffer,
 ) => {
   const app = build({ logger: false });
   const response = await app.inject({
@@ -129,7 +147,7 @@ const create_capture_event = async (
   session_token: string,
   project_id: string,
   capture_session_id: string,
-  capture_asset_id: string
+  capture_asset_id: string,
 ) => {
   const app = build({ logger: false });
   const response = await app.inject({
@@ -180,10 +198,25 @@ describe("DB-backed guide publishing API", () => {
   it("publishes resolves and streams an interactive demo snapshot", async () => {
     const bytes = Buffer.from("fake demo png bytes");
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id);
-    const capture_asset_id = await upload_capture_asset(session_token, project_id, capture_session_id, bytes);
-    await create_capture_event(session_token, project_id, capture_session_id, capture_asset_id);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+      project_version_id,
+    );
+    const capture_asset_id = await upload_capture_asset(
+      session_token,
+      project_id,
+      capture_session_id,
+      bytes,
+    );
+    await create_capture_event(
+      session_token,
+      project_id,
+      capture_session_id,
+      capture_asset_id,
+    );
     const app = build({ logger: false });
 
     const create_demo_response = await app.inject({
@@ -193,7 +226,8 @@ describe("DB-backed guide publishing API", () => {
       payload: {},
     });
     expect(create_demo_response.statusCode).toBe(201);
-    const interactive_demo_id = create_demo_response.json().interactive_demo.id as string;
+    const interactive_demo_id = create_demo_response.json().interactive_demo
+      .id as string;
     const scene_id = create_demo_response.json().demo_scenes[0].id as string;
 
     const create_hotspot_response = await app.inject({
@@ -231,7 +265,9 @@ describe("DB-backed guide publishing API", () => {
       url: `/api/v1/public/publish-links/${slug}`,
     });
     expect(public_response.statusCode).toBe(200);
-    expect(public_response.json().publish_link.artifact_type).toBe("interactive_demo");
+    expect(public_response.json().publish_link.artifact_type).toBe(
+      "interactive_demo",
+    );
     expect(public_response.json().published_artifact.snapshot).toMatchObject({
       artifact_type: "interactive_demo",
       schema_version: 1,
@@ -239,21 +275,27 @@ describe("DB-backed guide publishing API", () => {
         id: interactive_demo_id,
         title: "Create department workflow",
       },
-      scenes: [{
-        id: scene_id,
-        scene_index: 1,
-        background_asset: {
-          id: capture_asset_id,
-          file_url: `/api/v1/public/publish-links/${slug}/assets/${capture_asset_id}/file`,
+      scenes: [
+        {
+          id: scene_id,
+          scene_index: 1,
+          background_asset: {
+            id: capture_asset_id,
+            file_url: `/api/v1/public/publish-links/${slug}/assets/${capture_asset_id}/file`,
+          },
+          hotspots: [
+            {
+              hotspot_type: "info",
+              label: "Read first",
+              content: "Check the list before continuing.",
+            },
+          ],
         },
-        hotspots: [{
-          hotspot_type: "info",
-          label: "Read first",
-          content: "Check the list before continuing.",
-        }],
-      }],
+      ],
     });
-    expect(JSON.stringify(public_response.json())).not.toContain("organization_id");
+    expect(JSON.stringify(public_response.json())).not.toContain(
+      "organization_id",
+    );
     expect(JSON.stringify(public_response.json())).not.toContain("storage_key");
 
     const public_asset_response = await app.inject({
@@ -270,10 +312,25 @@ describe("DB-backed guide publishing API", () => {
   it("publishes republishes resolves streams and revokes a guide snapshot", async () => {
     const bytes = Buffer.from("fake png bytes");
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id);
-    const capture_asset_id = await upload_capture_asset(session_token, project_id, capture_session_id, bytes);
-    await create_capture_event(session_token, project_id, capture_session_id, capture_asset_id);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+      project_version_id,
+    );
+    const capture_asset_id = await upload_capture_asset(
+      session_token,
+      project_id,
+      capture_session_id,
+      bytes,
+    );
+    await create_capture_event(
+      session_token,
+      project_id,
+      capture_session_id,
+      capture_asset_id,
+    );
 
     const app = build({ logger: false });
     const create_guide_response = await app.inject({
@@ -308,7 +365,9 @@ describe("DB-backed guide publishing API", () => {
       url: `/api/v1/public/publish-links/${slug}`,
     });
     expect(public_response.statusCode).toBe(200);
-    expect(public_response.json().published_artifact.snapshot.blocks[0].source_asset).toMatchObject({
+    expect(
+      public_response.json().published_artifact.snapshot.blocks[0].source_asset,
+    ).toMatchObject({
       id: capture_asset_id,
       file_url: `/api/v1/public/publish-links/${slug}/assets/${capture_asset_id}/file`,
       file: {
@@ -318,8 +377,12 @@ describe("DB-backed guide publishing API", () => {
       },
     });
     expect(JSON.stringify(public_response.json())).not.toContain("storage_key");
-    expect(JSON.stringify(public_response.json())).not.toContain("private_note");
-    expect(JSON.stringify(public_response.json())).not.toContain("organization_id");
+    expect(JSON.stringify(public_response.json())).not.toContain(
+      "private_note",
+    );
+    expect(JSON.stringify(public_response.json())).not.toContain(
+      "organization_id",
+    );
 
     const public_asset_response = await app.inject({
       method: "GET",
@@ -327,7 +390,9 @@ describe("DB-backed guide publishing API", () => {
     });
     expect(public_asset_response.statusCode).toBe(200);
     expect(public_asset_response.headers["content-type"]).toBe("image/png");
-    expect(public_asset_response.headers["content-length"]).toBe(String(bytes.length));
+    expect(public_asset_response.headers["content-length"]).toBe(
+      String(bytes.length),
+    );
     expect(public_asset_response.body).toBe(bytes.toString());
 
     const restrict_response = await app.inject({
@@ -352,14 +417,18 @@ describe("DB-backed guide publishing API", () => {
       url: `/api/v1/public/publish-links/${slug}`,
     });
     expect(restricted_public_response.statusCode).toBe(403);
-    expect(restricted_public_response.json().error.type).toBe("publish_link_not_public");
+    expect(restricted_public_response.json().error.type).toBe(
+      "publish_link_not_public",
+    );
 
     const restricted_asset_response = await app.inject({
       method: "GET",
       url: `/api/v1/public/publish-links/${slug}/assets/${capture_asset_id}/file`,
     });
     expect(restricted_asset_response.statusCode).toBe(403);
-    expect(restricted_asset_response.json().error.type).toBe("publish_link_not_public");
+    expect(restricted_asset_response.json().error.type).toBe(
+      "publish_link_not_public",
+    );
 
     const expired_at = new Date(Date.now() - 60_000).toISOString();
     const expire_response = await app.inject({
@@ -383,7 +452,9 @@ describe("DB-backed guide publishing API", () => {
       url: `/api/v1/public/publish-links/${slug}`,
     });
     expect(expired_public_response.statusCode).toBe(410);
-    expect(expired_public_response.json().error.type).toBe("publish_link_expired");
+    expect(expired_public_response.json().error.type).toBe(
+      "publish_link_expired",
+    );
 
     const reopen_response = await app.inject({
       method: "PATCH",
@@ -416,15 +487,21 @@ describe("DB-backed guide publishing API", () => {
       },
     });
     expect(set_password_response.statusCode).toBe(200);
-    expect(set_password_response.json().publish_link.password_protected).toBe(true);
-    expect(JSON.stringify(set_password_response.json())).not.toContain("shared password");
+    expect(set_password_response.json().publish_link.password_protected).toBe(
+      true,
+    );
+    expect(JSON.stringify(set_password_response.json())).not.toContain(
+      "shared password",
+    );
 
     const protected_public_response = await app.inject({
       method: "GET",
       url: `/api/v1/public/publish-links/${slug}`,
     });
     expect(protected_public_response.statusCode).toBe(401);
-    expect(protected_public_response.json().error.type).toBe("publish_link_password_required");
+    expect(protected_public_response.json().error.type).toBe(
+      "publish_link_password_required",
+    );
 
     const wrong_password_response = await app.inject({
       method: "POST",
@@ -434,7 +511,9 @@ describe("DB-backed guide publishing API", () => {
       },
     });
     expect(wrong_password_response.statusCode).toBe(400);
-    expect(wrong_password_response.json().error.type).toBe("invalid_public_viewer_password");
+    expect(wrong_password_response.json().error.type).toBe(
+      "invalid_public_viewer_password",
+    );
 
     const viewer_session_response = await app.inject({
       method: "POST",
@@ -444,8 +523,10 @@ describe("DB-backed guide publishing API", () => {
       },
     });
     expect(viewer_session_response.statusCode).toBe(204);
-    const viewer_token = viewer_session_response.cookies
-      .find((cookie) => cookie.name === "ossie_public_viewer")?.value ?? "";
+    const viewer_token =
+      viewer_session_response.cookies.find(
+        (cookie) => cookie.name === "ossie_public_viewer",
+      )?.value ?? "";
     expect(viewer_token).not.toBe("");
 
     const unlocked_public_response = await app.inject({
@@ -454,7 +535,9 @@ describe("DB-backed guide publishing API", () => {
       cookies: { ossie_public_viewer: viewer_token },
     });
     expect(unlocked_public_response.statusCode).toBe(200);
-    expect(unlocked_public_response.json().publish_link.password_protected).toBe(true);
+    expect(
+      unlocked_public_response.json().publish_link.password_protected,
+    ).toBe(true);
 
     const unlocked_asset_response = await app.inject({
       method: "GET",
@@ -490,7 +573,9 @@ describe("DB-backed guide publishing API", () => {
       },
     });
     expect(clear_password_response.statusCode).toBe(200);
-    expect(clear_password_response.json().publish_link.password_protected).toBe(false);
+    expect(clear_password_response.json().publish_link.password_protected).toBe(
+      false,
+    );
 
     const cleared_public_response = await app.inject({
       method: "GET",
@@ -525,7 +610,8 @@ describe("DB-backed guide publishing API", () => {
       title: string;
       version_number: number;
       snapshot_title: string;
-    }>(`
+    }>(
+      `
       SELECT
         title,
         version_number,
@@ -533,7 +619,9 @@ describe("DB-backed guide publishing API", () => {
       FROM publish_schema.published_artifact
       WHERE artifact_id = $1
       ORDER BY version_number ASC
-    `, [guide_id]);
+    `,
+      [guide_id],
+    );
     expect(snapshot_rows.rows).toEqual([
       {
         title: "Department setup guide",
@@ -567,8 +655,12 @@ describe("DB-backed guide publishing API", () => {
       cookies: { ossie_session: session_token },
     });
     expect(after_revoke_publish_response.statusCode).toBe(201);
-    expect(after_revoke_publish_response.json().publish_link.slug).not.toBe(slug);
-    expect(after_revoke_publish_response.json().published_artifact.version_number).toBe(3);
+    expect(after_revoke_publish_response.json().publish_link.slug).not.toBe(
+      slug,
+    );
+    expect(
+      after_revoke_publish_response.json().published_artifact.version_number,
+    ).toBe(3);
 
     const archive_response = await app.inject({
       method: "PATCH",
@@ -585,9 +677,12 @@ describe("DB-backed guide publishing API", () => {
       cookies: { ossie_session: session_token },
     });
     expect(archived_publish_response.statusCode).toBe(409);
-    expect(archived_publish_response.json().error.type).toBe("guide_not_publishable");
+    expect(archived_publish_response.json().error.type).toBe(
+      "guide_not_publishable",
+    );
 
-    const checksum = await pool.query<{ checksum_sha256: string }>(`
+    const checksum = await pool.query<{ checksum_sha256: string }>(
+      `
       SELECT checksum_sha256
       FROM file_schema.file
       WHERE id = (
@@ -595,8 +690,12 @@ describe("DB-backed guide publishing API", () => {
         FROM capture_schema.capture_asset
         WHERE id = $1
       )
-    `, [capture_asset_id]);
-    expect(checksum.rows[0]?.checksum_sha256).toBe(createHash("sha256").update(bytes).digest("hex"));
+    `,
+      [capture_asset_id],
+    );
+    expect(checksum.rows[0]?.checksum_sha256).toBe(
+      createHash("sha256").update(bytes).digest("hex"),
+    );
 
     await app.close();
   }, 30_000);

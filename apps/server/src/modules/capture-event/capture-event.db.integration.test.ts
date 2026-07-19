@@ -60,12 +60,17 @@ const create_project = async (session_token: string) => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  return response.json().project.id as string;
+  return {
+    project_id: response.json().project.id as string,
+    project_version_id: response.json().project.default_project_version
+      .id as string,
+  };
 };
 
 const create_capture_session = async (
   session_token: string,
   project_id: string,
+  project_version_id: string,
   source_type: "manual" | "extension" | "import" = "extension",
 ) => {
   const app = build({ logger: false });
@@ -73,8 +78,13 @@ const create_capture_session = async (
     method: "POST",
     url: `/api/v1/projects/${project_id}/capture-sessions`,
     cookies: { ossie_session: session_token },
+    headers:
+      source_type === "extension"
+        ? { "x-ossie-client": "extension" }
+        : undefined,
     payload: {
       name: "Create department workflow",
+      project_version_id,
       source_type,
     },
   });
@@ -126,10 +136,12 @@ describe("DB-backed capture event API", () => {
 
   it("creates lists gets and soft deletes capture events without deleting linked assets", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
     const capture_session_id = await create_capture_session(
       session_token,
       project_id,
+      project_version_id,
     );
     const { capture_asset_id, file_id } = await create_capture_asset(
       session_token,
@@ -394,10 +406,12 @@ describe("DB-backed capture event API", () => {
 
   it("reorders manual capture events while preserving contiguous indexes", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
     const capture_session_id = await create_capture_session(
       session_token,
       project_id,
+      project_version_id,
       "manual",
     );
     const app = build({ logger: false });
@@ -466,6 +480,7 @@ describe("DB-backed capture event API", () => {
     const invalid_extension_session_id = await create_capture_session(
       session_token,
       project_id,
+      project_version_id,
       "extension",
     );
     const extension_reorder_response = await app.inject({
@@ -513,10 +528,12 @@ describe("DB-backed capture event API", () => {
 
   it("updates safe manual capture event text and uses it for later guide generation", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
     const capture_session_id = await create_capture_session(
       session_token,
       project_id,
+      project_version_id,
       "manual",
     );
     const owner_context = await get_owner_context();
@@ -637,6 +654,7 @@ describe("DB-backed capture event API", () => {
     const extension_session_id = await create_capture_session(
       session_token,
       project_id,
+      project_version_id,
       "extension",
     );
     const extension_event_response = await app.inject({

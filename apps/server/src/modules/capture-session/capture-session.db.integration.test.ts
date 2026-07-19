@@ -127,18 +127,26 @@ const insert_cross_org_project_and_capture_session = async () => {
       id,
       organization_id,
       project_id,
+      project_version_id,
       name,
       created_by_id,
       updated_by_id
     )
-    VALUES ($1, $2, $3, 'Other Capture', $4, $4)
+    VALUES ($1, $2, $3, $4, 'Other Capture', $5, $5)
   `,
-      [capture_session_id, organization_id, project_id, org_user_id],
+      [
+        capture_session_id,
+        organization_id,
+        project_id,
+        project_version_id,
+        org_user_id,
+      ],
     );
   });
 
   return {
     project_id,
+    project_version_id,
     capture_session_id,
   };
 };
@@ -482,6 +490,7 @@ describe("DB-backed capture session API", () => {
   it("completes capture sessions idempotently and rejects non-completable states", async () => {
     const session_token = await setup_owner();
     const project_id = await create_project(session_token);
+    const project_version_id = await default_version_id(project_id);
     const owner_context = await get_owner_context();
     const app = build({ logger: false });
 
@@ -494,7 +503,8 @@ describe("DB-backed capture session API", () => {
         },
         payload: {
           name,
-          source_type: "extension",
+          project_version_id,
+          source_type: "manual",
         },
       });
 
@@ -675,6 +685,7 @@ describe("DB-backed capture session API", () => {
   it("gets capture session detail with ordered events safe assets and soft-delete filtering", async () => {
     const session_token = await setup_owner();
     const project_id = await create_project(session_token);
+    const project_version_id = await default_version_id(project_id);
     const app = build({ logger: false });
 
     const create_session_response = await app.inject({
@@ -685,7 +696,8 @@ describe("DB-backed capture session API", () => {
       },
       payload: {
         name: "Create department workflow",
-        source_type: "extension",
+        project_version_id,
+        source_type: "manual",
         metadata: {
           private_note: "do not expose",
         },
@@ -889,6 +901,7 @@ describe("DB-backed capture session API", () => {
       session_token,
       "Visible Project",
     );
+    const project_version_id = await default_version_id(project_id);
     const app = build({ logger: false });
 
     const delete_project_response = await app.inject({
@@ -908,6 +921,7 @@ describe("DB-backed capture session API", () => {
       },
       payload: {
         name: "Should Not Create",
+        project_version_id,
       },
     });
     expect(create_under_deleted_project_response.statusCode).toBe(404);
@@ -930,7 +944,7 @@ describe("DB-backed capture session API", () => {
     const cross_org = await insert_cross_org_project_and_capture_session();
     const cross_org_list_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${cross_org.project_id}/capture-sessions`,
+      url: `/api/v1/projects/${cross_org.project_id}/capture-sessions?project_version_id=${cross_org.project_version_id}`,
       cookies: {
         ossie_session: session_token,
       },
@@ -971,6 +985,7 @@ describe("DB-backed capture session API", () => {
       "Constraint Project",
     );
     const owner_context = await get_owner_context();
+    const project_version_id = await default_version_id(project_id);
 
     const insert_invalid_capture_session = (overrides: {
       status?: string;
@@ -985,6 +1000,7 @@ describe("DB-backed capture session API", () => {
         id,
         organization_id,
         project_id,
+        project_version_id,
         name,
         status,
         source_type,
@@ -994,12 +1010,13 @@ describe("DB-backed capture session API", () => {
         created_by_id,
         updated_by_id
       )
-      VALUES ($1, $2, $3, 'Invalid Capture', $4, $5, $6, $7, $8, $9, $9)
+      VALUES ($1, $2, $3, $4, 'Invalid Capture', $5, $6, $7, $8, $9, $10, $10)
     `,
         [
           ulid(),
           owner_context?.organization_id,
           project_id,
+          project_version_id,
           overrides.status ?? "draft",
           overrides.source_type ?? "manual",
           overrides.viewport_width ?? 100,

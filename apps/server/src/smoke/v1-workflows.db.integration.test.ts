@@ -52,12 +52,9 @@ describe("v1 dogfood smoke workflow", () => {
   let previous_max_upload_bytes: string | undefined;
 
   beforeEach(async () => {
-    storage_root = await mkdtemp(
-      path.join(tmpdir(), "ossie-v1-smoke-"),
-    );
+    storage_root = await mkdtemp(path.join(tmpdir(), "ossie-v1-smoke-"));
     previous_storage_root = process.env.OSSIE_LOCAL_STORAGE_ROOT;
-    previous_max_upload_bytes =
-      process.env.OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES;
+    previous_max_upload_bytes = process.env.OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES;
     process.env.OSSIE_LOCAL_STORAGE_ROOT = storage_root;
     process.env.OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES = "1048576";
     await reset_test_database();
@@ -73,8 +70,7 @@ describe("v1 dogfood smoke workflow", () => {
     if (previous_max_upload_bytes === undefined) {
       delete process.env.OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES;
     } else {
-      process.env.OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES =
-        previous_max_upload_bytes;
+      process.env.OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES = previous_max_upload_bytes;
     }
 
     await rm(storage_root, { recursive: true, force: true });
@@ -127,9 +123,8 @@ describe("v1 dogfood smoke workflow", () => {
 
     expect(setup_response.statusCode).toBe(201);
     const owner_session =
-      setup_response.cookies.find(
-        (cookie) => cookie.name === "ossie_session",
-      )?.value ?? "";
+      setup_response.cookies.find((cookie) => cookie.name === "ossie_session")
+        ?.value ?? "";
     expect(owner_session).not.toBe("");
 
     const project_response = await app.inject({
@@ -145,7 +140,11 @@ describe("v1 dogfood smoke workflow", () => {
 
     expect(project_response.statusCode).toBe(201);
     const project_id = project_response.json().project.id as string;
-    expect(project_response.json().project.default_project_version).toMatchObject({
+    const project_version_id = project_response.json().project
+      .default_project_version.id as string;
+    expect(
+      project_response.json().project.default_project_version,
+    ).toMatchObject({
       name: "Main",
       slug: "main",
       status: "active",
@@ -165,7 +164,10 @@ describe("v1 dogfood smoke workflow", () => {
       method: "PATCH",
       url: `/api/v1/projects/${project_id}/versions/${named_version.id}`,
       cookies: { ossie_session: owner_session },
-      payload: { expected_version: named_version.version, slug: "summer-release" },
+      payload: {
+        expected_version: named_version.version,
+        slug: "summer-release",
+      },
     });
     expect(renamed_version_response.statusCode).toBe(200);
     const alias_response = await app.inject({
@@ -190,6 +192,7 @@ describe("v1 dogfood smoke workflow", () => {
       cookies: { ossie_session: owner_session },
       payload: {
         name: "Create department workflow",
+        project_version_id,
         description: "Dogfood capture for guides and interactive demos",
         source_type: "manual",
         start_url: "https://example.test/departments",
@@ -471,7 +474,8 @@ describe("v1 dogfood smoke workflow", () => {
       )?.value ?? "";
     expect(teammate_session).not.toBe("");
     expect(accept_invite_response.json().auth.org_user.role).toBe("member");
-    const teammate_org_user_id = accept_invite_response.json().auth.org_user.id as string;
+    const teammate_org_user_id = accept_invite_response.json().auth.org_user
+      .id as string;
 
     const hidden_projects_response = await app.inject({
       method: "GET",
@@ -548,9 +552,11 @@ describe("v1 dogfood smoke workflow", () => {
         }),
       ]),
     );
-    const audit_summary = owner_compliance_response.json().events.find(
-      (event: { evidence_kind: string }) => event.evidence_kind === "audit",
-    ) as { id: string } | undefined;
+    const audit_summary = owner_compliance_response
+      .json()
+      .events.find(
+        (event: { evidence_kind: string }) => event.evidence_kind === "audit",
+      ) as { id: string } | undefined;
     expect(audit_summary).toBeDefined();
 
     const audit_detail_response = await app.inject({
@@ -559,7 +565,9 @@ describe("v1 dogfood smoke workflow", () => {
       cookies: { ossie_session: owner_session },
     });
     expect(audit_detail_response.statusCode).toBe(200);
-    expect(audit_detail_response.json().event.change_items.length).toBeGreaterThan(0);
+    expect(
+      audit_detail_response.json().event.change_items.length,
+    ).toBeGreaterThan(0);
 
     const later_compliance_response = await app.inject({
       method: "GET",

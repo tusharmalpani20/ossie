@@ -7,27 +7,33 @@ import { build } from "../../app";
 import { pool } from "../../config/database.config";
 import { reset_test_database } from "../../test-support/database";
 
-const multipart_payload = (parts: Array<{
-  name: string;
-  value: string | Buffer;
-  filename?: string;
-  content_type?: string;
-}>) => {
+const multipart_payload = (
+  parts: Array<{
+    name: string;
+    value: string | Buffer;
+    filename?: string;
+    content_type?: string;
+  }>,
+) => {
   const boundary = "----ossie-db-test-boundary";
   const chunks: Buffer[] = [];
 
   for (const part of parts) {
     chunks.push(Buffer.from(`--${boundary}\r\n`));
-    chunks.push(Buffer.from(
-      `Content-Disposition: form-data; name="${part.name}"${
-        part.filename ? `; filename="${part.filename}"` : ""
-      }\r\n`
-    ));
+    chunks.push(
+      Buffer.from(
+        `Content-Disposition: form-data; name="${part.name}"${
+          part.filename ? `; filename="${part.filename}"` : ""
+        }\r\n`,
+      ),
+    );
     if (part.content_type) {
       chunks.push(Buffer.from(`Content-Type: ${part.content_type}\r\n`));
     }
     chunks.push(Buffer.from("\r\n"));
-    chunks.push(Buffer.isBuffer(part.value) ? part.value : Buffer.from(part.value));
+    chunks.push(
+      Buffer.isBuffer(part.value) ? part.value : Buffer.from(part.value),
+    );
     chunks.push(Buffer.from("\r\n"));
   }
 
@@ -61,7 +67,9 @@ const setup_owner = async () => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  const session_cookie = response.cookies.find((cookie) => cookie.name === "ossie_session");
+  const session_cookie = response.cookies.find(
+    (cookie) => cookie.name === "ossie_session",
+  );
   expect(session_cookie?.value).toEqual(expect.any(String));
   return session_cookie?.value ?? "";
 };
@@ -97,10 +105,18 @@ const create_project = async (session_token: string) => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  return response.json().project.id as string;
+  return {
+    project_id: response.json().project.id as string,
+    project_version_id: response.json().project.default_project_version
+      .id as string,
+  };
 };
 
-const create_capture_session = async (session_token: string, project_id: string) => {
+const create_capture_session = async (
+  session_token: string,
+  project_id: string,
+  project_version_id: string,
+) => {
   const app = build({ logger: false });
   const response = await app.inject({
     method: "POST",
@@ -110,7 +126,8 @@ const create_capture_session = async (session_token: string, project_id: string)
     },
     payload: {
       name: "Create department workflow",
-      source_type: "extension",
+      project_version_id,
+      source_type: "manual",
     },
   });
 
@@ -141,8 +158,13 @@ describe("DB-backed capture asset API", () => {
 
   it("uploads screenshot bytes stores file metadata and streams bytes back", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+      project_version_id,
+    );
     const owner_context = await get_owner_context();
     const app = build({ logger: false });
     const bytes = Buffer.from("fake png bytes");
@@ -197,12 +219,15 @@ describe("DB-backed capture asset API", () => {
       storage_provider: string;
       storage_key: string;
       checksum_sha256: string;
-    }>(`
+    }>(
+      `
       SELECT app_file.storage_provider, app_file.storage_key, app_file.checksum_sha256
       FROM capture_schema.capture_asset capture_asset
       INNER JOIN file_schema.file app_file ON app_file.id = capture_asset.file_id
       WHERE capture_asset.id = $1
-    `, [capture_asset_id]);
+    `,
+      [capture_asset_id],
+    );
 
     expect(persisted.rows[0]).toEqual({
       storage_provider: "local",
@@ -241,15 +266,22 @@ describe("DB-backed capture asset API", () => {
       },
     });
     expect(read_deleted_response.statusCode).toBe(404);
-    expect(read_deleted_response.json().error.type).toBe("capture_asset_not_found");
+    expect(read_deleted_response.json().error.type).toBe(
+      "capture_asset_not_found",
+    );
 
     await app.close();
   });
 
   it("creates lists gets and soft deletes screenshot asset metadata under a capture session", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
-    const capture_session_id = await create_capture_session(session_token, project_id);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
+    const capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+      project_version_id,
+    );
     const owner_context = await get_owner_context();
     const app = build({ logger: false });
 
@@ -311,7 +343,9 @@ describe("DB-backed capture asset API", () => {
     expect(JSON.stringify(create_response.json())).not.toContain("metadata");
     expect(JSON.stringify(create_response.json())).not.toContain("is_deleted");
     expect(JSON.stringify(create_response.json())).not.toContain("deleted_at");
-    expect(JSON.stringify(create_response.json())).not.toContain("deleted_by_id");
+    expect(JSON.stringify(create_response.json())).not.toContain(
+      "deleted_by_id",
+    );
 
     const capture_asset_id = create_response.json().capture_asset.id as string;
     const file_id = create_response.json().capture_asset.file.id as string;
@@ -322,7 +356,8 @@ describe("DB-backed capture asset API", () => {
       storage_key: string;
       asset_deleted: boolean;
       file_deleted: boolean;
-    }>(`
+    }>(
+      `
       SELECT
         capture_asset.metadata AS asset_metadata,
         app_file.metadata AS file_metadata,
@@ -332,7 +367,9 @@ describe("DB-backed capture asset API", () => {
       FROM capture_schema.capture_asset capture_asset
       INNER JOIN file_schema.file app_file ON app_file.id = capture_asset.file_id
       WHERE capture_asset.id = $1
-    `, [capture_asset_id]);
+    `,
+      [capture_asset_id],
+    );
 
     expect(persisted_before_delete.rows[0]).toMatchObject({
       asset_metadata: {
@@ -433,13 +470,21 @@ describe("DB-backed capture asset API", () => {
     expect(get_response.statusCode).toBe(200);
     expect(get_response.json().capture_asset.id).toBe(capture_asset_id);
     expect(duplicate_response.statusCode).toBe(409);
-    expect(duplicate_response.json().error.type).toBe("file_storage_key_conflict");
+    expect(duplicate_response.json().error.type).toBe(
+      "file_storage_key_conflict",
+    );
     expect(unsupported_response.statusCode).toBe(400);
-    expect(unsupported_response.json().error.type).toBe("unsupported_capture_asset_type");
+    expect(unsupported_response.json().error.type).toBe(
+      "unsupported_capture_asset_type",
+    );
     expect(missing_project_response.statusCode).toBe(404);
-    expect(missing_project_response.json().error.type).toBe("project_not_found");
+    expect(missing_project_response.json().error.type).toBe(
+      "project_not_found",
+    );
     expect(missing_capture_session_response.statusCode).toBe(404);
-    expect(missing_capture_session_response.json().error.type).toBe("capture_session_not_found");
+    expect(missing_capture_session_response.json().error.type).toBe(
+      "capture_session_not_found",
+    );
     expect(delete_response.statusCode).toBe(204);
     expect(delete_response.body).toBe("");
 
@@ -450,7 +495,8 @@ describe("DB-backed capture asset API", () => {
       file_deleted_by_id: string | null;
       asset_version: number;
       file_version: number;
-    }>(`
+    }>(
+      `
       SELECT
         capture_asset.is_deleted AS asset_deleted,
         app_file.is_deleted AS file_deleted,
@@ -462,7 +508,9 @@ describe("DB-backed capture asset API", () => {
       INNER JOIN file_schema.file app_file ON app_file.id = capture_asset.file_id
       WHERE capture_asset.id = $1
       AND app_file.id = $2
-    `, [capture_asset_id, file_id]);
+    `,
+      [capture_asset_id, file_id],
+    );
 
     expect(persisted_after_delete.rows[0]).toMatchObject({
       asset_deleted: true,
@@ -491,16 +539,27 @@ describe("DB-backed capture asset API", () => {
     expect(hidden_list_response.statusCode).toBe(200);
     expect(hidden_list_response.json().capture_assets).toEqual([]);
     expect(hidden_get_response.statusCode).toBe(404);
-    expect(hidden_get_response.json().error.type).toBe("capture_asset_not_found");
+    expect(hidden_get_response.json().error.type).toBe(
+      "capture_asset_not_found",
+    );
 
     await app.close();
   });
 
   it("lists active screenshot assets across a project for guide editing", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
-    const first_capture_session_id = await create_capture_session(session_token, project_id);
-    const second_capture_session_id = await create_capture_session(session_token, project_id);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
+    const first_capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+      project_version_id,
+    );
+    const second_capture_session_id = await create_capture_session(
+      session_token,
+      project_id,
+      project_version_id,
+    );
     const app = build({ logger: false });
 
     const first_response = await app.inject({
@@ -539,22 +598,28 @@ describe("DB-backed capture asset API", () => {
 
     const project_list_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/capture-assets?asset_type=screenshot`,
+      url: `/api/v1/projects/${project_id}/capture-assets?project_version_id=${project_version_id}&asset_type=screenshot`,
       cookies: { ossie_session: session_token },
     });
 
     expect(project_list_response.statusCode).toBe(200);
-    expect(project_list_response.json().capture_assets.map((asset: {
-      id: string;
-      capture_session_id: string;
-      file_url: string;
-      file: { original_name: string | null };
-    }) => ({
-      id: asset.id,
-      capture_session_id: asset.capture_session_id,
-      file_url: asset.file_url,
-      original_name: asset.file.original_name,
-    }))).toEqual([
+    expect(
+      project_list_response
+        .json()
+        .capture_assets.map(
+          (asset: {
+            id: string;
+            capture_session_id: string;
+            file_url: string;
+            file: { original_name: string | null };
+          }) => ({
+            id: asset.id,
+            capture_session_id: asset.capture_session_id,
+            file_url: asset.file_url,
+            original_name: asset.file.original_name,
+          }),
+        ),
+    ).toEqual([
       {
         id: first_response.json().capture_asset.id,
         capture_session_id: first_capture_session_id,

@@ -46,12 +46,17 @@ const create_project = async (session_token: string) => {
 
   await app.close();
   expect(response.statusCode).toBe(201);
-  return response.json().project.id as string;
+  return {
+    project_id: response.json().project.id as string,
+    project_version_id: response.json().project.default_project_version
+      .id as string,
+  };
 };
 
 const create_capture_session = async (
   session_token: string,
   project_id: string,
+  project_version_id: string,
 ) => {
   const app = build({ logger: false });
   const response = await app.inject({
@@ -60,7 +65,8 @@ const create_capture_session = async (
     cookies: { ossie_session: session_token },
     payload: {
       name: "Create department workflow",
-      source_type: "extension",
+      project_version_id,
+      source_type: "manual",
     },
   });
 
@@ -191,10 +197,12 @@ describe("DB-backed guide API", () => {
 
   it("creates lists and reads an editable draft guide from selected capture events", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
     const capture_session_id = await create_capture_session(
       session_token,
       project_id,
+      project_version_id,
     );
     const active_asset_id = await create_capture_asset(
       session_token,
@@ -633,10 +641,12 @@ describe("DB-backed guide API", () => {
 
   it("persists generated guide steps from screenshot-backed capture events", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
     const capture_session_id = await create_capture_session(
       session_token,
       project_id,
+      project_version_id,
     );
     const active_asset_id = await create_capture_asset(
       session_token,
@@ -798,10 +808,12 @@ describe("DB-backed guide API", () => {
 
   it("replaces and hides guide step screenshots without mutating capture source records", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
     const capture_session_id = await create_capture_session(
       session_token,
       project_id,
+      project_version_id,
     );
     const source_asset_id = await create_capture_asset(
       session_token,
@@ -1022,10 +1034,12 @@ describe("DB-backed guide API", () => {
 
   it("uploads a replacement guide step screenshot and publishes it in the snapshot", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
     const capture_session_id = await create_capture_session(
       session_token,
       project_id,
+      project_version_id,
     );
     const source_asset_id = await create_capture_asset(
       session_token,
@@ -1189,10 +1203,12 @@ describe("DB-backed guide API", () => {
 
   it("exports a guide draft as HTML ZIP with local screenshot assets", async () => {
     const session_token = await setup_owner();
-    const project_id = await create_project(session_token);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
     const capture_session_id = await create_capture_session(
       session_token,
       project_id,
+      project_version_id,
     );
     const source_asset_id = await create_capture_asset(
       session_token,
