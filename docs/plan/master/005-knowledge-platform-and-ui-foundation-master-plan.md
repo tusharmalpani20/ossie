@@ -964,7 +964,9 @@ Acceptance:
 
 ### 115: Project Membership Foundation
 
-Status: Not started.
+Status: Implementation not started. Child plan expanded and implementation-
+readiness rechecked on 2026-07-19; its planning checkpoint is ready for
+implementation.
 
 Planned file:
 
@@ -982,7 +984,12 @@ Expected scope:
 - Allow Project Admins to assign/change/remove Project roles only for existing Organization Members; keep Organization invitation Owner-only.
 - Centralize the accepted capability matrix for Project settings/version lifecycle, authoring, capture, checkpoint/restore, carry-forward, publication/link management, asset purge, and read-only access.
 - Enforce Project Membership on discovery, list, read, mutation, audit/access timeline, extension, and artifact-generation paths.
-- Extend child `114` queries/read models with the accepted Project Admin compliance scope, Project Editor curated Activity Timeline, and Project Viewer Revision/Publication-only history.
+- Extend child `114` queries/read models with the accepted Project Admin
+  compliance scope and Project Editor curated Activity Timeline. Establish and
+  test the Project Viewer history authorization/read-model seam here; materialize
+  ordinary Revision/Publication-only history in children `118` through `120`
+  when those authoritative relational models exist, rather than introducing a
+  temporary history source.
 - Keep public Publish Link access independent from Project Membership.
 - Audit every membership and authorization mutation through children `112` and `113`, and record accepted Access Events through child `114`.
 - Update shared contracts, route authorization, fixtures, portal state, extension Project discovery, and tests together.
@@ -1920,8 +1927,9 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is expansion and recheck of child `115` Project
-Membership Foundation. The separate overnight-runner tooling
+The next executable activity is implementation of child `115` Project
+Membership Foundation from its rechecked implementation-ready plan. The
+separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
 longer blocks this master-plan sequence.
@@ -1933,5 +1941,5 @@ add accepted Project Membership and role visibility by extending, not bypassing,
 the shipped evidence and authorization seams.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with `115` Project Membership Foundation. Project Version begins at
-`116`.
+continues with implementation of `115` Project Membership Foundation. Project
+Version begins at `116` only after `115` closes.
