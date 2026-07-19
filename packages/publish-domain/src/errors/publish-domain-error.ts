@@ -92,6 +92,26 @@ export class GuideNotPublishableError extends PublishDomainError {
   }
 }
 
+export class PublicationVersionNotReadyError extends PublishDomainError {
+  constructor() {
+    super({
+      code: "publication_version_not_ready",
+      message: "Publishing from this Project Version is not available yet",
+      status_hint: "conflict",
+    });
+  }
+}
+
+export class InteractiveDemoNotPublishableError extends PublishDomainError {
+  constructor() {
+    super({
+      code: "interactive_demo_not_publishable",
+      message: "Interactive demo is not publishable",
+      status_hint: "conflict",
+    });
+  }
+}
+
 export class GuideHasNoPublishableBlocksError extends PublishDomainError {
   constructor() {
     super({

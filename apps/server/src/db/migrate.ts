@@ -2,6 +2,7 @@ import { get_migrator } from "./migrator";
 import {
   verify_audit_core_schema,
   verify_audit_schema,
+  verify_artifact_edition_schema,
   verify_evidence_schema,
   verify_project_membership_schema,
   verify_project_version_schema,
@@ -34,7 +35,13 @@ const run = async () => {
         const project_version = executed.some(
           ({ name }) => name === "020_project_version_foundation.sql",
         );
-        await (project_version
+        const artifact_edition = executed.some(
+          ({ name }) =>
+            name === "022_guide_demo_edition_working_draft_relational_foundation.sql",
+        );
+        await (artifact_edition
+          ? verify_artifact_edition_schema
+          : project_version
           ? verify_project_version_schema
           : project_membership
             ? verify_project_membership_schema
@@ -58,7 +65,12 @@ const run = async () => {
         ({ name }) => name === "015_audit_evidence_core.sql",
       )
         ? await (
-            executed.some(({ name }) => name === "020_project_version_foundation.sql")
+            executed.some(
+              ({ name }) =>
+                name === "022_guide_demo_edition_working_draft_relational_foundation.sql",
+            )
+              ? verify_artifact_edition_schema
+              : executed.some(({ name }) => name === "020_project_version_foundation.sql")
               ? verify_project_version_schema
               : executed.some(({ name }) => name === "019_project_membership_foundation.sql")
                 ? verify_project_membership_schema

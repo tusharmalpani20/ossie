@@ -70,6 +70,26 @@ export class GuideNotEditableError extends GuideDomainError {
   }
 }
 
+export class GuideEditionConflictError extends GuideDomainError {
+  constructor() {
+    super({
+      code: "guide_edition_conflict",
+      message: "Guide Edition changed; reload and retry",
+      status_hint: "conflict",
+    });
+  }
+}
+
+export class GuideWorkingDraftConflictError extends GuideDomainError {
+  constructor() {
+    super({
+      code: "guide_working_draft_conflict",
+      message: "Guide Working Draft changed; reload and retry",
+      status_hint: "conflict",
+    });
+  }
+}
+
 export class GuideStepNotFoundError extends GuideDomainError {
   constructor() {
     super({

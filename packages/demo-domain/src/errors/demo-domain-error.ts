@@ -1,6 +1,7 @@
 export type DemoDomainErrorStatusHint =
   | "bad_request"
-  | "not_found";
+  | "not_found"
+  | "conflict";
 
 export class DemoDomainError extends Error {
   readonly code: string;
@@ -35,6 +36,28 @@ export class InteractiveDemoNotFoundError extends DemoDomainError {
       message: "Interactive demo was not found",
       status_hint: "not_found",
     });
+  }
+}
+
+export class InteractiveDemoNotEditableError extends DemoDomainError {
+  constructor() {
+    super({
+      code: "interactive_demo_not_editable",
+      message: "Archived Interactive Demo Editions are read-only",
+      status_hint: "conflict",
+    });
+  }
+}
+
+export class InteractiveDemoEditionConflictError extends DemoDomainError {
+  constructor() {
+    super({ code: "interactive_demo_edition_conflict", message: "Interactive Demo Edition changed; reload and retry", status_hint: "conflict" });
+  }
+}
+
+export class InteractiveDemoWorkingDraftConflictError extends DemoDomainError {
+  constructor() {
+    super({ code: "interactive_demo_working_draft_conflict", message: "Interactive Demo Working Draft changed; reload and retry", status_hint: "conflict" });
   }
 }
 

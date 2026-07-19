@@ -135,4 +135,27 @@ describe("Audit schema verification", () => {
     expect(source).toContain("verify_project_version_schema");
     expect(source).toContain("020_project_version_foundation.sql");
   });
+
+  it("verifies and selects the Artifact Edition schema after migration 022", async () => {
+    const pool = {
+      query: vi.fn<(sql: string, values?: unknown[]) => Promise<{ rows: never[] }>>(
+        async () => ({ rows: [] }),
+      ),
+    };
+    const verify = Reflect.get(verification, "verify_artifact_edition_schema");
+    expect(verify).toBeTypeOf("function");
+    await expect(
+      verify(pool as never, { runtime_role: "runtime", maintenance_role: "maintenance" }),
+    ).resolves.toEqual({ status: "ready" });
+    expect(pool.query.mock.calls).toHaveLength(5);
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("guide_schema.guide_edition");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
+      "interactive_demo_schema.interactive_demo_working_draft",
+    );
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("guide_edition_exactly_one_working_draft");
+
+    const source = readFileSync(new URL("./migrate.ts", import.meta.url), "utf8");
+    expect(source).toContain("verify_artifact_edition_schema");
+    expect(source).toContain("022_guide_demo_edition_working_draft_relational_foundation.sql");
+  });
 });

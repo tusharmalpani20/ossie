@@ -2,12 +2,16 @@ import type { PublishArtifactType } from "@repo/constants";
 import type {
   DemoHotspot,
   DemoScene,
-  InteractiveDemo,
+  InteractiveDemoArtifact,
+  InteractiveDemoEdition,
+  InteractiveDemoWorkingDraft,
 } from "@repo/types/demo";
 import type {
-  Guide,
+  GuideArtifact,
   GuideBlock,
+  GuideEdition,
   GuideSourceCaptureAsset,
+  GuideWorkingDraft,
 } from "@repo/types/guide";
 
 export type PublishTargetType = PublishArtifactType;
@@ -28,13 +32,17 @@ export type PublishSlugCandidate = {
 };
 
 export type GuidePublishSourceDetail = {
-  guide: Guide;
+  artifact: GuideArtifact;
+  edition: GuideEdition;
+  working_draft: GuideWorkingDraft;
   guide_blocks: GuideBlock[];
   source_capture_assets: GuideSourceCaptureAsset[];
 };
 
 export type InteractiveDemoPublishSourceDetail = {
-  interactive_demo: InteractiveDemo;
+  artifact: InteractiveDemoArtifact;
+  edition: InteractiveDemoEdition;
+  working_draft: InteractiveDemoWorkingDraft;
   demo_scenes: DemoScene[];
   demo_hotspots: DemoHotspot[];
   source_capture_assets: GuideSourceCaptureAsset[];

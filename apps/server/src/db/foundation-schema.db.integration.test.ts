@@ -159,6 +159,7 @@ const insert_constraint_test_context = async () => {
     organization_id,
     org_user_id,
     project_id,
+    project_version_id,
     capture_session_id,
     guide_id,
     guide_block_id,
@@ -410,30 +411,30 @@ describe("foundation schema migrations on postgres", () => {
   });
 
   it("creates guide artifact schema separately from capture source material", async () => {
-    for (const column_name of [
-      "organization_id",
-      "project_id",
-      "source_capture_session_id",
-      "title",
-      "description",
-      "status",
-      "created_by_id",
-      "updated_by_id",
-      "deleted_by_id",
-    ]) {
+    for (const column_name of ["id", "organization_id", "project_id", "created_by_id", "created_at"]) {
       await expect(
         column_exists("guide_schema", "guide", column_name),
       ).resolves.toBe(true);
     }
 
+    for (const removed_column of ["source_capture_session_id", "title", "description", "status", "version", "is_deleted"]) {
+      await expect(column_exists("guide_schema", "guide", removed_column)).resolves.toBe(false);
+    }
+
+    for (const column_name of ["guide_id", "project_version_id", "source_capture_session_id", "title", "description", "status", "version"]) {
+      await expect(column_exists("guide_schema", "guide_edition", column_name)).resolves.toBe(true);
+    }
+
+    await expect(column_exists("guide_schema", "guide_working_draft", "guide_edition_id")).resolves.toBe(true);
+
     for (const column_name of [
       "organization_id",
       "project_id",
-      "guide_id",
+      "guide_working_draft_id",
       "block_type",
       "block_index",
-      "source_capture_event_id",
-      "source_capture_asset_id",
+      "title",
+      "body",
       "created_by_id",
       "updated_by_id",
       "deleted_by_id",
@@ -446,7 +447,7 @@ describe("foundation schema migrations on postgres", () => {
     for (const column_name of [
       "organization_id",
       "project_id",
-      "guide_id",
+      "guide_working_draft_id",
       "guide_block_id",
       "title",
       "body",
@@ -461,26 +462,16 @@ describe("foundation schema migrations on postgres", () => {
       ).resolves.toBe(true);
     }
 
+    await expect(index_exists("guide_schema", "idx_guide_edition_scope_status_created")).resolves.toBe(true);
+    await expect(index_exists("guide_schema", "idx_guide_block_draft_active_order")).resolves.toBe(true);
     await expect(
-      index_exists("guide_schema", "idx_guide_project_active_created"),
-    ).resolves.toBe(true);
-    await expect(
-      index_exists("guide_schema", "idx_guide_source_capture_session_active"),
-    ).resolves.toBe(true);
-    await expect(
-      index_exists("guide_schema", "idx_guide_block_guide_active_order"),
-    ).resolves.toBe(true);
-    await expect(
-      index_exists("guide_schema", "uq_guide_block_guide_index_active"),
-    ).resolves.toBe(true);
-    await expect(
-      index_exists("guide_schema", "idx_guide_step_block_active"),
+      index_exists("guide_schema", "uq_guide_block_draft_index_active"),
     ).resolves.toBe(true);
     await expect(
       index_exists("guide_schema", "uq_guide_step_block_active"),
     ).resolves.toBe(true);
     await expect(table_comment("guide_schema", "guide")).resolves.toMatch(
-      /editable guide artifact/i,
+      /immutable stable guide artifact identity/i,
     );
   });
 
@@ -488,13 +479,8 @@ describe("foundation schema migrations on postgres", () => {
     for (const column_name of [
       "organization_id",
       "project_id",
-      "source_capture_session_id",
-      "title",
-      "description",
-      "status",
       "created_by_id",
-      "updated_by_id",
-      "deleted_by_id",
+      "created_at",
     ]) {
       await expect(
         column_exists(
@@ -505,10 +491,20 @@ describe("foundation schema migrations on postgres", () => {
       ).resolves.toBe(true);
     }
 
+    for (const removed_column of ["source_capture_session_id", "title", "description", "status", "version", "is_deleted"]) {
+      await expect(column_exists("interactive_demo_schema", "interactive_demo", removed_column)).resolves.toBe(false);
+    }
+
+    for (const column_name of ["interactive_demo_id", "project_version_id", "source_capture_session_id", "title", "description", "status", "version"]) {
+      await expect(column_exists("interactive_demo_schema", "interactive_demo_edition", column_name)).resolves.toBe(true);
+    }
+
+    await expect(column_exists("interactive_demo_schema", "interactive_demo_working_draft", "interactive_demo_edition_id")).resolves.toBe(true);
+
     for (const column_name of [
       "organization_id",
       "project_id",
-      "interactive_demo_id",
+      "interactive_demo_working_draft_id",
       "source_capture_session_id",
       "source_capture_event_id",
       "source_capture_asset_id",
@@ -528,7 +524,7 @@ describe("foundation schema migrations on postgres", () => {
     for (const column_name of [
       "organization_id",
       "project_id",
-      "interactive_demo_id",
+      "interactive_demo_working_draft_id",
       "demo_scene_id",
       "hotspot_type",
       "label",
@@ -537,7 +533,6 @@ describe("foundation schema migrations on postgres", () => {
       "y",
       "width",
       "height",
-      "target_scene_id",
       "hotspot_index",
       "created_by_id",
       "updated_by_id",
@@ -548,22 +543,26 @@ describe("foundation schema migrations on postgres", () => {
       ).resolves.toBe(true);
     }
 
+    for (const column_name of ["interactive_demo_working_draft_id", "demo_hotspot_id", "target_scene_id", "version"]) {
+      await expect(column_exists("interactive_demo_schema", "demo_transition", column_name)).resolves.toBe(true);
+    }
+
     await expect(
       index_exists(
         "interactive_demo_schema",
-        "idx_interactive_demo_project_active_created",
+        "idx_interactive_demo_edition_scope_status_created",
       ),
     ).resolves.toBe(true);
     await expect(
       index_exists(
         "interactive_demo_schema",
-        "idx_demo_scene_demo_active_order",
+        "idx_demo_scene_draft_active_order",
       ),
     ).resolves.toBe(true);
     await expect(
       index_exists(
         "interactive_demo_schema",
-        "uq_demo_scene_demo_index_active",
+        "uq_demo_scene_draft_index_active",
       ),
     ).resolves.toBe(true);
     await expect(
@@ -580,13 +579,7 @@ describe("foundation schema migrations on postgres", () => {
     ).resolves.toBe(true);
     await expect(
       table_comment("interactive_demo_schema", "interactive_demo"),
-    ).resolves.toMatch(/interactive demo artifact/i);
-    await expect(
-      table_comment("interactive_demo_schema", "demo_scene"),
-    ).resolves.toMatch(/ordered scene/i);
-    await expect(
-      table_comment("interactive_demo_schema", "demo_hotspot"),
-    ).resolves.toMatch(/hotspot/i);
+    ).resolves.toMatch(/immutable stable interactive demo artifact identity/i);
   });
 
   it("creates publish snapshot and link schema separately from editable artifacts", async () => {
@@ -660,28 +653,37 @@ describe("foundation schema migrations on postgres", () => {
     const pool = test_fixture_pool;
     const context = await insert_constraint_test_context();
     const guide_id = ulid();
+    const guide_edition_id = ulid();
+    const guide_working_draft_id = ulid();
     const first_artifact_id = ulid();
     const second_artifact_id = ulid();
 
     await pool.query(
       `
-      INSERT INTO guide_schema.guide (
-        id,
-        organization_id,
-        project_id,
-        source_capture_session_id,
-        title,
-        created_by_id,
-        updated_by_id
+      WITH artifact AS (
+        INSERT INTO guide_schema.guide (id, organization_id, project_id, created_by_id)
+        VALUES ($1, $2, $3, $7)
+      ), edition AS (
+        INSERT INTO guide_schema.guide_edition (
+          id, organization_id, project_id, guide_id, project_version_id,
+          source_capture_session_id, title, created_by_id, updated_by_id
+        )
+        VALUES ($4, $2, $3, $1, $5, $6, 'Publish Constraint Guide', $7, $7)
       )
-      VALUES ($1, $2, $3, $4, 'Publish Constraint Guide', $5, $5)
+      INSERT INTO guide_schema.guide_working_draft (
+        id, organization_id, project_id, guide_edition_id, created_by_id, updated_by_id
+      )
+      VALUES ($8, $2, $3, $4, $7, $7)
     `,
       [
         guide_id,
         context.organization_id,
         context.project_id,
+        guide_edition_id,
+        context.project_version_id,
         context.capture_session_id,
         context.org_user_id,
+        guide_working_draft_id,
       ],
     );
 
@@ -1117,63 +1119,73 @@ describe("foundation schema migrations on postgres", () => {
   it("enforces guide artifact constraints", async () => {
     const pool = test_fixture_pool;
     const context = await insert_constraint_test_context();
+    const guide_edition_id = ulid();
+    const guide_working_draft_id = ulid();
+
+    await pool.query(
+      `INSERT INTO guide_schema.guide (id, organization_id, project_id, created_by_id)
+       VALUES ($1, $2, $3, $4)`,
+      [context.guide_id, context.organization_id, context.project_id, context.org_user_id],
+    );
 
     await expect(
       pool.query(
         `
-      INSERT INTO guide_schema.guide (
+      INSERT INTO guide_schema.guide_edition (
         id,
         organization_id,
         project_id,
+        guide_id,
+        project_version_id,
         source_capture_session_id,
         title,
         status,
         created_by_id,
         updated_by_id
       )
-      VALUES ($1, $2, $3, $4, 'Guide', 'published', $5, $5)
+      VALUES ($1, $2, $3, $4, $5, $6, 'Guide', 'published', $7, $7)
     `,
         [
           ulid(),
           context.organization_id,
           context.project_id,
+          context.guide_id,
+          context.project_version_id,
           context.capture_session_id,
           context.org_user_id,
         ],
       ),
     ).rejects.toMatchObject({
       code: "23514",
-      constraint: "chk_guide_status",
+      constraint: "chk_guide_edition_status",
     });
 
     await pool.query(
       `
-      INSERT INTO guide_schema.guide (
-        id,
-        organization_id,
-        project_id,
-        source_capture_session_id,
-        title,
-        created_by_id,
-        updated_by_id
+      WITH edition AS (
+        INSERT INTO guide_schema.guide_edition (
+          id, organization_id, project_id, guide_id, project_version_id,
+          source_capture_session_id, title, created_by_id, updated_by_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, 'Guide', $7, $7)
       )
-      VALUES ($1, $2, $3, $4, 'Guide', $5, $5)
+      INSERT INTO guide_schema.guide_working_draft (
+        id, organization_id, project_id, guide_edition_id, created_by_id, updated_by_id
+      ) VALUES ($8, $2, $3, $1, $7, $7)
     `,
       [
-        context.guide_id,
+        guide_edition_id,
         context.organization_id,
         context.project_id,
+        context.guide_id,
+        context.project_version_id,
         context.capture_session_id,
         context.org_user_id,
+        guide_working_draft_id,
       ],
     );
 
     for (const [index, block_type] of [
       "step",
-      "header",
-      "paragraph",
-      "tip",
-      "alert",
       "capture",
       "divider",
       "gif",
@@ -1184,7 +1196,7 @@ describe("foundation schema migrations on postgres", () => {
           id,
           organization_id,
           project_id,
-          guide_id,
+          guide_working_draft_id,
           block_type,
           block_index,
           created_by_id,
@@ -1196,7 +1208,7 @@ describe("foundation schema migrations on postgres", () => {
           ulid(),
           context.organization_id,
           context.project_id,
-          context.guide_id,
+          guide_working_draft_id,
           block_type,
           index + 1,
           context.org_user_id,
@@ -1211,7 +1223,7 @@ describe("foundation schema migrations on postgres", () => {
         id,
         organization_id,
         project_id,
-        guide_id,
+        guide_working_draft_id,
         block_type,
         block_index,
         created_by_id,
@@ -1223,13 +1235,12 @@ describe("foundation schema migrations on postgres", () => {
           ulid(),
           context.organization_id,
           context.project_id,
-          context.guide_id,
+          guide_working_draft_id,
           context.org_user_id,
         ],
       ),
     ).rejects.toMatchObject({
       code: "23514",
-      constraint: "chk_guide_block_type",
     });
 
     await expect(
@@ -1239,7 +1250,7 @@ describe("foundation schema migrations on postgres", () => {
         id,
         organization_id,
         project_id,
-        guide_id,
+        guide_working_draft_id,
         block_type,
         block_index,
         created_by_id,
@@ -1251,13 +1262,13 @@ describe("foundation schema migrations on postgres", () => {
           ulid(),
           context.organization_id,
           context.project_id,
-          context.guide_id,
+          guide_working_draft_id,
           context.org_user_id,
         ],
       ),
     ).rejects.toMatchObject({
       code: "23514",
-      constraint: "chk_guide_block_index_positive",
+      constraint: "chk_guide_block_index",
     });
 
     await pool.query(
@@ -1266,7 +1277,7 @@ describe("foundation schema migrations on postgres", () => {
         id,
         organization_id,
         project_id,
-        guide_id,
+        guide_working_draft_id,
         block_type,
         block_index,
         created_by_id,
@@ -1278,7 +1289,7 @@ describe("foundation schema migrations on postgres", () => {
         context.guide_block_id,
         context.organization_id,
         context.project_id,
-        context.guide_id,
+        guide_working_draft_id,
         context.org_user_id,
       ],
     );
@@ -1290,7 +1301,7 @@ describe("foundation schema migrations on postgres", () => {
         id,
         organization_id,
         project_id,
-        guide_id,
+        guide_working_draft_id,
         block_type,
         block_index,
         created_by_id,
@@ -1302,13 +1313,13 @@ describe("foundation schema migrations on postgres", () => {
           ulid(),
           context.organization_id,
           context.project_id,
-          context.guide_id,
+          guide_working_draft_id,
           context.org_user_id,
         ],
       ),
     ).rejects.toMatchObject({
       code: "23505",
-      constraint: "uq_guide_block_guide_index_active",
+      constraint: "uq_guide_block_draft_index_active",
     });
 
     await pool.query(
@@ -1317,7 +1328,7 @@ describe("foundation schema migrations on postgres", () => {
         id,
         organization_id,
         project_id,
-        guide_id,
+        guide_working_draft_id,
         guide_block_id,
         title,
         created_by_id,
@@ -1329,7 +1340,7 @@ describe("foundation schema migrations on postgres", () => {
         ulid(),
         context.organization_id,
         context.project_id,
-        context.guide_id,
+        guide_working_draft_id,
         context.guide_block_id,
         context.org_user_id,
       ],
@@ -1342,7 +1353,7 @@ describe("foundation schema migrations on postgres", () => {
         id,
         organization_id,
         project_id,
-        guide_id,
+        guide_working_draft_id,
         guide_block_id,
         title,
         created_by_id,
@@ -1354,7 +1365,7 @@ describe("foundation schema migrations on postgres", () => {
           ulid(),
           context.organization_id,
           context.project_id,
-          context.guide_id,
+          guide_working_draft_id,
           context.guide_block_id,
           context.org_user_id,
         ],

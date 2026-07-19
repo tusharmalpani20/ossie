@@ -65,6 +65,6 @@ export const build_demo_from_capture_source = (input: {
   return scenes;
 };
 
-export const demo_redirect_path = (project_id: string, interactive_demo_id: string) => (
-  `/projects/${encodeURIComponent(project_id)}/interactive-demos/${encodeURIComponent(interactive_demo_id)}`
+export const demo_redirect_path = (project_id: string, project_version_id: string, interactive_demo_id: string) => (
+  `/projects/${encodeURIComponent(project_id)}/versions/${encodeURIComponent(project_version_id)}/interactive-demos/${encodeURIComponent(interactive_demo_id)}`
 );

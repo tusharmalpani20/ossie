@@ -1,9 +1,3 @@
-export const GUIDE_STATUSES = [
-  "draft",
-  "archived",
-] as const;
-export type GuideStatus = (typeof GUIDE_STATUSES)[number];
-
 export const GUIDE_BLOCK_TYPES = [
   "step",
   "header",

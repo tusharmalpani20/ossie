@@ -43,7 +43,9 @@ export const normalize_create_hotspot_input = (
   y: input.y,
   width: input.width,
   height: input.height,
-  target_scene_id: compact_optional_string(input.target_scene_id) ?? null,
+  transition: input.transition
+    ? { target_scene_id: compact_optional_string(input.transition.target_scene_id) ?? "" }
+    : null,
 });
 
 export const normalize_update_hotspot_input = (
@@ -72,8 +74,10 @@ export const normalize_update_hotspot_input = (
   if (input.height !== undefined) {
     normalized.height = input.height;
   }
-  if (input.target_scene_id !== undefined) {
-    normalized.target_scene_id = compact_optional_string(input.target_scene_id) ?? null;
+  if (input.transition !== undefined) {
+    normalized.transition = input.transition
+      ? { target_scene_id: compact_optional_string(input.transition.target_scene_id) ?? "" }
+      : null;
   }
 
   if (Object.keys(normalized).length === 0) {

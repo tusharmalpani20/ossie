@@ -23,7 +23,8 @@ describe("demo hotspot policy", () => {
       y: 0.2,
       width: 0.3,
       height: 0.1,
-      target_scene_id: " scene_2 ",
+      transition: { target_scene_id: " scene_2 " },
+      expected_working_draft_version: 1,
     })).toEqual({
       hotspot_type: "click",
       label: "Continue",
@@ -32,24 +33,28 @@ describe("demo hotspot policy", () => {
       y: 0.2,
       width: 0.3,
       height: 0.1,
-      target_scene_id: "scene_2",
+      transition: { target_scene_id: "scene_2" },
     });
 
     expect(normalize_update_hotspot_input({
       label: " ",
-      target_scene_id: " ",
+      transition: null,
+      expected_working_draft_version: 1,
     })).toEqual({
       label: null,
-      target_scene_id: null,
+      transition: null,
     });
 
-    expect(() => normalize_update_hotspot_input({})).toThrow(EmptyDemoHotspotUpdateError);
+    expect(() => normalize_update_hotspot_input({
+      expected_working_draft_version: 1,
+    })).toThrow(EmptyDemoHotspotUpdateError);
     expect(() => normalize_create_hotspot_input({
       hotspot_type: "bad",
       x: 0,
       y: 0,
       width: 0.1,
       height: 0.1,
+      expected_working_draft_version: 1,
     })).toThrow(InvalidDemoHotspotTargetError);
   });
 

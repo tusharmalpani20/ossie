@@ -1,4 +1,5 @@
 export * from "./access";
+export * from "./artifact-edition";
 export * from "./capture";
 export * from "./demo";
 export * from "./file";

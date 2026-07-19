@@ -1,4 +1,4 @@
-import type { CaptureEventType, DemoHotspotType, InteractiveDemoStatus } from "@repo/constants";
+import type { CaptureEventType, DemoHotspotType } from "@repo/constants";
 
 export type InteractiveDemoSourceEventType = CaptureEventType;
 
@@ -20,6 +20,7 @@ export type InteractiveDemoSourceCaptureSession = {
 };
 
 export type NormalizedCreateInteractiveDemoInput = {
+  project_version_id: string;
   title: string;
   description: string | null;
   source_capture_session_id: string | null;
@@ -28,7 +29,6 @@ export type NormalizedCreateInteractiveDemoInput = {
 export type NormalizedUpdateInteractiveDemoInput = Partial<{
   title: string;
   description: string | null;
-  status: InteractiveDemoStatus;
 }>;
 
 export type NormalizedCreateDemoSceneInput = {
@@ -69,7 +69,7 @@ export type NormalizedCreateDemoHotspotInput = {
   y: number;
   width: number;
   height: number;
-  target_scene_id: string | null;
+  transition: { target_scene_id: string } | null;
 };
 
 export type NormalizedUpdateDemoHotspotInput = Partial<{
@@ -80,5 +80,5 @@ export type NormalizedUpdateDemoHotspotInput = Partial<{
   y: number;
   width: number;
   height: number;
-  target_scene_id: string | null;
+  transition: { target_scene_id: string } | null;
 }>;

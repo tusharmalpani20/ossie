@@ -17,7 +17,19 @@ import {
   NullableIsoDateTimeStringSchema,
 } from "./common";
 import { CaptureAssetWithFileUrlSchema } from "./capture";
-import { GuideBlockContentSchema } from "./guide";
+
+const PublishedGuideSnapshotBlockContentSchema = z.object({
+  title: z.string().nullable().optional(),
+  body: z.string().nullable().optional(),
+  annotations: z.array(z.object({
+    id: IdSchema,
+    type: z.enum(["highlight"]),
+    x: z.number(),
+    y: z.number(),
+    width: z.number(),
+    height: z.number(),
+  })).nullable().optional(),
+}).strict();
 
 export type {
   PublishArtifactType,
@@ -130,7 +142,7 @@ export const PublishedGuideSnapshotBlockSchema = z.object({
   id: IdSchema,
   block_type: z.enum(GUIDE_BLOCK_TYPES),
   block_index: z.number().int().positive(),
-  content: GuideBlockContentSchema.nullable().optional(),
+  content: PublishedGuideSnapshotBlockContentSchema.nullable().optional(),
   step: z.object({
     id: IdSchema,
     title: z.string(),

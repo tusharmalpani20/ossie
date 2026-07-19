@@ -15,25 +15,54 @@ const step_block: GuideBlock = {
   id: "block_1",
   organization_id: "org_1",
   project_id: "project_1",
-  guide_id: "guide_1",
-  source_capture_session_id: "session_1",
-  source_capture_event_id: "event_1",
-  source_capture_asset_id: "asset_1",
-  selected_capture_asset_id: null,
-  screenshot_hidden: false,
-  display_capture_asset_id: "asset_1",
+  guide_working_draft_id: "draft_1",
   block_type: "step",
-  content: {
-    title: "kept",
-    annotations: [{ id: "ann_1", type: "highlight", x: 0, y: 0, width: 0.1, height: 0.1 }],
-  },
+  title: null,
+  body: null,
   block_index: 1,
   created_by_id: "org_user_1",
   updated_by_id: "org_user_1",
   version: 1,
   created_at: "2026-07-07T00:00:00.000Z",
   updated_at: "2026-07-07T00:00:00.000Z",
-  step: null,
+  step: {
+    id: "step_1",
+    organization_id: "org_1",
+    project_id: "project_1",
+    guide_working_draft_id: "draft_1",
+    guide_block_id: "block_1",
+    source_capture_session_id: "session_1",
+    source_capture_event_id: "event_1",
+    source_capture_asset_id: "asset_1",
+    selected_capture_asset_id: null,
+    screenshot_hidden: false,
+    display_capture_asset_id: "asset_1",
+    title: "Step",
+    body: null,
+    created_by_id: "org_user_1",
+    updated_by_id: "org_user_1",
+    version: 1,
+    created_at: "2026-07-07T00:00:00.000Z",
+    updated_at: "2026-07-07T00:00:00.000Z",
+    annotations: [{
+      id: "ann_1",
+      organization_id: "org_1",
+      project_id: "project_1",
+      guide_working_draft_id: "draft_1",
+      guide_step_id: "step_1",
+      annotation_type: "highlight",
+      annotation_index: 1,
+      x: 0,
+      y: 0,
+      width: 0.1,
+      height: 0.1,
+      created_by_id: "org_user_1",
+      updated_by_id: "org_user_1",
+      version: 1,
+      created_at: "2026-07-07T00:00:00.000Z",
+      updated_at: "2026-07-07T00:00:00.000Z",
+    }],
+  },
 };
 
 describe("guide block policy", () => {
@@ -50,15 +79,17 @@ describe("guide block policy", () => {
 
     expect(normalize_create_guide_block_input({
       block_type: "paragraph",
-      content: { body: " Body " },
+      body: " Body ",
     })).toEqual({
       block_type: "paragraph",
-      content: { body: "Body" },
+      title: null,
+      body: "Body",
     });
 
     expect(() => normalize_create_guide_block_input({
       block_type: "paragraph",
-      content: { title: "No", body: "Body" },
+      title: "No",
+      body: "Body",
     })).toThrow(InvalidGuideBlockContentError);
   });
 
@@ -75,6 +106,7 @@ describe("guide block policy", () => {
   it("normalizes screenshot selection and validates annotations with injected ids", () => {
     expect(normalize_update_guide_block_screenshot_input({
       capture_asset_id: " ",
+      expected_working_draft_version: 1,
     })).toEqual({
       selected_capture_asset_id: null,
       screenshot_hidden: true,
@@ -82,6 +114,7 @@ describe("guide block policy", () => {
 
     expect(normalize_update_guide_block_screenshot_input({
       capture_asset_id: " asset_2 ",
+      expected_working_draft_version: 1,
     })).toEqual({
       selected_capture_asset_id: "asset_2",
       screenshot_hidden: false,
@@ -92,23 +125,23 @@ describe("guide block policy", () => {
         { id: "ann_1", type: "highlight", x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
         { type: "highlight", x: 0, y: 0, width: 1, height: 1 },
       ],
+      expected_working_draft_version: 1,
     }, () => "ann_new")).toEqual({
-      content: {
-        title: "kept",
-        annotations: [
-          { id: "ann_1", type: "highlight", x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
-          { id: "ann_new", type: "highlight", x: 0, y: 0, width: 1, height: 1 },
-        ],
-      },
+      annotations: [
+        { id: "ann_1", annotation_type: "highlight", annotation_index: 1, x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
+        { id: "ann_new", annotation_type: "highlight", annotation_index: 2, x: 0, y: 0, width: 1, height: 1 },
+      ],
     });
 
     expect(() => normalize_update_guide_block_annotations_input({
       ...step_block,
-      screenshot_hidden: true,
-    }, { annotations: [] }, () => "ann_new")).toThrow(InvalidGuideBlockContentError);
+      step: { ...step_block.step!, screenshot_hidden: true },
+    }, { annotations: [], expected_working_draft_version: 1 }, () => "ann_new"))
+      .toThrow(InvalidGuideBlockContentError);
 
     expect(() => normalize_update_guide_block_annotations_input(step_block, {
       annotations: [{ type: "highlight", x: 0.9, y: 0, width: 0.2, height: 0.1 }],
+      expected_working_draft_version: 1,
     }, () => "ann_new")).toThrow(InvalidGuideBlockContentError);
 
     expect(() => {

@@ -1,9 +1,8 @@
 import type {
-  Guide,
+  GuideAnnotation,
   GuideBlock,
-  GuideBlockContent,
   GuideDetail,
-  GuideScreenshotAnnotation,
+  GuideEdition,
   GuideSourceCaptureAsset,
 } from "@repo/types/guide";
 import type { GuideHtmlExport } from "../types/guide-domain";
@@ -32,7 +31,7 @@ const markdown_asset_url = (file_url: string, public_base_url: string) => {
   return encodeURI(`${base}${path}`).replace(/\(/g, "%28").replace(/\)/g, "%29");
 };
 
-const slug_for_guide = (guide: Guide) => (
+const slug_for_guide = (guide: GuideEdition) => (
   guide.title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -40,13 +39,13 @@ const slug_for_guide = (guide: Guide) => (
     .replace(/-{2,}/g, "-")
 );
 
-export const guide_markdown_filename = (guide: Guide) => {
+export const guide_markdown_filename = (guide: GuideEdition) => {
   const slug = slug_for_guide(guide);
 
   return `${slug || `guide-${guide.id}`}.md`;
 };
 
-export const guide_html_zip_filename = (guide: Guide) => {
+export const guide_html_zip_filename = (guide: GuideEdition) => {
   const slug = slug_for_guide(guide);
 
   return `${slug || `guide-${guide.id}`}-html-export.zip`;
@@ -73,7 +72,7 @@ const markdown_sections = (...sections: Array<string | null | undefined>) => (
     .join("\n\n")
 );
 
-const render_annotations_markdown = (annotations: GuideScreenshotAnnotation[] | null | undefined) => {
+const render_annotations_markdown = (annotations: GuideAnnotation[] | null | undefined) => {
   if (!annotations?.length) {
     return null;
   }
@@ -89,10 +88,10 @@ const render_annotations_markdown = (annotations: GuideScreenshotAnnotation[] | 
 
 const render_blockquote_markdown = (
   label: "Tip" | "Alert",
-  content: GuideBlockContent | null
+  block: Pick<GuideBlock, "title" | "body">
 ) => {
-  const title = compact_optional_string(content?.title);
-  const body = compact_optional_string(content?.body);
+  const title = compact_optional_string(block.title);
+  const body = compact_optional_string(block.body);
   const label_line = title
     ? `> **${label}: ${escape_markdown_text(title)}**`
     : `> **${label}:**${body ? ` ${escape_markdown_text(body)}` : ""}`;
@@ -110,20 +109,20 @@ const render_guide_block_markdown = (
   assets_by_id: Map<string, GuideSourceCaptureAsset>,
   public_base_url: string
 ) => {
-  if (block.block_type === "header" && block.content?.title) {
-    return `## ${escape_markdown_text(block.content.title)}`;
+  if (block.block_type === "header" && block.title) {
+    return `## ${escape_markdown_text(block.title)}`;
   }
 
-  if (block.block_type === "paragraph" && block.content?.body) {
-    return escape_markdown_text(block.content.body);
+  if (block.block_type === "paragraph" && block.body) {
+    return escape_markdown_text(block.body);
   }
 
   if (block.block_type === "tip") {
-    return render_blockquote_markdown("Tip", block.content);
+    return render_blockquote_markdown("Tip", block);
   }
 
   if (block.block_type === "alert") {
-    return render_blockquote_markdown("Alert", block.content);
+    return render_blockquote_markdown("Alert", block);
   }
 
   if (block.block_type === "divider") {
@@ -132,8 +131,8 @@ const render_guide_block_markdown = (
 
   if (block.block_type === "step" && block.step) {
     const step_number = step_number_for_block(blocks, block);
-    const asset = block.display_capture_asset_id
-      ? assets_by_id.get(block.display_capture_asset_id)
+    const asset = block.step.display_capture_asset_id
+      ? assets_by_id.get(block.step.display_capture_asset_id)
       : undefined;
     const screenshot_markdown = asset
       ? `![${markdown_asset_alt(asset, block.step.title, step_number)}](${markdown_asset_url(asset.file_url, public_base_url)})`
@@ -143,7 +142,7 @@ const render_guide_block_markdown = (
       `## ${step_number}. ${escape_markdown_text(block.step.title)}`,
       block.step.body ? escape_markdown_text(block.step.body) : null,
       screenshot_markdown,
-      render_annotations_markdown(asset ? block.content?.annotations : null)
+      render_annotations_markdown(asset ? block.step.annotations : null)
     );
   }
 
@@ -157,8 +156,8 @@ export const render_guide_markdown = (
   const sorted_blocks = [...detail.guide_blocks].sort((left, right) => left.block_index - right.block_index);
   const assets_by_id = new Map(detail.source_capture_assets.map((asset) => [asset.id, asset]));
   const sections = [
-    `# ${escape_markdown_text(detail.guide.title)}`,
-    detail.guide.description ? escape_markdown_text(detail.guide.description) : null,
+    `# ${escape_markdown_text(detail.edition.title)}`,
+    detail.edition.description ? escape_markdown_text(detail.edition.description) : null,
     ...sorted_blocks.map((block) => render_guide_block_markdown(sorted_blocks, block, assets_by_id, public_base_url)),
   ];
 
@@ -215,14 +214,14 @@ const image_path_for = (block: GuideBlock, asset: GuideSourceCaptureAsset) => (
 );
 
 const render_annotations = (block: GuideBlock) => {
-  const annotations = block.content?.annotations ?? [];
+  const annotations = block.step?.annotations ?? [];
 
   if (annotations.length === 0) {
     return "";
   }
 
   return annotations
-    .filter((annotation) => annotation.type === "highlight")
+    .filter((annotation) => annotation.annotation_type === "highlight")
     .map((annotation) => (
       `<span class="annotation annotation-highlight" style="left: ${percent(annotation.x)}; top: ${percent(annotation.y)}; width: ${percent(annotation.width)}; height: ${percent(annotation.height)};"></span>`
     ))
@@ -233,7 +232,7 @@ const render_step_image = (
   block: GuideBlock,
   asset: GuideSourceCaptureAsset | null
 ) => {
-  if (!asset || block.screenshot_hidden) {
+  if (!asset || block.step?.screenshot_hidden) {
     return "";
   }
 
@@ -255,8 +254,8 @@ const render_step_image = (
 };
 
 const render_callout = (kind: "tip" | "alert", block: GuideBlock) => {
-  const title = block.content?.title;
-  const body = block.content?.body;
+  const title = block.title;
+  const body = block.body;
   const heading = title
     ? `<strong>${kind === "tip" ? "Tip" : "Alert"}: ${escape_html(title)}</strong>`
     : `<strong>${kind === "tip" ? "Tip" : "Alert"}</strong>`;
@@ -274,12 +273,12 @@ const render_block = (
   block: GuideBlock,
   asset_by_id: Map<string, GuideSourceCaptureAsset>
 ) => {
-  if (block.block_type === "header" && block.content?.title) {
-    return `<h2>${escape_html(block.content.title)}</h2>`;
+  if (block.block_type === "header" && block.title) {
+    return `<h2>${escape_html(block.title)}</h2>`;
   }
 
-  if (block.block_type === "paragraph" && block.content?.body) {
-    return `<section class="guide-block guide-paragraph">${html_paragraphs(block.content.body)}</section>`;
+  if (block.block_type === "paragraph" && block.body) {
+    return `<section class="guide-block guide-paragraph">${html_paragraphs(block.body)}</section>`;
   }
 
   if (block.block_type === "tip") {
@@ -296,8 +295,8 @@ const render_block = (
 
   if (block.block_type === "step" && block.step) {
     const step_number = html_step_number_for_block(sorted_blocks, block);
-    const asset = block.display_capture_asset_id
-      ? asset_by_id.get(block.display_capture_asset_id) ?? null
+    const asset = block.step.display_capture_asset_id
+      ? asset_by_id.get(block.step.display_capture_asset_id) ?? null
       : null;
 
     return [
@@ -371,11 +370,11 @@ export const render_guide_html_export = (detail: GuideDetail): GuideHtmlExport =
   const asset_by_id = assets_by_id(detail.source_capture_assets);
   const sorted_blocks = [...detail.guide_blocks].sort((left, right) => left.block_index - right.block_index);
   const image_references = sorted_blocks.flatMap((block) => {
-    if (block.screenshot_hidden || !block.display_capture_asset_id) {
+    if (block.step?.screenshot_hidden || !block.step?.display_capture_asset_id) {
       return [];
     }
 
-    const asset = asset_by_id.get(block.display_capture_asset_id);
+    const asset = asset_by_id.get(block.step.display_capture_asset_id);
 
     if (!asset) {
       return [];
@@ -394,13 +393,13 @@ export const render_guide_html_export = (detail: GuideDetail): GuideHtmlExport =
     "<head>",
     "<meta charset=\"utf-8\">",
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
-    `<title>${escape_html(detail.guide.title)}</title>`,
+    `<title>${escape_html(detail.edition.title)}</title>`,
     `<style>${stylesheet}</style>`,
     "</head>",
     "<body>",
     "<main>",
-    `<h1>${escape_html(detail.guide.title)}</h1>`,
-    detail.guide.description ? `<p class="guide-description">${escape_html(detail.guide.description)}</p>` : "",
+    `<h1>${escape_html(detail.edition.title)}</h1>`,
+    detail.edition.description ? `<p class="guide-description">${escape_html(detail.edition.description)}</p>` : "",
     ...sorted_blocks.map((block) => render_block(sorted_blocks, block, asset_by_id)),
     "</main>",
     "</body>",

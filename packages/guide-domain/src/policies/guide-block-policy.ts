@@ -1,7 +1,6 @@
 import type {
   GuideBlock,
   GuideBlockType,
-  GuideBlockContent,
   UpdateGuideBlockAnnotationsInput,
   UpdateGuideBlockInput,
   UpdateGuideBlockScreenshotInput,
@@ -74,7 +73,8 @@ type CreateGuideBlockPolicyInput = {
     title?: string;
     body?: string | null;
   } | null;
-  content?: GuideBlockContent | null;
+  title?: string | null;
+  body?: string | null;
 };
 
 const normalize_position = (position: CreateGuideBlockPolicyInput["position"]) => {
@@ -96,17 +96,17 @@ const normalize_position = (position: CreateGuideBlockPolicyInput["position"]) =
 
 export const normalize_block_content = (
   block_type: "header" | "paragraph" | "tip" | "alert" | "divider",
-  content: GuideBlockContent | null | undefined
+  input: { title?: string | null; body?: string | null }
 ) => {
-  const title = compact_optional_string(content?.title);
-  const body = compact_optional_string(content?.body);
+  const title = compact_optional_string(input.title);
+  const body = compact_optional_string(input.body);
 
   if (block_type === "header") {
     if (!title) {
       throw new InvalidGuideBlockContentError();
     }
 
-    return { title };
+    return { title, body: null };
   }
 
   if (block_type === "paragraph") {
@@ -114,7 +114,7 @@ export const normalize_block_content = (
       throw new InvalidGuideBlockContentError();
     }
 
-    return { body };
+    return { title: null, body };
   }
 
   if (block_type === "divider") {
@@ -134,9 +134,9 @@ export const normalize_block_content = (
 
 const normalize_editable_block_content = (
   block_type: "header" | "paragraph" | "tip" | "alert",
-  content: GuideBlockContent | null | undefined
+  input: { title?: string | null; body?: string | null }
 ) => {
-  const normalized = normalize_block_content(block_type, content);
+  const normalized = normalize_block_content(block_type, input);
 
   if (!normalized) {
     throw new InvalidGuideBlockContentError();
@@ -177,7 +177,7 @@ export const normalize_create_guide_block_input = (
     return {
       block_type: input.block_type,
       ...(position ? { position } : {}),
-      content: normalize_block_content(input.block_type, input.content),
+      ...normalize_block_content(input.block_type, input),
     };
   }
 
@@ -198,7 +198,7 @@ export const normalize_update_guide_block_input = (
   }
 
   return {
-    content: normalize_editable_block_content(block_type, input.content),
+    ...normalize_editable_block_content(block_type, input),
   };
 };
 
@@ -233,7 +233,11 @@ export const normalize_update_guide_block_annotations_input = (
   input: UpdateGuideBlockAnnotationsInput,
   create_annotation_id: GuideAnnotationIdFactory
 ): NormalizedUpdateGuideBlockAnnotationsInput => {
-  if (block.block_type !== "step" || !block.display_capture_asset_id || block.screenshot_hidden) {
+  if (
+    block.block_type !== "step"
+    || !block.step?.display_capture_asset_id
+    || block.step.screenshot_hidden
+  ) {
     throw new InvalidGuideBlockContentError();
   }
 
@@ -241,9 +245,9 @@ export const normalize_update_guide_block_annotations_input = (
     throw new InvalidGuideBlockContentError();
   }
 
-  const existing_ids = new Set((block.content?.annotations ?? []).map((annotation) => annotation.id));
+  const existing_ids = new Set((block.step.annotations ?? []).map((annotation) => annotation.id));
   const seen_input_ids = new Set<string>();
-  const annotations = input.annotations.map((annotation) => {
+  const annotations = input.annotations.map((annotation, index) => {
     const x = Number(annotation.x);
     const y = Number(annotation.y);
     const width = Number(annotation.width);
@@ -281,7 +285,8 @@ export const normalize_update_guide_block_annotations_input = (
 
     return {
       id: id ?? create_annotation_id(),
-      type: "highlight" as const,
+      annotation_type: "highlight" as const,
+      annotation_index: index + 1,
       x,
       y,
       width,
@@ -290,9 +295,6 @@ export const normalize_update_guide_block_annotations_input = (
   });
 
   return {
-    content: {
-      ...(block.content ?? {}),
-      annotations,
-    },
+    annotations,
   };
 };

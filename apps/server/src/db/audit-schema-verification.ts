@@ -488,8 +488,6 @@ export const verify_project_version_schema = async (
       ('capture_session_project_version_guard'),
       ('capture_asset_project_version_guard'),
       ('capture_event_project_version_guard'),
-      ('guide_project_version_legacy_content_guard'),
-      ('interactive_demo_project_version_legacy_content_guard'),
       ('project_version_i_audit_ctx'), ('project_version_i_audit_evd'),
       ('project_version_u_audit_ctx'), ('project_version_u_audit_evd'),
       ('project_version_alias_i_audit_ctx'), ('project_version_alias_i_audit_evd')
@@ -539,6 +537,18 @@ export const verify_project_version_schema = async (
       )
     UNION ALL SELECT 'trigger:' || expected.name FROM expected_triggers expected
       WHERE NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = expected.name AND NOT tgisinternal)
+    UNION ALL SELECT 'trigger:guide_project_version_legacy_content_guard'
+      WHERE to_regclass('guide_schema.guide_edition') IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM pg_trigger
+          WHERE tgname = 'guide_project_version_legacy_content_guard' AND NOT tgisinternal
+        )
+    UNION ALL SELECT 'trigger:interactive_demo_project_version_legacy_content_guard'
+      WHERE to_regclass('interactive_demo_schema.interactive_demo_edition') IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM pg_trigger
+          WHERE tgname = 'interactive_demo_project_version_legacy_content_guard' AND NOT tgisinternal
+        )
     UNION ALL SELECT 'index:' || expected.name FROM expected_indexes expected
       WHERE NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = expected.name)
         AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = expected.name)
@@ -601,6 +611,115 @@ export const verify_project_version_schema = async (
       )
     ORDER BY issue
   `,
+    [roles.runtime_role, roles.maintenance_role],
+  );
+  return throw_verification_issues(result.rows);
+};
+
+export const verify_artifact_edition_schema = async (
+  pool: VerificationPool,
+  roles: { runtime_role: string; maintenance_role: string },
+) => {
+  await verify_project_version_schema(pool, roles);
+  const result = await pool.query<{ issue: string }>(
+    `
+    -- Verify guide_schema.guide_edition and
+    -- interactive_demo_schema.interactive_demo_working_draft explicitly.
+    WITH expected_tables(schema_name, table_name) AS (VALUES
+      ('guide_schema', 'guide'),
+      ('guide_schema', 'guide_edition'),
+      ('guide_schema', 'guide_working_draft'),
+      ('guide_schema', 'guide_block'),
+      ('guide_schema', 'guide_step'),
+      ('guide_schema', 'guide_annotation'),
+      ('interactive_demo_schema', 'interactive_demo'),
+      ('interactive_demo_schema', 'interactive_demo_edition'),
+      ('interactive_demo_schema', 'interactive_demo_working_draft'),
+      ('interactive_demo_schema', 'demo_scene'),
+      ('interactive_demo_schema', 'demo_hotspot'),
+      ('interactive_demo_schema', 'demo_transition')
+    ), expected_triggers(name) AS (VALUES
+      ('guide_edition_exactly_one_working_draft'),
+      ('interactive_demo_edition_exactly_one_working_draft'),
+      ('guide_artifact_mutation_guard'), ('guide_edition_mutation_guard'),
+      ('guide_working_draft_mutation_guard'), ('guide_block_mutation_guard'),
+      ('guide_step_mutation_guard'), ('guide_annotation_mutation_guard'),
+      ('interactive_demo_artifact_mutation_guard'),
+      ('interactive_demo_edition_mutation_guard'),
+      ('interactive_demo_working_draft_mutation_guard'),
+      ('demo_scene_mutation_guard'), ('demo_hotspot_mutation_guard'),
+      ('demo_transition_mutation_guard'), ('guide_step_asset_version_guard'),
+      ('demo_scene_asset_version_guard')
+    ), expected_constraints(name) AS (VALUES
+      ('uq_guide_edition_artifact_version'),
+      ('uq_interactive_demo_edition_artifact_version'),
+      ('fk_guide_edition_version_scope'),
+      ('fk_interactive_demo_edition_version_scope'),
+      ('fk_guide_annotation_step_scope'), ('fk_demo_transition_target_scope'),
+      ('uq_capture_session_id_version_project_organization'),
+      ('uq_capture_asset_id_project_organization'),
+      ('uq_capture_event_id_session_project_organization')
+    ), expected_functions(signature) AS (VALUES
+      ('project_schema.enforce_artifact_edition_mutation()'),
+      ('project_schema.enforce_authored_asset_version_scope()'),
+      ('guide_schema.verify_guide_edition_working_draft()'),
+      ('interactive_demo_schema.verify_interactive_demo_edition_working_draft()')
+    )
+    SELECT 'table:' || expected.schema_name || '.' || expected.table_name
+      FROM expected_tables expected
+      WHERE to_regclass(expected.schema_name || '.' || expected.table_name) IS NULL
+    UNION ALL SELECT 'trigger:' || expected.name FROM expected_triggers expected
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = expected.name AND NOT tgisinternal
+      )
+    UNION ALL SELECT 'constraint:' || expected.name FROM expected_constraints expected
+      WHERE NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = expected.name)
+    UNION ALL SELECT 'function:' || expected.signature FROM expected_functions expected
+      WHERE to_regprocedure(expected.signature) IS NULL
+    UNION ALL SELECT 'column:guide_schema.guide:identity_only'
+      WHERE EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'guide_schema' AND table_name = 'guide'
+          AND column_name IN ('title', 'description', 'status', 'version', 'updated_at')
+      )
+    UNION ALL SELECT 'column:interactive_demo_schema.interactive_demo:identity_only'
+      WHERE EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'interactive_demo_schema' AND table_name = 'interactive_demo'
+          AND column_name IN ('title', 'description', 'status', 'version', 'updated_at')
+      )
+    UNION ALL SELECT 'column:guide_schema.guide_block:content_json_forbidden'
+      WHERE EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'guide_schema' AND table_name = 'guide_block'
+          AND (column_name = 'content' OR data_type IN ('json', 'jsonb'))
+      )
+    UNION ALL SELECT 'column:interactive_demo_schema.demo_hotspot:target_forbidden'
+      WHERE EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'interactive_demo_schema' AND table_name = 'demo_hotspot'
+          AND column_name = 'target_scene_id'
+      )
+    UNION ALL SELECT 'column:working_draft:json_forbidden'
+      WHERE EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name IN ('guide_working_draft', 'interactive_demo_working_draft')
+          AND data_type IN ('json', 'jsonb')
+      )
+    UNION ALL SELECT 'privilege:' || expected.schema_name || '.' || expected.table_name || ':DELETE:false'
+      FROM expected_tables expected
+      WHERE has_table_privilege($1::text, expected.schema_name || '.' || expected.table_name, 'DELETE')
+    UNION ALL SELECT 'owner:' || expected.schema_name || '.' || expected.table_name || ':maintenance'
+      FROM expected_tables expected
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_class class
+        JOIN pg_namespace namespace ON namespace.oid = class.relnamespace
+        WHERE namespace.nspname = expected.schema_name
+          AND class.relname = expected.table_name
+          AND pg_get_userbyid(class.relowner) = $2::text
+      )
+    ORDER BY 1
+    `,
     [roles.runtime_role, roles.maintenance_role],
   );
   return throw_verification_issues(result.rows);

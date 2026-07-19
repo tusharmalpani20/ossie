@@ -1,8 +1,5 @@
-import type { CaptureEventType, GuideBlockType, GuideStatus } from "@repo/constants";
-import type {
-  GuideBlockContent,
-  UpdateGuideBlockAnnotationsInput,
-} from "@repo/types/guide";
+import type { CaptureEventType, GuideBlockType } from "@repo/constants";
+import type { UpdateGuideBlockAnnotationsInput } from "@repo/types/guide";
 
 export type GuideSourceEventType = CaptureEventType;
 
@@ -37,7 +34,6 @@ export type NormalizedCreateGuideFromCaptureInput = {
 export type NormalizedUpdateGuideInput = {
   title?: string;
   description?: string | null;
-  status?: GuideStatus;
 };
 
 export type NormalizedUpdateGuideStepInput = {
@@ -55,11 +51,13 @@ export type NormalizedCreateGuideBlockInput = {
     title: string;
     body: string | null;
   };
-  content?: GuideBlockContent | null;
+  title?: string | null;
+  body?: string | null;
 };
 
 export type NormalizedUpdateGuideBlockInput = {
-  content: GuideBlockContent;
+  title: string | null;
+  body: string | null;
 };
 
 export type NormalizedUpdateGuideBlockScreenshotInput = {
@@ -68,7 +66,15 @@ export type NormalizedUpdateGuideBlockScreenshotInput = {
 };
 
 export type NormalizedUpdateGuideBlockAnnotationsInput = {
-  content: GuideBlockContent;
+  annotations: Array<{
+    id: string;
+    annotation_type: "highlight";
+    annotation_index: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>;
 };
 
 export type GuideAnnotationIdFactory = () => string;

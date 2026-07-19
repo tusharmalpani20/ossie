@@ -55,23 +55,36 @@ export const build_published_guide_snapshot = (input: {
   return {
     artifact_type: "guide",
     guide: {
-      id: input.guide_detail.guide.id,
-      title: input.guide_detail.guide.title,
-      description: input.guide_detail.guide.description,
-      source_capture_session_id: input.guide_detail.guide.source_capture_session_id,
+      id: input.guide_detail.artifact.id,
+      title: input.guide_detail.edition.title,
+      description: input.guide_detail.edition.description,
+      source_capture_session_id: input.guide_detail.edition.source_capture_session_id,
       published_version: input.version_number,
       published_at: input.published_at,
     },
     blocks: sorted_blocks.map((block) => {
-      const source_asset = block.display_capture_asset_id
-        ? assets.get(block.display_capture_asset_id) ?? null
+      const source_asset = block.step?.display_capture_asset_id
+        ? assets.get(block.step.display_capture_asset_id) ?? null
         : null;
+      const annotations = block.step?.annotations.map((annotation) => ({
+        id: annotation.id,
+        type: annotation.annotation_type,
+        x: annotation.x,
+        y: annotation.y,
+        width: annotation.width,
+        height: annotation.height,
+      }));
+      const content = block.step
+        ? (annotations?.length ? { annotations } : null)
+        : block.title !== null || block.body !== null
+          ? { title: block.title, body: block.body }
+          : null;
 
       return {
         id: block.id,
         block_type: block.block_type,
         block_index: block.block_index,
-        content: block.content,
+        content,
         step: block.step
           ? {
             id: block.step.id,
@@ -140,8 +153,9 @@ export const build_published_interactive_demo_snapshot = (input: {
             y: hotspot.y,
             width: hotspot.width,
             height: hotspot.height,
-            target_scene_id: hotspot.target_scene_id && scene_ids.has(hotspot.target_scene_id)
-              ? hotspot.target_scene_id
+            target_scene_id: hotspot.transition?.target_scene_id
+              && scene_ids.has(hotspot.transition.target_scene_id)
+              ? hotspot.transition.target_scene_id
               : null,
             hotspot_index: hotspot.hotspot_index,
           })),
@@ -157,10 +171,10 @@ export const build_published_interactive_demo_snapshot = (input: {
     artifact_type: "interactive_demo",
     schema_version: 1,
     interactive_demo: {
-      id: input.demo_detail.interactive_demo.id,
-      title: input.demo_detail.interactive_demo.title,
-      description: input.demo_detail.interactive_demo.description,
-      source_capture_session_id: input.demo_detail.interactive_demo.source_capture_session_id,
+      id: input.demo_detail.artifact.id,
+      title: input.demo_detail.edition.title,
+      description: input.demo_detail.edition.description,
+      source_capture_session_id: input.demo_detail.edition.source_capture_session_id,
       published_version: input.version_number,
       published_at: input.published_at,
     },

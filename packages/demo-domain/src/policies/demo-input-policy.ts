@@ -36,6 +36,7 @@ export const compact_optional_string = (value: string | null | undefined) => {
 export const normalize_create_demo_input = (
   input: CreateInteractiveDemoInput
 ): NormalizedCreateInteractiveDemoInput => ({
+  project_version_id: input.project_version_id.trim(),
   title: input.title.trim(),
   description: compact_optional_string(input.description) ?? null,
   source_capture_session_id: compact_optional_string(input.source_capture_session_id) ?? null,
@@ -52,10 +53,6 @@ export const normalize_update_demo_input = (
   if (input.description !== undefined) {
     normalized.description = compact_optional_string(input.description) ?? null;
   }
-  if (input.status !== undefined) {
-    normalized.status = input.status;
-  }
-
   if (Object.keys(normalized).length === 0) {
     throw new EmptyInteractiveDemoUpdateError();
   }

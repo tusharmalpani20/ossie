@@ -13,8 +13,10 @@ describe("demo input policy", () => {
     expect(normalize_create_demo_input({
       title: " Demo ",
       description: " ",
+      project_version_id: "version_1",
       source_capture_session_id: " session_1 ",
     })).toEqual({
+      project_version_id: "version_1",
       title: "Demo",
       description: null,
       source_capture_session_id: "session_1",
@@ -23,14 +25,15 @@ describe("demo input policy", () => {
     expect(normalize_update_demo_input({
       title: " Updated ",
       description: " ",
-      status: "archived",
+      expected_edition_version: 1,
     })).toEqual({
       title: "Updated",
       description: null,
-      status: "archived",
     });
 
-    expect(() => normalize_update_demo_input({})).toThrow(EmptyInteractiveDemoUpdateError);
+    expect(() => normalize_update_demo_input({
+      expected_edition_version: 1,
+    })).toThrow(EmptyInteractiveDemoUpdateError);
   });
 
   it("normalizes create and update scene input", () => {
@@ -41,6 +44,7 @@ describe("demo input policy", () => {
       source_capture_session_id: " session_1 ",
       source_capture_event_id: " event_1 ",
       source_capture_asset_id: " asset_1 ",
+      expected_working_draft_version: 1,
     })).toEqual({
       title: null,
       description: "Details",
@@ -53,11 +57,14 @@ describe("demo input policy", () => {
     expect(normalize_update_scene_input({
       title: " ",
       background_capture_asset_id: " ",
+      expected_working_draft_version: 1,
     })).toEqual({
       title: null,
       background_capture_asset_id: null,
     });
 
-    expect(() => normalize_update_scene_input({})).toThrow(EmptyDemoSceneUpdateError);
+    expect(() => normalize_update_scene_input({
+      expected_working_draft_version: 1,
+    })).toThrow(EmptyDemoSceneUpdateError);
   });
 });

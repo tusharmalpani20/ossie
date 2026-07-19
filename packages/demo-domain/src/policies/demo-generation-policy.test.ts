@@ -103,7 +103,7 @@ describe("demo generation policy", () => {
   });
 
   it("builds the current encoded editor redirect path", () => {
-    expect(demo_redirect_path("project / 1", "demo / 1"))
-      .toBe("/projects/project%20%2F%201/interactive-demos/demo%20%2F%201");
+    expect(demo_redirect_path("project / 1", "version / 1", "demo / 1"))
+      .toBe("/projects/project%20%2F%201/versions/version%20%2F%201/interactive-demos/demo%20%2F%201");
   });
 });

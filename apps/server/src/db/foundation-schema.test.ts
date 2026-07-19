@@ -251,4 +251,44 @@ describe("foundation schema migrations", () => {
     expect(sql).toContain("uq_guide_block_guide_index_active");
     expect(sql).toContain("uq_guide_step_block_active");
   });
+
+  it("replaces Guide and Demo roots with relational Edition and Working Draft ownership", () => {
+    const migration = readFileSync(
+      new URL(
+        "./migrations/022_guide_demo_edition_working_draft_relational_foundation.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+
+    const guide_edition = table_definition(migration, "guide_schema.guide_edition");
+    const guide_draft = table_definition(migration, "guide_schema.guide_working_draft");
+    const annotation = table_definition(migration, "guide_schema.guide_annotation");
+    const demo_edition = table_definition(
+      migration,
+      "interactive_demo_schema.interactive_demo_edition",
+    );
+    const demo_draft = table_definition(
+      migration,
+      "interactive_demo_schema.interactive_demo_working_draft",
+    );
+    const transition = table_definition(migration, "interactive_demo_schema.demo_transition");
+    const up = migration.split("-- DOWN:")[0] ?? migration;
+
+    expect(migration).toContain("Refusing Guide/Demo relational migration while authored or published rows exist");
+    expect(guide_edition).toContain("project_version_id VARCHAR(26) NOT NULL");
+    expect(guide_draft).toContain("guide_edition_id VARCHAR(26) NOT NULL UNIQUE");
+    expect(annotation).toContain("guide_working_draft_id VARCHAR(26) NOT NULL");
+    expect(demo_edition).toContain("project_version_id VARCHAR(26) NOT NULL");
+    expect(demo_draft).toContain("interactive_demo_edition_id VARCHAR(26) NOT NULL UNIQUE");
+    expect(transition).toContain("demo_hotspot_id VARCHAR(26) NOT NULL");
+    expect(migration).toContain("guide_edition_exactly_one_working_draft");
+    expect(migration).toContain("interactive_demo_edition_exactly_one_working_draft");
+    expect(migration).toContain("artifact_edition_mutation_command_guard");
+    expect(migration).toContain("guide_working_draft_id VARCHAR(26) NOT NULL");
+    expect(migration).toContain("interactive_demo_working_draft_id VARCHAR(26) NOT NULL");
+    expect(up).not.toContain("content JSONB");
+    expect(up).not.toContain("target_scene_id VARCHAR(26) DEFAULT NULL");
+    expect(migration).toContain("Refusing to remove populated Guide/Demo relational foundation");
+  });
 });
