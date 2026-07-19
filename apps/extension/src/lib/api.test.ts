@@ -145,110 +145,145 @@ afterEach(() => {
 describe("extension API client", () => {
   it("logs in against the configured instance and returns the extension token", async () => {
     const response = { auth, session_token: "extension-session-token" };
-    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(login("https://demo.example.com", {
-      email: "owner@example.com",
-      password: "safe password",
-    })).resolves.toEqual(response);
-
-    expect(fetch).toHaveBeenCalledWith("https://demo.example.com/api/v1/authentication/login", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-        "x-ossie-client": "extension",
-      },
-      body: JSON.stringify({
+    await expect(
+      login("https://demo.example.com", {
         email: "owner@example.com",
         password: "safe password",
       }),
-    });
+    ).resolves.toEqual(response);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://demo.example.com/api/v1/authentication/login",
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          "x-ossie-client": "extension",
+        },
+        body: JSON.stringify({
+          email: "owner@example.com",
+          password: "safe password",
+        }),
+      },
+    );
   });
 
   it("checks current auth and lists projects with bearer auth", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ auth }), {
-        status: 200,
-        headers: {
-          "content-type": "application/json",
-        },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ projects: [project] }), {
-        status: 200,
-        headers: {
-          "content-type": "application/json",
-        },
-      }));
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ auth }), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ projects: [project] }), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+      );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(getCurrentAuth("https://demo.example.com", "extension-session-token")).resolves.toEqual({ auth });
-    await expect(listProjects("https://demo.example.com", "extension-session-token")).resolves.toEqual({ projects: [project] });
+    await expect(
+      getCurrentAuth("https://demo.example.com", "extension-session-token"),
+    ).resolves.toEqual({ auth });
+    await expect(
+      listProjects("https://demo.example.com", "extension-session-token"),
+    ).resolves.toEqual({ projects: [project] });
 
-    expect(fetch).toHaveBeenNthCalledWith(1, "https://demo.example.com/api/v1/authentication/me", {
-      credentials: "include",
-      headers: {
-        accept: "application/json",
-        authorization: "Bearer extension-session-token",
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      "https://demo.example.com/api/v1/authentication/me",
+      {
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          authorization: "Bearer extension-session-token",
+        },
       },
-    });
-    expect(fetch).toHaveBeenNthCalledWith(2, "https://demo.example.com/api/v1/projects?status=active&purpose=capture", {
-      credentials: "include",
-      headers: {
-        accept: "application/json",
-        authorization: "Bearer extension-session-token",
-        "x-ossie-client": "extension",
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      "https://demo.example.com/api/v1/projects?status=active&purpose=capture",
+      {
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          authorization: "Bearer extension-session-token",
+          "x-ossie-client": "extension",
+        },
       },
-    });
+    );
   });
 
   it("logs out with bearer auth", async () => {
     const fetch = vi.fn(async () => new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetch);
 
-    await expect(logout("https://demo.example.com", "extension-session-token")).resolves.toBeUndefined();
+    await expect(
+      logout("https://demo.example.com", "extension-session-token"),
+    ).resolves.toBeUndefined();
 
-    expect(fetch).toHaveBeenCalledWith("https://demo.example.com/api/v1/authentication/logout", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        accept: "application/json",
-        authorization: "Bearer extension-session-token",
+    expect(fetch).toHaveBeenCalledWith(
+      "https://demo.example.com/api/v1/authentication/logout",
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          authorization: "Bearer extension-session-token",
+        },
       },
-    });
+    );
   });
 
   it("creates capture sessions with bearer auth and extension attribution", async () => {
     const response = { capture_session: captureSession };
-    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(JSON.stringify(response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(createCaptureSession(
-      "https://demo.example.com/",
-      "extension-session-token",
-      "project with spaces",
-      {
-        name: "Capture from Example Page",
-        source_type: "extension",
-        start_url: "https://example.com/path",
-        metadata: {
-          tab_title: "Example Page",
+    await expect(
+      createCaptureSession(
+        "https://demo.example.com/",
+        "extension-session-token",
+        "project with spaces",
+        {
+          name: "Capture from Example Page",
+          project_version_id: "version_1",
+          source_type: "extension",
+          start_url: "https://example.com/path",
+          metadata: {
+            tab_title: "Example Page",
+          },
         },
-      }
-    )).resolves.toEqual(response);
+      ),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "https://demo.example.com/api/v1/projects/project%20with%20spaces/capture-sessions",
@@ -263,52 +298,58 @@ describe("extension API client", () => {
         },
         body: JSON.stringify({
           name: "Capture from Example Page",
+          project_version_id: "version_1",
           source_type: "extension",
           start_url: "https://example.com/path",
           metadata: {
             tab_title: "Example Page",
           },
         }),
-      }
+      },
     );
   });
 
   it("uploads capture assets as bearer-authenticated multipart form data", async () => {
     const response = { capture_asset: captureAsset };
-    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(JSON.stringify(response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
     const file = new Blob(["fake png bytes"], { type: "image/png" });
 
-    await expect(uploadCaptureAsset(
-      "https://demo.example.com/",
-      "extension-session-token",
-      "project with spaces",
-      "capture session with spaces",
-      {
-        file,
-        fileName: "screenshot-2026-06-05T10-00-00-000Z.png",
-        width: 1440,
-        height: 900,
-        devicePixelRatio: 2,
-        pageUrl: "https://example.com/path",
-        pageTitle: "Example Page",
-        capturedAt: "2026-06-05T10:00:00.000Z",
-        metadata: {
-          extension_version: "0.1.0",
-          capture_source: "extension_popup",
+    await expect(
+      uploadCaptureAsset(
+        "https://demo.example.com/",
+        "extension-session-token",
+        "project with spaces",
+        "capture session with spaces",
+        {
+          file,
+          fileName: "screenshot-2026-06-05T10-00-00-000Z.png",
+          width: 1440,
+          height: 900,
+          devicePixelRatio: 2,
+          pageUrl: "https://example.com/path",
+          pageTitle: "Example Page",
+          capturedAt: "2026-06-05T10:00:00.000Z",
+          metadata: {
+            extension_version: "0.1.0",
+            capture_source: "extension_popup",
+          },
         },
-      }
-    )).resolves.toEqual(response);
+      ),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledTimes(1);
     const [url, init] = fetch.mock.calls[0]!;
     expect(url).toBe(
-      "https://demo.example.com/api/v1/projects/project%20with%20spaces/capture-sessions/capture%20session%20with%20spaces/assets/upload"
+      "https://demo.example.com/api/v1/projects/project%20with%20spaces/capture-sessions/capture%20session%20with%20spaces/assets/upload",
     );
     expect(init).toMatchObject({
       method: "POST",
@@ -329,46 +370,55 @@ describe("extension API client", () => {
     expect(formData.get("page_url")).toBe("https://example.com/path");
     expect(formData.get("page_title")).toBe("Example Page");
     expect(formData.get("captured_at")).toBe("2026-06-05T10:00:00.000Z");
-    expect(formData.get("metadata")).toBe(JSON.stringify({
-      extension_version: "0.1.0",
-      capture_source: "extension_popup",
-    }));
+    expect(formData.get("metadata")).toBe(
+      JSON.stringify({
+        extension_version: "0.1.0",
+        capture_source: "extension_popup",
+      }),
+    );
     const uploadedFile = formData.get("file");
     expect(uploadedFile).toBeInstanceOf(File);
-    expect((uploadedFile as File).name).toBe("screenshot-2026-06-05T10-00-00-000Z.png");
+    expect((uploadedFile as File).name).toBe(
+      "screenshot-2026-06-05T10-00-00-000Z.png",
+    );
     expect((uploadedFile as File).type).toBe("image/png");
   });
 
   it("creates capture events with bearer auth and safe screenshot metadata", async () => {
     const response = { capture_event: captureEvent };
-    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(JSON.stringify(response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(createCaptureEvent(
-      "https://demo.example.com/",
-      "extension-session-token",
-      "project with spaces",
-      "capture session with spaces",
-      {
-        event_type: "capture",
-        event_index: 1,
-        capture_asset_id: "capture_asset_1",
-        occurred_at: "2026-06-05T10:00:00.000Z",
-        page_url: "https://example.com/path",
-        page_title: "Example Page",
-        input_value_redacted: true,
-        metadata: {
-          extension_version: "0.1.0",
-          capture_source: "extension_popup",
-          asset_type: "screenshot",
+    await expect(
+      createCaptureEvent(
+        "https://demo.example.com/",
+        "extension-session-token",
+        "project with spaces",
+        "capture session with spaces",
+        {
+          event_type: "capture",
+          event_index: 1,
+          capture_asset_id: "capture_asset_1",
+          occurred_at: "2026-06-05T10:00:00.000Z",
+          page_url: "https://example.com/path",
+          page_title: "Example Page",
+          input_value_redacted: true,
+          metadata: {
+            extension_version: "0.1.0",
+            capture_source: "extension_popup",
+            asset_type: "screenshot",
+          },
         },
-      }
-    )).resolves.toEqual(response);
+      ),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "https://demo.example.com/api/v1/projects/project%20with%20spaces/capture-sessions/capture%20session%20with%20spaces/events",
@@ -395,9 +445,11 @@ describe("extension API client", () => {
             asset_type: "screenshot",
           },
         }),
-      }
+      },
     );
-    const body = JSON.parse((fetch.mock.calls[0]![1] as RequestInit).body as string) as Record<string, unknown>;
+    const body = JSON.parse(
+      (fetch.mock.calls[0]![1] as RequestInit).body as string,
+    ) as Record<string, unknown>;
     expect(body).not.toHaveProperty("input_value");
     expect(body).not.toHaveProperty("value");
     expect(body).not.toHaveProperty("typed_value");
@@ -423,45 +475,52 @@ describe("extension API client", () => {
         device_pixel_ratio: 2,
       },
     };
-    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(JSON.stringify(response), {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(createCaptureEvent(
-      "https://demo.example.com/",
-      "extension-session-token",
-      "project with spaces",
-      "capture session with spaces",
-      {
-        event_type: "click",
-        event_index: 2,
-        capture_asset_id: "capture_asset_1",
-        occurred_at: "2026-06-05T10:00:00.000Z",
-        page_url: "https://example.com/path",
-        page_title: "Example Page",
-        target_text: "Add Department",
-        target_selector: "button[data-testid='add-department']",
-        target_role: "button",
-        client_x: 240,
-        client_y: 80,
-        viewport_width: 1440,
-        viewport_height: 900,
-        device_pixel_ratio: 2,
-        input_value_redacted: true,
-        metadata: {
-          extension_version: "0.1.0",
-          capture_source: "extension_auto_click",
-          asset_type: "screenshot",
+    await expect(
+      createCaptureEvent(
+        "https://demo.example.com/",
+        "extension-session-token",
+        "project with spaces",
+        "capture session with spaces",
+        {
+          event_type: "click",
+          event_index: 2,
+          capture_asset_id: "capture_asset_1",
+          occurred_at: "2026-06-05T10:00:00.000Z",
+          page_url: "https://example.com/path",
+          page_title: "Example Page",
+          target_text: "Add Department",
+          target_selector: "button[data-testid='add-department']",
+          target_role: "button",
+          client_x: 240,
+          client_y: 80,
+          viewport_width: 1440,
+          viewport_height: 900,
+          device_pixel_ratio: 2,
+          input_value_redacted: true,
+          metadata: {
+            extension_version: "0.1.0",
+            capture_source: "extension_auto_click",
+            asset_type: "screenshot",
+          },
         },
-      }
-    )).resolves.toEqual(response);
+      ),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledTimes(1);
-    const body = JSON.parse((fetch.mock.calls[0]![1] as RequestInit).body as string) as Record<string, unknown>;
+    const body = JSON.parse(
+      (fetch.mock.calls[0]![1] as RequestInit).body as string,
+    ) as Record<string, unknown>;
     expect(body).toMatchObject({
       event_type: "click",
       event_index: 2,
@@ -489,20 +548,25 @@ describe("extension API client", () => {
         reason: "capture_session_completed",
       },
     };
-    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response(JSON.stringify(response), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-      },
-    }));
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+        }),
+    );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(completeCaptureSession(
-      "https://demo.example.com/",
-      "extension-session-token",
-      "project with spaces",
-      "capture session with spaces"
-    )).resolves.toEqual(response);
+    await expect(
+      completeCaptureSession(
+        "https://demo.example.com/",
+        "extension-session-token",
+        "project with spaces",
+        "capture session with spaces",
+      ),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
       "https://demo.example.com/api/v1/projects/project%20with%20spaces/capture-sessions/capture%20session%20with%20spaces/complete",
@@ -514,7 +578,7 @@ describe("extension API client", () => {
           authorization: "Bearer extension-session-token",
           "x-ossie-client": "extension",
         },
-      }
+      },
     );
     const [url, init] = fetch.mock.calls[0]!;
     expect(url).not.toContain("extension-session-token");
@@ -523,22 +587,33 @@ describe("extension API client", () => {
   });
 
   it("maps backend errors", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      error: {
-        type: "invalid_credentials",
-        message: "Email or password is incorrect",
-      },
-    }), {
-      status: 401,
-      headers: {
-        "content-type": "application/json",
-      },
-    })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                type: "invalid_credentials",
+                message: "Email or password is incorrect",
+              },
+            }),
+            {
+              status: 401,
+              headers: {
+                "content-type": "application/json",
+              },
+            },
+          ),
+      ),
+    );
 
-    await expect(login("https://demo.example.com", {
-      email: "owner@example.com",
-      password: "bad password",
-    })).rejects.toMatchObject({
+    await expect(
+      login("https://demo.example.com", {
+        email: "owner@example.com",
+        password: "bad password",
+      }),
+    ).rejects.toMatchObject({
       type: "invalid_credentials",
       message: "Email or password is incorrect",
       status: 401,

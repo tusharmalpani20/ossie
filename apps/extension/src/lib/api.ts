@@ -16,10 +16,7 @@ import type {
   ExtensionLoginResponse,
   LoginRequest,
 } from "@repo/types/auth";
-import type {
-  Project,
-  ProjectListResponse,
-} from "@repo/types/project";
+import type { Project, ProjectListResponse } from "@repo/types/project";
 
 export type {
   AuthResponse,
@@ -38,6 +35,7 @@ export type {
 
 export type CreateCaptureSessionInput = {
   name: string;
+  project_version_id: string;
   description?: string | null;
   source_type: Extract<CaptureSessionSourceType, "extension">;
   start_url?: string | null;
@@ -95,7 +93,11 @@ export class ApiClientError extends Error {
   status: number;
   type: string | null;
 
-  constructor(input: { status: number; message: string; type?: string | null }) {
+  constructor(input: {
+    status: number;
+    message: string;
+    type?: string | null;
+  }) {
     super(input.message);
     this.name = "ApiClientError";
     this.status = input.status;
@@ -103,13 +105,12 @@ export class ApiClientError extends Error {
   }
 }
 
-const joinApiUrl = (instanceUrl: string, path: string) => (
-  `${instanceUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`
-);
+const joinApiUrl = (instanceUrl: string, path: string) =>
+  `${instanceUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 
 const parseErrorBody = async (response: Response): Promise<ApiErrorBody> => {
   try {
-    return await response.json() as ApiErrorBody;
+    return (await response.json()) as ApiErrorBody;
   } catch {
     return {};
   }
@@ -123,7 +124,7 @@ const authHeaders = (sessionToken?: string | null) => ({
 const requestJson = async <Result>(
   instanceUrl: string,
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
 ): Promise<Result> => {
   const response = await fetch(joinApiUrl(instanceUrl, path), {
     ...init,
@@ -147,13 +148,13 @@ const requestJson = async <Result>(
     return undefined as Result;
   }
 
-  return await response.json() as Result;
+  return (await response.json()) as Result;
 };
 
 const appendOptionalFormValue = (
   formData: FormData,
   name: string,
-  value: string | number | null | undefined
+  value: string | number | null | undefined,
 ) => {
   if (value === null || value === undefined) {
     return;
@@ -164,56 +165,60 @@ const appendOptionalFormValue = (
 
 export const login = async (
   instanceUrl: string,
-  data: LoginRequest
-): Promise<ExtensionLoginResponse> => (
-  requestJson<ExtensionLoginResponse>(instanceUrl, "/api/v1/authentication/login", {
-    method: "POST",
-    headers: {
-      ...authHeaders(),
-      "content-type": "application/json",
-      "x-ossie-client": "extension",
+  data: LoginRequest,
+): Promise<ExtensionLoginResponse> =>
+  requestJson<ExtensionLoginResponse>(
+    instanceUrl,
+    "/api/v1/authentication/login",
+    {
+      method: "POST",
+      headers: {
+        ...authHeaders(),
+        "content-type": "application/json",
+        "x-ossie-client": "extension",
+      },
+      body: JSON.stringify(data),
     },
-    body: JSON.stringify(data),
-  })
-);
+  );
 
 export const getCurrentAuth = async (
   instanceUrl: string,
-  sessionToken: string
-): Promise<AuthResponse> => (
+  sessionToken: string,
+): Promise<AuthResponse> =>
   requestJson<AuthResponse>(instanceUrl, "/api/v1/authentication/me", {
     headers: authHeaders(sessionToken),
-  })
-);
+  });
 
 export const listProjects = async (
   instanceUrl: string,
-  sessionToken: string
-): Promise<ProjectListResponse> => (
-  requestJson<ProjectListResponse>(instanceUrl, "/api/v1/projects?status=active&purpose=capture", {
-    headers: {
-      ...authHeaders(sessionToken),
-      "x-ossie-client": "extension",
+  sessionToken: string,
+): Promise<ProjectListResponse> =>
+  requestJson<ProjectListResponse>(
+    instanceUrl,
+    "/api/v1/projects?status=active&purpose=capture",
+    {
+      headers: {
+        ...authHeaders(sessionToken),
+        "x-ossie-client": "extension",
+      },
     },
-  })
-);
+  );
 
 export const logout = async (
   instanceUrl: string,
-  sessionToken: string
-): Promise<void> => (
+  sessionToken: string,
+): Promise<void> =>
   requestJson<void>(instanceUrl, "/api/v1/authentication/logout", {
     method: "POST",
     headers: authHeaders(sessionToken),
-  })
-);
+  });
 
 export const createCaptureSession = async (
   instanceUrl: string,
   sessionToken: string,
   projectId: string,
-  data: CreateCaptureSessionInput
-): Promise<CaptureSessionResponse> => (
+  data: CreateCaptureSessionInput,
+): Promise<CaptureSessionResponse> =>
   requestJson<CaptureSessionResponse>(
     instanceUrl,
     `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions`,
@@ -228,22 +233,25 @@ export const createCaptureSession = async (
         ...data,
         source_type: "extension",
       }),
-    }
-  )
-);
+    },
+  );
 
 export const uploadCaptureAsset = async (
   instanceUrl: string,
   sessionToken: string,
   projectId: string,
   captureSessionId: string,
-  data: UploadCaptureAssetInput
+  data: UploadCaptureAssetInput,
 ): Promise<CaptureAssetResponse> => {
   const formData = new FormData();
   formData.append("file", data.file, data.fileName);
   appendOptionalFormValue(formData, "width", data.width);
   appendOptionalFormValue(formData, "height", data.height);
-  appendOptionalFormValue(formData, "device_pixel_ratio", data.devicePixelRatio);
+  appendOptionalFormValue(
+    formData,
+    "device_pixel_ratio",
+    data.devicePixelRatio,
+  );
   appendOptionalFormValue(formData, "page_url", data.pageUrl);
   appendOptionalFormValue(formData, "page_title", data.pageTitle);
   appendOptionalFormValue(formData, "captured_at", data.capturedAt);
@@ -262,7 +270,7 @@ export const uploadCaptureAsset = async (
         "x-ossie-client": "extension",
       },
       body: formData,
-    }
+    },
   );
 };
 
@@ -271,8 +279,8 @@ export const createCaptureEvent = async (
   sessionToken: string,
   projectId: string,
   captureSessionId: string,
-  data: CreateCaptureEventInput
-): Promise<CaptureEventResponse> => (
+  data: CreateCaptureEventInput,
+): Promise<CaptureEventResponse> =>
   requestJson<CaptureEventResponse>(
     instanceUrl,
     `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}/events`,
@@ -287,16 +295,15 @@ export const createCaptureEvent = async (
         ...data,
         input_value_redacted: true,
       }),
-    }
-  )
-);
+    },
+  );
 
 export const completeCaptureSession = async (
   instanceUrl: string,
   sessionToken: string,
   projectId: string,
-  captureSessionId: string
-): Promise<CompleteCaptureSessionResponse> => (
+  captureSessionId: string,
+): Promise<CompleteCaptureSessionResponse> =>
   requestJson<CompleteCaptureSessionResponse>(
     instanceUrl,
     `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}/complete`,
@@ -306,6 +313,5 @@ export const completeCaptureSession = async (
         ...authHeaders(sessionToken),
         "x-ossie-client": "extension",
       },
-    }
-  )
-);
+    },
+  );

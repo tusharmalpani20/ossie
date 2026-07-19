@@ -1,17 +1,22 @@
-import { ApiClientError, type CreateCaptureSessionInput, type Project } from "../lib/api";
+import {
+  ApiClientError,
+  type CreateCaptureSessionInput,
+  type Project,
+} from "../lib/api";
 import type { CurrentTabSnapshot } from "../lib/current-tab";
 import type { ManualCaptureDiagnostic } from "../lib/settings";
 
-export const errorMessage = (error: unknown, fallback: string) => (
-  error instanceof ApiClientError ? error.message : fallback
-);
+export const errorMessage = (error: unknown, fallback: string) =>
+  error instanceof ApiClientError ? error.message : fallback;
 
 export const projectContextLabel = (project: Project) =>
   `${project.name} / ${project.default_project_version.name}`;
 
 export const persistManualCaptureDiagnostic = async (
-  saveManualCaptureDiagnostic: (diagnostic: ManualCaptureDiagnostic | null) => Promise<void>,
-  diagnostic: ManualCaptureDiagnostic
+  saveManualCaptureDiagnostic: (
+    diagnostic: ManualCaptureDiagnostic | null,
+  ) => Promise<void>,
+  diagnostic: ManualCaptureDiagnostic,
 ) => {
   try {
     await saveManualCaptureDiagnostic(diagnostic);
@@ -51,10 +56,12 @@ export const buildCaptureSessionInput = (input: {
   project: Project | null;
   tab: CurrentTabSnapshot;
   userAgent?: string | null;
-}): CreateCaptureSessionInput => {
+}): Omit<CreateCaptureSessionInput, "project_version_id"> => {
   const userAgent = Object.hasOwn(input, "userAgent")
-    ? input.userAgent ?? null
-    : typeof navigator === "undefined" ? null : navigator.userAgent;
+    ? (input.userAgent ?? null)
+    : typeof navigator === "undefined"
+      ? null
+      : navigator.userAgent;
 
   return {
     name: buildCaptureName(input),
@@ -69,6 +76,5 @@ export const buildCaptureSessionInput = (input: {
   };
 };
 
-export const screenshotFileName = (capturedAt: string) => (
-  `screenshot-${capturedAt.replace(/[:.]/g, "-")}.png`
-);
+export const screenshotFileName = (capturedAt: string) =>
+  `screenshot-${capturedAt.replace(/[:.]/g, "-")}.png`;

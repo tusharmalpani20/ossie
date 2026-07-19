@@ -15,7 +15,9 @@ import {
   type ExtensionStorageArea,
 } from "./settings";
 
-const createStorage = (): ExtensionStorageArea & { values: Record<string, unknown> } => {
+const createStorage = (): ExtensionStorageArea & {
+  values: Record<string, unknown>;
+} => {
   const values: Record<string, unknown> = {};
 
   return {
@@ -51,8 +53,14 @@ describe("extension settings", () => {
       portalUrl: null,
       sessionToken: null,
       selectedProjectId: null,
+      selectedProjectVersionId: null,
+      selectedProjectVersionSlug: null,
+      selectedProjectVersionName: null,
       activeCaptureSessionId: null,
       activeCaptureProjectId: null,
+      activeCaptureProjectVersionId: null,
+      activeCaptureProjectVersionSlug: null,
+      activeCaptureProjectVersionName: null,
       activeCaptureEventIndex: null,
       activeCaptureMode: null,
       activeCapturePaused: false,
@@ -78,8 +86,14 @@ describe("extension settings", () => {
       portalUrl: "http://localhost:3000",
       sessionToken: "session-token",
       selectedProjectId: "project_1",
+      selectedProjectVersionId: null,
+      selectedProjectVersionSlug: null,
+      selectedProjectVersionName: null,
       activeCaptureSessionId: "capture_session_1",
       activeCaptureProjectId: "project_1",
+      activeCaptureProjectVersionId: null,
+      activeCaptureProjectVersionSlug: null,
+      activeCaptureProjectVersionName: null,
       activeCaptureEventIndex: 0,
       activeCaptureMode: "automatic",
       activeCapturePaused: false,
@@ -111,8 +125,14 @@ describe("extension settings", () => {
       portalUrl: "http://localhost:3000",
       sessionToken: "session-token",
       selectedProjectId: "project_1",
+      selectedProjectVersionId: null,
+      selectedProjectVersionSlug: null,
+      selectedProjectVersionName: null,
       activeCaptureSessionId: "capture_session_1",
       activeCaptureProjectId: "project_1",
+      activeCaptureProjectVersionId: null,
+      activeCaptureProjectVersionSlug: null,
+      activeCaptureProjectVersionName: null,
       activeCaptureEventIndex: 0,
       activeCaptureMode: "automatic",
       activeCapturePaused: false,
@@ -149,8 +169,14 @@ describe("extension settings", () => {
       portalUrl: "http://localhost:3000",
       sessionToken: "session-token",
       selectedProjectId: "project_1",
+      selectedProjectVersionId: null,
+      selectedProjectVersionSlug: null,
+      selectedProjectVersionName: null,
       activeCaptureSessionId: "capture_session_1",
       activeCaptureProjectId: "project_1",
+      activeCaptureProjectVersionId: null,
+      activeCaptureProjectVersionSlug: null,
+      activeCaptureProjectVersionName: null,
       activeCaptureEventIndex: 0,
       activeCaptureMode: "automatic",
       activeCapturePaused: false,
@@ -180,8 +206,14 @@ describe("extension settings", () => {
       portalUrl: null,
       sessionToken: null,
       selectedProjectId: null,
+      selectedProjectVersionId: null,
+      selectedProjectVersionSlug: null,
+      selectedProjectVersionName: null,
       activeCaptureSessionId: null,
       activeCaptureProjectId: null,
+      activeCaptureProjectVersionId: null,
+      activeCaptureProjectVersionSlug: null,
+      activeCaptureProjectVersionName: null,
       activeCaptureEventIndex: null,
       activeCaptureMode: null,
       activeCapturePaused: false,
@@ -206,8 +238,14 @@ describe("extension settings", () => {
       portalUrl: null,
       sessionToken: null,
       selectedProjectId: "project_1",
+      selectedProjectVersionId: null,
+      selectedProjectVersionSlug: null,
+      selectedProjectVersionName: null,
       activeCaptureSessionId: null,
       activeCaptureProjectId: null,
+      activeCaptureProjectVersionId: null,
+      activeCaptureProjectVersionSlug: null,
+      activeCaptureProjectVersionName: null,
       activeCaptureEventIndex: null,
       activeCaptureMode: null,
       activeCapturePaused: false,
@@ -231,8 +269,14 @@ describe("extension settings", () => {
       portalUrl: null,
       sessionToken: "session-token",
       selectedProjectId: "project_1",
+      selectedProjectVersionId: null,
+      selectedProjectVersionSlug: null,
+      selectedProjectVersionName: null,
       activeCaptureSessionId: "capture_session_1",
       activeCaptureProjectId: "project_1",
+      activeCaptureProjectVersionId: null,
+      activeCaptureProjectVersionSlug: null,
+      activeCaptureProjectVersionName: null,
       activeCaptureEventIndex: 0,
       activeCaptureMode: "automatic",
       activeCapturePaused: false,
@@ -252,8 +296,14 @@ describe("extension settings", () => {
       portalUrl: null,
       sessionToken: "session-token",
       selectedProjectId: "project_1",
+      selectedProjectVersionId: null,
+      selectedProjectVersionSlug: null,
+      selectedProjectVersionName: null,
       activeCaptureSessionId: "capture_session_1",
       activeCaptureProjectId: "project_1",
+      activeCaptureProjectVersionId: null,
+      activeCaptureProjectVersionSlug: null,
+      activeCaptureProjectVersionName: null,
       activeCaptureEventIndex: 3,
       activeCaptureMode: "automatic",
       activeCapturePaused: true,
@@ -268,8 +318,14 @@ describe("extension settings", () => {
       portalUrl: null,
       sessionToken: "session-token",
       selectedProjectId: "project_1",
+      selectedProjectVersionId: null,
+      selectedProjectVersionSlug: null,
+      selectedProjectVersionName: null,
       activeCaptureSessionId: null,
       activeCaptureProjectId: null,
+      activeCaptureProjectVersionId: null,
+      activeCaptureProjectVersionSlug: null,
+      activeCaptureProjectVersionName: null,
       activeCaptureEventIndex: null,
       activeCaptureMode: null,
       activeCapturePaused: false,
@@ -294,8 +350,14 @@ describe("extension settings", () => {
       portalUrl: null,
       sessionToken: null,
       selectedProjectId: null,
+      selectedProjectVersionId: null,
+      selectedProjectVersionSlug: null,
+      selectedProjectVersionName: null,
       activeCaptureSessionId: null,
       activeCaptureProjectId: null,
+      activeCaptureProjectVersionId: null,
+      activeCaptureProjectVersionSlug: null,
+      activeCaptureProjectVersionName: null,
       activeCaptureEventIndex: null,
       activeCaptureMode: null,
       activeCapturePaused: false,
@@ -312,8 +374,14 @@ describe("extension settings", () => {
       portalUrl: null,
       sessionToken: null,
       selectedProjectId: null,
+      selectedProjectVersionId: null,
+      selectedProjectVersionSlug: null,
+      selectedProjectVersionName: null,
       activeCaptureSessionId: null,
       activeCaptureProjectId: null,
+      activeCaptureProjectVersionId: null,
+      activeCaptureProjectVersionSlug: null,
+      activeCaptureProjectVersionName: null,
       activeCaptureEventIndex: null,
       activeCaptureMode: null,
       activeCapturePaused: false,
@@ -323,28 +391,40 @@ describe("extension settings", () => {
   });
 
   it("rejects invalid active capture event indexes when saving", async () => {
-    await expect(saveActiveCaptureEventIndex(storage, -1)).rejects.toThrow("Active capture event index must be a non-negative integer.");
-    await expect(saveActiveCaptureEventIndex(storage, 1.5)).rejects.toThrow("Active capture event index must be a non-negative integer.");
+    await expect(saveActiveCaptureEventIndex(storage, -1)).rejects.toThrow(
+      "Active capture event index must be a non-negative integer.",
+    );
+    await expect(saveActiveCaptureEventIndex(storage, 1.5)).rejects.toThrow(
+      "Active capture event index must be a non-negative integer.",
+    );
   });
 
   it("rejects invalid active capture event indexes when starting capture", async () => {
-    await expect(saveActiveCapture(storage, {
-      captureSessionId: "capture_session_1",
-      projectId: "project_1",
-      eventIndex: -1,
-    })).rejects.toThrow("Active capture event index must be a non-negative integer.");
+    await expect(
+      saveActiveCapture(storage, {
+        captureSessionId: "capture_session_1",
+        projectId: "project_1",
+        eventIndex: -1,
+      }),
+    ).rejects.toThrow(
+      "Active capture event index must be a non-negative integer.",
+    );
   });
 
   it("rejects invalid active capture modes", async () => {
-    await expect(saveActiveCapture(storage, {
-      captureSessionId: "capture_session_1",
-      projectId: "project_1",
-      mode: "invalid" as "automatic",
-    })).rejects.toThrow("Active capture mode is invalid.");
+    await expect(
+      saveActiveCapture(storage, {
+        captureSessionId: "capture_session_1",
+        projectId: "project_1",
+        mode: "invalid" as "automatic",
+      }),
+    ).rejects.toThrow("Active capture mode is invalid.");
 
-    await expect(saveActiveCaptureMode(storage, {
-      mode: "invalid" as "automatic",
-      paused: false,
-    })).rejects.toThrow("Active capture mode is invalid.");
+    await expect(
+      saveActiveCaptureMode(storage, {
+        mode: "invalid" as "automatic",
+        paused: false,
+      }),
+    ).rejects.toThrow("Active capture mode is invalid.");
   });
 });

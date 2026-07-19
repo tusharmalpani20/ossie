@@ -17,8 +17,14 @@ export type ExtensionSettings = {
   portalUrl?: string | null;
   sessionToken: string | null;
   selectedProjectId: string | null;
+  selectedProjectVersionId?: string | null;
+  selectedProjectVersionSlug?: string | null;
+  selectedProjectVersionName?: string | null;
   activeCaptureSessionId: string | null;
   activeCaptureProjectId: string | null;
+  activeCaptureProjectVersionId?: string | null;
+  activeCaptureProjectVersionSlug?: string | null;
+  activeCaptureProjectVersionName?: string | null;
   activeCaptureEventIndex: number | null;
   activeCaptureMode: "manual" | "automatic" | null;
   activeCapturePaused: boolean;
@@ -27,7 +33,9 @@ export type ExtensionSettings = {
 };
 
 export type ExtensionStorageArea = {
-  get: (keys?: string | string[] | Record<string, unknown> | null) => Promise<Record<string, unknown>>;
+  get: (
+    keys?: string | string[] | Record<string, unknown> | null,
+  ) => Promise<Record<string, unknown>>;
   set: (items: Record<string, unknown>) => Promise<void>;
   remove: (keys: string | string[]) => Promise<void>;
 };
@@ -37,8 +45,14 @@ const keys = {
   portalUrl: "portalUrl",
   sessionToken: "sessionToken",
   selectedProjectId: "selectedProjectId",
+  selectedProjectVersionId: "selectedProjectVersionId",
+  selectedProjectVersionSlug: "selectedProjectVersionSlug",
+  selectedProjectVersionName: "selectedProjectVersionName",
   activeCaptureSessionId: "activeCaptureSessionId",
   activeCaptureProjectId: "activeCaptureProjectId",
+  activeCaptureProjectVersionId: "activeCaptureProjectVersionId",
+  activeCaptureProjectVersionSlug: "activeCaptureProjectVersionSlug",
+  activeCaptureProjectVersionName: "activeCaptureProjectVersionName",
   activeCaptureEventIndex: "activeCaptureEventIndex",
   activeCaptureMode: "activeCaptureMode",
   activeCapturePaused: "activeCapturePaused",
@@ -60,21 +74,22 @@ const default_settings: ExtensionSettings = {
   manualCaptureDiagnostic: null,
 };
 
-const stringOrNull = (value: unknown) => (
-  typeof value === "string" && value.trim() ? value : null
-);
+const stringOrNull = (value: unknown) =>
+  typeof value === "string" && value.trim() ? value : null;
 
-const nonNegativeIntegerOrNull = (value: unknown) => (
-  typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null
-);
+const nonNegativeIntegerOrNull = (value: unknown) =>
+  typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : null;
 
-const activeCaptureModeOrNull = (value: unknown) => (
-  value === "manual" || value === "automatic" ? value : null
-);
+const activeCaptureModeOrNull = (value: unknown) =>
+  value === "manual" || value === "automatic" ? value : null;
 
 const booleanOrFalse = (value: unknown) => value === true;
 
-const automaticCaptureDiagnosticOrNull = (value: unknown): AutomaticCaptureDiagnostic | null => {
+const automaticCaptureDiagnosticOrNull = (
+  value: unknown,
+): AutomaticCaptureDiagnostic | null => {
   if (!value || typeof value !== "object") {
     return null;
   }
@@ -95,7 +110,9 @@ const automaticCaptureDiagnosticOrNull = (value: unknown): AutomaticCaptureDiagn
   };
 };
 
-const manualCaptureDiagnosticOrNull = (value: unknown): ManualCaptureDiagnostic | null => {
+const manualCaptureDiagnosticOrNull = (
+  value: unknown,
+): ManualCaptureDiagnostic | null => {
   if (!value || typeof value !== "object") {
     return null;
   }
@@ -118,7 +135,9 @@ const manualCaptureDiagnosticOrNull = (value: unknown): ManualCaptureDiagnostic 
 
 const assertNonNegativeInteger = (value: number) => {
   if (!Number.isInteger(value) || value < 0) {
-    throw new Error("Active capture event index must be a non-negative integer.");
+    throw new Error(
+      "Active capture event index must be a non-negative integer.",
+    );
   }
 };
 
@@ -129,13 +148,15 @@ const assertActiveCaptureMode = (value: "manual" | "automatic") => {
 };
 
 export const chromeLocalStorage = (): ExtensionStorageArea => {
-  const chromeStorage = (globalThis as {
-    chrome?: {
-      storage?: {
-        local?: ExtensionStorageArea;
+  const chromeStorage = (
+    globalThis as {
+      chrome?: {
+        storage?: {
+          local?: ExtensionStorageArea;
+        };
       };
-    };
-  }).chrome?.storage?.local;
+    }
+  ).chrome?.storage?.local;
 
   if (!chromeStorage) {
     return {
@@ -149,7 +170,7 @@ export const chromeLocalStorage = (): ExtensionStorageArea => {
 };
 
 export const getSettings = async (
-  storage: ExtensionStorageArea = chromeLocalStorage()
+  storage: ExtensionStorageArea = chromeLocalStorage(),
 ): Promise<ExtensionSettings> => {
   const stored = await storage.get(Object.values(keys));
 
@@ -158,27 +179,57 @@ export const getSettings = async (
     portalUrl: stringOrNull(stored[keys.portalUrl]),
     sessionToken: stringOrNull(stored[keys.sessionToken]),
     selectedProjectId: stringOrNull(stored[keys.selectedProjectId]),
+    selectedProjectVersionId: stringOrNull(
+      stored[keys.selectedProjectVersionId],
+    ),
+    selectedProjectVersionSlug: stringOrNull(
+      stored[keys.selectedProjectVersionSlug],
+    ),
+    selectedProjectVersionName: stringOrNull(
+      stored[keys.selectedProjectVersionName],
+    ),
     activeCaptureSessionId: stringOrNull(stored[keys.activeCaptureSessionId]),
     activeCaptureProjectId: stringOrNull(stored[keys.activeCaptureProjectId]),
-    activeCaptureEventIndex: nonNegativeIntegerOrNull(stored[keys.activeCaptureEventIndex]),
+    activeCaptureProjectVersionId: stringOrNull(
+      stored[keys.activeCaptureProjectVersionId],
+    ),
+    activeCaptureProjectVersionSlug: stringOrNull(
+      stored[keys.activeCaptureProjectVersionSlug],
+    ),
+    activeCaptureProjectVersionName: stringOrNull(
+      stored[keys.activeCaptureProjectVersionName],
+    ),
+    activeCaptureEventIndex: nonNegativeIntegerOrNull(
+      stored[keys.activeCaptureEventIndex],
+    ),
     activeCaptureMode: activeCaptureModeOrNull(stored[keys.activeCaptureMode]),
     activeCapturePaused: booleanOrFalse(stored[keys.activeCapturePaused]),
-    automaticCaptureDiagnostic: automaticCaptureDiagnosticOrNull(stored[keys.automaticCaptureDiagnostic]),
-    manualCaptureDiagnostic: manualCaptureDiagnosticOrNull(stored[keys.manualCaptureDiagnostic]),
+    automaticCaptureDiagnostic: automaticCaptureDiagnosticOrNull(
+      stored[keys.automaticCaptureDiagnostic],
+    ),
+    manualCaptureDiagnostic: manualCaptureDiagnosticOrNull(
+      stored[keys.manualCaptureDiagnostic],
+    ),
   };
 };
 
 export const saveInstanceUrl = async (
   storage: ExtensionStorageArea,
-  instanceUrl: string
+  instanceUrl: string,
 ) => {
   await storage.set({
     [keys.instanceUrl]: instanceUrl,
     [keys.portalUrl]: null,
     [keys.sessionToken]: null,
     [keys.selectedProjectId]: null,
+    [keys.selectedProjectVersionId]: null,
+    [keys.selectedProjectVersionSlug]: null,
+    [keys.selectedProjectVersionName]: null,
     [keys.activeCaptureSessionId]: null,
     [keys.activeCaptureProjectId]: null,
+    [keys.activeCaptureProjectVersionId]: null,
+    [keys.activeCaptureProjectVersionSlug]: null,
+    [keys.activeCaptureProjectVersionName]: null,
     [keys.activeCaptureEventIndex]: null,
     [keys.activeCaptureMode]: null,
     [keys.activeCapturePaused]: false,
@@ -189,34 +240,45 @@ export const saveInstanceUrl = async (
 
 export const savePortalUrl = async (
   storage: ExtensionStorageArea,
-  portalUrl: string | null
+  portalUrl: string | null,
 ) => {
   await storage.set({ [keys.portalUrl]: portalUrl });
 };
 
 export const saveSessionToken = async (
   storage: ExtensionStorageArea,
-  sessionToken: string | null
+  sessionToken: string | null,
 ) => {
   await storage.set({
     [keys.sessionToken]: sessionToken,
-    ...(sessionToken === null ? {
-      [keys.activeCaptureSessionId]: null,
-      [keys.activeCaptureProjectId]: null,
-      [keys.activeCaptureEventIndex]: null,
-      [keys.activeCaptureMode]: null,
-      [keys.activeCapturePaused]: false,
-      [keys.automaticCaptureDiagnostic]: null,
-      [keys.manualCaptureDiagnostic]: null,
-    } : {}),
+    ...(sessionToken === null
+      ? {
+          [keys.activeCaptureSessionId]: null,
+          [keys.activeCaptureProjectId]: null,
+          [keys.activeCaptureProjectVersionId]: null,
+          [keys.activeCaptureProjectVersionSlug]: null,
+          [keys.activeCaptureProjectVersionName]: null,
+          [keys.activeCaptureEventIndex]: null,
+          [keys.activeCaptureMode]: null,
+          [keys.activeCapturePaused]: false,
+          [keys.automaticCaptureDiagnostic]: null,
+          [keys.manualCaptureDiagnostic]: null,
+        }
+      : {}),
   });
 };
 
 export const saveSelectedProjectId = async (
   storage: ExtensionStorageArea,
-  selectedProjectId: string | null
+  selectedProjectId: string | null,
+  version?: { id: string; slug: string; name: string } | null,
 ) => {
-  await storage.set({ [keys.selectedProjectId]: selectedProjectId });
+  await storage.set({
+    [keys.selectedProjectId]: selectedProjectId,
+    [keys.selectedProjectVersionId]: version?.id ?? null,
+    [keys.selectedProjectVersionSlug]: version?.slug ?? null,
+    [keys.selectedProjectVersionName]: version?.name ?? null,
+  });
 };
 
 export const saveActiveCapture = async (
@@ -224,9 +286,12 @@ export const saveActiveCapture = async (
   input: {
     captureSessionId: string;
     projectId: string;
+    projectVersionId?: string;
+    projectVersionSlug?: string;
+    projectVersionName?: string;
     eventIndex?: number;
     mode?: "manual" | "automatic";
-  }
+  },
 ) => {
   const eventIndex = input.eventIndex ?? 0;
   const mode = input.mode ?? "manual";
@@ -236,6 +301,9 @@ export const saveActiveCapture = async (
   await storage.set({
     [keys.activeCaptureSessionId]: input.captureSessionId,
     [keys.activeCaptureProjectId]: input.projectId,
+    [keys.activeCaptureProjectVersionId]: input.projectVersionId ?? null,
+    [keys.activeCaptureProjectVersionSlug]: input.projectVersionSlug ?? null,
+    [keys.activeCaptureProjectVersionName]: input.projectVersionName ?? null,
     [keys.activeCaptureEventIndex]: eventIndex,
     [keys.activeCaptureMode]: mode,
     [keys.activeCapturePaused]: false,
@@ -246,21 +314,21 @@ export const saveActiveCapture = async (
 
 export const saveAutomaticCaptureDiagnostic = async (
   storage: ExtensionStorageArea,
-  diagnostic: AutomaticCaptureDiagnostic | null
+  diagnostic: AutomaticCaptureDiagnostic | null,
 ) => {
   await storage.set({ [keys.automaticCaptureDiagnostic]: diagnostic });
 };
 
 export const saveManualCaptureDiagnostic = async (
   storage: ExtensionStorageArea,
-  diagnostic: ManualCaptureDiagnostic | null
+  diagnostic: ManualCaptureDiagnostic | null,
 ) => {
   await storage.set({ [keys.manualCaptureDiagnostic]: diagnostic });
 };
 
 export const saveActiveCaptureEventIndex = async (
   storage: ExtensionStorageArea,
-  eventIndex: number
+  eventIndex: number,
 ) => {
   assertNonNegativeInteger(eventIndex);
   await storage.set({ [keys.activeCaptureEventIndex]: eventIndex });
@@ -271,7 +339,7 @@ export const saveActiveCaptureMode = async (
   input: {
     mode: "manual" | "automatic";
     paused: boolean;
-  }
+  },
 ) => {
   assertActiveCaptureMode(input.mode);
   await storage.set({
@@ -281,11 +349,14 @@ export const saveActiveCaptureMode = async (
 };
 
 export const clearActiveCapture = async (
-  storage: ExtensionStorageArea = chromeLocalStorage()
+  storage: ExtensionStorageArea = chromeLocalStorage(),
 ) => {
   await storage.set({
     [keys.activeCaptureSessionId]: null,
     [keys.activeCaptureProjectId]: null,
+    [keys.activeCaptureProjectVersionId]: null,
+    [keys.activeCaptureProjectVersionSlug]: null,
+    [keys.activeCaptureProjectVersionName]: null,
     [keys.activeCaptureEventIndex]: null,
     [keys.activeCaptureMode]: null,
     [keys.activeCapturePaused]: false,
@@ -295,7 +366,7 @@ export const clearActiveCapture = async (
 };
 
 export const clearSettings = async (
-  storage: ExtensionStorageArea = chromeLocalStorage()
+  storage: ExtensionStorageArea = chromeLocalStorage(),
 ) => {
   await storage.remove(Object.values(keys));
 };
