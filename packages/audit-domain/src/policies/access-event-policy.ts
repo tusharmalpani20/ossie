@@ -88,6 +88,7 @@ export const validate_access_event = (input: AccessEvent): AccessEvent => {
   ) fail();
 
   if (input.outcome === "succeeded" ? input.reason_code !== null : input.reason_code === null) fail();
+  if (input.outcome === "succeeded" && input.root_resource_id === null) fail();
   if (
     input.response_bytes !== null &&
     (input.access_surface !== "download" ||

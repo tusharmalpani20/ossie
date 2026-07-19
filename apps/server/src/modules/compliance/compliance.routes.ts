@@ -20,14 +20,16 @@ import {
   CompliancePermissionError,
 } from "./compliance.service";
 
+const EvidenceIdSchema = z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/u);
+
 const QuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional(),
   cursor: z.string().min(1).max(2048).optional(),
   kind: ComplianceKindSchema.optional(),
-  project_id: z.string().min(1).max(26).optional(),
+  project_id: EvidenceIdSchema.optional(),
 });
 const DetailParamsSchema = z.object({
-  audit_event_id: z.string().min(1).max(26),
+  audit_event_id: EvidenceIdSchema,
 });
 
 type ComplianceQuery = {

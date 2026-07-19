@@ -550,7 +550,7 @@ describe("App", () => {
       {
         credentials: "include",
         headers: {
-          "X-Ossie-Access-Surface": "reader",
+          "X-Ossie-Access-Surface": "public_reader",
           accept: "application/json",
         },
       }

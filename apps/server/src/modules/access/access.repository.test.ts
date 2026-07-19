@@ -87,4 +87,14 @@ describe("Access repository", () => {
       action: "unregistered.secret_viewed",
     })).rejects.toBeInstanceOf(AccessDomainError);
   });
+
+  it("rejects a registered action paired with a different route template", async () => {
+    const client = { query: vi.fn() };
+
+    await expect(write_access_event(client, {
+      ...event(),
+      action: "organization.members_viewed",
+    })).rejects.toBeInstanceOf(AccessDomainError);
+    expect(client.query).not.toHaveBeenCalled();
+  });
 });

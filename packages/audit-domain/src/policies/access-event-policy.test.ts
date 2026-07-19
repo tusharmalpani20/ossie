@@ -40,6 +40,7 @@ describe("Access Event policy", () => {
     ["download bytes on portal", { response_bytes: 42 }],
     ["role without role authorization", { authorization_type: "public_link", authorization_role: "member" }],
     ["malformed id", { id: "not-an-id" }],
+    ["successful access without a resolved root", { root_resource_id: null }],
     ["extra payload", { metadata: { raw_url: "/secret" } }],
   ])("rejects %s", (_name, replacement) => {
     const validate = Reflect.get(audit_domain, "validate_access_event") as (value: unknown) => unknown;

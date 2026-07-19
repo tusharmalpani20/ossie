@@ -1291,7 +1291,7 @@ describe("api client", () => {
       {
         credentials: "include",
         headers: {
-          "X-Ossie-Access-Surface": "reader",
+          "X-Ossie-Access-Surface": "public_reader",
           accept: "application/json",
         },
       }
@@ -1570,7 +1570,7 @@ describe("api client", () => {
         method: "POST",
         credentials: "include",
         headers: {
-          "X-Ossie-Access-Surface": "reader",
+          "X-Ossie-Access-Surface": "public_reader",
           accept: "application/json",
           "content-type": "application/json",
         },

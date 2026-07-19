@@ -62,6 +62,10 @@ type CursorPayload = ComplianceCursor & {
   filter: string;
 };
 
+const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/u;
+const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/u;
+const ISO_DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
+
 const filter_fingerprint = (kind: ComplianceKind, project_id: string | null) =>
   `${kind}:${project_id ?? ""}`;
 
@@ -73,7 +77,10 @@ const decode_cursor = (
   kind: ComplianceKind,
   project_id: string | null,
 ): ComplianceCursor => {
-  if (cursor.length > 2048) throw new ComplianceCursorError();
+  if (
+    cursor.length > 2048 ||
+    !BASE64URL_PATTERN.test(cursor)
+  ) throw new ComplianceCursorError();
   try {
     const value = JSON.parse(
       Buffer.from(cursor, "base64url").toString("utf8"),
@@ -82,9 +89,12 @@ const decode_cursor = (
       value.version !== 1 ||
       value.filter !== filter_fingerprint(kind, project_id) ||
       typeof value.id !== "string" ||
+      !ULID_PATTERN.test(value.id) ||
       typeof value.occurred_at !== "string" ||
+      !ISO_DATE_TIME_PATTERN.test(value.occurred_at) ||
       (value.evidence_kind !== "audit" && value.evidence_kind !== "access") ||
-      Number.isNaN(new Date(value.occurred_at).valueOf())
+      Number.isNaN(new Date(value.occurred_at).valueOf()) ||
+      new Date(value.occurred_at).toISOString() !== value.occurred_at
     ) throw new ComplianceCursorError();
     return {
       id: value.id,

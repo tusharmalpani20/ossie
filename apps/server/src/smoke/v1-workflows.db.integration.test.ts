@@ -279,6 +279,7 @@ describe("v1 dogfood smoke workflow", () => {
     const public_guide_response = await app.inject({
       method: "GET",
       url: `/api/v1/public/publish-links/${guide_slug}`,
+      headers: { "x-ossie-access-surface": "public_reader" },
     });
 
     expect(public_guide_response.statusCode).toBe(200);
@@ -302,6 +303,13 @@ describe("v1 dogfood smoke workflow", () => {
     expect(JSON.stringify(public_guide_response.json())).not.toContain(
       "storage_key",
     );
+
+    const public_asset_response = await app.inject({
+      method: "GET",
+      url: `/api/v1/public/publish-links/${guide_slug}/assets/${capture_asset_id}/file`,
+    });
+    expect(public_asset_response.statusCode).toBe(200);
+    expect(public_asset_response.rawPayload).toEqual(bytes);
 
     const demo_response = await app.inject({
       method: "POST",
@@ -368,6 +376,7 @@ describe("v1 dogfood smoke workflow", () => {
     const public_demo_response = await app.inject({
       method: "GET",
       url: `/api/v1/public/publish-links/${demo_slug}`,
+      headers: { "x-ossie-access-surface": "public_embed" },
     });
 
     expect(public_demo_response.statusCode).toBe(200);
@@ -443,6 +452,77 @@ describe("v1 dogfood smoke workflow", () => {
         name: "V1 Dogfood Project",
       }),
     ]);
+
+    const member_compliance_response = await app.inject({
+      method: "GET",
+      url: "/api/v1/organization/compliance/events",
+      cookies: { ossie_session: teammate_session },
+    });
+    expect(member_compliance_response.statusCode).toBe(403);
+    expect(member_compliance_response.json()).toEqual({
+      error: {
+        type: "compliance_permission_denied",
+        message: "Only organization owners can view compliance evidence.",
+      },
+    });
+
+    const owner_compliance_response = await app.inject({
+      method: "GET",
+      url: "/api/v1/organization/compliance/events?limit=50",
+      cookies: { ossie_session: owner_session },
+    });
+    expect(owner_compliance_response.statusCode).toBe(200);
+    expect(owner_compliance_response.json().events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          evidence_kind: "access",
+          action: "publish_link.viewed",
+          access_surface: "public_reader",
+        }),
+        expect.objectContaining({
+          evidence_kind: "access",
+          action: "publish_link.viewed",
+          access_surface: "public_embed",
+        }),
+        expect.objectContaining({
+          evidence_kind: "access",
+          action: "published_asset.downloaded",
+          access_surface: "download",
+          response_bytes: bytes.length,
+        }),
+        expect.objectContaining({
+          evidence_kind: "access",
+          action: "organization.access_denied",
+          outcome: "denied",
+          reason_code: "forbidden",
+        }),
+      ]),
+    );
+    const audit_summary = owner_compliance_response.json().events.find(
+      (event: { evidence_kind: string }) => event.evidence_kind === "audit",
+    ) as { id: string } | undefined;
+    expect(audit_summary).toBeDefined();
+
+    const audit_detail_response = await app.inject({
+      method: "GET",
+      url: `/api/v1/organization/compliance/audit-events/${audit_summary!.id}`,
+      cookies: { ossie_session: owner_session },
+    });
+    expect(audit_detail_response.statusCode).toBe(200);
+    expect(audit_detail_response.json().event.change_items.length).toBeGreaterThan(0);
+
+    const later_compliance_response = await app.inject({
+      method: "GET",
+      url: "/api/v1/organization/compliance/events?kind=access&limit=50",
+      cookies: { ossie_session: owner_session },
+    });
+    expect(later_compliance_response.statusCode).toBe(200);
+    expect(later_compliance_response.json().events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: "compliance.timeline_viewed" }),
+        expect.objectContaining({ action: "compliance.audit_event_viewed" }),
+      ]),
+    );
 
     await app.close();
   }, 30_000);

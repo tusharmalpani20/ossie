@@ -106,6 +106,16 @@ describe("foundation schema migrations", () => {
     expect(migration).toContain("GRANT SELECT, INSERT ON audit_schema.access_event");
     expect(migration).toContain("Refusing to remove populated Access Evidence");
     expect(migration).not.toMatch(/GRANT[^;]*\b(?:UPDATE|DELETE|TRUNCATE)\b/iu);
+
+    const hardening = readFileSync(
+      new URL(
+        "./migrations/018_access_evidence_constraint_hardening.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    expect(hardening).toContain("chk_access_event_scoped_success");
+    expect(hardening).toContain("root_resource_id IS NOT NULL");
   });
 
   it("keeps the maintenance reset explicit instead of cascading to unknown tables", () => {

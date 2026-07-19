@@ -53,7 +53,8 @@ export const build_access_response_hook = (options: {
     const context = current_access_request_context();
     const route = context?.route;
     if (!context || !route || route.policy === "excluded_transport") return payload;
-    if (context.atomic_access_event_id) return payload;
+    if (context.atomic_access_event_id || context.response_access_event_id)
+      return payload;
 
     const success = reply.statusCode >= 200 && reply.statusCode < 300;
     const organization_id =
@@ -124,8 +125,7 @@ export const build_access_response_hook = (options: {
       access_surface:
         route.policy === "public_access" && context.public_surface
           ? context.public_surface
-          : route.policy === "extension_conditional" &&
-              context.source_type === "extension"
+          : context.source_type === "extension" && route.surface === "portal"
             ? "extension"
             : route.surface,
       authorization_type: route.authorization_type,
@@ -147,6 +147,7 @@ export const build_access_response_hook = (options: {
 
     try {
       await options.append(event);
+      context.response_access_event_id = event.id;
       return payload;
     } catch {
       if (

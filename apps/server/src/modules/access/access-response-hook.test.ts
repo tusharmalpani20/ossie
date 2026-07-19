@@ -79,6 +79,24 @@ describe("Access response hook", () => {
     );
   });
 
+  it("records a normalized extension read on the extension surface", async () => {
+    const append = vi.fn(async () => undefined);
+    const hook = build_access_response_hook({ append });
+    const request_value = {
+      ...request("GET", "/api/v1/projects"),
+      headers: { "x-ossie-client": "extension" },
+    };
+
+    await with_owner(request_value, () =>
+      hook(request_value as never, reply(), '{"projects":[]}'),
+    );
+
+    expect(append).toHaveBeenCalledWith(expect.objectContaining({
+      source_type: "extension",
+      access_surface: "extension",
+    }));
+  });
+
   it("does not duplicate an Access Event already written atomically", async () => {
     const append = vi.fn();
     const hook = build_access_response_hook({ append });
@@ -90,6 +108,22 @@ describe("Access response hook", () => {
       hook(request_value as never, reply(), "{}"),
     );
     expect(append).not.toHaveBeenCalled();
+  });
+
+  it("does not append twice when Fastify re-enters onSend for one request", async () => {
+    const append = vi.fn(async () => undefined);
+    const hook = build_access_response_hook({
+      append,
+      generate_id: () => "01J00000000000000000000004",
+    });
+    const request_value = request("GET", "/api/v1/projects");
+
+    await with_owner(request_value, async () => {
+      await hook(request_value as never, reply(), '{"projects":[]}');
+      await hook(request_value as never, reply(), '{"projects":[]}');
+    });
+
+    expect(append).toHaveBeenCalledOnce();
   });
 
   it("replaces protected stream bytes with the stable 503 when append fails", async () => {

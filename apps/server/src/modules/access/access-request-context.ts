@@ -25,6 +25,7 @@ export type AccessRequestContext = {
   resolved_resource: AccessResolvedResource | null;
   public_surface: "public_reader" | "public_embed" | null;
   atomic_access_event_id: string | null;
+  response_access_event_id: string | null;
 };
 
 const storage = new AsyncLocalStorage<AccessRequestContext>();
@@ -72,4 +73,5 @@ export const access_request_context = (
       ? request.headers["x-ossie-access-surface"]
       : null,
   atomic_access_event_id: null,
+  response_access_event_id: null,
 });

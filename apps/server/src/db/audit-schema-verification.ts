@@ -346,7 +346,9 @@ export const verify_evidence_schema = async (
       ('chk_access_event_authorization'),
       ('chk_access_event_reason'),
       ('chk_access_event_transport'),
-      ('chk_access_event_response_bytes')
+      ('chk_access_event_response_bytes'),
+      ('chk_access_event_strings'),
+      ('chk_access_event_scoped_success')
     ), expected_privileges(privilege, expected) AS (VALUES
       ('SELECT', true),
       ('INSERT', true),

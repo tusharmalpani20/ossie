@@ -3,7 +3,10 @@ import {
   validate_access_event,
   type AccessEvent,
 } from "@repo/audit-domain";
-import { is_registered_access_action } from "./access-coverage-registry";
+import {
+  access_route_registration,
+  is_registered_access_action,
+} from "./access-coverage-registry";
 
 export type AccessClient = {
   query(sql: string, values?: unknown[]): Promise<unknown>;
@@ -57,6 +60,17 @@ export const write_access_event = async (
 ) => {
   try {
     if (!is_registered_access_action(input.action)) throw new AccessDomainError();
+    if (input.http_method !== null && input.route_template !== null) {
+      const registration = access_route_registration(
+        input.http_method,
+        input.route_template,
+      );
+      const expected_action = input.outcome === "succeeded"
+        ? registration?.action
+        : registration?.denied_action;
+      if (!registration || input.action !== expected_action)
+        throw new AccessDomainError();
+    }
     await insert_access_event(client, validate_access_event(input));
   } catch {
     throw new AccessDomainError();

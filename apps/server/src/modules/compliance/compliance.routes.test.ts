@@ -140,4 +140,22 @@ describe("compliance routes", () => {
     });
     await anonymous.close();
   });
+
+  it.each([
+    "/api/v1/organization/compliance/events?project_id=not-a-ulid",
+    "/api/v1/organization/compliance/audit-events/not-a-ulid",
+  ])("rejects malformed evidence identifiers before calling the service", async (url) => {
+    const list_events = vi.fn();
+    const get_audit_event_detail = vi.fn();
+    const app = build_app({
+      compliance_service: { list_events, get_audit_event_detail },
+    });
+
+    const response = await app.inject({ method: "GET", url });
+
+    expect(response.statusCode).toBe(400);
+    expect(list_events).not.toHaveBeenCalled();
+    expect(get_audit_event_detail).not.toHaveBeenCalled();
+    await app.close();
+  });
 });

@@ -62,6 +62,26 @@ describe("Access Evidence persistence", () => {
     await expect(
       pool.query("DELETE FROM audit_schema.access_event WHERE id = $1", [id]),
     ).rejects.toMatchObject({ code: expect.stringMatching(/42501|55000/u) });
+    await expect(
+      pool.query("TRUNCATE audit_schema.access_event"),
+    ).rejects.toMatchObject({ code: expect.stringMatching(/42501|55000/u) });
+    await expect(
+      with_maintenance_client((client) => client.query(
+        `INSERT INTO audit_schema.access_event (
+          id, organization_id, project_id, root_resource_type, root_resource_id,
+          action, source_type, actor_type, actor_org_user_id, actor_label,
+          request_id, http_method, route_template, access_surface,
+          authorization_type, authorization_role, outcome, reason_code,
+          response_bytes, occurred_at
+        ) SELECT $1, organization_id, project_id, root_resource_type, NULL,
+          action, source_type, actor_type, actor_org_user_id, actor_label,
+          request_id, http_method, route_template, access_surface,
+          authorization_type, authorization_role, outcome, reason_code,
+          response_bytes, occurred_at
+        FROM audit_schema.access_event WHERE id = $2`,
+        [ulid(), id],
+      )),
+    ).rejects.toMatchObject({ code: "23514" });
   });
 
   it("installs explicit relational columns without JSON storage", async () => {

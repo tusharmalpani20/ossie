@@ -678,7 +678,7 @@ export const getPublicPublishLink = async (
 ): Promise<PublicPublishLinkResponse> => (
   requestJson<PublicPublishLinkResponse>(
     `/api/v1/public/publish-links/${encodeURIComponent(slug)}`,
-    { headers: { "X-Ossie-Access-Surface": surface } }
+    { headers: { "X-Ossie-Access-Surface": `public_${surface}` } }
   )
 );
 
@@ -693,7 +693,7 @@ export const createPublicPublishViewerSession = async (
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "X-Ossie-Access-Surface": surface,
+        "X-Ossie-Access-Surface": `public_${surface}`,
       },
       body: JSON.stringify(input),
     }

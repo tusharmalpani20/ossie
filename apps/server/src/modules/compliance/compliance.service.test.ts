@@ -69,4 +69,30 @@ describe("compliance service", () => {
     ).rejects.toBeInstanceOf(ComplianceCursorError);
     expect(repository.list_events).not.toHaveBeenCalled();
   });
+
+  it.each([
+    "not-base64url!",
+    Buffer.from(JSON.stringify({
+      version: 1,
+      filter: "all:",
+      id: "not-a-ulid",
+      occurred_at: "2026-07-19T12:00:00.000Z",
+      evidence_kind: "access",
+    })).toString("base64url"),
+    Buffer.from(JSON.stringify({
+      version: 1,
+      filter: "all:",
+      id: "01J00000000000000000000002",
+      occurred_at: "2026-07-19 12:00:00Z",
+      evidence_kind: "access",
+    })).toString("base64url"),
+  ])("rejects malformed cursor transport and payload before querying", async (cursor) => {
+    const repository = { list_events: vi.fn(), get_audit_event_detail: vi.fn() };
+    const service = build_compliance_service(repository);
+
+    await expect(
+      service.list_events({ auth: auth(), query: { cursor } }),
+    ).rejects.toBeInstanceOf(ComplianceCursorError);
+    expect(repository.list_events).not.toHaveBeenCalled();
+  });
 });
