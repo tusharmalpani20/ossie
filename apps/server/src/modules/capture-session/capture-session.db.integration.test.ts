@@ -73,6 +73,14 @@ const create_project = async (
   return response.json().project.id as string;
 };
 
+const default_version_id = async (project_id: string) => {
+  const result = await pool.query<{ default_project_version_id: string }>(
+    "SELECT default_project_version_id FROM project_schema.project WHERE id = $1",
+    [project_id],
+  );
+  return result.rows[0]!.default_project_version_id;
+};
+
 const insert_cross_org_project_and_capture_session = async () => {
   const user_id = ulid();
   const organization_id = ulid();
@@ -147,6 +155,7 @@ describe("DB-backed capture session API", () => {
   it("creates lists gets updates and soft deletes capture sessions under a project", async () => {
     const session_token = await setup_owner();
     const project_id = await create_project(session_token);
+    const project_version_id = await default_version_id(project_id);
     const owner_context = await get_owner_context();
     const app = build({ logger: false });
 
@@ -156,8 +165,10 @@ describe("DB-backed capture session API", () => {
       cookies: {
         ossie_session: session_token,
       },
+      headers: { "x-ossie-client": "extension" },
       payload: {
         name: "Create department workflow",
+        project_version_id,
         description: "Source capture for the department setup guide",
         source_type: "extension",
         start_url: "https://example.internal/app/department",
@@ -206,7 +217,7 @@ describe("DB-backed capture session API", () => {
 
     const list_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/capture-sessions`,
+      url: `/api/v1/projects/${project_id}/capture-sessions?project_version_id=${project_version_id}`,
       cookies: {
         ossie_session: session_token,
       },
@@ -260,7 +271,7 @@ describe("DB-backed capture session API", () => {
     });
     const completed_list_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/capture-sessions?status=completed`,
+      url: `/api/v1/projects/${project_id}/capture-sessions?project_version_id=${project_version_id}&status=completed`,
       cookies: {
         ossie_session: session_token,
       },
@@ -360,7 +371,7 @@ describe("DB-backed capture session API", () => {
 
     const hidden_list_response = await app.inject({
       method: "GET",
-      url: `/api/v1/projects/${project_id}/capture-sessions`,
+      url: `/api/v1/projects/${project_id}/capture-sessions?project_version_id=${project_version_id}`,
       cookies: {
         ossie_session: session_token,
       },
@@ -405,6 +416,66 @@ describe("DB-backed capture session API", () => {
       "capture_session_not_found",
     );
 
+    await app.close();
+  });
+
+  it("reassigns only an unstarted empty draft to an active Version with Audit evidence", async () => {
+    const session_token = await setup_owner();
+    const project_id = await create_project(
+      session_token,
+      "Version-scoped capture",
+    );
+    const source_version_id = await default_version_id(project_id);
+    const app = build({ logger: false });
+    const version_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/versions`,
+      cookies: { ossie_session: session_token },
+      payload: { name: "Next" },
+    });
+    expect(version_response.statusCode).toBe(201);
+    const target_version_id = version_response.json().project_version
+      .id as string;
+    const create_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/capture-sessions`,
+      cookies: { ossie_session: session_token },
+      payload: { name: "Movable draft", project_version_id: source_version_id },
+    });
+    expect(create_response.statusCode).toBe(201);
+    const session = create_response.json().capture_session;
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/capture-sessions/${session.id}/reassign-project-version`,
+      cookies: { ossie_session: session_token },
+      payload: {
+        project_version_id: target_version_id,
+        expected_version: session.version,
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().capture_session).toMatchObject({
+      project_version_id: target_version_id,
+      version: session.version + 1,
+    });
+    const evidence = await pool.query<{ action: string; field_name: string }>(
+      `
+      SELECT audit_event.action, change_item.field_name
+      FROM audit_schema.audit_event audit_event
+      JOIN audit_schema.audit_change_item change_item
+        ON change_item.audit_event_id = audit_event.id
+       AND change_item.organization_id = audit_event.organization_id
+      WHERE audit_event.root_resource_id = $1
+        AND audit_event.action = 'capture_session.project_version_reassigned'
+    `,
+      [session.id],
+    );
+    expect(evidence.rows).toEqual([
+      {
+        action: "capture_session.project_version_reassigned",
+        field_name: "project_version_id",
+      },
+    ]);
     await app.close();
   });
 

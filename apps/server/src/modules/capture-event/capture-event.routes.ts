@@ -1,4 +1,8 @@
-import type { FastifyInstance, FastifyPluginAsync, FastifyReply } from "fastify";
+import type {
+  FastifyInstance,
+  FastifyPluginAsync,
+  FastifyReply,
+} from "fastify";
 import {
   CaptureEventListQuerySchema,
   CreateCaptureEventRequestSchema,
@@ -10,10 +14,7 @@ import {
   type AuthContext,
 } from "../authentication/session.service";
 import { session_token_from_request } from "../authentication/request-session-token";
-import {
-  error_response,
-  unauthorized_response,
-} from "../shared/http-errors";
+import { error_response, unauthorized_response } from "../shared/http-errors";
 import {
   CaptureAssetNotFoundError,
   CaptureEventIndexConflictError,
@@ -91,7 +92,7 @@ const capture_event_auth_context = (auth: AuthContext) => ({
 });
 
 const pick_create_capture_event_data = (
-  body: CreateCaptureEventInput
+  body: CreateCaptureEventInput,
 ): CreateCaptureEventInput => {
   const data: CreateCaptureEventInput = {
     event_type: body.event_type,
@@ -145,81 +146,124 @@ const assert_no_raw_input_values = (body: CreateCaptureEventInput) => {
 };
 
 export const build_capture_event_routes = (
-  dependencies: CaptureEventRouteDependencies
+  dependencies: CaptureEventRouteDependencies,
 ): FastifyPluginAsync => {
   return async (fastify: FastifyInstance) => {
-    const require_auth = async (session_token?: string) => (
+    const require_auth = async (session_token?: string) =>
       capture_event_auth_context(
-        await dependencies.auth_service.get_current_auth_context(session_token)
-      )
-    );
+        await dependencies.auth_service.get_current_auth_context(session_token),
+      );
 
     const handle_domain_error = (error: unknown, reply: FastifyReply) => {
+      if (
+        (error as { constraint?: string })?.constraint ===
+        "capture_project_version_active_guard"
+      ) {
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "project_version_conflict",
+              "Archived Project Versions are read-only",
+            ),
+          );
+      }
       if (error instanceof UnauthenticatedSessionError) {
         return reply.status(401).send(unauthorized_response());
       }
 
       if (error instanceof ProjectNotFoundError) {
-        return reply.status(404).send(
-          error_response("project_not_found", "Project was not found")
-        );
+        return reply
+          .status(404)
+          .send(error_response("project_not_found", "Project was not found"));
       }
 
       if (error instanceof CaptureSessionNotFoundError) {
-        return reply.status(404).send(
-          error_response("capture_session_not_found", "Capture session was not found")
-        );
+        return reply
+          .status(404)
+          .send(
+            error_response(
+              "capture_session_not_found",
+              "Capture session was not found",
+            ),
+          );
       }
 
       if (error instanceof CaptureAssetNotFoundError) {
-        return reply.status(404).send(
-          error_response("capture_asset_not_found", "Capture asset was not found")
-        );
+        return reply
+          .status(404)
+          .send(
+            error_response(
+              "capture_asset_not_found",
+              "Capture asset was not found",
+            ),
+          );
       }
 
       if (error instanceof CaptureEventNotFoundError) {
-        return reply.status(404).send(
-          error_response("capture_event_not_found", "Capture event was not found")
-        );
+        return reply
+          .status(404)
+          .send(
+            error_response(
+              "capture_event_not_found",
+              "Capture event was not found",
+            ),
+          );
       }
 
       if (error instanceof InvalidCaptureEventInputError) {
-        return reply.status(400).send(
-          error_response("invalid_capture_event", "Capture event input is invalid")
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "invalid_capture_event",
+              "Capture event input is invalid",
+            ),
+          );
       }
 
       if (error instanceof InvalidCaptureEventOrderError) {
-        return reply.status(400).send(
-          error_response("invalid_capture_event_order", "Capture event order is invalid")
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "invalid_capture_event_order",
+              "Capture event order is invalid",
+            ),
+          );
       }
 
       if (error instanceof CaptureEventReorderNotAllowedError) {
-        return reply.status(409).send(
-          error_response(
-            "capture_event_reorder_not_allowed",
-            "Only manual capture sessions can be reordered"
-          )
-        );
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "capture_event_reorder_not_allowed",
+              "Only manual capture sessions can be reordered",
+            ),
+          );
       }
 
       if (error instanceof CaptureEventUpdateNotAllowedError) {
-        return reply.status(409).send(
-          error_response(
-            "capture_event_update_not_allowed",
-            "Only active manual capture sessions can be edited"
-          )
-        );
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "capture_event_update_not_allowed",
+              "Only active manual capture sessions can be edited",
+            ),
+          );
       }
 
       if (error instanceof CaptureEventIndexConflictError) {
-        return reply.status(409).send(
-          error_response(
-            "capture_event_index_conflict",
-            "A capture event with this index already exists"
-          )
-        );
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "capture_event_index_conflict",
+              "A capture event with this index already exists",
+            ),
+          );
       }
 
       throw error;
@@ -231,25 +275,30 @@ export const build_capture_event_routes = (
         capture_session_id: string;
       };
       Body: CreateCaptureEventInput;
-    }>("/:project_id/capture-sessions/:capture_session_id/events", {
-      schema: {
-        body: CreateCaptureEventRequestSchema,
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/events",
+      {
+        schema: {
+          body: CreateCaptureEventRequestSchema,
+        },
       },
-    }, async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        assert_no_raw_input_values(request.body);
-        const capture_event = await dependencies.capture_event_service.create_capture_event({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          data: pick_create_capture_event_data(request.body),
-        });
-        return reply.status(201).send({ capture_event });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          assert_no_raw_input_values(request.body);
+          const capture_event =
+            await dependencies.capture_event_service.create_capture_event({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              data: pick_create_capture_event_data(request.body),
+            });
+          return reply.status(201).send({ capture_event });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.put<{
       Params: {
@@ -257,26 +306,31 @@ export const build_capture_event_routes = (
         capture_session_id: string;
       };
       Body: ReorderCaptureEventsInput;
-    }>("/:project_id/capture-sessions/:capture_session_id/events/order", {
-      schema: {
-        body: ReorderCaptureEventsRequestSchema,
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/events/order",
+      {
+        schema: {
+          body: ReorderCaptureEventsRequestSchema,
+        },
       },
-    }, async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const capture_events = await dependencies.capture_event_service.reorder_capture_events({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          data: {
-            event_ids: request.body.event_ids,
-          },
-        });
-        return reply.status(200).send({ capture_events });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const capture_events =
+            await dependencies.capture_event_service.reorder_capture_events({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              data: {
+                event_ids: request.body.event_ids,
+              },
+            });
+          return reply.status(200).send({ capture_events });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.get<{
       Params: {
@@ -286,24 +340,29 @@ export const build_capture_event_routes = (
       Querystring: {
         event_type?: CaptureEventType;
       };
-    }>("/:project_id/capture-sessions/:capture_session_id/events", {
-      schema: {
-        querystring: CaptureEventListQuerySchema,
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/events",
+      {
+        schema: {
+          querystring: CaptureEventListQuerySchema,
+        },
       },
-    }, async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const capture_events = await dependencies.capture_event_service.list_capture_events({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          event_type: request.query.event_type,
-        });
-        return reply.status(200).send({ capture_events });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const capture_events =
+            await dependencies.capture_event_service.list_capture_events({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              event_type: request.query.event_type,
+            });
+          return reply.status(200).send({ capture_events });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.get<{
       Params: {
@@ -311,20 +370,24 @@ export const build_capture_event_routes = (
         capture_session_id: string;
         id: string;
       };
-    }>("/:project_id/capture-sessions/:capture_session_id/events/:id", async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const capture_event = await dependencies.capture_event_service.get_capture_event({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          capture_event_id: request.params.id,
-        });
-        return reply.status(200).send({ capture_event });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/events/:id",
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const capture_event =
+            await dependencies.capture_event_service.get_capture_event({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              capture_event_id: request.params.id,
+            });
+          return reply.status(200).send({ capture_event });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.patch<{
       Params: {
@@ -333,25 +396,30 @@ export const build_capture_event_routes = (
         id: string;
       };
       Body: UpdateCaptureEventInput;
-    }>("/:project_id/capture-sessions/:capture_session_id/events/:id", {
-      schema: {
-        body: UpdateCaptureEventRequestSchema,
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/events/:id",
+      {
+        schema: {
+          body: UpdateCaptureEventRequestSchema,
+        },
       },
-    }, async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const capture_event = await dependencies.capture_event_service.update_capture_event({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          capture_event_id: request.params.id,
-          data: request.body,
-        });
-        return reply.status(200).send({ capture_event });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const capture_event =
+            await dependencies.capture_event_service.update_capture_event({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              capture_event_id: request.params.id,
+              data: request.body,
+            });
+          return reply.status(200).send({ capture_event });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.delete<{
       Params: {
@@ -359,19 +427,22 @@ export const build_capture_event_routes = (
         capture_session_id: string;
         id: string;
       };
-    }>("/:project_id/capture-sessions/:capture_session_id/events/:id", async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        await dependencies.capture_event_service.delete_capture_event({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          capture_event_id: request.params.id,
-        });
-        return reply.status(204).send();
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/events/:id",
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          await dependencies.capture_event_service.delete_capture_event({
+            auth,
+            project_id: request.params.project_id,
+            capture_session_id: request.params.capture_session_id,
+            capture_event_id: request.params.id,
+          });
+          return reply.status(204).send();
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
   };
 };

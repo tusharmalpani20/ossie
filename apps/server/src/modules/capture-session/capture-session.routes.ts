@@ -1,7 +1,13 @@
-import type { FastifyInstance, FastifyPluginAsync, FastifyReply } from "fastify";
+import type {
+  FastifyInstance,
+  FastifyPluginAsync,
+  FastifyReply,
+} from "fastify";
 import {
   CaptureSessionListQuerySchema,
   CreateCaptureSessionRequestSchema,
+  ReassignCaptureSessionProjectVersionRequestSchema,
+  type ReassignCaptureSessionProjectVersionRequest,
   UpdateCaptureSessionRequestSchema,
 } from "@repo/types/capture";
 import {
@@ -13,10 +19,7 @@ import {
   type AuthContext,
 } from "../authentication/session.service";
 import { session_token_from_request } from "../authentication/request-session-token";
-import {
-  error_response,
-  unauthorized_response,
-} from "../shared/http-errors";
+import { error_response, unauthorized_response } from "../shared/http-errors";
 import {
   CaptureSessionNotFoundError,
   CaptureSessionNotCompletableError,
@@ -24,6 +27,11 @@ import {
   InvalidCaptureSessionCompletionError,
   InvalidCaptureSessionInputError,
   ProjectNotFoundError,
+  CaptureSessionProjectVersionLockedError,
+  CaptureSessionProjectVersionUnchangedError,
+  CaptureSessionConflictError,
+  CaptureProjectVersionConflictError,
+  CaptureProjectVersionNotFoundError,
   type CaptureSession,
   type CaptureSessionDetail,
   type CaptureSessionAuthContext,
@@ -47,6 +55,7 @@ export type CaptureSessionRouteDependencies = {
       auth: CaptureSessionAuthContext;
       project_id: string;
       status?: CaptureSessionStatus;
+      project_version_id: string;
     }) => Promise<CaptureSession[]>;
     get_capture_session: (input: {
       auth: CaptureSessionAuthContext;
@@ -74,6 +83,12 @@ export type CaptureSessionRouteDependencies = {
       project_id: string;
       capture_session_id: string;
     }) => Promise<void>;
+    reassign_project_version: (input: {
+      auth: CaptureSessionAuthContext;
+      project_id: string;
+      capture_session_id: string;
+      data: ReassignCaptureSessionProjectVersionRequest;
+    }) => Promise<CaptureSession>;
   };
 };
 
@@ -83,11 +98,14 @@ const capture_session_auth_context = (auth: AuthContext) => ({
 });
 
 const pick_create_capture_session_data = (
-  body: CreateCaptureSessionInput
+  body: CreateCaptureSessionInput,
 ): CreateCaptureSessionInput => {
   const data: CreateCaptureSessionInput = {
     name: body.name,
+    project_version_id: body.project_version_id,
   };
+  if (body.start_immediately !== undefined)
+    data.start_immediately = body.start_immediately;
 
   if (body.description !== undefined) {
     data.description = body.description;
@@ -127,7 +145,7 @@ const pick_create_capture_session_data = (
 };
 
 const pick_update_capture_session_data = (
-  body: UpdateCaptureSessionInput
+  body: UpdateCaptureSessionInput,
 ): UpdateCaptureSessionInput => ({
   name: body.name,
   description: body.description,
@@ -144,64 +162,122 @@ const pick_update_capture_session_data = (
 });
 
 export const build_capture_session_routes = (
-  dependencies: CaptureSessionRouteDependencies
+  dependencies: CaptureSessionRouteDependencies,
 ): FastifyPluginAsync => {
   return async (fastify: FastifyInstance) => {
-    const require_auth = async (session_token?: string) => (
+    const require_auth = async (session_token?: string) =>
       capture_session_auth_context(
-        await dependencies.auth_service.get_current_auth_context(session_token)
-      )
-    );
+        await dependencies.auth_service.get_current_auth_context(session_token),
+      );
 
     const handle_domain_error = (error: unknown, reply: FastifyReply) => {
+      if (
+        (error as { constraint?: string })?.constraint ===
+        "capture_project_version_active_guard"
+      ) {
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "project_version_conflict",
+              "Archived Project Versions are read-only",
+            ),
+          );
+      }
       if (error instanceof UnauthenticatedSessionError) {
         return reply.status(401).send(unauthorized_response());
       }
 
       if (error instanceof ProjectNotFoundError) {
-        return reply.status(404).send(
-          error_response("project_not_found", "Project was not found")
-        );
+        return reply
+          .status(404)
+          .send(error_response("project_not_found", "Project was not found"));
       }
 
       if (error instanceof CaptureSessionNotFoundError) {
-        return reply.status(404).send(
-          error_response("capture_session_not_found", "Capture session was not found")
-        );
+        return reply
+          .status(404)
+          .send(
+            error_response(
+              "capture_session_not_found",
+              "Capture session was not found",
+            ),
+          );
       }
 
       if (error instanceof CaptureSessionNotCompletableError) {
-        return reply.status(400).send(
-          error_response(
-            "capture_session_not_completable",
-            "Capture session cannot be completed from its current status"
-          )
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "capture_session_not_completable",
+              "Capture session cannot be completed from its current status",
+            ),
+          );
       }
 
       if (error instanceof InvalidCaptureSessionCompletionError) {
-        return reply.status(400).send(
-          error_response(
-            "invalid_capture_session_completion",
-            "Capture session completion input is invalid"
-          )
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "invalid_capture_session_completion",
+              "Capture session completion input is invalid",
+            ),
+          );
       }
 
       if (error instanceof EmptyCaptureSessionUpdateError) {
-        return reply.status(400).send(
-          error_response(
-            "empty_capture_session_update",
-            "At least one capture session field must be provided"
-          )
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "empty_capture_session_update",
+              "At least one capture session field must be provided",
+            ),
+          );
       }
 
       if (error instanceof InvalidCaptureSessionInputError) {
-        return reply.status(400).send(
-          error_response("invalid_capture_session", "Capture session input is invalid")
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "invalid_capture_session",
+              "Capture session input is invalid",
+            ),
+          );
       }
+      if (error instanceof CaptureProjectVersionNotFoundError)
+        return reply
+          .status(404)
+          .send(error_response("project_version_not_found", error.message));
+      if (error instanceof CaptureProjectVersionConflictError)
+        return reply
+          .status(409)
+          .send(error_response("project_version_conflict", error.message));
+      if (error instanceof CaptureSessionProjectVersionLockedError)
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "capture_session_project_version_locked",
+              error.message,
+            ),
+          );
+      if (error instanceof CaptureSessionProjectVersionUnchangedError)
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "capture_session_project_version_unchanged",
+              error.message,
+            ),
+          );
+      if (error instanceof CaptureSessionConflictError)
+        return reply
+          .status(409)
+          .send(error_response("capture_session_conflict", error.message));
 
       throw error;
     };
@@ -211,23 +287,40 @@ export const build_capture_session_routes = (
         project_id: string;
       };
       Body: CreateCaptureSessionInput;
-    }>("/:project_id/capture-sessions", {
-      schema: {
-        body: CreateCaptureSessionRequestSchema,
+    }>(
+      "/:project_id/capture-sessions",
+      {
+        schema: {
+          body: CreateCaptureSessionRequestSchema,
+        },
       },
-    }, async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const capture_session = await dependencies.capture_session_service.create_capture_session({
-          auth,
-          project_id: request.params.project_id,
-          data: pick_create_capture_session_data(request.body),
-        });
-        return reply.status(201).send({ capture_session });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const extension_client =
+            request.headers["x-ossie-client"] === "extension";
+          if (
+            (extension_client &&
+              request.body.source_type &&
+              request.body.source_type !== "extension") ||
+            (!extension_client && request.body.source_type === "extension")
+          ) {
+            throw new InvalidCaptureSessionInputError();
+          }
+          const create_data = pick_create_capture_session_data(request.body);
+          if (extension_client) create_data.source_type = "extension";
+          const capture_session =
+            await dependencies.capture_session_service.create_capture_session({
+              auth,
+              project_id: request.params.project_id,
+              data: create_data,
+            });
+          return reply.status(201).send({ capture_session });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.get<{
       Params: {
@@ -237,11 +330,14 @@ export const build_capture_session_routes = (
     }>("/:project_id/capture-sessions/:id/detail", async (request, reply) => {
       try {
         const auth = await require_auth(session_token_from_request(request));
-        const detail = await dependencies.capture_session_service.get_capture_session_detail({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.id,
-        });
+        const detail =
+          await dependencies.capture_session_service.get_capture_session_detail(
+            {
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.id,
+            },
+          );
         return reply.status(200).send(detail);
       } catch (error) {
         return handle_domain_error(error, reply);
@@ -253,25 +349,59 @@ export const build_capture_session_routes = (
         project_id: string;
       };
       Querystring: {
+        project_version_id: string;
         status?: CaptureSessionStatus;
       };
-    }>("/:project_id/capture-sessions", {
-      schema: {
-        querystring: CaptureSessionListQuerySchema,
+    }>(
+      "/:project_id/capture-sessions",
+      {
+        schema: {
+          querystring: CaptureSessionListQuerySchema,
+        },
       },
-    }, async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const capture_sessions = await dependencies.capture_session_service.list_capture_sessions({
-          auth,
-          project_id: request.params.project_id,
-          status: request.query.status,
-        });
-        return reply.status(200).send({ capture_sessions });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const capture_sessions =
+            await dependencies.capture_session_service.list_capture_sessions({
+              auth,
+              project_id: request.params.project_id,
+              project_version_id: request.query.project_version_id,
+              status: request.query.status,
+            });
+          return reply.status(200).send({ capture_sessions });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
+
+    fastify.post<{
+      Params: { project_id: string; id: string };
+      Body: ReassignCaptureSessionProjectVersionRequest;
+    }>(
+      "/:project_id/capture-sessions/:id/reassign-project-version",
+      {
+        schema: { body: ReassignCaptureSessionProjectVersionRequestSchema },
+      },
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const capture_session =
+            await dependencies.capture_session_service.reassign_project_version(
+              {
+                auth,
+                project_id: request.params.project_id,
+                capture_session_id: request.params.id,
+                data: request.body,
+              },
+            );
+          return reply.status(200).send({ capture_session });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.post<{
       Params: {
@@ -284,11 +414,12 @@ export const build_capture_session_routes = (
         assert_valid_capture_session_completion_body(request.body);
 
         const auth = await require_auth(session_token_from_request(request));
-        const result = await dependencies.capture_session_service.complete_capture_session({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.id,
-        });
+        const result =
+          await dependencies.capture_session_service.complete_capture_session({
+            auth,
+            project_id: request.params.project_id,
+            capture_session_id: request.params.id,
+          });
         return reply.status(200).send(result);
       } catch (error) {
         return handle_domain_error(error, reply);
@@ -303,11 +434,12 @@ export const build_capture_session_routes = (
     }>("/:project_id/capture-sessions/:id", async (request, reply) => {
       try {
         const auth = await require_auth(session_token_from_request(request));
-        const capture_session = await dependencies.capture_session_service.get_capture_session({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.id,
-        });
+        const capture_session =
+          await dependencies.capture_session_service.get_capture_session({
+            auth,
+            project_id: request.params.project_id,
+            capture_session_id: request.params.id,
+          });
         return reply.status(200).send({ capture_session });
       } catch (error) {
         return handle_domain_error(error, reply);
@@ -320,26 +452,31 @@ export const build_capture_session_routes = (
         id: string;
       };
       Body: UpdateCaptureSessionInput;
-    }>("/:project_id/capture-sessions/:id", {
-      schema: {
-        body: UpdateCaptureSessionRequestSchema,
+    }>(
+      "/:project_id/capture-sessions/:id",
+      {
+        schema: {
+          body: UpdateCaptureSessionRequestSchema,
+        },
       },
-    }, async (request, reply) => {
-      try {
-        assert_no_client_lifecycle_timestamp_input(request.body);
+      async (request, reply) => {
+        try {
+          assert_no_client_lifecycle_timestamp_input(request.body);
 
-        const auth = await require_auth(session_token_from_request(request));
-        const capture_session = await dependencies.capture_session_service.update_capture_session({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.id,
-          data: pick_update_capture_session_data(request.body),
-        });
-        return reply.status(200).send({ capture_session });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+          const auth = await require_auth(session_token_from_request(request));
+          const capture_session =
+            await dependencies.capture_session_service.update_capture_session({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.id,
+              data: pick_update_capture_session_data(request.body),
+            });
+          return reply.status(200).send({ capture_session });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.delete<{
       Params: {

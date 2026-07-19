@@ -1,6 +1,13 @@
 import { ulid } from "ulid";
-import type { CaptureAsset, CaptureAssetType, FileStorageProvider } from "../capture-asset/capture-asset.service";
-import type { CaptureEvent, CaptureEventType } from "../capture-event/capture-event.service";
+import type {
+  CaptureAsset,
+  CaptureAssetType,
+  FileStorageProvider,
+} from "../capture-asset/capture-asset.service";
+import type {
+  CaptureEvent,
+  CaptureEventType,
+} from "../capture-event/capture-event.service";
 import {
   type CaptureSession,
   type CaptureSessionRepository,
@@ -14,13 +21,18 @@ type QueryResult<Row> = {
 };
 
 type Queryable = {
-  query: <Row = Record<string, unknown>>(sql: string, values?: unknown[]) => Promise<QueryResult<Row>>;
+  query: <Row = Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ) => Promise<QueryResult<Row>>;
 };
 
 type CaptureSessionRow = {
   id: string;
   organization_id: string;
   project_id: string;
+  project_version_id: string;
+  project_version: CaptureSession["project_version"];
   name: string;
   description: string | null;
   status: CaptureSessionStatus;
@@ -105,6 +117,8 @@ const map_capture_session = (row: CaptureSessionRow): CaptureSession => ({
   id: row.id,
   organization_id: row.organization_id,
   project_id: row.project_id,
+  project_version_id: row.project_version_id,
+  project_version: row.project_version,
   name: row.name,
   description: row.description,
   status: row.status,
@@ -189,6 +203,16 @@ const capture_session_select = `
   id,
   organization_id,
   project_id,
+  project_version_id,
+  (SELECT json_build_object(
+    'id', project_version.id, 'name', project_version.name,
+    'slug', project_version.slug, 'status', project_version.status,
+    'position', project_version.position
+  ) FROM project_schema.project_version project_version
+    WHERE project_version.id = capture_session.project_version_id
+      AND project_version.project_id = capture_session.project_id
+      AND project_version.organization_id = capture_session.organization_id
+  ) AS project_version,
   name,
   description,
   status,
@@ -288,10 +312,14 @@ const update_assignments = (data: NormalizedUpdateCaptureSessionInput) => {
       assignments.push("started_at = COALESCE(started_at, CURRENT_TIMESTAMP)");
     }
     if (data.status === "completed") {
-      assignments.push("completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)");
+      assignments.push(
+        "completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)",
+      );
     }
     if (data.status === "canceled") {
-      assignments.push("canceled_at = COALESCE(canceled_at, CURRENT_TIMESTAMP)");
+      assignments.push(
+        "canceled_at = COALESCE(canceled_at, CURRENT_TIMESTAMP)",
+      );
     }
   }
   if (data.start_url !== undefined) {
@@ -329,10 +357,11 @@ const update_assignments = (data: NormalizedUpdateCaptureSessionInput) => {
 };
 
 export const build_capture_session_repository = (
-  db: Queryable
+  db: Queryable,
 ): CaptureSessionRepository => ({
   async project_exists(input) {
-    const result = await db.query<{ exists: boolean }>(`
+    const result = await db.query<{ exists: boolean }>(
+      `
       SELECT EXISTS (
         SELECT 1
         FROM project_schema.project
@@ -340,17 +369,21 @@ export const build_capture_session_repository = (
         AND organization_id = $2
         AND is_deleted = FALSE
       ) AS exists
-    `, [input.project_id, input.organization_id]);
+    `,
+      [input.project_id, input.organization_id],
+    );
 
     return Boolean(result.rows[0]?.exists);
   },
 
   async create_capture_session(input) {
-    const result = await db.query<CaptureSessionRow>(`
+    const result = await db.query<CaptureSessionRow>(
+      `
       INSERT INTO capture_schema.capture_session (
         id,
         organization_id,
         project_id,
+        project_version_id,
         name,
         description,
         source_type,
@@ -364,28 +397,36 @@ export const build_capture_session_repository = (
         user_agent,
         metadata,
         created_by_id,
-        updated_by_id
+        updated_by_id,
+        status,
+        started_at
       )
-      VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'manual'), $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)
+      VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'manual'), $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $17,
+        CASE WHEN $18 THEN 'capturing' ELSE 'draft' END,
+        CASE WHEN $18 THEN CURRENT_TIMESTAMP ELSE NULL END)
       RETURNING ${capture_session_select}
-    `, [
-      ulid(),
-      input.organization_id,
-      input.project_id,
-      input.data.name,
-      input.data.description ?? null,
-      input.data.source_type ?? null,
-      input.data.start_url ?? null,
-      input.data.browser_name ?? null,
-      input.data.browser_version ?? null,
-      input.data.operating_system ?? null,
-      input.data.viewport_width ?? null,
-      input.data.viewport_height ?? null,
-      input.data.device_pixel_ratio ?? null,
-      input.data.user_agent ?? null,
-      input.data.metadata ?? null,
-      input.actor_org_user_id,
-    ]);
+    `,
+      [
+        ulid(),
+        input.organization_id,
+        input.project_id,
+        input.data.project_version_id,
+        input.data.name,
+        input.data.description ?? null,
+        input.data.source_type ?? null,
+        input.data.start_url ?? null,
+        input.data.browser_name ?? null,
+        input.data.browser_version ?? null,
+        input.data.operating_system ?? null,
+        input.data.viewport_width ?? null,
+        input.data.viewport_height ?? null,
+        input.data.device_pixel_ratio ?? null,
+        input.data.user_agent ?? null,
+        input.data.metadata ?? null,
+        input.actor_org_user_id,
+        input.data.start_immediately,
+      ],
+    );
     const row = first_row(result);
 
     if (!row) {
@@ -399,28 +440,34 @@ export const build_capture_session_repository = (
     const values: unknown[] = [
       input.project_id,
       input.organization_id,
+      input.project_version_id,
     ];
-    const status_filter = input.status ? "AND status = $3" : "";
+    const status_filter = input.status ? "AND status = $4" : "";
 
     if (input.status) {
       values.push(input.status);
     }
 
-    const result = await db.query<CaptureSessionRow>(`
+    const result = await db.query<CaptureSessionRow>(
+      `
       SELECT ${capture_session_select}
       FROM capture_schema.capture_session
       WHERE project_id = $1
       AND organization_id = $2
+      AND project_version_id = $3
       AND is_deleted = FALSE
       ${status_filter}
       ORDER BY created_at DESC, id DESC
-    `, values);
+    `,
+      values,
+    );
 
     return result.rows.map(map_capture_session);
   },
 
   async find_capture_session(input) {
-    const result = await db.query<CaptureSessionRow>(`
+    const result = await db.query<CaptureSessionRow>(
+      `
       SELECT ${capture_session_select}
       FROM capture_schema.capture_session
       WHERE id = $1
@@ -428,18 +475,17 @@ export const build_capture_session_repository = (
       AND organization_id = $3
       AND is_deleted = FALSE
       LIMIT 1
-    `, [
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.capture_session_id, input.project_id, input.organization_id],
+    );
     const row = first_row(result);
 
     return row ? map_capture_session(row) : null;
   },
 
   async get_capture_session_detail(input) {
-    const session_result = await db.query<CaptureSessionRow>(`
+    const session_result = await db.query<CaptureSessionRow>(
+      `
       SELECT ${capture_session_select}
       FROM capture_schema.capture_session
       WHERE id = $1
@@ -447,18 +493,17 @@ export const build_capture_session_repository = (
       AND organization_id = $3
       AND is_deleted = FALSE
       LIMIT 1
-    `, [
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.capture_session_id, input.project_id, input.organization_id],
+    );
     const session_row = first_row(session_result);
 
     if (!session_row) {
       return null;
     }
 
-    const events_result = await db.query<CaptureEventRow>(`
+    const events_result = await db.query<CaptureEventRow>(
+      `
       SELECT ${capture_event_select}
       FROM capture_schema.capture_event
       WHERE capture_session_id = $1
@@ -466,12 +511,11 @@ export const build_capture_session_repository = (
       AND organization_id = $3
       AND is_deleted = FALSE
       ORDER BY event_index ASC, created_at ASC, id ASC
-    `, [
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
-    const assets_result = await db.query<CaptureAssetRow>(`
+    `,
+      [input.capture_session_id, input.project_id, input.organization_id],
+    );
+    const assets_result = await db.query<CaptureAssetRow>(
+      `
       SELECT ${capture_asset_select}
       FROM capture_schema.capture_asset capture_asset
       INNER JOIN file_schema.file app_file ON app_file.id = capture_asset.file_id
@@ -481,11 +525,9 @@ export const build_capture_session_repository = (
       AND capture_asset.is_deleted = FALSE
       AND app_file.is_deleted = FALSE
       ORDER BY capture_asset.created_at ASC, capture_asset.id ASC
-    `, [
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [input.capture_session_id, input.project_id, input.organization_id],
+    );
 
     return {
       capture_session: map_capture_session(session_row),
@@ -508,7 +550,8 @@ export const build_capture_session_repository = (
     const project_index = update.values.length + 3;
     const organization_index = update.values.length + 4;
 
-    const result = await db.query<CaptureSessionRow>(`
+    const result = await db.query<CaptureSessionRow>(
+      `
       UPDATE capture_schema.capture_session
       SET ${[
         ...update.assignments,
@@ -521,7 +564,9 @@ export const build_capture_session_repository = (
       AND organization_id = $${organization_index}
       AND is_deleted = FALSE
       RETURNING ${capture_session_select}
-    `, values);
+    `,
+      values,
+    );
     const row = first_row(result);
 
     return row ? map_capture_session(row) : null;
@@ -529,7 +574,8 @@ export const build_capture_session_repository = (
 
   async complete_capture_session(input) {
     const find_current = async () => {
-      const current_result = await db.query<CaptureSessionRow>(`
+      const current_result = await db.query<CaptureSessionRow>(
+        `
         SELECT ${capture_session_select}
         FROM capture_schema.capture_session
         WHERE id = $1
@@ -537,11 +583,9 @@ export const build_capture_session_repository = (
         AND organization_id = $3
         AND is_deleted = FALSE
         LIMIT 1
-      `, [
-        input.capture_session_id,
-        input.project_id,
-        input.organization_id,
-      ]);
+      `,
+        [input.capture_session_id, input.project_id, input.organization_id],
+      );
 
       return first_row(current_result);
     };
@@ -561,14 +605,18 @@ export const build_capture_session_repository = (
       };
     }
 
-    if (current_row.status === "canceled" || current_row.status === "archived") {
+    if (
+      current_row.status === "canceled" ||
+      current_row.status === "archived"
+    ) {
       return {
         outcome: "not_completable" as const,
         capture_session: map_capture_session(current_row),
       };
     }
 
-    const result = await db.query<CaptureSessionRow>(`
+    const result = await db.query<CaptureSessionRow>(
+      `
       UPDATE capture_schema.capture_session
       SET
         status = 'completed',
@@ -582,12 +630,14 @@ export const build_capture_session_repository = (
       AND is_deleted = FALSE
       AND status IN ('draft', 'capturing')
       RETURNING ${capture_session_select}
-    `, [
-      input.actor_org_user_id,
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [
+        input.actor_org_user_id,
+        input.capture_session_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
     const row = first_row(result);
 
     if (!row) {
@@ -600,7 +650,10 @@ export const build_capture_session_repository = (
         };
       }
 
-      if (refreshed_row?.status === "canceled" || refreshed_row?.status === "archived") {
+      if (
+        refreshed_row?.status === "canceled" ||
+        refreshed_row?.status === "archived"
+      ) {
         return {
           outcome: "not_completable" as const,
           capture_session: map_capture_session(refreshed_row),
@@ -620,7 +673,8 @@ export const build_capture_session_repository = (
   },
 
   async delete_capture_session(input) {
-    const result = await db.query<CaptureSessionRow>(`
+    const result = await db.query<CaptureSessionRow>(
+      `
       UPDATE capture_schema.capture_session
       SET
         is_deleted = TRUE,
@@ -634,13 +688,74 @@ export const build_capture_session_repository = (
       AND organization_id = $4
       AND is_deleted = FALSE
       RETURNING ${capture_session_select}
-    `, [
-      input.actor_org_user_id,
-      input.capture_session_id,
-      input.project_id,
-      input.organization_id,
-    ]);
+    `,
+      [
+        input.actor_org_user_id,
+        input.capture_session_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
 
     return result.rows.length > 0;
+  },
+
+  async reassign_project_version(input) {
+    await db.query("SELECT project_schema.lock_project_version_scope($1)", [
+      input.project_id,
+    ]);
+    const current = await db.query<
+      CaptureSessionRow & { has_children: boolean }
+    >(
+      `
+      SELECT ${capture_session_select},
+        (EXISTS (SELECT 1 FROM capture_schema.capture_event WHERE capture_session_id = capture_session.id)
+         OR EXISTS (SELECT 1 FROM capture_schema.capture_asset WHERE capture_session_id = capture_session.id)) AS has_children
+      FROM capture_schema.capture_session
+      WHERE id = $1 AND project_id = $2 AND organization_id = $3
+        AND is_deleted = FALSE FOR UPDATE
+    `,
+      [input.capture_session_id, input.project_id, input.organization_id],
+    );
+    const row = first_row(current);
+    if (!row) return { outcome: "not_found", capture_session: null };
+    const session = map_capture_session(row);
+    if (row.project_version_id === input.project_version_id)
+      return { outcome: "unchanged", capture_session: session };
+    if (row.version !== input.expected_version)
+      return { outcome: "conflict", capture_session: session };
+    if (row.status !== "draft" || row.started_at !== null || row.has_children)
+      return { outcome: "locked", capture_session: session };
+    const target = await db.query<{ status: "active" | "archived" }>(
+      `
+      SELECT status FROM project_schema.project_version
+      WHERE id = $1 AND project_id = $2 AND organization_id = $3
+      FOR UPDATE
+    `,
+      [input.project_version_id, input.project_id, input.organization_id],
+    );
+    if (!target.rows[0])
+      return { outcome: "project_version_not_found", capture_session: session };
+    if (target.rows[0].status !== "active")
+      return { outcome: "project_version_archived", capture_session: session };
+    const updated = await db.query<CaptureSessionRow>(
+      `
+      UPDATE capture_schema.capture_session SET project_version_id = $1,
+        updated_by_id = $2, updated_at = CURRENT_TIMESTAMP, version = version + 1
+      WHERE id = $3 AND project_id = $4 AND organization_id = $5
+      RETURNING ${capture_session_select}
+    `,
+      [
+        input.project_version_id,
+        input.actor_org_user_id,
+        input.capture_session_id,
+        input.project_id,
+        input.organization_id,
+      ],
+    );
+    return {
+      outcome: "reassigned",
+      capture_session: map_capture_session(updated.rows[0]!),
+    };
   },
 });

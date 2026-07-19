@@ -708,6 +708,7 @@ describe("capture asset service", () => {
       service.list_project_capture_assets({
         auth,
         project_id: "project_1",
+        project_version_id: "version_1",
       }),
     ).resolves.toEqual([
       {
@@ -721,6 +722,7 @@ describe("capture asset service", () => {
       service.list_project_capture_assets({
         auth,
         project_id: "project_1",
+        project_version_id: "version_1",
         asset_type: "redacted_screenshot",
       }),
     ).resolves.toEqual([
@@ -735,6 +737,7 @@ describe("capture asset service", () => {
       service.list_project_capture_assets({
         auth,
         project_id: "project_1",
+        project_version_id: "version_1",
         asset_type: "html_snapshot",
       }),
     ).rejects.toBeInstanceOf(UnsupportedCaptureAssetTypeError);
@@ -743,11 +746,13 @@ describe("capture asset service", () => {
       {
         organization_id: "organization_1",
         project_id: "project_1",
+        project_version_id: "version_1",
         asset_type: "screenshot",
       },
       {
         organization_id: "organization_1",
         project_id: "project_1",
+        project_version_id: "version_1",
         asset_type: "redacted_screenshot",
       },
     ]);

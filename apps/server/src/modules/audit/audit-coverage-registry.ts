@@ -244,7 +244,9 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
   command(
     "project_version.set_default",
     "project_version.default_set",
-    ["POST /api/v1/projects/:project_id/versions/:project_version_id/set-default"],
+    [
+      "POST /api/v1/projects/:project_id/versions/:project_version_id/set-default",
+    ],
     [U.project_update()],
     { source_types: ["web", "api"] },
   ),
@@ -307,6 +309,15 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "capture_session.deleted",
     ["DELETE /api/v1/projects/:project_id/capture-sessions/:id"],
     [U.capture_session_update("delete")],
+    { source_types: ["web", "api", "extension", "import"] },
+  ),
+  command(
+    "capture_session.reassign_project_version",
+    "capture_session.project_version_reassigned",
+    [
+      "POST /api/v1/projects/:project_id/capture-sessions/:id/reassign-project-version",
+    ],
+    [U.capture_session_update()],
     { source_types: ["web", "api", "extension", "import"] },
   ),
   command(

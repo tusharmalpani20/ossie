@@ -485,6 +485,7 @@ export const build_guide_repository = (
         AND capture_session.organization_id = $3
         AND capture_session.is_deleted = FALSE
         AND project.is_deleted = FALSE
+        AND capture_session.project_version_id = project.default_project_version_id
       ) AS exists
     `,
       [input.capture_session_id, input.project_id, input.organization_id],

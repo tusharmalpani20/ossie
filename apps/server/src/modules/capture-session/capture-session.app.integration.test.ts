@@ -39,6 +39,14 @@ describe("capture session app routes", () => {
           id: "capture_session_1",
           organization_id: "organization_1",
           project_id: "project_1",
+          project_version_id: "version_1",
+          project_version: {
+            id: "version_1",
+            name: "Current",
+            slug: "current",
+            status: "active",
+            position: 1,
+          },
           name: "Create department workflow",
           description: null,
           status: "draft",
@@ -69,6 +77,14 @@ describe("capture session app routes", () => {
             id: "capture_session_1",
             organization_id: "organization_1",
             project_id: "project_1",
+            project_version_id: "version_1",
+            project_version: {
+              id: "version_1",
+              name: "Current",
+              slug: "current",
+              status: "active",
+              position: 1,
+            },
             name: "Create department workflow",
             description: null,
             status: "draft",
@@ -98,6 +114,14 @@ describe("capture session app routes", () => {
             id: "capture_session_1",
             organization_id: "organization_1",
             project_id: "project_1",
+            project_version_id: "version_1",
+            project_version: {
+              id: "version_1",
+              name: "Current",
+              slug: "current",
+              status: "active",
+              position: 1,
+            },
             name: "Create department workflow",
             description: null,
             status: "completed",
@@ -120,7 +144,7 @@ describe("capture session app routes", () => {
             updated_at: "2026-06-05T00:00:01.000Z",
           },
           redirect: {
-            path: "/projects/project_1/capture-sessions/capture_session_1",
+            path: "/projects/project_1/versions/current/capture-sessions/capture_session_1",
             reason: "capture_session_completed",
           },
         }),
@@ -128,6 +152,9 @@ describe("capture session app routes", () => {
           throw new Error("not used");
         },
         delete_capture_session: async () => {
+          throw new Error("not used");
+        },
+        reassign_project_version: async () => {
           throw new Error("not used");
         },
       },
@@ -141,11 +168,14 @@ describe("capture session app routes", () => {
       },
       payload: {
         name: "Create department workflow",
+        project_version_id: "version_1",
       },
     });
 
     expect(response.statusCode).toBe(201);
-    expect(response.json().capture_session.name).toBe("Create department workflow");
+    expect(response.json().capture_session.name).toBe(
+      "Create department workflow",
+    );
 
     const complete_response = await app.inject({
       method: "POST",
@@ -161,7 +191,7 @@ describe("capture session app routes", () => {
         status: "completed",
       },
       redirect: {
-        path: "/projects/project_1/capture-sessions/capture_session_1",
+        path: "/projects/project_1/versions/current/capture-sessions/capture_session_1",
         reason: "capture_session_completed",
       },
     });

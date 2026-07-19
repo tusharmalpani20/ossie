@@ -355,11 +355,16 @@ export const build_capture_asset_transactional_repository = (
   async list_project_capture_assets(input: {
     organization_id: string;
     project_id: string;
+    project_version_id: string;
     asset_type?: CaptureAssetType;
   }) {
-    const values: unknown[] = [input.project_id, input.organization_id];
+    const values: unknown[] = [
+      input.project_id,
+      input.organization_id,
+      input.project_version_id,
+    ];
     const asset_type_filter = input.asset_type
-      ? "AND capture_asset.asset_type = $3"
+      ? "AND capture_asset.asset_type = $4"
       : "";
 
     if (input.asset_type) {
@@ -371,8 +376,13 @@ export const build_capture_asset_transactional_repository = (
       SELECT ${capture_asset_select}
       FROM capture_schema.capture_asset capture_asset
       INNER JOIN file_schema.file app_file ON app_file.id = capture_asset.file_id
+      INNER JOIN capture_schema.capture_session capture_session
+        ON capture_session.id = capture_asset.capture_session_id
+       AND capture_session.project_id = capture_asset.project_id
+       AND capture_session.organization_id = capture_asset.organization_id
       WHERE capture_asset.project_id = $1
       AND capture_asset.organization_id = $2
+      AND capture_session.project_version_id = $3
       AND capture_asset.is_deleted = FALSE
       AND app_file.is_deleted = FALSE
       ${asset_type_filter}

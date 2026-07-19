@@ -5,6 +5,11 @@ import type {
 import {
   CaptureSessionNotCompletableError,
   CaptureSessionNotFoundError,
+  CaptureSessionProjectVersionLockedError,
+  CaptureSessionProjectVersionUnchangedError,
+  CaptureSessionConflictError,
+  CaptureProjectVersionConflictError,
+  CaptureProjectVersionNotFoundError,
   EmptyCaptureSessionUpdateError,
   InvalidCaptureSessionCompletionError,
   InvalidCaptureSessionInputError,
@@ -20,11 +25,10 @@ import {
 } from "@repo/capture-domain";
 import type { CaptureAsset } from "../capture-asset/capture-asset.service";
 import type { CaptureEvent } from "../capture-event/capture-event.service";
+import type { ProjectVersionSummary } from "@repo/types/project-version";
+import type { ReassignCaptureSessionProjectVersionRequest } from "@repo/types/capture";
 
-export type {
-  CaptureSessionSourceType,
-  CaptureSessionStatus,
-};
+export type { CaptureSessionSourceType, CaptureSessionStatus };
 
 export type CaptureSessionAuthContext = {
   organization_id: string;
@@ -35,6 +39,8 @@ export type CaptureSession = {
   id: string;
   organization_id: string;
   project_id: string;
+  project_version_id: string;
+  project_version: ProjectVersionSummary;
   name: string;
   description: string | null;
   status: CaptureSessionStatus;
@@ -68,9 +74,11 @@ export type CompletedCaptureSessionResult = {
 export type CaptureSessionDetail = {
   capture_session: CaptureSession;
   capture_events: CaptureEvent[];
-  capture_assets: Array<CaptureAsset & {
-    file_url: string;
-  }>;
+  capture_assets: Array<
+    CaptureAsset & {
+      file_url: string;
+    }
+  >;
 };
 
 export type {
@@ -94,6 +102,7 @@ export type CaptureSessionRepository = {
   list_capture_sessions: (input: {
     organization_id: string;
     project_id: string;
+    project_version_id: string;
     status?: CaptureSessionStatus;
   }) => Promise<CaptureSession[]>;
   find_capture_session: (input: {
@@ -124,7 +133,11 @@ export type CaptureSessionRepository = {
     actor_org_user_id: string;
   }) => Promise<{
     capture_session: CaptureSession | null;
-    outcome: "completed" | "already_completed" | "not_completable" | "not_found";
+    outcome:
+      | "completed"
+      | "already_completed"
+      | "not_completable"
+      | "not_found";
   }>;
   delete_capture_session: (input: {
     organization_id: string;
@@ -132,6 +145,24 @@ export type CaptureSessionRepository = {
     capture_session_id: string;
     actor_org_user_id: string;
   }) => Promise<boolean>;
+  reassign_project_version: (input: {
+    organization_id: string;
+    project_id: string;
+    capture_session_id: string;
+    project_version_id: string;
+    expected_version: number;
+    actor_org_user_id: string;
+  }) => Promise<{
+    capture_session: CaptureSession | null;
+    outcome:
+      | "reassigned"
+      | "locked"
+      | "unchanged"
+      | "conflict"
+      | "not_found"
+      | "project_version_not_found"
+      | "project_version_archived";
+  }>;
 };
 
 export class ProjectNotFoundError extends Error {
@@ -146,9 +177,16 @@ export {
   EmptyCaptureSessionUpdateError,
   InvalidCaptureSessionCompletionError,
   InvalidCaptureSessionInputError,
+  CaptureSessionProjectVersionLockedError,
+  CaptureSessionProjectVersionUnchangedError,
+  CaptureSessionConflictError,
+  CaptureProjectVersionConflictError,
+  CaptureProjectVersionNotFoundError,
 };
 
-export const build_capture_session_service = (repository: CaptureSessionRepository) => {
+export const build_capture_session_service = (
+  repository: CaptureSessionRepository,
+) => {
   const ensure_project_exists = async (input: {
     organization_id: string;
     project_id: string;
@@ -181,6 +219,7 @@ export const build_capture_session_service = (repository: CaptureSessionReposito
   const list_capture_sessions = async (input: {
     auth: CaptureSessionAuthContext;
     project_id: string;
+    project_version_id: string;
     status?: CaptureSessionStatus;
   }) => {
     await ensure_project_exists({
@@ -191,6 +230,7 @@ export const build_capture_session_service = (repository: CaptureSessionReposito
     return repository.list_capture_sessions({
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
+      project_version_id: input.project_version_id,
       status: input.status,
     });
   };
@@ -305,7 +345,9 @@ export const build_capture_session_service = (repository: CaptureSessionReposito
 
     return {
       capture_session: result.capture_session,
-      redirect: build_capture_session_completion_redirect(result.capture_session),
+      redirect: build_capture_session_completion_redirect(
+        result.capture_session,
+      ),
     };
   };
 
@@ -331,6 +373,38 @@ export const build_capture_session_service = (repository: CaptureSessionReposito
     }
   };
 
+  const reassign_project_version = async (input: {
+    auth: CaptureSessionAuthContext;
+    project_id: string;
+    capture_session_id: string;
+    data: ReassignCaptureSessionProjectVersionRequest;
+  }) => {
+    await ensure_project_exists({
+      organization_id: input.auth.organization_id,
+      project_id: input.project_id,
+    });
+    const result = await repository.reassign_project_version({
+      organization_id: input.auth.organization_id,
+      project_id: input.project_id,
+      capture_session_id: input.capture_session_id,
+      project_version_id: input.data.project_version_id,
+      expected_version: input.data.expected_version,
+      actor_org_user_id: input.auth.actor_org_user_id,
+    });
+    if (result.outcome === "not_found") throw new CaptureSessionNotFoundError();
+    if (result.outcome === "project_version_not_found")
+      throw new CaptureProjectVersionNotFoundError();
+    if (result.outcome === "project_version_archived")
+      throw new CaptureProjectVersionConflictError();
+    if (result.outcome === "locked")
+      throw new CaptureSessionProjectVersionLockedError();
+    if (result.outcome === "unchanged")
+      throw new CaptureSessionProjectVersionUnchangedError();
+    if (result.outcome === "conflict" || !result.capture_session)
+      throw new CaptureSessionConflictError();
+    return result.capture_session;
+  };
+
   return {
     create_capture_session,
     list_capture_sessions,
@@ -339,5 +413,6 @@ export const build_capture_session_service = (repository: CaptureSessionReposito
     update_capture_session,
     complete_capture_session,
     delete_capture_session,
+    reassign_project_version,
   };
 };

@@ -509,12 +509,15 @@ export const build_interactive_demo_repository = (
   async find_capture_session_for_demo(input) {
     const result = await db.query<InteractiveDemoSourceCaptureSessionRow>(
       `
-      SELECT id, name, description
-      FROM capture_schema.capture_session
-      WHERE id = $1
-      AND organization_id = $2
-      AND project_id = $3
-      AND is_deleted = FALSE
+      SELECT capture_session.id, capture_session.name, capture_session.description
+      FROM capture_schema.capture_session capture_session
+      INNER JOIN project_schema.project project ON project.id = capture_session.project_id
+      WHERE capture_session.id = $1
+      AND capture_session.organization_id = $2
+      AND capture_session.project_id = $3
+      AND capture_session.is_deleted = FALSE
+      AND project.is_deleted = FALSE
+      AND capture_session.project_version_id = project.default_project_version_id
       LIMIT 1
     `,
       [input.capture_session_id, input.organization_id, input.project_id],

@@ -138,13 +138,20 @@ const insert_constraint_test_context = async () => {
       id,
       organization_id,
       project_id,
+      project_version_id,
       name,
       created_by_id,
       updated_by_id
     )
-    VALUES ($1, $2, $3, 'Constraint Capture', $4, $4)
+    VALUES ($1, $2, $3, $4, 'Constraint Capture', $5, $5)
   `,
-      [capture_session_id, organization_id, project_id, org_user_id],
+      [
+        capture_session_id,
+        organization_id,
+        project_id,
+        project_version_id,
+        org_user_id,
+      ],
     );
   });
 
@@ -260,6 +267,7 @@ describe("foundation schema migrations on postgres", () => {
     for (const column_name of [
       "organization_id",
       "project_id",
+      "project_version_id",
       "name",
       "status",
       "source_type",
@@ -281,6 +289,12 @@ describe("foundation schema migrations on postgres", () => {
     ).resolves.toBe(true);
     await expect(
       index_exists("capture_schema", "idx_capture_session_org_created"),
+    ).resolves.toBe(true);
+    await expect(
+      index_exists(
+        "capture_schema",
+        "idx_capture_session_version_status_created",
+      ),
     ).resolves.toBe(true);
     await expect(
       table_comment("capture_schema", "capture_session"),

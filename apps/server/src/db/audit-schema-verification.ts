@@ -408,7 +408,8 @@ export const verify_project_membership_schema = async (
   roles: { runtime_role: string; maintenance_role: string },
 ) => {
   await verify_evidence_schema(pool, roles);
-  const result = await pool.query<{ issue: string }>(`
+  const result = await pool.query<{ issue: string }>(
+    `
     WITH expected_triggers(name) AS (VALUES
       ('project_membership_owner_guard'),
       ('org_user_owner_membership_guard'),
@@ -463,7 +464,9 @@ export const verify_project_membership_schema = async (
           AND pg_get_constraintdef(oid) LIKE '%root_resource_id IS NOT NULL%'
       )
     ORDER BY issue
-  `, [roles.runtime_role, roles.maintenance_role]);
+  `,
+    [roles.runtime_role, roles.maintenance_role],
+  );
   return throw_verification_issues(result.rows);
 };
 
@@ -472,7 +475,8 @@ export const verify_project_version_schema = async (
   roles: { runtime_role: string; maintenance_role: string },
 ) => {
   await verify_project_membership_schema(pool, roles);
-  const result = await pool.query<{ issue: string }>(`
+  const result = await pool.query<{ issue: string }>(
+    `
     WITH expected_triggers(name) AS (VALUES
       ('project_version_slug_namespace_guard'),
       ('project_version_alias_slug_namespace_guard'),
@@ -481,7 +485,9 @@ export const verify_project_version_schema = async (
       ('project_version_alias_provenance_evidence_guard'),
       ('project_version_slug_alias_guard'),
       ('project_default_mutation_command_guard'),
-      ('capture_session_project_version_legacy_content_guard'),
+      ('capture_session_project_version_guard'),
+      ('capture_asset_project_version_guard'),
+      ('capture_event_project_version_guard'),
       ('guide_project_version_legacy_content_guard'),
       ('interactive_demo_project_version_legacy_content_guard'),
       ('project_version_i_audit_ctx'), ('project_version_i_audit_evd'),
@@ -512,7 +518,8 @@ export const verify_project_version_schema = async (
       ('project_schema.verify_project_version_alias_provenance()'),
       ('project_schema.verify_project_version_slug_alias()'),
       ('project_schema.enforce_project_default_mutation_command()'),
-      ('project_schema.lock_project_version_legacy_root_insert()')
+      ('project_schema.lock_project_version_legacy_root_insert()'),
+      ('capture_schema.enforce_capture_project_version_scope()')
     ), version_privileges(privilege, expected) AS (VALUES
       ('SELECT', true), ('INSERT', true), ('UPDATE', true),
       ('DELETE', false), ('TRUNCATE', false), ('REFERENCES', false), ('TRIGGER', false)
@@ -575,6 +582,8 @@ export const verify_project_version_schema = async (
           AND data_type IN ('json', 'jsonb')
       )
     ORDER BY issue
-  `, [roles.runtime_role, roles.maintenance_role]);
+  `,
+    [roles.runtime_role, roles.maintenance_role],
+  );
   return throw_verification_issues(result.rows);
 };

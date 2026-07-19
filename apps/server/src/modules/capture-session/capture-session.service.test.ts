@@ -5,6 +5,7 @@ import {
   build_capture_session_service,
   CaptureSessionNotFoundError,
   CaptureSessionNotCompletableError,
+  CaptureSessionProjectVersionLockedError,
   EmptyCaptureSessionUpdateError,
   ProjectNotFoundError,
   type CaptureSession,
@@ -20,6 +21,14 @@ const capture_session: CaptureSession = {
   id: "capture_session_1",
   organization_id: "organization_1",
   project_id: "project_1",
+  project_version_id: "version_1",
+  project_version: {
+    id: "version_1",
+    name: "Main",
+    slug: "main",
+    status: "active",
+    position: 1,
+  },
   name: "Create department workflow",
   description: "Source capture for the department setup guide",
   status: "draft",
@@ -109,6 +118,7 @@ const build_repository = (): CaptureSessionRepository & {
   updates: unknown[];
   completions: unknown[];
   deletes: unknown[];
+  reassignments: unknown[];
 } => {
   const project_checks: unknown[] = [];
   const creates: unknown[] = [];
@@ -118,6 +128,7 @@ const build_repository = (): CaptureSessionRepository & {
   const updates: unknown[] = [];
   const completions: unknown[] = [];
   const deletes: unknown[] = [];
+  const reassignments: unknown[] = [];
 
   return {
     project_checks,
@@ -128,6 +139,7 @@ const build_repository = (): CaptureSessionRepository & {
     updates,
     completions,
     deletes,
+    reassignments,
     async project_exists(input) {
       project_checks.push(input);
       return input.project_id === "project_1";
@@ -137,6 +149,10 @@ const build_repository = (): CaptureSessionRepository & {
       return {
         ...capture_session,
         ...input.data,
+        status: input.data.start_immediately ? "capturing" : "draft",
+        started_at: input.data.start_immediately
+          ? "2026-06-05T00:00:00.000Z"
+          : null,
         organization_id: input.organization_id,
         project_id: input.project_id,
         created_by_id: input.actor_org_user_id,
@@ -149,7 +165,9 @@ const build_repository = (): CaptureSessionRepository & {
     },
     async find_capture_session(input) {
       finds.push(input);
-      return input.capture_session_id === "capture_session_1" ? capture_session : null;
+      return input.capture_session_id === "capture_session_1"
+        ? capture_session
+        : null;
     },
     async get_capture_session_detail(input) {
       details.push(input);
@@ -185,9 +203,18 @@ const build_repository = (): CaptureSessionRepository & {
         ...capture_session,
         ...input.data,
         status: input.data.status ?? capture_session.status,
-        started_at: input.data.status === "capturing" ? "2026-06-05T00:00:01.000Z" : capture_session.started_at,
-        completed_at: input.data.status === "completed" ? "2026-06-05T00:00:02.000Z" : capture_session.completed_at,
-        canceled_at: input.data.status === "canceled" ? "2026-06-05T00:00:03.000Z" : capture_session.canceled_at,
+        started_at:
+          input.data.status === "capturing"
+            ? "2026-06-05T00:00:01.000Z"
+            : capture_session.started_at,
+        completed_at:
+          input.data.status === "completed"
+            ? "2026-06-05T00:00:02.000Z"
+            : capture_session.completed_at,
+        canceled_at:
+          input.data.status === "canceled"
+            ? "2026-06-05T00:00:03.000Z"
+            : capture_session.canceled_at,
         updated_by_id: input.actor_org_user_id,
         version: 2,
       };
@@ -241,6 +268,26 @@ const build_repository = (): CaptureSessionRepository & {
       deletes.push(input);
       return input.capture_session_id === "capture_session_1";
     },
+    async reassign_project_version(input) {
+      reassignments.push(input);
+      if (input.capture_session_id === "locked")
+        return { outcome: "locked", capture_session: null };
+      return {
+        outcome: "reassigned",
+        capture_session: {
+          ...capture_session,
+          project_version_id: input.project_version_id,
+          project_version: {
+            id: input.project_version_id,
+            name: "2.0",
+            slug: "2-0",
+            status: "active",
+            position: 2,
+          },
+          version: 2,
+        },
+      };
+    },
   };
 };
 
@@ -249,11 +296,13 @@ describe("capture session service", () => {
     const repository = build_repository();
     const service = build_capture_session_service(repository);
 
-    await expect(service.complete_capture_session({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-    })).resolves.toEqual({
+    await expect(
+      service.complete_capture_session({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+      }),
+    ).resolves.toEqual({
       capture_session: {
         ...capture_session,
         status: "completed",
@@ -262,32 +311,69 @@ describe("capture session service", () => {
         version: 2,
       },
       redirect: {
-        path: "/projects/project_1/capture-sessions/capture_session_1",
+        path: "/projects/project_1/versions/main/capture-sessions/capture_session_1",
         reason: "capture_session_completed",
       },
     });
 
-    expect(repository.project_checks).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-    }]);
-    expect(repository.completions).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      actor_org_user_id: "org_user_1",
-    }]);
+    expect(repository.project_checks).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+      },
+    ]);
+    expect(repository.completions).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        actor_org_user_id: "org_user_1",
+      },
+    ]);
+  });
+
+  it("reassigns only through the dedicated repository command", async () => {
+    const repository = build_repository();
+    const service = build_capture_session_service(repository);
+    await expect(
+      service.reassign_project_version({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        data: { project_version_id: "version_2", expected_version: 1 },
+      }),
+    ).resolves.toMatchObject({ project_version_id: "version_2", version: 2 });
+    expect(repository.reassignments).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        project_version_id: "version_2",
+        expected_version: 1,
+        actor_org_user_id: "org_user_1",
+      },
+    ]);
+    await expect(
+      service.reassign_project_version({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "locked",
+        data: { project_version_id: "version_2", expected_version: 1 },
+      }),
+    ).rejects.toBeInstanceOf(CaptureSessionProjectVersionLockedError);
   });
 
   it("treats already completed capture sessions as idempotent success", async () => {
     const repository = build_repository();
     const service = build_capture_session_service(repository);
 
-    await expect(service.complete_capture_session({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "completed",
-    })).resolves.toMatchObject({
+    await expect(
+      service.complete_capture_session({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "completed",
+      }),
+    ).resolves.toMatchObject({
       capture_session: {
         id: "completed",
         status: "completed",
@@ -295,7 +381,7 @@ describe("capture session service", () => {
         version: 2,
       },
       redirect: {
-        path: "/projects/project_1/capture-sessions/completed",
+        path: "/projects/project_1/versions/main/capture-sessions/completed",
         reason: "capture_session_completed",
       },
     });
@@ -305,21 +391,27 @@ describe("capture session service", () => {
     const repository = build_repository();
     const service = build_capture_session_service(repository);
 
-    await expect(service.complete_capture_session({
-      auth,
-      project_id: "missing",
-      capture_session_id: "capture_session_1",
-    })).rejects.toBeInstanceOf(ProjectNotFoundError);
-    await expect(service.complete_capture_session({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "missing",
-    })).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
-    await expect(service.complete_capture_session({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "canceled",
-    })).rejects.toBeInstanceOf(CaptureSessionNotCompletableError);
+    await expect(
+      service.complete_capture_session({
+        auth,
+        project_id: "missing",
+        capture_session_id: "capture_session_1",
+      }),
+    ).rejects.toBeInstanceOf(ProjectNotFoundError);
+    await expect(
+      service.complete_capture_session({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "missing",
+      }),
+    ).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
+    await expect(
+      service.complete_capture_session({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "canceled",
+      }),
+    ).rejects.toBeInstanceOf(CaptureSessionNotCompletableError);
 
     expect(repository.completions).toEqual([
       {
@@ -341,104 +433,129 @@ describe("capture session service", () => {
     const repository = build_repository();
     const service = build_capture_session_service(repository);
 
-    await expect(service.create_capture_session({
-      auth,
-      project_id: "project_1",
-      data: {
-        name: " Create department workflow ",
-        description: "",
-        source_type: "extension",
-        status: "completed",
-        started_at: "attacker timestamp",
-        viewport_width: 1440,
-        viewport_height: 900,
-        device_pixel_ratio: 2,
-        metadata: {
-          capture_mode: "screenshot",
+    await expect(
+      service.create_capture_session({
+        auth,
+        project_id: "project_1",
+        data: {
+          name: " Create department workflow ",
+          project_version_id: "version_1",
+          start_immediately: true,
+          description: "",
+          source_type: "extension",
+          status: "completed",
+          started_at: "attacker timestamp",
+          viewport_width: 1440,
+          viewport_height: 900,
+          device_pixel_ratio: 2,
+          metadata: {
+            capture_mode: "screenshot",
+          },
         },
-      },
-    })).resolves.toMatchObject({
+      }),
+    ).resolves.toMatchObject({
       name: "Create department workflow",
       description: null,
       source_type: "extension",
-      status: "draft",
+      status: "capturing",
       created_by_id: "org_user_1",
       updated_by_id: "org_user_1",
     });
 
-    expect(repository.project_checks).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-    }]);
-    expect(repository.creates).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-      actor_org_user_id: "org_user_1",
-      data: {
-        name: "Create department workflow",
-        description: null,
-        source_type: "extension",
-        start_url: undefined,
-        browser_name: undefined,
-        browser_version: undefined,
-        operating_system: undefined,
-        viewport_width: 1440,
-        viewport_height: 900,
-        device_pixel_ratio: 2,
-        user_agent: undefined,
-        metadata: {
-          capture_mode: "screenshot",
+    expect(repository.project_checks).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+      },
+    ]);
+    expect(repository.creates).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+        actor_org_user_id: "org_user_1",
+        data: {
+          name: "Create department workflow",
+          project_version_id: "version_1",
+          start_immediately: true,
+          description: null,
+          source_type: "extension",
+          start_url: undefined,
+          browser_name: undefined,
+          browser_version: undefined,
+          operating_system: undefined,
+          viewport_width: 1440,
+          viewport_height: 900,
+          device_pixel_ratio: 2,
+          user_agent: undefined,
+          metadata: {
+            capture_mode: "screenshot",
+          },
         },
       },
-    }]);
+    ]);
   });
 
   it("rejects create when the project is missing or deleted", async () => {
     const repository = build_repository();
     const service = build_capture_session_service(repository);
 
-    await expect(service.create_capture_session({
-      auth,
-      project_id: "missing",
-      data: {
-        name: "Capture",
-      },
-    })).rejects.toBeInstanceOf(ProjectNotFoundError);
+    await expect(
+      service.create_capture_session({
+        auth,
+        project_id: "missing",
+        data: {
+          name: "Capture",
+          project_version_id: "version_1",
+        },
+      }),
+    ).rejects.toBeInstanceOf(ProjectNotFoundError);
   });
 
   it("lists and gets capture sessions scoped to the current project and organization", async () => {
     const repository = build_repository();
     const service = build_capture_session_service(repository);
 
-    await expect(service.list_capture_sessions({
-      auth,
-      project_id: "project_1",
-    })).resolves.toEqual([capture_session]);
-    await expect(service.list_capture_sessions({
-      auth,
-      project_id: "project_1",
-      status: "completed",
-    })).resolves.toEqual([capture_session]);
-    await expect(service.get_capture_session({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-    })).resolves.toEqual(capture_session);
-    await expect(service.get_capture_session({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "missing",
-    })).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
+    await expect(
+      service.list_capture_sessions({
+        auth,
+        project_id: "project_1",
+        project_version_id: "version_1",
+      }),
+    ).resolves.toEqual([capture_session]);
+    await expect(
+      service.list_capture_sessions({
+        auth,
+        project_id: "project_1",
+        project_version_id: "version_1",
+        status: "completed",
+      }),
+    ).resolves.toEqual([capture_session]);
+    await expect(
+      service.get_capture_session({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+      }),
+    ).resolves.toEqual(capture_session);
+    await expect(
+      service.get_capture_session({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "missing",
+      }),
+    ).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
 
     expect(repository.lists).toEqual([
       {
         organization_id: "organization_1",
         project_id: "project_1",
+        project_version_id: "version_1",
         status: undefined,
       },
       {
         organization_id: "organization_1",
         project_id: "project_1",
+        project_version_id: "version_1",
         status: "completed",
       },
     ]);
@@ -460,24 +577,31 @@ describe("capture session service", () => {
     const repository = build_repository();
     const service = build_capture_session_service(repository);
 
-    await expect(service.get_capture_session_detail({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-    })).resolves.toEqual({
+    await expect(
+      service.get_capture_session_detail({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+      }),
+    ).resolves.toEqual({
       capture_session,
       capture_events: [capture_event],
-      capture_assets: [{
-        ...capture_asset,
-        file_url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
-      }],
+      capture_assets: [
+        {
+          ...capture_asset,
+          file_url:
+            "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
+        },
+      ],
     });
 
-    await expect(service.get_capture_session_detail({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "empty",
-    })).resolves.toMatchObject({
+    await expect(
+      service.get_capture_session_detail({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "empty",
+      }),
+    ).resolves.toMatchObject({
       capture_session: {
         id: "empty",
       },
@@ -513,39 +637,47 @@ describe("capture session service", () => {
     const repository = build_repository();
     const service = build_capture_session_service(repository);
 
-    await expect(service.get_capture_session_detail({
-      auth,
-      project_id: "missing",
-      capture_session_id: "capture_session_1",
-    })).rejects.toBeInstanceOf(ProjectNotFoundError);
-    await expect(service.get_capture_session_detail({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "missing",
-    })).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
+    await expect(
+      service.get_capture_session_detail({
+        auth,
+        project_id: "missing",
+        capture_session_id: "capture_session_1",
+      }),
+    ).rejects.toBeInstanceOf(ProjectNotFoundError);
+    await expect(
+      service.get_capture_session_detail({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "missing",
+      }),
+    ).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
 
-    expect(repository.details).toEqual([{
-      organization_id: "organization_1",
-      project_id: "project_1",
-      capture_session_id: "missing",
-    }]);
+    expect(repository.details).toEqual([
+      {
+        organization_id: "organization_1",
+        project_id: "project_1",
+        capture_session_id: "missing",
+      },
+    ]);
   });
 
   it("updates capture sessions and lets the repository manage lifecycle timestamps", async () => {
     const repository = build_repository();
     const service = build_capture_session_service(repository);
 
-    await expect(service.update_capture_session({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      data: {
-        name: " Updated Capture ",
-        description: "",
-        status: "capturing",
-        started_at: "attacker timestamp",
-      },
-    })).resolves.toMatchObject({
+    await expect(
+      service.update_capture_session({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        data: {
+          name: " Updated Capture ",
+          description: "",
+          status: "capturing",
+          started_at: "attacker timestamp",
+        },
+      }),
+    ).resolves.toMatchObject({
       name: "Updated Capture",
       description: null,
       status: "capturing",
@@ -553,20 +685,24 @@ describe("capture session service", () => {
       updated_by_id: "org_user_1",
       version: 2,
     });
-    await expect(service.update_capture_session({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-      data: {},
-    })).rejects.toBeInstanceOf(EmptyCaptureSessionUpdateError);
-    await expect(service.update_capture_session({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "missing",
-      data: {
-        name: "Updated Capture",
-      },
-    })).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
+    await expect(
+      service.update_capture_session({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        data: {},
+      }),
+    ).rejects.toBeInstanceOf(EmptyCaptureSessionUpdateError);
+    await expect(
+      service.update_capture_session({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "missing",
+        data: {
+          name: "Updated Capture",
+        },
+      }),
+    ).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
 
     expect(repository.updates).toEqual([
       {
@@ -596,16 +732,20 @@ describe("capture session service", () => {
     const repository = build_repository();
     const service = build_capture_session_service(repository);
 
-    await expect(service.delete_capture_session({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-    })).resolves.toBeUndefined();
-    await expect(service.delete_capture_session({
-      auth,
-      project_id: "project_1",
-      capture_session_id: "missing",
-    })).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
+    await expect(
+      service.delete_capture_session({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      service.delete_capture_session({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "missing",
+      }),
+    ).rejects.toBeInstanceOf(CaptureSessionNotFoundError);
 
     expect(repository.deletes).toEqual([
       {

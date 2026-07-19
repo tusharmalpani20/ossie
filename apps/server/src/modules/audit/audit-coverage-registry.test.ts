@@ -8,10 +8,10 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(62);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(63);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(62);
+    ).toBe(63);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
@@ -117,25 +117,52 @@ describe("audit coverage registry", () => {
       "utf8",
     );
     const migration_019 = readFileSync(
-      new URL("../../db/migrations/019_project_membership_foundation.sql", import.meta.url),
+      new URL(
+        "../../db/migrations/019_project_membership_foundation.sql",
+        import.meta.url,
+      ),
       "utf8",
     );
     const migration_020 = readFileSync(
-      new URL("../../db/migrations/020_project_version_foundation.sql", import.meta.url),
+      new URL(
+        "../../db/migrations/020_project_version_foundation.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const migration_021 = readFileSync(
+      new URL(
+        "../../db/migrations/021_capture_source_version_scoping.sql",
+        import.meta.url,
+      ),
       "utf8",
     );
     const policy_start = migration_016.indexOf("FROM (VALUES");
     const policy_end = migration_016.indexOf(") AS policy(command, action)");
-    const new_policy_start = migration_019.indexOf("(selected_command, selected_action) IN (");
-    const new_policy_end = migration_019.indexOf("AND selected_actor_type", new_policy_start);
-    const version_policy_start = migration_020.indexOf("(selected_command, selected_action) IN (");
-    const version_policy_end = migration_020.indexOf("AND selected_actor_type", version_policy_start);
-    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}`;
+    const new_policy_start = migration_019.indexOf(
+      "(selected_command, selected_action) IN (",
+    );
+    const new_policy_end = migration_019.indexOf(
+      "AND selected_actor_type",
+      new_policy_start,
+    );
+    const version_policy_start = migration_020.indexOf(
+      "(selected_command, selected_action) IN (",
+    );
+    const version_policy_end = migration_020.indexOf(
+      "AND selected_actor_type",
+      version_policy_start,
+    );
+    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}`;
     const pairs = [...policy.matchAll(/\('([^']+)', '([^']+)'\)/gu)].map(
       ([, command, action]) => ({ command, action }),
     );
 
-    expect([...pairs].sort((left, right) => (left.command ?? "").localeCompare(right.command ?? ""))).toEqual(
+    expect(
+      [...pairs].sort((left, right) =>
+        (left.command ?? "").localeCompare(right.command ?? ""),
+      ),
+    ).toEqual(
       AUDIT_COVERAGE_REGISTRY.map(({ command, action }) => ({
         command,
         action,
@@ -162,11 +189,17 @@ describe("audit coverage registry", () => {
       }
     }
     const migration_019 = readFileSync(
-      new URL("../../db/migrations/019_project_membership_foundation.sql", import.meta.url),
+      new URL(
+        "../../db/migrations/019_project_membership_foundation.sql",
+        import.meta.url,
+      ),
       "utf8",
     );
     const migration_020 = readFileSync(
-      new URL("../../db/migrations/020_project_version_foundation.sql", import.meta.url),
+      new URL(
+        "../../db/migrations/020_project_version_foundation.sql",
+        import.meta.url,
+      ),
       "utf8",
     );
     const rows = [
@@ -181,24 +214,37 @@ describe("audit coverage registry", () => {
       ]),
     );
     actual.set("project_schema.project_membership:INSERT", [
-      "project.create", "project.membership.assign",
+      "project.create",
+      "project.membership.assign",
     ]);
     actual.set("project_schema.project_membership:UPDATE", [
-      "project.membership.assign", "project.membership.role_change",
+      "project.membership.assign",
+      "project.membership.role_change",
       "project.membership.remove",
     ]);
     actual.set("project_schema.project:UPDATE", [
-      "project_version.set_default", "project.update", "project.delete",
+      "project_version.set_default",
+      "project.update",
+      "project.delete",
     ]);
     actual.set("project_schema.project_version:INSERT", [
-      "project.create", "project_version.create",
+      "project.create",
+      "project_version.create",
     ]);
     actual.set("project_schema.project_version:UPDATE", [
-      "project_version.update", "project_version.reorder",
-      "project_version.archive", "project_version.restore",
+      "project_version.update",
+      "project_version.reorder",
+      "project_version.archive",
+      "project_version.restore",
     ]);
     actual.set("project_schema.project_version_alias:INSERT", [
       "project_version.update",
+    ]);
+    actual.set("capture_schema.capture_session:UPDATE", [
+      "capture_session.update",
+      "capture_session.complete",
+      "capture_session.delete",
+      "capture_session.reassign_project_version",
     ]);
 
     expect(actual).toEqual(expected);

@@ -1,6 +1,9 @@
 import cookie from "@fastify/cookie";
 import fastify from "fastify";
-import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
+import {
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
 import { describe, expect, it } from "vitest";
 import type { CaptureAsset } from "../capture-asset/capture-asset.service";
 import type { CaptureEvent } from "../capture-event/capture-event.service";
@@ -39,6 +42,14 @@ const capture_session: CaptureSession = {
   id: "capture_session_1",
   organization_id: "organization_1",
   project_id: "project_1",
+  project_version_id: "version_1",
+  project_version: {
+    id: "version_1",
+    name: "Current",
+    slug: "current",
+    status: "active",
+    position: 1,
+  },
   name: "Create department workflow",
   description: "Source capture for the department setup guide",
   status: "draft",
@@ -117,56 +128,67 @@ const capture_asset: CaptureAsset & { file_url: string } = {
   version: 1,
   created_at: "2026-06-05T00:01:00.000Z",
   updated_at: "2026-06-05T00:01:00.000Z",
-  file_url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
+  file_url:
+    "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1/file",
 };
 
 const build_test_app = async (
   overrides: {
-    auth_service?: Partial<Parameters<typeof build_capture_session_routes>[0]["auth_service"]>;
-    capture_session_service?: Partial<Parameters<typeof build_capture_session_routes>[0]["capture_session_service"]>;
-  } = {}
+    auth_service?: Partial<
+      Parameters<typeof build_capture_session_routes>[0]["auth_service"]
+    >;
+    capture_session_service?: Partial<
+      Parameters<
+        typeof build_capture_session_routes
+      >[0]["capture_session_service"]
+    >;
+  } = {},
 ) => {
   const app = fastify();
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   await app.register(cookie);
-  await app.register(build_capture_session_routes({
-    auth_service: {
-      get_current_auth_context: async () => auth_context,
-      ...overrides.auth_service,
-    },
-    capture_session_service: {
-      create_capture_session: async () => capture_session,
-      list_capture_sessions: async () => [capture_session],
-      get_capture_session: async () => capture_session,
-      get_capture_session_detail: async () => ({
-        capture_session,
-        capture_events: [capture_event],
-        capture_assets: [capture_asset],
-      }),
-      complete_capture_session: async () => ({
-        capture_session: {
+  await app.register(
+    build_capture_session_routes({
+      auth_service: {
+        get_current_auth_context: async () => auth_context,
+        ...overrides.auth_service,
+      },
+      capture_session_service: {
+        create_capture_session: async () => capture_session,
+        list_capture_sessions: async () => [capture_session],
+        get_capture_session: async () => capture_session,
+        get_capture_session_detail: async () => ({
+          capture_session,
+          capture_events: [capture_event],
+          capture_assets: [capture_asset],
+        }),
+        complete_capture_session: async () => ({
+          capture_session: {
+            ...capture_session,
+            status: "completed",
+            completed_at: "2026-06-05T00:00:02.000Z",
+            version: 2,
+          },
+          redirect: {
+            path: "/projects/project_1/capture-sessions/capture_session_1",
+            reason: "capture_session_completed",
+          },
+        }),
+        update_capture_session: async () => ({
           ...capture_session,
-          status: "completed",
-          completed_at: "2026-06-05T00:00:02.000Z",
+          name: "Updated Capture",
+          status: "capturing",
+          started_at: "2026-06-05T00:00:01.000Z",
           version: 2,
-        },
-        redirect: {
-          path: "/projects/project_1/capture-sessions/capture_session_1",
-          reason: "capture_session_completed",
-        },
-      }),
-      update_capture_session: async () => ({
-        ...capture_session,
-        name: "Updated Capture",
-        status: "capturing",
-        started_at: "2026-06-05T00:00:01.000Z",
-        version: 2,
-      }),
-      delete_capture_session: async () => undefined,
-      ...overrides.capture_session_service,
-    },
-  }), { prefix: "/api/v1/projects" });
+        }),
+        delete_capture_session: async () => undefined,
+        reassign_project_version: async () => capture_session,
+        ...overrides.capture_session_service,
+      },
+    }),
+    { prefix: "/api/v1/projects" },
+  );
   return app;
 };
 
@@ -181,13 +203,36 @@ describe("capture session routes", () => {
     });
 
     for (const request of [
-      { method: "POST", url: "/api/v1/projects/project_1/capture-sessions", payload: { name: "Capture" } },
-      { method: "GET", url: "/api/v1/projects/project_1/capture-sessions" },
-      { method: "GET", url: "/api/v1/projects/project_1/capture-sessions/capture_session_1" },
-      { method: "GET", url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/detail" },
-      { method: "POST", url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/complete" },
-      { method: "PATCH", url: "/api/v1/projects/project_1/capture-sessions/capture_session_1", payload: { name: "Updated" } },
-      { method: "DELETE", url: "/api/v1/projects/project_1/capture-sessions/capture_session_1" },
+      {
+        method: "POST",
+        url: "/api/v1/projects/project_1/capture-sessions",
+        payload: { name: "Capture", project_version_id: "version_1" },
+      },
+      {
+        method: "GET",
+        url: "/api/v1/projects/project_1/capture-sessions?project_version_id=version_1",
+      },
+      {
+        method: "GET",
+        url: "/api/v1/projects/project_1/capture-sessions/capture_session_1",
+      },
+      {
+        method: "GET",
+        url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/detail",
+      },
+      {
+        method: "POST",
+        url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/complete",
+      },
+      {
+        method: "PATCH",
+        url: "/api/v1/projects/project_1/capture-sessions/capture_session_1",
+        payload: { name: "Updated" },
+      },
+      {
+        method: "DELETE",
+        url: "/api/v1/projects/project_1/capture-sessions/capture_session_1",
+      },
     ] as const) {
       const response = await app.inject(request);
       expect(response.statusCode).toBe(401);
@@ -245,14 +290,16 @@ describe("capture session routes", () => {
         reason: "capture_session_completed",
       },
     });
-    expect(seen_inputs).toEqual([{
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
+    expect(seen_inputs).toEqual([
+      {
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
+        },
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
       },
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-    }]);
+    ]);
 
     await app.close();
   });
@@ -317,11 +364,17 @@ describe("capture session routes", () => {
 
     expect(empty_body_response.statusCode).toBe(200);
     expect(non_empty_body_response.statusCode).toBe(400);
-    expect(non_empty_body_response.json().error.type).toBe("invalid_capture_session_completion");
+    expect(non_empty_body_response.json().error.type).toBe(
+      "invalid_capture_session_completion",
+    );
     expect(null_body_response.statusCode).toBe(400);
-    expect(null_body_response.json().error.type).toBe("invalid_capture_session_completion");
+    expect(null_body_response.json().error.type).toBe(
+      "invalid_capture_session_completion",
+    );
     expect(array_body_response.statusCode).toBe(400);
-    expect(array_body_response.json().error.type).toBe("invalid_capture_session_completion");
+    expect(array_body_response.json().error.type).toBe(
+      "invalid_capture_session_completion",
+    );
     expect(seen_inputs).toHaveLength(1);
 
     await app.close();
@@ -350,8 +403,10 @@ describe("capture session routes", () => {
       cookies: {
         ossie_session: "session-token",
       },
+      headers: { "x-ossie-client": "extension" },
       payload: {
         name: "Create department workflow",
+        project_version_id: "version_1",
         description: "Source capture for the department setup guide",
         source_type: "extension",
         status: "completed",
@@ -366,21 +421,24 @@ describe("capture session routes", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(seen_inputs).toEqual([{
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
-      },
-      project_id: "project_1",
-      data: {
-        name: "Create department workflow",
-        description: "Source capture for the department setup guide",
-        source_type: "extension",
-        metadata: {
-          capture_mode: "screenshot",
+    expect(seen_inputs).toEqual([
+      {
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
+        },
+        project_id: "project_1",
+        data: {
+          name: "Create department workflow",
+          project_version_id: "version_1",
+          description: "Source capture for the department setup guide",
+          source_type: "extension",
+          metadata: {
+            capture_mode: "screenshot",
+          },
         },
       },
-    }]);
+    ]);
     expect(response.json()).toEqual({ capture_session });
     expect(JSON.stringify(response.json())).not.toContain("is_deleted");
     expect(JSON.stringify(response.json())).not.toContain("deleted_at");
@@ -419,6 +477,7 @@ describe("capture session routes", () => {
       },
       payload: {
         name: "Capture from Example Page",
+        project_version_id: "version_1",
         source_type: "extension",
         start_url: "https://example.com/path",
       },
@@ -426,18 +485,21 @@ describe("capture session routes", () => {
 
     expect(response.statusCode).toBe(201);
     expect(response.json().capture_session.source_type).toBe("extension");
-    expect(seen_inputs).toEqual([{
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
+    expect(seen_inputs).toEqual([
+      {
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
+        },
+        project_id: "project_1",
+        data: {
+          name: "Capture from Example Page",
+          project_version_id: "version_1",
+          source_type: "extension",
+          start_url: "https://example.com/path",
+        },
       },
-      project_id: "project_1",
-      data: {
-        name: "Capture from Example Page",
-        source_type: "extension",
-        start_url: "https://example.com/path",
-      },
-    }]);
+    ]);
 
     await app.close();
   });
@@ -498,7 +560,7 @@ describe("capture session routes", () => {
 
     const list_response = await app.inject({
       method: "GET",
-      url: "/api/v1/projects/project_1/capture-sessions?status=completed",
+      url: "/api/v1/projects/project_1/capture-sessions?project_version_id=version_1&status=completed",
       cookies: {
         ossie_session: "session-token",
       },
@@ -531,7 +593,9 @@ describe("capture session routes", () => {
     });
 
     expect(list_response.statusCode).toBe(200);
-    expect(list_response.json()).toEqual({ capture_sessions: [capture_session] });
+    expect(list_response.json()).toEqual({
+      capture_sessions: [capture_session],
+    });
     expect(get_response.statusCode).toBe(200);
     expect(get_response.json()).toEqual({ capture_session });
     expect(update_response.statusCode).toBe(200);
@@ -549,6 +613,7 @@ describe("capture session routes", () => {
           actor_org_user_id: "org_user_1",
         },
         project_id: "project_1",
+        project_version_id: "version_1",
         status: "completed",
       },
       {
@@ -589,7 +654,9 @@ describe("capture session routes", () => {
     const app = await build_test_app({
       capture_session_service: {
         get_capture_session: async () => {
-          throw new Error("generic get route should not handle detail requests");
+          throw new Error(
+            "generic get route should not handle detail requests",
+          );
         },
         get_capture_session_detail: async (input) => {
           seen_inputs.push(input);
@@ -616,14 +683,16 @@ describe("capture session routes", () => {
       capture_events: [capture_event],
       capture_assets: [capture_asset],
     });
-    expect(seen_inputs).toEqual([{
-      auth: {
-        organization_id: "organization_1",
-        actor_org_user_id: "org_user_1",
+    expect(seen_inputs).toEqual([
+      {
+        auth: {
+          organization_id: "organization_1",
+          actor_org_user_id: "org_user_1",
+        },
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
       },
-      project_id: "project_1",
-      capture_session_id: "capture_session_1",
-    }]);
+    ]);
 
     await app.close();
   });
@@ -662,7 +731,7 @@ describe("capture session routes", () => {
       method: "POST",
       url: "/api/v1/projects/missing/capture-sessions",
       cookies: { ossie_session: "session-token" },
-      payload: { name: "Capture" },
+      payload: { name: "Capture", project_version_id: "version_1" },
     });
     const capture_not_found_response = await capture_not_found_app.inject({
       method: "GET",
@@ -699,11 +768,12 @@ describe("capture session routes", () => {
       url: "/api/v1/projects/project_1/capture-sessions/missing/detail",
       cookies: { ossie_session: "session-token" },
     });
-    const detail_project_not_found_response = await detail_project_not_found_app.inject({
-      method: "GET",
-      url: "/api/v1/projects/missing/capture-sessions/capture_session_1/detail",
-      cookies: { ossie_session: "session-token" },
-    });
+    const detail_project_not_found_response =
+      await detail_project_not_found_app.inject({
+        method: "GET",
+        url: "/api/v1/projects/missing/capture-sessions/capture_session_1/detail",
+        cookies: { ossie_session: "session-token" },
+      });
 
     expect(project_not_found_response.statusCode).toBe(404);
     expect(project_not_found_response.json()).toEqual({
@@ -720,7 +790,9 @@ describe("capture session routes", () => {
       },
     });
     expect(empty_update_response.statusCode).toBe(400);
-    expect(empty_update_response.json().error.type).toBe("empty_capture_session_update");
+    expect(empty_update_response.json().error.type).toBe(
+      "empty_capture_session_update",
+    );
     expect(not_completable_response.statusCode).toBe(400);
     expect(not_completable_response.json()).toEqual({
       error: {
@@ -729,9 +801,13 @@ describe("capture session routes", () => {
       },
     });
     expect(detail_not_found_response.statusCode).toBe(404);
-    expect(detail_not_found_response.json().error.type).toBe("capture_session_not_found");
+    expect(detail_not_found_response.json().error.type).toBe(
+      "capture_session_not_found",
+    );
     expect(detail_project_not_found_response.statusCode).toBe(404);
-    expect(detail_project_not_found_response.json().error.type).toBe("project_not_found");
+    expect(detail_project_not_found_response.json().error.type).toBe(
+      "project_not_found",
+    );
 
     await project_not_found_app.close();
     await capture_not_found_app.close();
@@ -745,11 +821,19 @@ describe("capture session routes", () => {
     const app = await build_test_app();
 
     for (const payload of [
-      { name: "   " },
-      { name: "Capture", source_type: "screen_magic" },
-      { name: "Capture", viewport_width: 0 },
-      { name: "Capture", viewport_height: -1 },
-      { name: "Capture", device_pixel_ratio: 0 },
+      { name: "   ", project_version_id: "version_1" },
+      {
+        name: "Capture",
+        project_version_id: "version_1",
+        source_type: "screen_magic",
+      },
+      { name: "Capture", project_version_id: "version_1", viewport_width: 0 },
+      { name: "Capture", project_version_id: "version_1", viewport_height: -1 },
+      {
+        name: "Capture",
+        project_version_id: "version_1",
+        device_pixel_ratio: 0,
+      },
     ]) {
       const response = await app.inject({
         method: "POST",

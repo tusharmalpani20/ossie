@@ -152,6 +152,7 @@ export type CaptureAssetTransactionalRepository = {
   list_project_capture_assets: (input: {
     organization_id: string;
     project_id: string;
+    project_version_id: string;
     asset_type?: CaptureAssetType;
   }) => Promise<CaptureAsset[]>;
   find_capture_asset: (input: {
@@ -419,6 +420,7 @@ export const build_capture_asset_service = (
   const list_project_capture_assets = async (input: {
     auth: CaptureAssetAuthContext;
     project_id: string;
+    project_version_id: string;
     asset_type?: CaptureAssetType;
   }): Promise<CaptureAssetWithFileUrl[]> => {
     const asset_type = assert_project_screenshot_picker_asset_type(
@@ -434,6 +436,7 @@ export const build_capture_asset_service = (
     const assets = await repository.list_project_capture_assets({
       organization_id: input.auth.organization_id,
       project_id: input.project_id,
+      project_version_id: input.project_version_id,
       asset_type,
     });
 

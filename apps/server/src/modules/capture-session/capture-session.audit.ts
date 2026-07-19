@@ -71,6 +71,7 @@ const event = (
 
 const safe_fields: Array<[keyof CaptureSession, string, AuditValueType]> = [
   ["project_id", "project_id", "identifier"],
+  ["project_version_id", "project_version_id", "identifier"],
   ["name", "name", "text"],
   ["description", "description", "text"],
   ["status", "status", "enum"],
@@ -145,7 +146,10 @@ export const build_capture_session_updated_event = (
   input: Base & {
     before: CaptureSession;
     after: CaptureSession;
-    action: "capture_session.updated" | "capture_session.completed";
+    action:
+      | "capture_session.updated"
+      | "capture_session.completed"
+      | "capture_session.project_version_reassigned";
     metadata_changed: boolean;
   },
 ) => {
@@ -245,6 +249,9 @@ export const build_audited_capture_session_repository = (
       organization_id: string;
     },
   ) => {
+    await client.query("SELECT project_schema.lock_project_version_scope($1)", [
+      input.project_id,
+    ]);
     await client.query(
       `SELECT id FROM capture_schema.capture_session
       WHERE id = $1 AND project_id = $2 AND organization_id = $3 AND is_deleted = FALSE FOR UPDATE`,
@@ -431,6 +438,48 @@ export const build_audited_capture_session_repository = (
                 actor_org_user_id: input.actor_org_user_id,
                 actor_label: label,
                 occurred_at,
+              })
+            : null,
+        write_audit_event,
+      });
+    },
+    async reassign_project_version(input) {
+      const event_id = ulid();
+      const occurred_at = new Date().toISOString();
+      let before: CaptureSession | null = null;
+      let label = "organization-member";
+      return run_audited_mutation({
+        pool,
+        event_id,
+        command: find_audit_command("capture_session.reassign_project_version"),
+        context: async (client) => {
+          before = await lock(client, input);
+          label = await label_for(
+            client,
+            input.actor_org_user_id,
+            input.organization_id,
+          );
+          return {
+            organization_id: input.organization_id,
+            actor_type: "org_user",
+            source_type: before ? source(before) : "web",
+          };
+        },
+        execute: (client) =>
+          build_capture_session_repository(client).reassign_project_version(
+            input,
+          ),
+        build_event: (result) =>
+          result.outcome === "reassigned" && result.capture_session && before
+            ? build_capture_session_updated_event({
+                event_id,
+                before,
+                after: result.capture_session,
+                action: "capture_session.project_version_reassigned",
+                actor_org_user_id: input.actor_org_user_id,
+                actor_label: label,
+                occurred_at,
+                metadata_changed: false,
               })
             : null,
         write_audit_event,

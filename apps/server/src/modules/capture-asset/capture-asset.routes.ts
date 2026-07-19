@@ -1,6 +1,11 @@
-import type { FastifyInstance, FastifyPluginAsync, FastifyReply } from "fastify";
+import type {
+  FastifyInstance,
+  FastifyPluginAsync,
+  FastifyReply,
+} from "fastify";
 import {
   CaptureAssetListQuerySchema,
+  ProjectCaptureAssetListQuerySchema,
   CreateCaptureAssetRequestSchema,
 } from "@repo/types/capture";
 import { z } from "zod";
@@ -9,10 +14,7 @@ import {
   type AuthContext,
 } from "../authentication/session.service";
 import { session_token_from_request } from "../authentication/request-session-token";
-import {
-  error_response,
-  unauthorized_response,
-} from "../shared/http-errors";
+import { error_response, unauthorized_response } from "../shared/http-errors";
 import {
   CaptureAssetNotFoundError,
   CaptureSessionNotFoundError,
@@ -67,6 +69,7 @@ export type CaptureAssetRouteDependencies = {
     list_project_capture_assets: (input: {
       auth: CaptureAssetAuthContext;
       project_id: string;
+      project_version_id: string;
       asset_type?: CaptureAssetType;
     }) => Promise<CaptureAssetWithFileUrl[]>;
     get_capture_asset: (input: {
@@ -96,7 +99,7 @@ const capture_asset_auth_context = (auth: AuthContext) => ({
 });
 
 const pick_create_capture_asset_data = (
-  body: CreateCaptureAssetInput
+  body: CreateCaptureAssetInput,
 ): CreateCaptureAssetInput => {
   const data: CreateCaptureAssetInput = {
     asset_type: body.asset_type,
@@ -146,9 +149,12 @@ const pick_create_capture_asset_data = (
 
 const multipart_field_value = (
   fields: Record<string, unknown>,
-  name: string
+  name: string,
 ) => {
-  const field = fields[name] as { value?: unknown } | { value?: unknown }[] | undefined;
+  const field = fields[name] as
+    | { value?: unknown }
+    | { value?: unknown }[]
+    | undefined;
   const first_field = Array.isArray(field) ? field[0] : field;
   const value = first_field?.value;
 
@@ -158,7 +164,7 @@ const multipart_field_value = (
 const optional_positive_number_field = (
   fields: Record<string, unknown>,
   name: string,
-  integer: boolean
+  integer: boolean,
 ) => {
   const value = multipart_field_value(fields, name);
 
@@ -168,7 +174,11 @@ const optional_positive_number_field = (
 
   const number = Number(value);
 
-  if (!Number.isFinite(number) || number <= 0 || (integer && !Number.isInteger(number))) {
+  if (
+    !Number.isFinite(number) ||
+    number <= 0 ||
+    (integer && !Number.isInteger(number))
+  ) {
     throw new InvalidCaptureAssetUploadError();
   }
 
@@ -186,9 +196,9 @@ const optional_metadata_field = (fields: Record<string, unknown>) => {
     const parsed = JSON.parse(value);
 
     if (
-      parsed === null
-      || typeof parsed !== "object"
-      || Array.isArray(parsed)
+      parsed === null ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
     ) {
       throw new InvalidCaptureAssetUploadError();
     }
@@ -201,7 +211,7 @@ const optional_metadata_field = (fields: Record<string, unknown>) => {
 
 const optional_datetime_field = (
   fields: Record<string, unknown>,
-  name: string
+  name: string,
 ) => {
   const value = multipart_field_value(fields, name);
 
@@ -217,12 +227,16 @@ const optional_datetime_field = (
 };
 
 const pick_upload_capture_asset_data = (
-  fields: Record<string, unknown>
+  fields: Record<string, unknown>,
 ): UploadCaptureAssetInput => {
   const data: UploadCaptureAssetInput = {};
   const width = optional_positive_number_field(fields, "width", true);
   const height = optional_positive_number_field(fields, "height", true);
-  const device_pixel_ratio = optional_positive_number_field(fields, "device_pixel_ratio", false);
+  const device_pixel_ratio = optional_positive_number_field(
+    fields,
+    "device_pixel_ratio",
+    false,
+  );
   const page_url = multipart_field_value(fields, "page_url");
   const page_title = multipart_field_value(fields, "page_title");
   const captured_at = optional_datetime_field(fields, "captured_at");
@@ -254,102 +268,165 @@ const pick_upload_capture_asset_data = (
 };
 
 export const build_capture_asset_routes = (
-  dependencies: CaptureAssetRouteDependencies
+  dependencies: CaptureAssetRouteDependencies,
 ): FastifyPluginAsync => {
   return async (fastify: FastifyInstance) => {
-    const require_auth = async (session_token?: string) => (
+    const require_auth = async (session_token?: string) =>
       capture_asset_auth_context(
-        await dependencies.auth_service.get_current_auth_context(session_token)
-      )
-    );
+        await dependencies.auth_service.get_current_auth_context(session_token),
+      );
 
     const handle_domain_error = (error: unknown, reply: FastifyReply) => {
+      if (
+        (error as { constraint?: string })?.constraint ===
+        "capture_project_version_active_guard"
+      ) {
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "project_version_conflict",
+              "Archived Project Versions are read-only",
+            ),
+          );
+      }
       if (error instanceof UnauthenticatedSessionError) {
         return reply.status(401).send(unauthorized_response());
       }
 
       if (error instanceof CaptureSessionNotFoundError) {
-        return reply.status(404).send(
-          error_response("capture_session_not_found", "Capture session was not found")
-        );
+        return reply
+          .status(404)
+          .send(
+            error_response(
+              "capture_session_not_found",
+              "Capture session was not found",
+            ),
+          );
       }
 
       if (error instanceof ProjectNotFoundError) {
-        return reply.status(404).send(
-          error_response("project_not_found", "Project was not found")
-        );
+        return reply
+          .status(404)
+          .send(error_response("project_not_found", "Project was not found"));
       }
 
       if (error instanceof CaptureAssetNotFoundError) {
-        return reply.status(404).send(
-          error_response("capture_asset_not_found", "Capture asset was not found")
-        );
+        return reply
+          .status(404)
+          .send(
+            error_response(
+              "capture_asset_not_found",
+              "Capture asset was not found",
+            ),
+          );
       }
 
       if (error instanceof UnsupportedCaptureAssetTypeError) {
-        return reply.status(400).send(
-          error_response(
-            "unsupported_capture_asset_type",
-            "Capture asset type is not supported yet"
-          )
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "unsupported_capture_asset_type",
+              "Capture asset type is not supported yet",
+            ),
+          );
       }
 
       if (error instanceof InvalidCaptureAssetInputError) {
-        return reply.status(400).send(
-          error_response("invalid_capture_asset", "Capture asset input is invalid")
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "invalid_capture_asset",
+              "Capture asset input is invalid",
+            ),
+          );
       }
 
       if (error instanceof InvalidCaptureAssetUploadError) {
-        return reply.status(400).send(
-          error_response("invalid_capture_asset_upload", "Capture asset upload input is invalid")
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "invalid_capture_asset_upload",
+              "Capture asset upload input is invalid",
+            ),
+          );
       }
 
       if (error instanceof UnsupportedCaptureAssetUploadTypeError) {
-        return reply.status(400).send(
-          error_response(
-            "unsupported_capture_asset_upload_type",
-            "Capture asset upload type is not supported"
-          )
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "unsupported_capture_asset_upload_type",
+              "Capture asset upload type is not supported",
+            ),
+          );
       }
 
       if (error instanceof UploadFileRequiredError) {
-        return reply.status(400).send(
-          error_response("upload_file_required", "Upload file is required")
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response("upload_file_required", "Upload file is required"),
+          );
       }
 
-      if (error instanceof UploadTooLargeError || (error as { code?: string }).code === "FST_REQ_FILE_TOO_LARGE") {
-        return reply.status(413).send(
-          error_response("upload_too_large", "Capture asset upload is too large")
-        );
+      if (
+        error instanceof UploadTooLargeError ||
+        (error as { code?: string }).code === "FST_REQ_FILE_TOO_LARGE"
+      ) {
+        return reply
+          .status(413)
+          .send(
+            error_response(
+              "upload_too_large",
+              "Capture asset upload is too large",
+            ),
+          );
       }
 
       if (error instanceof FileBytesNotFoundError) {
-        return reply.status(404).send(
-          error_response("file_bytes_not_found", "File bytes were not found")
-        );
+        return reply
+          .status(404)
+          .send(
+            error_response("file_bytes_not_found", "File bytes were not found"),
+          );
       }
 
       if (error instanceof UnsupportedFileStorageProviderError) {
-        return reply.status(400).send(
-          error_response("unsupported_file_storage_provider", "File storage provider is not supported")
-        );
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "unsupported_file_storage_provider",
+              "File storage provider is not supported",
+            ),
+          );
       }
 
       if (error instanceof FileStorageWriteFailedError) {
-        return reply.status(500).send(
-          error_response("file_storage_write_failed", "File storage write failed")
-        );
+        return reply
+          .status(500)
+          .send(
+            error_response(
+              "file_storage_write_failed",
+              "File storage write failed",
+            ),
+          );
       }
 
       if (error instanceof FileStorageKeyConflictError) {
-        return reply.status(409).send(
-          error_response("file_storage_key_conflict", "File storage key already exists")
-        );
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "file_storage_key_conflict",
+              "File storage key already exists",
+            ),
+          );
       }
 
       throw error;
@@ -361,88 +438,106 @@ export const build_capture_asset_routes = (
         capture_session_id: string;
       };
       Body: CreateCaptureAssetInput;
-    }>("/:project_id/capture-sessions/:capture_session_id/assets", {
-      schema: {
-        body: CreateCaptureAssetRequestSchema,
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/assets",
+      {
+        schema: {
+          body: CreateCaptureAssetRequestSchema,
+        },
       },
-    }, async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const capture_asset = await dependencies.capture_asset_service.create_capture_asset({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          data: pick_create_capture_asset_data(request.body),
-        });
-        return reply.status(201).send({ capture_asset });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const capture_asset =
+            await dependencies.capture_asset_service.create_capture_asset({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              data: pick_create_capture_asset_data(request.body),
+            });
+          return reply.status(201).send({ capture_asset });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.post<{
       Params: {
         project_id: string;
         capture_session_id: string;
       };
-    }>("/:project_id/capture-sessions/:capture_session_id/assets/upload", async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const upload = await request.file();
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/assets/upload",
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const upload = await request.file();
 
-        if (!upload) {
-          throw new UploadFileRequiredError();
+          if (!upload) {
+            throw new UploadFileRequiredError();
+          }
+
+          if (upload.fieldname !== "file") {
+            throw new UploadFileRequiredError();
+          }
+
+          if (!upload.filename?.trim()) {
+            throw new InvalidCaptureAssetUploadError();
+          }
+
+          const capture_asset =
+            await dependencies.capture_asset_service.upload_capture_asset({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              file: {
+                stream: upload.file,
+                mime_type: upload.mimetype,
+                original_name: upload.filename,
+              },
+              data: pick_upload_capture_asset_data(upload.fields),
+            });
+          return reply.status(201).send({ capture_asset });
+        } catch (error) {
+          return handle_domain_error(error, reply);
         }
-
-        if (upload.fieldname !== "file") {
-          throw new UploadFileRequiredError();
-        }
-
-        if (!upload.filename?.trim()) {
-          throw new InvalidCaptureAssetUploadError();
-        }
-
-        const capture_asset = await dependencies.capture_asset_service.upload_capture_asset({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          file: {
-            stream: upload.file,
-            mime_type: upload.mimetype,
-            original_name: upload.filename,
-          },
-          data: pick_upload_capture_asset_data(upload.fields),
-        });
-        return reply.status(201).send({ capture_asset });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+      },
+    );
 
     fastify.get<{
       Params: {
         project_id: string;
       };
       Querystring: {
+        project_version_id: string;
         asset_type?: CaptureAssetType;
       };
-    }>("/:project_id/capture-assets", {
-      schema: {
-        querystring: CaptureAssetListQuerySchema,
+    }>(
+      "/:project_id/capture-assets",
+      {
+        schema: {
+          querystring: ProjectCaptureAssetListQuerySchema,
+        },
       },
-    }, async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const capture_assets = await dependencies.capture_asset_service.list_project_capture_assets({
-          auth,
-          project_id: request.params.project_id,
-          asset_type: request.query.asset_type,
-        });
-        return reply.status(200).send({ capture_assets });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const capture_assets =
+            await dependencies.capture_asset_service.list_project_capture_assets(
+              {
+                auth,
+                project_id: request.params.project_id,
+                project_version_id: request.query.project_version_id,
+                asset_type: request.query.asset_type,
+              },
+            );
+          return reply.status(200).send({ capture_assets });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.get<{
       Params: {
@@ -452,24 +547,29 @@ export const build_capture_asset_routes = (
       Querystring: {
         asset_type?: CaptureAssetType;
       };
-    }>("/:project_id/capture-sessions/:capture_session_id/assets", {
-      schema: {
-        querystring: CaptureAssetListQuerySchema,
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/assets",
+      {
+        schema: {
+          querystring: CaptureAssetListQuerySchema,
+        },
       },
-    }, async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const capture_assets = await dependencies.capture_asset_service.list_capture_assets({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          asset_type: request.query.asset_type,
-        });
-        return reply.status(200).send({ capture_assets });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const capture_assets =
+            await dependencies.capture_asset_service.list_capture_assets({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              asset_type: request.query.asset_type,
+            });
+          return reply.status(200).send({ capture_assets });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.get<{
       Params: {
@@ -477,20 +577,24 @@ export const build_capture_asset_routes = (
         capture_session_id: string;
         id: string;
       };
-    }>("/:project_id/capture-sessions/:capture_session_id/assets/:id", async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const capture_asset = await dependencies.capture_asset_service.get_capture_asset({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          capture_asset_id: request.params.id,
-        });
-        return reply.status(200).send({ capture_asset });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/assets/:id",
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const capture_asset =
+            await dependencies.capture_asset_service.get_capture_asset({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              capture_asset_id: request.params.id,
+            });
+          return reply.status(200).send({ capture_asset });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.get<{
       Params: {
@@ -498,23 +602,27 @@ export const build_capture_asset_routes = (
         capture_session_id: string;
         id: string;
       };
-    }>("/:project_id/capture-sessions/:capture_session_id/assets/:id/file", async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        const file = await dependencies.capture_asset_service.get_capture_asset_file({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          capture_asset_id: request.params.id,
-        });
-        reply.header("Content-Type", file.mime_type);
-        reply.header("Content-Length", String(file.size_bytes));
-        reply.header("Cache-Control", "private, max-age=300");
-        return reply.status(200).send(file.stream);
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/assets/:id/file",
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          const file =
+            await dependencies.capture_asset_service.get_capture_asset_file({
+              auth,
+              project_id: request.params.project_id,
+              capture_session_id: request.params.capture_session_id,
+              capture_asset_id: request.params.id,
+            });
+          reply.header("Content-Type", file.mime_type);
+          reply.header("Content-Length", String(file.size_bytes));
+          reply.header("Cache-Control", "private, max-age=300");
+          return reply.status(200).send(file.stream);
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.delete<{
       Params: {
@@ -522,19 +630,22 @@ export const build_capture_asset_routes = (
         capture_session_id: string;
         id: string;
       };
-    }>("/:project_id/capture-sessions/:capture_session_id/assets/:id", async (request, reply) => {
-      try {
-        const auth = await require_auth(session_token_from_request(request));
-        await dependencies.capture_asset_service.delete_capture_asset({
-          auth,
-          project_id: request.params.project_id,
-          capture_session_id: request.params.capture_session_id,
-          capture_asset_id: request.params.id,
-        });
-        return reply.status(204).send();
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+    }>(
+      "/:project_id/capture-sessions/:capture_session_id/assets/:id",
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(session_token_from_request(request));
+          await dependencies.capture_asset_service.delete_capture_asset({
+            auth,
+            project_id: request.params.project_id,
+            capture_session_id: request.params.capture_session_id,
+            capture_asset_id: request.params.id,
+          });
+          return reply.status(204).send();
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
   };
 };
