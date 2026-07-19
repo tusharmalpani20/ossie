@@ -25,6 +25,11 @@ import {
   type ProjectListPurpose,
   type UpdateProjectInput,
 } from "./project.service";
+import {
+  ProjectArchivedError,
+  ProjectNotFoundError as ProjectAccessNotFoundError,
+  ProjectPermissionDeniedError,
+} from "../project-membership/project-membership.service";
 
 export type ProjectRouteDependencies = {
   auth_service: {
@@ -123,10 +128,18 @@ export const build_project_routes = (
         );
       }
 
-      if (error instanceof ProjectNotFoundError) {
+      if (error instanceof ProjectNotFoundError || error instanceof ProjectAccessNotFoundError) {
         return reply.status(404).send(
           error_response("project_not_found", "Project was not found")
         );
+      }
+
+      if (error instanceof ProjectPermissionDeniedError) {
+        return reply.status(403).send(error_response("project_permission_denied", error.message));
+      }
+
+      if (error instanceof ProjectArchivedError) {
+        return reply.status(409).send(error_response("project_archived", error.message));
       }
 
       if (error instanceof EmptyProjectUpdateError) {

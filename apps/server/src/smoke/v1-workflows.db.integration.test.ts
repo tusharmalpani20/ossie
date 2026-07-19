@@ -438,6 +438,23 @@ describe("v1 dogfood smoke workflow", () => {
       )?.value ?? "";
     expect(teammate_session).not.toBe("");
     expect(accept_invite_response.json().auth.org_user.role).toBe("member");
+    const teammate_org_user_id = accept_invite_response.json().auth.org_user.id as string;
+
+    const hidden_projects_response = await app.inject({
+      method: "GET",
+      url: "/api/v1/projects",
+      cookies: { ossie_session: teammate_session },
+    });
+    expect(hidden_projects_response.statusCode).toBe(200);
+    expect(hidden_projects_response.json().projects).toEqual([]);
+
+    const assign_membership_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/memberships`,
+      cookies: { ossie_session: owner_session },
+      payload: { org_user_id: teammate_org_user_id, role: "viewer" },
+    });
+    expect(assign_membership_response.statusCode).toBe(201);
 
     const teammate_projects_response = await app.inject({
       method: "GET",
