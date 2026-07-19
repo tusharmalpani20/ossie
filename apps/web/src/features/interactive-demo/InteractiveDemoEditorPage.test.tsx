@@ -27,10 +27,11 @@ describe("InteractiveDemoEditorPage", () => {
     expect(saveDemo).toHaveBeenCalledWith("project_1", "demo_1", expect.objectContaining({ expected_edition_version: 3 }));
   });
 
-  it("defers a first publish outside the Default Project Version", async () => {
+  it("allows publishing outside the Default Project Version", async () => {
     render(<InteractiveDemoEditorPage projectId="project_1" projectVersionId="version_1" interactiveDemoId="demo_1" isDefaultVersion={false} loadDemo={async () => detail} loadScenes={async () => ({ demo_scenes: [], working_draft: detail.working_draft })} loadPublishStatus={async () => ({ publish_link: null, published_artifact: null })} />);
-    expect(await screen.findByText(/Publishing from a named Project Version is deferred/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Publish demo" })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Publish this draft" }),
+    ).toBeEnabled();
   });
 
   it("archives with the current Edition Row Version", async () => {

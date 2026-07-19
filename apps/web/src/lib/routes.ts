@@ -91,18 +91,22 @@ export type PortalRoute =
   | {
       type: "public_guide_reader";
       slug: string;
+      versionSlug?: string;
     }
   | {
       type: "public_guide_embed";
       slug: string;
+      versionSlug?: string;
     }
   | {
       type: "public_interactive_demo_reader";
       slug: string;
+      versionSlug?: string;
     }
   | {
       type: "public_interactive_demo_embed";
       slug: string;
+      versionSlug?: string;
     }
   | {
       type: "unsupported";
@@ -282,6 +286,31 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
     return {
       type: "public_interactive_demo_reader",
       slug: decodeURIComponent(slug),
+    };
+  }
+
+  if (
+    segments.length >= 4 &&
+    segments[2] === "versions" &&
+    (segments[0] === "p" || segments[0] === "d")
+  ) {
+    const slug = segments[1],
+      versionSlug = segments[3],
+      embed = segments.length === 5 && segments[4] === "embed";
+    if (!slug || !versionSlug || (segments.length !== 4 && !embed))
+      return { type: "unsupported" };
+    if (segments[0] === "p")
+      return {
+        type: embed ? "public_guide_embed" : "public_guide_reader",
+        slug: decodeURIComponent(slug),
+        versionSlug: decodeURIComponent(versionSlug),
+      };
+    return {
+      type: embed
+        ? "public_interactive_demo_embed"
+        : "public_interactive_demo_reader",
+      slug: decodeURIComponent(slug),
+      versionSlug: decodeURIComponent(versionSlug),
     };
   }
 

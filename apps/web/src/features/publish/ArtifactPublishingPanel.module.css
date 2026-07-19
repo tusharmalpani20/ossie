@@ -1,0 +1,62 @@
+.panel {
+  display: grid;
+  gap: 1.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.8rem;
+  padding: 1.25rem;
+}
+.panel header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.panel button,
+.panel input {
+  min-height: 2.5rem;
+}
+.links {
+  display: grid;
+  gap: 0.75rem;
+}
+.links article {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.6rem;
+}
+.links label,
+.links span {
+  display: flex;
+  gap: 0.65rem;
+}
+.links span {
+  flex-direction: column;
+}
+.links small {
+  color: #64748b;
+}
+.danger {
+  color: #b91c1c;
+}
+.create {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+}
+.create label {
+  display: grid;
+  gap: 0.35rem;
+}
+.create input {
+  padding: 0.4rem 0.6rem;
+}
+@media (max-width: 40rem) {
+  .panel header,
+  .links article,
+  .create {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

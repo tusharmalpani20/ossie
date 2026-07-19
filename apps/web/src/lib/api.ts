@@ -64,15 +64,16 @@ import type {
   PublicOrganizationInviteResponse,
 } from "@repo/types/organization";
 import type {
-  GuidePublishResult,
-  GuidePublishStatusResponse,
-  GuideRevokePublishResult,
-  InteractiveDemoPublishResult,
-  InteractiveDemoPublishStatusResponse,
+  CreatePublishLinkRequest,
+  PublicationHistoryResponse,
+  PublishedArtifact,
+  PublishArtifactRequest,
+  PublishArtifactResponse,
+  PublishLink,
   PublicPublishLinkResponse,
-  RevokePublishResult,
-  UpdatePublishAccessInput,
-  UpdatePublishPasswordInput,
+  ReplacePublishLinkManifestRequest,
+  RollbackPublishLinkEntryRequest,
+  UpdatePublishLinkSettingsRequest,
 } from "@repo/types/publish";
 import type {
   CreateProjectInput,
@@ -872,163 +873,309 @@ export const exportGuideHtmlZip = async (
     "guide-html-export.zip",
   );
 
-export const getGuidePublishStatus = async (
+const artifactPublishRoot = (
   projectId: string,
-  guideId: string,
-  projectVersionId: string,
-): Promise<GuidePublishStatusResponse> =>
-  requestJson<GuidePublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
-  );
-
-export const getInteractiveDemoPublishStatus = async (
+  artifactType: "guide" | "interactive_demo",
+  artifactId: string,
+) =>
+  `/api/v1/projects/${encodeURIComponent(projectId)}/${artifactType === "guide" ? "guides" : "interactive-demos"}/${encodeURIComponent(artifactId)}`;
+const versionQuery = (projectVersionId: string) =>
+  `project_version_id=${encodeURIComponent(projectVersionId)}`;
+export const listArtifactPublications = (
   projectId: string,
-  interactiveDemoId: string,
+  artifactType: "guide" | "interactive_demo",
+  artifactId: string,
   projectVersionId: string,
-): Promise<InteractiveDemoPublishStatusResponse> =>
-  requestJson<InteractiveDemoPublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
+): Promise<PublicationHistoryResponse> =>
+  requestJson(
+    `${artifactPublishRoot(projectId, artifactType, artifactId)}/publications?${versionQuery(projectVersionId)}`,
   );
-
+export const listArtifactPublishLinks = (
+  projectId: string,
+  artifactType: "guide" | "interactive_demo",
+  artifactId: string,
+  projectVersionId: string,
+): Promise<{
+  publish_links: PublishLink[];
+  next_cursor: null | { created_at: string; id: string };
+}> =>
+  requestJson(
+    `${artifactPublishRoot(projectId, artifactType, artifactId)}/publish-links?${versionQuery(projectVersionId)}&status=all`,
+  );
+export const publishArtifact = (
+  projectId: string,
+  artifactType: "guide" | "interactive_demo",
+  artifactId: string,
+  projectVersionId: string,
+  input: PublishArtifactRequest,
+): Promise<PublishArtifactResponse> =>
+  requestJson(
+    `${artifactPublishRoot(projectId, artifactType, artifactId)}/publications?${versionQuery(projectVersionId)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
+export const createArtifactPublishLink = (
+  projectId: string,
+  artifactType: "guide" | "interactive_demo",
+  artifactId: string,
+  projectVersionId: string,
+  input: CreatePublishLinkRequest,
+): Promise<{ publish_link: PublishLink }> =>
+  requestJson(
+    `${artifactPublishRoot(projectId, artifactType, artifactId)}/publish-links?${versionQuery(projectVersionId)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
+export const updateArtifactPublishLink = (
+  projectId: string,
+  artifactType: "guide" | "interactive_demo",
+  artifactId: string,
+  projectVersionId: string,
+  linkId: string,
+  input: UpdatePublishLinkSettingsRequest,
+): Promise<{ publish_link: PublishLink }> =>
+  requestJson(
+    `${artifactPublishRoot(projectId, artifactType, artifactId)}/publish-links/${encodeURIComponent(linkId)}?${versionQuery(projectVersionId)}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
+export const replaceArtifactPublishLinkManifest = (
+  projectId: string,
+  artifactType: "guide" | "interactive_demo",
+  artifactId: string,
+  projectVersionId: string,
+  linkId: string,
+  input: ReplacePublishLinkManifestRequest,
+): Promise<{ publish_link: PublishLink }> =>
+  requestJson(
+    `${artifactPublishRoot(projectId, artifactType, artifactId)}/publish-links/${encodeURIComponent(linkId)}/entries?${versionQuery(projectVersionId)}`,
+    {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
+export const rollbackArtifactPublishLinkEntry = (
+  projectId: string,
+  artifactType: "guide" | "interactive_demo",
+  artifactId: string,
+  projectVersionId: string,
+  linkId: string,
+  entryId: string,
+  input: RollbackPublishLinkEntryRequest,
+) =>
+  requestJson(
+    `${artifactPublishRoot(projectId, artifactType, artifactId)}/publish-links/${encodeURIComponent(linkId)}/entries/${encodeURIComponent(entryId)}/rollback?${versionQuery(projectVersionId)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
+export const revokeArtifactPublishLink = (
+  projectId: string,
+  artifactType: "guide" | "interactive_demo",
+  artifactId: string,
+  projectVersionId: string,
+  linkId: string,
+  expected_link_version: number,
+): Promise<{ publish_link: PublishLink }> =>
+  requestJson(
+    `${artifactPublishRoot(projectId, artifactType, artifactId)}/publish-links/${encodeURIComponent(linkId)}/revoke?${versionQuery(projectVersionId)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expected_link_version }),
+    },
+  );
+type LegacyPublishStatus = {
+  publish_link: PublishLink | null;
+  published_artifact: PublishedArtifact | null;
+};
+const legacyStatus = async (
+  projectId: string,
+  type: "guide" | "interactive_demo",
+  artifactId: string,
+  projectVersionId: string,
+): Promise<LegacyPublishStatus> => {
+  const [history, links] = await Promise.all([
+    listArtifactPublications(projectId, type, artifactId, projectVersionId),
+    listArtifactPublishLinks(projectId, type, artifactId, projectVersionId),
+  ]);
+  return {
+    publish_link:
+      links.publish_links.find((link) => link.status === "active") ?? null,
+    published_artifact: history.publications[0] ?? null,
+  };
+};
+export const getGuidePublishStatus = (
+  projectId: string,
+  artifactId: string,
+  projectVersionId: string,
+) => legacyStatus(projectId, "guide", artifactId, projectVersionId);
+export const getInteractiveDemoPublishStatus = (
+  projectId: string,
+  artifactId: string,
+  projectVersionId: string,
+) => legacyStatus(projectId, "interactive_demo", artifactId, projectVersionId);
 export const publishGuide = async (
+  _projectId?: string,
+  _artifactId?: string,
+  _projectVersionId?: string,
+) => {
+  void [_projectId, _artifactId, _projectVersionId];
+  throw new ApiClientError({
+    kind: "validation",
+    status: 409,
+    type: "publication_requires_row_versions",
+    message: "Use the Publication panel",
+  });
+};
+export const publishInteractiveDemo = publishGuide;
+const legacyUpdate = async (
   projectId: string,
-  guideId: string,
+  type: "guide" | "interactive_demo",
+  artifactId: string,
   projectVersionId: string,
-): Promise<GuidePublishResult> =>
-  requestJson<GuidePublishResult>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
-    {
-      method: "POST",
-    },
+  input: {
+    visibility?: "public" | "restricted";
+    expires_at?: string | null;
+    password?: string | null;
+  },
+) => {
+  const status = await legacyStatus(
+    projectId,
+    type,
+    artifactId,
+    projectVersionId,
   );
-
-export const publishInteractiveDemo = async (
+  if (!status.publish_link) return status;
+  await updateArtifactPublishLink(
+    projectId,
+    type,
+    artifactId,
+    projectVersionId,
+    status.publish_link.id,
+    { expected_link_version: status.publish_link.version, ...input },
+  );
+  return legacyStatus(projectId, type, artifactId, projectVersionId);
+};
+export const updateGuidePublishAccess = (
   projectId: string,
-  interactiveDemoId: string,
+  artifactId: string,
+  input: { visibility: "public" | "restricted"; expires_at: string | null },
   projectVersionId: string,
-): Promise<InteractiveDemoPublishResult> =>
-  requestJson<InteractiveDemoPublishResult>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
-    {
-      method: "POST",
-    },
-  );
-
-export const revokeGuidePublishLink = async (
+) => legacyUpdate(projectId, "guide", artifactId, projectVersionId, input);
+export const updateInteractiveDemoPublishAccess = (
   projectId: string,
-  guideId: string,
+  artifactId: string,
+  input: { visibility: "public" | "restricted"; expires_at: string | null },
   projectVersionId: string,
-): Promise<GuideRevokePublishResult> =>
-  requestJson<GuideRevokePublishResult>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
-    {
-      method: "DELETE",
-    },
+) =>
+  legacyUpdate(
+    projectId,
+    "interactive_demo",
+    artifactId,
+    projectVersionId,
+    input,
   );
-
-export const revokeInteractiveDemoPublishLink = async (
+export const updateGuidePublishPassword = (
   projectId: string,
-  interactiveDemoId: string,
+  artifactId: string,
+  input: { password: string | null },
   projectVersionId: string,
-): Promise<RevokePublishResult> =>
-  requestJson<RevokePublishResult>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
-    {
-      method: "DELETE",
-    },
-  );
-
-export const updateGuidePublishAccess = async (
+) => legacyUpdate(projectId, "guide", artifactId, projectVersionId, input);
+export const updateInteractiveDemoPublishPassword = (
   projectId: string,
-  guideId: string,
-  input: UpdatePublishAccessInput,
+  artifactId: string,
+  input: { password: string | null },
   projectVersionId: string,
-): Promise<GuidePublishStatusResponse> =>
-  requestJson<GuidePublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish/access?project_version_id=${encodeURIComponent(projectVersionId)}`,
-    {
-      method: "PATCH",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(input),
-    },
+) =>
+  legacyUpdate(
+    projectId,
+    "interactive_demo",
+    artifactId,
+    projectVersionId,
+    input,
   );
-
-export const updateInteractiveDemoPublishAccess = async (
+const legacyRevoke = async (
   projectId: string,
-  interactiveDemoId: string,
-  input: UpdatePublishAccessInput,
+  type: "guide" | "interactive_demo",
+  artifactId: string,
   projectVersionId: string,
-): Promise<InteractiveDemoPublishStatusResponse> =>
-  requestJson<InteractiveDemoPublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish/access?project_version_id=${encodeURIComponent(projectVersionId)}`,
-    {
-      method: "PATCH",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(input),
-    },
+) => {
+  const status = await legacyStatus(
+    projectId,
+    type,
+    artifactId,
+    projectVersionId,
   );
-
-export const updateGuidePublishPassword = async (
+  if (!status.publish_link)
+    throw new ApiClientError({
+      kind: "not_found",
+      status: 404,
+      type: "publish_link_not_found",
+      message: "Publish Link was not found",
+    });
+  return revokeArtifactPublishLink(
+    projectId,
+    type,
+    artifactId,
+    projectVersionId,
+    status.publish_link.id,
+    status.publish_link.version,
+  );
+};
+export const revokeGuidePublishLink = (
   projectId: string,
-  guideId: string,
-  input: UpdatePublishPasswordInput,
+  artifactId: string,
   projectVersionId: string,
-): Promise<GuidePublishStatusResponse> =>
-  requestJson<GuidePublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish/password?project_version_id=${encodeURIComponent(projectVersionId)}`,
-    {
-      method: "PATCH",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(input),
-    },
-  );
-
-export const updateInteractiveDemoPublishPassword = async (
+) => legacyRevoke(projectId, "guide", artifactId, projectVersionId);
+export const revokeInteractiveDemoPublishLink = (
   projectId: string,
-  interactiveDemoId: string,
-  input: UpdatePublishPasswordInput,
+  artifactId: string,
   projectVersionId: string,
-): Promise<InteractiveDemoPublishStatusResponse> =>
-  requestJson<InteractiveDemoPublishStatusResponse>(
-    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish/password?project_version_id=${encodeURIComponent(projectVersionId)}`,
-    {
-      method: "PATCH",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(input),
-    },
-  );
+) => legacyRevoke(projectId, "interactive_demo", artifactId, projectVersionId);
 
 export const getPublicPublishLink = async (
   slug: string,
+  artifactType: "guide" | "interactive_demo" = "guide",
+  versionSlug: string | null = null,
   surface: "reader" | "embed" = "reader",
 ): Promise<PublicPublishLinkResponse> =>
   requestJson<PublicPublishLinkResponse>(
-    `/api/v1/public/publish-links/${encodeURIComponent(slug)}`,
+    `/api/v1/public/publish-links/${encodeURIComponent(slug)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}?artifact_type=${artifactType}`,
     { headers: { "X-Ossie-Access-Surface": `public_${surface}` } },
   );
 
 export const createPublicPublishViewerSession = async (
   slug: string,
-  input: { password: string },
+  artifactTypeOrInput: "guide" | "interactive_demo" | { password: string },
+  inputOrSurface: { password: string } | "reader" | "embed" = "reader",
   surface: "reader" | "embed" = "reader",
 ): Promise<void> =>
   requestJson<void>(
-    `/api/v1/public/publish-links/${encodeURIComponent(slug)}/viewer-sessions`,
+    `/api/v1/public/publish-links/${encodeURIComponent(slug)}/viewer-sessions?artifact_type=${typeof artifactTypeOrInput === "string" ? artifactTypeOrInput : "guide"}`,
     {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "X-Ossie-Access-Surface": `public_${surface}`,
+        "X-Ossie-Access-Surface": `public_${typeof inputOrSurface === "string" ? inputOrSurface : surface}`,
       },
-      body: JSON.stringify(input),
+      body: JSON.stringify(
+        typeof artifactTypeOrInput === "string"
+          ? inputOrSurface
+          : artifactTypeOrInput,
+      ),
     },
   );
 

@@ -1,144 +1,58 @@
-.page {
-  min-height: 100vh;
-  background: #f4f6f8;
-  color: #1c2430;
+.page,
+.embed {
+  max-width: 72rem;
+  margin: auto;
+  padding: clamp(1rem, 4vw, 3rem);
+  color: #0f172a;
 }
-
-.embedPage {
-  min-height: 100vh;
-  background: #ffffff;
-}
-
-.main {
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: 28px 20px 40px;
-}
-
-.embedMain {
-  max-width: none;
-  padding: 0;
-}
-
-.header {
-  margin-bottom: 18px;
-}
-
-.embedHeader {
-  padding: 14px 16px;
-  margin-bottom: 0;
-  border-bottom: 1px solid #d9e0e7;
-}
-
-.eyebrow {
-  margin-bottom: 8px;
-  color: #637083;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.title {
-  margin: 0;
-  color: #111827;
-  font-size: 28px;
-  line-height: 1.2;
-}
-
-.description,
-.sceneDescription {
-  color: #4d5968;
-  line-height: 1.5;
-}
-
-.stage {
-  border: 1px solid #d9e0e7;
-  border-radius: 8px;
-  background: #ffffff;
-  overflow: hidden;
-}
-
-.embedMain .stage {
-  border: 0;
-  border-radius: 0;
-}
-
-.sceneHeader {
+.page header,
+.embed header {
   display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 12px;
-  padding: 16px;
+  gap: 2rem;
 }
-
-.sceneTitle {
-  margin: 0;
-  color: #111827;
-  font-size: 18px;
-}
-
-.sceneDescription {
-  margin: 6px 0 0;
-}
-
-.nav {
-  display: flex;
-  gap: 8px;
-}
-
-.hotspot {
-  min-height: 34px;
-  border: 1px solid #b8c3cf;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #1c2430;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.screenshotFrame {
+.scene {
   position: relative;
-  overflow: hidden;
-  background: #f8fafc;
+  margin-top: 1.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1rem;
 }
-
-.screenshot {
+.scene img {
   display: block;
   width: 100%;
-  max-height: 72vh;
-  object-fit: contain;
+  border-radius: 0.65rem;
 }
-
-.hotspot {
-  position: absolute;
-  z-index: 1;
-  padding: 0;
-  border: 2px solid #f97316;
-  background: rgb(249 115 22 / 18%);
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 82%);
+.hotspots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
-
-.infoPanel,
+.hotspots button,
+.state button {
+  min-height: 2.75rem;
+  padding: 0.55rem 1rem;
+}
 .state {
-  margin: 16px;
-  padding: 14px;
-  border: 1px solid #d9e0e7;
-  border-radius: 8px;
-  background: #fbfdff;
-}
-
-.infoPanel h2 {
-  margin: 0 0 8px;
-  font-size: 16px;
-}
-
-.dismiss {
-  margin-top: 10px;
-}
-
-.passwordField {
+  min-height: 60vh;
   display: grid;
-  gap: 7px;
-  max-width: 360px;
-  margin: 12px 0;
+  place-items: center;
+}
+.state form {
+  display: grid;
+  gap: 1rem;
+}
+.state input {
+  min-height: 2.75rem;
+  padding: 0.55rem;
+}
+.embed {
+  padding: 1rem;
+}
+@media (max-width: 40rem) {
+  .page header,
+  .embed header {
+    flex-direction: column;
+  }
 }

@@ -18,15 +18,12 @@ import {
   getCurrentAuth,
   getCaptureSessionDetail,
   getGuideDetail,
-  getGuidePublishStatus,
   getInteractiveDemo,
-  getInteractiveDemoPublishStatus,
   getProject,
   getPublicInstanceStatus,
   getPublicPublishLink,
   getComplianceAuditEvent,
   getPublicOrganizationInvite,
-  createPublicPublishViewerSession,
   login,
   listOrganizationInvites,
   listOrganizationMembers,
@@ -46,22 +43,14 @@ import {
   listInteractiveDemoScenes,
   listInteractiveDemoHotspots,
   logout,
-  publishGuide,
-  publishInteractiveDemo,
   reorderCaptureSessionEvents,
   reorderInteractiveDemoHotspots,
   reorderInteractiveDemoScenes,
   reorderGuideBlocks,
   resolveApiAssetUrl,
-  revokeGuidePublishLink,
-  revokeInteractiveDemoPublishLink,
   revokeOrganizationInvite,
   archiveInteractiveDemo,
   deleteInteractiveDemoScene,
-  updateGuidePublishAccess,
-  updateGuidePublishPassword,
-  updateInteractiveDemoPublishAccess,
-  updateInteractiveDemoPublishPassword,
   updateGuide,
   updateGuideBlock,
   updateGuideBlockAnnotations,
@@ -267,6 +256,7 @@ const guide_publish_response = {
     published_at: "2026-06-11T00:00:00.000Z",
   },
 };
+void guide_publish_response;
 
 const project_response = {
   project: {
@@ -1388,7 +1378,7 @@ describe("api client", () => {
     );
   });
 
-  it("fetches public publish links by slug", async () => {
+  it("fetches a typed public Guide Publication by exact Project Version slug", async () => {
     const fetch = vi.fn(
       async () =>
         new Response(JSON.stringify(public_publish_response), {
@@ -1400,12 +1390,12 @@ describe("api client", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(getPublicPublishLink("abc 123")).resolves.toEqual(
-      public_publish_response,
-    );
+    await expect(
+      getPublicPublishLink("abc 123", "guide", "docs-v2"),
+    ).resolves.toEqual(public_publish_response);
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/public/publish-links/abc%20123",
+      "/api/v1/public/publish-links/abc%20123/versions/docs-v2?artifact_type=guide",
       {
         credentials: "include",
         headers: {
@@ -1414,430 +1404,6 @@ describe("api client", () => {
         },
       },
     );
-  });
-
-  it("fetches guide publish status with session cookies", async () => {
-    const response = {
-      publish_link: null,
-      published_artifact: null,
-    };
-    const fetch = vi.fn(
-      async () =>
-        new Response(JSON.stringify(response), {
-          status: 200,
-          headers: {
-            "content-type": "application/json",
-          },
-        }),
-    );
-    vi.stubGlobal("fetch", fetch);
-
-    await expect(
-      getGuidePublishStatus("project / 1", "guide / 1", "version_1"),
-    ).resolves.toEqual(response);
-
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project%20%2F%201/guides/guide%20%2F%201/publish?project_version_id=version_1",
-      {
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      },
-    );
-  });
-
-  it("publishes guides with session cookies", async () => {
-    const fetch = vi.fn(
-      async () =>
-        new Response(JSON.stringify(guide_publish_response), {
-          status: 201,
-          headers: {
-            "content-type": "application/json",
-          },
-        }),
-    );
-    vi.stubGlobal("fetch", fetch);
-
-    await expect(
-      publishGuide("project_1", "guide_1", "version_1"),
-    ).resolves.toEqual(guide_publish_response);
-
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/guides/guide_1/publish?project_version_id=version_1",
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      },
-    );
-  });
-
-  it("revokes guide publish links with session cookies", async () => {
-    const response = {
-      publish_link: {
-        id: "publish_link_1",
-        status: "revoked",
-        revoked_at: "2026-06-11T01:00:00.000Z",
-      },
-    };
-    const fetch = vi.fn(
-      async () =>
-        new Response(JSON.stringify(response), {
-          status: 200,
-          headers: {
-            "content-type": "application/json",
-          },
-        }),
-    );
-    vi.stubGlobal("fetch", fetch);
-
-    await expect(
-      revokeGuidePublishLink("project_1", "guide_1", "version_1"),
-    ).resolves.toEqual(response);
-
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/guides/guide_1/publish?project_version_id=version_1",
-      {
-        method: "DELETE",
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-        },
-      },
-    );
-  });
-
-  it("updates guide publish access settings with session cookies", async () => {
-    const response = {
-      ...guide_publish_response,
-      publish_link: {
-        ...guide_publish_response.publish_link,
-        visibility: "restricted",
-        expires_at: null,
-      },
-    };
-    const fetch = vi.fn(
-      async () =>
-        new Response(JSON.stringify(response), {
-          status: 200,
-          headers: {
-            "content-type": "application/json",
-          },
-        }),
-    );
-    vi.stubGlobal("fetch", fetch);
-
-    await expect(
-      updateGuidePublishAccess(
-        "project_1",
-        "guide_1",
-        {
-          visibility: "restricted",
-          expires_at: null,
-        },
-        "version_1",
-      ),
-    ).resolves.toEqual(response);
-
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/guides/guide_1/publish/access?project_version_id=version_1",
-      {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          visibility: "restricted",
-          expires_at: null,
-        }),
-      },
-    );
-  });
-
-  it("updates guide publish password settings with session cookies", async () => {
-    const response = {
-      ...guide_publish_response,
-      publish_link: {
-        ...guide_publish_response.publish_link,
-        password_protected: true,
-      },
-    };
-    const fetch = vi.fn(
-      async () =>
-        new Response(JSON.stringify(response), {
-          status: 200,
-          headers: {
-            "content-type": "application/json",
-          },
-        }),
-    );
-    vi.stubGlobal("fetch", fetch);
-
-    await expect(
-      updateGuidePublishPassword(
-        "project_1",
-        "guide_1",
-        {
-          password: "shared password",
-        },
-        "version_1",
-      ),
-    ).resolves.toEqual(response);
-
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/guides/guide_1/publish/password?project_version_id=version_1",
-      {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          password: "shared password",
-        }),
-      },
-    );
-  });
-
-  it("manages interactive demo publish controls with session cookies", async () => {
-    const response = {
-      ...guide_publish_response,
-      publish_link: {
-        ...guide_publish_response.publish_link,
-        artifact_type: "interactive_demo",
-        artifact_id: "demo / 1",
-        public_url: "/d/demo123",
-      },
-      published_artifact: {
-        ...guide_publish_response.published_artifact,
-        artifact_type: "interactive_demo",
-        artifact_id: "demo / 1",
-        title: "Department demo",
-      },
-    };
-    const revoke_response = {
-      publish_link: {
-        id: "publish_link_1",
-        status: "revoked",
-        revoked_at: "2026-06-11T01:00:00.000Z",
-      },
-    };
-    const fetch = vi
-      .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(response), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(response), {
-          status: 201,
-          headers: { "content-type": "application/json" },
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            ...response,
-            publish_link: {
-              ...response.publish_link,
-              visibility: "restricted",
-              expires_at: null,
-            },
-          }),
-          {
-            status: 200,
-            headers: { "content-type": "application/json" },
-          },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            ...response,
-            publish_link: {
-              ...response.publish_link,
-              password_protected: true,
-            },
-          }),
-          {
-            status: 200,
-            headers: { "content-type": "application/json" },
-          },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(revoke_response), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-      );
-    vi.stubGlobal("fetch", fetch);
-
-    await expect(
-      getInteractiveDemoPublishStatus("project / 1", "demo / 1", "version_1"),
-    ).resolves.toEqual(response);
-    await expect(
-      publishInteractiveDemo("project / 1", "demo / 1", "version_1"),
-    ).resolves.toEqual(response);
-    await expect(
-      updateInteractiveDemoPublishAccess(
-        "project / 1",
-        "demo / 1",
-        {
-          visibility: "restricted",
-          expires_at: null,
-        },
-        "version_1",
-      ),
-    ).resolves.toMatchObject({ publish_link: { visibility: "restricted" } });
-    await expect(
-      updateInteractiveDemoPublishPassword(
-        "project / 1",
-        "demo / 1",
-        {
-          password: "shared password",
-        },
-        "version_1",
-      ),
-    ).resolves.toMatchObject({ publish_link: { password_protected: true } });
-    await expect(
-      revokeInteractiveDemoPublishLink("project / 1", "demo / 1", "version_1"),
-    ).resolves.toEqual(revoke_response);
-
-    const base =
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/publish?project_version_id=version_1";
-    expect(fetch).toHaveBeenNthCalledWith(1, base, {
-      credentials: "include",
-      headers: { accept: "application/json" },
-    });
-    expect(fetch).toHaveBeenNthCalledWith(2, base, {
-      method: "POST",
-      credentials: "include",
-      headers: { accept: "application/json" },
-    });
-    expect(fetch).toHaveBeenNthCalledWith(3, base.replace("?", "/access?"), {
-      method: "PATCH",
-      credentials: "include",
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        visibility: "restricted",
-        expires_at: null,
-      }),
-    });
-    expect(fetch).toHaveBeenNthCalledWith(4, base.replace("?", "/password?"), {
-      method: "PATCH",
-      credentials: "include",
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        password: "shared password",
-      }),
-    });
-    expect(fetch).toHaveBeenNthCalledWith(5, base, {
-      method: "DELETE",
-      credentials: "include",
-      headers: { accept: "application/json" },
-    });
-  });
-
-  it("creates public publish viewer sessions with credentials", async () => {
-    const fetch = vi.fn(async () => new Response(null, { status: 204 }));
-    vi.stubGlobal("fetch", fetch);
-
-    await expect(
-      createPublicPublishViewerSession("abc 123", {
-        password: "shared password",
-      }),
-    ).resolves.toBeUndefined();
-
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/public/publish-links/abc%20123/viewer-sessions",
-      {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "X-Ossie-Access-Surface": "public_reader",
-          accept: "application/json",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          password: "shared password",
-        }),
-      },
-    );
-  });
-
-  it("maps guide publish validation errors", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              error: {
-                type: "guide_has_no_publishable_blocks",
-                message: "Guide has no publishable blocks",
-              },
-            }),
-            {
-              status: 400,
-              headers: {
-                "content-type": "application/json",
-              },
-            },
-          ),
-      ),
-    );
-
-    await expect(
-      publishGuide("project_1", "guide_1", "version_1"),
-    ).rejects.toMatchObject({
-      kind: "validation",
-      type: "guide_has_no_publishable_blocks",
-      message: "Guide has no publishable blocks",
-    });
-
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              error: {
-                type: "guide_not_publishable",
-                message: "Guide is not publishable",
-              },
-            }),
-            {
-              status: 409,
-              headers: {
-                "content-type": "application/json",
-              },
-            },
-          ),
-      ),
-    );
-
-    await expect(
-      publishGuide("project_1", "guide_1", "version_1"),
-    ).rejects.toMatchObject({
-      kind: "validation",
-      type: "guide_not_publishable",
-      message: "Guide is not publishable",
-    });
   });
 
   it("maps missing or revoked public publish links to not found", async () => {

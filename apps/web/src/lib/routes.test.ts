@@ -253,6 +253,24 @@ describe("parsePortalRoute", () => {
     });
   });
 
+  it("parses canonical version-specific reader and embed routes", () => {
+    expect(parsePortalRoute("/p/link-1/versions/docs-v2")).toEqual({
+      type: "public_guide_reader",
+      slug: "link-1",
+      versionSlug: "docs-v2",
+    });
+    expect(parsePortalRoute("/p/link-1/versions/docs-v2/embed")).toEqual({
+      type: "public_guide_embed",
+      slug: "link-1",
+      versionSlug: "docs-v2",
+    });
+    expect(parsePortalRoute("/d/link-1/versions/demo-v2")).toEqual({
+      type: "public_interactive_demo_reader",
+      slug: "link-1",
+      versionSlug: "demo-v2",
+    });
+  });
+
   it("parses public interactive demo routes", () => {
     expect(parsePortalRoute("/d/demo123")).toEqual({
       type: "public_interactive_demo_reader",

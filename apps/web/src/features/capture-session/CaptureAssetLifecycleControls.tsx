@@ -24,7 +24,7 @@ const dependencyLabel = (
     case "interactive_demo_revision":
       return `Interactive Demo Revision ${dependency.revision_number}`;
     case "published_artifact":
-      return `Published Artifact ${dependency.publication_number}`;
+      return `Publication ${dependency.publication_sequence}`;
     case "shared_file_asset":
       return `Capture Asset ${dependency.capture_asset_id} shares this File`;
   }

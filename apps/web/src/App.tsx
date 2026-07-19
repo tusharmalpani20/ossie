@@ -167,19 +167,41 @@ export default function App() {
   }
 
   if (route.type === "public_guide_reader") {
-    return <PublicGuideReaderPage slug={route.slug} />;
+    return (
+      <PublicGuideReaderPage
+        slug={route.slug}
+        versionSlug={route.versionSlug}
+      />
+    );
   }
 
   if (route.type === "public_guide_embed") {
-    return <PublicGuideReaderPage slug={route.slug} mode="embed" />;
+    return (
+      <PublicGuideReaderPage
+        slug={route.slug}
+        versionSlug={route.versionSlug}
+        mode="embed"
+      />
+    );
   }
 
   if (route.type === "public_interactive_demo_reader") {
-    return <PublicInteractiveDemoViewerPage slug={route.slug} />;
+    return (
+      <PublicInteractiveDemoViewerPage
+        slug={route.slug}
+        versionSlug={route.versionSlug}
+      />
+    );
   }
 
   if (route.type === "public_interactive_demo_embed") {
-    return <PublicInteractiveDemoViewerPage slug={route.slug} mode="embed" />;
+    return (
+      <PublicInteractiveDemoViewerPage
+        slug={route.slug}
+        versionSlug={route.versionSlug}
+        mode="embed"
+      />
+    );
   }
 
   if (route.type === "organization_invite_accept") {

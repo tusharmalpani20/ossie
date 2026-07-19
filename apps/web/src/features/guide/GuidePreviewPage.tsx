@@ -9,6 +9,7 @@ import {
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
+import { ArtifactPublishingPanel } from "../publish/ArtifactPublishingPanel";
 import {
   GuideScreenshotViewer,
   type GuideScreenshotViewerImage,
@@ -40,7 +41,11 @@ export type GuidePreviewPageProps = {
     projectVersionId?: string,
   ) => Promise<GuideMarkdownExport>;
   copyText?: (text: string) => Promise<void>;
-  downloadTextFile?: (filename: string, contents: string, mimeType: string) => Promise<void>;
+  downloadTextFile?: (
+    filename: string,
+    contents: string,
+    mimeType: string,
+  ) => Promise<void>;
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
@@ -62,25 +67,24 @@ const loadStateFromError = (error: unknown): LoadState => {
   return { status: "error" };
 };
 
-const sortBlocks = (blocks: GuideBlock[]) => (
-  [...blocks].sort((a, b) => a.block_index - b.block_index)
-);
+const sortBlocks = (blocks: GuideBlock[]) =>
+  [...blocks].sort((a, b) => a.block_index - b.block_index);
 
-const guideUrl = (projectId: string, guideId: string, versionSlug?: string) => (
-  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideId)}`
-);
+const guideUrl = (projectId: string, guideId: string, versionSlug?: string) =>
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideId)}`;
 
-const guidePreviewListUrl = (projectId: string, versionSlug?: string) => (
-  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides`
-);
+const guidePreviewListUrl = (projectId: string, versionSlug?: string) =>
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides`;
 
-const assetAltText = (asset: GuideSourceCaptureAsset, stepNumber: number) => (
-  asset.page_title ?? asset.file.original_name ?? `Step ${stepNumber} screenshot`
-);
+const assetAltText = (asset: GuideSourceCaptureAsset, stepNumber: number) =>
+  asset.page_title ??
+  asset.file.original_name ??
+  `Step ${stepNumber} screenshot`;
 
-const screenshotViewerImageId = (block: GuideBlock, asset: GuideSourceCaptureAsset) => (
-  `${block.id}:${asset.id}`
-);
+const screenshotViewerImageId = (
+  block: GuideBlock,
+  asset: GuideSourceCaptureAsset,
+) => `${block.id}:${asset.id}`;
 
 const defaultCopyText = async (text: string) => {
   await navigator.clipboard.writeText(text);
@@ -89,7 +93,7 @@ const defaultCopyText = async (text: string) => {
 const defaultDownloadTextFile = async (
   filename: string,
   contents: string,
-  mimeType: string
+  mimeType: string,
 ) => {
   const url = URL.createObjectURL(new Blob([contents], { type: mimeType }));
   const link = document.createElement("a");
@@ -106,8 +110,10 @@ export const GuidePreviewPage = ({
   projectId,
   projectVersionId,
   guideId,
-  loadDetail = (id, artifactId) => getGuideDetail(id, artifactId, projectVersionId),
-  exportMarkdown = (id, artifactId) => exportGuideMarkdown(id, artifactId, projectVersionId),
+  loadDetail = (id, artifactId) =>
+    getGuideDetail(id, artifactId, projectVersionId),
+  exportMarkdown = (id, artifactId) =>
+    exportGuideMarkdown(id, artifactId, projectVersionId),
   copyText = defaultCopyText,
   downloadTextFile = defaultDownloadTextFile,
   currentPath = currentBrowserPath(),
@@ -137,13 +143,18 @@ export const GuidePreviewPage = ({
     return () => {
       active = false;
     };
-  // Route identity intentionally controls refetching; the injected loader may be an inline test adapter.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Route identity intentionally controls refetching; the injected loader may be an inline test adapter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, projectVersionId, guideId]);
 
   if (state.status === "loading") {
     return (
-      <PortalShell projectId={projectId} guideId={guideId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        guideId={guideId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Loading guide preview...</div>
       </PortalShell>
     );
@@ -151,10 +162,17 @@ export const GuidePreviewPage = ({
 
   if (state.status === "unauthenticated") {
     return (
-      <PortalShell projectId={projectId} guideId={guideId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        guideId={guideId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Sign in to preview this guide.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>Sign in</a>
+          <a className={styles.stateLink} href={signInUrl(currentPath)}>
+            Sign in
+          </a>
         </div>
       </PortalShell>
     );
@@ -162,7 +180,12 @@ export const GuidePreviewPage = ({
 
   if (state.status === "not_found") {
     return (
-      <PortalShell projectId={projectId} guideId={guideId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        guideId={guideId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Guide was not found.</div>
       </PortalShell>
     );
@@ -170,7 +193,12 @@ export const GuidePreviewPage = ({
 
   if (state.status === "error") {
     return (
-      <PortalShell projectId={projectId} guideId={guideId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        guideId={guideId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Could not load guide preview.</div>
       </PortalShell>
     );
@@ -206,7 +234,11 @@ const PortalShell = ({
   navigate?: (path: string) => void;
 }) => (
   <div className={styles.page}>
-    <PortalTopbar context={`${projectId} / ${guideId} / preview`} performLogout={performLogout} navigate={navigate} />
+    <PortalTopbar
+      context={`${projectId} / ${guideId} / preview`}
+      performLogout={performLogout}
+      navigate={navigate}
+    />
     <main className={styles.main}>{children}</main>
   </div>
 );
@@ -226,35 +258,53 @@ const GuidePreviewView = ({
   detail: GuideDetail;
   projectId: string;
   guideId: string;
-  exportMarkdown: (projectId: string, guideId: string) => Promise<GuideMarkdownExport>;
+  exportMarkdown: (
+    projectId: string,
+    guideId: string,
+  ) => Promise<GuideMarkdownExport>;
   copyText: (text: string) => Promise<void>;
-  downloadTextFile: (filename: string, contents: string, mimeType: string) => Promise<void>;
+  downloadTextFile: (
+    filename: string,
+    contents: string,
+    mimeType: string,
+  ) => Promise<void>;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   canWrite: boolean;
   versionSlug?: string;
 }) => {
-  const sortedBlocks = useMemo(() => sortBlocks(detail.guide_blocks), [detail.guide_blocks]);
-  const [activeScreenshotId, setActiveScreenshotId] = useState<string | null>(null);
+  const sortedBlocks = useMemo(
+    () => sortBlocks(detail.guide_blocks),
+    [detail.guide_blocks],
+  );
+  const [activeScreenshotId, setActiveScreenshotId] = useState<string | null>(
+    null,
+  );
   const [notice, setNotice] = useState<string | null>(null);
-  const [busyAction, setBusyAction] = useState<"copy-markdown" | "download-markdown" | null>(null);
-  const assetsById = useMemo(() => new Map(
-    detail.source_capture_assets.map((asset) => [asset.id, asset])
-  ), [detail.source_capture_assets]);
-  const screenshotImages = useMemo(() => screenshotImagesFromBlocks(sortedBlocks, assetsById), [assetsById, sortedBlocks]);
+  const [busyAction, setBusyAction] = useState<
+    "copy-markdown" | "download-markdown" | null
+  >(null);
+  const assetsById = useMemo(
+    () =>
+      new Map(detail.source_capture_assets.map((asset) => [asset.id, asset])),
+    [detail.source_capture_assets],
+  );
+  const screenshotImages = useMemo(
+    () => screenshotImagesFromBlocks(sortedBlocks, assetsById),
+    [assetsById, sortedBlocks],
+  );
 
   useEffect(() => {
     if (
-      activeScreenshotId
-      && !screenshotImages.some((image) => image.id === activeScreenshotId)
+      activeScreenshotId &&
+      !screenshotImages.some((image) => image.id === activeScreenshotId)
     ) {
       setActiveScreenshotId(null);
     }
   }, [activeScreenshotId, screenshotImages]);
 
-  const exportCurrentMarkdown = async (): Promise<GuideMarkdownExport> => (
-    exportMarkdown(projectId, guideId)
-  );
+  const exportCurrentMarkdown = async (): Promise<GuideMarkdownExport> =>
+    exportMarkdown(projectId, guideId);
 
   const copyMarkdown = async () => {
     setBusyAction("copy-markdown");
@@ -277,7 +327,11 @@ const GuidePreviewView = ({
 
     try {
       const response = await exportCurrentMarkdown();
-      await downloadTextFile(response.filename, response.markdown, "text/markdown;charset=utf-8");
+      await downloadTextFile(
+        response.filename,
+        response.markdown,
+        "text/markdown;charset=utf-8",
+      );
       setNotice("Markdown downloaded.");
     } catch {
       setNotice("Could not export Markdown.");
@@ -287,13 +341,24 @@ const GuidePreviewView = ({
   };
 
   return (
-    <PortalShell projectId={projectId} guideId={guideId} performLogout={performLogout} navigate={navigate}>
+    <PortalShell
+      projectId={projectId}
+      guideId={guideId}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
       <section className={styles.header}>
         <div>
           <div className={styles.eyebrow}>Guide preview</div>
           <h1 className={styles.title}>{detail.edition.title}</h1>
-          {detail.edition.description ? <p className={styles.description}>{detail.edition.description}</p> : null}
-          <Badge variant={detail.edition.status === "draft" ? "warning" : "success"}>{detail.edition.status}</Badge>
+          {detail.edition.description ? (
+            <p className={styles.description}>{detail.edition.description}</p>
+          ) : null}
+          <Badge
+            variant={detail.edition.status === "draft" ? "warning" : "success"}
+          >
+            {detail.edition.status}
+          </Badge>
           {notice ? <div className={styles.notice}>{notice}</div> : null}
         </div>
         <div className={styles.actions}>
@@ -302,23 +367,55 @@ const GuidePreviewView = ({
             disabled={busyAction !== null}
             onClick={copyMarkdown}
           >
-            {busyAction === "copy-markdown" ? "Copying Markdown..." : "Copy Markdown"}
+            {busyAction === "copy-markdown"
+              ? "Copying Markdown..."
+              : "Copy Markdown"}
           </Button>
           <Button
             variant="secondary"
             disabled={busyAction !== null}
             onClick={downloadMarkdown}
           >
-            {busyAction === "download-markdown" ? "Downloading Markdown..." : "Download Markdown"}
+            {busyAction === "download-markdown"
+              ? "Downloading Markdown..."
+              : "Download Markdown"}
           </Button>
-          <a className={`${buttonVariants({ variant: "secondary" })} ${styles.actionLink}`} href={guidePreviewListUrl(projectId, versionSlug)}>Back to guides</a>
-          {canWrite ? <a className={`${buttonVariants({ variant: "primary" })} ${styles.actionLink}`} href={guideUrl(projectId, guideId, versionSlug)}>Edit guide</a> : <Badge>Read only</Badge>}
+          <a
+            className={`${buttonVariants({ variant: "secondary" })} ${styles.actionLink}`}
+            href={guidePreviewListUrl(projectId, versionSlug)}
+          >
+            Back to guides
+          </a>
+          {canWrite ? (
+            <a
+              className={`${buttonVariants({ variant: "primary" })} ${styles.actionLink}`}
+              href={guideUrl(projectId, guideId, versionSlug)}
+            >
+              Edit guide
+            </a>
+          ) : (
+            <Badge>Read only</Badge>
+          )}
         </div>
       </section>
 
+      {!canWrite && (
+        <ArtifactPublishingPanel
+          projectId={projectId}
+          projectVersionId={detail.edition.project_version_id}
+          artifactType="guide"
+          artifactId={guideId}
+          editionVersion={detail.edition.version}
+          workingDraftVersion={detail.working_draft.version}
+          showMutationControls={false}
+        />
+      )}
+
       <section className={styles.document} aria-label="Guide steps">
         {sortedBlocks.length === 0 ? (
-          <div className={styles.empty}>This guide does not have any blocks yet.</div>
+          <div className={styles.empty}>
+            This guide does not have any blocks yet.
+          </div>
         ) : (
           sortedBlocks.map((block) => (
             <GuidePreviewBlock
@@ -343,38 +440,50 @@ const GuidePreviewView = ({
 
 const assetForBlock = (
   block: GuideBlock,
-  assetsById: Map<string, GuideSourceCaptureAsset>
+  assetsById: Map<string, GuideSourceCaptureAsset>,
 ) => {
   const source_capture_asset_id = block.step?.display_capture_asset_id ?? null;
-  return source_capture_asset_id ? assetsById.get(source_capture_asset_id) : undefined;
+  return source_capture_asset_id
+    ? assetsById.get(source_capture_asset_id)
+    : undefined;
 };
 
-const annotationsFromBlock = (block: GuideBlock): GuideScreenshotAnnotation[] => (
-  block.step?.annotations.map((annotation) => ({ ...annotation, type: annotation.annotation_type })) ?? []
-);
+const annotationsFromBlock = (block: GuideBlock): GuideScreenshotAnnotation[] =>
+  block.step?.annotations.map((annotation) => ({
+    ...annotation,
+    type: annotation.annotation_type,
+  })) ?? [];
 
-const annotationPercent = (value: number) => `${Number((value * 100).toFixed(4))}%`;
+const annotationPercent = (value: number) =>
+  `${Number((value * 100).toFixed(4))}%`;
 
 const screenshotImagesFromBlocks = (
   blocks: GuideBlock[],
-  assetsById: Map<string, GuideSourceCaptureAsset>
-): GuideScreenshotViewerImage[] => blocks.flatMap((block) => {
-  const asset = assetForBlock(block, assetsById);
+  assetsById: Map<string, GuideSourceCaptureAsset>,
+): GuideScreenshotViewerImage[] =>
+  blocks.flatMap((block) => {
+    const asset = assetForBlock(block, assetsById);
 
-  if (block.block_type !== "step" || !block.step || !asset) {
-    return [];
-  }
+    if (block.block_type !== "step" || !block.step || !asset) {
+      return [];
+    }
 
-  const stepNumber = stepNumberForBlock(blocks, block);
+    const stepNumber = stepNumberForBlock(blocks, block);
 
-  return [{
-    id: screenshotViewerImageId(block, asset),
-    sourceAssetId: asset.id,
-    src: resolveApiAssetUrl(asset.file_url),
-    alt: assetAltText(asset, stepNumber),
-    title: block.step.title || asset.page_title || asset.file.original_name || `Step ${stepNumber} screenshot`,
-  }];
-});
+    return [
+      {
+        id: screenshotViewerImageId(block, asset),
+        sourceAssetId: asset.id,
+        src: resolveApiAssetUrl(asset.file_url),
+        alt: assetAltText(asset, stepNumber),
+        title:
+          block.step.title ||
+          asset.page_title ||
+          asset.file.original_name ||
+          `Step ${stepNumber} screenshot`,
+      },
+    ];
+  });
 
 const GuidePreviewBlock = ({
   block,
@@ -397,8 +506,12 @@ const GuidePreviewBlock = ({
 
   if (block.block_type === "tip" || block.block_type === "alert") {
     return (
-      <aside className={block.block_type === "alert" ? styles.alert : styles.tip}>
-        {block.title ? <h3 className={styles.calloutTitle}>{block.title}</h3> : null}
+      <aside
+        className={block.block_type === "alert" ? styles.alert : styles.tip}
+      >
+        {block.title ? (
+          <h3 className={styles.calloutTitle}>{block.title}</h3>
+        ) : null}
         {block.body ? <p className={styles.stepBody}>{block.body}</p> : null}
       </aside>
     );
@@ -421,7 +534,9 @@ const GuidePreviewBlock = ({
       <article className={styles.step}>
         <div className={styles.stepNumber}>{stepNumber}</div>
         <div className={styles.stepContent}>
-          <div className={styles.unsupported}>Unsupported guide block: {block.block_type}</div>
+          <div className={styles.unsupported}>
+            Unsupported guide block: {block.block_type}
+          </div>
         </div>
       </article>
     );
@@ -432,21 +547,27 @@ const GuidePreviewBlock = ({
       <div className={styles.stepNumber}>{stepNumber}</div>
       <div className={styles.stepContent}>
         <h2 className={styles.stepTitle}>{block.step.title}</h2>
-        {block.step.body ? <p className={styles.stepBody}>{block.step.body}</p> : null}
+        {block.step.body ? (
+          <p className={styles.stepBody}>{block.step.body}</p>
+        ) : null}
         {asset ? (
           <div className={styles.media}>
             <button
               className={styles.mediaButton}
               type="button"
               aria-label={`Open screenshot for step ${stepNumber}`}
-              onClick={() => onOpenScreenshot(screenshotViewerImageId(block, asset))}
+              onClick={() =>
+                onOpenScreenshot(screenshotViewerImageId(block, asset))
+              }
             >
               <img
                 className={styles.screenshot}
                 src={resolveApiAssetUrl(asset.file_url)}
                 alt={assetAltText(asset, stepNumber)}
               />
-              <ScreenshotAnnotationOverlay annotations={annotationsFromBlock(block)} />
+              <ScreenshotAnnotationOverlay
+                annotations={annotationsFromBlock(block)}
+              />
             </button>
           </div>
         ) : null}
@@ -483,8 +604,8 @@ const ScreenshotAnnotationOverlay = ({
   );
 };
 
-const stepNumberForBlock = (blocks: GuideBlock[], target: GuideBlock) => (
-  blocks
-    .filter((block) => block.block_type === "step" && block.block_index <= target.block_index)
-    .length
-);
+const stepNumberForBlock = (blocks: GuideBlock[], target: GuideBlock) =>
+  blocks.filter(
+    (block) =>
+      block.block_type === "step" && block.block_index <= target.block_index,
+  ).length;

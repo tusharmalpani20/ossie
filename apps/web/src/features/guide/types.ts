@@ -1,6 +1,4 @@
-import type {
-  GuideBlockType,
-} from "@repo/constants";
+import type { GuideBlockType } from "@repo/constants";
 import type { ProjectCaptureAssetListResponse } from "@repo/types/capture";
 import type {
   CreateGuideBlockInput,
@@ -18,20 +16,11 @@ import type {
   UploadGuideBlockScreenshotResponse,
 } from "@repo/types/guide";
 import type {
-  GuidePublishedArtifact,
-  GuidePublishLink,
-  GuidePublishResult,
-  GuidePublishStatusResponse,
-  GuidePublishVisibility,
-  GuideRevokePublishResult,
-  PublishedGuideSnapshot,
-  PublishedGuideSnapshotBlock,
-  PublishedSnapshotAsset,
+  PublishedArtifact,
+  PublishLink,
   PublicPublishedArtifact,
   PublicPublishLink,
   PublicPublishLinkResponse,
-  UpdatePublishAccessInput,
-  UpdatePublishPasswordInput,
 } from "@repo/types/publish";
 
 export type {
@@ -51,21 +40,19 @@ export type {
   UploadGuideBlockScreenshotResponse,
 };
 export type {
-  GuidePublishedArtifact,
-  GuidePublishLink,
-  GuidePublishResult,
-  GuidePublishStatusResponse,
-  GuidePublishVisibility,
-  GuideRevokePublishResult,
-  PublishedGuideSnapshot,
-  PublishedGuideSnapshotBlock,
   PublicPublishedArtifact,
   PublicPublishLink,
   PublicPublishLinkResponse,
 };
-export type PublishedGuideSnapshotAsset = PublishedSnapshotAsset;
+export type GuidePublishStatusResponse = {
+  publish_link: PublishLink | null;
+  published_artifact: PublishedArtifact | null;
+};
+export type GuidePublishResult = GuidePublishStatusResponse;
+export type GuideRevokePublishResult = { publish_link: PublishLink };
 
-export type ProjectScreenshotAssetListResponse = ProjectCaptureAssetListResponse;
+export type ProjectScreenshotAssetListResponse =
+  ProjectCaptureAssetListResponse;
 
 export type UploadGuideBlockScreenshotInput = {
   file: File;
@@ -78,5 +65,8 @@ export type UploadGuideBlockScreenshotInput = {
   metadata?: Record<string, unknown>;
 };
 
-export type UpdateGuidePublishAccessInput = UpdatePublishAccessInput;
-export type UpdateGuidePublishPasswordInput = UpdatePublishPasswordInput;
+export type UpdateGuidePublishAccessInput = {
+  visibility: "public" | "restricted";
+  expires_at: string | null;
+};
+export type UpdateGuidePublishPasswordInput = { password: string | null };

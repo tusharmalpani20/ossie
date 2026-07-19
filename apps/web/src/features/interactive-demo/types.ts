@@ -1,6 +1,4 @@
-import type {
-  DemoHotspotType,
-} from "@repo/constants";
+import type { DemoHotspotType } from "@repo/constants";
 import type {
   CreateDemoHotspotInput,
   CreateInteractiveDemoFromCaptureResponse,
@@ -21,16 +19,9 @@ import type {
   UpdateInteractiveDemoInput,
 } from "@repo/types/demo";
 import type {
-  InteractiveDemoPublishResult,
-  InteractiveDemoPublishStatusResponse,
-  PublishedInteractiveDemoSnapshot,
-  PublishedInteractiveDemoSnapshotHotspot,
-  PublishedInteractiveDemoSnapshotScene,
-  PublishedSnapshotAsset,
+  PublishedArtifact,
+  PublishLink,
   PublicPublishLinkResponse,
-  RevokePublishResult,
-  UpdatePublishAccessInput,
-  UpdatePublishPasswordInput,
 } from "@repo/types/publish";
 
 export type {
@@ -52,17 +43,16 @@ export type {
   UpdateDemoHotspotInput,
   UpdateDemoSceneInput,
   UpdateInteractiveDemoInput,
-  InteractiveDemoPublishResult,
-  InteractiveDemoPublishStatusResponse,
   PublicPublishLinkResponse,
-  RevokePublishResult,
-  UpdatePublishAccessInput,
-  UpdatePublishPasswordInput,
 };
-export type PublishedInteractiveDemoSnapshotAsset = PublishedSnapshotAsset;
-
-export type {
-  PublishedInteractiveDemoSnapshot,
-  PublishedInteractiveDemoSnapshotHotspot,
-  PublishedInteractiveDemoSnapshotScene,
+export type InteractiveDemoPublishStatusResponse = {
+  publish_link: PublishLink | null;
+  published_artifact: PublishedArtifact | null;
 };
+export type InteractiveDemoPublishResult = InteractiveDemoPublishStatusResponse;
+export type RevokePublishResult = { publish_link: PublishLink };
+export type UpdatePublishAccessInput = {
+  visibility: "public" | "restricted";
+  expires_at: string | null;
+};
+export type UpdatePublishPasswordInput = { password: string | null };

@@ -31,6 +31,7 @@ import {
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
+import { ArtifactPublishingPanel } from "../publish/ArtifactPublishingPanel";
 import {
   GuideScreenshotViewer,
   type GuideScreenshotViewerImage,
@@ -212,20 +213,6 @@ const defaultDownloadBlobFile = async (filename: string, blob: Blob) => {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-};
-
-const isDateAfter = (left: string, right: string) => {
-  const leftDate = new Date(left);
-  const rightDate = new Date(right);
-
-  if (
-    !Number.isFinite(leftDate.getTime()) ||
-    !Number.isFinite(rightDate.getTime())
-  ) {
-    return false;
-  }
-
-  return leftDate.getTime() > rightDate.getTime();
 };
 
 const publishErrorMessage = (error: unknown, fallback: string) => {
@@ -1248,6 +1235,20 @@ const GuideEditorView = ({
     null,
   );
   const readOnly = detail.edition.status !== "draft";
+  void [
+    publishState,
+    locallyStalePublish,
+    embedCopyFallback,
+    publishBusyAction,
+    onPublish,
+    onRevokePublish,
+    onUpdatePublishAccess,
+    onUpdatePublishPassword,
+    onCopyPublicLink,
+    onCopyEmbedCode,
+    onRetryPublishStatus,
+    isDefaultVersion,
+  ];
   const assetsById = useMemo(
     () =>
       new Map(detail.source_capture_assets.map((asset) => [asset.id, asset])),
@@ -1361,26 +1362,14 @@ const GuideEditorView = ({
 
       <div className={styles.content}>
         <div className={styles.panelStack}>
-          <PublishPanel
-            state={publishState}
-            readOnly={readOnly}
-            publishingDeferred={
-              !isDefaultVersion &&
-              publishState.status === "loaded" &&
-              !publishState.response.publish_link
-            }
-            canPublish={isDefaultVersion}
-            busyAction={publishBusyAction}
-            guideUpdatedAt={detail.edition.updated_at}
-            locallyStale={locallyStalePublish}
-            onPublish={onPublish}
-            onRevoke={onRevokePublish}
-            onUpdateAccess={onUpdatePublishAccess}
-            onUpdatePassword={onUpdatePublishPassword}
-            onCopyPublicLink={onCopyPublicLink}
-            onCopyEmbedCode={onCopyEmbedCode}
-            embedCopyFallback={embedCopyFallback}
-            onRetry={onRetryPublishStatus}
+          <ArtifactPublishingPanel
+            projectId={projectId}
+            projectVersionId={detail.edition.project_version_id}
+            artifactType="guide"
+            artifactId={guideId}
+            editionVersion={detail.edition.version}
+            workingDraftVersion={detail.working_draft.version}
+            publicationReadOnly={readOnly}
           />
           <section className={styles.panel} aria-labelledby="metadata-heading">
             <h2 className={styles.sectionTitle} id="metadata-heading">
@@ -1476,371 +1465,6 @@ const GuideEditorView = ({
         onClose={() => setActiveScreenshotId(null)}
       />
     </PortalShell>
-  );
-};
-
-const formatPublishedAt = (value: string) => {
-  const date = new Date(value);
-
-  if (!Number.isFinite(date.getTime())) {
-    return null;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(date);
-};
-
-const isExpiredPublishLink = (expiresAt: string | null) => {
-  if (!expiresAt) {
-    return false;
-  }
-
-  const timestamp = new Date(expiresAt).getTime();
-  return Number.isFinite(timestamp) && timestamp <= Date.now();
-};
-
-const formatExpiryInputValue = (expiresAt: string | null) => {
-  if (!expiresAt) {
-    return "";
-  }
-
-  const date = new Date(expiresAt);
-  if (!Number.isFinite(date.getTime())) {
-    return "";
-  }
-
-  const localDate = new Date(
-    date.getTime() - date.getTimezoneOffset() * 60_000,
-  );
-  return localDate.toISOString().slice(0, 16);
-};
-
-const expiryInputToIso = (value: string) => {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) {
-    return null;
-  }
-
-  return date.toISOString();
-};
-
-const PublishPanel = ({
-  state,
-  readOnly,
-  publishingDeferred,
-  canPublish,
-  busyAction,
-  guideUpdatedAt,
-  locallyStale,
-  onPublish,
-  onRevoke,
-  onUpdateAccess,
-  onUpdatePassword,
-  onCopyPublicLink,
-  onCopyEmbedCode,
-  embedCopyFallback,
-  onRetry,
-}: {
-  state: PublishState;
-  readOnly: boolean;
-  publishingDeferred: boolean;
-  canPublish: boolean;
-  busyAction: string | null;
-  guideUpdatedAt: string;
-  locallyStale: boolean;
-  onPublish: () => void;
-  onRevoke: () => void;
-  onUpdateAccess: (input: UpdateGuidePublishAccessInput) => void;
-  onUpdatePassword: (input: UpdateGuidePublishPasswordInput) => void;
-  onCopyPublicLink: (publicUrl: string) => void;
-  onCopyEmbedCode: (publicUrl: string) => void;
-  embedCopyFallback: string | null;
-  onRetry: () => void;
-}) => {
-  const [expiryInput, setExpiryInput] = useState("");
-  const [passwordInput, setPasswordInput] = useState("");
-  const isBusy = busyAction !== null;
-  const activeLink =
-    state.status === "loaded" &&
-    state.response.publish_link?.status === "active"
-      ? state.response.publish_link
-      : null;
-  const publishedArtifact =
-    state.status === "loaded" ? state.response.published_artifact : null;
-  const publishedAt = publishedArtifact
-    ? formatPublishedAt(publishedArtifact.published_at)
-    : null;
-  const stale = Boolean(
-    activeLink &&
-    publishedArtifact &&
-    (locallyStale ||
-      isDateAfter(guideUpdatedAt, publishedArtifact.published_at)),
-  );
-  const publishLabel =
-    isBusy && busyAction === "publish" ? "Publishing..." : "Publish guide";
-  const republishLabel =
-    isBusy && busyAction === "publish" ? "Republishing..." : "Republish";
-  const revokeLabel =
-    isBusy && busyAction === "revoke" ? "Revoking..." : "Revoke link";
-  const copyLabel =
-    isBusy && busyAction === "copy" ? "Copying..." : "Copy link";
-  const copyEmbedLabel =
-    isBusy && busyAction === "copy_embed" ? "Copying..." : "Copy embed code";
-  const accessLabel = isBusy && busyAction === "access" ? "Updating..." : null;
-  const passwordLabel =
-    isBusy && busyAction === "password"
-      ? "Updating..."
-      : activeLink?.password_protected
-        ? "Update password"
-        : "Set password";
-  const expired = activeLink
-    ? isExpiredPublishLink(activeLink.expires_at)
-    : false;
-  const canCopyEmbed = Boolean(
-    activeLink && activeLink.visibility === "public" && !expired,
-  );
-  const accessText =
-    activeLink?.visibility === "restricted"
-      ? "Public access is off"
-      : expired
-        ? "Public link has expired"
-        : "Public access is on";
-  const expiryDisplay = activeLink?.expires_at
-    ? formatPublishedAt(activeLink.expires_at)
-    : null;
-
-  return (
-    <section className={styles.panel} aria-labelledby="publishing-heading">
-      <h2 className={styles.sectionTitle} id="publishing-heading">
-        Publishing
-      </h2>
-      {state.status === "loading" ? (
-        <div className={styles.publishText}>Loading publishing status...</div>
-      ) : null}
-      {state.status === "error" ? (
-        <div className={styles.publishStack}>
-          <div className={styles.publishText}>
-            Could not load publishing status.
-          </div>
-          <Button variant="secondary" onClick={onRetry}>
-            Retry
-          </Button>
-        </div>
-      ) : null}
-      {state.status === "loaded" && !activeLink ? (
-        <div className={styles.publishStack}>
-          <div className={styles.publishText}>This guide is not published.</div>
-          {publishingDeferred ? (
-            <p className={styles.publishNote}>
-              Publishing from a named Project Version is deferred until
-              publication sequencing is available.
-            </p>
-          ) : (
-            <>
-              <p className={styles.publishNote}>
-                Publishing creates a public read-only snapshot.
-              </p>
-              <Button
-                disabled={readOnly || isBusy || !canPublish}
-                onClick={onPublish}
-              >
-                {publishLabel}
-              </Button>
-            </>
-          )}
-        </div>
-      ) : null}
-      {activeLink && publishedArtifact ? (
-        <div className={styles.publishStack}>
-          <div className={styles.publishText}>Public guide is live</div>
-          {publishedAt ? (
-            <div className={styles.publishNote}>
-              Published version {publishedArtifact.version_number} on{" "}
-              {publishedAt}
-            </div>
-          ) : (
-            <div className={styles.publishNote}>
-              Published version {publishedArtifact.version_number}
-            </div>
-          )}
-          {stale ? (
-            <div className={styles.staleNotice}>
-              Draft has changes not yet published.
-            </div>
-          ) : null}
-          <div className={styles.accessPanel}>
-            <div>
-              <div className={styles.publishText}>{accessText}</div>
-              <p className={styles.publishNote}>
-                {expiryDisplay
-                  ? `Expires on ${expiryDisplay}`
-                  : "No expiry is set."}
-              </p>
-            </div>
-            <div className={styles.publishActions}>
-              {activeLink.visibility === "public" ? (
-                <Button
-                  variant="secondary"
-                  disabled={readOnly || isBusy}
-                  onClick={() =>
-                    onUpdateAccess({
-                      visibility: "restricted",
-                      expires_at: null,
-                    })
-                  }
-                >
-                  {accessLabel ?? "Disable public access"}
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  disabled={readOnly || isBusy}
-                  onClick={() =>
-                    onUpdateAccess({ visibility: "public", expires_at: null })
-                  }
-                >
-                  {accessLabel ?? "Enable public access"}
-                </Button>
-              )}
-            </div>
-            <Label className={styles.compactField}>
-              <span>Expiry</span>
-              <Input
-                type="datetime-local"
-                value={
-                  expiryInput || formatExpiryInputValue(activeLink.expires_at)
-                }
-                disabled={readOnly || isBusy}
-                onChange={(event) => setExpiryInput(event.target.value)}
-              />
-            </Label>
-            <div className={styles.publishActions}>
-              <Button
-                variant="secondary"
-                disabled={
-                  readOnly || isBusy || !(expiryInput || activeLink.expires_at)
-                }
-                onClick={() => {
-                  onUpdateAccess({
-                    visibility: activeLink.visibility,
-                    expires_at: expiryInputToIso(
-                      expiryInput ||
-                        formatExpiryInputValue(activeLink.expires_at),
-                    ),
-                  });
-                  setExpiryInput("");
-                }}
-              >
-                {accessLabel ?? "Set expiry"}
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={readOnly || isBusy || !activeLink.expires_at}
-                onClick={() => {
-                  onUpdateAccess({
-                    visibility: activeLink.visibility,
-                    expires_at: null,
-                  });
-                  setExpiryInput("");
-                }}
-              >
-                Clear expiry
-              </Button>
-            </div>
-          </div>
-          <div className={styles.accessPanel}>
-            <div>
-              <div className={styles.publishText}>
-                {activeLink.password_protected
-                  ? "Password protection is on."
-                  : "Password protection is off."}
-              </div>
-              <p className={styles.publishNote}>
-                Updating the password requires existing viewers to unlock again.
-              </p>
-            </div>
-            <Label className={styles.compactField}>
-              <span>Publish link password</span>
-              <Input
-                type="password"
-                value={passwordInput}
-                disabled={readOnly || isBusy}
-                onChange={(event) => setPasswordInput(event.target.value)}
-              />
-            </Label>
-            <div className={styles.publishActions}>
-              <Button
-                variant="secondary"
-                disabled={readOnly || isBusy || passwordInput.length === 0}
-                onClick={() => {
-                  onUpdatePassword({ password: passwordInput });
-                  setPasswordInput("");
-                }}
-              >
-                {passwordLabel}
-              </Button>
-              {activeLink.password_protected ? (
-                <Button
-                  variant="secondary"
-                  disabled={readOnly || isBusy}
-                  onClick={() => {
-                    onUpdatePassword({ password: null });
-                    setPasswordInput("");
-                  }}
-                >
-                  Clear password
-                </Button>
-              ) : null}
-            </div>
-          </div>
-          <div className={styles.publicUrl}>{activeLink.public_url}</div>
-          <div className={styles.publishActions}>
-            <Button
-              variant="secondary"
-              disabled={isBusy}
-              onClick={() => onCopyPublicLink(activeLink.public_url)}
-            >
-              {copyLabel}
-            </Button>
-            {canCopyEmbed ? (
-              <Button
-                variant="secondary"
-                disabled={isBusy}
-                onClick={() => onCopyEmbedCode(activeLink.public_url)}
-              >
-                {copyEmbedLabel}
-              </Button>
-            ) : null}
-            <a
-              className={`${buttonVariants({ variant: "secondary" })} ${styles.previewLink}`}
-              href={activeLink.public_url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open public guide
-            </a>
-            {canPublish ? (
-              <Button disabled={readOnly || isBusy} onClick={onPublish}>
-                {republishLabel}
-              </Button>
-            ) : null}
-            <Button variant="destructive" disabled={isBusy} onClick={onRevoke}>
-              {revokeLabel}
-            </Button>
-          </div>
-          {embedCopyFallback ? (
-            <div className={styles.publicUrl}>{embedCopyFallback}</div>
-          ) : null}
-        </div>
-      ) : null}
-    </section>
   );
 };
 

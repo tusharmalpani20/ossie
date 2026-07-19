@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { DEMO_HOTSPOT_TYPES, PUBLISH_VISIBILITIES } from "@repo/constants";
+import { DEMO_HOTSPOT_TYPES } from "@repo/constants";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent } from "@repo/ui/card";
@@ -40,6 +40,7 @@ import {
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
+import { ArtifactPublishingPanel } from "../publish/ArtifactPublishingPanel";
 import {
   absolutePortalUrl,
   demoDraftFromDemo,
@@ -499,6 +500,17 @@ export const InteractiveDemoEditorPage = ({
             ) : null}
           </div>
         </section>
+        <ArtifactPublishingPanel
+          projectId={projectId}
+          projectVersionId={state.demo.project_version_id}
+          artifactType="interactive_demo"
+          artifactId={interactiveDemoId}
+          editionVersion={state.demo.version}
+          workingDraftVersion={workingDraftVersion}
+          publicationReadOnly
+          linkManagementReadOnly={!canWrite}
+          showMutationControls={canWrite}
+        />
         <section aria-labelledby="demo-scenes-readonly-heading">
           <h2 id="demo-scenes-readonly-heading" className={styles.sectionTitle}>
             Scenes
@@ -1190,6 +1202,17 @@ const InteractiveDemoEditorLoaded = ({
   const embedCode = activePublishLink
     ? iframeEmbedCode(embedDemoUrl, demo.title)
     : "";
+  void [
+    isDefaultVersion,
+    updatePublishDraft,
+    handlePublishDemo,
+    handleSavePublishAccess,
+    handleSavePublishPassword,
+    handleRevokePublishLink,
+    handleCopyText,
+    publicDemoUrl,
+    embedCode,
+  ];
 
   return (
     <PortalShell
@@ -1282,144 +1305,15 @@ const InteractiveDemoEditorLoaded = ({
             {message ? <div className={styles.message}>{message}</div> : null}
           </section>
 
-          <section
-            className={styles.panel}
-            aria-labelledby="demo-publishing-heading"
-          >
-            <h2 className={styles.sectionTitle} id="demo-publishing-heading">
-              Publishing
-            </h2>
-            <div className={styles.publishStack}>
-              {activePublishLink ? (
-                <>
-                  <Label className={styles.field}>
-                    Public demo URL
-                    <Input readOnly value={publicDemoUrl} />
-                  </Label>
-                  <a
-                    className={styles.sourceLink}
-                    href={publicDemoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open public demo
-                  </a>
-                  <Button
-                    variant="secondary"
-                    disabled={pendingAction === "publish:copy"}
-                    onClick={() =>
-                      void handleCopyText(
-                        publicDemoUrl,
-                        "Public demo URL copied.",
-                      )
-                    }
-                  >
-                    Copy public demo URL
-                  </Button>
-                  <Label className={styles.field}>
-                    Embed demo URL
-                    <Input readOnly value={embedDemoUrl} />
-                  </Label>
-                  <Label className={styles.field}>
-                    Embed iframe code
-                    <Textarea readOnly value={embedCode} />
-                  </Label>
-                  <Button
-                    variant="secondary"
-                    disabled={pendingAction === "publish:copy"}
-                    onClick={() =>
-                      void handleCopyText(
-                        embedCode,
-                        "Embed iframe code copied.",
-                      )
-                    }
-                  >
-                    Copy embed iframe code
-                  </Button>
-                  <Label className={styles.field}>
-                    Publish visibility
-                    <Select
-                      value={publishDraft.visibility}
-                      onChange={(event) =>
-                        updatePublishDraft(
-                          "visibility",
-                          event.target.value as PublishDraft["visibility"],
-                        )
-                      }
-                    >
-                      {PUBLISH_VISIBILITIES.map((visibility) => (
-                        <option key={visibility} value={visibility}>
-                          {visibility}
-                        </option>
-                      ))}
-                    </Select>
-                  </Label>
-                  <Label className={styles.field}>
-                    Publish expiry
-                    <Input
-                      type="datetime-local"
-                      value={publishDraft.expires_at}
-                      onChange={(event) =>
-                        updatePublishDraft("expires_at", event.target.value)
-                      }
-                    />
-                  </Label>
-                  <Label className={styles.field}>
-                    Publish password
-                    <Input
-                      type="password"
-                      value={publishDraft.password}
-                      placeholder={
-                        activePublishLink.password_protected
-                          ? "Password is set"
-                          : "No password set"
-                      }
-                      onChange={(event) =>
-                        updatePublishDraft("password", event.target.value)
-                      }
-                    />
-                  </Label>
-                  <div className={styles.publishActions}>
-                    <Button
-                      variant="secondary"
-                      disabled={pendingAction === "publish:access"}
-                      onClick={() => void handleSavePublishAccess()}
-                    >
-                      Save publish access
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      disabled={pendingAction === "publish:password"}
-                      onClick={() => void handleSavePublishPassword()}
-                    >
-                      Save publish password
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      disabled={pendingAction === "publish:revoke"}
-                      onClick={() => void handleRevokePublishLink()}
-                    >
-                      Revoke demo link
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <p className={styles.publishNote}>
-                  {isDefaultVersion
-                    ? "This demo has not been published yet."
-                    : "Publishing from a named Project Version is deferred until publication sequencing is available."}
-                </p>
-              )}
-              {isDefaultVersion ? (
-                <Button
-                  disabled={pendingAction === "publish"}
-                  onClick={() => void handlePublishDemo()}
-                >
-                  Publish demo
-                </Button>
-              ) : null}
-            </div>
-          </section>
+          <ArtifactPublishingPanel
+            projectId={projectId}
+            projectVersionId={demo.project_version_id}
+            artifactType="interactive_demo"
+            artifactId={interactiveDemoId}
+            editionVersion={demo.version}
+            workingDraftVersion={workingDraftVersion}
+            publicationReadOnly={demo.status === "archived"}
+          />
         </div>
 
         <section aria-labelledby="demo-scenes-heading">
