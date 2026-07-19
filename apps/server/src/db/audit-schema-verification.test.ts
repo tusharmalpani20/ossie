@@ -36,6 +36,15 @@ describe("Audit schema verification", () => {
     expect(pool.query.mock.calls[0]?.[0]).toContain(
       "mutation_command_policy_is_valid",
     );
+    expect(pool.query.mock.calls[0]?.[0]).toContain(
+      "require_delete_mutation_context",
+    );
+    expect(pool.query.mock.calls[0]?.[0]).toContain(
+      "verify_delete_mutation_evidence",
+    );
+    expect(pool.query.mock.calls[0]?.[0]).toContain(
+      "WHEN 'DELETE' THEN trigger.tgtype & 8",
+    );
     expect(pool.query.mock.calls[0]?.[0]).toContain("has_function_privilege");
     expect(pool.query.mock.calls[0]?.[1]?.slice(0, 2)).toEqual([
       "runtime",
@@ -43,6 +52,9 @@ describe("Audit schema verification", () => {
     ]);
     expect(pool.query.mock.calls[0]?.[1]?.[2]).toContain(
       "public_publish_viewer_session",
+    );
+    expect(pool.query.mock.calls[0]?.[1]?.[2]).toContain(
+      '"context_trigger":"publish_link_entry_d_audit_ctx"',
     );
   });
 
@@ -269,6 +281,13 @@ describe("Audit schema verification", () => {
     expect(pool.query.mock.calls.at(-1)?.[0]).toContain(
       "publish_link_entry_manifest_guard",
     );
+    expect(
+      pool.query.mock.calls.some(
+        ([sql, values]) =>
+          sql.includes("published_artifact_capture_asset") &&
+          values?.[2] === false,
+      ),
+    ).toBe(true);
 
     const source = readFileSync(
       new URL("./migrate.ts", import.meta.url),

@@ -271,7 +271,7 @@ describe("DB-backed relational Publication API", () => {
       url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish-links?project_version_id=${project_version_id}&status=active`,
       cookies: { ossie_session: session_token },
     });
-    expect(links.statusCode).toBe(200);
+    expect(links.statusCode, links.body).toBe(200);
     expect(links.json().publish_links).toHaveLength(2);
     expect(
       links
@@ -308,7 +308,7 @@ describe("DB-backed relational Publication API", () => {
       method: "GET",
       url: `/api/v1/public/publish-links/${slug}?artifact_type=guide`,
     });
-    expect(revoked.statusCode).toBe(404);
+    expect(revoked.statusCode, revoked.body).toBe(404);
 
     await app.close();
   }, 30_000);

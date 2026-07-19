@@ -437,12 +437,12 @@ DROP FUNCTION capture_schema.enforce_capture_asset_purge_request();
 DROP FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT,TEXT,TEXT,TEXT);
 ALTER FUNCTION audit_schema.mutation_command_policy_is_valid_v023(TEXT,TEXT,TEXT,TEXT)
   RENAME TO mutation_command_policy_is_valid;
-DROP FUNCTION audit_schema.verify_delete_mutation_evidence();
-DROP FUNCTION audit_schema.require_delete_mutation_context();
 DROP TABLE publish_schema.public_publish_viewer_session;
 DROP TABLE publish_schema.publish_link_entry;
 DROP TABLE publish_schema.publish_link;
 DROP TABLE publish_schema.published_artifact;
+DROP FUNCTION audit_schema.verify_delete_mutation_evidence();
+DROP FUNCTION audit_schema.require_delete_mutation_context();
 DROP FUNCTION publish_schema.verify_publish_link_manifest();
 DROP FUNCTION publish_schema.enforce_publish_link_entry_write();
 DROP FUNCTION publish_schema.enforce_publish_link_mutation();

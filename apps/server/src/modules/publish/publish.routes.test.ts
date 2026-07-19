@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import { describe, expect, it, vi } from "vitest";
+import { PublishLinkNotFoundError } from "@repo/publish-domain";
 import {
   build_publish_routes,
   type PublishRouteDependencies,
@@ -67,6 +68,25 @@ describe("relational publication routes", () => {
       (await app.inject({ url: "/api/v1/public/publish-links/slug_1" }))
         .statusCode,
     ).toBe(400);
+    await app.close();
+  });
+  it("returns a non-revealing 404 when a public Publish Link is unavailable", async () => {
+    const app = Fastify();
+    await app.register(
+      build_publish_routes({
+        auth_service: {} as never,
+        publish_service: {
+          resolve_public_publish_link: vi.fn(async () => {
+            throw new PublishLinkNotFoundError();
+          }),
+        } as never,
+      } as PublishRouteDependencies),
+      { prefix: "/api/v1" },
+    );
+    const response = await app.inject({
+      url: "/api/v1/public/publish-links/missing?artifact_type=guide",
+    });
+    expect(response.statusCode, response.body).toBe(404);
     await app.close();
   });
 });

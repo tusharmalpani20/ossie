@@ -7,6 +7,7 @@ import {
   CreatePublishLinkRequestSchema,
   CreatePublicViewerSessionRequestSchema,
   PublicationHistoryQuerySchema,
+  PublicationVersionQuerySchema,
   PublishArtifactRequestSchema,
   PublishLinkListQuerySchema,
   PublicPublishLinkQuerySchema,
@@ -78,6 +79,11 @@ const invalid = (reply: FastifyReply) =>
   reply
     .status(400)
     .send(error_response("invalid_request", "Request is invalid"));
+const has_error_code = (error: unknown, code: string) =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  error.code === code;
 
 export const build_publish_routes =
   (dependencies: PublishRouteDependencies): FastifyPluginAsync =>
@@ -141,7 +147,10 @@ export const build_publish_routes =
               "Publish Link is restricted",
             ),
           );
-      if (error instanceof PublishLinkNotFoundError)
+      if (
+        error instanceof PublishLinkNotFoundError ||
+        has_error_code(error, "publish_link_not_found")
+      )
         return reply
           .status(404)
           .send(
@@ -211,9 +220,9 @@ export const build_publish_routes =
       },
       type: "guide" | "interactive_demo",
     ) => {
-      const query = PublicationHistoryQuerySchema.pick({
-        project_version_id: true,
-      }).safeParse(request.query);
+      const query = PublicationVersionQuerySchema.passthrough().safeParse(
+        request.query,
+      );
       if (!query.success) return null;
       return {
         auth: await require_auth(request.cookies?.[web_session_cookie_name]),
@@ -430,11 +439,11 @@ export const build_publish_routes =
         const query = public_query(request.query);
         if (!query.success) return invalid(reply);
         const p = request.params as PublicParams;
-        return dependencies.publish_service.resolve_public_publish_link({
+        return await dependencies.publish_service.resolve_public_publish_link({
           slug: p.slug,
           artifact_type: query.data.artifact_type,
           version_slug: null,
-          viewer_token: request.cookies[public_viewer_cookie_name],
+          viewer_token: request.cookies?.[public_viewer_cookie_name],
         });
       } catch (e) {
         return handle(e, reply);
@@ -447,12 +456,14 @@ export const build_publish_routes =
           const query = public_query(request.query);
           if (!query.success) return invalid(reply);
           const p = request.params as PublicParams;
-          return dependencies.publish_service.resolve_public_publish_link({
-            slug: p.slug,
-            artifact_type: query.data.artifact_type,
-            version_slug: p.version_slug!,
-            viewer_token: request.cookies[public_viewer_cookie_name],
-          });
+          return await dependencies.publish_service.resolve_public_publish_link(
+            {
+              slug: p.slug,
+              artifact_type: query.data.artifact_type,
+              version_slug: p.version_slug!,
+              viewer_token: request.cookies?.[public_viewer_cookie_name],
+            },
+          );
         } catch (e) {
           return handle(e, reply);
         }
@@ -495,7 +506,7 @@ export const build_publish_routes =
               artifact_type: query.data.artifact_type,
               version_slug: p.version_slug!,
               capture_asset_id: p.capture_asset_id!,
-              viewer_token: request.cookies[public_viewer_cookie_name],
+              viewer_token: request.cookies?.[public_viewer_cookie_name],
             });
           reply
             .header("content-type", file.mime_type)

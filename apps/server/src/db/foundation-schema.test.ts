@@ -453,5 +453,12 @@ describe("foundation schema migrations", () => {
       "Refusing to roll back populated Revision-backed Publication schema",
     );
     expect(down).toContain("snapshot_json JSONB NOT NULL");
+    expect(
+      down.indexOf("DROP TABLE publish_schema.publish_link_entry"),
+    ).toBeLessThan(
+      down.indexOf(
+        "DROP FUNCTION audit_schema.verify_delete_mutation_evidence",
+      ),
+    );
   });
 });

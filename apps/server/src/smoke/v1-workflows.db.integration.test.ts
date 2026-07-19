@@ -505,7 +505,6 @@ describe("v1 dogfood smoke workflow", () => {
       revision: { title: "Create department workflow" },
       demo_scenes: [
         {
-          id: scene_id,
           background_capture_asset_id: capture_asset_id,
           hotspots: [
             {
@@ -516,6 +515,9 @@ describe("v1 dogfood smoke workflow", () => {
         },
       ],
     });
+    expect(
+      public_demo_response.json().published_artifact.demo_scenes[0].id,
+    ).not.toBe(scene_id);
     expect(JSON.stringify(public_demo_response.json())).not.toContain(
       "storage_key",
     );
@@ -552,7 +554,7 @@ describe("v1 dogfood smoke workflow", () => {
     );
     const archived_public_asset_response = await app.inject({
       method: "GET",
-      url: `/api/v1/public/publish-links/${guide_slug}/assets/${capture_asset_id}/file`,
+      url: `/api/v1/public/publish-links/${guide_slug}/versions/${project_version_slug}/assets/${capture_asset_id}/file?artifact_type=guide`,
     });
     expect(archived_public_asset_response.statusCode).toBe(200);
     expect(archived_public_asset_response.rawPayload).toEqual(bytes);

@@ -145,7 +145,12 @@ export const verify_audit_schema = async (
           existing.commands.push(registration.command);
         continue;
       }
-      const operation_short = write.sql_operation === "INSERT" ? "i" : "u";
+      const operation_short =
+        write.sql_operation === "INSERT"
+          ? "i"
+          : write.sql_operation === "DELETE"
+            ? "d"
+            : "u";
       guards.set(key, {
         schema_name,
         table_name,
@@ -239,12 +244,22 @@ export const verify_audit_schema = async (
       WHERE trigger.tgname = guard.context_trigger
         AND namespace.nspname = guard.schema_name
         AND class.relname = guard.table_name
-        AND procedure.proname = 'require_mutation_context'
+        AND procedure.proname = CASE guard.sql_operation
+          WHEN 'DELETE' THEN 'require_delete_mutation_context'
+          ELSE 'require_mutation_context'
+        END
         AND NOT trigger.tgisinternal AND trigger.tgconstraint = 0
         AND (trigger.tgtype & 1) = 1 AND (trigger.tgtype & 2) = 2
-        AND (CASE guard.sql_operation WHEN 'INSERT' THEN trigger.tgtype & 4 ELSE trigger.tgtype & 16 END) <> 0
-        AND encode(trigger.tgargs, 'escape') = guard.entity_type || E'\\\\000'
-          || guard.tenant_mode || E'\\\\000' || guard.commands || E'\\\\000'
+        AND (CASE guard.sql_operation
+          WHEN 'INSERT' THEN trigger.tgtype & 4
+          WHEN 'DELETE' THEN trigger.tgtype & 8
+          ELSE trigger.tgtype & 16
+        END) <> 0
+        AND encode(trigger.tgargs, 'escape') = CASE guard.sql_operation
+          WHEN 'DELETE' THEN guard.entity_type || E'\\\\000' || guard.commands || E'\\\\000'
+          ELSE guard.entity_type || E'\\\\000' || guard.tenant_mode || E'\\\\000'
+            || guard.commands || E'\\\\000'
+        END
     ) OR NOT EXISTS (
       SELECT 1
       FROM pg_trigger trigger
@@ -255,13 +270,23 @@ export const verify_audit_schema = async (
       WHERE trigger.tgname = guard.evidence_trigger
         AND namespace.nspname = guard.schema_name
         AND class.relname = guard.table_name
-        AND procedure.proname = 'verify_mutation_evidence'
+        AND procedure.proname = CASE guard.sql_operation
+          WHEN 'DELETE' THEN 'verify_delete_mutation_evidence'
+          ELSE 'verify_mutation_evidence'
+        END
         AND NOT trigger.tgisinternal AND trigger.tgconstraint <> 0
         AND constraint_record.condeferrable AND constraint_record.condeferred
         AND (trigger.tgtype & 1) = 1 AND (trigger.tgtype & 2) = 0
-        AND (CASE guard.sql_operation WHEN 'INSERT' THEN trigger.tgtype & 4 ELSE trigger.tgtype & 16 END) <> 0
-        AND encode(trigger.tgargs, 'escape') = guard.entity_type || E'\\\\000'
-          || guard.tenant_mode || E'\\\\000' || guard.commands || E'\\\\000'
+        AND (CASE guard.sql_operation
+          WHEN 'INSERT' THEN trigger.tgtype & 4
+          WHEN 'DELETE' THEN trigger.tgtype & 8
+          ELSE trigger.tgtype & 16
+        END) <> 0
+        AND encode(trigger.tgargs, 'escape') = CASE guard.sql_operation
+          WHEN 'DELETE' THEN guard.entity_type || E'\\\\000'
+          ELSE guard.entity_type || E'\\\\000' || guard.tenant_mode || E'\\\\000'
+            || guard.commands || E'\\\\000'
+        END
     )
     UNION ALL
     SELECT 'index:' || expected.name
@@ -728,6 +753,7 @@ export const verify_artifact_edition_schema = async (
 export const verify_artifact_revision_schema = async (
   pool: VerificationPool,
   roles: { runtime_role: string; maintenance_role: string },
+  publication_projection_expected = true,
 ) => {
   await verify_artifact_edition_schema(pool, roles);
   const result = await pool.query<{ issue: string }>(
@@ -741,6 +767,9 @@ export const verify_artifact_revision_schema = async (
       ('project_schema','artifact_carry_forward_item'),('guide_schema','guide_carry_forward_item'),
       ('interactive_demo_schema','interactive_demo_carry_forward_item'),('capture_schema','capture_asset_purge_operation'),
       ('publish_schema','published_artifact_capture_asset')
+    ), checked_tables AS (
+      SELECT * FROM expected_tables
+      WHERE table_name <> 'published_artifact_capture_asset' OR $3::boolean
     ), expected_triggers(name) AS (VALUES ('capture_asset_purge_request_guard'),('capture_asset_lifecycle_guard'),
       ('file_purge_guard'),('guide_step_asset_lifecycle_guard'),('demo_scene_asset_lifecycle_guard'),
       ('guide_edition_lineage_guard'),('interactive_demo_edition_lineage_guard'),('guide_revision_block_shape_guard'),
@@ -748,7 +777,7 @@ export const verify_artifact_revision_schema = async (
     ), expected_functions(signature) AS (VALUES ('project_schema.prevent_immutable_revision_mutation()'),
       ('project_schema.enforce_artifact_edition_lineage()'),('capture_schema.enforce_capture_asset_reference_lifecycle()'),
       ('capture_schema.enforce_capture_asset_lifecycle_mutation()'),('capture_schema.enforce_capture_asset_purge_request()'))
-    SELECT 'table:'||schema_name||'.'||table_name FROM expected_tables
+    SELECT 'table:'||schema_name||'.'||table_name FROM checked_tables
       WHERE to_regclass(schema_name||'.'||table_name) IS NULL
     UNION ALL SELECT 'trigger:'||name FROM expected_triggers WHERE NOT EXISTS(
       SELECT 1 FROM pg_trigger WHERE tgname=name AND NOT tgisinternal)
@@ -757,15 +786,19 @@ export const verify_artifact_revision_schema = async (
       WHERE table_name IN ('guide_revision','guide_revision_block','guide_revision_step','guide_revision_annotation',
         'interactive_demo_revision','demo_revision_scene','demo_revision_hotspot','demo_revision_transition',
         'artifact_carry_forward','artifact_carry_forward_item') AND data_type IN ('json','jsonb'))
-    UNION ALL SELECT 'privilege:'||schema_name||'.'||table_name||':SELECT:true' FROM expected_tables
+    UNION ALL SELECT 'privilege:'||schema_name||'.'||table_name||':SELECT:true' FROM checked_tables
       WHERE has_table_privilege($1::text,schema_name||'.'||table_name,'SELECT') IS DISTINCT FROM TRUE
-    UNION ALL SELECT 'privilege:'||schema_name||'.'||table_name||':DELETE:false' FROM expected_tables
+    UNION ALL SELECT 'privilege:'||schema_name||'.'||table_name||':DELETE:false' FROM checked_tables
       WHERE has_table_privilege($1::text,schema_name||'.'||table_name,'DELETE')
-    UNION ALL SELECT 'owner:'||schema_name||'.'||table_name||':maintenance' FROM expected_tables expected
+    UNION ALL SELECT 'owner:'||schema_name||'.'||table_name||':maintenance' FROM checked_tables expected
       WHERE NOT EXISTS(SELECT 1 FROM pg_class class JOIN pg_namespace namespace ON namespace.oid=class.relnamespace
         WHERE namespace.nspname=expected.schema_name AND class.relname=expected.table_name AND pg_get_userbyid(class.relowner)=$2::text)
     ORDER BY 1`,
-    [roles.runtime_role, roles.maintenance_role],
+    [
+      roles.runtime_role,
+      roles.maintenance_role,
+      publication_projection_expected,
+    ],
   );
   return throw_verification_issues(result.rows);
 };
@@ -774,7 +807,7 @@ export const verify_publication_schema = async (
   pool: VerificationPool,
   roles: { runtime_role: string; maintenance_role: string },
 ) => {
-  await verify_artifact_revision_schema(pool, roles);
+  await verify_artifact_revision_schema(pool, roles, false);
   const result = await pool.query<{ issue: string }>(
     `
     WITH expected_tables(name) AS (VALUES ('published_artifact'),('publish_link'),('publish_link_entry'),('public_publish_viewer_session'))
