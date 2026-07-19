@@ -2,8 +2,8 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `116` are complete. Child `117`
-Capture Source Version Scoping is the next executable child.
+Status: In progress. Children `109` through `117` are complete. Child `118`
+Guide And Demo Edition And Working Draft Relational Foundation is next.
 
 Master plan number: 005.
 
@@ -86,7 +86,7 @@ Baseline reviewed on 2026-07-10:
 - Child `109` installed the accepted external design guidance as pinned, optional repository tooling and documented provenance, compatibility changes, update/removal procedure, and rejected sources in `docs/agent-workflow.md`. It remains outside application dependencies and runtime behavior.
 - The current UI works at alpha level but does not yet provide the consistency, hierarchy, density, responsive behavior, accessibility, or navigation expected from a daily internal tool.
 - Master plans `001` through `004` are complete. Children `109` through `116`
-  are complete; child `117` Capture Source Version Scoping is next.
+  are complete through child `117`; child `118` is next.
   The
   optional overnight-runner tooling checkpoint was deferred on 2026-07-19 and
   is not a gate for sequential child execution.
@@ -1091,7 +1091,7 @@ Acceptance:
 
 ### 117: Capture Source Version Scoping
 
-Status: Not started.
+Status: Complete (2026-07-19).
 
 Planned file:
 
@@ -1889,7 +1889,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `114`.
 - [x] Create, expand, recheck, implement, and close child plan `115`.
 - [x] Create, expand, recheck, implement, and close child plan `116`.
-- [ ] Create, expand, recheck, implement, and close child plan `117`.
+- [x] Create, expand, recheck, implement, and close child plan `117`.
 - [ ] Create, expand, recheck, implement, and close child plan `118`.
 - [ ] Create, expand, recheck, implement, and close child plan `119`.
 - [ ] Create, expand, recheck, implement, and close child plan `120`.

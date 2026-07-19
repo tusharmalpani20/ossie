@@ -6,8 +6,9 @@ Date expanded: 2026-07-19
 
 Date rechecked: 2026-07-19
 
-Status: Expanded, rechecked, and implementation-ready. Runtime implementation
-has not started.
+Status: Complete. Implemented and verified on 2026-07-19. Automated gates pass;
+live browser validation is partially blocked by the pre-existing concurrent
+auth-session Audit transition defect recorded below.
 
 Parent plan:
 
@@ -1206,20 +1207,20 @@ or screenshots containing non-synthetic data.
 
 ### Implementation
 
-- [ ] Shared red tests establish explicit ownership contracts.
-- [ ] Migration `021` and reset/reseed behavior pass.
-- [ ] Composite tenant/project/session constraints pass.
-- [ ] Provenance lock and concurrency serialization pass.
-- [ ] Capture Session create/list/read/reassign/complete contracts pass.
-- [ ] Event/Asset derived Version lifecycle enforcement passes.
-- [ ] Audit/Access registry and database evidence guards pass.
-- [ ] Portal named/archived Version Capture workflows pass.
-- [ ] Extension selection/recovery/active Capture semantics pass.
-- [ ] Temporary Guide/Demo generation guard passes with no partial writes.
-- [ ] Focused, DB, smoke, broad build/lint/format checks pass.
-- [ ] Required browser evidence passes or is honestly recorded blocked where the
+- [x] Shared red tests establish explicit ownership contracts.
+- [x] Migration `021` and reset/reseed behavior pass.
+- [x] Composite tenant/project/session constraints pass.
+- [x] Provenance lock and concurrency serialization pass.
+- [x] Capture Session create/list/read/reassign/complete contracts pass.
+- [x] Event/Asset derived Version lifecycle enforcement passes.
+- [x] Audit/Access registry and database evidence guards pass.
+- [x] Portal named/archived Version Capture workflows pass.
+- [x] Extension selection/recovery/active Capture semantics pass.
+- [x] Temporary Guide/Demo generation guard passes with no partial writes.
+- [x] Focused, DB, smoke, broad build/lint/format checks pass.
+- [x] Required browser evidence passes or is honestly recorded blocked where the
       environment cannot provide the capability.
-- [ ] This child and master `005` are closed together only after every acceptance
+- [x] This child and master `005` are closed together only after every acceptance
       criterion is satisfied.
 
 ## Acceptance Criteria
@@ -1296,6 +1297,26 @@ Implementation-readiness recheck on 2026-07-19:
 - found no unresolved critical product/domain decision and made no runtime or
   parent completion change.
 
+Runtime implementation on 2026-07-19:
+
+- added shared Capture Session ownership/list/reassignment contracts and
+  canonical Version-aware completion links;
+- added migration `021` with mandatory composite Project Version ownership,
+  child Event/Asset scope constraints, active-Version write guards, advisory-
+  first provenance locking, empty-draft reassignment, Audit command policy, and
+  refusal-based pre-live migration/rollback behavior;
+- updated Capture repositories, services, routes, Audit/Access coverage, Project
+  Activity, project-wide screenshot filtering, and the temporary Default-only
+  Guide/Demo generation seam;
+- added portal Version-scoped list/create/detail routing, ownership display,
+  eligible empty-draft reassignment, canonical correction, named-Version
+  read-only generation messaging, and Guide picker filtering;
+- added extension request ownership plus selected and active Project Version
+  snapshots so popup restoration and portal links do not follow a changed
+  Default;
+- committed the implementation as `247e90a`, `fa252d0`, `4f6b7c0`, `3d251d5`,
+  and focused DB/smoke fixture follow-up `3e04eac`.
+
 ## Verification Record
 
 Planning verification only:
@@ -1319,23 +1340,30 @@ docs/plan/117-capture-source-version-scoping.md` and
 - implementation tests, database verification, smoke, builds, and browser
   validation were not run because the user explicitly requested planning only.
 
+Implementation verification on 2026-07-19:
+
+- clean reset and migrations `001` through `021` applied; Audit schema verifier
+  reported ready;
+- foundation schema DB suite: 13/13 passed;
+- focused DB Capture creation/list/update/delete and audited Project Version
+  reassignment passed, including the safe `project_version_id` Change Item;
+- all DB integration files passed sequentially against the disposable test
+  database after updating explicit Version fixtures; the end-to-end smoke path
+  passed through Capture, Guide, Demo, publish, and membership workflows;
+- server unit/integration (non-DB): 433/433; portal: 327/327; extension: 93/93;
+- server, portal, and extension type checks, lint, and production builds passed;
+  `rtk git diff --check` passed;
+- agent-browser authenticated against the synthetic test instance and verified
+  Project and Project Version workspace/selector rendering. Loading the Capture
+  collection was blocked by concurrent protected reads exposing the existing
+  `invalid_audit_transition` defect in
+  `apps/server/src/modules/authentication/session.audit.ts`; no 117 browser
+  screenshot or success claim was manufactured;
+- real unpacked-extension toolbar automation was unavailable, so extension
+  browser evidence remains blocked; API/storage/component tests and the
+  production extension build passed.
+
 ## Leftovers And Handoff
-
-Implementation agent:
-
-- begin at the current HEAD/worktree, not the historical planning baseline, and
-  repeat the preflight for concurrent changes;
-- implement tests first and preserve the lock order exactly; the existing
-  audited Capture Session wrapper currently locks the Session before database
-  triggers acquire the Project advisory lock and must be corrected to avoid the
-  inverse order described above;
-- do not remove Guide/Demo legacy Default guards in migration `021`;
-- do not infer Default in any server write or from incomplete active extension
-  state;
-- treat the database/concurrency and real-browser gates as completion gates, not
-  optional polish;
-- update this file's status, checklist, implementation log, verification record,
-  and leftovers plus only completed master `005` items at closeout.
 
 Hand child `118`:
 
@@ -1354,3 +1382,12 @@ Known evidence limitation from child `116` remains possible: real unpacked
 extension toolbar automation may be unavailable. It is an evidence limitation,
 not permission to weaken extension tests or claim browser validation that did
 not occur.
+
+Additional carry-forward:
+
+- fix the pre-existing concurrent auth-session touch Audit transition before a
+  later browser closeout that performs parallel Version-boundary reads; this is
+  outside child `117` and does not change Capture ownership semantics;
+- child `118` must replace the temporary Default-only Capture-to-Guide/Demo
+  equality guard with relational Artifact/Edition ownership while retaining the
+  immutable source Capture Project Version.
