@@ -62,12 +62,11 @@ describe("docs content", () => {
     );
   });
 
-  it("qualifies the accepted platform direction without presenting it as shipped", () => {
-    expect(nextPlatformDirection.status).toContain("not implemented");
+  it("separates the shipped foundation from the remaining platform direction", () => {
+    expect(nextPlatformDirection.status).toContain("partially implemented");
     expect(nextPlatformDirection.items).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("Project Versions"),
-        expect.stringContaining("Audit and Access Evidence"),
+        expect.stringContaining("Project Version-scoped Capture Sessions"),
         expect.stringContaining("Product Documentation"),
         expect.stringContaining("Video"),
       ]),

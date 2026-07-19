@@ -1,6 +1,6 @@
 # Project Zoom-Out Status
 
-Last reviewed: 2026-07-10
+Last reviewed: 2026-07-19
 
 ## Product Intent
 
@@ -61,7 +61,9 @@ Manual portal dogfood smoke completed with non-blocking limitations on 2026-06-2
 - Cookie-backed auth sessions.
 - Deployment-aware public instance status and first-run setup.
 - Organization users, members, invites, invite lookup, and invite acceptance.
-- Projects with create/list/get/update/archive behavior.
+- Projects with create/list/get/update/archive behavior, explicit Project
+  Membership, and Project Version create/read/update/order/default/alias/
+  archive/restore behavior.
 - Capture sessions with create/list/get/detail/update/finalize/archive behavior.
 - Capture assets with metadata creation, local multipart screenshot upload, file streaming, and archive behavior.
 - Capture events with create/list/get/edit/reorder/archive behavior and raw input-value protection.
@@ -76,7 +78,8 @@ Manual portal dogfood smoke completed with non-blocking limitations on 2026-06-2
 
 - First-run setup page.
 - Login and logout.
-- Project list/home, project workspaces, and project settings/archive controls.
+- Project list/home, canonical Project Version workspaces, Version management,
+  and project settings/archive controls.
 - Organization members and invite acceptance screens.
 - Capture session list and detail screens.
 - Manual screenshot upload, bulk upload status, event creation, event ordering, and safe event editing.
@@ -120,15 +123,13 @@ Manual portal dogfood smoke completed with non-blocking limitations on 2026-06-2
 
 Master Plan `005` is the accepted next track:
 
-1. Complete the naming/documentation truth foundation in child `110` using the accepted Ossie display brand while retaining technical compatibility identifiers.
-2. Finish DB/browser closure of comprehensive current-mutation Audit coverage,
-   then add Access Evidence before new version-domain mutations.
-3. Establish Project Membership authorization.
-4. Add Project Versions and scope Capture source to one Project Version.
-5. Introduce Project-owned Guide/Demo Artifacts with version-scoped Editions, mutable Working Drafts, immutable Revisions, Carry-Forward, protected assets, revision-backed Publications, and multi-version Publish Links.
-6. Establish the design system and modernize each existing workflow with browser, accessibility, motion, and responsive evidence.
-7. Close the foundation at child `130`, then conduct the mandatory Product Documentation domain grill at child `131`.
+1. Completed: naming/documentation truth, Audit and Access Evidence, Project
+   Membership, and the Project Version foundation through child `116`.
+2. Scope Capture source to exactly one Project Version in child `117`.
+3. Introduce Project-owned Guide/Demo Artifacts with version-scoped Editions, mutable Working Drafts, immutable Revisions, Carry-Forward, protected assets, revision-backed Publications, and multi-version Publish Links.
+4. Establish the design system and modernize each existing workflow with browser, accessibility, motion, and responsive evidence.
+5. Close the foundation at child `130`, then conduct the mandatory Product Documentation domain grill at child `131`.
 
-The accepted Project Version and Artifact Edition decisions are recorded in `CONTEXT.md`, ADRs `0021` through `0026`, the completed grill record, and `docs/plan/111-project-version-and-artifact-edition-grill.md`. Their presence in canonical documentation does not mean they are implemented.
+The accepted Project Version and Artifact Edition decisions are recorded in `CONTEXT.md`, ADRs `0021` through `0026`, the completed grill record, and `docs/plan/111-project-version-and-artifact-edition-grill.md`. The Project Version foundation is implemented; Artifact Editions and the later Revision/Publication model are not.
 
 Product Documentation implementation begins only after child `131` and new `132+` plans. Loom-style Video remains a later direction with no accepted runtime model.

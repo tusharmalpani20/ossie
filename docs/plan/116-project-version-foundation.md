@@ -6,9 +6,8 @@ Expanded: 2026-07-19
 
 Last rechecked: 2026-07-19
 
-Status: Expanded and rechecked as an implementation-ready planning checkpoint.
-Runtime implementation has not started. Reinspect the implementation baseline
-before coding in case the worktree changes after this commit.
+Status: Complete. Implemented, rechecked against this child and master `005`,
+verified, documented, and closed on 2026-07-19.
 
 Parent plan:
 
@@ -19,9 +18,8 @@ Starting baseline:
 - commit `360b6ca` (`docs(plan): close project membership recheck`);
 - the worktree was clean when this expansion began;
 - children `112` through `115` are complete;
-- migrations currently end at
-  `019_project_membership_foundation.sql`;
-- no Project Version table, route, contract, or runtime behavior exists yet.
+- implementation began from migration `019` and the clean child-`115`
+  baseline; migration `020` and the Project Version runtime are now shipped.
 
 ## Goal
 
@@ -1501,54 +1499,90 @@ Do not amend child `115` commits or mix unrelated cleanup into this child.
 
 ## Delivery Checklist
 
-- [ ] Record implementation start commit and worktree ownership.
-- [ ] Establish failing tests before each behavior slice.
-- [ ] Add shared contracts and migration `020`.
-- [ ] Implement audited persistence, exact Default, aliases, concurrency, and
+- [x] Record implementation start commit and worktree ownership.
+- [x] Establish failing tests before each behavior slice.
+- [x] Add shared contracts and migration `020`.
+- [x] Implement audited persistence, exact Default, aliases, concurrency, and
       temporary legacy-content guard.
-- [ ] Implement authorized APIs, Access coverage, Activity, and app composition.
-- [ ] Update Project creation and all Project responses transactionally.
-- [ ] Implement portal canonical routes, context, lifecycle management, and
+- [x] Implement authorized APIs, Access coverage, Activity, and app composition.
+- [x] Update Project creation and all Project responses transactionally.
+- [x] Implement portal canonical routes, context, lifecycle management, and
       legacy redirects.
-- [ ] Update extension Default context without pulling child `117` forward.
-- [ ] Update current-truth/operations docs.
-- [ ] Pass focused, DB, smoke, broad, build, and real-browser verification.
-- [ ] Recheck the completed implementation against this plan/master until clean.
-- [ ] Update status, implementation log, verification record, leftovers, and
+- [x] Update extension Default context without pulling child `117` forward.
+- [x] Update current-truth/operations docs.
+- [x] Pass focused, DB, smoke, broad, build, and real-browser verification.
+- [x] Recheck the completed implementation against this plan/master until clean.
+- [x] Update status, implementation log, verification record, leftovers, and
       parent completed items together.
-- [ ] Commit only attributable changes in small logical commits.
+- [x] Commit only attributable changes in small logical commits.
 
 ## Implementation Log
 
-Not started. This expansion and readiness recheck changed planning
-documentation only. The recheck found that generic Audit mutation context did
-not by itself prevent a valid command from changing the wrong Project Version
-fields, and that per-operation locking had no single stated order. The plan now
-requires field-level database command triggers, a canonical advisory/row/alias
-lock order, exact Project Version route classification, explicit `web | api`
-source policy, and composition of the required Default summary into every
-authorized Project response.
+Implementation started from plan checkpoint `317a7c7` and was delivered in
+logical slices:
+
+- `30a13a2` added shared Project Version constants, Zod contracts, response
+  types, and Project Default summary requirements;
+- `dd9edde` added migration `020`, Project Version/Alias persistence, deferred
+  exact-Default constraints, field-level Audit command guards, schema
+  verification, reset fixtures, and runtime grants;
+- `4708a02` added transactional Project/Main creation, the audited repository,
+  lifecycle/alias/order/default services and routes, central Project
+  authorization, Access coverage, Activity summaries, and server tests;
+- `b4aaf95` closed server contracts, stale DB fixtures, smoke coverage, and
+  concurrent lifecycle error handling;
+- `44db236` added canonical `/projects/:projectId/versions/:slug`
+  workspaces, alias and legacy redirects, Default-only content safety,
+  management controls, active/archived selection, and canonical existing-
+  content links;
+- `9e55c09` makes the extension display `Project / Default Project Version`, builds
+  canonical Default-prefixed portal links, and fails safely when its selected
+  Project context disappears without inventing child-`117` selection state;
+- current-truth, route-inventory, operations, roadmap, docs-app, smoke-suite,
+  and extension documentation were updated together.
+
+The close-previous audit found and fixed: a missing stable empty-update error;
+the legacy-content constraint mapper typo; missing Project access composition
+on set-Default responses; stale DB fixtures and Audit assertions that still
+created bare Projects; an unreturned global Fastify error response; canonical
+Version context lost from existing Guide/Capture links; a Project-entry render
+that changed the URL but retained the legacy workspace; and a real concurrent
+set-Default/archive `500`, now mapped to the stable `409` conflict contract.
+Database races now cover duplicate-slug creation and set-Default/archive
+serialization without duplicate order, invalid Default state, or deadlock.
 
 ## Verification Record
 
-Planning verification only:
+Completed on 2026-07-19 against synthetic local data:
 
-- predecessor child `115` is closed and the starting worktree was clean;
-- relevant current source, routes, schema, contracts, tests, client paths, and
-  accepted decisions were inspected on 2026-07-19;
-- the readiness recheck compared master `005`, child `115`'s implemented
-  handoff, migration `019`, current Audit/database guards, central Project
-  capability classification, Project contracts/repository, and children
-  `117`/`118` ownership boundaries;
-- `rtk pnpm exec prettier --check
-docs/plan/116-project-version-foundation.md` and `rtk git diff --check` passed
-  after the recheck edits;
-- implementation, migration, database, API, portal, extension, and browser
-  verification have not run and are not claimed by this planning checkpoint.
+- server unit/route/app suites: 89 files, 432 tests passed after close fixes;
+- portal suite: 32 files, 327 tests passed; extension suite: 11 files, 93 tests
+  passed; shared contract tests passed through the broad recursive run;
+- PostgreSQL: Audit 10/10, Project Version 5/5 including the two concurrency
+  races, Capture/Project Membership 6/6, foundation/Access/compliance 16/16,
+  setup/authentication/Project 10/10, Guide 5/5, Capture Event 3/3,
+  Publish/Interactive Demo/Invite 7/7, and the expanded one-workflow smoke
+  passed using the disposable local `testing` profile with an explicit
+  runtime/maintenance-role split;
+- `rtk pnpm -r --if-present test`, `rtk pnpm check-types`, `rtk pnpm lint`,
+  `rtk pnpm build`, Prettier checks, and `rtk git diff --check` passed at
+  closeout;
+- agent-browser against `http://localhost:3000` and a clean synthetic database
+  proved setup, Project/Main creation, canonical Version links, long named-
+  Version creation, explicit slug rename, former-alias canonical replacement,
+  Default switching, Project-entry canonicalization, non-default safe workspace
+  copy, and zero current Capture/Guide/Demo API requests from the non-default
+  workspace. Desktop `1440x900`, narrow `390x844`, and 200% CSS reflow checks
+  had no horizontal overflow; accessible selector/control names and browser
+  console/error state were inspected. The browser pass exposed the stale
+  Project-entry render and it was fixed with an App regression test;
+- real unpacked Chrome toolbar-popup automation remains unavailable in this
+  environment. Extension component, URL, type, and production-build evidence
+  passed; no toolbar claim is made.
 
 ## Leftovers And Handoff
 
-Implementation has not started. On successful closeout, hand child `117`:
+No known child-`116` implementation blocker remains. Hand child `117`:
 
 - mandatory Project Version IDs and exact same-Project/Organization FK pattern;
 - canonical/default summaries and active/archived selection ordering;
@@ -1573,3 +1607,11 @@ limitations, not implementation scope:
 - real unpacked-extension toolbar automation may be blocked;
 - child `114`'s injected failing-Access-writer browser harness may be blocked;
 - neither limitation permits manufacturing browser evidence.
+
+Child `117` must also update the portal and extension from temporary Default
+display to explicit selected Capture Project Version state, add mandatory
+`capture_session.project_version_id` with same-Project/Organization constraints,
+serialize root creation/reassignment with the shipped advisory lock, preserve
+the pre-start-only reassignment rule, and remove only the Capture portion of the
+temporary legacy-content Default-change guard. Guide/Demo ownership and the
+remaining guard belong to child `118`.

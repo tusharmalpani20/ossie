@@ -214,14 +214,25 @@ an invalid successful row. Resolve that data inconsistency through an explicit
 operator-reviewed maintenance process before retrying. DOWN removes only the
 named scoped-success CHECK and does not remove evidence.
 
-Migration `019_project_membership_foundation.sql` is the final clean pre-live
-authorization transition before Project Version work. It refuses any existing
+Migration `019_project_membership_foundation.sql` is the clean pre-live
+authorization transition before Project Version persistence. It refuses any existing
 Project row or unsupported legacy Organization `admin` row rather than inventing
 unaudited access history. Reset and reseed disposable pre-`019` databases. The
 migration adds guarded relational Project Membership and Project-role Access
 Evidence validation; deploy the migrated server, portal, and extension
 together. DOWN refuses retained Project Membership rows or `project_role`
 Access Evidence and never deletes either history kind automatically.
+
+Migration `020_project_version_foundation.sql` is another clean pre-live
+transition. It refuses any existing Project row rather than inventing a default
+release context or unaudited aliases. Reset and reseed disposable pre-`020`
+databases. The migration adds guarded Project Version and permanent-alias
+tables plus the required deferred Project-to-default relationship. Deploy the
+migrated server, portal, and extension together: every newly created Project
+must commit with its real active `Main` Default Project Version, and older
+clients do not satisfy the new Project response contract. DOWN refuses retained
+Project Versions, aliases, Project Version evidence, or Access Evidence and
+does not delete them automatically.
 
 Before upgrading:
 
@@ -234,6 +245,7 @@ Before upgrading:
 6. Start the API with runtime credentials only.
 7. Check `/readyz`.
 8. Run a smoke test through sign-in, membership-aware Project discovery,
+   Project/Main creation, named Project Version lifecycle and alias resolution,
    Project role assignment/revocation, Guide preview, public Guide, and
    Interactive Demo viewer.
 

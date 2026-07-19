@@ -2,8 +2,8 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `115` are complete. Child `116` is
-the next executable child and requires expansion/recheck before implementation.
+Status: In progress. Children `109` through `116` are complete. Child `117`
+Capture Source Version Scoping is the next executable child.
 
 Master plan number: 005.
 
@@ -38,7 +38,7 @@ This track starts from the following decisions:
 4. Project Version semantics must be resolved and implemented before Documentation is modeled.
 5. Existing Guides, Interactive Demos, Captures, and Publications must become version-aware before a new artifact family is added.
 6. The current portal needs a coherent application shell, information architecture, design system, and workflow-by-workflow modernization before the Documentation UI is built.
-7. Planning docs may describe future direction, but current-state docs must never imply that Project Versions, Documentation, or Videos already exist.
+7. Planning docs may describe future direction, but current-state docs must distinguish the shipped Project Version foundation from unimplemented Capture/Artifact version scoping, Documentation, and Video.
 8. Repository-local agent guidance and repeatable skills should be established before this multi-phase track begins.
 9. A product-name decision should be made before brand-level UI modernization, but the runtime architecture must not depend on a rename.
 10. Documentation implementation must be preceded by a dedicated grill that settles its content model, source of truth, publication model, access model, version behavior, and Fumadocs boundary.
@@ -54,7 +54,10 @@ Baseline reviewed on 2026-07-10:
 - `apps/extension` is a React/Vite Manifest V3 Chrome extension for screenshot-first browser capture.
 - `apps/docs` is a compact Next.js documentation hub for the open-source project; it is not the proposed customer-authored Documentation artifact.
 - Shared constants, Zod contracts, UI primitives, and domain packages exist under `packages/*`.
-- The current domain model includes Organization, User, Org User, Project, Capture Session, Capture Event, Capture Asset, Guide, Interactive Demo, Published Artifact, and Publish Link.
+- The current domain model includes Organization, User, Org User, Project,
+  Project Version and permanent Project Version Alias, Capture Session, Capture
+  Event, Capture Asset, Guide, Interactive Demo, Published Artifact, and Publish
+  Link.
 - Capture source records and original source assets are immutable by existing ADR decision.
 - Guide and Interactive Demo publishing already produces immutable snapshots.
 - Existing mutable Guide, Guide Block, Guide Step, Interactive Demo, and Demo Scene rows use a `version` integer as an optimistic-concurrency counter. That counter is an implementation-level **Row Version**, not an authored Revision or Project Version.
@@ -67,8 +70,11 @@ Baseline reviewed on 2026-07-10:
   Evidence, fail-closed protected reads, and the Owner-only combined compliance
   timeline. Child `115` adds explicit Project Membership, centralized
   Project-role authorization, Project Admin compliance scope, and Editor
-  Activity visibility.
-- Current migrations end at `019_project_membership_foundation.sql`.
+  Activity visibility. Child `116` adds the explicit Project Version aggregate,
+  transactional Default `Main`, permanent aliases, canonical Version portal
+  context, and temporary Default-only compatibility for current Project-scoped
+  content.
+- Current migrations end at `020_project_version_foundation.sql`.
   Migration `015` implements the
   accepted clean pre-live transition and refuses populated User or Organization
   data; no production-row backfill exists.
@@ -79,8 +85,8 @@ Baseline reviewed on 2026-07-10:
 - Current pages still rely heavily on CSS Modules, hard-coded slate/hex values, repeated control styling, and only minimal global tokens. The UI track is therefore a consolidation and product-design effort, not a fresh Tailwind or icon migration.
 - Child `109` installed the accepted external design guidance as pinned, optional repository tooling and documented provenance, compatibility changes, update/removal procedure, and rejected sources in `docs/agent-workflow.md`. It remains outside application dependencies and runtime behavior.
 - The current UI works at alpha level but does not yet provide the consistency, hierarchy, density, responsive behavior, accessibility, or navigation expected from a daily internal tool.
-- Master plans `001` through `004` are complete. Children `109` through `115`
-  are complete; child `116` Project Version Foundation is next.
+- Master plans `001` through `004` are complete. Children `109` through `116`
+  are complete; child `117` Capture Source Version Scoping is next.
   The
   optional overnight-runner tooling checkpoint was deferred on 2026-07-19 and
   is not a gate for sequential child execution.
@@ -1015,7 +1021,10 @@ Acceptance:
 
 ### 116: Project Version Foundation
 
-Status: Not started.
+Status: Complete on 2026-07-19. Project Version persistence, permissions,
+Audit/Access coverage, lifecycle/alias APIs, canonical portal context, Default
+extension context, migration `020`, and closeout verification shipped. Capture
+ownership remains explicitly assigned to child `117`.
 
 Planned file:
 
@@ -1043,7 +1052,9 @@ Expected scope:
 - Keep teams on `Main` from facing unnecessary version-management UI.
 - Keep archived Project Versions directly linkable and available as read-only Carry-Forward sources, separate them in selectors, exclude them from default library/search results, and preserve existing Publications.
 - Store explicit Project Version order, show the Default Project Version first, separate archived versions, and never infer order from free-form names.
-- Put version foreign keys on aggregate roots and relationship records that need them; do not denormalize `project_version_id` onto every child row unless a query, constraint, or tenant-safety requirement justifies it.
+- Hand mandatory Capture root ownership to child `117` and Artifact Edition
+  ownership to child `118`; child `116` does not falsely assign current
+  Project-scoped content to non-default Versions.
 
 Expected affected areas:
 
@@ -1074,7 +1085,9 @@ Acceptance:
 - Every newly created Project has a usable default `Main` Project Version in the same transaction.
 - Explicit version management works according to accepted roles and lifecycle rules.
 - Existing users can continue the current workflow through `Main`.
-- No new Capture or Artifact Edition can be created without explicit Project Version context.
+- Current Project-scoped content remains available only through the active
+  Default Project Version compatibility seam until children `117` and `118`
+  add mandatory ownership.
 
 ### 117: Capture Source Version Scoping
 
@@ -1875,7 +1888,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `113`.
 - [x] Create, expand, recheck, implement, and close child plan `114`.
 - [x] Create, expand, recheck, implement, and close child plan `115`.
-- [ ] Create, expand, recheck, implement, and close child plan `116`.
+- [x] Create, expand, recheck, implement, and close child plan `116`.
 - [ ] Create, expand, recheck, implement, and close child plan `117`.
 - [ ] Create, expand, recheck, implement, and close child plan `118`.
 - [ ] Create, expand, recheck, implement, and close child plan `119`.
@@ -1929,18 +1942,18 @@ This master plan is complete when:
 ## 19. Immediate Next Action
 
 The next executable activity is expansion and implementation-readiness recheck
-of child `116` Project Version Foundation. The
-separate overnight-runner tooling
+of child `117` Capture Source Version Scoping. The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
 longer blocks this master-plan sequence.
 
 Children `109`, `110`, the deliberately early `111` grill, Audit Evidence Core
-child `112`, comprehensive existing-mutation coverage child `113`, and Access
-Evidence/Owner compliance timeline child `114`, and Project Membership
-Foundation child `115` are complete. Child `116` may now add the accepted
-Project Version foundation by reusing, not bypassing, the shipped Project
-authorization and evidence seams.
+child `112`, comprehensive existing-mutation coverage child `113`, Access
+Evidence/Owner compliance timeline child `114`, Project Membership Foundation
+child `115`, and Project Version Foundation child `116` are complete. Child
+`117` must make Capture Session Project Version ownership
+mandatory while preserving the shipped identity, alias, authorization,
+evidence, canonical-route, and temporary Default-only compatibility seams.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with expansion and recheck of `116` Project Version Foundation.
+continues with expansion and recheck of `117` Capture Source Version Scoping.

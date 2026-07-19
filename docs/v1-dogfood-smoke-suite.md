@@ -45,7 +45,10 @@ The DB-backed smoke test covers:
 
 - health and readiness endpoints
 - first-run owner and organization setup
-- authenticated project creation
+- authenticated Project creation with a transactional default `Main` Project
+  Version
+- named Project Version creation, canonical slug change, and former-slug alias
+  resolution
 - manual capture session creation
 - screenshot upload through local storage
 - screenshot-backed click event creation
@@ -67,6 +70,11 @@ Use safe synthetic screenshots only.
 - [ ] Complete first-run setup.
 - [ ] Log out and log back in.
 - [ ] Create a project.
+- [ ] Confirm the Project entry canonicalizes to its Default Project Version.
+- [ ] Create, edit, rename, reorder, default, archive, restore, and directly
+      reopen a synthetic named Project Version.
+- [ ] Confirm non-default Versions do not request current unscoped Capture,
+      Guide, or Interactive Demo data.
 - [ ] Create a manual capture session.
 - [ ] Upload one or more screenshots.
 - [ ] Create screenshot-backed capture events.

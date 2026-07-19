@@ -1,6 +1,6 @@
 # Backend Route Inventory
 
-Date: 2026-06-16
+Date: 2026-07-19
 
 ## Purpose
 
@@ -36,6 +36,7 @@ apps/server/src/modules/*
 | authentication               | `/api/v1/authentication/*`                                                                                                               | `modules/authentication`   |
 | organization members/invites | `/api/v1/organization/members`, `/api/v1/organization/invites*`, `/api/v1/public/invites*`                                               | `modules/organization`     |
 | projects                     | `/api/v1/projects*`                                                                                                                      | `modules/project`          |
+| project versions             | `/api/v1/projects/:project_id/versions*`                                                                                                 | `modules/project-version`  |
 | capture sessions             | `/api/v1/projects/:project_id/capture-sessions*`                                                                                         | `modules/capture-session`  |
 | capture assets               | `/api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets*`                                                              | `modules/capture-asset`    |
 | capture events               | `/api/v1/projects/:project_id/capture-sessions/:capture_session_id/events*`                                                              | `modules/capture-event`    |
@@ -49,8 +50,10 @@ The current authentication model is cookie-backed session auth through the `ossi
 
 All current state-changing routes retain these public contracts while their
 product writes use one registered Audit command and one same-transaction Audit
-Event. Public viewer-session row maintenance uses the fixed system actor. Audit
-query routes and Access Events do not exist yet; child `114` owns that surface.
+Event. Protected reads append Access Evidence and the authenticated compliance,
+Project Activity, and Project Membership surfaces use the shipped central
+authorization policy. Public viewer-session row maintenance uses the fixed
+system actor.
 
 ## Rate-Limited Route Groups
 

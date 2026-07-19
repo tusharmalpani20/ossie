@@ -4,23 +4,23 @@
   <img src="docs/brand/ossie-horizontal-lockup.png" alt="Ossie purple octopus mascot and wordmark" width="720" />
 </p>
 
-Ossie is an alpha-stage, self-hosted open-source tool for turning browser workflows into two currently implemented outputs: Scribe-style step-by-step Guides and Storylane-style Interactive Demos. It is growing toward a project-organized internal knowledge platform, but the broader version, governance, Documentation, and Video direction described below is not shipped yet.
+Ossie is an alpha-stage, self-hosted open-source tool for turning browser workflows into two currently implemented outputs: Scribe-style step-by-step Guides and Storylane-style Interactive Demos. Projects now have explicit Project Membership, Audit/Access Evidence, and Project Version release contexts beginning with a real default `Main` record. Capture and authored-content persistence remains Project-scoped until the next foundation phases; Documentation and Video are not shipped.
 
 > Alpha status: the core capture-to-guide and capture-to-demo paths exist, but the project still needs more dogfooding, packaging, editor polish, and extension reliability work before it should be treated as production-ready.
 
 ## What Works Today
 
-| Area              | Current alpha capability                                                                                                                                                                                                                                             |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Setup and auth    | Web first-run setup, password login, cookie-backed portal sessions, and organization-scoped users.                                                                                                                                                                   |
-| Projects          | Project creation, project workspace, settings, archive/unarchive, and project-scoped artifacts.                                                                                                                                                                      |
-| Capture           | Manual portal capture sessions, screenshot upload, ordered capture events, and event editing; Chrome extension automatic-click capture now has screenshot-backed browser evidence, with true toolbar-popup manual validation still pending.                          |
-| Extension         | Instance URL setup, login, project selection, manual screenshot fallback, automatic click capture MVP, and finish/open-active portal flow exist in code/tests; 2026-07-07 dogfood closed the split-origin portal link path and refreshed captured-workflow evidence. |
-| Guides            | Generate guides from capture sessions, edit blocks and steps, manage screenshots, annotate screenshots, preview, publish, password-protect, embed, export Markdown, and export HTML ZIP.                                                                             |
-| Interactive demos | Generate demos from capture sessions, edit scenes, add hotspots, publish, password-protect, embed, and view public demos.                                                                                                                                            |
-| Sharing           | Immutable publish snapshots for guides and demos with public/restricted access controls.                                                                                                                                                                             |
-| Team basics       | Organization invite creation, invite acceptance, and member access to shared projects.                                                                                                                                                                               |
-| Operations        | Local PostgreSQL, local file storage, health/readiness endpoints, CORS/cookie hardening, rate limits, and documented backup/restore expectations.                                                                                                                    |
+| Area              | Current alpha capability                                                                                                                                                                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Setup and auth    | Web first-run setup, password login, cookie-backed portal sessions, and organization-scoped users.                                                                                                                                                                                                           |
+| Projects          | Project creation, Project Membership, explicit Project Versions with a transactional default `Main`, canonical Version workspaces, lifecycle management, and project settings/archive controls. Existing Capture/Guide/Demo records remain default-only and Project-scoped until their dedicated migrations. |
+| Capture           | Manual portal capture sessions, screenshot upload, ordered capture events, and event editing; Chrome extension automatic-click capture now has screenshot-backed browser evidence, with true toolbar-popup manual validation still pending.                                                                  |
+| Extension         | Instance URL setup, login, project selection, manual screenshot fallback, automatic click capture MVP, and finish/open-active portal flow exist in code/tests; 2026-07-07 dogfood closed the split-origin portal link path and refreshed captured-workflow evidence.                                         |
+| Guides            | Generate guides from capture sessions, edit blocks and steps, manage screenshots, annotate screenshots, preview, publish, password-protect, embed, export Markdown, and export HTML ZIP.                                                                                                                     |
+| Interactive demos | Generate demos from capture sessions, edit scenes, add hotspots, publish, password-protect, embed, and view public demos.                                                                                                                                                                                    |
+| Sharing           | Immutable publish snapshots for guides and demos with public/restricted access controls.                                                                                                                                                                                                                     |
+| Team basics       | Organization invite creation, invite acceptance, and member access to shared projects.                                                                                                                                                                                                                       |
+| Operations        | Local PostgreSQL, local file storage, health/readiness endpoints, CORS/cookie hardening, rate limits, and documented backup/restore expectations.                                                                                                                                                            |
 
 The DB-backed v1 smoke workflow now proves the main backend path from first-run setup to published guide/demo and accepted teammate invite. See [V1 dogfood smoke suite](docs/v1-dogfood-smoke-suite.md).
 
@@ -64,7 +64,7 @@ The product intentionally keeps guides and interactive demos separate. A capture
 
 ## Next Platform Direction
 
-Master Plan `005` accepts the following target; it is planned work, not current runtime behavior:
+Master Plan `005` accepts the following target. Project Versions now provide the shipped navigation/release-context foundation; the nested Capture and Artifact ownership shown below remains planned work:
 
 ```text
 Organization
@@ -77,7 +77,7 @@ Organization
       -> Video (later and not yet modeled)
 ```
 
-This diagram is navigation context, not a database ownership tree. Stable Guide and Interactive Demo Artifact identities remain Project-owned, while each Artifact Edition belongs to one Project Version. Working Drafts are mutable; Artifact Revisions and Publications are immutable. Project Membership and comprehensive Audit and Access Evidence are prerequisites for the new version-domain mutations. See [the canonical glossary](CONTEXT.md) and [Master Plan 005](docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md).
+This diagram is navigation context, not the current database ownership tree. Project Version identity, lifecycle, aliases, ordering, permissions, and Audit/Access Evidence are implemented. Stable Guide and Interactive Demo Artifact identities, Project Version-scoped Editions, Working Drafts, Revisions, and revised Publications are accepted future phases. See [the canonical glossary](CONTEXT.md) and [Master Plan 005](docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md).
 
 Product Documentation means future customer-authored documentation sites and knowledge bases. It is different from `apps/docs`, which is this repository's contributor/operator documentation hub. The Documentation model will be decided by child `131` only after the platform foundation closes.
 
