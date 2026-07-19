@@ -1,4 +1,5 @@
 import { ulid } from "ulid";
+import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import type {
   Guide,
   GuideBlock,
@@ -485,7 +486,34 @@ export const build_guide_repository = (
         AND capture_session.organization_id = $3
         AND capture_session.is_deleted = FALSE
         AND project.is_deleted = FALSE
+      ) AS exists
+    `,
+      [input.capture_session_id, input.project_id, input.organization_id],
+    );
+
+    return Boolean(result.rows[0]?.exists);
+  },
+
+  async capture_session_is_current_default(input) {
+    const result = await db.query<{ exists: boolean }>(
+      `
+      SELECT EXISTS (
+        SELECT 1
+        FROM capture_schema.capture_session capture_session
+        INNER JOIN project_schema.project project
+          ON project.id = capture_session.project_id
+         AND project.organization_id = capture_session.organization_id
+        INNER JOIN project_schema.project_version project_version
+          ON project_version.id = capture_session.project_version_id
+         AND project_version.project_id = capture_session.project_id
+         AND project_version.organization_id = capture_session.organization_id
+        WHERE capture_session.id = $1
+        AND capture_session.project_id = $2
+        AND capture_session.organization_id = $3
+        AND capture_session.is_deleted = FALSE
+        AND project.is_deleted = FALSE
         AND capture_session.project_version_id = project.default_project_version_id
+        AND project_version.status = 'active'
       ) AS exists
     `,
       [input.capture_session_id, input.project_id, input.organization_id],
@@ -584,6 +612,35 @@ export const build_guide_repository = (
 
   async create_guide_from_capture(input) {
     return with_transaction(db, async (client) => {
+      await client.query(
+        "SELECT project_schema.lock_project_version_scope($1)",
+        [input.project_id],
+      );
+      const generation_scope = await client.query<{ id: string }>(
+        `
+        SELECT capture_session.id
+        FROM capture_schema.capture_session capture_session
+        INNER JOIN project_schema.project project
+          ON project.id = capture_session.project_id
+         AND project.organization_id = capture_session.organization_id
+        INNER JOIN project_schema.project_version project_version
+          ON project_version.id = capture_session.project_version_id
+         AND project_version.project_id = capture_session.project_id
+         AND project_version.organization_id = capture_session.organization_id
+        WHERE capture_session.id = $1
+          AND capture_session.project_id = $2
+          AND capture_session.organization_id = $3
+          AND capture_session.is_deleted = FALSE
+          AND project.is_deleted = FALSE
+          AND capture_session.project_version_id = project.default_project_version_id
+          AND project_version.status = 'active'
+        FOR UPDATE OF capture_session, project_version
+      `,
+        [input.capture_session_id, input.project_id, input.organization_id],
+      );
+      if (!generation_scope.rows[0]) {
+        throw new CaptureArtifactVersionNotReadyError();
+      }
       const guide_result = await client.query<GuideRow>(
         `
         INSERT INTO guide_schema.guide (

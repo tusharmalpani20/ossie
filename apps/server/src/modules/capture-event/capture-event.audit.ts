@@ -295,6 +295,9 @@ export const build_audited_capture_event_repository = (
       organization_id: string;
     },
   ) => {
+    await client.query("SELECT project_schema.lock_project_version_scope($1)", [
+      input.project_id,
+    ]);
     await client.query(
       `SELECT id FROM capture_schema.capture_event WHERE id=$1 AND capture_session_id=$2 AND project_id=$3 AND organization_id=$4 AND is_deleted=FALSE FOR UPDATE`,
       [
@@ -406,6 +409,10 @@ export const build_audited_capture_event_repository = (
         event_id,
         command: find_audit_command("capture_event.reorder"),
         context: async (client) => {
+          await client.query(
+            "SELECT project_schema.lock_project_version_scope($1)",
+            [input.project_id],
+          );
           before =
             await build_capture_event_repository(client).list_capture_events(
               input,

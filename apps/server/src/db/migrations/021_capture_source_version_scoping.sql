@@ -97,10 +97,13 @@ DECLARE
   selected_version_status TEXT;
   session_record capture_schema.capture_session%ROWTYPE;
 BEGIN
-  IF audit_schema.is_maintenance_bypass(TG_RELID) THEN RETURN NEW; END IF;
+  IF audit_schema.is_maintenance_bypass(TG_RELID) THEN
+    IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+    RETURN NEW;
+  END IF;
 
-  selected_project_id := COALESCE(NEW.project_id, OLD.project_id);
-  selected_organization_id := COALESCE(NEW.organization_id, OLD.organization_id);
+  selected_project_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.project_id ELSE NEW.project_id END;
+  selected_organization_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.organization_id ELSE NEW.organization_id END;
   PERFORM project_schema.lock_project_version_scope(selected_project_id);
 
   IF TG_TABLE_NAME = 'capture_session' THEN
@@ -110,7 +113,7 @@ BEGIN
         RAISE EXCEPTION 'Capture Session create lifecycle is invalid' USING ERRCODE = '23514', CONSTRAINT = 'capture_session_project_version_guard';
       END IF;
       selected_version_id := NEW.project_version_id;
-    ELSE
+    ELSIF TG_OP = 'UPDATE' THEN
       SELECT * INTO session_record
       FROM capture_schema.capture_session
       WHERE id = OLD.id AND project_id = OLD.project_id
@@ -139,9 +142,11 @@ BEGIN
       ELSIF selected_command = 'capture_session.reassign_project_version' THEN
         RAISE EXCEPTION 'Capture Session Project Version is unchanged' USING ERRCODE = '23514', CONSTRAINT = 'capture_session_project_version_unchanged';
       END IF;
+    ELSE
+      selected_version_id := OLD.project_version_id;
     END IF;
   ELSE
-    selected_session_id := COALESCE(NEW.capture_session_id, OLD.capture_session_id);
+    selected_session_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.capture_session_id ELSE NEW.capture_session_id END;
     SELECT * INTO session_record
     FROM capture_schema.capture_session
     WHERE id = selected_session_id AND project_id = selected_project_id
@@ -164,18 +169,19 @@ BEGIN
   IF selected_version_status <> 'active' THEN
     RAISE EXCEPTION 'Archived Project Versions are read-only' USING ERRCODE = '23514', CONSTRAINT = 'capture_project_version_active_guard';
   END IF;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER capture_session_project_version_guard
-  BEFORE INSERT OR UPDATE ON capture_schema.capture_session
+  BEFORE INSERT OR UPDATE OR DELETE ON capture_schema.capture_session
   FOR EACH ROW EXECUTE FUNCTION capture_schema.enforce_capture_project_version_scope();
 CREATE TRIGGER capture_asset_project_version_guard
-  BEFORE INSERT OR UPDATE ON capture_schema.capture_asset
+  BEFORE INSERT OR UPDATE OR DELETE ON capture_schema.capture_asset
   FOR EACH ROW EXECUTE FUNCTION capture_schema.enforce_capture_project_version_scope();
 CREATE TRIGGER capture_event_project_version_guard
-  BEFORE INSERT OR UPDATE ON capture_schema.capture_event
+  BEFORE INSERT OR UPDATE OR DELETE ON capture_schema.capture_event
   FOR EACH ROW EXECUTE FUNCTION capture_schema.enforce_capture_project_version_scope();
 
 ALTER FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT, TEXT, TEXT, TEXT)

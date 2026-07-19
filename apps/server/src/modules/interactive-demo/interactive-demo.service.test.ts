@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import {
   build_interactive_demo_service,
   CaptureSessionNotFoundError,
@@ -125,6 +126,7 @@ const build_repository = (overrides: Partial<InteractiveDemoRepository> = {}) =>
     | "delete_demo"
     | "background_asset_exists"
     | "find_capture_session_for_demo"
+    | "capture_session_exists_for_demo"
     | "list_capture_events_for_demo"
     | "list_screenshot_capture_asset_ids"
     | "create_demo_from_capture"
@@ -149,6 +151,7 @@ const build_repository = (overrides: Partial<InteractiveDemoRepository> = {}) =>
     delete_demo: [],
     background_asset_exists: [],
     find_capture_session_for_demo: [],
+    capture_session_exists_for_demo: [],
     list_capture_events_for_demo: [],
     list_screenshot_capture_asset_ids: [],
     create_demo_from_capture: [],
@@ -205,6 +208,10 @@ const build_repository = (overrides: Partial<InteractiveDemoRepository> = {}) =>
           name: "Department setup",
           description: "Create departments in ERP",
         };
+    },
+    async capture_session_exists_for_demo(input) {
+      calls.capture_session_exists_for_demo.push(input);
+      return input.capture_session_id !== "missing_capture_session";
     },
     async list_capture_events_for_demo(input) {
       calls.list_capture_events_for_demo.push(input);
@@ -388,6 +395,25 @@ describe("interactive demo service", () => {
       capture_session_id: "capture_session_1",
       data: { title: "No screenshots" },
     })).rejects.toBeInstanceOf(NoUsableCaptureEventsError);
+  });
+
+  it("rejects capture sessions outside the current Default Project Version", async () => {
+    const { repository } = build_repository({
+      async find_capture_session_for_demo() {
+        return null;
+      },
+      async capture_session_exists_for_demo() {
+        return true;
+      },
+    });
+    const service = build_interactive_demo_service(repository);
+
+    await expect(service.create_interactive_demo_from_capture({
+      auth,
+      project_id: "project_1",
+      capture_session_id: "capture_session_1",
+      data: { title: "Demo" },
+    })).rejects.toBeInstanceOf(CaptureArtifactVersionNotReadyError);
   });
 
   it("creates demos scoped to the current project and actor", async () => {

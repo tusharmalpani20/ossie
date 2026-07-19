@@ -14,6 +14,7 @@ import {
   UpdateGuideStepRequestSchema,
 } from "@repo/types/guide";
 import { z } from "zod";
+import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import {
   UnauthenticatedSessionError,
   type AuthContext,
@@ -418,6 +419,12 @@ export const build_guide_routes = (
               "Capture session was not found",
             ),
           );
+      }
+
+      if (error instanceof CaptureArtifactVersionNotReadyError) {
+        return reply
+          .status(409)
+          .send(error_response(error.code, error.message));
       }
 
       if (error instanceof CaptureEventNotFoundError) {

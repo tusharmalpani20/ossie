@@ -10,6 +10,7 @@ import {
   UpdateDemoSceneRequestSchema,
   UpdateInteractiveDemoRequestSchema,
 } from "@repo/types/demo";
+import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import {
   UnauthenticatedSessionError,
   type AuthContext,
@@ -254,6 +255,10 @@ export const build_interactive_demo_routes = (
 
       if (error instanceof CaptureSessionNotFoundError) {
         return reply.status(404).send(error_response("capture_session_not_found", "Capture session was not found"));
+      }
+
+      if (error instanceof CaptureArtifactVersionNotReadyError) {
+        return reply.status(409).send(error_response(error.code, error.message));
       }
 
       if (error instanceof NoUsableCaptureEventsError) {

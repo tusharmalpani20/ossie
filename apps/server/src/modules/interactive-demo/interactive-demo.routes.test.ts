@@ -3,6 +3,7 @@ import fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { describe, expect, it } from "vitest";
 import { UnauthenticatedSessionError } from "../authentication/session.service";
+import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import {
   CaptureSessionNotFoundError,
   DemoHotspotNotFoundError,
@@ -141,6 +142,26 @@ const build_test_app = async (
 };
 
 describe("interactive demo routes", () => {
+  it("maps the temporary non-default Capture generation boundary to a conflict", async () => {
+    const app = await build_test_app({
+      interactive_demo_service: {
+        create_interactive_demo_from_capture: async () => {
+          throw new CaptureArtifactVersionNotReadyError();
+        },
+      },
+    });
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/interactive-demos",
+      cookies: { ossie_session: "session-token" },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error.type).toBe("capture_artifact_version_not_ready");
+    await app.close();
+  });
+
   it("rejects unauthenticated requests", async () => {
     const app = await build_test_app({
       auth_service: {

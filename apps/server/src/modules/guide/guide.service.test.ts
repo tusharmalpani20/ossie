@@ -1,4 +1,5 @@
 import { Readable } from "node:stream";
+import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import { describe, expect, it } from "vitest";
 import {
   build_guide_service,
@@ -164,6 +165,9 @@ const build_repository = (): GuideRepository & {
       return input.project_id === "project_1";
     },
     async capture_session_exists(input) {
+      return input.capture_session_id === "capture_session_1";
+    },
+    async capture_session_is_current_default(input) {
       return input.capture_session_id === "capture_session_1";
     },
     async list_source_capture_events(input) {
@@ -522,6 +526,19 @@ describe("guide service", () => {
       capture_session_id: "capture_session_1",
       data: { title: "Guide", selected_capture_event_ids: ["missing_event"] },
     })).rejects.toBeInstanceOf(CaptureEventNotFoundError);
+  });
+
+  it("rejects capture sessions outside the current Default Project Version", async () => {
+    const repository = build_repository();
+    repository.capture_session_is_current_default = async () => false;
+    const service = build_guide_service(repository);
+
+    await expect(service.create_guide_from_capture({
+      auth,
+      project_id: "project_1",
+      capture_session_id: "capture_session_1",
+      data: { title: "Guide" },
+    })).rejects.toBeInstanceOf(CaptureArtifactVersionNotReadyError);
   });
 
   it("creates useful guide steps from screenshot-backed capture events", async () => {

@@ -85,11 +85,20 @@ const insert_screenshot_asset = async (input: {
       id,
       organization_id,
       project_id,
+      project_version_id,
       name,
       created_by_id,
       updated_by_id
     )
-    VALUES ($1, $2, $3, 'Demo source capture', $4, $4)
+    VALUES (
+      $1,
+      $2,
+      $3,
+      (SELECT default_project_version_id FROM project_schema.project WHERE id = $3::varchar),
+      'Demo source capture',
+      $4,
+      $4
+    )
   `,
       [
         capture_session_id,
@@ -168,6 +177,7 @@ const insert_capture_source_material = async (input: {
       id,
       organization_id,
       project_id,
+      project_version_id,
       name,
       description,
       status,
@@ -175,7 +185,18 @@ const insert_capture_source_material = async (input: {
       created_by_id,
       updated_by_id
     )
-    VALUES ($1, $2, $3, 'Department setup', 'Create departments in ERP', 'completed', 'extension', $4, $4)
+    VALUES (
+      $1,
+      $2,
+      $3,
+      (SELECT default_project_version_id FROM project_schema.project WHERE id = $3::varchar),
+      'Department setup',
+      'Create departments in ERP',
+      'completed',
+      'extension',
+      $4,
+      $4
+    )
   `,
       [
         capture_session_id,

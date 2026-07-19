@@ -484,6 +484,36 @@ describe("DB-backed capture session API", () => {
         field_name: "project_version_id",
       },
     ]);
+    const guide_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/guides/from-capture-session/${session.id}`,
+      cookies: { ossie_session: session_token },
+      payload: { title: "Must remain Version-scoped" },
+    });
+    const demo_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/capture-sessions/${session.id}/interactive-demos`,
+      cookies: { ossie_session: session_token },
+      payload: {},
+    });
+    expect(guide_response.statusCode).toBe(409);
+    expect(guide_response.json().error.type).toBe(
+      "capture_artifact_version_not_ready",
+    );
+    expect(demo_response.statusCode).toBe(409);
+    expect(demo_response.json().error.type).toBe(
+      "capture_artifact_version_not_ready",
+    );
+    const partial_targets = await pool.query<{ count: string }>(
+      `
+      SELECT (
+        (SELECT COUNT(*) FROM guide_schema.guide WHERE source_capture_session_id = $1) +
+        (SELECT COUNT(*) FROM interactive_demo_schema.interactive_demo WHERE source_capture_session_id = $1)
+      )::text AS count
+    `,
+      [session.id],
+    );
+    expect(partial_targets.rows[0]?.count).toBe("0");
     await app.close();
   });
 
@@ -612,7 +642,7 @@ describe("DB-backed capture session API", () => {
         version: 2,
       },
       redirect: {
-        path: `/projects/${project_id}/capture-sessions/${draft_session_id}`,
+        path: `/projects/${project_id}/versions/main/capture-sessions/${draft_session_id}`,
         reason: "capture_session_completed",
       },
     });

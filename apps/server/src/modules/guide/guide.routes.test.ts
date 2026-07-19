@@ -8,6 +8,7 @@ import {
 } from "fastify-type-provider-zod";
 import { describe, expect, it, vi } from "vitest";
 import { UnauthenticatedSessionError } from "../authentication/session.service";
+import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import type { CaptureAsset } from "../capture-asset/capture-asset.service";
 import {
   CaptureEventNotFoundError,
@@ -1276,6 +1277,11 @@ describe("guide routes", () => {
         error: new GuideNotEditableError(),
         status: 409,
         type: "guide_not_editable",
+      },
+      {
+        error: new CaptureArtifactVersionNotReadyError(),
+        status: 409,
+        type: "capture_artifact_version_not_ready",
       },
     ];
 

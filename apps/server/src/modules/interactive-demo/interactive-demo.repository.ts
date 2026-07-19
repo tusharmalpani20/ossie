@@ -1,4 +1,5 @@
 import { ulid } from "ulid";
+import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import {
   type DemoHotspot,
   type DemoHotspotType,
@@ -518,6 +519,14 @@ export const build_interactive_demo_repository = (
       AND capture_session.is_deleted = FALSE
       AND project.is_deleted = FALSE
       AND capture_session.project_version_id = project.default_project_version_id
+      AND EXISTS (
+        SELECT 1
+        FROM project_schema.project_version project_version
+        WHERE project_version.id = capture_session.project_version_id
+          AND project_version.project_id = capture_session.project_id
+          AND project_version.organization_id = capture_session.organization_id
+          AND project_version.status = 'active'
+      )
       LIMIT 1
     `,
       [input.capture_session_id, input.organization_id, input.project_id],
@@ -525,6 +534,28 @@ export const build_interactive_demo_repository = (
     const row = first_row(result);
 
     return row ? map_source_capture_session(row) : null;
+  },
+
+  async capture_session_exists_for_demo(input) {
+    const result = await db.query<{ exists: boolean }>(
+      `
+      SELECT EXISTS (
+        SELECT 1
+        FROM capture_schema.capture_session capture_session
+        INNER JOIN project_schema.project project
+          ON project.id = capture_session.project_id
+         AND project.organization_id = capture_session.organization_id
+        WHERE capture_session.id = $1
+        AND capture_session.organization_id = $2
+        AND capture_session.project_id = $3
+        AND capture_session.is_deleted = FALSE
+        AND project.is_deleted = FALSE
+      ) AS exists
+    `,
+      [input.capture_session_id, input.organization_id, input.project_id],
+    );
+
+    return Boolean(result.rows[0]?.exists);
   },
 
   async list_capture_events_for_demo(input) {
@@ -581,6 +612,35 @@ export const build_interactive_demo_repository = (
 
   async create_demo_from_capture(input) {
     return with_transaction(db, async (client) => {
+      await client.query(
+        "SELECT project_schema.lock_project_version_scope($1)",
+        [input.project_id],
+      );
+      const generation_scope = await client.query<{ id: string }>(
+        `
+        SELECT capture_session.id
+        FROM capture_schema.capture_session capture_session
+        INNER JOIN project_schema.project project
+          ON project.id = capture_session.project_id
+         AND project.organization_id = capture_session.organization_id
+        INNER JOIN project_schema.project_version project_version
+          ON project_version.id = capture_session.project_version_id
+         AND project_version.project_id = capture_session.project_id
+         AND project_version.organization_id = capture_session.organization_id
+        WHERE capture_session.id = $1
+          AND capture_session.project_id = $2
+          AND capture_session.organization_id = $3
+          AND capture_session.is_deleted = FALSE
+          AND project.is_deleted = FALSE
+          AND capture_session.project_version_id = project.default_project_version_id
+          AND project_version.status = 'active'
+        FOR UPDATE OF capture_session, project_version
+      `,
+        [input.capture_session_id, input.project_id, input.organization_id],
+      );
+      if (!generation_scope.rows[0]) {
+        throw new CaptureArtifactVersionNotReadyError();
+      }
       const demo_result = await client.query<InteractiveDemoRow>(
         `
         INSERT INTO interactive_demo_schema.interactive_demo (

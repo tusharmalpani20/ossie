@@ -5,6 +5,7 @@ import type {
   GuideCreatableBlockType,
   GuideStatus,
 } from "@repo/constants";
+import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import {
   CaptureEventNotFoundError,
   CaptureSessionNotFoundError,
@@ -311,6 +312,11 @@ export type GuideRepository = {
     project_id: string;
     capture_session_id: string;
   }) => Promise<boolean>;
+  capture_session_is_current_default: (input: {
+    organization_id: string;
+    project_id: string;
+    capture_session_id: string;
+  }) => Promise<boolean>;
   list_source_capture_events: (input: {
     organization_id: string;
     project_id: string;
@@ -457,6 +463,9 @@ export const build_guide_service = (
   }) => {
     if (!await repository.capture_session_exists(input)) {
       throw new CaptureSessionNotFoundError();
+    }
+    if (!await repository.capture_session_is_current_default(input)) {
+      throw new CaptureArtifactVersionNotReadyError();
     }
   };
 

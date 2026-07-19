@@ -214,11 +214,16 @@ export const build_capture_asset_repository = (
         const begin = async (
           input: {
             organization_id: string;
+            project_id: string;
             capture_session_id: string;
             actor_org_user_id: string;
           },
           command: Tracked["command"],
         ) => {
+          await client.query(
+            "SELECT project_schema.lock_project_version_scope($1)",
+            [input.project_id],
+          );
           const provenance = await client.query<{
             source_type: string;
             display_name: string;

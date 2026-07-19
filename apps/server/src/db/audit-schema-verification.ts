@@ -581,6 +581,24 @@ export const verify_project_version_schema = async (
           AND table_name IN ('project_version', 'project_version_alias')
           AND data_type IN ('json', 'jsonb')
       )
+    UNION ALL SELECT 'trigger:capture_session_project_version_guard:delete'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgname = 'capture_session_project_version_guard'
+          AND pg_get_triggerdef(oid) LIKE '%INSERT OR DELETE OR UPDATE%'
+      )
+    UNION ALL SELECT 'trigger:capture_asset_project_version_guard:delete'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgname = 'capture_asset_project_version_guard'
+          AND pg_get_triggerdef(oid) LIKE '%INSERT OR DELETE OR UPDATE%'
+      )
+    UNION ALL SELECT 'trigger:capture_event_project_version_guard:delete'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgname = 'capture_event_project_version_guard'
+          AND pg_get_triggerdef(oid) LIKE '%INSERT OR DELETE OR UPDATE%'
+      )
     ORDER BY issue
   `,
     [roles.runtime_role, roles.maintenance_role],

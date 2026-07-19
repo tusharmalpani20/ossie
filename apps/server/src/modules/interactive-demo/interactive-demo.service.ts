@@ -3,6 +3,7 @@ import type {
   DemoHotspotType,
   InteractiveDemoStatus,
 } from "@repo/constants";
+import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import {
   CaptureSessionNotFoundError,
   DemoHotspotNotFoundError,
@@ -154,6 +155,11 @@ export type InteractiveDemoRepository = {
     project_id: string;
     capture_session_id: string;
   }) => Promise<InteractiveDemoSourceCaptureSession | null>;
+  capture_session_exists_for_demo: (input: {
+    organization_id: string;
+    project_id: string;
+    capture_session_id: string;
+  }) => Promise<boolean>;
   list_capture_events_for_demo: (input: {
     organization_id: string;
     project_id: string;
@@ -352,6 +358,9 @@ export const build_interactive_demo_service = (repository: InteractiveDemoReposi
 
     const capture_session = await repository.find_capture_session_for_demo(scope);
     if (!capture_session) {
+      if (await repository.capture_session_exists_for_demo(scope)) {
+        throw new CaptureArtifactVersionNotReadyError();
+      }
       throw new CaptureSessionNotFoundError();
     }
     const normalized = normalize_create_demo_from_capture_source(capture_session);
