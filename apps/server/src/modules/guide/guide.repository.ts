@@ -814,31 +814,22 @@ export const build_guide_repository = (db: Database): GuideRepository => ({
         [input.actor_org_user_id, step.id, retained_ids],
       );
 
-      if (retained_ids.length > 0) {
-        await client.query(
-          `UPDATE guide_schema.guide_annotation
-           SET annotation_index=annotation_index+1000000
-           WHERE guide_step_id=$1 AND is_deleted=FALSE AND id=ANY($2::varchar[])`,
-          [step.id, retained_ids],
-        );
-      }
-
       for (const annotation of input.data.annotations) {
         const updated = await client.query(
           `UPDATE guide_schema.guide_annotation
-           SET annotation_type=$1,annotation_index=$2,x=$3,y=$4,width=$5,height=$6,
-               updated_by_id=CASE WHEN annotation_type IS DISTINCT FROM $1
-                 OR annotation_index-1000000 IS DISTINCT FROM $2
+           SET annotation_type=$1::varchar,annotation_index=$2,x=$3,y=$4,width=$5,height=$6,
+               updated_by_id=CASE WHEN annotation_type IS DISTINCT FROM $1::varchar
+                 OR annotation_index IS DISTINCT FROM $2
                  OR x IS DISTINCT FROM $3 OR y IS DISTINCT FROM $4
                  OR width IS DISTINCT FROM $5 OR height IS DISTINCT FROM $6
                  THEN $7 ELSE updated_by_id END,
-               updated_at=CASE WHEN annotation_type IS DISTINCT FROM $1
-                 OR annotation_index-1000000 IS DISTINCT FROM $2
+               updated_at=CASE WHEN annotation_type IS DISTINCT FROM $1::varchar
+                 OR annotation_index IS DISTINCT FROM $2
                  OR x IS DISTINCT FROM $3 OR y IS DISTINCT FROM $4
                  OR width IS DISTINCT FROM $5 OR height IS DISTINCT FROM $6
                  THEN CURRENT_TIMESTAMP ELSE updated_at END,
-               version=version+CASE WHEN annotation_type IS DISTINCT FROM $1
-                 OR annotation_index-1000000 IS DISTINCT FROM $2
+               version=version+CASE WHEN annotation_type IS DISTINCT FROM $1::varchar
+                 OR annotation_index IS DISTINCT FROM $2
                  OR x IS DISTINCT FROM $3 OR y IS DISTINCT FROM $4
                  OR width IS DISTINCT FROM $5 OR height IS DISTINCT FROM $6
                  THEN 1 ELSE 0 END

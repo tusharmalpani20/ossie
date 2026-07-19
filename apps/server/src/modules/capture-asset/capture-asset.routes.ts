@@ -303,9 +303,11 @@ export const build_capture_asset_routes = (
       );
 
     const handle_domain_error = (error: unknown, reply: FastifyReply) => {
+      const database_constraint = (error as { constraint?: string })
+        ?.constraint;
       if (
-        (error as { constraint?: string })?.constraint ===
-        "capture_project_version_active_guard"
+        database_constraint === "capture_project_version_active_guard" ||
+        database_constraint === "capture_asset_purge_version_guard"
       ) {
         return reply
           .status(409)
@@ -316,6 +318,24 @@ export const build_capture_asset_routes = (
             ),
           );
       }
+      if (database_constraint === "capture_asset_purge_protection_guard")
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "capture_asset_protected",
+              "Capture Asset is protected by existing references",
+            ),
+          );
+      if (database_constraint === "capture_asset_restore_purge_guard")
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "capture_asset_lifecycle_conflict",
+              "Capture Asset lifecycle changed; reload and retry",
+            ),
+          );
       if (error instanceof UnauthenticatedSessionError) {
         return reply.status(401).send(unauthorized_response());
       }
@@ -354,9 +374,13 @@ export const build_capture_asset_routes = (
             error_response("capture_asset_lifecycle_conflict", error.message),
           );
       if (error instanceof CaptureAssetProtectedError)
-        return reply
-          .status(409)
-          .send(error_response("capture_asset_protected", error.message));
+        return reply.status(409).send({
+          error: {
+            type: "capture_asset_protected",
+            message: error.message,
+            ...(error.details === undefined ? {} : { details: error.details }),
+          },
+        });
       if (error instanceof CaptureAssetPurgeFailedError)
         return reply
           .status(503)
@@ -708,18 +732,16 @@ export const build_capture_asset_routes = (
       async (request, reply) => {
         try {
           const auth = await require_auth(session_token_from_request(request));
-          return reply
-            .status(200)
-            .send(
-              await dependencies.capture_asset_service.get_capture_asset_protection(
-                {
-                  auth,
-                  project_id: request.params.project_id,
-                  capture_session_id: request.params.capture_session_id,
-                  capture_asset_id: request.params.id,
-                },
-              ),
-            );
+          return reply.status(200).send(
+            await dependencies.capture_asset_service.get_capture_asset_protection(
+              {
+                auth,
+                project_id: request.params.project_id,
+                capture_session_id: request.params.capture_session_id,
+                capture_asset_id: request.params.id,
+              },
+            ),
+          );
         } catch (error) {
           return handle_domain_error(error, reply);
         }

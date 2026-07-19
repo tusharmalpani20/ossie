@@ -154,7 +154,7 @@ describe("DB-backed Artifact Revisions and Carry-Forward", () => {
         `UPDATE guide_schema.guide_revision SET title='changed' WHERE id=$1`,
         [checkpoint.json().revision.id],
       ),
-    ).rejects.toMatchObject({ constraint: "immutable_revision_guard" });
+    ).rejects.toMatchObject({ code: "42501" });
 
     await app.close();
   });

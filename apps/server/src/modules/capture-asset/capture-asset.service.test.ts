@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   build_capture_asset_service,
   CaptureAssetNotFoundError,
+  CaptureAssetProtectedError,
   CaptureAssetPurgeFailedError,
   CaptureSessionNotFoundError,
   FileBytesNotFoundError,
@@ -865,6 +866,74 @@ describe("capture asset service", () => {
     expect(repository.transactions).toBe(2);
   });
 
+  it("returns the bounded dependency report when protection blocks purge", async () => {
+    const repository = build_repository();
+    const protection = {
+      capture_asset_id: "capture_asset_1",
+      status: "archived" as const,
+      purge_operation_status: null,
+      can_purge: false,
+      total_dependency_count: 1,
+      dependencies: [
+        {
+          dependency_type: "guide_revision" as const,
+          artifact_id: "guide_1",
+          edition_id: "edition_1",
+          revision_number: 2,
+        },
+      ],
+    };
+    repository.get_capture_asset_protection = async () => protection;
+    const service = build_capture_asset_service(repository, {
+      file_storage: build_file_storage(),
+    });
+
+    const error = await service
+      .purge_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+        expected_asset_version: 2,
+      })
+      .catch((value: unknown) => value);
+
+    expect(error).toBeInstanceOf(CaptureAssetProtectedError);
+    expect(error).toMatchObject({ details: protection });
+  });
+
+  it("turns a database protection race into the same actionable conflict", async () => {
+    const repository = build_repository();
+    const protection = {
+      capture_asset_id: "capture_asset_1",
+      status: "archived" as const,
+      purge_operation_status: null,
+      can_purge: true,
+      total_dependency_count: 0,
+      dependencies: [],
+    };
+    repository.get_capture_asset_protection = async () => protection;
+    repository.begin_capture_asset_purge = async () => {
+      throw { constraint: "capture_asset_purge_protection_guard" };
+    };
+    const service = build_capture_asset_service(repository, {
+      file_storage: build_file_storage(),
+    });
+
+    const error = await service
+      .purge_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+        expected_asset_version: 2,
+      })
+      .catch((value: unknown) => value);
+
+    expect(error).toBeInstanceOf(CaptureAssetProtectedError);
+    expect(error).toMatchObject({ details: protection });
+  });
+
   it("returns a completed purge for a stale Row Version without touching storage", async () => {
     const repository = build_repository();
     repository.find_completed_capture_asset_purge = async () => ({
@@ -910,5 +979,30 @@ describe("capture asset service", () => {
       }),
     ).rejects.toBeInstanceOf(CaptureAssetPurgeFailedError);
     expect(repository.transactions).toBe(2);
+  });
+
+  it("returns a concurrent completed purge when storage failure loses the completion race", async () => {
+    const repository = build_repository();
+    repository.fail_capture_asset_purge = async (input) => ({
+      capture_asset_id: input.capture_asset_id,
+      purge_operation_id: input.operation_id,
+      status: "completed",
+      attempt_count: 1,
+    });
+    const file_storage = build_file_storage();
+    file_storage.purge_exact = async () => {
+      throw new Error("concurrent request removed the bytes");
+    };
+    const service = build_capture_asset_service(repository, { file_storage });
+
+    await expect(
+      service.purge_capture_asset({
+        auth,
+        project_id: "project_1",
+        capture_session_id: "capture_session_1",
+        capture_asset_id: "capture_asset_1",
+        expected_asset_version: 2,
+      }),
+    ).resolves.toMatchObject({ status: "completed" });
   });
 });

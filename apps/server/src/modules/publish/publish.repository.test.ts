@@ -18,11 +18,12 @@ describe("Publish repository compound mutations", () => {
       extract_published_capture_asset_ids({
         blocks: [
           {
-            source_capture_asset_id: "asset_2",
-            selected_capture_asset_id: "asset_1",
+            type: "step",
+            source_asset: { id: "asset_2" },
           },
         ],
-        scenes: [{ background_capture_asset_id: "asset_2" }],
+        scenes: [{ background_asset: { id: "asset_1" } }],
+        guide: { id: "not_a_capture_asset" },
       }),
     ).toEqual(["asset_1", "asset_2"]);
   });

@@ -436,6 +436,7 @@ export const build_capture_asset_repository = (
               event_id,
             );
             const result = await repository.fail_capture_asset_purge(input);
+            if (result.status === "completed") return result;
             const after = {
               id: result.purge_operation_id,
               status: result.status,
@@ -569,12 +570,8 @@ export const build_capture_asset_repository = (
                     parent_entity_type: "capture_session",
                     parent_entity_id: before_asset!.capture_session_id,
                     before: { ...before_asset, is_deleted: false },
-                    after: {
-                      ...before_asset,
-                      is_deleted: true,
-                      version: before_asset!.version + 1,
-                    },
-                    safe_fields: { is_deleted: "boolean", version: "integer" },
+                    after: null,
+                    safe_fields: {},
                     redacted_fields: [],
                   },
                   {
@@ -583,12 +580,8 @@ export const build_capture_asset_repository = (
                     parent_entity_type: "capture_asset",
                     parent_entity_id: input.capture_asset_id,
                     before: before_file,
-                    after: {
-                      ...before_file,
-                      is_deleted: true,
-                      version: before_file.version + 1,
-                    },
-                    safe_fields: { is_deleted: "boolean", version: "integer" },
+                    after: null,
+                    safe_fields: {},
                     redacted_fields: [],
                   },
                   {

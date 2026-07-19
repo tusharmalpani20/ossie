@@ -664,45 +664,68 @@ export const build_capture_asset_service = (
   }) => {
     if (!options.file_storage?.purge_exact)
       throw new UnsupportedFileStorageProviderError();
-    const pending = await repository.transaction(
-      async (transactional_repository) => {
-        const completed =
-          await transactional_repository.find_completed_capture_asset_purge({
-            organization_id: input.auth.organization_id,
-            project_id: input.project_id,
-            capture_session_id: input.capture_session_id,
-            capture_asset_id: input.capture_asset_id,
-          });
-        if (completed)
-          return { operation: completed, storage_key: "", completed: true };
-        const protection =
-          await transactional_repository.get_capture_asset_protection({
-            organization_id: input.auth.organization_id,
-            project_id: input.project_id,
-            capture_session_id: input.capture_session_id,
-            capture_asset_id: input.capture_asset_id,
-          });
-        if (!protection) throw new CaptureAssetNotFoundError();
-        if (!protection.can_purge) throw new CaptureAssetProtectedError();
-        const value = await transactional_repository.begin_capture_asset_purge({
-          organization_id: input.auth.organization_id,
-          project_id: input.project_id,
-          capture_session_id: input.capture_session_id,
-          capture_asset_id: input.capture_asset_id,
-          actor_org_user_id: input.auth.actor_org_user_id,
-          expected_asset_version: input.expected_asset_version,
-        });
-        if (!value) throw new CaptureAssetLifecycleConflictError();
-        return value;
-      },
-    );
+    let pending: Awaited<
+      ReturnType<
+        CaptureAssetTransactionalRepository["begin_capture_asset_purge"]
+      >
+    >;
+    try {
+      pending = await repository.transaction(
+        async (transactional_repository) => {
+          const completed =
+            await transactional_repository.find_completed_capture_asset_purge({
+              organization_id: input.auth.organization_id,
+              project_id: input.project_id,
+              capture_session_id: input.capture_session_id,
+              capture_asset_id: input.capture_asset_id,
+            });
+          if (completed)
+            return { operation: completed, storage_key: "", completed: true };
+          const protection =
+            await transactional_repository.get_capture_asset_protection({
+              organization_id: input.auth.organization_id,
+              project_id: input.project_id,
+              capture_session_id: input.capture_session_id,
+              capture_asset_id: input.capture_asset_id,
+            });
+          if (!protection) throw new CaptureAssetNotFoundError();
+          if (!protection.can_purge)
+            throw new CaptureAssetProtectedError(protection);
+          const value =
+            await transactional_repository.begin_capture_asset_purge({
+              organization_id: input.auth.organization_id,
+              project_id: input.project_id,
+              capture_session_id: input.capture_session_id,
+              capture_asset_id: input.capture_asset_id,
+              actor_org_user_id: input.auth.actor_org_user_id,
+              expected_asset_version: input.expected_asset_version,
+            });
+          if (!value) throw new CaptureAssetLifecycleConflictError();
+          return value;
+        },
+      );
+    } catch (error) {
+      if (
+        (error as { constraint?: string })?.constraint !==
+        "capture_asset_purge_protection_guard"
+      )
+        throw error;
+      const protection = await repository.get_capture_asset_protection({
+        organization_id: input.auth.organization_id,
+        project_id: input.project_id,
+        capture_session_id: input.capture_session_id,
+        capture_asset_id: input.capture_asset_id,
+      });
+      throw new CaptureAssetProtectedError(protection ?? undefined);
+    }
+    if (!pending) throw new CaptureAssetLifecycleConflictError();
     if (pending.completed) return pending.operation;
     try {
       await options.file_storage.purge_exact({
         storage_key: pending.storage_key,
       });
     } catch {
-      await repository.transaction((transactional_repository) =>
+      const failed = await repository.transaction((transactional_repository) =>
         transactional_repository.fail_capture_asset_purge({
           organization_id: input.auth.organization_id,
           project_id: input.project_id,
@@ -713,6 +736,7 @@ export const build_capture_asset_service = (
           actor_org_user_id: input.auth.actor_org_user_id,
         }),
       );
+      if (failed.status === "completed") return failed;
       throw new CaptureAssetPurgeFailedError();
     }
     return repository.transaction((transactional_repository) =>

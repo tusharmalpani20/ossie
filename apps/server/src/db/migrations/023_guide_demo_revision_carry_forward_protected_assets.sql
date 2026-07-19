@@ -323,13 +323,23 @@ CREATE FUNCTION project_schema.artifact_carry_forward_exactly_one_detail()
 RETURNS TRIGGER AS $$
 DECLARE root_id TEXT := COALESCE(NEW.id, OLD.id);
 DECLARE expected_type TEXT;
+DECLARE expected_artifact_id TEXT;
 DECLARE guide_count INTEGER;
 DECLARE demo_count INTEGER;
+DECLARE matching_guide_count INTEGER;
+DECLARE matching_demo_count INTEGER;
 BEGIN
-  SELECT artifact_type INTO expected_type FROM project_schema.artifact_carry_forward_item WHERE id=root_id;
+  SELECT artifact_type, artifact_id INTO expected_type, expected_artifact_id
+    FROM project_schema.artifact_carry_forward_item WHERE id=root_id;
   SELECT count(*) INTO guide_count FROM guide_schema.guide_carry_forward_item WHERE artifact_carry_forward_item_id=root_id;
   SELECT count(*) INTO demo_count FROM interactive_demo_schema.interactive_demo_carry_forward_item WHERE artifact_carry_forward_item_id=root_id;
-  IF guide_count + demo_count <> 1 OR (expected_type='guide' AND guide_count<>1) OR (expected_type='interactive_demo' AND demo_count<>1) THEN
+  SELECT count(*) INTO matching_guide_count FROM guide_schema.guide_carry_forward_item
+    WHERE artifact_carry_forward_item_id=root_id AND guide_id=expected_artifact_id;
+  SELECT count(*) INTO matching_demo_count FROM interactive_demo_schema.interactive_demo_carry_forward_item
+    WHERE artifact_carry_forward_item_id=root_id AND interactive_demo_id=expected_artifact_id;
+  IF guide_count + demo_count <> 1
+    OR (expected_type='guide' AND (guide_count<>1 OR matching_guide_count<>1))
+    OR (expected_type='interactive_demo' AND (demo_count<>1 OR matching_demo_count<>1)) THEN
     RAISE EXCEPTION 'Carry-Forward item requires exactly one matching typed detail'
       USING ERRCODE='23514', CONSTRAINT='artifact_carry_forward_exactly_one_detail';
   END IF;
@@ -369,6 +379,9 @@ CREATE TABLE capture_schema.capture_asset_purge_operation (
   )
 );
 
+ALTER TABLE publish_schema.published_artifact
+  ADD CONSTRAINT uq_published_artifact_scope UNIQUE (id, project_id, organization_id);
+
 CREATE TABLE publish_schema.published_artifact_capture_asset (
   id VARCHAR(26) PRIMARY KEY,
   published_artifact_id VARCHAR(26) NOT NULL,
@@ -376,15 +389,15 @@ CREATE TABLE publish_schema.published_artifact_capture_asset (
   organization_id VARCHAR(26) NOT NULL,
   project_id VARCHAR(26) NOT NULL,
   CONSTRAINT uq_published_artifact_capture_asset UNIQUE (published_artifact_id, capture_asset_id),
-  CONSTRAINT fk_published_asset_projection_publication FOREIGN KEY (published_artifact_id)
-    REFERENCES publish_schema.published_artifact(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_published_asset_projection_publication FOREIGN KEY (published_artifact_id, project_id, organization_id)
+    REFERENCES publish_schema.published_artifact(id, project_id, organization_id) ON DELETE RESTRICT,
   CONSTRAINT fk_published_asset_projection_asset FOREIGN KEY (capture_asset_id, project_id, organization_id)
     REFERENCES capture_schema.capture_asset(id, project_id, organization_id) ON DELETE RESTRICT
 );
 
 CREATE FUNCTION project_schema.enforce_artifact_edition_lineage()
 RETURNS TRIGGER AS $$
-DECLARE source_version_id TEXT;
+DECLARE source_version_id TEXT; source_edition_id TEXT; target_version_id TEXT;
 BEGIN
   IF TG_OP='UPDATE' AND (
     to_jsonb(OLD)->>CASE WHEN TG_TABLE_SCHEMA='guide_schema' THEN 'source_guide_edition_id' ELSE 'source_interactive_demo_edition_id' END
@@ -394,12 +407,14 @@ BEGIN
     IS DISTINCT FROM
     to_jsonb(NEW)->>CASE WHEN TG_TABLE_SCHEMA='guide_schema' THEN 'source_guide_revision_id' ELSE 'source_interactive_demo_revision_id' END
   ) THEN RAISE EXCEPTION 'Artifact Edition lineage is immutable' USING ERRCODE='23514',CONSTRAINT='artifact_edition_lineage_immutable'; END IF;
-  IF TG_TABLE_SCHEMA='guide_schema' AND NEW.source_guide_edition_id IS NOT NULL THEN
-    SELECT project_version_id INTO source_version_id FROM guide_schema.guide_edition WHERE id=NEW.source_guide_edition_id;
-  ELSIF TG_TABLE_SCHEMA='interactive_demo_schema' AND NEW.source_interactive_demo_edition_id IS NOT NULL THEN
-    SELECT project_version_id INTO source_version_id FROM interactive_demo_schema.interactive_demo_edition WHERE id=NEW.source_interactive_demo_edition_id;
+  source_edition_id:=to_jsonb(NEW)->>CASE WHEN TG_TABLE_SCHEMA='guide_schema' THEN 'source_guide_edition_id' ELSE 'source_interactive_demo_edition_id' END;
+  target_version_id:=to_jsonb(NEW)->>'project_version_id';
+  IF TG_TABLE_SCHEMA='guide_schema' AND source_edition_id IS NOT NULL THEN
+    SELECT project_version_id INTO source_version_id FROM guide_schema.guide_edition WHERE id=source_edition_id;
+  ELSIF TG_TABLE_SCHEMA='interactive_demo_schema' AND source_edition_id IS NOT NULL THEN
+    SELECT project_version_id INTO source_version_id FROM interactive_demo_schema.interactive_demo_edition WHERE id=source_edition_id;
   END IF;
-  IF source_version_id IS NOT NULL AND source_version_id=NEW.project_version_id THEN
+  IF source_version_id IS NOT NULL AND source_version_id=target_version_id THEN
     RAISE EXCEPTION 'Carry-Forward lineage must cross Project Versions' USING ERRCODE='23514',CONSTRAINT='artifact_edition_lineage_version';
   END IF;
   RETURN NEW;
@@ -474,12 +489,23 @@ CREATE TRIGGER file_purge_guard BEFORE UPDATE ON file_schema.file
 
 CREATE FUNCTION capture_schema.enforce_capture_asset_purge_request()
 RETURNS TRIGGER AS $$
-DECLARE asset_file_id TEXT;
+DECLARE asset_file_id TEXT; version_status TEXT;
 BEGIN
   IF NEW.status<>'pending' THEN RETURN NEW; END IF;
-  SELECT file_id INTO asset_file_id FROM capture_schema.capture_asset WHERE id=NEW.capture_asset_id AND project_id=NEW.project_id
-    AND organization_id=NEW.organization_id AND status='archived' AND is_deleted=FALSE FOR UPDATE;
-  IF asset_file_id IS NULL OR EXISTS(SELECT 1 FROM capture_schema.capture_asset other WHERE other.file_id=asset_file_id AND other.id<>NEW.capture_asset_id AND other.is_deleted=FALSE)
+  SELECT asset.file_id,version.status INTO asset_file_id,version_status
+    FROM capture_schema.capture_asset asset
+    JOIN capture_schema.capture_session session ON session.id=asset.capture_session_id
+    JOIN project_schema.project_version version ON version.id=session.project_version_id
+    WHERE asset.id=NEW.capture_asset_id AND asset.project_id=NEW.project_id
+      AND asset.organization_id=NEW.organization_id AND asset.status='archived' AND asset.is_deleted=FALSE
+    FOR UPDATE OF asset;
+  IF asset_file_id IS NULL THEN
+    RAISE EXCEPTION 'Capture Asset cannot be purged' USING ERRCODE='23514',CONSTRAINT='capture_asset_purge_protection_guard';
+  END IF;
+  IF version_status<>'active' THEN
+    RAISE EXCEPTION 'Archived Project Versions are read-only' USING ERRCODE='23514',CONSTRAINT='capture_asset_purge_version_guard';
+  END IF;
+  IF EXISTS(SELECT 1 FROM capture_schema.capture_asset other WHERE other.file_id=asset_file_id AND other.id<>NEW.capture_asset_id AND other.is_deleted=FALSE)
     OR EXISTS(SELECT 1 FROM guide_schema.guide_step WHERE project_id=NEW.project_id AND organization_id=NEW.organization_id AND is_deleted=FALSE AND NEW.capture_asset_id IN(source_capture_asset_id,selected_capture_asset_id))
     OR EXISTS(SELECT 1 FROM interactive_demo_schema.demo_scene WHERE project_id=NEW.project_id AND organization_id=NEW.organization_id AND is_deleted=FALSE AND NEW.capture_asset_id IN(source_capture_asset_id,background_capture_asset_id))
     OR EXISTS(SELECT 1 FROM guide_schema.guide_revision_step WHERE project_id=NEW.project_id AND organization_id=NEW.organization_id AND NEW.capture_asset_id IN(source_capture_asset_id,selected_capture_asset_id))
@@ -557,6 +583,9 @@ RETURNS BOOLEAN AS $$
       ('capture_asset.purge.complete', 'capture_asset.purged')
     ) AND selected_actor_type='org_user' AND selected_source_type IN ('web','api','extension'));
 $$ LANGUAGE SQL IMMUTABLE;
+REVOKE ALL ON FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT, TEXT, TEXT, TEXT)
+  TO __OSSIE_RUNTIME_DB_ROLE__;
 
 DO $$
 DECLARE registration RECORD;
@@ -655,6 +684,7 @@ DROP FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT, TEXT, TEXT, TE
 ALTER FUNCTION audit_schema.mutation_command_policy_is_valid_v022(TEXT, TEXT, TEXT, TEXT)
   RENAME TO mutation_command_policy_is_valid;
 DROP TABLE publish_schema.published_artifact_capture_asset;
+ALTER TABLE publish_schema.published_artifact DROP CONSTRAINT uq_published_artifact_scope;
 DROP TRIGGER capture_asset_purge_request_guard ON capture_schema.capture_asset_purge_operation;
 DROP FUNCTION capture_schema.enforce_capture_asset_purge_request();
 DROP TABLE capture_schema.capture_asset_purge_operation;

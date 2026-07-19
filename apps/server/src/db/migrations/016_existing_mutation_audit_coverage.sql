@@ -137,7 +137,10 @@ DECLARE
   row_organization_id TEXT;
   expected_operation TEXT;
   expected_event_id TEXT := current_setting('ossie.audit_event_id', true);
-  row_id TEXT := row_data ->> 'id';
+  row_id TEXT := COALESCE(
+    row_data ->> 'id',
+    row_data ->> 'artifact_carry_forward_item_id'
+  );
   before_version INTEGER;
   after_version INTEGER;
 BEGIN
@@ -197,7 +200,13 @@ BEGIN
       )
   ) THEN
     RAISE EXCEPTION 'Mutation requires matching committed Audit Evidence'
-      USING ERRCODE = '23514', CONSTRAINT = 'ossie_audit_guard_evidence';
+      USING ERRCODE = '23514', CONSTRAINT = 'ossie_audit_guard_evidence',
+        DETAIL = format(
+          'entity_type=%s entity_id=%s operation=%s',
+          TG_ARGV[0],
+          COALESCE(row_id, '<null>'),
+          expected_operation
+        );
   END IF;
   RETURN NEW;
 END;

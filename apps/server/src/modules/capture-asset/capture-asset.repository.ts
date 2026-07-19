@@ -494,7 +494,7 @@ export const build_capture_asset_transactional_repository = (
         status = $1,
         updated_by_id = $2,
         updated_at = CURRENT_TIMESTAMP,
-        version = version + 1
+        version = capture_asset.version + 1
       FROM file_schema.file app_file
       WHERE capture_asset.id = $4
       AND capture_asset.capture_session_id = $5
@@ -757,8 +757,12 @@ export const build_capture_asset_transactional_repository = (
     failure_code: string;
     actor_org_user_id: string;
   }) {
-    const row = (
-      await db.query<{ id: string; status: "failed"; attempt_count: number }>(
+    let row = (
+      await db.query<{
+        id: string;
+        status: "failed" | "completed";
+        attempt_count: number;
+      }>(
         `UPDATE capture_schema.capture_asset_purge_operation
       SET status='failed',failure_code=$1,updated_at=CURRENT_TIMESTAMP WHERE id=$2 AND capture_asset_id=$3 AND project_id=$4
         AND organization_id=$5 AND status='pending' RETURNING id,status,attempt_count`,
@@ -770,7 +774,26 @@ export const build_capture_asset_transactional_repository = (
           input.organization_id,
         ],
       )
-    ).rows[0]!;
+    ).rows[0];
+    if (!row)
+      row = (
+        await db.query<{
+          id: string;
+          status: "failed" | "completed";
+          attempt_count: number;
+        }>(
+          `SELECT id,status,attempt_count FROM capture_schema.capture_asset_purge_operation
+          WHERE id=$1 AND capture_asset_id=$2 AND project_id=$3 AND organization_id=$4 AND status='completed'`,
+          [
+            input.operation_id,
+            input.capture_asset_id,
+            input.project_id,
+            input.organization_id,
+          ],
+        )
+      ).rows[0];
+    if (!row)
+      throw new Error("Capture Asset purge operation is no longer pending");
     return {
       capture_asset_id: input.capture_asset_id,
       purge_operation_id: row.id,

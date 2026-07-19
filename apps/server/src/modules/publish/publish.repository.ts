@@ -1037,22 +1037,28 @@ export const build_publish_repository = (
 });
 export const extract_published_capture_asset_ids = (snapshot: unknown) => {
   const ids = new Set<string>();
-  const visit = (value: unknown): void => {
-    if (Array.isArray(value)) {
-      value.forEach(visit);
-      return;
-    }
-    if (!value || typeof value !== "object") return;
-    for (const [key, child] of Object.entries(value)) {
-      if (
-        (key === "capture_asset_id" || key.endsWith("_capture_asset_id")) &&
-        typeof child === "string" &&
-        child
-      )
-        ids.add(child);
-      visit(child);
-    }
+  if (!snapshot || typeof snapshot !== "object") return [];
+  const value = snapshot as {
+    blocks?: unknown;
+    scenes?: unknown;
   };
-  visit(snapshot);
+  if (Array.isArray(value.blocks))
+    for (const block of value.blocks) {
+      const id =
+        block && typeof block === "object"
+          ? (block as { source_asset?: { id?: unknown } | null }).source_asset
+              ?.id
+          : null;
+      if (typeof id === "string" && id) ids.add(id);
+    }
+  if (Array.isArray(value.scenes))
+    for (const scene of value.scenes) {
+      const id =
+        scene && typeof scene === "object"
+          ? (scene as { background_asset?: { id?: unknown } | null })
+              .background_asset?.id
+          : null;
+      if (typeof id === "string" && id) ids.add(id);
+    }
   return [...ids].sort();
 };

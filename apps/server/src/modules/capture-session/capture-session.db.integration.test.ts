@@ -833,16 +833,33 @@ describe("DB-backed capture session API", () => {
         ossie_session: session_token,
       },
     });
+    const archive_asset_response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${deleted_asset_id}/archive`,
+      cookies: {
+        ossie_session: session_token,
+      },
+      payload: {
+        expected_asset_version: 1,
+      },
+    });
     const delete_asset_response = await app.inject({
       method: "DELETE",
       url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${deleted_asset_id}`,
       cookies: {
         ossie_session: session_token,
       },
+      payload: {
+        expected_asset_version: 2,
+      },
     });
 
     expect(delete_event_response.statusCode).toBe(204);
-    expect(delete_asset_response.statusCode).toBe(204);
+    expect(archive_asset_response.statusCode).toBe(200);
+    expect(delete_asset_response.statusCode).toBe(200);
+    expect(delete_asset_response.json()).toMatchObject({
+      status: "completed",
+    });
 
     const detail_response = await app.inject({
       method: "GET",

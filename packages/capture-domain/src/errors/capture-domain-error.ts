@@ -152,12 +152,15 @@ export class CaptureAssetLifecycleConflictError extends CaptureDomainError {
 }
 
 export class CaptureAssetProtectedError extends CaptureDomainError {
-  constructor() {
+  readonly details: unknown;
+
+  constructor(details?: unknown) {
     super({
       code: "capture_asset_protected",
       message: "Capture Asset is protected by existing references",
       status_hint: "conflict",
     });
+    this.details = details;
   }
 }
 

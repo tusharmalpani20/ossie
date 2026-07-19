@@ -528,7 +528,8 @@ describe("DB-backed guide API", () => {
       { id: first_block_id, block_index: 2 },
       { id: second_block_id, block_index: 3 },
     ]);
-    expect(delete_response.statusCode).toBe(204);
+    expect(delete_response.statusCode).toBe(200);
+    expect(delete_response.json().working_draft).toBeDefined();
     expect(after_delete_response.statusCode).toBe(200);
     expect(
       after_delete_response

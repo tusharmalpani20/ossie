@@ -224,6 +224,9 @@ CREATE TABLE IF NOT EXISTS guide_schema.guide_annotation (
   guide_step_id VARCHAR(26) NOT NULL,
   annotation_type VARCHAR(50) NOT NULL,
   annotation_index INTEGER NOT NULL,
+  active_annotation_index INTEGER GENERATED ALWAYS AS (
+    CASE WHEN is_deleted THEN NULL ELSE annotation_index END
+  ) STORED,
   x NUMERIC(8,6) NOT NULL,
   y NUMERIC(8,6) NOT NULL,
   width NUMERIC(8,6) NOT NULL,
@@ -254,10 +257,10 @@ CREATE TABLE IF NOT EXISTS guide_schema.guide_annotation (
   CONSTRAINT chk_guide_annotation_deleted CHECK (
     (is_deleted = FALSE AND deleted_at IS NULL AND deleted_by_id IS NULL)
     OR (is_deleted = TRUE AND deleted_at IS NOT NULL AND deleted_by_id IS NOT NULL)
-  )
+  ),
+  CONSTRAINT uq_guide_annotation_step_index_active
+    UNIQUE (guide_step_id, active_annotation_index) DEFERRABLE INITIALLY DEFERRED
 );
-CREATE UNIQUE INDEX uq_guide_annotation_step_index_active
-  ON guide_schema.guide_annotation (guide_step_id, annotation_index) WHERE is_deleted = FALSE;
 
 CREATE TABLE IF NOT EXISTS interactive_demo_schema.interactive_demo (
   id VARCHAR(26) PRIMARY KEY,
@@ -644,6 +647,7 @@ CREATE TRIGGER demo_transition_mutation_guard
 CREATE FUNCTION project_schema.enforce_authored_asset_version_scope()
 RETURNS TRIGGER AS $$
 DECLARE
+  selected_command TEXT := current_setting('ossie.audit_command', true);
   selected_version_id TEXT;
   selected_session_id TEXT;
   selected_asset_id TEXT;
@@ -672,7 +676,9 @@ BEGIN
     RAISE EXCEPTION 'Authored source provenance must match the Artifact Edition Project Version'
       USING ERRCODE = '23514', CONSTRAINT = 'authored_source_version_guard';
   END IF;
-  IF selected_asset_id IS NOT NULL AND NOT EXISTS (
+  IF selected_asset_id IS NOT NULL
+    AND selected_command <> 'artifact.carry_forward'
+    AND NOT EXISTS (
     SELECT 1 FROM capture_schema.capture_asset asset
     JOIN capture_schema.capture_session session ON session.id = asset.capture_session_id
     WHERE asset.id = selected_asset_id AND session.project_version_id = selected_version_id

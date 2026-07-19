@@ -387,6 +387,15 @@ describe("foundation schema migrations", () => {
     expect(up).toContain("CAPTURE ASSET lifecycle".toLowerCase());
     expect(up).toContain("status VARCHAR(50) NOT NULL DEFAULT 'active'");
     expect(up).toContain("artifact_carry_forward_exactly_one_detail");
+    expect(up).toContain("expected_artifact_id");
+    expect(up).toContain("capture_asset_purge_version_guard");
+    expect(up).toContain("uq_published_artifact_scope");
+    expect(up).toContain(
+      "FOREIGN KEY (published_artifact_id, project_id, organization_id)",
+    );
+    expect(up).toContain(
+      "REVOKE ALL ON FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC",
+    );
     expect(up).toContain("prevent_immutable_revision_mutation");
     expect(up).not.toContain("snapshot_json JSON");
     expect(migration).toContain(

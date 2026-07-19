@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import { UnauthenticatedSessionError } from "../authentication/session.service";
 import {
   CaptureAssetNotFoundError,
+  CaptureAssetProtectedError,
   CaptureSessionNotFoundError,
   FileBytesNotFoundError,
   FileStorageKeyConflictError,
@@ -817,6 +818,54 @@ describe("capture asset routes", () => {
 
       expect(response.statusCode).toBe(test_case.status);
       expect(response.json().error.type).toBe(test_case.type);
+      await app.close();
+    }
+  });
+
+  it("returns protection details and maps purge database guards to conflicts", async () => {
+    const details = {
+      capture_asset_id: "capture_asset_1",
+      status: "archived",
+      purge_operation_status: null,
+      can_purge: false,
+      total_dependency_count: 1,
+      dependencies: [
+        {
+          dependency_type: "published_artifact",
+          published_artifact_id: "publication_1",
+          publication_number: 1,
+        },
+      ],
+    };
+    for (const [error, type] of [
+      [new CaptureAssetProtectedError(details), "capture_asset_protected"],
+      [
+        { constraint: "capture_asset_purge_version_guard" },
+        "project_version_conflict",
+      ],
+      [
+        { constraint: "capture_asset_restore_purge_guard" },
+        "capture_asset_lifecycle_conflict",
+      ],
+    ] as const) {
+      const app = await build_test_app({
+        capture_asset_service: {
+          purge_capture_asset: async () => {
+            throw error;
+          },
+        },
+      });
+      const response = await app.inject({
+        method: "DELETE",
+        url: "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/capture_asset_1",
+        cookies: { ossie_session: "session-token" },
+        payload: { expected_asset_version: 2 },
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error.type).toBe(type);
+      if (type === "capture_asset_protected")
+        expect(response.json().error.details).toEqual(details);
       await app.close();
     }
   });
