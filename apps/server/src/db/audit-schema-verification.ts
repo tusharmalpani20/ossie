@@ -1,4 +1,5 @@
 import type { Pool } from "pg";
+import { AUDIT_COVERAGE_REGISTRY } from "../modules/audit/audit-coverage-registry";
 
 type VerificationPool = Pick<Pool, "query">;
 
@@ -6,15 +7,71 @@ export const verify_audit_schema = async (
   pool: VerificationPool,
   roles: { runtime_role: string; maintenance_role: string },
 ) => {
+  const guards = new Map<
+    string,
+    {
+      schema_name: string;
+      table_name: string;
+      sql_operation: string;
+      entity_type: string;
+      tenant_mode: string;
+      commands: string[];
+      context_trigger: string;
+      evidence_trigger: string;
+    }
+  >();
+  for (const registration of AUDIT_COVERAGE_REGISTRY) {
+    for (const write of registration.writes) {
+      const key = `${write.table}:${write.sql_operation}`;
+      const [schema_name, table_name] = write.table.split(".") as [
+        string,
+        string,
+      ];
+      const existing = guards.get(key);
+      if (existing) {
+        if (!existing.commands.includes(registration.command))
+          existing.commands.push(registration.command);
+        continue;
+      }
+      const operation_short = write.sql_operation === "INSERT" ? "i" : "u";
+      guards.set(key, {
+        schema_name,
+        table_name,
+        sql_operation: write.sql_operation,
+        entity_type: write.entity_type,
+        tenant_mode:
+          write.table === "user_schema.user"
+            ? "context"
+            : write.table === "organization_schema.organization"
+              ? "id"
+              : write.table === "publish_schema.public_publish_viewer_session"
+                ? "viewer"
+                : "direct",
+        commands: [registration.command],
+        context_trigger: `${table_name}_${operation_short}_audit_ctx`,
+        evidence_trigger: `${table_name}_${operation_short}_audit_evd`,
+      });
+    }
+  }
+  const expected_guards = JSON.stringify(
+    [...guards.values()].map((guard) => ({
+      ...guard,
+      commands: guard.commands.join(","),
+    })),
+  );
   const result = await pool.query<{ issue: string }>(
     `
     WITH expected_triggers(name) AS (VALUES
       ('audit_event_append_only'),
       ('audit_event_no_truncate'),
       ('audit_change_item_append_only'),
-      ('audit_change_item_no_truncate'),
-      ('project_insert_audit_context_guard'),
-      ('project_insert_audit_evidence_guard')
+      ('audit_change_item_no_truncate')
+    ), expected_guards AS (
+      SELECT * FROM jsonb_to_recordset($3::jsonb) AS guard(
+        schema_name text, table_name text, sql_operation text,
+        entity_type text, tenant_mode text, commands text,
+        context_trigger text, evidence_trigger text
+      )
     ), expected_indexes(name) AS (VALUES
       ('idx_audit_event_organization_cursor'),
       ('idx_audit_event_project_cursor'),
@@ -52,6 +109,42 @@ export const verify_audit_schema = async (
     FROM expected_triggers expected
     WHERE NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = expected.name AND NOT tgisinternal)
     UNION ALL
+    SELECT 'guard:' || guard.schema_name || '.' || guard.table_name || ':' || guard.sql_operation
+    FROM expected_guards guard
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM pg_trigger trigger
+      JOIN pg_class class ON class.oid = trigger.tgrelid
+      JOIN pg_namespace namespace ON namespace.oid = class.relnamespace
+      JOIN pg_proc procedure ON procedure.oid = trigger.tgfoid
+      WHERE trigger.tgname = guard.context_trigger
+        AND namespace.nspname = guard.schema_name
+        AND class.relname = guard.table_name
+        AND procedure.proname = 'require_mutation_context'
+        AND NOT trigger.tgisinternal AND trigger.tgconstraint = 0
+        AND (trigger.tgtype & 1) = 1 AND (trigger.tgtype & 2) = 2
+        AND (CASE guard.sql_operation WHEN 'INSERT' THEN trigger.tgtype & 4 ELSE trigger.tgtype & 16 END) <> 0
+        AND encode(trigger.tgargs, 'escape') = guard.entity_type || E'\\\\000'
+          || guard.tenant_mode || E'\\\\000' || guard.commands || E'\\\\000'
+    ) OR NOT EXISTS (
+      SELECT 1
+      FROM pg_trigger trigger
+      JOIN pg_class class ON class.oid = trigger.tgrelid
+      JOIN pg_namespace namespace ON namespace.oid = class.relnamespace
+      JOIN pg_proc procedure ON procedure.oid = trigger.tgfoid
+      JOIN pg_constraint constraint_record ON constraint_record.oid = trigger.tgconstraint
+      WHERE trigger.tgname = guard.evidence_trigger
+        AND namespace.nspname = guard.schema_name
+        AND class.relname = guard.table_name
+        AND procedure.proname = 'verify_mutation_evidence'
+        AND NOT trigger.tgisinternal AND trigger.tgconstraint <> 0
+        AND constraint_record.condeferrable AND constraint_record.condeferred
+        AND (trigger.tgtype & 1) = 1 AND (trigger.tgtype & 2) = 0
+        AND (CASE guard.sql_operation WHEN 'INSERT' THEN trigger.tgtype & 4 ELSE trigger.tgtype & 16 END) <> 0
+        AND encode(trigger.tgargs, 'escape') = guard.entity_type || E'\\\\000'
+          || guard.tenant_mode || E'\\\\000' || guard.commands || E'\\\\000'
+    )
+    UNION ALL
     SELECT 'index:' || expected.name
     FROM expected_indexes expected
     WHERE NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = expected.name)
@@ -83,7 +176,7 @@ export const verify_audit_schema = async (
     )
     ORDER BY issue
     `,
-    [roles.runtime_role, roles.maintenance_role],
+    [roles.runtime_role, roles.maintenance_role, expected_guards],
   );
   if (result.rows.length) {
     throw new Error(

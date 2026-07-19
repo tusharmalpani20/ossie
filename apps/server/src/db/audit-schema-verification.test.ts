@@ -7,22 +7,34 @@ describe("Audit schema verification", () => {
       query: vi.fn(async (sql: string, values?: unknown[]) => {
         void sql;
         void values;
-        return { rows: [
-          { issue: "trigger:project_insert_audit_evidence_guard" },
-          { issue: "privilege:audit_schema.audit_event:UPDATE:false" },
-        ] };
+        return {
+          rows: [
+            { issue: "trigger:project_insert_audit_evidence_guard" },
+            { issue: "privilege:audit_schema.audit_event:UPDATE:false" },
+          ],
+        };
       }),
     };
 
-    await expect(verify_audit_schema(pool as never, {
-      runtime_role: "runtime",
-      maintenance_role: "maintenance",
-    }))
-      .rejects.toThrow(
-        /trigger:project_insert_audit_evidence_guard.*privilege:audit_schema.audit_event:UPDATE:false/,
-      );
-    expect(JSON.stringify(pool.query.mock.calls)).not.toContain("password");
-    expect(pool.query.mock.calls[0]?.[1]).toEqual(["runtime", "maintenance"]);
+    await expect(
+      verify_audit_schema(pool as never, {
+        runtime_role: "runtime",
+        maintenance_role: "maintenance",
+      }),
+    ).rejects.toThrow(
+      /trigger:project_insert_audit_evidence_guard.*privilege:audit_schema.audit_event:UPDATE:false/,
+    );
+    expect(JSON.stringify(pool.query.mock.calls)).not.toContain('"password":');
+    expect(pool.query.mock.calls[0]?.[0]).toContain("jsonb_to_recordset");
+    expect(pool.query.mock.calls[0]?.[0]).toContain("condeferrable");
+    expect(pool.query.mock.calls[0]?.[0]).toContain("require_mutation_context");
+    expect(pool.query.mock.calls[0]?.[1]?.slice(0, 2)).toEqual([
+      "runtime",
+      "maintenance",
+    ]);
+    expect(pool.query.mock.calls[0]?.[1]?.[2]).toContain(
+      "public_publish_viewer_session",
+    );
   });
 
   it("accepts a complete schema", async () => {
@@ -33,10 +45,12 @@ describe("Audit schema verification", () => {
         return { rows: [] };
       }),
     };
-    await expect(verify_audit_schema(pool as never, {
-      runtime_role: "runtime",
-      maintenance_role: "maintenance",
-    })).resolves.toEqual({
+    await expect(
+      verify_audit_schema(pool as never, {
+        runtime_role: "runtime",
+        maintenance_role: "maintenance",
+      }),
+    ).resolves.toEqual({
       status: "ready",
     });
   });
