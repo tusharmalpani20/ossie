@@ -66,9 +66,19 @@ describe("foundation schema migrations", () => {
 
     expect(migration).toContain("audit_schema.require_mutation_context");
     expect(migration).toContain("audit_schema.verify_mutation_evidence");
+    expect(migration).toContain(
+      "audit_schema.mutation_command_policy_is_valid",
+    );
     expect(migration).toContain("ossie_audit_guard_context");
     expect(migration).toContain("ossie_audit_guard_evidence");
     expect(migration).toContain("public_publish_viewer_session");
+    expect(migration).toContain("current_setting('ossie.audit_action', true)");
+    expect(migration).toContain(
+      "current_setting('ossie.audit_actor_type', true)",
+    );
+    expect(migration).toContain(
+      "current_setting('ossie.audit_source_type', true)",
+    );
     expect(migration).toContain(
       "DROP TRIGGER IF EXISTS project_insert_audit_context_guard",
     );

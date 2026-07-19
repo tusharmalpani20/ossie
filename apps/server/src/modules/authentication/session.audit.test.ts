@@ -54,7 +54,12 @@ describe("Authentication Session Audit adapter", () => {
       source_type: "web",
     });
     expect(revoked.items).toEqual([
-      expect.objectContaining({ field_name: null, operation: "delete" }),
+      expect.objectContaining({
+        field_name: "status",
+        operation: "update",
+        before: { state: "value", value: "active" },
+        after: { state: "value", value: "revoked" },
+      }),
     ]);
   });
 });

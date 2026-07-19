@@ -161,7 +161,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "authentication.session.revoke",
     "authentication.session.revoked",
     ["POST /api/v1/authentication/logout"],
-    [U.session_update("delete")],
+    [U.session_update()],
   ),
   command(
     "organization.invite.create",
@@ -173,13 +173,14 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "organization.invite.revoke",
     "organization.invite.revoked",
     ["DELETE /api/v1/organization/invites/:invite_id"],
-    [U.invite_update("delete")],
+    [U.invite_update()],
   ),
   command(
     "organization.invite.accept",
     "organization.invite.accepted",
     ["POST /api/v1/public/invites/:token/accept"],
     [U.user(), U.org_user(), U.session_insert(), U.invite_update()],
+    { source_types: ["web"] },
   ),
   command(
     "project.create",
@@ -252,6 +253,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
       "DELETE /api/v1/projects/:project_id/capture-sessions/:capture_session_id/assets/:id",
     ],
     [U.asset_update("delete"), U.file_update("delete")],
+    { source_types: ["web", "api", "extension", "import"] },
   ),
   command(
     "capture_event.create",
@@ -354,6 +356,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
       "POST /api/v1/projects/:project_id/guides/:guide_id/blocks/:guide_block_id/screenshot-upload",
     ],
     [U.file_insert(), U.asset_insert(), U.block_update(), U.guide_update()],
+    { source_types: ["web", "api", "extension", "import"] },
   ),
   command(
     "guide.block.delete",
@@ -475,7 +478,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "publish.guide_link.revoke",
     "guide.publish_link.revoked",
     ["DELETE /api/v1/projects/:project_id/guides/:guide_id/publish"],
-    [U.link_update("delete"), U.viewer_update("delete")],
+    [U.link_update(), U.viewer_update()],
   ),
   command(
     "publish.interactive_demo_link.revoke",
@@ -483,7 +486,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "DELETE /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/publish",
     ],
-    [U.link_update("delete"), U.viewer_update("delete")],
+    [U.link_update(), U.viewer_update()],
   ),
   command(
     "publish.guide_link.access_update",
@@ -503,7 +506,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "publish.guide_link.password_update",
     "guide.publish_link.password_updated",
     ["PATCH /api/v1/projects/:project_id/guides/:guide_id/publish/password"],
-    [U.link_update(), U.viewer_update("delete")],
+    [U.link_update(), U.viewer_update()],
   ),
   command(
     "publish.interactive_demo_link.password_update",
@@ -511,7 +514,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "PATCH /api/v1/projects/:project_id/interactive-demos/:interactive_demo_id/publish/password",
     ],
-    [U.link_update(), U.viewer_update("delete")],
+    [U.link_update(), U.viewer_update()],
   ),
   command(
     "publish.viewer_session.create",

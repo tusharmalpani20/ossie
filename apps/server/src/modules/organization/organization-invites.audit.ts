@@ -12,7 +12,10 @@ import {
   safe_audit_actor_label,
 } from "../audit/audit-request-context";
 import { write_audit_event } from "../audit/audit.repository";
-import { run_audited_mutation } from "../audit/audit-transaction";
+import {
+  run_audited_mutation,
+  translate_audit_transaction_error,
+} from "../audit/audit-transaction";
 import {
   build_organization_invites_transactional_repository,
   build_uncovered_organization_invites_repository,
@@ -114,10 +117,14 @@ export const build_invite_created_event = (input: Base) => {
 
 export const build_invite_revoked_event = (input: Base) =>
   event(input, "organization.invite.revoked", [
-    create_row_change({
+    create_scalar_change({
       id: ulid(),
       ...identity(input, "org_invite", input.invite.id),
-      operation: "delete",
+      operation: "update",
+      field_name: "status",
+      value_type: "enum",
+      before: { state: "value", value: "pending" },
+      after: { state: "value", value: "revoked" },
     }),
   ]);
 
@@ -190,10 +197,11 @@ type TransactionalRepository = ReturnType<
 
 const client_pool = (
   client: Awaited<ReturnType<InvitePool["connect"]>>,
-): InvitePool => ({
-  ...client,
-  connect: async () => client,
-});
+): InvitePool =>
+  ({
+    query: client.query.bind(client),
+    connect: async () => client,
+  }) as InvitePool;
 
 const actor_label = async (
   db: {
@@ -397,17 +405,7 @@ export const build_organization_invites_repository = (
         } catch {
           /* preserve original */
         }
-        if (
-          typeof error === "object" &&
-          error !== null &&
-          "code" in error &&
-          error.code === "23514" &&
-          "constraint" in error &&
-          typeof error.constraint === "string" &&
-          error.constraint.startsWith("ossie_audit_guard_")
-        )
-          throw new AuditDomainError("audit_guard_failed", "internal");
-        throw error;
+        throw translate_audit_transaction_error(error);
       } finally {
         client.release();
       }

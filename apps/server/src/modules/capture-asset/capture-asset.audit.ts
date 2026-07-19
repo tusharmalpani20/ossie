@@ -13,6 +13,7 @@ import {
   safe_audit_actor_label,
 } from "../audit/audit-request-context";
 import { write_audit_event } from "../audit/audit.repository";
+import { translate_audit_transaction_error } from "../audit/audit-transaction";
 import {
   build_capture_asset_transactional_repository,
   build_uncovered_capture_asset_repository,
@@ -332,17 +333,7 @@ export const build_capture_asset_repository = (
         } catch {
           /* preserve */
         }
-        if (
-          typeof error === "object" &&
-          error !== null &&
-          "code" in error &&
-          error.code === "23514" &&
-          "constraint" in error &&
-          typeof error.constraint === "string" &&
-          error.constraint.startsWith("ossie_audit_guard_")
-        )
-          throw new AuditDomainError("audit_guard_failed", "internal");
-        throw error;
+        throw translate_audit_transaction_error(error);
       } finally {
         client.release();
       }

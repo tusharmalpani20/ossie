@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { verify_audit_schema } from "./audit-schema-verification";
+import {
+  verify_audit_core_schema,
+  verify_audit_schema,
+} from "./audit-schema-verification";
 
 describe("Audit schema verification", () => {
   it("reports missing schema protections without exposing credentials", async () => {
@@ -28,6 +31,10 @@ describe("Audit schema verification", () => {
     expect(pool.query.mock.calls[0]?.[0]).toContain("jsonb_to_recordset");
     expect(pool.query.mock.calls[0]?.[0]).toContain("condeferrable");
     expect(pool.query.mock.calls[0]?.[0]).toContain("require_mutation_context");
+    expect(pool.query.mock.calls[0]?.[0]).toContain(
+      "mutation_command_policy_is_valid",
+    );
+    expect(pool.query.mock.calls[0]?.[0]).toContain("has_function_privilege");
     expect(pool.query.mock.calls[0]?.[1]?.slice(0, 2)).toEqual([
       "runtime",
       "maintenance",
@@ -53,5 +60,30 @@ describe("Audit schema verification", () => {
     ).resolves.toEqual({
       status: "ready",
     });
+  });
+
+  it("accepts the child 112 core catalog after migration 016 is rolled back", async () => {
+    const pool = {
+      query: vi.fn(async (sql: string) => {
+        void sql;
+        return { rows: [] };
+      }),
+    };
+
+    await expect(
+      verify_audit_core_schema(pool as never, {
+        runtime_role: "runtime",
+        maintenance_role: "maintenance",
+      }),
+    ).resolves.toEqual({ status: "ready" });
+    expect(pool.query.mock.calls[0]?.[0]).toContain(
+      "project_insert_audit_context_guard",
+    );
+    expect(pool.query.mock.calls[0]?.[0]).toContain(
+      "require_project_insert_context",
+    );
+    expect(pool.query.mock.calls[0]?.[0]).not.toContain(
+      "public_publish_viewer_session",
+    );
   });
 });

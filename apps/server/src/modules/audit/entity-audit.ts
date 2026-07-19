@@ -30,19 +30,29 @@ export type EntityAuditChange = {
 };
 
 type Queryable = {
-  query<Row = Record<string, unknown>>(sql: string, values?: unknown[]): Promise<{ rows: Row[] }>;
+  query<Row = Record<string, unknown>>(
+    sql: string,
+    values?: unknown[],
+  ): Promise<{ rows: Row[] }>;
 };
 
 export const resolve_org_user_audit_context = async (
   client: Queryable,
-  input: { organization_id: string; actor_org_user_id: string; source_type?: AuditSourceType },
+  input: {
+    organization_id: string;
+    actor_org_user_id: string;
+    source_type?: AuditSourceType;
+  },
 ): Promise<{ mutation: AuditMutationContext; actor_label: string }> => {
-  const result = await client.query<{ display_name: string }>(`
+  const result = await client.query<{ display_name: string }>(
+    `
     SELECT app_user.display_name
     FROM organization_schema.org_user org_user
     JOIN user_schema.user app_user ON app_user.id = org_user.user_id
     WHERE org_user.id = $1 AND org_user.organization_id = $2
-  `, [input.actor_org_user_id, input.organization_id]);
+  `,
+    [input.actor_org_user_id, input.organization_id],
+  );
   return {
     mutation: {
       organization_id: input.organization_id,
@@ -95,25 +105,34 @@ export const build_entity_audit_event = (input: EntityAuditEventInput) => {
       parent_entity_type: change.parent_entity_type,
       parent_entity_id: change.parent_entity_id,
     };
-    const operation = change.before === null ? "create" : change.after === null ? "delete" : "update";
+    const operation =
+      change.before === null
+        ? "create"
+        : change.after === null
+          ? "delete"
+          : "update";
 
     if (operation !== "update") {
       items.push(create_row_change({ id: ulid(), ...identity, operation }));
     }
 
-    for (const [field_name, value_type] of Object.entries(change.safe_fields ?? {})) {
+    for (const [field_name, value_type] of Object.entries(
+      change.safe_fields ?? {},
+    )) {
       const before = state(value_type, change.before?.[field_name]);
       const after = state(value_type, change.after?.[field_name]);
       if (!same(before, after)) {
-        items.push(create_scalar_change({
-          id: ulid(),
-          ...identity,
-          operation,
-          field_name,
-          value_type,
-          before,
-          after,
-        }));
+        items.push(
+          create_scalar_change({
+            id: ulid(),
+            ...identity,
+            operation,
+            field_name,
+            value_type,
+            before,
+            after,
+          }),
+        );
       }
     }
 
@@ -122,24 +141,34 @@ export const build_entity_audit_event = (input: EntityAuditEventInput) => {
       const after_value = change.after?.[field_name];
       if (same(before_value, after_value)) continue;
       if (operation === "update") {
-        items.push(create_redacted_change({
-          id: ulid(),
-          ...identity,
-          operation,
-          field_name,
-        }));
+        items.push(
+          create_redacted_change({
+            id: ulid(),
+            ...identity,
+            operation,
+            field_name,
+          }),
+        );
       } else {
-        const before = before_value === undefined ? { state: "absent" as const } : { state: "redacted" as const };
-        const after = after_value === undefined ? { state: "absent" as const } : { state: "redacted" as const };
-        items.push(create_scalar_change({
-          id: ulid(),
-          ...identity,
-          operation,
-          field_name,
-          value_type: "text",
-          before,
-          after,
-        }));
+        const redacted_state = (value: unknown) =>
+          value === undefined
+            ? { state: "absent" as const }
+            : value === null
+              ? { state: "null" as const }
+              : { state: "redacted" as const };
+        const before = redacted_state(before_value);
+        const after = redacted_state(after_value);
+        items.push(
+          create_scalar_change({
+            id: ulid(),
+            ...identity,
+            operation,
+            field_name,
+            value_type: "text",
+            before,
+            after,
+          }),
+        );
       }
     }
   }
@@ -155,7 +184,8 @@ export const build_entity_audit_event = (input: EntityAuditEventInput) => {
     action: input.action,
     source_type: input.source_type,
     actor_type,
-    actor_org_user_id: actor_type === "org_user" ? input.actor_org_user_id : null,
+    actor_org_user_id:
+      actor_type === "org_user" ? input.actor_org_user_id : null,
     actor_label: input.actor_label,
     request_id: current_audit_request_id(),
     correlation_id: null,

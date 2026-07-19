@@ -140,8 +140,10 @@ describe("Audit Evidence core", () => {
       ORDER BY tgname
     `);
     expect(triggers.rows.map((row) => row.trigger_name)).toEqual([
-      "project_insert_audit_context_guard",
-      "project_insert_audit_evidence_guard",
+      "project_i_audit_ctx",
+      "project_i_audit_evd",
+      "project_u_audit_ctx",
+      "project_u_audit_evd",
     ]);
     const role = await pool.query<{
       current_user: string;
@@ -392,6 +394,12 @@ describe("Audit Evidence core", () => {
         "SELECT set_config('ossie.audit_command', 'project.create', true)",
       );
       await client.query(
+        "SELECT set_config('ossie.audit_actor_type', 'org_user', true)",
+      );
+      await client.query(
+        "SELECT set_config('ossie.audit_source_type', 'web', true)",
+      );
+      await client.query(
         `
         INSERT INTO project_schema.project (id, organization_id, name, created_by_id, updated_by_id)
         VALUES ($1, $2, 'Missing Evidence', $3, $3)
@@ -411,6 +419,58 @@ describe("Audit Evidence core", () => {
     );
     expect(project.rows).toEqual([]);
   });
+
+  it.each([
+    {
+      label: "wrong action",
+      action: "project.updated",
+      actor_type: "org_user",
+      source_type: "web",
+    },
+    {
+      label: "forged system actor",
+      action: "project.created",
+      actor_type: "system",
+      source_type: "system",
+    },
+  ])(
+    "rejects Project creation with $label",
+    async ({ action, actor_type, source_type }) => {
+      await setup_owner();
+      const actor = await pool.query(
+        "SELECT organization_id, id FROM organization_schema.org_user LIMIT 1",
+      );
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        for (const [name, value] of [
+          ["ossie.audit_event_id", ulid()],
+          ["ossie.audit_organization_id", actor.rows[0].organization_id],
+          ["ossie.audit_action", action],
+          ["ossie.audit_command", "project.create"],
+          ["ossie.audit_actor_type", actor_type],
+          ["ossie.audit_source_type", source_type],
+        ]) {
+          await client.query("SELECT set_config($1, $2, true)", [name, value]);
+        }
+
+        await expect(
+          client.query(
+            `INSERT INTO project_schema.project
+          (id, organization_id, name, created_by_id, updated_by_id)
+         VALUES ($1, $2, 'Invalid Audit policy', $3, $3)`,
+            [ulid(), actor.rows[0].organization_id, actor.rows[0].id],
+          ),
+        ).rejects.toMatchObject({
+          code: "23514",
+          constraint: "ossie_audit_guard_context",
+        });
+      } finally {
+        await client.query("ROLLBACK");
+        client.release();
+      }
+    },
+  );
 
   it("rolls back the Project when evidence persistence fails", async () => {
     await setup_owner();

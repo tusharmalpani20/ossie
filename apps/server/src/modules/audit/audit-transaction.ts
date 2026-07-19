@@ -19,6 +19,20 @@ type TransactionPool = {
   connect(): Promise<TransactionClient>;
 };
 
+export const translate_audit_transaction_error = (error: unknown) => {
+  const audit_guard_failure =
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "23514" &&
+    "constraint" in error &&
+    typeof error.constraint === "string" &&
+    error.constraint.startsWith("ossie_audit_guard_");
+  return audit_guard_failure
+    ? new AuditDomainError("audit_guard_failed", "internal")
+    : error;
+};
+
 export const run_audited_mutation = async <Result, Event>(input: {
   pool: TransactionPool;
   event_id: string;
@@ -77,18 +91,7 @@ export const run_audited_mutation = async <Result, Event>(input: {
     } catch {
       // Preserve the stable mutation failure rather than a secondary rollback error.
     }
-    const audit_guard_failure =
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === "23514" &&
-      "constraint" in error &&
-      typeof error.constraint === "string" &&
-      error.constraint.startsWith("ossie_audit_guard_");
-    if (audit_guard_failure) {
-      throw new AuditDomainError("audit_guard_failed", "internal");
-    }
-    throw error;
+    throw translate_audit_transaction_error(error);
   } finally {
     client.release();
   }

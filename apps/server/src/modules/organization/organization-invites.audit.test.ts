@@ -21,7 +21,7 @@ const base = {
 };
 
 describe("Organization Invite Audit adapter", () => {
-  it("redacts invite identity/secret fields and represents revocation as deletion", () => {
+  it("redacts invite identity/secret fields and represents revocation as a status update", () => {
     const created = build_invite_created_event({ ...base, invite });
     expect(created.items).toEqual(
       expect.arrayContaining([
@@ -37,7 +37,12 @@ describe("Organization Invite Audit adapter", () => {
     );
     expect(JSON.stringify(created)).not.toContain(invite.email);
     expect(build_invite_revoked_event({ ...base, invite }).items).toEqual([
-      expect.objectContaining({ operation: "delete", field_name: null }),
+      expect.objectContaining({
+        operation: "update",
+        field_name: "status",
+        before: { state: "value", value: "pending" },
+        after: { state: "value", value: "revoked" },
+      }),
     ]);
   });
 

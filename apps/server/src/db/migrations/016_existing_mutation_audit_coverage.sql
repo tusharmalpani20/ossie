@@ -8,6 +8,87 @@ DROP TRIGGER IF EXISTS project_insert_audit_context_guard ON project_schema.proj
 DROP FUNCTION IF EXISTS audit_schema.verify_project_insert_evidence();
 DROP FUNCTION IF EXISTS audit_schema.require_project_insert_context();
 
+CREATE OR REPLACE FUNCTION audit_schema.mutation_command_policy_is_valid(
+  selected_command TEXT,
+  selected_action TEXT,
+  selected_actor_type TEXT,
+  selected_source_type TEXT
+)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM (VALUES
+      ('setup.complete_first_run', 'setup.owner_bootstrapped'),
+      ('authentication.session.create', 'authentication.session.created'),
+      ('authentication.session.touch', 'authentication.session.activity_recorded'),
+      ('authentication.session.revoke', 'authentication.session.revoked'),
+      ('organization.invite.create', 'organization.invite.created'),
+      ('organization.invite.revoke', 'organization.invite.revoked'),
+      ('organization.invite.accept', 'organization.invite.accepted'),
+      ('project.create', 'project.created'),
+      ('project.update', 'project.updated'),
+      ('project.delete', 'project.deleted'),
+      ('capture_session.create', 'capture_session.created'),
+      ('capture_session.update', 'capture_session.updated'),
+      ('capture_session.complete', 'capture_session.completed'),
+      ('capture_session.delete', 'capture_session.deleted'),
+      ('capture_asset.create', 'capture_asset.created'),
+      ('capture_asset.upload', 'capture_asset.uploaded'),
+      ('capture_asset.delete', 'capture_asset.deleted'),
+      ('capture_event.create', 'capture_event.created'),
+      ('capture_event.update', 'capture_event.updated'),
+      ('capture_event.reorder', 'capture_event.reordered'),
+      ('capture_event.delete', 'capture_event.deleted'),
+      ('guide.create_from_capture', 'guide.created'),
+      ('guide.update', 'guide.updated'),
+      ('guide.step.update', 'guide.step.updated'),
+      ('guide.blocks.reorder', 'guide.blocks.reordered'),
+      ('guide.block.create', 'guide.block.created'),
+      ('guide.block.update', 'guide.block.updated'),
+      ('guide.block.screenshot.update', 'guide.block.screenshot_updated'),
+      ('guide.block.annotations.update', 'guide.block.annotations_updated'),
+      ('guide.block.screenshot_upload', 'guide.block.screenshot_uploaded'),
+      ('guide.block.delete', 'guide.block.deleted'),
+      ('interactive_demo.create_from_capture', 'interactive_demo.created'),
+      ('interactive_demo.create', 'interactive_demo.created'),
+      ('interactive_demo.update', 'interactive_demo.updated'),
+      ('interactive_demo.delete', 'interactive_demo.deleted'),
+      ('interactive_demo.scene.create', 'interactive_demo.scene.created'),
+      ('interactive_demo.scene.update', 'interactive_demo.scene.updated'),
+      ('interactive_demo.scenes.reorder', 'interactive_demo.scenes.reordered'),
+      ('interactive_demo.scene.delete', 'interactive_demo.scene.deleted'),
+      ('interactive_demo.hotspot.create', 'interactive_demo.hotspot.created'),
+      ('interactive_demo.hotspot.update', 'interactive_demo.hotspot.updated'),
+      ('interactive_demo.hotspots.reorder', 'interactive_demo.hotspots.reordered'),
+      ('interactive_demo.hotspot.delete', 'interactive_demo.hotspot.deleted'),
+      ('publish.guide', 'guide.published'),
+      ('publish.interactive_demo', 'interactive_demo.published'),
+      ('publish.guide_link.revoke', 'guide.publish_link.revoked'),
+      ('publish.interactive_demo_link.revoke', 'interactive_demo.publish_link.revoked'),
+      ('publish.guide_link.access_update', 'guide.publish_link.access_updated'),
+      ('publish.interactive_demo_link.access_update', 'interactive_demo.publish_link.access_updated'),
+      ('publish.guide_link.password_update', 'guide.publish_link.password_updated'),
+      ('publish.interactive_demo_link.password_update', 'interactive_demo.publish_link.password_updated'),
+      ('publish.viewer_session.create', 'publish.viewer_session.created'),
+      ('publish.viewer_session.touch', 'publish.viewer_session.activity_recorded')
+    ) AS policy(command, action)
+    WHERE policy.command = selected_command
+      AND policy.action = selected_action
+      AND CASE
+        WHEN selected_command IN ('publish.viewer_session.create', 'publish.viewer_session.touch')
+          THEN selected_actor_type = 'system' AND selected_source_type = 'system'
+        WHEN selected_command IN ('setup.complete_first_run', 'organization.invite.accept')
+          THEN selected_actor_type = 'org_user' AND selected_source_type = 'web'
+        WHEN selected_command LIKE 'capture\_%' ESCAPE '\'
+          OR selected_command = 'guide.block.screenshot_upload'
+          THEN selected_actor_type = 'org_user'
+            AND selected_source_type IN ('web', 'api', 'extension', 'import')
+        ELSE selected_actor_type = 'org_user'
+          AND selected_source_type IN ('web', 'api', 'extension')
+      END
+  );
+$$ LANGUAGE SQL IMMUTABLE;
+
 CREATE OR REPLACE FUNCTION audit_schema.require_mutation_context()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -34,6 +115,12 @@ BEGIN
     OR COALESCE(current_setting('ossie.audit_source_type', true), '') = ''
     OR current_setting('ossie.audit_organization_id', true) IS DISTINCT FROM row_organization_id
     OR NOT (current_setting('ossie.audit_command', true) = ANY (allowed_commands))
+    OR NOT audit_schema.mutation_command_policy_is_valid(
+      current_setting('ossie.audit_command', true),
+      current_setting('ossie.audit_action', true),
+      current_setting('ossie.audit_actor_type', true),
+      current_setting('ossie.audit_source_type', true)
+    )
   THEN
     RAISE EXCEPTION 'Mutation requires matching Audit context'
       USING ERRCODE = '23514', CONSTRAINT = 'ossie_audit_guard_context';
@@ -83,6 +170,12 @@ BEGIN
       AND event.action = current_setting('ossie.audit_action', true)
       AND event.actor_type = current_setting('ossie.audit_actor_type', true)
       AND event.source_type = current_setting('ossie.audit_source_type', true)
+      AND audit_schema.mutation_command_policy_is_valid(
+        current_setting('ossie.audit_command', true),
+        event.action,
+        event.actor_type,
+        event.source_type
+      )
       AND (
         EXISTS (
           SELECT 1
@@ -150,7 +243,7 @@ BEGIN
       ('publish_schema', 'publish_link', 'INSERT', 'publish_link', 'direct', 'publish.guide,publish.interactive_demo'),
       ('publish_schema', 'publish_link', 'UPDATE', 'publish_link', 'direct', 'publish.guide,publish.interactive_demo,publish.guide_link.revoke,publish.interactive_demo_link.revoke,publish.guide_link.access_update,publish.interactive_demo_link.access_update,publish.guide_link.password_update,publish.interactive_demo_link.password_update'),
       ('publish_schema', 'public_publish_viewer_session', 'INSERT', 'public_publish_viewer_session', 'viewer', 'publish.viewer_session.create'),
-      ('publish_schema', 'public_publish_viewer_session', 'UPDATE', 'public_publish_viewer_session', 'viewer', 'publish.viewer_session.touch,publish.guide_link.revoke,publish.interactive_demo_link.revoke,publish.guide_link.password_update,publish.interactive_demo_link.password_update')
+      ('publish_schema', 'public_publish_viewer_session', 'UPDATE', 'public_publish_viewer_session', 'viewer', 'publish.guide_link.revoke,publish.interactive_demo_link.revoke,publish.guide_link.password_update,publish.interactive_demo_link.password_update,publish.viewer_session.touch')
     ) AS entries(schema_name, table_name, sql_operation, entity_type, tenant_mode, commands)
   LOOP
     operation_short := CASE registration.sql_operation WHEN 'INSERT' THEN 'i' ELSE 'u' END;
@@ -172,8 +265,11 @@ $$;
 
 REVOKE ALL ON FUNCTION audit_schema.require_mutation_context() FROM PUBLIC;
 REVOKE ALL ON FUNCTION audit_schema.verify_mutation_evidence() FROM PUBLIC;
+REVOKE ALL ON FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION audit_schema.require_mutation_context(),
-  audit_schema.verify_mutation_evidence() TO __OSSIE_RUNTIME_DB_ROLE__;
+  audit_schema.verify_mutation_evidence(),
+  audit_schema.mutation_command_policy_is_valid(TEXT, TEXT, TEXT, TEXT)
+  TO __OSSIE_RUNTIME_DB_ROLE__;
 
 -- DOWN:
 
@@ -199,6 +295,7 @@ $$;
 
 DROP FUNCTION IF EXISTS audit_schema.verify_mutation_evidence();
 DROP FUNCTION IF EXISTS audit_schema.require_mutation_context();
+DROP FUNCTION IF EXISTS audit_schema.mutation_command_policy_is_valid(TEXT, TEXT, TEXT, TEXT);
 
 CREATE OR REPLACE FUNCTION audit_schema.require_project_insert_context()
 RETURNS TRIGGER AS $$

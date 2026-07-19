@@ -119,10 +119,14 @@ export const build_session_touched_event = (
 
 export const build_session_revoked_event = (input: BaseInput) =>
   event(input, "authentication.session.revoked", [
-    create_row_change({
+    create_scalar_change({
       id: ulid(),
       ...identity(input),
-      operation: "delete",
+      operation: "update",
+      field_name: "status",
+      value_type: "enum",
+      before: { state: "value", value: "active" },
+      after: { state: "value", value: "revoked" },
     }),
   ]);
 
@@ -173,11 +177,8 @@ export const build_authentication_session_repository = (
   const base = build_authentication_session_client_repository(pool);
   return {
     async find_and_touch_auth_context_by_token_hash(token_hash) {
-      const preliminary = await find_actor_by_session(
-        pool,
-        "token_hash",
-        token_hash,
-      );
+      const preliminary =
+        await base.find_auth_context_by_token_hash(token_hash);
       if (!preliminary) return null;
       const event_id = ulid();
       const occurred_at = new Date().toISOString();
