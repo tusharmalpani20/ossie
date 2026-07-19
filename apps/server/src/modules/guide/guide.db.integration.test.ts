@@ -301,7 +301,9 @@ describe("DB-backed guide API", () => {
     expect(created_body.guide_blocks[0].step.source_capture_event_id).toBe(
       note_event_id,
     );
-    expect(created_body.guide_blocks[1].step.source_capture_asset_id).toBeNull();
+    expect(
+      created_body.guide_blocks[1].step.source_capture_asset_id,
+    ).toBeNull();
     expect(created_body.guide_blocks[2].step.source_capture_asset_id).toBe(
       active_asset_id,
     );
@@ -367,7 +369,9 @@ describe("DB-backed guide API", () => {
         expected_working_draft_version: created_body.working_draft.version,
       },
     });
-    expect(update_step_response.statusCode, update_step_response.body).toBe(200);
+    expect(update_step_response.statusCode, update_step_response.body).toBe(
+      200,
+    );
     const reorder_response = await app.inject({
       method: "PATCH",
       url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/reorder?project_version_id=${project_version_id}`,
@@ -482,8 +486,7 @@ describe("DB-backed guide API", () => {
       url: `/api/v1/projects/${project_id}/guides/${guide_id}/archive?project_version_id=${project_version_id}`,
       cookies: { ossie_session: session_token },
       payload: {
-        expected_edition_version:
-          update_guide_response.json().edition.version,
+        expected_edition_version: update_guide_response.json().edition.version,
       },
     });
     const archived_step_response = await app.inject({
@@ -865,19 +868,19 @@ describe("DB-backed guide API", () => {
     });
 
     expect(annotations_response.statusCode).toBe(200);
-    expect(annotations_response.json().guide_block.step.annotations).toMatchObject(
-      [
-        {
-          id: expect.any(String),
-          annotation_type: "highlight",
-          annotation_index: 1,
-          x: 0.2,
-          y: 0.15,
-          width: 0.25,
-          height: 0.1,
-        },
-      ],
-    );
+    expect(
+      annotations_response.json().guide_block.step.annotations,
+    ).toMatchObject([
+      {
+        id: expect.any(String),
+        annotation_type: "highlight",
+        annotation_index: 1,
+        x: 0.2,
+        y: 0.15,
+        width: 0.25,
+        height: 0.1,
+      },
+    ]);
 
     const annotated_detail_response = await app.inject({
       method: "GET",
@@ -889,6 +892,36 @@ describe("DB-backed guide API", () => {
     expect(
       annotated_detail_response.json().guide_blocks[0].step.annotations,
     ).toEqual(annotations_response.json().guide_block.step.annotations);
+
+    const annotation_id = annotations_response.json().guide_block.step
+      .annotations[0].id as string;
+    const revised_annotations_response = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/blocks/${guide_block_id}/annotations?project_version_id=${project_version_id}`,
+      cookies: { ossie_session: session_token },
+      payload: {
+        expected_working_draft_version:
+          annotations_response.json().working_draft.version,
+        annotations: [
+          {
+            id: annotation_id,
+            type: "highlight",
+            x: 0.25,
+            y: 0.15,
+            width: 0.25,
+            height: 0.1,
+          },
+        ],
+      },
+    });
+
+    expect(
+      revised_annotations_response.statusCode,
+      revised_annotations_response.body,
+    ).toBe(200);
+    expect(
+      revised_annotations_response.json().guide_block.step.annotations,
+    ).toMatchObject([{ id: annotation_id, x: 0.25, version: 2 }]);
 
     const annotated_export_response = await app.inject({
       method: "GET",
@@ -913,7 +946,7 @@ describe("DB-backed guide API", () => {
       `![Capture "Department List"](${public_base_url}/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${source_asset_id}/file)`,
     );
     expect(annotated_export_response.json().markdown).toContain(
-      "- Highlight 1: x 20%, y 15%, width 25%, height 10%",
+      "- Highlight 1: x 25%, y 15%, width 25%, height 10%",
     );
     expect(annotated_export_response.json().markdown).not.toContain(
       "storage_key",
@@ -929,7 +962,7 @@ describe("DB-backed guide API", () => {
       payload: {
         capture_asset_id: replacement_asset_id,
         expected_working_draft_version:
-          annotations_response.json().working_draft.version,
+          revised_annotations_response.json().working_draft.version,
       },
     });
 

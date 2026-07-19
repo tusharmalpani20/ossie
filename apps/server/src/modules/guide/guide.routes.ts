@@ -135,14 +135,20 @@ export type GuideRouteDependencies = {
       project_version_id: string;
       block_ids: string[];
       expected_working_draft_version: number;
-    }) => Promise<{ guide_blocks: GuideBlock[]; working_draft: GuideWorkingDraft }>;
+    }) => Promise<{
+      guide_blocks: GuideBlock[];
+      working_draft: GuideWorkingDraft;
+    }>;
     create_guide_block: (input: {
       auth: GuideAuthContext;
       project_id: string;
       guide_id: string;
       project_version_id: string;
       data: CreateGuideBlockInput;
-    }) => Promise<{ guide_blocks: GuideBlock[]; working_draft: GuideWorkingDraft }>;
+    }) => Promise<{
+      guide_blocks: GuideBlock[];
+      working_draft: GuideWorkingDraft;
+    }>;
     update_guide_block: (input: {
       auth: GuideAuthContext;
       project_id: string;
@@ -150,7 +156,10 @@ export type GuideRouteDependencies = {
       project_version_id: string;
       guide_block_id: string;
       data: UpdateGuideBlockInput;
-    }) => Promise<{ guide_block: GuideBlock; working_draft: GuideWorkingDraft }>;
+    }) => Promise<{
+      guide_block: GuideBlock;
+      working_draft: GuideWorkingDraft;
+    }>;
     update_guide_block_screenshot: (input: {
       auth: GuideAuthContext;
       project_id: string;
@@ -158,7 +167,10 @@ export type GuideRouteDependencies = {
       project_version_id: string;
       guide_block_id: string;
       data: UpdateGuideBlockScreenshotInput;
-    }) => Promise<{ guide_block: GuideBlock; working_draft: GuideWorkingDraft }>;
+    }) => Promise<{
+      guide_block: GuideBlock;
+      working_draft: GuideWorkingDraft;
+    }>;
     update_guide_block_annotations: (input: {
       auth: GuideAuthContext;
       project_id: string;
@@ -166,7 +178,10 @@ export type GuideRouteDependencies = {
       project_version_id: string;
       guide_block_id: string;
       data: UpdateGuideBlockAnnotationsInput;
-    }) => Promise<{ guide_block: GuideBlock; working_draft: GuideWorkingDraft }>;
+    }) => Promise<{
+      guide_block: GuideBlock;
+      working_draft: GuideWorkingDraft;
+    }>;
     prepare_guide_block_screenshot_upload: (input: {
       auth: GuideAuthContext;
       project_id: string;
@@ -199,7 +214,11 @@ export type GuideRouteDependencies = {
         original_name?: string | null;
       };
       data: UploadCaptureAssetInput;
-    }) => Promise<{ capture_asset: CaptureAsset; guide_block: GuideBlock; working_draft: GuideWorkingDraft }>;
+    }) => Promise<{
+      capture_asset: CaptureAsset;
+      guide_block: GuideBlock;
+      working_draft: GuideWorkingDraft;
+    }>;
   };
 };
 
@@ -228,7 +247,9 @@ const pick_create_guide_data = (
 });
 
 const pick_update_guide_data = (body: UpdateGuideInput): UpdateGuideInput => {
-  const data: UpdateGuideInput = { expected_edition_version: body.expected_edition_version };
+  const data: UpdateGuideInput = {
+    expected_edition_version: body.expected_edition_version,
+  };
 
   if (body.title !== undefined) {
     data.title = body.title;
@@ -243,7 +264,9 @@ const pick_update_guide_data = (body: UpdateGuideInput): UpdateGuideInput => {
 const pick_update_guide_step_data = (
   body: UpdateGuideStepInput,
 ): UpdateGuideStepInput => {
-  const data: UpdateGuideStepInput = { expected_working_draft_version: body.expected_working_draft_version };
+  const data: UpdateGuideStepInput = {
+    expected_working_draft_version: body.expected_working_draft_version,
+  };
 
   if (body.title !== undefined) {
     data.title = body.title;
@@ -436,6 +459,41 @@ export const build_guide_routes = (
       );
 
     const handle_domain_error = (error: unknown, reply: FastifyReply) => {
+      const database_constraint =
+        typeof error === "object" && error !== null && "constraint" in error
+          ? error.constraint
+          : null;
+      if (database_constraint === "artifact_project_version_active_guard") {
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "project_version_read_only",
+              "Archived Project Versions are read-only",
+            ),
+          );
+      }
+      if (database_constraint === "artifact_edition_active_guard") {
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "artifact_edition_not_editable",
+              "Archived Artifact Editions are read-only",
+            ),
+          );
+      }
+      if (database_constraint === "authored_asset_version_guard") {
+        return reply
+          .status(400)
+          .send(
+            error_response(
+              "invalid_guide_block_screenshot",
+              "Guide screenshot selection is invalid",
+            ),
+          );
+      }
+
       if (error instanceof UnauthenticatedSessionError) {
         return reply.status(401).send(unauthorized_response());
       }
@@ -678,22 +736,26 @@ export const build_guide_routes = (
         project_id: string;
       };
       Querystring: GuideVersionQuery;
-    }>("/:project_id/guides", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
-      try {
-        const auth = await require_auth(
-          request.cookies[web_session_cookie_name],
-        );
-        const guides = await dependencies.guide_service.list_guides({
-          auth,
-          project_id: request.params.project_id,
-          project_version_id: request.query.project_version_id,
-        });
+    }>(
+      "/:project_id/guides",
+      { schema: { querystring: GuideVersionQuerySchema } },
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(
+            request.cookies[web_session_cookie_name],
+          );
+          const guides = await dependencies.guide_service.list_guides({
+            auth,
+            project_id: request.params.project_id,
+            project_version_id: request.query.project_version_id,
+          });
 
-        return reply.status(200).send({ guide_editions: guides });
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+          return reply.status(200).send({ guide_editions: guides });
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.get<{
       Params: {
@@ -701,23 +763,28 @@ export const build_guide_routes = (
         guide_id: string;
       };
       Querystring: GuideVersionQuery;
-    }>("/:project_id/guides/:guide_id", { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
-      try {
-        const auth = await require_auth(
-          request.cookies[web_session_cookie_name],
-        );
-        const guide_detail = await dependencies.guide_service.get_guide_detail({
-          auth,
-          project_id: request.params.project_id,
-          guide_id: request.params.guide_id,
-          project_version_id: request.query.project_version_id,
-        });
+    }>(
+      "/:project_id/guides/:guide_id",
+      { schema: { querystring: GuideVersionQuerySchema } },
+      async (request, reply) => {
+        try {
+          const auth = await require_auth(
+            request.cookies[web_session_cookie_name],
+          );
+          const guide_detail =
+            await dependencies.guide_service.get_guide_detail({
+              auth,
+              project_id: request.params.project_id,
+              guide_id: request.params.guide_id,
+              project_version_id: request.query.project_version_id,
+            });
 
-        return reply.status(200).send(guide_detail);
-      } catch (error) {
-        return handle_domain_error(error, reply);
-      }
-    });
+          return reply.status(200).send(guide_detail);
+        } catch (error) {
+          return handle_domain_error(error, reply);
+        }
+      },
+    );
 
     fastify.get<{
       Params: {
@@ -727,7 +794,8 @@ export const build_guide_routes = (
       Querystring: GuideVersionQuery;
     }>(
       "/:project_id/guides/:guide_id/export/markdown",
-      { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
+      { schema: { querystring: GuideVersionQuerySchema } },
+      async (request, reply) => {
         try {
           const auth = await require_auth(
             request.cookies[web_session_cookie_name],
@@ -755,7 +823,8 @@ export const build_guide_routes = (
       Querystring: GuideVersionQuery;
     }>(
       "/:project_id/guides/:guide_id/export/html.zip",
-      { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
+      { schema: { querystring: GuideVersionQuerySchema } },
+      async (request, reply) => {
         try {
           const auth = await require_auth(
             request.cookies[web_session_cookie_name],
@@ -825,18 +894,26 @@ export const build_guide_routes = (
         Body: { expected_edition_version: number };
       }>(
         `/:project_id/guides/:guide_id/${command}`,
-        { schema: { querystring: GuideVersionQuerySchema, body: UpdateGuideEditionStatusRequestSchema } },
+        {
+          schema: {
+            querystring: GuideVersionQuerySchema,
+            body: UpdateGuideEditionStatusRequestSchema,
+          },
+        },
         async (request, reply) => {
           try {
-            const auth = await require_auth(request.cookies[web_session_cookie_name]);
-            const edition = await dependencies.guide_service.update_guide_status({
-              auth,
-              project_id: request.params.project_id,
-              guide_id: request.params.guide_id,
-              project_version_id: request.query.project_version_id,
-              status: command === "archive" ? "archived" : "draft",
-              expected_edition_version: request.body.expected_edition_version,
-            });
+            const auth = await require_auth(
+              request.cookies[web_session_cookie_name],
+            );
+            const edition =
+              await dependencies.guide_service.update_guide_status({
+                auth,
+                project_id: request.params.project_id,
+                guide_id: request.params.guide_id,
+                project_version_id: request.query.project_version_id,
+                status: command === "archive" ? "archived" : "draft",
+                expected_edition_version: request.body.expected_edition_version,
+              });
             return reply.status(200).send({ edition });
           } catch (error) {
             return handle_domain_error(error, reply);
@@ -911,7 +988,8 @@ export const build_guide_routes = (
               guide_id: request.params.guide_id,
               project_version_id: request.query.project_version_id,
               block_ids: request.body.block_ids,
-              expected_working_draft_version: request.body.expected_working_draft_version,
+              expected_working_draft_version:
+                request.body.expected_working_draft_version,
             });
 
           return reply.status(200).send(guide_blocks);
@@ -1042,7 +1120,8 @@ export const build_guide_routes = (
       Querystring: GuideVersionQuery;
     }>(
       "/:project_id/guides/:guide_id/blocks/:guide_block_id/screenshot-upload",
-      { schema: { querystring: GuideVersionQuerySchema } }, async (request, reply) => {
+      { schema: { querystring: GuideVersionQuerySchema } },
+      async (request, reply) => {
         try {
           const auth_context =
             await dependencies.auth_service.get_current_auth_context(
@@ -1060,9 +1139,12 @@ export const build_guide_routes = (
           }
 
           const expected_working_draft_version = optional_positive_number_field(
-            upload.fields, "expected_working_draft_version", true,
+            upload.fields,
+            "expected_working_draft_version",
+            true,
           );
-          if (!expected_working_draft_version) throw new InvalidCaptureAssetUploadError();
+          if (!expected_working_draft_version)
+            throw new InvalidCaptureAssetUploadError();
           const prepared =
             await dependencies.guide_service.prepare_guide_block_screenshot_upload(
               {
@@ -1149,21 +1231,24 @@ export const build_guide_routes = (
       Querystring: GuideContentDeleteQuery;
     }>(
       "/:project_id/guides/:guide_id/blocks/:guide_block_id",
-      { schema: { querystring: GuideContentDeleteQuerySchema } }, async (request, reply) => {
+      { schema: { querystring: GuideContentDeleteQuerySchema } },
+      async (request, reply) => {
         try {
           const auth = await require_auth(
             request.cookies[web_session_cookie_name],
           );
-          await dependencies.guide_service.delete_guide_block({
-            auth,
-            project_id: request.params.project_id,
-            guide_id: request.params.guide_id,
-            project_version_id: request.query.project_version_id,
-            guide_block_id: request.params.guide_block_id,
-            expected_working_draft_version: request.query.expected_working_draft_version,
-          });
+          const working_draft =
+            await dependencies.guide_service.delete_guide_block({
+              auth,
+              project_id: request.params.project_id,
+              guide_id: request.params.guide_id,
+              project_version_id: request.query.project_version_id,
+              guide_block_id: request.params.guide_block_id,
+              expected_working_draft_version:
+                request.query.expected_working_draft_version,
+            });
 
-          return reply.status(204).send();
+          return reply.status(200).send({ working_draft });
         } catch (error) {
           return handle_domain_error(error, reply);
         }

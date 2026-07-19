@@ -28,6 +28,7 @@ import type {
   InteractiveDemoSceneListResponse,
   InteractiveDemoSceneReorderResponse,
   InteractiveDemoSceneUpdateResponse,
+  InteractiveDemoWorkingDraftMutationResponse,
   ProjectInteractiveDemoListResponse,
   UpdateDemoHotspotInput,
   UpdateDemoSceneInput,
@@ -40,6 +41,7 @@ import type {
   GuideBlocksResponse,
   GuideDetail,
   GuideMarkdownExport,
+  GuideWorkingDraftMutationResponse,
   ProjectGuideListResponse,
   UpdateGuideBlockAnnotationsInput,
   UpdateGuideBlockInput,
@@ -119,6 +121,7 @@ export type {
   InteractiveDemoSceneListResponse,
   InteractiveDemoSceneReorderResponse,
   InteractiveDemoSceneUpdateResponse,
+  InteractiveDemoWorkingDraftMutationResponse,
   ProjectInteractiveDemoListResponse,
 } from "@repo/types/demo";
 export type {
@@ -687,7 +690,7 @@ export const updateCaptureSessionEvent = async (
 export const getGuideDetail = async (
   projectId: string,
   guideId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuideDetail> =>
   requestJson<GuideDetail>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -696,7 +699,7 @@ export const getGuideDetail = async (
 export const exportGuideMarkdown = async (
   projectId: string,
   guideId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuideMarkdownExport> =>
   requestJson<GuideMarkdownExport>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/export/markdown?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -705,7 +708,7 @@ export const exportGuideMarkdown = async (
 export const exportGuideHtmlZip = async (
   projectId: string,
   guideId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<{ filename: string; blob: Blob }> =>
   requestBlob(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/export/html.zip?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -715,7 +718,7 @@ export const exportGuideHtmlZip = async (
 export const getGuidePublishStatus = async (
   projectId: string,
   guideId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuidePublishStatusResponse> =>
   requestJson<GuidePublishStatusResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -724,7 +727,7 @@ export const getGuidePublishStatus = async (
 export const getInteractiveDemoPublishStatus = async (
   projectId: string,
   interactiveDemoId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoPublishStatusResponse> =>
   requestJson<InteractiveDemoPublishStatusResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -733,7 +736,7 @@ export const getInteractiveDemoPublishStatus = async (
 export const publishGuide = async (
   projectId: string,
   guideId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuidePublishResult> =>
   requestJson<GuidePublishResult>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -745,7 +748,7 @@ export const publishGuide = async (
 export const publishInteractiveDemo = async (
   projectId: string,
   interactiveDemoId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoPublishResult> =>
   requestJson<InteractiveDemoPublishResult>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -757,7 +760,7 @@ export const publishInteractiveDemo = async (
 export const revokeGuidePublishLink = async (
   projectId: string,
   guideId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuideRevokePublishResult> =>
   requestJson<GuideRevokePublishResult>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -769,7 +772,7 @@ export const revokeGuidePublishLink = async (
 export const revokeInteractiveDemoPublishLink = async (
   projectId: string,
   interactiveDemoId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<RevokePublishResult> =>
   requestJson<RevokePublishResult>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -782,7 +785,7 @@ export const updateGuidePublishAccess = async (
   projectId: string,
   guideId: string,
   input: UpdatePublishAccessInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuidePublishStatusResponse> =>
   requestJson<GuidePublishStatusResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish/access?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -799,7 +802,7 @@ export const updateInteractiveDemoPublishAccess = async (
   projectId: string,
   interactiveDemoId: string,
   input: UpdatePublishAccessInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoPublishStatusResponse> =>
   requestJson<InteractiveDemoPublishStatusResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish/access?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -816,7 +819,7 @@ export const updateGuidePublishPassword = async (
   projectId: string,
   guideId: string,
   input: UpdatePublishPasswordInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuidePublishStatusResponse> =>
   requestJson<GuidePublishStatusResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/publish/password?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -833,7 +836,7 @@ export const updateInteractiveDemoPublishPassword = async (
   projectId: string,
   interactiveDemoId: string,
   input: UpdatePublishPasswordInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoPublishStatusResponse> =>
   requestJson<InteractiveDemoPublishStatusResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/publish/password?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -942,7 +945,7 @@ export const listProjectActivity = async (
 
 export const listProjectGuides = async (
   projectId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<ProjectGuideListResponse> =>
   requestJson<ProjectGuideListResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -950,7 +953,7 @@ export const listProjectGuides = async (
 
 export const listProjectScreenshotAssets = async (
   projectId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<ProjectScreenshotAssetListResponse> =>
   requestJson<ProjectScreenshotAssetListResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/capture-assets?project_version_id=${encodeURIComponent(projectVersionId)}&asset_type=screenshot`,
@@ -996,7 +999,7 @@ export const createInteractiveDemoFromCaptureSession = async (
 
 export const listProjectInteractiveDemos = async (
   projectId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<ProjectInteractiveDemoListResponse> =>
   requestJson<ProjectInteractiveDemoListResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1005,7 +1008,7 @@ export const listProjectInteractiveDemos = async (
 export const getInteractiveDemo = async (
   projectId: string,
   interactiveDemoId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoDetailResponse> =>
   requestJson<InteractiveDemoDetailResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1015,7 +1018,7 @@ export const updateInteractiveDemo = async (
   projectId: string,
   interactiveDemoId: string,
   data: UpdateInteractiveDemoInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoDetailResponse> =>
   requestJson<InteractiveDemoDetailResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1040,17 +1043,25 @@ const changeInteractiveDemoEditionStatus = async (
     {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ expected_edition_version: expectedEditionVersion }),
+      body: JSON.stringify({
+        expected_edition_version: expectedEditionVersion,
+      }),
     },
   );
 
 export const archiveInteractiveDemo = async (
   projectId: string,
   interactiveDemoId: string,
-  projectVersionId = "",
+  projectVersionId: string,
   expectedEditionVersion: number,
 ): Promise<{ edition: InteractiveDemoEdition }> =>
-  changeInteractiveDemoEditionStatus("archive", projectId, interactiveDemoId, projectVersionId, expectedEditionVersion);
+  changeInteractiveDemoEditionStatus(
+    "archive",
+    projectId,
+    interactiveDemoId,
+    projectVersionId,
+    expectedEditionVersion,
+  );
 
 export const restoreInteractiveDemo = async (
   projectId: string,
@@ -1058,12 +1069,18 @@ export const restoreInteractiveDemo = async (
   projectVersionId: string,
   expectedEditionVersion: number,
 ): Promise<{ edition: InteractiveDemoEdition }> =>
-  changeInteractiveDemoEditionStatus("restore", projectId, interactiveDemoId, projectVersionId, expectedEditionVersion);
+  changeInteractiveDemoEditionStatus(
+    "restore",
+    projectId,
+    interactiveDemoId,
+    projectVersionId,
+    expectedEditionVersion,
+  );
 
 export const listInteractiveDemoScenes = async (
   projectId: string,
   interactiveDemoId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoSceneListResponse> =>
   requestJson<InteractiveDemoSceneListResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1074,7 +1091,7 @@ export const updateInteractiveDemoScene = async (
   interactiveDemoId: string,
   sceneId: string,
   data: UpdateDemoSceneInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoSceneUpdateResponse> =>
   requestJson<InteractiveDemoSceneUpdateResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1092,7 +1109,7 @@ export const reorderInteractiveDemoScenes = async (
   interactiveDemoId: string,
   sceneIds: string[],
   expectedWorkingDraftVersion: number,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoSceneReorderResponse> =>
   requestJson<InteractiveDemoSceneReorderResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/order?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1113,9 +1130,9 @@ export const deleteInteractiveDemoScene = async (
   interactiveDemoId: string,
   sceneId: string,
   expectedWorkingDraftVersion: number,
-  projectVersionId = "",
-): Promise<void> =>
-  requestJson<void>(
+  projectVersionId: string,
+): Promise<InteractiveDemoWorkingDraftMutationResponse> =>
+  requestJson<InteractiveDemoWorkingDraftMutationResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}?project_version_id=${encodeURIComponent(projectVersionId)}&expected_working_draft_version=${expectedWorkingDraftVersion}`,
     {
       method: "DELETE",
@@ -1126,7 +1143,7 @@ const demoHotspotsPath = (
   projectId: string,
   interactiveDemoId: string,
   sceneId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ) =>
   `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes/${encodeURIComponent(sceneId)}/hotspots?project_version_id=${encodeURIComponent(projectVersionId)}`;
 
@@ -1135,7 +1152,7 @@ export const createInteractiveDemoHotspot = async (
   interactiveDemoId: string,
   sceneId: string,
   data: CreateDemoHotspotInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoHotspotCreateResponse> =>
   requestJson<InteractiveDemoHotspotCreateResponse>(
     demoHotspotsPath(projectId, interactiveDemoId, sceneId, projectVersionId),
@@ -1152,7 +1169,7 @@ export const listInteractiveDemoHotspots = async (
   projectId: string,
   interactiveDemoId: string,
   sceneId: string,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoHotspotListResponse> =>
   requestJson<InteractiveDemoHotspotListResponse>(
     demoHotspotsPath(projectId, interactiveDemoId, sceneId, projectVersionId),
@@ -1164,7 +1181,7 @@ export const updateInteractiveDemoHotspot = async (
   sceneId: string,
   hotspotId: string,
   data: UpdateDemoHotspotInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoHotspotUpdateResponse> =>
   requestJson<InteractiveDemoHotspotUpdateResponse>(
     `${demoHotspotsPath(projectId, interactiveDemoId, sceneId, projectVersionId).split("?")[0]}/${encodeURIComponent(hotspotId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1183,7 +1200,7 @@ export const reorderInteractiveDemoHotspots = async (
   sceneId: string,
   hotspotIds: string[],
   expectedWorkingDraftVersion: number,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<InteractiveDemoHotspotReorderResponse> =>
   requestJson<InteractiveDemoHotspotReorderResponse>(
     `${demoHotspotsPath(projectId, interactiveDemoId, sceneId, projectVersionId).split("?")[0]}/order?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1205,9 +1222,9 @@ export const deleteInteractiveDemoHotspot = async (
   sceneId: string,
   hotspotId: string,
   expectedWorkingDraftVersion: number,
-  projectVersionId = "",
-): Promise<void> =>
-  requestJson<void>(
+  projectVersionId: string,
+): Promise<InteractiveDemoWorkingDraftMutationResponse> =>
+  requestJson<InteractiveDemoWorkingDraftMutationResponse>(
     `${demoHotspotsPath(projectId, interactiveDemoId, sceneId, projectVersionId).split("?")[0]}/${encodeURIComponent(hotspotId)}?project_version_id=${encodeURIComponent(projectVersionId)}&expected_working_draft_version=${expectedWorkingDraftVersion}`,
     {
       method: "DELETE",
@@ -1222,7 +1239,7 @@ export const updateGuide = async (
     description?: string | null;
     expected_edition_version: number;
   },
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<UpdateGuideResponse> =>
   requestJson<UpdateGuideResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1247,7 +1264,9 @@ const changeGuideEditionStatus = async (
     {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ expected_edition_version: expectedEditionVersion }),
+      body: JSON.stringify({
+        expected_edition_version: expectedEditionVersion,
+      }),
     },
   );
 
@@ -1257,7 +1276,13 @@ export const archiveGuide = (
   projectVersionId: string,
   expectedEditionVersion: number,
 ): Promise<{ edition: GuideEdition }> =>
-  changeGuideEditionStatus("archive", projectId, guideId, projectVersionId, expectedEditionVersion);
+  changeGuideEditionStatus(
+    "archive",
+    projectId,
+    guideId,
+    projectVersionId,
+    expectedEditionVersion,
+  );
 
 export const restoreGuide = (
   projectId: string,
@@ -1265,7 +1290,13 @@ export const restoreGuide = (
   projectVersionId: string,
   expectedEditionVersion: number,
 ): Promise<{ edition: GuideEdition }> =>
-  changeGuideEditionStatus("restore", projectId, guideId, projectVersionId, expectedEditionVersion);
+  changeGuideEditionStatus(
+    "restore",
+    projectId,
+    guideId,
+    projectVersionId,
+    expectedEditionVersion,
+  );
 
 export const updateGuideStep = async (
   projectId: string,
@@ -1276,7 +1307,7 @@ export const updateGuideStep = async (
     body?: string | null;
     expected_working_draft_version: number;
   },
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<UpdateGuideStepResponse> =>
   requestJson<UpdateGuideStepResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/steps/${encodeURIComponent(stepId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1293,7 +1324,7 @@ export const createGuideBlock = async (
   projectId: string,
   guideId: string,
   data: CreateGuideBlockInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuideBlocksResponse> =>
   requestJson<GuideBlocksResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1311,7 +1342,7 @@ export const updateGuideBlock = async (
   guideId: string,
   blockId: string,
   data: UpdateGuideBlockInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuideBlockResponse> =>
   requestJson<GuideBlockResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1329,7 +1360,7 @@ export const updateGuideBlockScreenshot = async (
   guideId: string,
   blockId: string,
   data: UpdateGuideBlockScreenshotInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuideBlockResponse> =>
   requestJson<GuideBlockResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}/screenshot?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1347,7 +1378,7 @@ export const updateGuideBlockAnnotations = async (
   guideId: string,
   blockId: string,
   data: UpdateGuideBlockAnnotationsInput,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuideBlockResponse> =>
   requestJson<GuideBlockResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}/annotations?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1366,11 +1397,14 @@ export const uploadGuideBlockScreenshot = async (
   blockId: string,
   input: UploadGuideBlockScreenshotInput,
   expectedWorkingDraftVersion: number,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<UploadGuideBlockScreenshotResponse> => {
   const body = new FormData();
   body.append("file", input.file);
-  body.append("expected_working_draft_version", String(expectedWorkingDraftVersion));
+  body.append(
+    "expected_working_draft_version",
+    String(expectedWorkingDraftVersion),
+  );
 
   if (input.width !== undefined) {
     body.append("width", String(input.width));
@@ -1408,7 +1442,7 @@ export const reorderGuideBlocks = async (
   guideId: string,
   blockIds: string[],
   expectedWorkingDraftVersion: number,
-  projectVersionId = "",
+  projectVersionId: string,
 ): Promise<GuideBlocksResponse> =>
   requestJson<GuideBlocksResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/reorder?project_version_id=${encodeURIComponent(projectVersionId)}`,
@@ -1429,9 +1463,9 @@ export const deleteGuideBlock = async (
   guideId: string,
   blockId: string,
   expectedWorkingDraftVersion: number,
-  projectVersionId = "",
-): Promise<void> =>
-  requestJson<void>(
+  projectVersionId: string,
+): Promise<GuideWorkingDraftMutationResponse> =>
+  requestJson<GuideWorkingDraftMutationResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/guides/${encodeURIComponent(guideId)}/blocks/${encodeURIComponent(blockId)}?project_version_id=${encodeURIComponent(projectVersionId)}&expected_working_draft_version=${expectedWorkingDraftVersion}`,
     {
       method: "DELETE",

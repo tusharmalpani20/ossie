@@ -51,7 +51,8 @@ const create_project = async (session_token: string) => {
   expect(response.statusCode).toBe(201);
   return {
     project_id: response.json().project.id as string,
-    project_version_id: response.json().project.default_project_version.id as string,
+    project_version_id: response.json().project.default_project_version
+      .id as string,
   };
 };
 
@@ -316,7 +317,8 @@ describe("DB-backed interactive demo API", () => {
 
   it("persists a version-scoped Edition, Working Draft, scenes, transitions, and lifecycle changes", async () => {
     const session_token = await setup_owner();
-    const { project_id, project_version_id } = await create_project(session_token);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
     const owner_context = await get_owner_context();
     const capture_asset_id = await insert_screenshot_asset({
       organization_id: owner_context?.organization_id ?? "",
@@ -365,7 +367,8 @@ describe("DB-backed interactive demo API", () => {
       payload: {
         title: "Dashboard",
         background_capture_asset_id: capture_asset_id,
-        expected_working_draft_version: first_scene.json().working_draft.version,
+        expected_working_draft_version:
+          first_scene.json().working_draft.version,
       },
     });
     expect(second_scene.statusCode, second_scene.body).toBe(201);
@@ -382,12 +385,30 @@ describe("DB-backed interactive demo API", () => {
         width: 0.3,
         height: 0.12,
         transition: { target_scene_id: second_scene.json().demo_scene.id },
-        expected_working_draft_version: second_scene.json().working_draft.version,
+        expected_working_draft_version:
+          second_scene.json().working_draft.version,
       },
     });
     expect(hotspot.statusCode, hotspot.body).toBe(201);
     expect(hotspot.json().demo_hotspot.transition).toMatchObject({
       target_scene_id: second_scene.json().demo_scene.id,
+    });
+    const transition_id = hotspot.json().demo_hotspot.transition.id as string;
+
+    const retargeted_hotspot = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/projects/${project_id}/interactive-demos/${demo_id}/scenes/${first_scene.json().demo_scene.id}/hotspots/${hotspot.json().demo_hotspot.id}?project_version_id=${project_version_id}`,
+      cookies: { ossie_session: session_token },
+      payload: {
+        transition: { target_scene_id: first_scene.json().demo_scene.id },
+        expected_working_draft_version: hotspot.json().working_draft.version,
+      },
+    });
+    expect(retargeted_hotspot.statusCode, retargeted_hotspot.body).toBe(200);
+    expect(retargeted_hotspot.json().demo_hotspot.transition).toMatchObject({
+      id: transition_id,
+      target_scene_id: first_scene.json().demo_scene.id,
+      version: 2,
     });
 
     const archived = await app.inject({
@@ -405,13 +426,21 @@ describe("DB-backed interactive demo API", () => {
       cookies: { ossie_session: session_token },
       payload: {
         title: "Blocked",
-        expected_working_draft_version: hotspot.json().working_draft.version,
+        expected_working_draft_version:
+          retargeted_hotspot.json().working_draft.version,
       },
     });
     expect(blocked_write.statusCode).toBe(409);
-    expect(blocked_write.json().error.type).toBe("interactive_demo_not_editable");
+    expect(blocked_write.json().error.type).toBe(
+      "interactive_demo_not_editable",
+    );
 
-    const rows = await pool.query<{ editions: string; drafts: string; scenes: string; transitions: string }>(`
+    const rows = await pool.query<{
+      editions: string;
+      drafts: string;
+      scenes: string;
+      transitions: string;
+    }>(`
       SELECT
         (SELECT COUNT(*) FROM interactive_demo_schema.interactive_demo_edition)::text AS editions,
         (SELECT COUNT(*) FROM interactive_demo_schema.interactive_demo_working_draft)::text AS drafts,
@@ -429,7 +458,8 @@ describe("DB-backed interactive demo API", () => {
 
   it("generates independent relational demos from version-owned Capture source", async () => {
     const session_token = await setup_owner();
-    const { project_id, project_version_id } = await create_project(session_token);
+    const { project_id, project_version_id } =
+      await create_project(session_token);
     const owner_context = await get_owner_context();
     const source = await insert_capture_source_material({
       organization_id: owner_context?.organization_id ?? "",
@@ -438,12 +468,13 @@ describe("DB-backed interactive demo API", () => {
     });
     const app = build({ logger: false });
 
-    const create_from_capture = () => app.inject({
-      method: "POST",
-      url: `/api/v1/projects/${project_id}/capture-sessions/${source.capture_session_id}/interactive-demos`,
-      cookies: { ossie_session: session_token },
-      payload: {},
-    });
+    const create_from_capture = () =>
+      app.inject({
+        method: "POST",
+        url: `/api/v1/projects/${project_id}/capture-sessions/${source.capture_session_id}/interactive-demos`,
+        cookies: { ossie_session: session_token },
+        payload: {},
+      });
     const first = await create_from_capture();
     const second = await create_from_capture();
 

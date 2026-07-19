@@ -160,7 +160,8 @@ const interactive_demo_from_capture_response = {
       updated_at: "2026-06-05T10:00:00.000Z",
     },
   ],
-  redirect_path: "/projects/project_1/versions/version_1/interactive-demos/interactive_demo_1",
+  redirect_path:
+    "/projects/project_1/versions/version_1/interactive-demos/interactive_demo_1",
 };
 
 const interactive_demo_response = {
@@ -1304,12 +1305,12 @@ describe("api client", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(getGuideDetail("project_1", "guide_1")).resolves.toEqual(
-      guide_response,
-    );
+    await expect(
+      getGuideDetail("project_1", "guide_1", "version_1"),
+    ).resolves.toEqual(guide_response);
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/guides/guide_1?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1?project_version_id=version_1",
       {
         credentials: "include",
         headers: {
@@ -1335,12 +1336,12 @@ describe("api client", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(exportGuideMarkdown("project 1", "guide/1")).resolves.toEqual(
-      response,
-    );
+    await expect(
+      exportGuideMarkdown("project 1", "guide/1", "version_1"),
+    ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project%201/guides/guide%2F1/export/markdown?project_version_id=",
+      "/api/v1/projects/project%201/guides/guide%2F1/export/markdown?project_version_id=version_1",
       {
         credentials: "include",
         headers: {
@@ -1364,12 +1365,16 @@ describe("api client", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    const response = await exportGuideHtmlZip("project 1", "guide/1");
+    const response = await exportGuideHtmlZip(
+      "project 1",
+      "guide/1",
+      "version_1",
+    );
 
     await expect(response.blob.text()).resolves.toBe("zip-bytes");
     expect(response.filename).toBe("department-guide-html-export.zip");
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project%201/guides/guide%2F1/export/html.zip?project_version_id=",
+      "/api/v1/projects/project%201/guides/guide%2F1/export/html.zip?project_version_id=version_1",
       {
         credentials: "include",
         headers: {
@@ -1424,11 +1429,11 @@ describe("api client", () => {
     vi.stubGlobal("fetch", fetch);
 
     await expect(
-      getGuidePublishStatus("project / 1", "guide / 1"),
+      getGuidePublishStatus("project / 1", "guide / 1", "version_1"),
     ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project%20%2F%201/guides/guide%20%2F%201/publish?project_version_id=",
+      "/api/v1/projects/project%20%2F%201/guides/guide%20%2F%201/publish?project_version_id=version_1",
       {
         credentials: "include",
         headers: {
@@ -1450,12 +1455,12 @@ describe("api client", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(publishGuide("project_1", "guide_1")).resolves.toEqual(
-      guide_publish_response,
-    );
+    await expect(
+      publishGuide("project_1", "guide_1", "version_1"),
+    ).resolves.toEqual(guide_publish_response);
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/guides/guide_1/publish?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/publish?project_version_id=version_1",
       {
         method: "POST",
         credentials: "include",
@@ -1486,11 +1491,11 @@ describe("api client", () => {
     vi.stubGlobal("fetch", fetch);
 
     await expect(
-      revokeGuidePublishLink("project_1", "guide_1"),
+      revokeGuidePublishLink("project_1", "guide_1", "version_1"),
     ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/guides/guide_1/publish?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/publish?project_version_id=version_1",
       {
         method: "DELETE",
         credentials: "include",
@@ -1522,14 +1527,19 @@ describe("api client", () => {
     vi.stubGlobal("fetch", fetch);
 
     await expect(
-      updateGuidePublishAccess("project_1", "guide_1", {
-        visibility: "restricted",
-        expires_at: null,
-      }),
+      updateGuidePublishAccess(
+        "project_1",
+        "guide_1",
+        {
+          visibility: "restricted",
+          expires_at: null,
+        },
+        "version_1",
+      ),
     ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/guides/guide_1/publish/access?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/publish/access?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -1565,13 +1575,18 @@ describe("api client", () => {
     vi.stubGlobal("fetch", fetch);
 
     await expect(
-      updateGuidePublishPassword("project_1", "guide_1", {
-        password: "shared password",
-      }),
+      updateGuidePublishPassword(
+        "project_1",
+        "guide_1",
+        {
+          password: "shared password",
+        },
+        "version_1",
+      ),
     ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/guides/guide_1/publish/password?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/publish/password?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -1663,28 +1678,38 @@ describe("api client", () => {
     vi.stubGlobal("fetch", fetch);
 
     await expect(
-      getInteractiveDemoPublishStatus("project / 1", "demo / 1"),
+      getInteractiveDemoPublishStatus("project / 1", "demo / 1", "version_1"),
     ).resolves.toEqual(response);
     await expect(
-      publishInteractiveDemo("project / 1", "demo / 1"),
+      publishInteractiveDemo("project / 1", "demo / 1", "version_1"),
     ).resolves.toEqual(response);
     await expect(
-      updateInteractiveDemoPublishAccess("project / 1", "demo / 1", {
-        visibility: "restricted",
-        expires_at: null,
-      }),
+      updateInteractiveDemoPublishAccess(
+        "project / 1",
+        "demo / 1",
+        {
+          visibility: "restricted",
+          expires_at: null,
+        },
+        "version_1",
+      ),
     ).resolves.toMatchObject({ publish_link: { visibility: "restricted" } });
     await expect(
-      updateInteractiveDemoPublishPassword("project / 1", "demo / 1", {
-        password: "shared password",
-      }),
+      updateInteractiveDemoPublishPassword(
+        "project / 1",
+        "demo / 1",
+        {
+          password: "shared password",
+        },
+        "version_1",
+      ),
     ).resolves.toMatchObject({ publish_link: { password_protected: true } });
     await expect(
-      revokeInteractiveDemoPublishLink("project / 1", "demo / 1"),
+      revokeInteractiveDemoPublishLink("project / 1", "demo / 1", "version_1"),
     ).resolves.toEqual(revoke_response);
 
     const base =
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/publish?project_version_id=";
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/publish?project_version_id=version_1";
     expect(fetch).toHaveBeenNthCalledWith(1, base, {
       credentials: "include",
       headers: { accept: "application/json" },
@@ -1773,7 +1798,9 @@ describe("api client", () => {
       ),
     );
 
-    await expect(publishGuide("project_1", "guide_1")).rejects.toMatchObject({
+    await expect(
+      publishGuide("project_1", "guide_1", "version_1"),
+    ).rejects.toMatchObject({
       kind: "validation",
       type: "guide_has_no_publishable_blocks",
       message: "Guide has no publishable blocks",
@@ -1800,7 +1827,9 @@ describe("api client", () => {
       ),
     );
 
-    await expect(publishGuide("project_1", "guide_1")).rejects.toMatchObject({
+    await expect(
+      publishGuide("project_1", "guide_1", "version_1"),
+    ).rejects.toMatchObject({
       kind: "validation",
       type: "guide_not_publishable",
       message: "Guide is not publishable",
@@ -1851,14 +1880,19 @@ describe("api client", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(listProjectGuides("project_1")).resolves.toEqual(response);
+    await expect(listProjectGuides("project_1", "version_1")).resolves.toEqual(
+      response,
+    );
 
-    expect(fetch).toHaveBeenCalledWith("/api/v1/projects/project_1/guides?project_version_id=", {
-      credentials: "include",
-      headers: {
-        accept: "application/json",
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/v1/projects/project_1/guides?project_version_id=version_1",
+      {
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+        },
       },
-    });
+    );
   });
 
   it("creates a guide from a capture session with session cookies", async () => {
@@ -1966,49 +2000,82 @@ describe("api client", () => {
           headers: { "content-type": "application/json" },
         }),
       )
-      .mockResolvedValueOnce(new Response(null, { status: 204 }))
-      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ edition: { version: 2, status: "archived" } }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ working_draft: { version: 2 } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
     vi.stubGlobal("fetch", fetch);
 
-    await expect(listProjectInteractiveDemos("project / 1")).resolves.toEqual(
-      interactive_demo_list_response,
-    );
     await expect(
-      getInteractiveDemo("project / 1", "demo / 1"),
+      listProjectInteractiveDemos("project / 1", "version_1"),
+    ).resolves.toEqual(interactive_demo_list_response);
+    await expect(
+      getInteractiveDemo("project / 1", "demo / 1", "version_1"),
     ).resolves.toEqual(interactive_demo_response);
     await expect(
-      updateInteractiveDemo("project / 1", "demo / 1", {
-        title: "Updated demo",
-        description: null,
-        expected_edition_version: 1,
-      }),
+      updateInteractiveDemo(
+        "project / 1",
+        "demo / 1",
+        {
+          title: "Updated demo",
+          description: null,
+          expected_edition_version: 1,
+        },
+        "version_1",
+      ),
     ).resolves.toEqual(interactive_demo_response);
     await expect(
-      listInteractiveDemoScenes("project / 1", "demo / 1"),
+      listInteractiveDemoScenes("project / 1", "demo / 1", "version_1"),
     ).resolves.toEqual(demo_scene_list_response);
     await expect(
-      updateInteractiveDemoScene("project / 1", "demo / 1", "scene / 1", {
-        title: "Updated scene",
-        description: null,
-        expected_working_draft_version: 1,
-      }),
+      updateInteractiveDemoScene(
+        "project / 1",
+        "demo / 1",
+        "scene / 1",
+        {
+          title: "Updated scene",
+          description: null,
+          expected_working_draft_version: 1,
+        },
+        "version_1",
+      ),
     ).resolves.toEqual(demo_scene_response);
     await expect(
-      reorderInteractiveDemoScenes("project / 1", "demo / 1", [
-        "scene / 2",
-        "scene / 1",
-      ], 1),
+      reorderInteractiveDemoScenes(
+        "project / 1",
+        "demo / 1",
+        ["scene / 2", "scene / 1"],
+        1,
+        "version_1",
+      ),
     ).resolves.toEqual(demo_scene_list_response);
     await expect(
       archiveInteractiveDemo("project / 1", "demo / 1", "version_1", 1),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ edition: { version: 2, status: "archived" } });
     await expect(
-      deleteInteractiveDemoScene("project / 1", "demo / 1", "scene / 1", 1),
-    ).resolves.toBeUndefined();
+      deleteInteractiveDemoScene(
+        "project / 1",
+        "demo / 1",
+        "scene / 1",
+        1,
+        "version_1",
+      ),
+    ).resolves.toEqual({ working_draft: { version: 2 } });
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
-      "/api/v1/projects/project%20%2F%201/interactive-demos?project_version_id=",
+      "/api/v1/projects/project%20%2F%201/interactive-demos?project_version_id=version_1",
       {
         credentials: "include",
         headers: { accept: "application/json" },
@@ -2016,7 +2083,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201?project_version_id=",
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201?project_version_id=version_1",
       {
         credentials: "include",
         headers: { accept: "application/json" },
@@ -2024,7 +2091,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       3,
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201?project_version_id=",
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -2041,7 +2108,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       4,
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes?project_version_id=",
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes?project_version_id=version_1",
       {
         credentials: "include",
         headers: { accept: "application/json" },
@@ -2049,7 +2116,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       5,
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201?project_version_id=",
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -2066,7 +2133,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       6,
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/order?project_version_id=",
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/order?project_version_id=version_1",
       {
         method: "PUT",
         credentials: "include",
@@ -2086,13 +2153,16 @@ describe("api client", () => {
       {
         method: "POST",
         credentials: "include",
-        headers: { accept: "application/json", "content-type": "application/json" },
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
         body: JSON.stringify({ expected_edition_version: 1 }),
       },
     );
     expect(fetch).toHaveBeenNthCalledWith(
       8,
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201?project_version_id=&expected_working_draft_version=1",
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201?project_version_id=version_1&expected_working_draft_version=1",
       {
         method: "DELETE",
         credentials: "include",
@@ -2128,24 +2198,40 @@ describe("api client", () => {
           headers: { "content-type": "application/json" },
         }),
       )
-      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ working_draft: { version: 2 } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
     vi.stubGlobal("fetch", fetch);
 
     await expect(
-      createInteractiveDemoHotspot("project / 1", "demo / 1", "scene / 1", {
-        hotspot_type: "click",
-        label: "Continue",
-        content: null,
-        x: 0.1,
-        y: 0.2,
-        width: 0.3,
-        height: 0.12,
-        transition: { target_scene_id: "scene / 2" },
-        expected_working_draft_version: 1,
-      }),
+      createInteractiveDemoHotspot(
+        "project / 1",
+        "demo / 1",
+        "scene / 1",
+        {
+          hotspot_type: "click",
+          label: "Continue",
+          content: null,
+          x: 0.1,
+          y: 0.2,
+          width: 0.3,
+          height: 0.12,
+          transition: { target_scene_id: "scene / 2" },
+          expected_working_draft_version: 1,
+        },
+        "version_1",
+      ),
     ).resolves.toEqual(demo_hotspot_response);
     await expect(
-      listInteractiveDemoHotspots("project / 1", "demo / 1", "scene / 1"),
+      listInteractiveDemoHotspots(
+        "project / 1",
+        "demo / 1",
+        "scene / 1",
+        "version_1",
+      ),
     ).resolves.toEqual(demo_hotspot_list_response);
     await expect(
       updateInteractiveDemoHotspot(
@@ -2158,13 +2244,18 @@ describe("api client", () => {
           transition: null,
           expected_working_draft_version: 1,
         },
+        "version_1",
       ),
     ).resolves.toEqual(demo_hotspot_response);
     await expect(
-      reorderInteractiveDemoHotspots("project / 1", "demo / 1", "scene / 1", [
-        "hotspot / 2",
-        "hotspot / 1",
-      ], 1),
+      reorderInteractiveDemoHotspots(
+        "project / 1",
+        "demo / 1",
+        "scene / 1",
+        ["hotspot / 2", "hotspot / 1"],
+        1,
+        "version_1",
+      ),
     ).resolves.toEqual(demo_hotspot_list_response);
     await expect(
       deleteInteractiveDemoHotspot(
@@ -2173,12 +2264,13 @@ describe("api client", () => {
         "scene / 1",
         "hotspot / 1",
         1,
+        "version_1",
       ),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ working_draft: { version: 2 } });
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201/hotspots?project_version_id=",
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201/hotspots?project_version_id=version_1",
       {
         method: "POST",
         credentials: "include",
@@ -2201,7 +2293,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201/hotspots?project_version_id=",
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201/hotspots?project_version_id=version_1",
       {
         credentials: "include",
         headers: { accept: "application/json" },
@@ -2209,7 +2301,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       3,
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201/hotspots/hotspot%20%2F%201?project_version_id=",
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201/hotspots/hotspot%20%2F%201?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -2226,7 +2318,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       4,
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201/hotspots/order?project_version_id=",
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201/hotspots/order?project_version_id=version_1",
       {
         method: "PUT",
         credentials: "include",
@@ -2242,7 +2334,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       5,
-      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201/hotspots/hotspot%20%2F%201?project_version_id=&expected_working_draft_version=1",
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes/scene%20%2F%201/hotspots/hotspot%20%2F%201?project_version_id=version_1&expected_working_draft_version=1",
       {
         method: "DELETE",
         credentials: "include",
@@ -2273,20 +2365,31 @@ describe("api client", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    await updateGuide("project_1", "guide_1", {
-      title: "Updated",
-      description: null,
-      expected_edition_version: 1,
-    });
-    await updateGuideStep("project_1", "guide_1", "step_1", {
-      title: "Updated step",
-      body: "Details",
-      expected_working_draft_version: 1,
-    });
+    await updateGuide(
+      "project_1",
+      "guide_1",
+      {
+        title: "Updated",
+        description: null,
+        expected_edition_version: 1,
+      },
+      "version_1",
+    );
+    await updateGuideStep(
+      "project_1",
+      "guide_1",
+      "step_1",
+      {
+        title: "Updated step",
+        body: "Details",
+        expected_working_draft_version: 1,
+      },
+      "version_1",
+    );
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
-      "/api/v1/projects/project_1/guides/guide_1?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -2303,7 +2406,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
-      "/api/v1/projects/project_1/guides/guide_1/steps/step_1?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/steps/step_1?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -2344,27 +2447,44 @@ describe("api client", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    await createGuideBlock("project_1", "guide_1", {
-      block_type: "tip",
-      position: {
-        placement: "after",
-        guide_block_id: "block_1",
+    await createGuideBlock(
+      "project_1",
+      "guide_1",
+      {
+        block_type: "tip",
+        position: {
+          placement: "after",
+          guide_block_id: "block_1",
+        },
+        title: "Helpful tip",
+        body: "Details",
+        expected_working_draft_version: 1,
       },
-      title: "Helpful tip",
-      body: "Details",
-      expected_working_draft_version: 1,
-    });
-    await updateGuideBlock("project_1", "guide_1", "block_1", {
-      title: "Updated tip",
-      body: "Details",
-      expected_working_draft_version: 2,
-    });
-    await reorderGuideBlocks("project_1", "guide_1", ["block_2", "block_1"], 3);
-    await deleteGuideBlock("project_1", "guide_1", "block_1", 4);
+      "version_1",
+    );
+    await updateGuideBlock(
+      "project_1",
+      "guide_1",
+      "block_1",
+      {
+        title: "Updated tip",
+        body: "Details",
+        expected_working_draft_version: 2,
+      },
+      "version_1",
+    );
+    await reorderGuideBlocks(
+      "project_1",
+      "guide_1",
+      ["block_2", "block_1"],
+      3,
+      "version_1",
+    );
+    await deleteGuideBlock("project_1", "guide_1", "block_1", 4, "version_1");
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
-      "/api/v1/projects/project_1/guides/guide_1/blocks?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/blocks?project_version_id=version_1",
       {
         method: "POST",
         credentials: "include",
@@ -2386,7 +2506,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
-      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -2403,7 +2523,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       3,
-      "/api/v1/projects/project_1/guides/guide_1/blocks/reorder?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/blocks/reorder?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -2419,7 +2539,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       4,
-      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1?project_version_id=&expected_working_draft_version=4",
+      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1?project_version_id=version_1&expected_working_draft_version=4",
       {
         method: "DELETE",
         credentials: "include",
@@ -2447,27 +2567,37 @@ describe("api client", () => {
     );
     vi.stubGlobal("fetch", fetch);
 
-    await createGuideBlock("project_1", "guide_1", {
-      block_type: "paragraph",
-      position: {
-        placement: "after",
-        guide_block_id: "block_1",
+    await createGuideBlock(
+      "project_1",
+      "guide_1",
+      {
+        block_type: "paragraph",
+        position: {
+          placement: "after",
+          guide_block_id: "block_1",
+        },
+        body: "Add supporting context.",
+        expected_working_draft_version: 1,
       },
-      body: "Add supporting context.",
-      expected_working_draft_version: 1,
-    });
-    await createGuideBlock("project_1", "guide_1", {
-      block_type: "divider",
-      position: {
-        placement: "after",
-        guide_block_id: "block_paragraph",
+      "version_1",
+    );
+    await createGuideBlock(
+      "project_1",
+      "guide_1",
+      {
+        block_type: "divider",
+        position: {
+          placement: "after",
+          guide_block_id: "block_paragraph",
+        },
+        expected_working_draft_version: 2,
       },
-      expected_working_draft_version: 2,
-    });
+      "version_1",
+    );
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
-      "/api/v1/projects/project_1/guides/guide_1/blocks?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/blocks?project_version_id=version_1",
       {
         method: "POST",
         credentials: "include",
@@ -2488,7 +2618,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
-      "/api/v1/projects/project_1/guides/guide_1/blocks?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/blocks?project_version_id=version_1",
       {
         method: "POST",
         credentials: "include",
@@ -2550,15 +2680,27 @@ describe("api client", () => {
       listProjectScreenshotAssets("project_1", "version_1"),
     ).resolves.toEqual(screenshot_response);
     await expect(
-      updateGuideBlockScreenshot("project_1", "guide_1", "block_1", {
-        capture_asset_id: "asset_1",
-        expected_working_draft_version: 1,
-      }),
+      updateGuideBlockScreenshot(
+        "project_1",
+        "guide_1",
+        "block_1",
+        {
+          capture_asset_id: "asset_1",
+          expected_working_draft_version: 1,
+        },
+        "version_1",
+      ),
     ).resolves.toEqual(screenshot_update_response);
-    await updateGuideBlockScreenshot("project_1", "guide_1", "block_1", {
-      capture_asset_id: null,
-      expected_working_draft_version: 2,
-    });
+    await updateGuideBlockScreenshot(
+      "project_1",
+      "guide_1",
+      "block_1",
+      {
+        capture_asset_id: null,
+        expected_working_draft_version: 2,
+      },
+      "version_1",
+    );
 
     expect(fetch).toHaveBeenNthCalledWith(
       1,
@@ -2572,7 +2714,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       2,
-      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/screenshot?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/screenshot?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -2588,7 +2730,7 @@ describe("api client", () => {
     );
     expect(fetch).toHaveBeenNthCalledWith(
       3,
-      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/screenshot?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/screenshot?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -2635,23 +2777,29 @@ describe("api client", () => {
     vi.stubGlobal("fetch", fetch);
 
     await expect(
-      updateGuideBlockAnnotations("project_1", "guide_1", "block_1", {
-        annotations: [
-          {
-            id: "ann_existing",
-            type: "highlight",
-            x: 0.1,
-            y: 0.2,
-            width: 0.3,
-            height: 0.4,
-          },
-        ],
-        expected_working_draft_version: 1,
-      }),
+      updateGuideBlockAnnotations(
+        "project_1",
+        "guide_1",
+        "block_1",
+        {
+          annotations: [
+            {
+              id: "ann_existing",
+              type: "highlight",
+              x: 0.1,
+              y: 0.2,
+              width: 0.3,
+              height: 0.4,
+            },
+          ],
+          expected_working_draft_version: 1,
+        },
+        "version_1",
+      ),
     ).resolves.toEqual(response);
 
     expect(fetch).toHaveBeenCalledWith(
-      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/annotations?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/annotations?project_version_id=version_1",
       {
         method: "PATCH",
         credentials: "include",
@@ -2707,22 +2855,29 @@ describe("api client", () => {
     });
 
     await expect(
-      uploadGuideBlockScreenshot("project_1", "guide_1", "block_1", {
-        file,
-        width: 1440,
-        height: 900,
-        devicePixelRatio: 2,
-        pageUrl: "https://example.test/replacement",
-        pageTitle: "Replacement",
-        capturedAt: "2026-06-05T10:00:00.000Z",
-        metadata: { source: "editor" },
-      }, 1),
+      uploadGuideBlockScreenshot(
+        "project_1",
+        "guide_1",
+        "block_1",
+        {
+          file,
+          width: 1440,
+          height: 900,
+          devicePixelRatio: 2,
+          pageUrl: "https://example.test/replacement",
+          pageTitle: "Replacement",
+          capturedAt: "2026-06-05T10:00:00.000Z",
+          metadata: { source: "editor" },
+        },
+        1,
+        "version_1",
+      ),
     ).resolves.toEqual(upload_response);
 
     expect(fetch).toHaveBeenCalledTimes(1);
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe(
-      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/screenshot-upload?project_version_id=",
+      "/api/v1/projects/project_1/guides/guide_1/blocks/block_1/screenshot-upload?project_version_id=version_1",
     );
     expect(init).toMatchObject({
       method: "POST",
@@ -2832,10 +2987,16 @@ describe("api client", () => {
     );
 
     await expect(
-      updateGuideStep("project_1", "guide_1", "step_1", {
-        title: "Blocked",
-        expected_working_draft_version: 1,
-      }),
+      updateGuideStep(
+        "project_1",
+        "guide_1",
+        "step_1",
+        {
+          title: "Blocked",
+          expected_working_draft_version: 1,
+        },
+        "version_1",
+      ),
     ).rejects.toMatchObject({
       kind: "validation",
       type: "guide_not_editable",
@@ -2897,7 +3058,9 @@ describe("api client", () => {
       ),
     );
 
-    await expect(listProjectGuides("missing")).rejects.toMatchObject({
+    await expect(
+      listProjectGuides("missing", "version_1"),
+    ).rejects.toMatchObject({
       kind: "not_found",
       type: "project_not_found",
       message: "Project was not found",

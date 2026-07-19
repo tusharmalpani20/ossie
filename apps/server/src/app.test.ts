@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { build } from "./app";
-import { InvalidCredentialsError, UnauthenticatedSessionError } from "./modules/authentication/session.routes";
+import {
+  build,
+  interactive_demo_project_capabilities,
+  guide_project_capabilities,
+} from "./app";
+import {
+  InvalidCredentialsError,
+  UnauthenticatedSessionError,
+} from "./modules/authentication/session.routes";
 import { AccessDomainError } from "@repo/audit-domain";
 
 describe("app configuration", () => {
@@ -8,6 +15,15 @@ describe("app configuration", () => {
 
   afterEach(() => {
     process.env = { ...original_env };
+  });
+
+  it("requires artifact write authorization for Guide and Demo Edition lifecycle commands", () => {
+    expect(guide_project_capabilities.update_guide_status).toBe(
+      "artifact.write",
+    );
+    expect(
+      interactive_demo_project_capabilities.update_interactive_demo_status,
+    ).toBe("artifact.write");
   });
 
   it("allows only configured production CORS origins", async () => {
@@ -42,9 +58,11 @@ describe("app configuration", () => {
 
     expect(allowed_response.statusCode).toBe(204);
     expect(allowed_response.headers["access-control-allow-origin"]).toBe(
-      "chrome-extension://abcdefghijklmnopabcdefghijklmnop"
+      "chrome-extension://abcdefghijklmnopabcdefghijklmnop",
     );
-    expect(blocked_response.headers["access-control-allow-origin"]).toBeUndefined();
+    expect(
+      blocked_response.headers["access-control-allow-origin"],
+    ).toBeUndefined();
 
     await app.close();
   });
@@ -128,18 +146,19 @@ describe("app configuration", () => {
       },
     });
 
-    const request_login = () => app.inject({
-      method: "POST",
-      url: "/api/v1/authentication/login",
-      headers: {
-        "content-type": "application/json",
-        "x-forwarded-for": "203.0.113.10",
-      },
-      payload: {
-        email: "owner@example.com",
-        password: "wrong password",
-      },
-    });
+    const request_login = () =>
+      app.inject({
+        method: "POST",
+        url: "/api/v1/authentication/login",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.10",
+        },
+        payload: {
+          email: "owner@example.com",
+          password: "wrong password",
+        },
+      });
 
     expect((await request_login()).statusCode).toBe(401);
     expect((await request_login()).statusCode).toBe(401);
@@ -179,18 +198,19 @@ describe("app configuration", () => {
       logger: false,
       authentication_session_service: auth_service,
     });
-    const request_login = (app: ReturnType<typeof build>) => app.inject({
-      method: "POST",
-      url: "/api/v1/authentication/login",
-      headers: {
-        "content-type": "application/json",
-        "x-forwarded-for": "203.0.113.40",
-      },
-      payload: {
-        email: "owner@example.com",
-        password: "wrong password",
-      },
-    });
+    const request_login = (app: ReturnType<typeof build>) =>
+      app.inject({
+        method: "POST",
+        url: "/api/v1/authentication/login",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.40",
+        },
+        payload: {
+          email: "owner@example.com",
+          password: "wrong password",
+        },
+      });
 
     expect((await request_login(first_app)).statusCode).toBe(401);
     expect((await request_login(first_app)).statusCode).toBe(429);
@@ -205,7 +225,7 @@ describe("app configuration", () => {
     process.env.OSSIE_RATE_LIMIT_WINDOW_MS = "60000";
 
     const app = build({ logger: false });
-    const request = async (url: string, ip: string) => (
+    const request = async (url: string, ip: string) =>
       app.inject({
         method: "POST",
         url,
@@ -214,17 +234,48 @@ describe("app configuration", () => {
           "x-forwarded-for": ip,
         },
         payload: "",
-      })
-    );
+      });
 
-    expect((await request("/api/v1/setup/first-run", "203.0.113.20")).statusCode).toBe(400);
-    expect((await request("/api/v1/setup/first-run", "203.0.113.20")).statusCode).toBe(429);
+    expect(
+      (await request("/api/v1/setup/first-run", "203.0.113.20")).statusCode,
+    ).toBe(400);
+    expect(
+      (await request("/api/v1/setup/first-run", "203.0.113.20")).statusCode,
+    ).toBe(429);
 
-    expect((await request("/api/v1/public/publish-links/demo123/viewer-sessions", "203.0.113.21")).statusCode).toBe(400);
-    expect((await request("/api/v1/public/publish-links/demo123/viewer-sessions", "203.0.113.21")).statusCode).toBe(429);
+    expect(
+      (
+        await request(
+          "/api/v1/public/publish-links/demo123/viewer-sessions",
+          "203.0.113.21",
+        )
+      ).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await request(
+          "/api/v1/public/publish-links/demo123/viewer-sessions",
+          "203.0.113.21",
+        )
+      ).statusCode,
+    ).toBe(429);
 
-    expect((await request("/api/v1/public/invites/plain-token/accept", "203.0.113.22")).statusCode).toBe(400);
-    expect((await request("/api/v1/public/invites/plain-token/accept", "203.0.113.22")).statusCode).toBe(429);
+    expect(
+      (
+        await request(
+          "/api/v1/public/invites/plain-token/accept",
+          "203.0.113.22",
+        )
+      ).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await request(
+          "/api/v1/public/invites/plain-token/accept",
+          "203.0.113.22",
+        )
+      ).statusCode,
+    ).toBe(429);
 
     await app.close();
   });
@@ -242,7 +293,8 @@ describe("app configuration", () => {
       },
       payload: {
         email: "owner@example.com",
-        password: "this password body is deliberately too large for the configured limit",
+        password:
+          "this password body is deliberately too large for the configured limit",
       },
     });
 

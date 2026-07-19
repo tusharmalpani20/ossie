@@ -8,6 +8,7 @@ import {
   GuideEditionSchema,
   GuideVersionQuerySchema,
   GuideWorkingDraftSchema,
+  GuideWorkingDraftMutationResponseSchema,
   ReorderGuideBlocksRequestSchema,
   UpdateGuideRequestSchema,
   UpdateGuideBlockAnnotationsRequestSchema,
@@ -189,6 +190,14 @@ describe("guide shared contracts", () => {
   });
 
   it("validates params, reorder input, annotations, and upload response composition", () => {
+    expect(GuideWorkingDraftMutationResponseSchema.parse({
+      working_draft,
+    })).toEqual({ working_draft });
+    expect(() => GuideWorkingDraftMutationResponseSchema.parse({
+      working_draft,
+      version: 2,
+    })).toThrow();
+
     expect(GuideBlockParamsSchema.parse({
       project_id: " project_1 ",
       guide_id: " guide_1 ",

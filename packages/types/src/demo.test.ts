@@ -9,6 +9,7 @@ import {
   InteractiveDemoArtifactSchema,
   InteractiveDemoEditionSchema,
   InteractiveDemoWorkingDraftSchema,
+  InteractiveDemoWorkingDraftMutationResponseSchema,
   ReorderDemoHotspotsRequestSchema,
   ReorderDemoScenesRequestSchema,
   UpdateDemoHotspotRequestSchema,
@@ -182,6 +183,14 @@ describe("interactive demo shared contracts", () => {
   });
 
   it("parses create-from-capture response envelopes", () => {
+    expect(InteractiveDemoWorkingDraftMutationResponseSchema.parse({
+      working_draft,
+    })).toEqual({ working_draft });
+    expect(() => InteractiveDemoWorkingDraftMutationResponseSchema.parse({
+      working_draft,
+      version: 2,
+    })).toThrow();
+
     expect(CreateInteractiveDemoFromCaptureResponseSchema.parse({
       artifact,
       edition,
