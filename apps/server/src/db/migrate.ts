@@ -4,6 +4,7 @@ import {
   verify_audit_schema,
   verify_evidence_schema,
   verify_project_membership_schema,
+  verify_project_version_schema,
 } from "./audit-schema-verification";
 
 const command = process.argv[2];
@@ -30,8 +31,13 @@ const run = async () => {
         const project_membership = executed.some(
           ({ name }) => name === "019_project_membership_foundation.sql",
         );
-        await (project_membership
-          ? verify_project_membership_schema
+        const project_version = executed.some(
+          ({ name }) => name === "020_project_version_foundation.sql",
+        );
+        await (project_version
+          ? verify_project_version_schema
+          : project_membership
+            ? verify_project_membership_schema
           : access_evidence
             ? verify_evidence_schema
           : comprehensive
@@ -52,8 +58,10 @@ const run = async () => {
         ({ name }) => name === "015_audit_evidence_core.sql",
       )
         ? await (
-            executed.some(({ name }) => name === "019_project_membership_foundation.sql")
-              ? verify_project_membership_schema
+            executed.some(({ name }) => name === "020_project_version_foundation.sql")
+              ? verify_project_version_schema
+              : executed.some(({ name }) => name === "019_project_membership_foundation.sql")
+                ? verify_project_membership_schema
               : executed.some(
               ({ name }) =>
                 name === "017_access_evidence_and_compliance_timelines.sql",

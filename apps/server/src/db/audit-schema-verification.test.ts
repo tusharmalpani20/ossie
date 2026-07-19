@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
   verify_audit_core_schema,
@@ -115,5 +116,23 @@ describe("Audit schema verification", () => {
     expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_schema.project_membership");
     expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_membership_owner_guard");
     expect(pool.query.mock.calls.at(-1)?.[0]).toContain("chk_access_event_scoped_success");
+  });
+
+  it("verifies Project Version schema after migration 020", async () => {
+    const pool = { query: vi.fn<(sql: string, values?: unknown[]) => Promise<{ rows: never[] }>>(async () => ({ rows: [] })) };
+    const verify = Reflect.get(verification, "verify_project_version_schema");
+    expect(verify).toBeTypeOf("function");
+    await expect(verify(pool as never, { runtime_role: "runtime", maintenance_role: "maintenance" }))
+      .resolves.toEqual({ status: "ready" });
+    expect(pool.query.mock.calls).toHaveLength(4);
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_schema.project_version");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_version_mutation_command_guard");
+    expect(pool.query.mock.calls.at(-1)?.[0]).toContain("project_version_alias_provenance_guard");
+  });
+
+  it("selects Project Version verification after migration 020", () => {
+    const source = readFileSync(new URL("./migrate.ts", import.meta.url), "utf8");
+    expect(source).toContain("verify_project_version_schema");
+    expect(source).toContain("020_project_version_foundation.sql");
   });
 });

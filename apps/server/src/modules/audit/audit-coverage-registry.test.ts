@@ -8,24 +8,26 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(56);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(62);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(56);
+    ).toBe(62);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
     expect(AUDIT_COMMANDS).toContain("project.membership.assign");
+    expect(AUDIT_COMMANDS).toContain("project_version.create");
+    expect(AUDIT_COMMANDS).toContain("project_version.set_default");
   });
 
-  it("covers all 20 product tables and the 36 runtime table-operation classes", () => {
+  it("covers all 22 product tables and the 39 runtime table-operation classes", () => {
     const writes = AUDIT_COVERAGE_REGISTRY.flatMap(({ writes }) => writes);
-    expect(new Set(writes.map(({ table }) => table)).size).toBe(20);
+    expect(new Set(writes.map(({ table }) => table)).size).toBe(22);
     expect(
       new Set(
         writes.map(({ table, sql_operation }) => `${table}:${sql_operation}`),
       ).size,
-    ).toBe(36);
+    ).toBe(39);
     expect(
       writes.every(({ sql_operation }) => sql_operation !== "DELETE"),
     ).toBe(true);
@@ -38,6 +40,10 @@ describe("audit coverage registry", () => {
     });
     expect(find_audit_command("project.create")).toMatchObject({
       actor_types: ["org_user"],
+    });
+    expect(find_audit_command("project_version.create")).toMatchObject({
+      actor_types: ["org_user"],
+      source_types: ["web", "api"],
     });
     expect(() => find_audit_command("missing.command")).toThrowError(
       /unknown_audit_command/,
@@ -114,11 +120,17 @@ describe("audit coverage registry", () => {
       new URL("../../db/migrations/019_project_membership_foundation.sql", import.meta.url),
       "utf8",
     );
+    const migration_020 = readFileSync(
+      new URL("../../db/migrations/020_project_version_foundation.sql", import.meta.url),
+      "utf8",
+    );
     const policy_start = migration_016.indexOf("FROM (VALUES");
     const policy_end = migration_016.indexOf(") AS policy(command, action)");
     const new_policy_start = migration_019.indexOf("(selected_command, selected_action) IN (");
     const new_policy_end = migration_019.indexOf("AND selected_actor_type", new_policy_start);
-    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}`;
+    const version_policy_start = migration_020.indexOf("(selected_command, selected_action) IN (");
+    const version_policy_end = migration_020.indexOf("AND selected_actor_type", version_policy_start);
+    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}`;
     const pairs = [...policy.matchAll(/\('([^']+)', '([^']+)'\)/gu)].map(
       ([, command, action]) => ({ command, action }),
     );
@@ -153,8 +165,12 @@ describe("audit coverage registry", () => {
       new URL("../../db/migrations/019_project_membership_foundation.sql", import.meta.url),
       "utf8",
     );
+    const migration_020 = readFileSync(
+      new URL("../../db/migrations/020_project_version_foundation.sql", import.meta.url),
+      "utf8",
+    );
     const rows = [
-      ...`${migration_016}\n${migration_019}`.matchAll(
+      ...`${migration_016}\n${migration_019}\n${migration_020}`.matchAll(
         /\('([^']+)', '([^']+)', '(INSERT|UPDATE)', '[^']+', '[^']+', '([^']+)'\)/gu,
       ),
     ];
@@ -170,6 +186,19 @@ describe("audit coverage registry", () => {
     actual.set("project_schema.project_membership:UPDATE", [
       "project.membership.assign", "project.membership.role_change",
       "project.membership.remove",
+    ]);
+    actual.set("project_schema.project:UPDATE", [
+      "project_version.set_default", "project.update", "project.delete",
+    ]);
+    actual.set("project_schema.project_version:INSERT", [
+      "project.create", "project_version.create",
+    ]);
+    actual.set("project_schema.project_version:UPDATE", [
+      "project_version.update", "project_version.reorder",
+      "project_version.archive", "project_version.restore",
+    ]);
+    actual.set("project_schema.project_version_alias:INSERT", [
+      "project_version.update",
     ]);
 
     expect(actual).toEqual(expected);

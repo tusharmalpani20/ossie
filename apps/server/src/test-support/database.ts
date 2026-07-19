@@ -3,6 +3,46 @@ import { get_maintenance_database_config } from "../config/maintenance-database.
 
 type TestDatabaseEnv = Record<string, string | undefined>;
 
+type FixtureQuery = (
+  text: string,
+  values?: unknown[],
+) => Promise<{ rows: unknown[] }>;
+
+export const insert_test_project = async (
+  query: FixtureQuery,
+  input: {
+    project_id: string;
+    project_version_id: string;
+    organization_id: string;
+    actor_org_user_id: string;
+    name: string;
+  },
+) => {
+  await query(`
+    INSERT INTO project_schema.project (
+      id, organization_id, name, default_project_version_id,
+      created_by_id, updated_by_id
+    ) VALUES ($1, $2, $3, $4, $5, $5)
+  `, [
+    input.project_id,
+    input.organization_id,
+    input.name,
+    input.project_version_id,
+    input.actor_org_user_id,
+  ]);
+  await query(`
+    INSERT INTO project_schema.project_version (
+      id, organization_id, project_id, name, slug, position,
+      status, created_by_id, updated_by_id
+    ) VALUES ($1, $2, $3, 'Main', 'main', 1, 'active', $4, $4)
+  `, [
+    input.project_version_id,
+    input.organization_id,
+    input.project_id,
+    input.actor_org_user_id,
+  ]);
+};
+
 const assert_disposable_test_database = (
   env: TestDatabaseEnv = process.env,
 ) => {
@@ -91,6 +131,8 @@ export const reset_test_database = async () =>
         organization_schema.org_invite,
         auth_schema.auth_session,
         project_schema.project_membership,
+        project_schema.project_version_alias,
+        project_schema.project_version,
         project_schema.project,
         organization_schema.org_user,
         organization_schema.organization,

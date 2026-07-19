@@ -466,3 +466,115 @@ export const verify_project_membership_schema = async (
   `, [roles.runtime_role, roles.maintenance_role]);
   return throw_verification_issues(result.rows);
 };
+
+export const verify_project_version_schema = async (
+  pool: VerificationPool,
+  roles: { runtime_role: string; maintenance_role: string },
+) => {
+  await verify_project_membership_schema(pool, roles);
+  const result = await pool.query<{ issue: string }>(`
+    WITH expected_triggers(name) AS (VALUES
+      ('project_version_slug_namespace_guard'),
+      ('project_version_alias_slug_namespace_guard'),
+      ('project_version_mutation_command_guard'),
+      ('project_version_alias_provenance_guard'),
+      ('project_version_alias_provenance_evidence_guard'),
+      ('project_version_slug_alias_guard'),
+      ('project_default_mutation_command_guard'),
+      ('capture_session_project_version_legacy_content_guard'),
+      ('guide_project_version_legacy_content_guard'),
+      ('interactive_demo_project_version_legacy_content_guard'),
+      ('project_version_i_audit_ctx'), ('project_version_i_audit_evd'),
+      ('project_version_u_audit_ctx'), ('project_version_u_audit_evd'),
+      ('project_version_alias_i_audit_ctx'), ('project_version_alias_i_audit_evd')
+    ), expected_indexes(name) AS (VALUES
+      ('uq_project_version_id_project_organization'),
+      ('uq_project_version_project_position'),
+      ('uq_project_version_project_slug_ci'),
+      ('idx_project_version_scope_status_position'),
+      ('uq_project_version_alias_project_slug_ci'),
+      ('idx_project_version_alias_version_created')
+    ), expected_constraints(name) AS (VALUES
+      ('fk_project_version_project_organization'),
+      ('fk_project_version_created_by_organization'),
+      ('fk_project_version_updated_by_organization'),
+      ('fk_project_version_alias_version_scope'),
+      ('fk_project_version_alias_created_by_organization'),
+      ('fk_project_default_version_scope'),
+      ('chk_project_version_status'), ('chk_project_version_version'),
+      ('chk_project_version_position'), ('chk_project_version_name'),
+      ('chk_project_version_slug'), ('chk_project_version_alias_slug')
+    ), expected_functions(signature) AS (VALUES
+      ('project_schema.lock_project_version_scope(text)'),
+      ('project_schema.enforce_project_version_slug_namespace()'),
+      ('project_schema.enforce_project_version_mutation_command()'),
+      ('project_schema.enforce_project_version_alias_insert()'),
+      ('project_schema.verify_project_version_alias_provenance()'),
+      ('project_schema.verify_project_version_slug_alias()'),
+      ('project_schema.enforce_project_default_mutation_command()'),
+      ('project_schema.lock_project_version_legacy_root_insert()')
+    ), version_privileges(privilege, expected) AS (VALUES
+      ('SELECT', true), ('INSERT', true), ('UPDATE', true),
+      ('DELETE', false), ('TRUNCATE', false), ('REFERENCES', false), ('TRIGGER', false)
+    ), alias_privileges(privilege, expected) AS (VALUES
+      ('SELECT', true), ('INSERT', true), ('UPDATE', false),
+      ('DELETE', false), ('TRUNCATE', false), ('REFERENCES', false), ('TRIGGER', false)
+    )
+    SELECT 'table:project_schema.project_version' AS issue
+      WHERE to_regclass('project_schema.project_version') IS NULL
+    UNION ALL SELECT 'table:project_schema.project_version_alias'
+      WHERE to_regclass('project_schema.project_version_alias') IS NULL
+    UNION ALL SELECT 'column:project_schema.project.default_project_version_id'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'project_schema' AND table_name = 'project'
+          AND column_name = 'default_project_version_id' AND is_nullable = 'NO'
+      )
+    UNION ALL SELECT 'trigger:' || expected.name FROM expected_triggers expected
+      WHERE NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = expected.name AND NOT tgisinternal)
+    UNION ALL SELECT 'index:' || expected.name FROM expected_indexes expected
+      WHERE NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = expected.name)
+        AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = expected.name)
+    UNION ALL SELECT 'constraint:' || expected.name FROM expected_constraints expected
+      WHERE NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = expected.name)
+    UNION ALL SELECT 'function:' || expected.signature FROM expected_functions expected
+      WHERE to_regprocedure(expected.signature) IS NULL
+    UNION ALL SELECT 'privilege:project_schema.project_version:' || privilege || ':' || expected::text
+      FROM version_privileges WHERE has_table_privilege($1::text, 'project_schema.project_version', privilege) IS DISTINCT FROM expected
+    UNION ALL SELECT 'privilege:project_schema.project_version_alias:' || privilege || ':' || expected::text
+      FROM alias_privileges WHERE has_table_privilege($1::text, 'project_schema.project_version_alias', privilege) IS DISTINCT FROM expected
+    UNION ALL SELECT 'owner:project_schema.project_version:maintenance'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_class class JOIN pg_namespace namespace ON namespace.oid = class.relnamespace
+        WHERE namespace.nspname = 'project_schema' AND class.relname = 'project_version'
+          AND pg_get_userbyid(class.relowner) = $2::text
+      )
+    UNION ALL SELECT 'owner:project_schema.project_version_alias:maintenance'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_class class JOIN pg_namespace namespace ON namespace.oid = class.relnamespace
+        WHERE namespace.nspname = 'project_schema' AND class.relname = 'project_version_alias'
+          AND pg_get_userbyid(class.relowner) = $2::text
+      )
+    UNION ALL SELECT 'trigger:project_version_alias_provenance_evidence_guard:not_deferred'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_trigger trigger JOIN pg_constraint constraint_record ON constraint_record.oid = trigger.tgconstraint
+        WHERE trigger.tgname = 'project_version_alias_provenance_evidence_guard'
+          AND constraint_record.condeferrable AND constraint_record.condeferred
+      )
+    UNION ALL SELECT 'trigger:project_version_slug_alias_guard:not_deferred'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pg_trigger trigger JOIN pg_constraint constraint_record ON constraint_record.oid = trigger.tgconstraint
+        WHERE trigger.tgname = 'project_version_slug_alias_guard'
+          AND constraint_record.condeferrable AND constraint_record.condeferred
+      )
+    UNION ALL SELECT 'column:project_version:json_forbidden'
+      WHERE EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'project_schema'
+          AND table_name IN ('project_version', 'project_version_alias')
+          AND data_type IN ('json', 'jsonb')
+      )
+    ORDER BY issue
+  `, [roles.runtime_role, roles.maintenance_role]);
+  return throw_verification_issues(result.rows);
+};

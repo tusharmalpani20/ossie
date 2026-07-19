@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { assert_test_maintenance_connection } from "./database";
+import { describe, expect, it, vi } from "vitest";
+import { assert_test_maintenance_connection, insert_test_project } from "./database";
 
 describe("test database maintenance safety", () => {
   const env = {
@@ -29,5 +29,24 @@ describe("test database maintenance safety", () => {
       { database: "ossie_test", user: "maintenance" },
       { ...env, NODE_ENV: "production", DEV_TYPE: "production" },
     )).toThrow(/outside a disposable test database/);
+  });
+
+  it("creates a Project and Main Project Version as one maintenance fixture", async () => {
+    const query = vi.fn<(text: string, values?: unknown[]) => Promise<{ rows: unknown[] }>>(
+      async () => ({ rows: [] }),
+    );
+    await insert_test_project(query, {
+      project_id: "project_1",
+      project_version_id: "project_version_1",
+      organization_id: "org_1",
+      actor_org_user_id: "org_user_1",
+      name: "Fixture Project",
+    });
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(query.mock.calls[0]?.[0]).toContain("default_project_version_id");
+    expect(query.mock.calls[1]?.[0]).toContain("project_schema.project_version");
+    expect(query.mock.calls[1]?.[1]).toEqual([
+      "project_version_1", "org_1", "project_1", "org_user_1",
+    ]);
   });
 });

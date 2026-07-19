@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { ulid } from "ulid";
 import { pool } from "../config/database.config";
 import {
+  insert_test_project,
   run_test_fixture_mutation,
   with_maintenance_client,
 } from "../test-support/database";
@@ -94,6 +95,7 @@ const insert_constraint_test_context = async () => {
   const organization_id = ulid();
   const org_user_id = ulid();
   const project_id = ulid();
+  const project_version_id = ulid();
   const capture_session_id = ulid();
   const guide_id = ulid();
   const guide_block_id = ulid();
@@ -123,19 +125,13 @@ const insert_constraint_test_context = async () => {
     await client.query(
       "SELECT set_config('ossie.maintenance_mode', 'on', false)",
     );
-    await client.query(
-      `
-    INSERT INTO project_schema.project (
-      id,
+    await insert_test_project(client.query.bind(client), {
+      project_id,
+      project_version_id,
       organization_id,
-      name,
-      created_by_id,
-      updated_by_id
-    )
-    VALUES ($1, $2, 'Constraint Project', $3, $3)
-  `,
-      [project_id, organization_id, org_user_id],
-    );
+      actor_org_user_id: org_user_id,
+      name: "Constraint Project",
+    });
     await client.query(
       `
     INSERT INTO capture_schema.capture_session (

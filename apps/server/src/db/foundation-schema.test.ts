@@ -146,6 +146,35 @@ describe("foundation schema migrations", () => {
     expect(migration).not.toMatch(/GRANT[^;]*\b(?:DELETE|TRUNCATE)\b/iu);
   });
 
+  it("defines tenant-safe guarded Project Version persistence", () => {
+    const migration = readFileSync(
+      new URL("./migrations/020_project_version_foundation.sql", import.meta.url),
+      "utf8",
+    );
+    const project_version = table_definition(migration, "project_schema.project_version");
+    const alias = table_definition(migration, "project_schema.project_version_alias");
+
+    expect(project_version).toContain("organization_id VARCHAR(26) NOT NULL");
+    expect(project_version).toContain("project_id VARCHAR(26) NOT NULL");
+    expect(project_version).toContain("slug VARCHAR(100) NOT NULL");
+    expect(project_version).toContain("position INTEGER NOT NULL");
+    expect(project_version).toContain("version INTEGER NOT NULL DEFAULT 1");
+    expect(alias).toContain("project_version_id VARCHAR(26) NOT NULL");
+    expect(`${project_version}\n${alias}`.toLowerCase()).not.toContain("json");
+    expect(migration).toContain("default_project_version_id VARCHAR(26) NOT NULL");
+    expect(migration).toContain("DEFERRABLE INITIALLY DEFERRED");
+    expect(migration).toContain("project_version_slug_namespace_guard");
+    expect(migration).toContain("project_version_mutation_command_guard");
+    expect(migration).toContain("project_version_alias_provenance_guard");
+    expect(migration).toContain("project_version_legacy_content_guard");
+    expect(migration).toContain("project_version.set_default");
+    expect(migration).toContain("GRANT SELECT, INSERT, UPDATE ON project_schema.project_version");
+    expect(migration).toContain("GRANT SELECT, INSERT ON project_schema.project_version_alias");
+    expect(migration).toContain("Refusing Project Version migration while Projects exist");
+    expect(migration).toContain("Refusing to remove populated Project Version foundation");
+    expect(migration).not.toMatch(/GRANT[^;]*\b(?:DELETE|TRUNCATE)\b/iu);
+  });
+
   it("keeps the maintenance reset explicit instead of cascading to unknown tables", () => {
     const reset_source = readFileSync(
       new URL("../test-support/database.ts", import.meta.url),

@@ -59,6 +59,16 @@ const U = {
   session_update: (operation: AuditOperation = "update") =>
     write("auth_schema.auth_session", "UPDATE", "auth_session", [operation]),
   project_insert: () => write("project_schema.project", "INSERT", "project"),
+  project_version_insert: () =>
+    write("project_schema.project_version", "INSERT", "project_version"),
+  project_version_update: () =>
+    write("project_schema.project_version", "UPDATE", "project_version"),
+  project_version_alias_insert: () =>
+    write(
+      "project_schema.project_version_alias",
+      "INSERT",
+      "project_version_alias",
+    ),
   project_membership_insert: () =>
     write("project_schema.project_membership", "INSERT", "project_membership"),
   project_membership_update: () =>
@@ -190,7 +200,53 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "project.create",
     "project.created",
     ["POST /api/v1/projects"],
-    [U.project_insert(), U.project_membership_insert()],
+    [
+      U.project_insert(),
+      U.project_version_insert(),
+      U.project_membership_insert(),
+    ],
+  ),
+  command(
+    "project_version.create",
+    "project_version.created",
+    ["POST /api/v1/projects/:project_id/versions"],
+    [U.project_version_insert()],
+    { source_types: ["web", "api"] },
+  ),
+  command(
+    "project_version.update",
+    "project_version.updated",
+    ["PATCH /api/v1/projects/:project_id/versions/:project_version_id"],
+    [U.project_version_update(), U.project_version_alias_insert()],
+    { source_types: ["web", "api"] },
+  ),
+  command(
+    "project_version.reorder",
+    "project_version.reordered",
+    ["PUT /api/v1/projects/:project_id/versions/order"],
+    [U.project_version_update()],
+    { source_types: ["web", "api"] },
+  ),
+  command(
+    "project_version.archive",
+    "project_version.archived",
+    ["POST /api/v1/projects/:project_id/versions/:project_version_id/archive"],
+    [U.project_version_update()],
+    { source_types: ["web", "api"] },
+  ),
+  command(
+    "project_version.restore",
+    "project_version.restored",
+    ["POST /api/v1/projects/:project_id/versions/:project_version_id/restore"],
+    [U.project_version_update()],
+    { source_types: ["web", "api"] },
+  ),
+  command(
+    "project_version.set_default",
+    "project_version.default_set",
+    ["POST /api/v1/projects/:project_id/versions/:project_version_id/set-default"],
+    [U.project_update()],
+    { source_types: ["web", "api"] },
   ),
   command(
     "project.membership.assign",
