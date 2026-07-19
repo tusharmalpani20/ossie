@@ -45,6 +45,7 @@ const project = {
   version: 1,
   created_at: "2026-06-05T10:00:00.000Z",
   updated_at: "2026-06-05T10:05:00.000Z",
+  access: { role: "editor", source: "project_membership" },
 };
 
 const captureSession = {
@@ -199,11 +200,12 @@ describe("extension API client", () => {
         authorization: "Bearer extension-session-token",
       },
     });
-    expect(fetch).toHaveBeenNthCalledWith(2, "https://demo.example.com/api/v1/projects", {
+    expect(fetch).toHaveBeenNthCalledWith(2, "https://demo.example.com/api/v1/projects?status=active&purpose=capture", {
       credentials: "include",
       headers: {
         accept: "application/json",
         authorization: "Bearer extension-session-token",
+        "x-ossie-client": "extension",
       },
     });
   });

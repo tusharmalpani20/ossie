@@ -190,8 +190,11 @@ export const listProjects = async (
   instanceUrl: string,
   sessionToken: string
 ): Promise<ProjectListResponse> => (
-  requestJson<ProjectListResponse>(instanceUrl, "/api/v1/projects", {
-    headers: authHeaders(sessionToken),
+  requestJson<ProjectListResponse>(instanceUrl, "/api/v1/projects?status=active&purpose=capture", {
+    headers: {
+      ...authHeaders(sessionToken),
+      "x-ossie-client": "extension",
+    },
   })
 );
 
