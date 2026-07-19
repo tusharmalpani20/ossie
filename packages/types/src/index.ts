@@ -9,5 +9,6 @@ export * from "./organization";
 export * from "./project";
 export * from "./project-activity";
 export * from "./project-membership";
+export * from "./project-version";
 export * from "./publish";
 export * from "./setup";

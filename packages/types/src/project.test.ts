@@ -24,6 +24,13 @@ const project = {
     role: "project_admin",
     source: "organization_owner",
   },
+  default_project_version: {
+    id: "project_version_1",
+    name: "Main",
+    slug: "main",
+    status: "active",
+    position: 1,
+  },
 };
 
 describe("project contracts", () => {

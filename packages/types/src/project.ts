@@ -10,6 +10,7 @@ import {
   IsoDateTimeStringSchema,
   TrimmedIdParamSchema,
 } from "./common";
+import { ProjectVersionSummarySchema } from "./project-version";
 
 export const ProjectSchema = z.object({
   id: IdSchema,
@@ -29,6 +30,7 @@ export const ProjectSchema = z.object({
     role: z.enum(PROJECT_ROLES),
     source: z.enum(PROJECT_ACCESS_SOURCES),
   }).strict(),
+  default_project_version: ProjectVersionSummarySchema,
 });
 export type Project = z.infer<typeof ProjectSchema>;
 
