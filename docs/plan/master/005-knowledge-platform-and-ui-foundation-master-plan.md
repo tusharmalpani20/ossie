@@ -76,7 +76,8 @@ Baseline reviewed on 2026-07-10:
 - Child `109` installed the accepted external design guidance as pinned, optional repository tooling and documented provenance, compatibility changes, update/removal procedure, and rejected sources in `docs/agent-workflow.md`. It remains outside application dependencies and runtime behavior.
 - The current UI works at alpha level but does not yet provide the consistency, hierarchy, density, responsive behavior, accessibility, or navigation expected from a daily internal tool.
 - Master plans `001` through `004` are complete. Children `109` through `112`
-  are complete; child `113` is now the next executable activity. The
+  are complete; child `113` implementation is committed and remains the active
+  DB/browser closeout. The
   optional overnight-runner tooling checkpoint was deferred on 2026-07-19 and
   is not a gate for sequential child execution.
 - Known extension and production-readiness leftovers from master plan `004` remain real unless a child plan explicitly closes them.
@@ -882,7 +883,8 @@ Acceptance:
 
 ### 113: Existing Mutation Audit Coverage
 
-Status: Not started.
+Status: Implementation complete; required DB/browser closeout blocked by the
+local verification environment.
 
 Planned file:
 
