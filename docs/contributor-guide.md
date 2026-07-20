@@ -2,11 +2,13 @@
 
 Ossie is organized as a product monorepo. The project is alpha, so clear plans, focused tests, and truthful docs matter more than broad rewrites.
 
-Current runtime behavior ends at screenshot-first Capture Sessions, Guides,
-Interactive Demos, and current immutable publish snapshots. `CONTEXT.md` also
-contains accepted target language for Audit/Access Evidence, Project Membership,
-Project Versions, Editions, Revisions, and Publications; those terms are not a
-claim that the runtime implementation exists.
+Current runtime behavior includes Project Version-owned screenshot-first
+Capture Sessions; stable Guide and Interactive Demo Artifacts with
+Version-scoped Editions, relational Working Drafts, immutable Revisions, and
+Carry-Forward; revision-backed Publications; independent multi-version Publish
+Links; Project Membership; and Audit/Access Evidence. `CONTEXT.md` also contains
+accepted future language for UI modernization and Product Documentation; those
+future terms are not a claim that their runtime implementation exists.
 
 ## Repo Layout
 

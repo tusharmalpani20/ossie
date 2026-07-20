@@ -17,11 +17,14 @@ direction and intentionally deferred work; it does not promise dates.
 - Automatic-click extension capture with screenshot-backed browser evidence;
   true toolbar-popup manual validation and one direct-page ordering follow-up
   remain open.
-- Scribe-style Guide generation, editing, annotations, preview, immutable
-  current publishing, password access, embeds, Markdown export, and HTML ZIP
-  export.
-- Storylane-style Interactive Demo generation, scene/hotspot editing, immutable
-  current publishing, password access, embeds, and public viewing.
+- Scribe-style Guide generation, Version-scoped relational authoring,
+  Revisions, Carry-Forward, annotations, preview, immutable publishing,
+  multi-version Publish Links, password access, embeds, Markdown export, and
+  HTML ZIP export.
+- Storylane-style Interactive Demo generation, Version-scoped relational
+  authoring, Revisions, Carry-Forward, scene/hotspot editing, immutable
+  publishing, multi-version Publish Links, password access, embeds, and public
+  viewing.
 - Local PostgreSQL/file storage operations, health/readiness endpoints,
   production configuration validation, and DB-backed alpha smoke coverage.
 - A compact `apps/docs` repository documentation hub with safe historical alpha
@@ -42,19 +45,16 @@ Master Plan `005` is the accepted implementation track:
 7. Project-owned Guide/Demo Artifacts with version-scoped Editions and Working
    Drafts. Completed in child `118`.
 8. Immutable Guide/Demo Revisions, Carry-Forward, and protected shared assets.
-   Implemented in child `119`; PostgreSQL and authenticated browser closeout are
-   still environment-blocked.
-9. Revision-backed Publications and multi-version Publish Links. Implemented in
-   child `120`; PostgreSQL and authenticated/public browser closeout are still
-   environment-blocked.
+   Completed in child `119` with PostgreSQL and authenticated browser closeout.
+9. Revision-backed Publications and multi-version Publish Links. Completed in
+   child `120`; the 2026-07-20 closure repair reverified the full DB/smoke suite
+   and authenticated/public browser flow.
 10. Design-system and workflow-by-workflow portal, extension, authoring, reader,
     accessibility, motion, and browser modernization.
 11. Cross-workflow closeout before new artifact-family design.
 
-Items 1 through 8 are verified current runtime behavior. Item 9 is a committed
-runtime implementation awaiting its recorded environment-blocked closeout
-evidence. Later UI modernization remains accepted target behavior rather than
-shipped behavior.
+Items 1 through 9 are verified current runtime behavior. Later UI modernization
+remains accepted target behavior rather than shipped behavior.
 See `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 for gates and exact child ordering.
 

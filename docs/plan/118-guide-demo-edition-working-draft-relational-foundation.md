@@ -1416,6 +1416,14 @@ Fresh implementation closeout verification on 2026-07-19:
 
 ## Leftovers And Handoff To Child 119
 
+Reconciliation note (2026-07-20): the blocked fresh-DB/browser observations
+below remain accurate historical evidence for the child-`118` closeout itself.
+They were subsequently superseded at the sequence level: child `119` completed
+fresh PostgreSQL and authenticated browser verification, and child `120` plus
+its post-closure repair audit completed migration-through-`024`, the full DB and
+smoke suites, and authenticated/public browser validation. They are therefore
+not open blockers for child `121` and must not be read as current runtime gaps.
+
 Child `119` must build on, not replace, these child-118 foundations:
 
 - stable type-specific Artifact identity and one Edition per Project Version;

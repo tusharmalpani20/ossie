@@ -6,10 +6,11 @@ Date expanded: 2026-07-19
 
 Date rechecked: 2026-07-20
 
-Status: Complete on 2026-07-20 after final implementation and sequence closure
-audit. Runtime, fresh-database, migration rollback, smoke, storage, broad, and
-real-browser gates pass; closure corrections are committed in `dca1d1b` and
-`7520d46` in addition to the original implementation commits.
+Status: Complete on 2026-07-20 after final implementation, sequence closure,
+and post-closure repair audit. Runtime, fresh-database, smoke, broad, and
+real-browser gates pass; post-closure repairs are committed in `a1e346f`,
+`facce07`, and `e9e1ff5` in addition to the original implementation and closure
+commits.
 
 Parent plan:
 
@@ -190,8 +191,10 @@ These are temporary compatibility facts, not the accepted target:
 4. Link setting changes require the current Publish Link Row Version. Changing
    visibility, expiry, or password revokes all active viewer sessions so stale
    access cannot become valid again after a later policy relaxation.
-5. Rollback targets one entry and one older or newer Published Artifact from the
-   same Artifact Edition. It changes only that entry pointer, increments aggregate
+5. Rollback targets one entry and one strictly older Published Artifact from the
+   same Artifact Edition. Moving an entry forward uses explicit publish rollout
+   or manifest replacement, never the rollback command. Rollback changes only
+   that entry pointer, increments aggregate
    Link and entry Row Versions, creates no Revision/Publication, and preserves
    name, slug, access, order, and default.
 6. Rollback confirmation presents current/target Publication Sequences,
@@ -785,10 +788,20 @@ implementation log before editing it.
 ### Plan and current-capability docs
 
 - `docs/plan/120-publication-and-multi-version-publish-link-integration.md`
+- `docs/plan/118-guide-demo-edition-working-draft-relational-foundation.md`
+  (post-sequence verification reconciliation only)
+- `docs/plan/119-guide-demo-revision-carry-forward-and-protected-assets.md`
+  (post-sequence verification/lint reconciliation only)
 - `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
   (completed child items only at closeout)
+- `README.md`
+- `apps/docs/app/docs-content.ts`
+- `apps/docs/app/docs-content.test.ts`
 - `docs/backend-route-inventory.md`
+- `docs/contributor-guide.md`
+- `docs/development-setup.md`
 - `docs/operations.md`
+- `docs/product-idea.md`
 - `docs/project-zoomout-status.md`
 - `docs/roadmap.md`
 - `docs/v1-dogfood-smoke-suite.md`
@@ -842,8 +855,13 @@ implementation log before editing it.
 
 ### Revision and publish server modules
 
+- `apps/server/src/modules/artifact-carry-forward/artifact-carry-forward.routes.ts`
+- `apps/server/src/modules/artifact-carry-forward/artifact-carry-forward.service.test.ts`
+- `apps/server/src/modules/artifact-revision/artifact-revision-content.test.ts`
 - `apps/server/src/modules/artifact-revision/artifact-revision.repository.ts`
 - `apps/server/src/modules/artifact-revision/artifact-revision.repository.test.ts`
+- `apps/server/src/modules/artifact-revision/artifact-revision.routes.ts`
+- `apps/server/src/modules/artifact-revision/artifact-revision.routes.test.ts`
 - `apps/server/src/modules/guide/guide.db.integration.test.ts`
 - `apps/server/src/modules/publish/publish.repository.ts`
 - `apps/server/src/modules/publish/publish.repository.test.ts`
@@ -879,12 +897,13 @@ implementation log before editing it.
 - `apps/web/src/features/guide/PublicGuideReaderPage.tsx`
 - `apps/web/src/features/guide/PublicGuideReaderPage.test.tsx`
 - `apps/web/src/features/guide/PublicGuideReaderPage.module.css`
-- `apps/web/src/features/guide/publishLinks.ts`
-- `apps/web/src/features/guide/publishLinks.test.ts`
+- `apps/web/src/features/guide/publishLinks.ts` (delete)
+- `apps/web/src/features/guide/publishLinks.test.ts` (delete)
 - `apps/web/src/features/guide/types.ts`
 - `apps/web/src/features/interactive-demo/InteractiveDemoEditorPage.tsx`
 - `apps/web/src/features/interactive-demo/InteractiveDemoEditorPage.test.tsx`
 - `apps/web/src/features/interactive-demo/InteractiveDemoEditorPage.module.css`
+- `apps/web/src/features/interactive-demo/interactiveDemoEditorHelpers.ts`
 - `apps/web/src/features/interactive-demo/PublicInteractiveDemoViewerPage.tsx`
 - `apps/web/src/features/interactive-demo/PublicInteractiveDemoViewerPage.test.tsx`
 - `apps/web/src/features/interactive-demo/PublicInteractiveDemoViewerPage.module.css`
@@ -953,7 +972,8 @@ implementation log before editing it.
   revoked-link conflict, and complete transaction rollback;
 - link create/settings/manifest/reorder/default/removal/revoke and stale Link Row
   Version handling;
-- rollback same Edition success and cross-Edition/Artifact/tenant/Project denial;
+- rollback to an older same-Edition Publication succeeds; equal/newer,
+  cross-Edition/Artifact/tenant/Project targets are denied;
 - Published Artifact/Revision/Link/Entry immutability and runtime grant denial;
 - active/archived Project, Project Version, Edition, Owner/Admin/Editor/Viewer,
   unauthenticated, and direct-route authorization;
@@ -1016,7 +1036,9 @@ Validate at minimum:
    reorder entries, change default, remove/add an archived-version Publication,
    reload/deep-link, and prove the links remain independent.
 3. Roll one entry back with confirmation/reason, verify sequence/timestamp/
-   publisher copy and immediate public rendering, then move it forward again.
+   publisher copy and immediate public rendering, then use explicit rollout or
+   manifest replacement to move it forward and prove rollback is not accepted
+   for that direction.
 4. Viewer sees history but no mutation controls; Editor/Admin direct actions
    succeed; unauthorized/direct requests fail; archived Edition blocks publish
    while active-Project link management remains available; archived Project
@@ -1032,7 +1054,6 @@ Validate at minimum:
 8. Verify exact Revision-backed Guide annotations and Demo hotspots/transitions,
    archived protected Assets, version-specific Asset requests, guessed
    non-selected Asset `404`, and no mutable Working Draft change leaking before a
-   new Publication/link update.
 9. Exercise loading, empty history/link list, validation, stale conflict, failed
    request, partial-network failure, destructive confirmation cancel/escape,
    duplicate-submit prevention, long names/version labels, and 50-entry boundary.
@@ -1151,6 +1172,26 @@ Final closure on 2026-07-20 added two scoped correction commits:
   responsive layout; and keeps Guide/Demo password forms retryable with an
   accessible error after invalid credentials.
 
+Post-closure repair audit on 2026-07-20 added three scoped commits:
+
+- `a1e346f` (`fix(server): enforce safe publication rollback`) makes rollback
+  strictly backward, returns the documented `409` for equal/newer targets, and
+  fixes the Publish Link entry projection so an entry keeps its own ID while
+  exposing the selected Publication ID separately. The projection bug had made
+  selected-link rollout update zero rows silently.
+- `facce07` (`refactor(server): type revision persistence boundaries`) replaces
+  the child-`119` route/repository `any` seams and clears all `26` recorded
+  server lint warnings without changing persistence behavior.
+- `e9e1ff5` (`fix(web): consolidate publication workflows`) removes the dead
+  Guide/Demo singular/snapshot compatibility facade and duplicate editor
+  request ownership, makes revoke pending/error handling truthful, prevents a
+  forward Publication from appearing as a rollback target, and moves Guide
+  list public-link resolution onto the current manifest API.
+
+The current closeout documentation commit reconciles master `005`, child
+status/evidence records, current-capability docs, migration operations, and the
+V1 smoke checklist with those repairs.
+
 ## Verification Record
 
 Passed on 2026-07-20 after the final closure corrections:
@@ -1165,6 +1206,28 @@ Passed on 2026-07-20 after the final closure corrections:
 - `rtk git diff --check` passed;
 - focused shared/domain, server publication/audit/schema, and frontend panel,
   reader, editor, route, and API suites passed during TDD.
+
+Post-closure repair verification on 2026-07-20:
+
+- `rtk pnpm -r --if-present test` passed: server `96` files / `396` tests, web
+  `38` files / `269` tests, extension `99` tests, and all participating shared
+  packages;
+- `rtk pnpm check-types`, `rtk pnpm lint`, `rtk pnpm build`, and
+  `rtk git diff --check` passed; server lint now reports zero warnings;
+- fresh migration through `024`, the full `17`-file / `63`-test DB suite, and
+  the V1 DB-backed smoke test passed against a disposable `postgres:16`
+  container with separate runtime and maintenance roles;
+- focused DB evidence proves selected-link rollout advances the exact entry,
+  backward rollback succeeds, and a later Publication is rejected as
+  `409 publish_link_rollback_invalid`;
+- `agent-browser` sessions `child120-closure` and `child120-public` verified
+  authenticated link creation/revocation, the older-only rollback confirmation
+  and successful rollback without a new Publication, exact Project Version
+  public rendering, keyboard focus, narrow `390x844` layout, and 200% reflow
+  without horizontal overflow. Console output contained only Vite/React
+  development messages. The disposable DB fixture's test-owned screenshot
+  bytes had already been removed, so its expected image request failed; no
+  customer/private data or repository evidence asset was used.
 
 Database evidence used a disposable local `postgres:16` container and synthetic
 roles/data because `.env-cmdrc` does not define `testing_maintenance`; no

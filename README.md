@@ -4,7 +4,7 @@
   <img src="docs/brand/ossie-horizontal-lockup.png" alt="Ossie purple octopus mascot and wordmark" width="720" />
 </p>
 
-Ossie is an alpha-stage, self-hosted open-source tool for turning browser workflows into two currently implemented outputs: Scribe-style step-by-step Guides and Storylane-style Interactive Demos. Projects now have explicit Project Membership, Audit/Access Evidence, and Project Version release contexts beginning with a real default `Main` record. Capture and authored-content persistence remains Project-scoped until the next foundation phases; Documentation and Video are not shipped.
+Ossie is an alpha-stage, self-hosted open-source tool for turning browser workflows into two currently implemented outputs: Scribe-style step-by-step Guides and Storylane-style Interactive Demos. Projects have explicit Project Membership, Audit/Access Evidence, and Project Version release contexts beginning with a real default `Main` record. Captures belong to one Project Version; stable Guide and Interactive Demo Artifacts have Version-scoped Editions, relational Working Drafts, immutable Revisions, and revision-backed Publications. Documentation and Video are not shipped.
 
 > Alpha status: the core capture-to-guide and capture-to-demo paths exist, but the project still needs more dogfooding, packaging, editor polish, and extension reliability work before it should be treated as production-ready.
 
@@ -13,12 +13,12 @@ Ossie is an alpha-stage, self-hosted open-source tool for turning browser workfl
 | Area              | Current alpha capability                                                                                                                                                                                                                                                                                     |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Setup and auth    | Web first-run setup, password login, cookie-backed portal sessions, and organization-scoped users.                                                                                                                                                                                                           |
-| Projects          | Project creation, Project Membership, explicit Project Versions with a transactional default `Main`, canonical Version workspaces, lifecycle management, and project settings/archive controls. Existing Capture/Guide/Demo records remain default-only and Project-scoped until their dedicated migrations. |
+| Projects          | Project creation, Project Membership, explicit Project Versions with a transactional default `Main`, canonical Version workspaces, lifecycle management, and project settings/archive controls.                                                                                                    |
 | Capture           | Manual portal capture sessions, screenshot upload, ordered capture events, and event editing; Chrome extension automatic-click capture now has screenshot-backed browser evidence, with true toolbar-popup manual validation still pending.                                                                  |
 | Extension         | Instance URL setup, login, project selection, manual screenshot fallback, automatic click capture MVP, and finish/open-active portal flow exist in code/tests; 2026-07-07 dogfood closed the split-origin portal link path and refreshed captured-workflow evidence.                                         |
 | Guides            | Generate guides from capture sessions, edit blocks and steps, manage screenshots, annotate screenshots, preview, publish, password-protect, embed, export Markdown, and export HTML ZIP.                                                                                                                     |
 | Interactive demos | Generate demos from capture sessions, edit scenes, add hotspots, publish, password-protect, embed, and view public demos.                                                                                                                                                                                    |
-| Sharing           | Immutable publish snapshots for guides and demos with public/restricted access controls.                                                                                                                                                                                                                     |
+| Sharing           | Revision-backed immutable Publications and independent multi-version Publish Link manifests for Guides and Demos, with explicit rollout, canonical version URLs, public/restricted/password access, expiry, embeds, rollback, and revocation.                                                                  |
 | Team basics       | Organization invite creation, invite acceptance, and member access to shared projects.                                                                                                                                                                                                                       |
 | Operations        | Local PostgreSQL, local file storage, health/readiness endpoints, CORS/cookie hardening, rate limits, and documented backup/restore expectations.                                                                                                                                                            |
 
@@ -64,7 +64,7 @@ The product intentionally keeps guides and interactive demos separate. A capture
 
 ## Next Platform Direction
 
-Master Plan `005` accepts the following target. Project Versions now provide the shipped navigation/release-context foundation; the nested Capture and Artifact ownership shown below remains planned work:
+Master Plan `005` has shipped the following platform foundation through child `120`; Product Documentation remains the next domain-design step after the remaining UI-foundation children:
 
 ```text
 Organization
@@ -77,7 +77,7 @@ Organization
       -> Video (later and not yet modeled)
 ```
 
-This diagram is navigation context, not the current database ownership tree. Project Version identity, lifecycle, aliases, ordering, permissions, and Audit/Access Evidence are implemented. Stable Guide and Interactive Demo Artifact identities, Project Version-scoped Editions, Working Drafts, Revisions, and revised Publications are accepted future phases. See [the canonical glossary](CONTEXT.md) and [Master Plan 005](docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md).
+This diagram is navigation context, while the Capture, Guide, Interactive Demo, Revision, and Publication relationships shown are now implemented relationally. Project Version identity, lifecycle, aliases, ordering, permissions, Audit/Access Evidence, Carry-Forward, protected shared Assets, and independently managed Publish Links are available today. See [the canonical glossary](CONTEXT.md) and [Master Plan 005](docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md).
 
 Product Documentation means future customer-authored documentation sites and knowledge bases. It is different from `apps/docs`, which is this repository's contributor/operator documentation hub. The Documentation model will be decided by child `131` only after the platform foundation closes.
 

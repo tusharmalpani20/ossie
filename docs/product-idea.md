@@ -1,6 +1,6 @@
 # Ossie Product Idea
 
-Last reviewed: 2026-07-10
+Last reviewed: 2026-07-20
 
 ## Status And Purpose
 
@@ -25,20 +25,25 @@ The alpha implements:
 
 - self-hosted first-run setup, password authentication, and Organization member
   and invite basics;
-- Projects without Project Version runtime records;
-- screenshot-first portal and Chrome extension Capture Sessions;
+- Projects with Project Membership and explicit Project Versions beginning with
+  a transactional default `Main`;
+- Project Version-owned screenshot-first portal and Chrome extension Capture
+  Sessions;
 - reusable Capture Events and Capture Assets;
-- Guide authoring with Blocks, Steps, Annotations, preview, publishing, embeds,
-  and exports;
+- Guide and Interactive Demo Artifacts with Version-scoped Editions, relational
+  Working Drafts, immutable Revisions, Carry-Forward, and protected shared
+  Assets;
+- Guide authoring with Blocks, Steps, Annotations, preview, revision-backed
+  publishing, embeds, and exports;
 - Interactive Demo authoring with Scenes, Hotspots, linear transitions,
-  publishing, embeds, and public viewing; and
-- immutable current publish snapshots with public, restricted, password, and
-  expiry controls.
+  revision-backed publishing, embeds, and public viewing;
+- independent multi-version Publish Links with explicit rollout, canonical
+  version URLs, public/restricted/password/expiry controls, rollback, and
+  revocation; and
+- comprehensive append-only Audit/Access Evidence for the implemented scope.
 
-The current alpha does not implement Project Membership, Project Versions,
-Artifact Editions, Artifact Revisions, revision-backed Publications,
-multi-version Publish Links, comprehensive Audit/Access Evidence, Product
-Documentation authoring, or Video.
+The current alpha does not implement Product Documentation authoring, Video, or
+the UI modernization accepted for children `121` through `130`.
 
 ## Next Platform Direction
 
@@ -59,8 +64,9 @@ The diagram is not a literal persistence tree. Stable Guide and Interactive Demo
 Artifact identities belong to a Project. An Artifact can have at most one
 Artifact Edition in a given Project Version. Each Edition owns one mutable
 Working Draft and a sequence of immutable Artifact Revisions. A Publication
-identifies one exact Revision, and a Publish Link can later expose an explicit
-set of published Project Versions for one Artifact.
+identifies one exact Revision, and a Publish Link exposes an explicit set of
+published Project Versions for one Artifact. These relationships are implemented
+for Guides and Interactive Demos; Product Documentation remains future work.
 
 The foundation is ordered deliberately:
 
@@ -74,8 +80,8 @@ The foundation is ordered deliberately:
 8. Modernized authoring, library, reader, extension, and compliance workflows.
 9. Product Documentation domain grill.
 
-Until these children ship, this section describes an accepted target rather than
-available behavior.
+Items `1` through `7` are available behavior. Items `8` and `9` remain the
+accepted next direction.
 
 ## Intentionally Deferred
 
@@ -112,7 +118,7 @@ An Organization is the tenant and ownership boundary. A Project groups related
 knowledge for a product, module, or workflow area. Examples include ERP setup,
 CRM onboarding, billing operations, and an internal admin portal.
 
-Project Membership will govern non-owner access through Project Admin, Editor,
+Project Membership governs non-owner access through Project Admin, Editor,
 and Viewer roles. Project Versions inherit Project permissions; they are not
 separate permission groups.
 
@@ -120,14 +126,13 @@ separate permission groups.
 
 A Project Version is a meaningful product state or maintained release line. It
 is not an API version, Git branch, audience, or row-concurrency counter. New
-Projects will begin with a real default Project Version named `Main` once child
-`116` ships.
+Projects begin with a real default Project Version named `Main`.
 
 ### Capture Source
 
 A Capture Session is one recording run and reusable source material, not a final
-artifact. It contains ordered Capture Events and Capture Assets. After child
-`117`, every Capture Session belongs to one Project Version.
+artifact. It contains ordered Capture Events and Capture Assets. Every Capture
+Session belongs to one Project Version.
 
 Original captured source remains immutable. Redaction and other processing
 produce Derived Assets rather than rewriting originals. A shared asset becomes

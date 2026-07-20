@@ -234,6 +234,13 @@ clients do not satisfy the new Project response contract. DOWN refuses retained
 Project Versions, aliases, Project Version evidence, or Access Evidence and
 does not delete them automatically.
 
+Migration `021_capture_source_version_scoping.sql` makes Project Version
+ownership mandatory for Capture Sessions and their immutable source records.
+It refuses retained Capture rows that cannot be assigned safely instead of
+guessing ownership. Reset and reseed disposable pre-`021` databases; deploy the
+server, portal, and extension together because every capture create/list/detail
+contract and extension selection now carries the exact Project Version.
+
 Migration `022_guide_demo_edition_working_draft_relational_foundation.sql` is a
 coordinated clean-schema transition. It refuses retained Guide, Interactive
 Demo, Published Artifact, or Publish Link rows instead of inventing Artifact,
@@ -253,6 +260,18 @@ Published Asset projection, or non-active Asset state; an empty DOWN restores
 the migration-022 mutation guards. Back up both PostgreSQL and local file
 storage before upgrading, because database rollback cannot restore purged bytes.
 
+Migration `024_revision_backed_publication_and_publish_link_manifests.sql` is
+the coordinated clean publication transition. It replaces JSON snapshot
+Published Artifacts and the single-link pointer with exact Revision-backed
+Publications and ordered multi-version Publish Link entries. It refuses retained
+legacy Published Artifacts or Publish Links rather than inventing Revision or
+manifest history. Reset and reseed disposable pre-`024` databases; preserve any
+non-disposable data for an explicitly designed conversion. Deploy server and
+portal together because old snapshot/singular-publish clients are unsupported.
+DOWN is allowed only while the new publication/link tables are empty and never
+discards retained Publication, manifest, viewer-session, Audit, or Access
+Evidence.
+
 Before upgrading:
 
 1. Stop all API/background writers; do not use a rolling mixed-writer deploy.
@@ -265,8 +284,9 @@ Before upgrading:
 7. Check `/readyz`.
 8. Run a smoke test through sign-in, membership-aware Project discovery,
    Project/Main creation, named Project Version lifecycle and alias resolution,
-   Project role assignment/revocation, Guide preview, public Guide, and
-   Interactive Demo viewer.
+   Project role assignment/revocation, Revision checkpoint and Carry-Forward,
+   explicit Guide/Demo Publication, independent Publish Links, exact-version
+   public Guide/Demo routes, rollback, revoke, and protected media.
 
 ## Reverse Proxy And HTTPS
 

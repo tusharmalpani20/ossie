@@ -132,6 +132,13 @@ Published Artifact Asset projection. It refuses retained legacy tombstones or
 Published Artifacts that cannot be classified safely. Reset and reseed a
 disposable pre-`023` database; do not bypass the refusal for retained data.
 
+Migration `024` replaces legacy JSON publication snapshots and the single-link
+pointer with Revision-backed Publications and ordered multi-version Publish
+Link manifests. It refuses retained legacy publication/link rows that cannot be
+converted without invented history. Reset and reseed a disposable pre-`024`
+database, or preserve non-disposable data for a separately designed conversion;
+do not run mixed old/new server and portal clients across this transition.
+
 ## Running Apps
 
 Server:

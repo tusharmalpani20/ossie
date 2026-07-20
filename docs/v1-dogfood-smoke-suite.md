@@ -54,16 +54,19 @@ The DB-backed smoke test covers:
 - screenshot-backed click event creation
 - capture session completion
 - Scribe-style guide creation from capture
-- guide publishing and public resolution
+- unlinked Guide Publication followed by explicit Publish Link creation and
+  exact-version public resolution
 - Storylane-style interactive demo creation from the same capture
 - demo hotspot creation
-- interactive demo publishing and public resolution
+- unlinked Interactive Demo Publication followed by explicit Publish Link
+  creation and exact-version public resolution
 - organization invite creation
 - invite acceptance by a new teammate
 - teammate access to the authenticated project list
 - Guide and Interactive Demo manual Revision checkpoint/history
 - named Project Version Carry-Forward with exact replay of one idempotency key
 - Capture Asset archive plus protected-purge rejection for referenced media
+- relational Publication/Publish Link responses without legacy snapshot fields
 
 ## Manual Portal Checklist
 
@@ -93,16 +96,26 @@ Use safe synthetic screenshots only.
       Working Draft, and restore the checkpoint.
 - [ ] Export guide markdown.
 - [ ] Export guide HTML ZIP.
-- [ ] Publish the guide.
-- [ ] Open the public guide.
+- [ ] Publish the guide without selecting a link and confirm the Publication is
+      retained in history.
+- [ ] Explicitly create a Publish Link from the latest Guide Publication.
+- [ ] Open the public guide at its exact Project Version URL.
+- [ ] Create a second independent link, republish while selecting only one, and
+      confirm the unselected link remains pinned.
+- [ ] Roll an entry back to an older Publication, confirm no new Publication is
+      created, then use explicit rollout/manifest update—not rollback—to move it
+      forward.
+- [ ] Revoke one link and confirm its public URL becomes unavailable without
+      affecting the other link or Publication history.
 - [ ] Enable guide password protection and verify the password gate.
 - [ ] Open guide embed route.
 - [ ] Create an interactive demo from the same capture session.
 - [ ] Edit a scene title.
 - [ ] Create a hotspot.
 - [ ] Create and open an Interactive Demo Revision checkpoint.
-- [ ] Publish the interactive demo.
-- [ ] Open the public demo viewer.
+- [ ] Publish the interactive demo and explicitly create or select its Publish
+      Link.
+- [ ] Open the public demo viewer at its exact Project Version URL.
 - [ ] Open demo embed route.
 - [ ] Invite a teammate.
 - [ ] Accept the invite as the teammate.

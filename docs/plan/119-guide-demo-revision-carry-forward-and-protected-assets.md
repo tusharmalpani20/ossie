@@ -1182,7 +1182,19 @@ Passed on 2026-07-19 during implementation and closeout recheck:
   implementation commit. Browser sessions, application processes, and synthetic
   fixtures were closed after evidence capture.
 
+Post-sequence reconciliation (2026-07-20): commit `facce07` replaced the
+Artifact Revision and Carry-Forward route/repository `any` seams recorded by the
+closeout lint warnings. The current full workspace lint run passes with zero
+server warnings; the count above remains the truthful historical result of the
+original child-`119` verification run.
+
 ## Leftovers
+
+Sequence reconciliation (2026-07-20): child `120` completed the publication
+work assigned below, including removal of the temporary snapshot/projection
+seams, and passed its fresh DB/smoke/browser closeout. These bullets remain the
+historical handoff from child `119`; they are not current leftovers for child
+`121`.
 
 - No known child-`119` implementation or verification defect remains.
 - Child `120` owns the reserved Publication Revision trigger, exact Revision FK

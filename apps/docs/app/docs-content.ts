@@ -17,14 +17,15 @@ export const productCapabilities = [
   "Storylane-style interactive demos with scenes, hotspots, publishing, password access, and embeds.",
   "Self-hosted setup with PostgreSQL, local file storage, health checks, readiness checks, and production env validation.",
   "Project Membership, Audit and Access Evidence, and explicit Project Version release contexts beginning with Main.",
+  "Version-scoped Guide and Interactive Demo Editions, relational Working Drafts, immutable Revisions, Carry-Forward, and protected shared assets.",
+  "Revision-backed Publications and independent multi-version Publish Links with exact-version public routes.",
 ];
 
 export const nextPlatformDirection = {
   status:
-    "Master Plan 005 is partially implemented through the Project Version foundation; the following content-lifecycle capabilities remain planned.",
+    "Master Plan 005 is implemented through the Publication and multi-version Publish Link foundation; UI modernization and Product Documentation domain design remain planned.",
   items: [
-    "Project Version-scoped Capture Sessions across the portal and extension.",
-    "Stable Guide and Interactive Demo identities with Project Version-scoped Editions, Working Drafts, immutable Revisions, and revised Publications.",
+    "Design-system and workflow-by-workflow portal, extension, authoring, reader, accessibility, motion, and browser modernization.",
     "Product Documentation as the next artifact family after the foundation and its dedicated domain grill.",
     "Loom-style Video later; its recording, storage, playback, and collaboration model remains deliberately unplanned.",
   ],

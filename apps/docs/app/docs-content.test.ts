@@ -63,10 +63,12 @@ describe("docs content", () => {
   });
 
   it("separates the shipped foundation from the remaining platform direction", () => {
-    expect(nextPlatformDirection.status).toContain("partially implemented");
+    expect(nextPlatformDirection.status).toContain(
+      "implemented through the Publication and multi-version Publish Link foundation",
+    );
     expect(nextPlatformDirection.items).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("Project Version-scoped Capture Sessions"),
+        expect.stringContaining("Design-system"),
         expect.stringContaining("Product Documentation"),
         expect.stringContaining("Video"),
       ]),
@@ -82,6 +84,7 @@ describe("docs content", () => {
         expect.stringContaining("Screenshot-first capture"),
         expect.stringContaining("Scribe-style guides"),
         expect.stringContaining("Storylane-style interactive demos"),
+        expect.stringContaining("multi-version Publish Links"),
       ]),
     );
     expect(evidenceItems.map((item) => item.src)).toEqual(

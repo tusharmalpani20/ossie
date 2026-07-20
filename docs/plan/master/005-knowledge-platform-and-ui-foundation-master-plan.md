@@ -2,8 +2,8 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `119` are complete. Child `120` is
-implemented but awaits its PostgreSQL and authenticated browser closeout gates.
+Status: In progress. Children `109` through `120` are complete. The domain and
+publication foundation is closed; child `121` is next.
 
 Master plan number: 005.
 
@@ -38,7 +38,9 @@ This track starts from the following decisions:
 4. Project Version semantics must be resolved and implemented before Documentation is modeled.
 5. Existing Guides, Interactive Demos, Captures, and Publications must become version-aware before a new artifact family is added.
 6. The current portal needs a coherent application shell, information architecture, design system, and workflow-by-workflow modernization before the Documentation UI is built.
-7. Planning docs may describe future direction, but current-state docs must distinguish shipped Project Version and Capture ownership from unimplemented Artifact Edition scoping, Documentation, and Video.
+7. Planning docs may describe future direction, but current-state docs must
+   distinguish the shipped Version/Edition/Revision/Publication foundation from
+   unimplemented Documentation, Video, and UI-modernization work.
 8. Repository-local agent guidance and repeatable skills should be established before this multi-phase track begins.
 9. A product-name decision should be made before brand-level UI modernization, but the runtime architecture must not depend on a rename.
 10. Documentation implementation must be preceded by a dedicated grill that settles its content model, source of truth, publication model, access model, version behavior, and Fumadocs boundary.
@@ -46,7 +48,8 @@ This track starts from the following decisions:
 
 ## 3. Current Baseline
 
-Baseline reviewed on 2026-07-10:
+Baseline reviewed on 2026-07-10 and reconciled through child `120` on
+2026-07-20:
 
 - The repository is an AGPL-3.0-only pnpm/Turborepo monorepo.
 - `apps/server` is a Fastify REST API backed by PostgreSQL and local file storage.
@@ -59,10 +62,18 @@ Baseline reviewed on 2026-07-10:
   Event, Capture Asset, Guide, Interactive Demo, Published Artifact, and Publish
   Link.
 - Capture source records and original source assets are immutable by existing ADR decision.
-- Guide and Interactive Demo publishing already produces immutable snapshots.
-- Existing mutable Guide, Guide Block, Guide Step, Interactive Demo, and Demo Scene rows use a `version` integer as an optimistic-concurrency counter. That counter is an implementation-level **Row Version**, not an authored Revision or Project Version.
-- `publish_schema.published_artifact.version_number` and the current public API use `version_number` as the sequence of immutable publication snapshots for one source artifact. That value is a **Publication Sequence**, not a Project Version.
-- The alpha schema currently uses JSONB for `guide_block.content`, `published_artifact.snapshot_json`, and several generic `metadata` columns. These are current implementation facts, not the accepted clean target.
+- Guide and Interactive Demo authoring uses stable Artifact identities,
+  Project Version-scoped Editions, relational Working Draft content, and
+  immutable relational Revisions.
+- Mutable Edition, Working Draft, and authored child rows use `version` as an
+  optimistic-concurrency **Row Version**, not an authored Revision or Project
+  Version.
+- `publish_schema.published_artifact.publication_sequence` is Edition-scoped;
+  each Published Artifact identifies one exact Revision, Edition, and Project
+  Version without copied `snapshot_json` content.
+- Publish Links are independently managed ordered multi-version manifests with
+  explicit rollout, one default entry, stable slugs, link-wide access policy,
+  exact-version public routes, rollback to older Publications, and revocation.
 - Children `112` through `114` provide typed, append-only Audit Event/Audit Change
   Item persistence, separate runtime and maintenance database credentials,
   exhaustive current mutation command/table/route coverage, and active
@@ -77,7 +88,7 @@ Baseline reviewed on 2026-07-10:
   version-scoped portal/extension Capture behavior, and the temporary guarded
   current-Default seam for Guide/Demo generation until child `118`.
 - Current migrations end at
-  `023_guide_demo_revision_carry_forward_protected_assets.sql`.
+  `024_revision_backed_publication_and_publish_link_manifests.sql`.
   Migration `015` implements the
   accepted clean pre-live transition and refuses populated User or Organization
   data; no production-row backfill exists.
@@ -88,10 +99,10 @@ Baseline reviewed on 2026-07-10:
 - Current pages still rely heavily on CSS Modules, hard-coded slate/hex values, repeated control styling, and only minimal global tokens. The UI track is therefore a consolidation and product-design effort, not a fresh Tailwind or icon migration.
 - Child `109` installed the accepted external design guidance as pinned, optional repository tooling and documented provenance, compatibility changes, update/removal procedure, and rejected sources in `docs/agent-workflow.md`. It remains outside application dependencies and runtime behavior.
 - The current UI works at alpha level but does not yet provide the consistency, hierarchy, density, responsive behavior, accessibility, or navigation expected from a daily internal tool.
-- Master plans `001` through `004` are complete. Children `109` through `119`
-  are complete. Child `119` passed fresh migration/rollback, full DB/smoke,
-  storage, broad workspace, and authenticated Admin/Editor/Viewer browser
-  closeout on 2026-07-19. The
+- Master plans `001` through `004` are complete. Children `109` through `120`
+  are complete. Child `120` and its closure repair passed fresh migration, the
+  full DB/smoke suite, broad workspace checks, and authenticated/public browser
+  validation on 2026-07-20. The
   optional overnight-runner tooling checkpoint was deferred on 2026-07-19 and
   is not a gate for sequential child execution.
 - Known extension and production-readiness leftovers from master plan `004` remain real unless a child plan explicitly closes them.
@@ -212,7 +223,9 @@ An implementation-level optimistic-concurrency counter on a mutable database row
 
 ### Publication Sequence
 
-The monotonically increasing number for successive immutable Publications within one Artifact Edition. Current code calls this `published_artifact.version_number`; the accepted greenfield target replaces that ambiguous database/API language with `publication_sequence` directly.
+The monotonically increasing number for successive immutable Publications
+within one Artifact Edition. Current database, API, domain, and UI contracts use
+`publication_sequence` directly.
 
 ### Publication
 
@@ -246,11 +259,19 @@ Every repository document touched by this track must make one of these truth ban
 
 ### Available Today
 
-Behavior implemented, tested, and usable in the current repository. Existing Guides, Interactive Demos, screenshot-first Captures, organization membership, Projects, and immutable publish snapshots belong here.
+Behavior implemented, tested, and usable in the current repository. Audit and
+Access Evidence, Project Membership, Project Versions, Version-owned Captures,
+Guide and Interactive Demo Artifacts/Editions/Working Drafts/Revisions,
+Carry-Forward, protected shared Assets, revision-backed Publications, and
+multi-version Publish Links belong here.
 
 ### Next Platform Direction
 
-Accepted direction with planned implementation. Audit/Access, Project Membership, Project Versions, artifact Editions/Revisions/Publications, the UI foundation, and the Documentation-domain grill belong here until implemented. Customer-authored Documentation runtime begins only after this master closes and a subsequent plan is accepted.
+Accepted direction with planned implementation. The UI foundation and
+workflow-modernization children `121` through `130`, followed by the
+Documentation-domain grill, belong here until implemented. Customer-authored
+Documentation runtime begins only after this master closes and a subsequent
+plan is accepted.
 
 ### Intentionally Deferred
 
@@ -1238,8 +1259,9 @@ Acceptance:
 ### 120: Publication And Multi-Version Publish Link Integration
 
 Status: Complete on 2026-07-20. The original runtime commits `76cb8bd`,
-`142ec8b`, and `5532682` plus final closure corrections `dca1d1b` and `7520d46`
-pass fresh migration/rollback, DB, smoke, storage, broad, and real-browser
+`142ec8b`, and `5532682`, final closure corrections `dca1d1b` and `7520d46`,
+and post-closure repairs `a1e346f`, `facce07`, and `e9e1ff5` pass fresh
+migration, the full DB/smoke suite, broad workspace checks, and real-browser
 verification.
 
 Planned file:
