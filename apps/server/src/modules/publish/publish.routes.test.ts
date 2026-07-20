@@ -1,6 +1,9 @@
 import Fastify from "fastify";
 import { describe, expect, it, vi } from "vitest";
-import { PublishLinkNotFoundError } from "@repo/publish-domain";
+import {
+  PublishLinkNotFoundError,
+  PublishLinkRollbackInvalidError,
+} from "@repo/publish-domain";
 import {
   build_publish_routes,
   type PublishRouteDependencies,
@@ -87,6 +90,36 @@ describe("relational publication routes", () => {
       url: "/api/v1/public/publish-links/missing?artifact_type=guide",
     });
     expect(response.statusCode, response.body).toBe(404);
+    await app.close();
+  });
+  it("maps an invalid rollback direction to the documented conflict response", async () => {
+    const app = Fastify();
+    await app.register(
+      build_publish_routes({
+        auth_service: {
+          get_current_auth_context: vi.fn(async () => ({
+            organization: { id: "org_1" },
+            org_user: { id: "member_1" },
+          })),
+        },
+        publish_service: {
+          rollback_publish_link_entry: vi.fn(async () => {
+            throw new PublishLinkRollbackInvalidError();
+          }),
+        } as never,
+      } as unknown as PublishRouteDependencies),
+      { prefix: "/api/v1" },
+    );
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project_1/guides/guide_1/publish-links/link_1/entries/entry_1/rollback?project_version_id=version_1",
+      payload: {
+        expected_link_version: 2,
+        target_published_artifact_id: "publication_2",
+      },
+    });
+    expect(response.statusCode, response.body).toBe(409);
+    expect(response.json().error.type).toBe("publish_link_rollback_invalid");
     await app.close();
   });
 });

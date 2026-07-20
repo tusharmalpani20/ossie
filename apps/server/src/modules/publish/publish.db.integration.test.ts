@@ -282,6 +282,9 @@ describe("DB-backed relational Publication API", () => {
     ).toBe(first_publication_id);
 
     const updated_link = second.updated_publish_links[0];
+    expect(updated_link.entries[0].published_artifact.id).toBe(
+      second.published_artifact.id,
+    );
     const rollback = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish-links/${primary_link_id}/entries/${updated_link.entries[0].id}/rollback?project_version_id=${project_version_id}`,
@@ -292,9 +295,23 @@ describe("DB-backed relational Publication API", () => {
         reason: "Restore the previously approved Publication",
       },
     });
-    expect(rollback.statusCode).toBe(200);
+    expect(rollback.statusCode, rollback.body).toBe(200);
     expect(rollback.json().entry.published_artifact.publication_sequence).toBe(
       1,
+    );
+
+    const forward_as_rollback = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project_id}/guides/${guide_id}/publish-links/${primary_link_id}/entries/${rollback.json().entry.id}/rollback?project_version_id=${project_version_id}`,
+      cookies: { ossie_session: session_token },
+      payload: {
+        expected_link_version: rollback.json().publish_link.version,
+        target_published_artifact_id: second.published_artifact.id,
+      },
+    });
+    expect(forward_as_rollback.statusCode).toBe(409);
+    expect(forward_as_rollback.json().error.type).toBe(
+      "publish_link_rollback_invalid",
     );
 
     const revoke = await app.inject({

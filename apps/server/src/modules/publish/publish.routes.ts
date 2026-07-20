@@ -26,6 +26,7 @@ import {
   ArtifactNotPublishableError,
   ArtifactHasNoPublishableContentError,
   PublicationRowVersionConflictError,
+  PublishLinkRollbackInvalidError,
   PublishLinkExpiredError,
   PublishLinkNotPublicError,
   PublishLinkPasswordRequiredError,
@@ -136,6 +137,15 @@ export const build_publish_routes =
             error_response(
               "row_version_conflict",
               "The resource changed; reload and retry",
+            ),
+          );
+      if (error instanceof PublishLinkRollbackInvalidError)
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "publish_link_rollback_invalid",
+              "Publish Link entry can only roll back to an older Publication from the same Edition",
             ),
           );
       if (error instanceof PublishLinkNotPublicError)

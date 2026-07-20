@@ -66,10 +66,13 @@ export const assert_same_edition_rollback = (input: {
   target_edition_id: string;
   current_published_artifact_id: string;
   target_published_artifact_id: string;
+  current_publication_sequence: number;
+  target_publication_sequence: number;
 }) => {
   if (
     input.current_edition_id !== input.target_edition_id ||
-    input.current_published_artifact_id === input.target_published_artifact_id
+    input.current_published_artifact_id === input.target_published_artifact_id ||
+    input.target_publication_sequence >= input.current_publication_sequence
   ) {
     throw new PublishLinkRollbackInvalidError();
   }

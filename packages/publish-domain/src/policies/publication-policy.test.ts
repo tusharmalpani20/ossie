@@ -93,13 +93,15 @@ describe("publication policy", () => {
     ).toThrow(PublishLinkManifestInvalidError);
   });
 
-  it("limits rollback to another Publication from the same Edition", () => {
+  it("limits rollback to an older Publication from the same Edition", () => {
     expect(() =>
       assert_same_edition_rollback({
         current_edition_id: "edition_1",
         target_edition_id: "edition_1",
         current_published_artifact_id: "publication_2",
         target_published_artifact_id: "publication_1",
+        current_publication_sequence: 2,
+        target_publication_sequence: 1,
       }),
     ).not.toThrow();
     expect(() =>
@@ -108,6 +110,18 @@ describe("publication policy", () => {
         target_edition_id: "edition_2",
         current_published_artifact_id: "publication_2",
         target_published_artifact_id: "publication_1",
+        current_publication_sequence: 2,
+        target_publication_sequence: 1,
+      }),
+    ).toThrow(PublishLinkRollbackInvalidError);
+    expect(() =>
+      assert_same_edition_rollback({
+        current_edition_id: "edition_1",
+        target_edition_id: "edition_1",
+        current_published_artifact_id: "publication_1",
+        target_published_artifact_id: "publication_2",
+        current_publication_sequence: 1,
+        target_publication_sequence: 2,
       }),
     ).toThrow(PublishLinkRollbackInvalidError);
   });

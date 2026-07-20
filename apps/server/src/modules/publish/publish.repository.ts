@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { ulid } from "ulid";
 import {
+  assert_same_edition_rollback,
   normalize_publish_link_manifest,
   PublicationRowVersionConflictError,
 } from "@repo/publish-domain";
@@ -59,8 +60,9 @@ type LinkRow = {
   updated_at: Date;
   revoked_at: Date | null;
 };
-type EntryRow = {
+type EntryRow = Omit<PublicationRow, "id"> & {
   id: string;
+  published_artifact_id: string;
   publish_link_id: string;
   project_version_id: string;
   project_version_name: string;
@@ -69,7 +71,7 @@ type EntryRow = {
   position: number;
   is_default: boolean;
   version: number;
-} & PublicationRow;
+};
 
 const artifact_columns = (
   scope: Pick<ArtifactScope, "artifact_type" | "artifact_id">,
@@ -127,7 +129,15 @@ const load_entries = async (db: Queryable, link_ids: string[]) => {
   const result = await db.query<EntryRow>(
     `SELECT entry.id,entry.publish_link_id,entry.position,entry.is_default,entry.version,
     version.id AS project_version_id,version.name AS project_version_name,version.slug AS project_version_slug,version.status AS project_version_status,
-    ${publication_select}
+    publication.id AS published_artifact_id,publication.artifact_type,
+    COALESCE(publication.guide_id,publication.interactive_demo_id) AS artifact_id,
+    COALESCE(publication.guide_edition_id,publication.interactive_demo_edition_id) AS edition_id,
+    publication.project_version_id,
+    COALESCE(publication.guide_revision_id,publication.interactive_demo_revision_id) AS revision_id,
+    COALESCE(guide_revision.revision_number,demo_revision.revision_number) AS revision_number,
+    publication.publication_sequence,publication.created_by_id,
+    app_user.display_name AS publisher_display_name,
+    publication.published_at,publication.created_at
     FROM publish_schema.publish_link_entry entry
     JOIN project_schema.project_version version ON version.id=entry.project_version_id
     JOIN publish_schema.published_artifact publication ON publication.id=entry.published_artifact_id
@@ -149,7 +159,10 @@ const load_entries = async (db: Queryable, link_ids: string[]) => {
       position: Number(row.position),
       is_default: row.is_default,
       version: Number(row.version),
-      published_artifact: map_publication(row),
+      published_artifact: map_publication({
+        ...row,
+        id: row.published_artifact_id,
+      }),
     });
     grouped.set(row.publish_link_id, entries);
   }
@@ -545,8 +558,12 @@ export const build_publish_transactional_repository = (
     if (!entry) return null;
     const family = artifact_columns(input);
     const target = (
-      await db.query<{ id: string; edition_id: string }>(
-        `SELECT id,${family.edition_column} AS edition_id FROM publish_schema.published_artifact WHERE id=$1 AND project_version_id=$2 AND ${family.edition_column}=$3`,
+      await db.query<{
+        id: string;
+        edition_id: string;
+        publication_sequence: number;
+      }>(
+        `SELECT id,${family.edition_column} AS edition_id,publication_sequence FROM publish_schema.published_artifact WHERE id=$1 AND project_version_id=$2 AND ${family.edition_column}=$3`,
         [
           input.rollback.target_published_artifact_id,
           entry.project_version.id,
@@ -555,6 +572,15 @@ export const build_publish_transactional_repository = (
       )
     ).rows[0];
     if (!target) return null;
+    assert_same_edition_rollback({
+      current_edition_id: entry.published_artifact.edition_id,
+      target_edition_id: target.edition_id,
+      current_published_artifact_id: entry.published_artifact.id,
+      target_published_artifact_id: target.id,
+      current_publication_sequence:
+        entry.published_artifact.publication_sequence,
+      target_publication_sequence: Number(target.publication_sequence),
+    });
     await db.query(
       `UPDATE publish_schema.publish_link_entry SET published_artifact_id=$1,version=version+1,updated_by_id=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$3`,
       [target.id, input.auth.actor_org_user_id, entry.id],
