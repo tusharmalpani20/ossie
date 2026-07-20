@@ -25,6 +25,7 @@ import {
   publishArtifact,
   rollbackArtifactPublishLinkEntry,
   replaceArtifactPublishLinkManifest,
+  revokeArtifactPublishLink,
   updateArtifactPublishLink,
 } from "../../lib/api";
 
@@ -116,6 +117,7 @@ describe("ArtifactPublishingPanel", () => {
       created_publish_link: null,
     } as never);
     vi.mocked(rollbackArtifactPublishLinkEntry).mockResolvedValue({} as never);
+    vi.mocked(revokeArtifactPublishLink).mockResolvedValue({} as never);
     vi.mocked(updateArtifactPublishLink).mockResolvedValue({} as never);
   });
 
@@ -455,5 +457,59 @@ describe("ArtifactPublishingPanel", () => {
       screen.queryByRole("dialog", { name: "Confirm rollback" }),
     ).not.toBeInTheDocument();
     expect(rollbackArtifactPublishLinkEntry).not.toHaveBeenCalled();
+  });
+
+  it("does not offer a forward Publication as a rollback target", async () => {
+    vi.mocked(listArtifactPublications).mockResolvedValue({
+      publications: [publication, previousPublication],
+      next_before_publication_sequence: null,
+    });
+    vi.mocked(listArtifactPublishLinks).mockResolvedValue({
+      publish_links: [
+        {
+          ...publishLink,
+          entries: [
+            {
+              ...publishLink.entries[0]!,
+              published_artifact: previousPublication,
+            },
+          ],
+        },
+      ],
+      next_cursor: null,
+    });
+    renderPanel();
+
+    await screen.findByText("Customer docs");
+    expect(
+      screen.queryByRole("button", { name: "Roll back" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("disables revoke while pending and reports a recoverable failure", async () => {
+    vi.mocked(listArtifactPublishLinks).mockResolvedValue({
+      publish_links: [publishLink],
+      next_cursor: null,
+    });
+    let rejectRevoke!: (error: Error) => void;
+    vi.mocked(revokeArtifactPublishLink).mockReturnValue(
+      new Promise((_, reject) => {
+        rejectRevoke = reject;
+      }),
+    );
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderPanel();
+
+    const revoke = await screen.findByRole("button", { name: "Revoke" });
+    fireEvent.click(revoke);
+    expect(revoke).toBeDisabled();
+    fireEvent.click(revoke);
+    expect(revokeArtifactPublishLink).toHaveBeenCalledTimes(1);
+
+    rejectRevoke(new Error("network unavailable"));
+    expect(
+      await screen.findByText("Could not revoke. Reload and try again."),
+    ).toBeInTheDocument();
+    expect(revoke).toBeEnabled();
   });
 });

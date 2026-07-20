@@ -206,57 +206,47 @@ const public_publish_response = {
     slug: "abc123",
     artifact_type: "guide",
     visibility: "public",
-    expires_at: null,
     status: "active",
+    expires_at: null,
     password_protected: false,
-  },
-  published_artifact: {
-    id: "published_artifact_1",
-    artifact_type: "guide",
-    artifact_id: "guide_1",
-    version_number: 1,
-    title: "Department guide",
-    published_at: "2026-06-10T00:00:00.000Z",
-    snapshot: {
-      artifact_type: "guide",
-      guide: {
-        id: "guide_1",
-        title: "Department guide",
-        description: "Set up departments.",
-        source_capture_session_id: "capture_session_1",
-        published_version: 1,
-        published_at: "2026-06-10T00:00:00.000Z",
+    entries: [
+      {
+        project_version_name: "Docs v2",
+        project_version_slug: "docs-v2",
+        position: 1,
+        is_default: true,
+        publication_sequence: 1,
+        public_url: "/p/abc123/versions/docs-v2",
       },
-      blocks: [],
-    },
+    ],
   },
-};
-
-const guide_publish_response = {
-  publish_link: {
-    id: "publish_link_1",
-    artifact_type: "guide",
-    artifact_id: "guide_1",
-    published_artifact_id: "published_artifact_1",
-    slug: "abc123",
-    visibility: "public",
-    expires_at: null,
-    status: "active",
-    published_at: "2026-06-11T00:00:00.000Z",
-    revoked_at: null,
-    public_url: "/p/abc123",
-    password_protected: false,
+  selected_entry: {
+    project_version_name: "Docs v2",
+    project_version_slug: "docs-v2",
+    position: 1,
+    is_default: true,
+    publication_sequence: 1,
+    public_url: "/p/abc123/versions/docs-v2",
   },
   published_artifact: {
-    id: "published_artifact_1",
     artifact_type: "guide",
-    artifact_id: "guide_1",
-    version_number: 1,
-    title: "Department guide",
-    published_at: "2026-06-11T00:00:00.000Z",
+    publication_sequence: 1,
+    revision: {
+      id: "revision_1",
+      edition_id: "edition_1",
+      revision_number: 1,
+      trigger: "publication",
+      title: "Department guide",
+      description: "Set up departments.",
+      source_working_draft_version: 1,
+      created_by_id: "org_user_1",
+      created_at: "2026-06-10T00:00:00.000Z",
+    },
+    guide_blocks: [],
+    capture_assets: [],
   },
+  canonical_public_url: "/p/abc123/versions/docs-v2",
 };
-void guide_publish_response;
 
 const project_response = {
   project: {

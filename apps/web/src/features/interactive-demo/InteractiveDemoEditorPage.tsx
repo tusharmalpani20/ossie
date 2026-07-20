@@ -13,20 +13,15 @@ import {
   createInteractiveDemoHotspot,
   deleteInteractiveDemoHotspot,
   deleteInteractiveDemoScene,
-  getInteractiveDemoPublishStatus,
   getInteractiveDemo,
   listInteractiveDemoHotspots,
   listInteractiveDemoScenes,
-  publishInteractiveDemo,
   reorderInteractiveDemoHotspots,
   reorderInteractiveDemoScenes,
   resolveApiAssetUrl,
   restoreInteractiveDemo,
-  revokeInteractiveDemoPublishLink,
   updateInteractiveDemoHotspot,
   updateInteractiveDemo,
-  updateInteractiveDemoPublishAccess,
-  updateInteractiveDemoPublishPassword,
   updateInteractiveDemoScene,
   type InteractiveDemoHotspotCreateResponse,
   type InteractiveDemoHotspotListResponse,
@@ -42,24 +37,17 @@ import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
 import { ArtifactPublishingPanel } from "../publish/ArtifactPublishingPanel";
 import {
-  absolutePortalUrl,
   demoDraftFromDemo,
-  embedUrlFromPublicUrl,
-  expiryInputToIso,
   hotspotDraftFromHotspot,
   hotspotDraftsFromHotspots,
-  iframeEmbedCode,
-  publishDraftFromStatus,
   sceneAssetFileUrl,
   sceneDraftsFromScenes,
   sortedHotspots,
   sortedScenes,
   sourceCaptureUrl,
-  unpublishedStatus,
   validHotspotBox,
   type DemoDraft,
   type HotspotDraft,
-  type PublishDraft,
   type SceneDraft,
 } from "./interactiveDemoEditorHelpers";
 import type {
@@ -68,9 +56,6 @@ import type {
   DemoHotspotType,
   DemoScene,
   InteractiveDemo,
-  InteractiveDemoPublishResult,
-  InteractiveDemoPublishStatusResponse,
-  RevokePublishResult,
   UpdateDemoHotspotInput,
   UpdateDemoSceneInput,
   UpdateInteractiveDemoInput,
@@ -84,7 +69,6 @@ type LoadState =
       demo: InteractiveDemo;
       scenes: DemoScene[];
       hotspotsBySceneId: Record<string, DemoHotspot[]>;
-      publishStatus: InteractiveDemoPublishStatusResponse;
     }
   | { status: "unauthenticated" }
   | { status: "not_found" }
@@ -157,36 +141,12 @@ export type InteractiveDemoEditorPageProps = {
     hotspotId: string,
     expectedWorkingDraftVersion: number,
   ) => Promise<InteractiveDemoWorkingDraftMutationResponse>;
-  loadPublishStatus?: (
-    projectId: string,
-    interactiveDemoId: string,
-  ) => Promise<InteractiveDemoPublishStatusResponse>;
-  publishDemo?: (
-    projectId: string,
-    interactiveDemoId: string,
-  ) => Promise<InteractiveDemoPublishResult>;
-  updatePublishAccess?: (
-    projectId: string,
-    interactiveDemoId: string,
-    input: { visibility: "public" | "restricted"; expires_at: string | null },
-  ) => Promise<InteractiveDemoPublishStatusResponse>;
-  updatePublishPassword?: (
-    projectId: string,
-    interactiveDemoId: string,
-    input: { password: string | null },
-  ) => Promise<InteractiveDemoPublishStatusResponse>;
-  revokePublishLink?: (
-    projectId: string,
-    interactiveDemoId: string,
-  ) => Promise<RevokePublishResult>;
   resolveAssetUrl?: (fileUrl: string) => string;
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
-  copyText?: (text: string) => Promise<void>;
   canWrite?: boolean;
   versionSlug?: string;
-  isDefaultVersion?: boolean;
   changeEditionStatus?: (
     command: "archive" | "restore",
     projectId: string,
@@ -208,14 +168,6 @@ const loadStateFromError = (error: unknown): LoadState => {
   }
 
   return { status: "error" };
-};
-
-const defaultCopyText = async (text: string) => {
-  if (!navigator.clipboard?.writeText) {
-    throw new Error("Clipboard API is unavailable");
-  }
-
-  await navigator.clipboard.writeText(text);
 };
 
 export const InteractiveDemoEditorPage = ({
@@ -289,29 +241,12 @@ export const InteractiveDemoEditorPage = ({
       expected,
       projectVersionId,
     ),
-  loadPublishStatus = (id, artifactId) =>
-    getInteractiveDemoPublishStatus(id, artifactId, projectVersionId),
-  publishDemo = (id, artifactId) =>
-    publishInteractiveDemo(id, artifactId, projectVersionId),
-  updatePublishAccess = (id, artifactId, input) =>
-    updateInteractiveDemoPublishAccess(id, artifactId, input, projectVersionId),
-  updatePublishPassword = (id, artifactId, input) =>
-    updateInteractiveDemoPublishPassword(
-      id,
-      artifactId,
-      input,
-      projectVersionId,
-    ),
-  revokePublishLink = (id, artifactId) =>
-    revokeInteractiveDemoPublishLink(id, artifactId, projectVersionId),
   resolveAssetUrl = resolveApiAssetUrl,
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
-  copyText = defaultCopyText,
   canWrite = true,
   versionSlug,
-  isDefaultVersion = true,
   changeEditionStatus = (command, id, artifactId, versionId, expected) =>
     command === "archive"
       ? archiveInteractiveDemo(id, artifactId, versionId, expected)
@@ -328,13 +263,8 @@ export const InteractiveDemoEditorPage = ({
     Promise.all([
       loadDemo(projectId, interactiveDemoId),
       loadScenes(projectId, interactiveDemoId),
-      canWrite
-        ? loadPublishStatus(projectId, interactiveDemoId).catch(() =>
-            unpublishedStatus(),
-          )
-        : Promise.resolve(unpublishedStatus()),
     ])
-      .then(async ([demoResponse, sceneResponse, publishStatus]) => {
+      .then(async ([demoResponse, sceneResponse]) => {
         const scenes = sortedScenes(sceneResponse.demo_scenes);
         const hotspotEntries = await Promise.all(
           scenes.map(async (scene) => {
@@ -360,7 +290,6 @@ export const InteractiveDemoEditorPage = ({
             demo: demoResponse.edition,
             scenes,
             hotspotsBySceneId: Object.fromEntries(hotspotEntries),
-            publishStatus,
           });
           setWorkingDraftVersion(demoResponse.working_draft.version);
         }
@@ -376,7 +305,7 @@ export const InteractiveDemoEditorPage = ({
     };
     // Route identity and reloadKey intentionally control refetching; injected loaders may be inline test adapters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, projectVersionId, interactiveDemoId, canWrite, reloadKey]);
+  }, [projectId, projectVersionId, interactiveDemoId, reloadKey]);
 
   if (state.status === "loading") {
     return (
@@ -598,7 +527,6 @@ export const InteractiveDemoEditorPage = ({
       demo={state.demo}
       scenes={state.scenes}
       hotspotsBySceneId={state.hotspotsBySceneId}
-      publishStatus={state.publishStatus}
       initialWorkingDraftVersion={workingDraftVersion}
       saveDemo={saveDemo}
       saveScene={saveScene}
@@ -608,18 +536,12 @@ export const InteractiveDemoEditorPage = ({
       saveHotspot={saveHotspot}
       reorderHotspots={reorderHotspots}
       deleteHotspot={deleteHotspot}
-      publishDemo={publishDemo}
-      updatePublishAccess={updatePublishAccess}
-      updatePublishPassword={updatePublishPassword}
-      revokePublishLink={revokePublishLink}
       resolveAssetUrl={resolveAssetUrl}
       setLoadedState={(next) => setState({ status: "loaded", ...next })}
       performLogout={performLogout}
       navigate={navigate}
-      copyText={copyText}
       onChangeLifecycle={changeLifecycle}
       versionSlug={versionSlug}
-      isDefaultVersion={isDefaultVersion}
     />
   );
 };
@@ -653,7 +575,6 @@ const InteractiveDemoEditorLoaded = ({
   demo,
   scenes,
   hotspotsBySceneId,
-  publishStatus,
   initialWorkingDraftVersion,
   saveDemo,
   saveScene,
@@ -663,25 +584,18 @@ const InteractiveDemoEditorLoaded = ({
   saveHotspot,
   reorderHotspots,
   deleteHotspot,
-  publishDemo,
-  updatePublishAccess,
-  updatePublishPassword,
-  revokePublishLink,
   resolveAssetUrl,
   setLoadedState,
   performLogout,
   navigate,
-  copyText,
   onChangeLifecycle,
   versionSlug,
-  isDefaultVersion,
 }: {
   projectId: string;
   interactiveDemoId: string;
   demo: InteractiveDemo;
   scenes: DemoScene[];
   hotspotsBySceneId: Record<string, DemoHotspot[]>;
-  publishStatus: InteractiveDemoPublishStatusResponse;
   initialWorkingDraftVersion: number;
   saveDemo: NonNullable<InteractiveDemoEditorPageProps["saveDemo"]>;
   saveScene: NonNullable<InteractiveDemoEditorPageProps["saveScene"]>;
@@ -693,29 +607,16 @@ const InteractiveDemoEditorLoaded = ({
     InteractiveDemoEditorPageProps["reorderHotspots"]
   >;
   deleteHotspot: NonNullable<InteractiveDemoEditorPageProps["deleteHotspot"]>;
-  publishDemo: NonNullable<InteractiveDemoEditorPageProps["publishDemo"]>;
-  updatePublishAccess: NonNullable<
-    InteractiveDemoEditorPageProps["updatePublishAccess"]
-  >;
-  updatePublishPassword: NonNullable<
-    InteractiveDemoEditorPageProps["updatePublishPassword"]
-  >;
-  revokePublishLink: NonNullable<
-    InteractiveDemoEditorPageProps["revokePublishLink"]
-  >;
   resolveAssetUrl: (fileUrl: string) => string;
   setLoadedState: (state: {
     demo: InteractiveDemo;
     scenes: DemoScene[];
     hotspotsBySceneId: Record<string, DemoHotspot[]>;
-    publishStatus: InteractiveDemoPublishStatusResponse;
   }) => void;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
-  copyText: NonNullable<InteractiveDemoEditorPageProps["copyText"]>;
   onChangeLifecycle: () => Promise<void>;
   versionSlug?: string;
-  isDefaultVersion: boolean;
 }) => {
   const orderedScenes = useMemo(() => sortedScenes(scenes), [scenes]);
   const [demoDraft, setDemoDraft] = useState<DemoDraft>(() =>
@@ -727,9 +628,6 @@ const InteractiveDemoEditorLoaded = ({
   const [hotspotDrafts, setHotspotDrafts] = useState<
     Record<string, HotspotDraft>
   >(() => hotspotDraftsFromHotspots(hotspotsBySceneId));
-  const [publishDraft, setPublishDraft] = useState<PublishDraft>(() =>
-    publishDraftFromStatus(publishStatus),
-  );
   const [message, setMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [workingDraftVersion, setWorkingDraftVersion] = useState(
@@ -740,13 +638,11 @@ const InteractiveDemoEditorLoaded = ({
     nextDemo: InteractiveDemo,
     nextScenes: DemoScene[],
     nextHotspotsBySceneId: Record<string, DemoHotspot[]>,
-    nextPublishStatus = publishStatus,
   ) => {
     setLoadedState({
       demo: nextDemo,
       scenes: nextScenes,
       hotspotsBySceneId: nextHotspotsBySceneId,
-      publishStatus: nextPublishStatus,
     });
   };
 
@@ -769,14 +665,6 @@ const InteractiveDemoEditorLoaded = ({
         ...(drafts[sceneId] ?? { title: "", description: "" }),
         [field]: value,
       },
-    }));
-    setMessage(null);
-  };
-
-  const updatePublishDraft = (field: keyof PublishDraft, value: string) => {
-    setPublishDraft((draft) => ({
-      ...draft,
-      [field]: value,
     }));
     setMessage(null);
   };
@@ -922,104 +810,6 @@ const InteractiveDemoEditorLoaded = ({
     };
     updateLoadedState(demo, orderedScenes, nextHotspotsBySceneId);
     setHotspotDrafts(hotspotDraftsFromHotspots(nextHotspotsBySceneId));
-  };
-
-  const applyPublishStatus = (
-    nextPublishStatus: InteractiveDemoPublishStatusResponse,
-  ) => {
-    updateLoadedState(
-      demo,
-      orderedScenes,
-      hotspotsBySceneId,
-      nextPublishStatus,
-    );
-    setPublishDraft(publishDraftFromStatus(nextPublishStatus));
-  };
-
-  const handlePublishDemo = async () => {
-    setPendingAction("publish");
-    setMessage(null);
-
-    try {
-      const response = await publishDemo(projectId, interactiveDemoId);
-      applyPublishStatus(response);
-      setMessage("Demo published.");
-    } catch {
-      setMessage("Could not publish demo.");
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleSavePublishAccess = async () => {
-    setPendingAction("publish:access");
-    setMessage(null);
-
-    try {
-      const response = await updatePublishAccess(projectId, interactiveDemoId, {
-        visibility: publishDraft.visibility,
-        expires_at: expiryInputToIso(publishDraft.expires_at.trim()),
-      });
-      applyPublishStatus(response);
-      setMessage("Publish access saved.");
-    } catch {
-      setMessage("Could not save publish access.");
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleSavePublishPassword = async () => {
-    setPendingAction("publish:password");
-    setMessage(null);
-
-    try {
-      const response = await updatePublishPassword(
-        projectId,
-        interactiveDemoId,
-        {
-          password: publishDraft.password.trim() || null,
-        },
-      );
-      applyPublishStatus(response);
-      setMessage("Publish password saved.");
-    } catch {
-      setMessage("Could not save publish password.");
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleRevokePublishLink = async () => {
-    setPendingAction("publish:revoke");
-    setMessage(null);
-
-    try {
-      await revokePublishLink(projectId, interactiveDemoId);
-      applyPublishStatus({
-        publish_link: null,
-        published_artifact: publishStatus.published_artifact,
-      });
-      setMessage("Demo link revoked.");
-    } catch {
-      setMessage("Could not revoke demo link.");
-    } finally {
-      setPendingAction(null);
-    }
-  };
-
-  const handleCopyText = async (text: string, successMessage: string) => {
-    setPendingAction("publish:copy");
-    setMessage(null);
-
-    try {
-      await copyText(text);
-      setMessage(successMessage);
-    } catch {
-      setMessage("Could not copy to clipboard.");
-    } finally {
-      setPendingAction(null);
-    }
   };
 
   const nextTargetSceneId = (sceneId: string) =>
@@ -1191,28 +981,6 @@ const InteractiveDemoEditorLoaded = ({
       setPendingAction(null);
     }
   };
-
-  const activePublishLink = publishStatus.publish_link;
-  const publicDemoUrl = activePublishLink
-    ? absolutePortalUrl(activePublishLink.public_url)
-    : "";
-  const embedDemoUrl = activePublishLink
-    ? embedUrlFromPublicUrl(activePublishLink.public_url)
-    : "";
-  const embedCode = activePublishLink
-    ? iframeEmbedCode(embedDemoUrl, demo.title)
-    : "";
-  void [
-    isDefaultVersion,
-    updatePublishDraft,
-    handlePublishDemo,
-    handleSavePublishAccess,
-    handleSavePublishPassword,
-    handleRevokePublishLink,
-    handleCopyText,
-    publicDemoUrl,
-    embedCode,
-  ];
 
   return (
     <PortalShell

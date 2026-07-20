@@ -1,11 +1,9 @@
-import type { PublishVisibility } from "@repo/constants";
 import type {
   CreateDemoHotspotInput,
   DemoHotspot,
   DemoHotspotType,
   DemoScene,
   InteractiveDemo,
-  InteractiveDemoPublishStatusResponse,
 } from "./types";
 
 export type DemoDraft = {
@@ -28,12 +26,6 @@ export type HotspotDraft = {
   width: string;
   height: string;
   target_scene_id: string;
-};
-
-export type PublishDraft = {
-  visibility: PublishVisibility;
-  expires_at: string;
-  password: string;
 };
 
 export const sortedScenes = (scenes: DemoScene[]) => (
@@ -100,66 +92,3 @@ export const sceneAssetFileUrl = (projectId: string, scene: DemoScene) => {
 
   return `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(scene.source_capture_session_id)}/assets/${encodeURIComponent(scene.background_capture_asset_id)}/file`;
 };
-
-export const unpublishedStatus = (): InteractiveDemoPublishStatusResponse => ({
-  publish_link: null,
-  published_artifact: null,
-});
-
-export const publishDraftFromStatus = (publishStatus: InteractiveDemoPublishStatusResponse): PublishDraft => ({
-  visibility: publishStatus.publish_link?.visibility ?? "public",
-  expires_at: formatExpiryInputValue(publishStatus.publish_link?.expires_at ?? null),
-  password: "",
-});
-
-export const formatExpiryInputValue = (expiresAt: string | null) => {
-  if (!expiresAt) {
-    return "";
-  }
-
-  const date = new Date(expiresAt);
-  if (!Number.isFinite(date.getTime())) {
-    return "";
-  }
-
-  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60_000));
-  return localDate.toISOString().slice(0, 16);
-};
-
-export const expiryInputToIso = (value: string) => {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) {
-    return null;
-  }
-
-  return date.toISOString();
-};
-
-export const absolutePortalUrl = (pathOrUrl: string) => {
-  if (/^https?:\/\//i.test(pathOrUrl)) {
-    return pathOrUrl;
-  }
-
-  const origin = typeof window === "undefined" ? "" : window.location.origin;
-  return `${origin}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
-};
-
-export const embedUrlFromPublicUrl = (pathOrUrl: string) => (
-  `${absolutePortalUrl(pathOrUrl).replace(/\/$/, "")}/embed`
-);
-
-export const escapeHtmlAttribute = (value: string) => (
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-);
-
-export const iframeEmbedCode = (embedUrl: string, title: string) => (
-  `<iframe src="${escapeHtmlAttribute(embedUrl)}" title="${escapeHtmlAttribute(title)}" loading="lazy"></iframe>`
-);

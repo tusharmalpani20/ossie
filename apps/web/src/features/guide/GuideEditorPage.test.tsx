@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { GuideDetail } from "@repo/types/guide";
 import { GuideEditorPage } from "./GuideEditorPage";
@@ -53,16 +53,39 @@ describe("GuideEditorPage", () => {
         projectVersionId="version_1"
         guideId="guide_1"
         loadDetail={loadDetail}
-        loadPublishStatus={async () => ({
-          publish_link: null,
-          published_artifact: null,
-        })}
       />,
     );
     expect(
       await screen.findByRole("heading", { name: "Relational guide" }),
     ).toBeInTheDocument();
     expect(loadDetail).toHaveBeenCalledWith("project_1", "guide_1");
+  });
+
+  it("lets the shared publishing panel own the only publication requests", async () => {
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      return new Response(
+        JSON.stringify(
+          url.includes("/publications")
+            ? { publications: [], next_before_publication_sequence: null }
+            : { publish_links: [], next_cursor: null },
+        ),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    render(
+      <GuideEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        guideId="guide_1"
+        loadDetail={async () => detail}
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Relational guide" });
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
   });
 
   it("sends the current Edition Row Version when saving metadata", async () => {
@@ -77,10 +100,6 @@ describe("GuideEditorPage", () => {
         projectVersionId="version_1"
         guideId="guide_1"
         loadDetail={async () => detail}
-        loadPublishStatus={async () => ({
-          publish_link: null,
-          published_artifact: null,
-        })}
         saveGuide={saveGuide}
       />,
     );
@@ -99,12 +118,7 @@ describe("GuideEditorPage", () => {
         projectId="project_1"
         projectVersionId="version_1"
         guideId="guide_1"
-        isDefaultVersion={false}
         loadDetail={async () => detail}
-        loadPublishStatus={async () => ({
-          publish_link: null,
-          published_artifact: null,
-        })}
       />,
     );
     expect(
@@ -125,10 +139,6 @@ describe("GuideEditorPage", () => {
         projectVersionId="version_1"
         guideId="guide_1"
         loadDetail={async () => detail}
-        loadPublishStatus={async () => ({
-          publish_link: null,
-          published_artifact: null,
-        })}
         changeEditionStatus={changeEditionStatus}
       />,
     );

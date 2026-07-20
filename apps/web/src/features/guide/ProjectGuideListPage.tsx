@@ -4,13 +4,14 @@ import { Button } from "@repo/ui/button";
 import { Card } from "@repo/ui/card";
 import {
   ApiClientError,
-  getGuidePublishStatus,
+  listArtifactPublishLinks,
   listProjectGuides,
   type ProjectGuideListResponse,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalTopbar } from "../portal/PortalTopbar";
-import type { Guide, GuidePublishStatusResponse } from "./types";
+import type { PublishLink } from "@repo/types/publish";
+import type { Guide } from "./types";
 import styles from "./ProjectGuideListPage.module.css";
 
 type LoadState =
@@ -24,7 +25,10 @@ type ProjectGuideListPageProps = {
   projectId: string;
   projectVersionId: string;
   loadGuides?: (projectId: string) => Promise<ProjectGuideListResponse>;
-  loadPublishStatus?: (projectId: string, guideId: string) => Promise<GuidePublishStatusResponse>;
+  loadPublishLinks?: (
+    projectId: string,
+    guideId: string,
+  ) => ReturnType<typeof listArtifactPublishLinks>;
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
@@ -33,7 +37,11 @@ type ProjectGuideListPageProps = {
 
 type PublishStatusState =
   | { status: "checking" }
-  | { status: "published"; response: GuidePublishStatusResponse }
+  | {
+      status: "published";
+      link: PublishLink;
+      entry: PublishLink["entries"][number];
+    }
   | { status: "unpublished" }
   | { status: "error" };
 
@@ -66,7 +74,7 @@ const isExpiredPublishLink = (expiresAt: string | null) => {
 };
 
 const canOpenPublicGuide = (status: PublishStatusState) => {
-  const link = status.status === "published" ? status.response.publish_link : null;
+  const link = status.status === "published" ? status.link : null;
   return Boolean(
     link
     && link.visibility === "public"
@@ -86,7 +94,13 @@ export const ProjectGuideListPage = ({
   projectId,
   projectVersionId,
   loadGuides = (id) => listProjectGuides(id, projectVersionId),
-  loadPublishStatus = (id, guideId) => getGuidePublishStatus(id, guideId, projectVersionId),
+  loadPublishLinks = (id, guideId) =>
+    listArtifactPublishLinks(
+      id,
+      "guide",
+      guideId,
+      projectVersionId,
+    ),
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
@@ -132,16 +146,32 @@ export const ProjectGuideListPage = ({
     ));
 
     guideIds.forEach((guideId) => {
-      loadPublishStatus(projectId, guideId)
+      loadPublishLinks(projectId, guideId)
         .then((response) => {
           if (!active) {
             return;
           }
 
+          const matchingLinks = response.publish_links.filter(
+            (link) =>
+              link.status === "active" &&
+              link.entries.some(
+                (entry) => entry.project_version.id === projectVersionId,
+              ),
+          );
+          const link =
+            matchingLinks.find(
+              (candidate) =>
+                candidate.visibility === "public" &&
+                !isExpiredPublishLink(candidate.expires_at),
+            ) ?? matchingLinks[0];
+          const entry = link?.entries.find(
+            (candidate) => candidate.project_version.id === projectVersionId,
+          );
           setPublishStatuses((current) => ({
             ...current,
-            [guideId]: response.publish_link?.status === "active"
-              ? { status: "published", response }
+            [guideId]: link && entry
+              ? { status: "published", link, entry }
               : { status: "unpublished" },
           }));
         })
@@ -279,8 +309,8 @@ const GuideRow = ({
       <GuidePublishStatus status={publishStatus} />
     </div>
     <div className={styles.guideActions}>
-      {canOpenPublicGuide(publishStatus) && publishStatus.status === "published" && publishStatus.response.publish_link ? (
-        <a className={styles.openLink} href={publishStatus.response.publish_link.public_url}>
+      {canOpenPublicGuide(publishStatus) && publishStatus.status === "published" ? (
+        <a className={styles.openLink} href={`${publishStatus.link.public_url}/versions/${encodeURIComponent(publishStatus.entry.project_version.slug)}`}>
           Open public guide {guide.title}
         </a>
       ) : null}
@@ -300,13 +330,13 @@ const GuidePublishStatus = ({ status }: { status: PublishStatusState }) => {
   }
 
   if (status.status === "published") {
-    const link = status.response.publish_link;
+    const link = status.link;
 
     if (link?.visibility === "restricted") {
       return <div className={styles.publishStatus}>Published - access off</div>;
     }
 
-    if (isExpiredPublishLink(link?.expires_at ?? null)) {
+    if (isExpiredPublishLink(link.expires_at)) {
       return <div className={styles.publishStatus}>Published - expired</div>;
     }
 

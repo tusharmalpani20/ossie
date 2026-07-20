@@ -525,7 +525,6 @@ export default function App() {
               versionSlug={route.versionSlug}
               guideId={route.guideId}
               currentPath={currentPath}
-              isDefaultVersion={selected.is_default}
             />
           ) : (
             <GuidePreviewPage
@@ -697,7 +696,6 @@ export default function App() {
               selected.status === "active" &&
               project.access.role !== "viewer"
             }
-            isDefaultVersion={selected.is_default}
           />
         )}
       </ProjectVersionRouteBoundary>

@@ -227,6 +227,33 @@ export const ArtifactPublishingPanel = ({
       setBusy(false);
     }
   };
+  const revokeLink = async (link: PublishLink) => {
+    if (
+      !window.confirm(
+        "Revoke this Publish Link? Existing URLs will stop working.",
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      await revokeArtifactPublishLink(
+        projectId,
+        artifactType,
+        artifactId,
+        projectVersionId,
+        link.id,
+        link.version,
+      );
+      await load();
+      setMessage("Publish Link revoked.");
+    } catch {
+      setMessage("Could not revoke. Reload and try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
   const replaceManifest = async (
     link: PublishLink,
     ids: string[],
@@ -406,7 +433,8 @@ export const ArtifactPublishingPanel = ({
                           (item) =>
                             item.edition_id ===
                               entry.published_artifact.edition_id &&
-                            item.id !== entry.published_artifact.id,
+                            item.publication_sequence <
+                              entry.published_artifact.publication_sequence,
                         ) && (
                           <button
                             disabled={linkManagementReadOnly || busy}
@@ -415,7 +443,9 @@ export const ArtifactPublishingPanel = ({
                                 (item) =>
                                   item.edition_id ===
                                     entry.published_artifact.edition_id &&
-                                  item.id !== entry.published_artifact.id,
+                                  item.publication_sequence <
+                                    entry.published_artifact
+                                      .publication_sequence,
                               )!;
                               setRollback({
                                 link,
@@ -483,19 +513,7 @@ export const ArtifactPublishingPanel = ({
                   <button
                     className={styles.danger}
                     disabled={linkManagementReadOnly || busy}
-                    onClick={() =>
-                      window.confirm(
-                        "Revoke this Publish Link? Existing URLs will stop working.",
-                      ) &&
-                      void revokeArtifactPublishLink(
-                        projectId,
-                        artifactType,
-                        artifactId,
-                        projectVersionId,
-                        link.id,
-                        link.version,
-                      ).then(load)
-                    }
+                    onClick={() => void revokeLink(link)}
                   >
                     Revoke
                   </button>

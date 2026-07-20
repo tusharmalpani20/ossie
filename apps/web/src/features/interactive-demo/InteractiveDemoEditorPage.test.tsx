@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { InteractiveDemoDetailResponse } from "@repo/types/demo";
 import { InteractiveDemoEditorPage } from "./InteractiveDemoEditorPage";
@@ -14,21 +14,52 @@ const detail: InteractiveDemoDetailResponse = {
 describe("InteractiveDemoEditorPage", () => {
   it("loads relational Edition and Working Draft data", async () => {
     const loadDemo = vi.fn().mockResolvedValue(detail);
-    render(<InteractiveDemoEditorPage projectId="project_1" projectVersionId="version_1" interactiveDemoId="demo_1" loadDemo={loadDemo} loadScenes={async () => ({ demo_scenes: [], working_draft: detail.working_draft })} loadPublishStatus={async () => ({ publish_link: null, published_artifact: null })} />);
+    render(<InteractiveDemoEditorPage projectId="project_1" projectVersionId="version_1" interactiveDemoId="demo_1" loadDemo={loadDemo} loadScenes={async () => ({ demo_scenes: [], working_draft: detail.working_draft })} />);
     expect(await screen.findByRole("heading", { name: "Relational demo" })).toBeInTheDocument();
     expect(loadDemo).toHaveBeenCalledWith("project_1", "demo_1");
   });
 
+  it("lets the shared publishing panel own the only publication requests", async () => {
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      return new Response(
+        JSON.stringify(
+          url.includes("/publications")
+            ? { publications: [], next_before_publication_sequence: null }
+            : { publish_links: [], next_cursor: null },
+        ),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+
+    render(
+      <InteractiveDemoEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        interactiveDemoId="demo_1"
+        loadDemo={async () => detail}
+        loadScenes={async () => ({
+          demo_scenes: [],
+          working_draft: detail.working_draft,
+        })}
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Relational demo" });
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+  });
+
   it("uses the Edition Row Version for metadata saves", async () => {
     const saveDemo = vi.fn().mockResolvedValue({ ...detail, edition: { ...detail.edition, version: 4 } });
-    render(<InteractiveDemoEditorPage projectId="project_1" projectVersionId="version_1" interactiveDemoId="demo_1" loadDemo={async () => detail} loadScenes={async () => ({ demo_scenes: [], working_draft: detail.working_draft })} loadPublishStatus={async () => ({ publish_link: null, published_artifact: null })} saveDemo={saveDemo} />);
+    render(<InteractiveDemoEditorPage projectId="project_1" projectVersionId="version_1" interactiveDemoId="demo_1" loadDemo={async () => detail} loadScenes={async () => ({ demo_scenes: [], working_draft: detail.working_draft })} saveDemo={saveDemo} />);
     await screen.findByRole("heading", { name: "Relational demo" });
     screen.getByRole("button", { name: "Save demo" }).click();
     expect(saveDemo).toHaveBeenCalledWith("project_1", "demo_1", expect.objectContaining({ expected_edition_version: 3 }));
   });
 
   it("allows publishing outside the Default Project Version", async () => {
-    render(<InteractiveDemoEditorPage projectId="project_1" projectVersionId="version_1" interactiveDemoId="demo_1" isDefaultVersion={false} loadDemo={async () => detail} loadScenes={async () => ({ demo_scenes: [], working_draft: detail.working_draft })} loadPublishStatus={async () => ({ publish_link: null, published_artifact: null })} />);
+    render(<InteractiveDemoEditorPage projectId="project_1" projectVersionId="version_1" interactiveDemoId="demo_1" loadDemo={async () => detail} loadScenes={async () => ({ demo_scenes: [], working_draft: detail.working_draft })} />);
     expect(
       await screen.findByRole("button", { name: "Publish this draft" }),
     ).toBeEnabled();
@@ -37,7 +68,7 @@ describe("InteractiveDemoEditorPage", () => {
   it("archives with the current Edition Row Version", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const changeEditionStatus = vi.fn().mockResolvedValue({ edition: { ...detail.edition, status: "archived", version: 4 } });
-    render(<InteractiveDemoEditorPage projectId="project_1" projectVersionId="version_1" interactiveDemoId="demo_1" loadDemo={async () => detail} loadScenes={async () => ({ demo_scenes: [], working_draft: detail.working_draft })} loadPublishStatus={async () => ({ publish_link: null, published_artifact: null })} changeEditionStatus={changeEditionStatus} />);
+    render(<InteractiveDemoEditorPage projectId="project_1" projectVersionId="version_1" interactiveDemoId="demo_1" loadDemo={async () => detail} loadScenes={async () => ({ demo_scenes: [], working_draft: detail.working_draft })} changeEditionStatus={changeEditionStatus} />);
     (await screen.findByRole("button", { name: "Archive demo" })).click();
     expect(changeEditionStatus).toHaveBeenCalledWith("archive", "project_1", "demo_1", "version_1", 3);
     expect(await screen.findByRole("button", { name: "Restore demo" })).toBeInTheDocument();

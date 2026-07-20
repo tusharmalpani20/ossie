@@ -16,8 +16,6 @@ import type {
   UploadGuideBlockScreenshotResponse,
 } from "@repo/types/guide";
 import type {
-  PublishedArtifact,
-  PublishLink,
   PublicPublishedArtifact,
   PublicPublishLink,
   PublicPublishLinkResponse,
@@ -44,13 +42,6 @@ export type {
   PublicPublishLink,
   PublicPublishLinkResponse,
 };
-export type GuidePublishStatusResponse = {
-  publish_link: PublishLink | null;
-  published_artifact: PublishedArtifact | null;
-};
-export type GuidePublishResult = GuidePublishStatusResponse;
-export type GuideRevokePublishResult = { publish_link: PublishLink };
-
 export type ProjectScreenshotAssetListResponse =
   ProjectCaptureAssetListResponse;
 
@@ -64,9 +55,3 @@ export type UploadGuideBlockScreenshotInput = {
   capturedAt?: string;
   metadata?: Record<string, unknown>;
 };
-
-export type UpdateGuidePublishAccessInput = {
-  visibility: "public" | "restricted";
-  expires_at: string | null;
-};
-export type UpdateGuidePublishPasswordInput = { password: string | null };

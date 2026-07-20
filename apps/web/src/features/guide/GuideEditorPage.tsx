@@ -13,15 +13,10 @@ import {
   exportGuideHtmlZip,
   exportGuideMarkdown,
   getGuideDetail,
-  getGuidePublishStatus,
   listProjectScreenshotAssets,
-  publishGuide,
   reorderGuideBlocks,
   resolveApiAssetUrl,
   restoreGuide,
-  revokeGuidePublishLink,
-  updateGuidePublishPassword,
-  updateGuidePublishAccess,
   updateGuide,
   updateGuideBlock,
   updateGuideBlockAnnotations,
@@ -55,20 +50,14 @@ import {
   type BlockContentDraft,
   type StepDraft,
 } from "./guideEditorHelpers";
-import { publicGuideEmbedCode, publicGuideUrl } from "./publishLinks";
 import type {
   GuideBlock,
   GuideDetail,
   GuideMarkdownExport,
-  GuidePublishResult,
-  GuidePublishStatusResponse,
-  GuideRevokePublishResult,
   GuideScreenshotAnnotation,
   GuideSourceCaptureAsset,
   GuideStep,
   UpdateGuideBlockAnnotationsInput,
-  UpdateGuidePublishAccessInput,
-  UpdateGuidePublishPasswordInput,
 } from "./types";
 import styles from "./GuideEditorPage.module.css";
 
@@ -84,11 +73,6 @@ type GuideDraft = {
   description: string;
 };
 
-type PublishState =
-  | { status: "loading" }
-  | { status: "loaded"; response: GuidePublishStatusResponse }
-  | { status: "error" };
-
 type VersionBound<T> = T extends (
   ...args: [...infer Args, string]
 ) => infer Result
@@ -99,28 +83,6 @@ export type GuideEditorPageProps = {
   projectId: string;
   guideId: string;
   loadDetail?: (projectId: string, guideId: string) => Promise<GuideDetail>;
-  loadPublishStatus?: (
-    projectId: string,
-    guideId: string,
-  ) => Promise<GuidePublishStatusResponse>;
-  publishCurrentGuide?: (
-    projectId: string,
-    guideId: string,
-  ) => Promise<GuidePublishResult>;
-  revokePublishLink?: (
-    projectId: string,
-    guideId: string,
-  ) => Promise<GuideRevokePublishResult>;
-  updatePublishAccess?: (
-    projectId: string,
-    guideId: string,
-    input: UpdateGuidePublishAccessInput,
-  ) => Promise<GuidePublishStatusResponse>;
-  updatePublishPassword?: (
-    projectId: string,
-    guideId: string,
-    input: UpdateGuidePublishPasswordInput,
-  ) => Promise<GuidePublishStatusResponse>;
   copyText?: (text: string) => Promise<void>;
   exportMarkdown?: VersionBound<typeof exportGuideMarkdown>;
   exportHtmlZip?: VersionBound<typeof exportGuideHtmlZip>;
@@ -145,7 +107,6 @@ export type GuideEditorPageProps = {
   navigate?: (path: string) => void;
   versionSlug?: string;
   projectVersionId: string;
-  isDefaultVersion?: boolean;
   changeEditionStatus?: (
     command: "archive" | "restore",
     projectId: string,
@@ -215,36 +176,12 @@ const defaultDownloadBlobFile = async (filename: string, blob: Blob) => {
   URL.revokeObjectURL(url);
 };
 
-const publishErrorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof ApiClientError) {
-    if (error.type === "guide_not_publishable") {
-      return "Guide is not publishable.";
-    }
-
-    if (error.type === "guide_has_no_publishable_blocks") {
-      return "Guide has no publishable blocks.";
-    }
-  }
-
-  return fallback;
-};
-
 export const GuideEditorPage = ({
   projectId,
   guideId,
   projectVersionId,
   loadDetail = (id, artifactId) =>
     getGuideDetail(id, artifactId, projectVersionId),
-  loadPublishStatus = (id, artifactId) =>
-    getGuidePublishStatus(id, artifactId, projectVersionId),
-  publishCurrentGuide = (id, artifactId) =>
-    publishGuide(id, artifactId, projectVersionId),
-  revokePublishLink = (id, artifactId) =>
-    revokeGuidePublishLink(id, artifactId, projectVersionId),
-  updatePublishAccess = (id, artifactId, input) =>
-    updateGuidePublishAccess(id, artifactId, input, projectVersionId),
-  updatePublishPassword = (id, artifactId, input) =>
-    updateGuidePublishPassword(id, artifactId, input, projectVersionId),
   copyText = defaultCopyText,
   exportMarkdown = (id, artifactId) =>
     exportGuideMarkdown(id, artifactId, projectVersionId),
@@ -288,18 +225,13 @@ export const GuideEditorPage = ({
   performLogout,
   navigate,
   versionSlug,
-  isDefaultVersion = true,
   changeEditionStatus = (command, id, artifactId, versionId, expected) =>
     command === "archive"
       ? archiveGuide(id, artifactId, versionId, expected)
       : restoreGuide(id, artifactId, versionId, expected),
 }: GuideEditorPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [publishState, setPublishState] = useState<PublishState>({
-    status: "loading",
-  });
   const [reloadKey, setReloadKey] = useState(0);
-  const [publishReloadKey, setPublishReloadKey] = useState(0);
   const [guideDraft, setGuideDraft] = useState<GuideDraft>({
     title: "",
     description: "",
@@ -309,14 +241,7 @@ export const GuideEditorPage = ({
     Record<string, BlockContentDraft>
   >({});
   const [notice, setNotice] = useState<string | null>(null);
-  const [embedCopyFallback, setEmbedCopyFallback] = useState<string | null>(
-    null,
-  );
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  const [publishBusyAction, setPublishBusyAction] = useState<string | null>(
-    null,
-  );
-  const [locallyStalePublish, setLocallyStalePublish] = useState(false);
   const [screenshotAssets, setScreenshotAssets] = useState<
     GuideSourceCaptureAsset[]
   >([]);
@@ -358,36 +283,11 @@ export const GuideEditorPage = ({
   }, [projectId, projectVersionId, guideId, reloadKey]);
 
   useEffect(() => {
-    let active = true;
-    setPublishState({ status: "loading" });
-
-    loadPublishStatus(projectId, guideId)
-      .then((response) => {
-        if (active) {
-          setPublishState({ status: "loaded", response });
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setPublishState({ status: "error" });
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-    // Route identity and publishReloadKey intentionally control refetching; injected loaders may be inline adapters.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, projectVersionId, guideId, publishReloadKey]);
-
-  useEffect(() => {
-    setLocallyStalePublish(false);
     setScreenshotAssets([]);
     setActiveScreenshotPickerBlockId(null);
   }, [projectId, guideId]);
 
   const reload = () => setReloadKey((key) => key + 1);
-  const reloadPublishStatus = () => setPublishReloadKey((key) => key + 1);
 
   const markNotEditable = () => {
     setNotice("Archived guides are read-only.");
@@ -401,133 +301,6 @@ export const GuideEditorPage = ({
     }
 
     setNotice(fallback);
-  };
-
-  const hasActivePublish = () =>
-    publishState.status === "loaded" &&
-    publishState.response.publish_link?.status === "active" &&
-    Boolean(publishState.response.published_artifact);
-
-  const markPublishedDraftStale = () => {
-    if (hasActivePublish()) {
-      setLocallyStalePublish(true);
-    }
-  };
-
-  const publishCurrent = async () => {
-    setPublishBusyAction("publish");
-    setNotice(null);
-    setEmbedCopyFallback(null);
-
-    try {
-      const response = await publishCurrentGuide(projectId, guideId);
-      setPublishState({ status: "loaded", response });
-      setLocallyStalePublish(false);
-      setNotice("Guide published.");
-    } catch (error: unknown) {
-      setNotice(publishErrorMessage(error, "Could not publish guide."));
-    } finally {
-      setPublishBusyAction(null);
-    }
-  };
-
-  const revokeCurrent = async () => {
-    setPublishBusyAction("revoke");
-    setNotice(null);
-    setEmbedCopyFallback(null);
-
-    try {
-      await revokePublishLink(projectId, guideId);
-      setPublishState({
-        status: "loaded",
-        response: {
-          publish_link: null,
-          published_artifact: null,
-        },
-      });
-      setLocallyStalePublish(false);
-      setNotice("Public link revoked.");
-    } catch (error: unknown) {
-      setNotice(publishErrorMessage(error, "Could not revoke public link."));
-    } finally {
-      setPublishBusyAction(null);
-    }
-  };
-
-  const copyCurrent = async (publicUrl: string) => {
-    setPublishBusyAction("copy");
-    setNotice(null);
-    setEmbedCopyFallback(null);
-
-    try {
-      await copyText(publicGuideUrl(publicUrl));
-      setNotice("Public link copied.");
-    } catch {
-      setNotice("Could not copy public link. Select the URL above.");
-    } finally {
-      setPublishBusyAction(null);
-    }
-  };
-
-  const copyCurrentEmbed = async (publicUrl: string, title: string) => {
-    const embedCode = publicGuideEmbedCode({ publicUrl, title });
-    setPublishBusyAction("copy_embed");
-    setNotice(null);
-    setEmbedCopyFallback(null);
-
-    try {
-      await copyText(embedCode);
-      setNotice("Embed code copied.");
-    } catch {
-      setEmbedCopyFallback(embedCode);
-      setNotice("Could not copy embed code. Select the embed code below.");
-    } finally {
-      setPublishBusyAction(null);
-    }
-  };
-
-  const updateCurrentPublishAccess = async (
-    input: UpdateGuidePublishAccessInput,
-  ) => {
-    setPublishBusyAction("access");
-    setNotice(null);
-    setEmbedCopyFallback(null);
-
-    try {
-      const response = await updatePublishAccess(projectId, guideId, input);
-      setPublishState({ status: "loaded", response });
-      setNotice("Publishing access updated.");
-    } catch (error: unknown) {
-      setNotice(
-        publishErrorMessage(error, "Could not update publishing access."),
-      );
-    } finally {
-      setPublishBusyAction(null);
-    }
-  };
-
-  const updateCurrentPublishPassword = async (
-    input: UpdateGuidePublishPasswordInput,
-  ) => {
-    setPublishBusyAction("password");
-    setNotice(null);
-    setEmbedCopyFallback(null);
-
-    try {
-      const response = await updatePublishPassword(projectId, guideId, input);
-      setPublishState({ status: "loaded", response });
-      setNotice(
-        input.password === null
-          ? "Password protection cleared."
-          : "Password updated. Existing viewers must unlock again.",
-      );
-    } catch (error: unknown) {
-      setNotice(
-        publishErrorMessage(error, "Could not update password protection."),
-      );
-    } finally {
-      setPublishBusyAction(null);
-    }
   };
 
   const exportCurrentMarkdown = async (): Promise<GuideMarkdownExport> =>
@@ -613,7 +386,6 @@ export const GuideEditorPage = ({
         title: response.edition.title,
         description: response.edition.description ?? "",
       });
-      markPublishedDraftStale();
     } catch (error: unknown) {
       handleMutationError(error, "Could not save changes.");
     } finally {
@@ -653,7 +425,6 @@ export const GuideEditorPage = ({
           body: response.guide_step.body ?? "",
         },
       }));
-      markPublishedDraftStale();
     } catch (error: unknown) {
       handleMutationError(error, "Could not save changes.");
     } finally {
@@ -691,7 +462,6 @@ export const GuideEditorPage = ({
       setBlockContentDrafts(
         blockContentDraftsFromBlocks(response.guide_blocks),
       );
-      markPublishedDraftStale();
       setNotice("Block added.");
     } catch (error: unknown) {
       handleMutationError(error, "Could not add block.");
@@ -731,7 +501,6 @@ export const GuideEditorPage = ({
           body: response.guide_block.body ?? "",
         },
       }));
-      markPublishedDraftStale();
       setNotice("Block saved.");
     } catch (error: unknown) {
       handleMutationError(error, "Could not save block.");
@@ -792,7 +561,6 @@ export const GuideEditorPage = ({
         };
       });
       setActiveScreenshotPickerBlockId(null);
-      markPublishedDraftStale();
       setNotice(captureAssetId ? "Screenshot updated." : "Screenshot removed.");
     } catch (error: unknown) {
       handleMutationError(error, "Could not update screenshot.");
@@ -831,7 +599,6 @@ export const GuideEditorPage = ({
       );
       setScreenshotAssetsError(false);
       setActiveScreenshotPickerBlockId(null);
-      markPublishedDraftStale();
       setNotice("Screenshot uploaded.");
     } catch (error: unknown) {
       handleMutationError(error, "Could not upload screenshot.");
@@ -865,7 +632,6 @@ export const GuideEditorPage = ({
           response.guide_block,
         ),
       }));
-      markPublishedDraftStale();
       setNotice("Highlights saved.");
     } catch (error: unknown) {
       handleMutationError(error, "Could not save highlights.");
@@ -929,7 +695,6 @@ export const GuideEditorPage = ({
         working_draft: response.working_draft,
         guide_blocks: response.guide_blocks,
       }));
-      markPublishedDraftStale();
     } catch (error: unknown) {
       handleMutationError(error, "Could not reorder blocks.");
     } finally {
@@ -952,7 +717,6 @@ export const GuideEditorPage = ({
         block.id,
         currentWorkingDraftVersion,
       );
-      markPublishedDraftStale();
       reload();
     } catch (error: unknown) {
       handleMutationError(error, "Could not delete block.");
@@ -1054,12 +818,8 @@ export const GuideEditorPage = ({
       guideDraft={guideDraft}
       stepDrafts={stepDrafts}
       blockContentDrafts={blockContentDrafts}
-      publishState={publishState}
-      locallyStalePublish={locallyStalePublish}
       notice={notice}
-      embedCopyFallback={embedCopyFallback}
       busyAction={busyAction}
-      publishBusyAction={publishBusyAction}
       projectId={projectId}
       guideId={guideId}
       onGuideDraftChange={setGuideDraft}
@@ -1084,20 +844,10 @@ export const GuideEditorPage = ({
       onAddBlock={addBlock}
       onMoveBlock={moveBlock}
       onDeleteBlock={deleteBlock}
-      onPublish={publishCurrent}
-      onRevokePublish={revokeCurrent}
-      onUpdatePublishAccess={updateCurrentPublishAccess}
-      onUpdatePublishPassword={updateCurrentPublishPassword}
-      onCopyPublicLink={copyCurrent}
-      onCopyEmbedCode={(publicUrl) =>
-        copyCurrentEmbed(publicUrl, state.detail.edition.title)
-      }
       onCopyMarkdown={copyMarkdown}
       onDownloadMarkdown={downloadMarkdown}
       onDownloadHtmlZip={downloadHtmlZip}
-      onRetryPublishStatus={reloadPublishStatus}
       onChangeLifecycle={changeLifecycle}
-      isDefaultVersion={isDefaultVersion}
       performLogout={performLogout}
       navigate={navigate}
       versionSlug={versionSlug}
@@ -1133,12 +883,8 @@ const GuideEditorView = ({
   guideDraft,
   stepDrafts,
   blockContentDrafts,
-  publishState,
-  locallyStalePublish,
   notice,
-  embedCopyFallback,
   busyAction,
-  publishBusyAction,
   projectId,
   guideId,
   onGuideDraftChange,
@@ -1159,18 +905,10 @@ const GuideEditorView = ({
   onAddBlock,
   onMoveBlock,
   onDeleteBlock,
-  onPublish,
-  onRevokePublish,
-  onUpdatePublishAccess,
-  onUpdatePublishPassword,
-  onCopyPublicLink,
-  onCopyEmbedCode,
   onCopyMarkdown,
   onDownloadMarkdown,
   onDownloadHtmlZip,
-  onRetryPublishStatus,
   onChangeLifecycle,
-  isDefaultVersion,
   performLogout,
   navigate,
   versionSlug,
@@ -1179,12 +917,8 @@ const GuideEditorView = ({
   guideDraft: GuideDraft;
   stepDrafts: Record<string, StepDraft>;
   blockContentDrafts: Record<string, BlockContentDraft>;
-  publishState: PublishState;
-  locallyStalePublish: boolean;
   notice: string | null;
-  embedCopyFallback: string | null;
   busyAction: string | null;
-  publishBusyAction: string | null;
   projectId: string;
   guideId: string;
   onGuideDraftChange: (draft: GuideDraft) => void;
@@ -1211,18 +945,10 @@ const GuideEditorView = ({
   ) => void;
   onMoveBlock: (blockId: string, direction: -1 | 1) => void;
   onDeleteBlock: (block: GuideBlock) => void;
-  onPublish: () => void;
-  onRevokePublish: () => void;
-  onUpdatePublishAccess: (input: UpdateGuidePublishAccessInput) => void;
-  onUpdatePublishPassword: (input: UpdateGuidePublishPasswordInput) => void;
-  onCopyPublicLink: (publicUrl: string) => void;
-  onCopyEmbedCode: (publicUrl: string) => void;
   onCopyMarkdown: () => void;
   onDownloadMarkdown: () => void;
   onDownloadHtmlZip: () => void;
-  onRetryPublishStatus: () => void;
   onChangeLifecycle: () => void;
-  isDefaultVersion: boolean;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   versionSlug?: string;
@@ -1235,20 +961,6 @@ const GuideEditorView = ({
     null,
   );
   const readOnly = detail.edition.status !== "draft";
-  void [
-    publishState,
-    locallyStalePublish,
-    embedCopyFallback,
-    publishBusyAction,
-    onPublish,
-    onRevokePublish,
-    onUpdatePublishAccess,
-    onUpdatePublishPassword,
-    onCopyPublicLink,
-    onCopyEmbedCode,
-    onRetryPublishStatus,
-    isDefaultVersion,
-  ];
   const assetsById = useMemo(
     () =>
       new Map(detail.source_capture_assets.map((asset) => [asset.id, asset])),
