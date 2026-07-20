@@ -12,9 +12,15 @@ import {
 import { build_artifact_revision_routes } from "./artifact-revision.routes";
 
 const auth = {
+  user: { id: "user_1", email: "user@example.com", display_name: "User" },
   organization: { id: "org_1" },
   org_user: { id: "org_user_1" },
-} as any;
+  session: {
+    id: "session_1",
+    session_type: "web",
+    expires_at: "2026-07-21T00:00:00.000Z",
+  },
+} as never;
 const summary = {
   id: "revision_1",
   edition_id: "edition_1",
@@ -78,7 +84,7 @@ const build = async (overrides: Record<string, unknown> = {}) => {
       auth_service: {
         get_current_auth_context: vi.fn().mockResolvedValue(auth),
       },
-      artifact_revision_service: service as any,
+      artifact_revision_service: service as never,
     }),
     { prefix: "/api/v1/projects" },
   );

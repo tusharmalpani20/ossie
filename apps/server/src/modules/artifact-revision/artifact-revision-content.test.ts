@@ -5,6 +5,14 @@ import {
   hash_revision_content,
 } from "./artifact-revision-content";
 
+type Mutable<T> = T extends string
+  ? string
+  : T extends number
+    ? number
+    : T extends boolean
+      ? boolean
+      : { -readonly [Key in keyof T]: Mutable<T[Key]> };
+
 describe("Artifact Revision canonical content", () => {
   it("ignores mutable identities and Row Versions while detecting authored changes", () => {
     const first = {
@@ -44,7 +52,7 @@ describe("Artifact Revision canonical content", () => {
         },
       ],
     } as const;
-    const copied = structuredClone(first) as any;
+    const copied = structuredClone(first) as Mutable<typeof first>;
     copied.blocks[0].id = "block_2";
     copied.blocks[0].version = 1;
     copied.blocks[0].step.id = "step_2";
@@ -104,7 +112,7 @@ describe("Artifact Revision canonical content", () => {
         },
       ],
     } as const;
-    const copied = structuredClone(content) as any;
+    const copied = structuredClone(content) as Mutable<typeof content>;
     copied.scenes[0].id = "scene_c";
     copied.scenes[1].id = "scene_d";
     copied.scenes[0].hotspots[0].id = "hotspot_c";

@@ -2,11 +2,13 @@ import type {
   FastifyInstance,
   FastifyPluginAsync,
   FastifyReply,
+  FastifyRequest,
 } from "fastify";
 import {
   ArtifactRevisionHistoryQuerySchema,
   ArtifactRevisionVersionQuerySchema,
   ArtifactRevisionWriteRequestSchema,
+  type ArtifactRevisionListQuery,
   type ArtifactRevisionWriteRequest,
 } from "@repo/types";
 import { z } from "zod";
@@ -42,6 +44,17 @@ const BaseParamsSchema = z
 const RevisionParamsSchema = BaseParamsSchema.extend({
   revision_number: z.coerce.number().int().positive(),
 }).strict();
+type RevisionRouteParams = {
+  project_id: string;
+  guide_id?: string;
+  interactive_demo_id?: string;
+  revision_number?: number;
+};
+type RevisionRouteRequest = FastifyRequest<{
+  Params: RevisionRouteParams;
+  Querystring: ArtifactRevisionListQuery & { project_version_id: string };
+  Body: ArtifactRevisionWriteRequest;
+}>;
 
 const handle_error = (error: unknown, reply: FastifyReply) => {
   if (error instanceof UnauthenticatedSessionError)
@@ -115,7 +128,7 @@ export const build_artifact_revision_routes =
       const segment = kind === "guide" ? "guides" : "interactive-demos";
       const id_name = kind === "guide" ? "guide_id" : "interactive_demo_id";
       const prefix = `/:project_id/${segment}/:${id_name}/revisions`;
-      const scope = async (request: any) => ({
+      const scope = async (request: RevisionRouteRequest) => ({
         auth: await auth(request),
         project_id: request.params.project_id,
         project_version_id: request.query.project_version_id,
@@ -124,7 +137,7 @@ export const build_artifact_revision_routes =
       app.get(
         prefix,
         { schema: { querystring: ArtifactRevisionHistoryQuerySchema } },
-        (request: any, reply) =>
+        (request: RevisionRouteRequest, reply) =>
           send(reply, async () =>
             dependencies.artifact_revision_service[
               kind === "guide"
@@ -145,7 +158,7 @@ export const build_artifact_revision_routes =
             body: ArtifactRevisionWriteRequestSchema,
           },
         },
-        (request: any, reply) =>
+        (request: RevisionRouteRequest, reply) =>
           send(reply, async () => {
             const result = await dependencies.artifact_revision_service[
               kind === "guide"
@@ -167,7 +180,7 @@ export const build_artifact_revision_routes =
             querystring: ArtifactRevisionVersionQuerySchema,
           },
         },
-        (request: any, reply) =>
+        (request: RevisionRouteRequest, reply) =>
           send(reply, async () =>
             dependencies.artifact_revision_service[
               kind === "guide"
@@ -189,7 +202,7 @@ export const build_artifact_revision_routes =
             body: ArtifactRevisionWriteRequestSchema,
           },
         },
-        (request: any, reply) =>
+        (request: RevisionRouteRequest, reply) =>
           send(reply, async () =>
             dependencies.artifact_revision_service[
               kind === "guide"

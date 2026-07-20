@@ -35,6 +35,32 @@ type HistoryInput = {
 type RevisionRow = Omit<ArtifactRevisionSummary, "created_at"> & {
   created_at: Date;
 };
+type GuideRevisionBlockRow = Omit<
+  GuideRevisionDetail["guide_blocks"][number],
+  "step"
+>;
+type GuideRevisionStep = NonNullable<
+  GuideRevisionDetail["guide_blocks"][number]["step"]
+>;
+type GuideRevisionStepRow = Omit<
+  GuideRevisionStep,
+  "display_capture_asset_id" | "annotations"
+> & { guide_revision_block_id: string };
+type GuideRevisionAnnotationRow = GuideRevisionStep["annotations"][number] & {
+  guide_revision_step_id: string;
+};
+type DemoRevisionSceneRow = Omit<
+  InteractiveDemoRevisionDetail["demo_scenes"][number],
+  "hotspots"
+>;
+type DemoRevisionHotspot =
+  InteractiveDemoRevisionDetail["demo_scenes"][number]["hotspots"][number];
+type DemoRevisionHotspotRow = Omit<DemoRevisionHotspot, "transition"> & {
+  demo_revision_scene_id: string;
+};
+type DemoRevisionTransitionRow = NonNullable<
+  DemoRevisionHotspot["transition"]
+> & { demo_revision_hotspot_id: string };
 
 type LockedEdition = {
   edition_id: string;
@@ -932,29 +958,29 @@ const get_guide_revision = async (
   );
   const revision = root.rows[0];
   if (!revision) return null;
-  const blocks = await db.query<any>(
+  const blocks = await db.query<GuideRevisionBlockRow>(
     `SELECT id,block_type,title,body,block_index FROM guide_schema.guide_revision_block
      WHERE guide_revision_id=$1 ORDER BY block_index,id`,
     [revision.id],
   );
-  const steps = await db.query<any>(
+  const steps = await db.query<GuideRevisionStepRow>(
     `SELECT id,guide_revision_block_id,source_capture_session_id,source_capture_event_id,
        source_capture_asset_id,selected_capture_asset_id,screenshot_hidden,title,body
      FROM guide_schema.guide_revision_step WHERE guide_revision_id=$1 ORDER BY id`,
     [revision.id],
   );
-  const annotations = await db.query<any>(
+  const annotations = await db.query<GuideRevisionAnnotationRow>(
     `SELECT id,guide_revision_step_id,annotation_type,annotation_index,x::float8 AS x,y::float8 AS y,
        width::float8 AS width,height::float8 AS height
      FROM guide_schema.guide_revision_annotation WHERE guide_revision_id=$1 ORDER BY annotation_index,id`,
     [revision.id],
   );
-  const by_step = new Map<string, any[]>();
+  const by_step = new Map<string, GuideRevisionStep["annotations"]>();
   for (const annotation of annotations.rows) {
-    const values = by_step.get(annotation.guide_revision_step_id) ?? [];
-    const { guide_revision_step_id: _step_id, ...safe } = annotation;
+    const { guide_revision_step_id, ...safe } = annotation;
+    const values = by_step.get(guide_revision_step_id) ?? [];
     values.push(safe);
-    by_step.set(annotation.guide_revision_step_id, values);
+    by_step.set(guide_revision_step_id, values);
   }
   const by_block = new Map(
     steps.rows.map((step) => {
@@ -1014,19 +1040,19 @@ const get_demo_revision = async (
   );
   const revision = root.rows[0];
   if (!revision) return null;
-  const scenes = await db.query<any>(
+  const scenes = await db.query<DemoRevisionSceneRow>(
     `SELECT id,source_capture_session_id,source_capture_event_id,
     source_capture_asset_id,background_capture_asset_id,scene_index,title,description
     FROM interactive_demo_schema.demo_revision_scene WHERE interactive_demo_revision_id=$1 ORDER BY scene_index,id`,
     [revision.id],
   );
-  const hotspots = await db.query<any>(
+  const hotspots = await db.query<DemoRevisionHotspotRow>(
     `SELECT id,demo_revision_scene_id,hotspot_type,label,content,
     x::float8 AS x,y::float8 AS y,width::float8 AS width,height::float8 AS height,hotspot_index
     FROM interactive_demo_schema.demo_revision_hotspot WHERE interactive_demo_revision_id=$1 ORDER BY hotspot_index,id`,
     [revision.id],
   );
-  const transitions = await db.query<any>(
+  const transitions = await db.query<DemoRevisionTransitionRow>(
     `SELECT id,demo_revision_hotspot_id,target_demo_revision_scene_id
     FROM interactive_demo_schema.demo_revision_transition WHERE interactive_demo_revision_id=$1 ORDER BY id`,
     [revision.id],
@@ -1037,7 +1063,7 @@ const get_demo_revision = async (
       transition,
     ]),
   );
-  const hotspots_by_scene = new Map<string, any[]>();
+  const hotspots_by_scene = new Map<string, DemoRevisionHotspot[]>();
   for (const hotspot of hotspots.rows) {
     const { demo_revision_scene_id, ...safe } = hotspot;
     const values = hotspots_by_scene.get(demo_revision_scene_id) ?? [];

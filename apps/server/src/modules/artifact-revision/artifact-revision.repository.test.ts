@@ -2,12 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import {
   build_artifact_revision_repository,
   create_or_reuse_guide_revision_for_publication,
+  type RevisionQueryable,
 } from "./artifact-revision.repository";
 
 describe("Artifact Revision repository", () => {
   it("creates a publication-triggered Revision from exact current Row Versions", async () => {
     const now = new Date("2026-07-20T00:00:00.000Z");
-    const query = vi.fn(async (sql: string, _values?: unknown[]) => {
+    const query = vi.fn(async (sql: string, values?: unknown[]) => {
+      void values;
       if (sql.includes("FOR UPDATE OF edition,draft"))
         return {
           rows: [
@@ -99,7 +101,7 @@ describe("Artifact Revision repository", () => {
     });
 
     const result = await create_or_reuse_guide_revision_for_publication(
-      { query } as any,
+      { query } as unknown as RevisionQueryable,
       {
         auth: { organization_id: "org_1", actor_org_user_id: "member_1" },
         project_id: "project_1",
@@ -122,7 +124,8 @@ describe("Artifact Revision repository", () => {
   });
 
   it("returns newest-first exclusive Guide Revision history with a next cursor", async () => {
-    const query = vi.fn(async (sql: string, _values?: unknown[]) => {
+    const query = vi.fn(async (sql: string, values?: unknown[]) => {
+      void values;
       if (sql.includes("FROM guide_schema.guide_edition")) {
         return { rows: [{ id: "edition_1" }] };
       }
@@ -143,7 +146,9 @@ describe("Artifact Revision repository", () => {
       }
       return { rows: [] };
     });
-    const repository = build_artifact_revision_repository({ query } as any);
+    const repository = build_artifact_revision_repository(
+      { query } as unknown as RevisionQueryable,
+    );
     const result = await repository.list_guide_revisions({
       auth: { organization_id: "org_1", actor_org_user_id: "org_user_1" },
       project_id: "project_1",
@@ -161,6 +166,7 @@ describe("Artifact Revision repository", () => {
 
   it("resolves an immutable Guide Revision only inside the exact tenant, Project, Artifact, and Edition", async () => {
     const query = vi.fn(async (sql: string, values?: unknown[]) => {
+      void values;
       if (sql.includes("FROM guide_schema.guide_revision revision")) {
         return {
           rows: [
@@ -180,7 +186,9 @@ describe("Artifact Revision repository", () => {
       }
       return { rows: [] };
     });
-    const repository = build_artifact_revision_repository({ query } as any);
+    const repository = build_artifact_revision_repository(
+      { query } as unknown as RevisionQueryable,
+    );
     const result = await repository.get_guide_revision({
       auth: { organization_id: "org_1", actor_org_user_id: "org_user_1" },
       project_id: "project_1",

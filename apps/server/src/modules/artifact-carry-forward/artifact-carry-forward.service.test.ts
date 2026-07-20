@@ -4,9 +4,10 @@ import { build_artifact_carry_forward_service } from "./artifact-carry-forward.s
 
 describe("Artifact Carry-Forward service", () => {
   it("passes only digests and a normalized ordered fingerprint to persistence", async () => {
-    const carry_forward = vi.fn(async (_input: Record<string, unknown>) => ({
-      replayed: false,
-    }));
+    const carry_forward = vi.fn(async (input: Record<string, unknown>) => {
+      void input;
+      return { replayed: false };
+    });
     const service = build_artifact_carry_forward_service({
       carry_forward,
     } as never);

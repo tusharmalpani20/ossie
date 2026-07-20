@@ -2,10 +2,12 @@ import type {
   FastifyInstance,
   FastifyPluginAsync,
   FastifyReply,
+  FastifyRequest,
 } from "fastify";
 import {
   ArtifactCarryForwardRequestSchema,
   IdempotencyKeySchema,
+  type ArtifactCarryForwardRequest,
 } from "@repo/types";
 import { z } from "zod";
 import { session_token_from_request } from "../authentication/request-session-token";
@@ -28,6 +30,11 @@ const ParamsSchema = z
 const HeadersSchema = z
   .object({ "idempotency-key": IdempotencyKeySchema })
   .passthrough();
+type CarryForwardRequest = FastifyRequest<{
+  Params: z.infer<typeof ParamsSchema>;
+  Headers: z.infer<typeof HeadersSchema>;
+  Body: ArtifactCarryForwardRequest;
+}>;
 const handle = (error: unknown, reply: FastifyReply) => {
   if (error instanceof UnauthenticatedSessionError)
     return reply.status(401).send(unauthorized_response());
@@ -89,7 +96,7 @@ export const build_artifact_carry_forward_routes =
           body: ArtifactCarryForwardRequestSchema,
         },
       },
-      async (request: any, reply) => {
+      async (request: CarryForwardRequest, reply) => {
         try {
           const auth = await dependencies.auth_service.get_current_auth_context(
             session_token_from_request(request),
