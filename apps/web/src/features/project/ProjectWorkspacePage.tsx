@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Project workspace page for library entry points.
+ */
+
 import { useEffect, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
@@ -7,6 +11,7 @@ import {
   getProject,
   type ProjectDetailResponse,
 } from "../../lib/api";
+import { projectVersionWorkspaceUrl } from "../../lib/portalNavigation";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalAppShell } from "../portal/PortalAppShell";
 import type { Project } from "./types";
@@ -55,15 +60,19 @@ const formatDateTime = (value: string) => {
   }).format(date);
 };
 
-const captureSessionsUrl = (projectId: string) =>
-  `/projects/${encodeURIComponent(projectId)}/capture-sessions`;
+const projectVersionRouteUrl = (project: Project, suffix: string) =>
+  `${projectVersionWorkspaceUrl(project.id, project.default_project_version.slug)}${suffix}`;
 
-const guidesUrl = (projectId: string) =>
-  `/projects/${encodeURIComponent(projectId)}/guides`;
+const captureSessionsUrl = (project: Project) =>
+  projectVersionRouteUrl(project, "/capture-sessions");
 
-const interactiveDemosUrl = (projectId: string) =>
-  `/projects/${encodeURIComponent(projectId)}/interactive-demos`;
+const guidesUrl = (project: Project) =>
+  projectVersionRouteUrl(project, "/guides");
 
+const interactiveDemosUrl = (project: Project) =>
+  projectVersionRouteUrl(project, "/interactive-demos");
+
+/** Builds the canonical Project settings route. */
 const settingsUrl = (projectId: string) =>
   `/projects/${encodeURIComponent(projectId)}/settings`;
 const complianceUrl = (projectId: string) =>
@@ -192,6 +201,10 @@ export const ProjectWorkspacePage = ({
             <p className={styles.description}>{state.project.description}</p>
           ) : null}
           <div className={styles.meta}>
+            <span>
+              Default Project Version:{" "}
+              {state.project.default_project_version.name}
+            </span>
             {state.project.slug ? <span>{state.project.slug}</span> : null}
             <span>Updated {formatDateTime(state.project.updated_at)}</span>
             <span>Created {formatDateTime(state.project.created_at)}</span>
@@ -217,7 +230,7 @@ export const ProjectWorkspacePage = ({
           <WorkspaceAction
             title="Capture sessions"
             description="Open source captures for this project."
-            href={captureSessionsUrl(projectId)}
+            href={captureSessionsUrl(state.project)}
             linkLabel="Open capture sessions"
           />
           {state.project.access.role !== "viewer" ? (
@@ -231,13 +244,13 @@ export const ProjectWorkspacePage = ({
           <WorkspaceAction
             title="Guides"
             description="Open prepared docs and demos for this project."
-            href={guidesUrl(projectId)}
+            href={guidesUrl(state.project)}
             linkLabel="Open guides"
           />
           <WorkspaceAction
             title="Interactive demos"
             description="Open screenshot-first product walkthrough demos."
-            href={interactiveDemosUrl(projectId)}
+            href={interactiveDemosUrl(state.project)}
             linkLabel="Open interactive demos"
           />
         </div>
@@ -246,6 +259,7 @@ export const ProjectWorkspacePage = ({
   );
 };
 
+/** Wraps Project workspace states in the shared portal shell. */
 const PortalShell = ({
   children,
   project,
@@ -280,6 +294,7 @@ const PortalShell = ({
   );
 };
 
+/** Renders one real library entry point for a Project. */
 const WorkspaceAction = ({
   title,
   description,

@@ -1,4 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+/**
+ * @fileoverview Project Version route boundary tests.
+ */
+
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectVersionRouteBoundary } from "./ProjectVersionRouteBoundary";
 
@@ -77,6 +81,38 @@ describe("ProjectVersionRouteBoundary", () => {
     expect(screen.getByRole("link", { name: "Guides" })).toHaveAttribute(
       "aria-current",
       "page",
+    );
+  });
+
+  it("keeps list route family when the boundary selector changes Project Versions", async () => {
+    const navigate = vi.fn();
+    api.listProjectVersions.mockResolvedValue({
+      project_versions: [
+        version,
+        { ...version, id: "version_2", name: "Q3", slug: "q3", position: 2 },
+      ],
+    });
+
+    render(
+      <ProjectVersionRouteBoundary
+        projectId="project_1"
+        versionSlug="main"
+        allowVersionOwnedContent
+        activeSection="guides"
+        currentLabel="Guides"
+        navigate={navigate}
+      >
+        {() => <h1>Project Version guides</h1>}
+      </ProjectVersionRouteBoundary>,
+    );
+
+    await screen.findByRole("heading", { name: "Project Version guides" });
+    fireEvent.change(screen.getByLabelText("Project Version"), {
+      target: { value: "q3" },
+    });
+
+    expect(navigate).toHaveBeenCalledWith(
+      "/projects/project_1/versions/q3/guides",
     );
   });
 

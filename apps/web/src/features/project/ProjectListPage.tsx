@@ -1,3 +1,6 @@
+/**
+ * @fileoverview Portal Project list with create flow and lifecycle filters.
+ */
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
@@ -100,6 +103,12 @@ const openProject = (project: Project, navigate?: (path: string) => void) => {
   window.location.assign(path);
 };
 
+const emptyProjectListMessage = (statusFilter: "active" | "archived") =>
+  statusFilter === "active"
+    ? "No active Projects yet. Create a Project to start capturing governed product knowledge."
+    : "No archived Projects. Archived Projects remain directly linkable and can be restored from settings.";
+
+/** Renders the portal Project list and create form. */
 export const ProjectListPage = ({
   loadProjects = listProjects,
   createProject: createProjectAction = createProject,
@@ -333,7 +342,9 @@ export const ProjectListPage = ({
           </label>
         </div>
         {state.projects.length === 0 ? (
-          <Card className={styles.empty}>No projects yet.</Card>
+          <Card className={styles.empty}>
+            {emptyProjectListMessage(statusFilter)}
+          </Card>
         ) : (
           <div className={styles.projects}>
             {state.projects.map((project) => (
@@ -346,6 +357,7 @@ export const ProjectListPage = ({
   );
 };
 
+/** Wraps the Project list in the shared portal shell. */
 const PortalShell = ({
   children,
   performLogout,
@@ -365,6 +377,7 @@ const PortalShell = ({
   </PortalAppShell>
 );
 
+/** Renders one Project summary card with Default Project Version entry link. */
 const ProjectCard = ({ project }: { project: Project }) => (
   <article className={styles.project}>
     <div className={styles.projectBody}>

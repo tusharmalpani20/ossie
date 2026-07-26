@@ -1,3 +1,6 @@
+/**
+ * @fileoverview App route smoke tests.
+ */
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -221,7 +224,11 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByText("No projects yet.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "No active Projects yet. Create a Project to start capturing governed product knowledge.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("renders login routes", () => {

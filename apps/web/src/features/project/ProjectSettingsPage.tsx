@@ -1,3 +1,6 @@
+/**
+ * @fileoverview Portal Project settings and lifecycle management page.
+ */
 import { type FormEvent, useEffect, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
@@ -122,6 +125,7 @@ const updateErrorMessage = (error: unknown) => {
   return "Could not update project.";
 };
 
+/** Renders Project settings, membership, and Project Version management. */
 export const ProjectSettingsPage = ({
   projectId,
   loadProject = getProject,
@@ -243,7 +247,7 @@ export const ProjectSettingsPage = ({
       const response = await updateProject(projectId, { status: nextStatus });
       applyProject(response.project);
       setMessage(
-        nextStatus === "archived" ? "Project archived." : "Project unarchived.",
+        nextStatus === "archived" ? "Project archived." : "Project restored.",
       );
     } catch (statusError: unknown) {
       setError(updateErrorMessage(statusError));
@@ -344,7 +348,7 @@ export const ProjectSettingsPage = ({
   const isUpdatingStatus = submitState === "updating_status";
   const isBusy = submitState !== "idle";
   const lifecycleButtonText =
-    project.status === "archived" ? "Unarchive project" : "Archive project";
+    project.status === "archived" ? "Restore project" : "Archive project";
 
   return (
     <PortalShell
@@ -459,6 +463,7 @@ export const ProjectSettingsPage = ({
   );
 };
 
+/** Wraps Project settings in the shared portal shell. */
 const PortalShell = ({
   children,
   project,

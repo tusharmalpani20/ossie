@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Project Version route boundary and workspace fallback.
+ */
+
 import { useEffect, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
@@ -30,6 +34,19 @@ type Loaded = {
 type State =
   | { status: "loading" | "not_found" | "error" }
   | ({ status: "loaded" } & Loaded);
+
+const routeSuffixBySection: Partial<
+  Record<
+    PortalRouteSection,
+    "/capture-sessions" | "/guides" | "/interactive-demos"
+  >
+> = {
+  capture_sessions: "/capture-sessions",
+  guides: "/guides",
+  interactive_demos: "/interactive-demos",
+};
+
+/** Resolves Project Version context before rendering version-owned content. */
 export const ProjectVersionRouteBoundary = ({
   projectId,
   versionSlug,
@@ -130,7 +147,11 @@ export const ProjectVersionRouteBoundary = ({
       projectVersion={portalProjectVersionFromDetail(state.selected)}
       navigate={navigate}
     >
-      <ProjectVersionContextBar {...state} navigate={navigate} />
+      <ProjectVersionContextBar
+        {...state}
+        navigate={navigate}
+        routeSuffix={routeSuffixBySection[activeSection] ?? ""}
+      />
       {state.project.status === "archived" ? (
         <Alert>Project archived — all content is read-only.</Alert>
       ) : null}
@@ -149,6 +170,7 @@ export const ProjectVersionRouteBoundary = ({
   );
 };
 
+/** Renders the Project Version workspace when no child route owns content. */
 const VersionWorkspace = ({ project, selected }: Loaded) => (
   <section className={styles.workspace}>
     <div>
@@ -208,6 +230,7 @@ const VersionWorkspace = ({ project, selected }: Loaded) => (
     ) : null}
   </section>
 );
+/** Renders one Project Version workspace link. */
 const WorkspaceLink = ({ title, href }: { title: string; href: string }) => (
   <Card className={styles.linkCard}>
     <h2>{title}</h2>

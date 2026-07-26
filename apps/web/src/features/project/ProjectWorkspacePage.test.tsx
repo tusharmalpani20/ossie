@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Project workspace page tests.
+ */
+
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ApiClientError } from "../../lib/api";
@@ -19,16 +23,24 @@ const project: Project = {
   created_at: "2026-06-05T10:00:00.000Z",
   updated_at: "2026-06-05T10:05:00.000Z",
   access: { role: "project_admin", source: "organization_owner" },
-  default_project_version: { id: "version_1", name: "Main", slug: "main", status: "active", position: 1 },
+  default_project_version: {
+    id: "version_1",
+    name: "Main",
+    slug: "main",
+    status: "active",
+    position: 1,
+  },
 };
 
-const renderPage = (overrides: {
-  projectId?: string;
-  loadProject?: () => Promise<{ project: Project }>;
-  currentPath?: string;
-  performLogout?: () => Promise<void>;
-  navigate?: (path: string) => void;
-} = {}) => {
+const renderPage = (
+  overrides: {
+    projectId?: string;
+    loadProject?: () => Promise<{ project: Project }>;
+    currentPath?: string;
+    performLogout?: () => Promise<void>;
+    navigate?: (path: string) => void;
+  } = {},
+) => {
   const loadProject = overrides.loadProject ?? vi.fn(async () => ({ project }));
 
   render(
@@ -38,7 +50,7 @@ const renderPage = (overrides: {
       currentPath={overrides.currentPath}
       performLogout={overrides.performLogout}
       navigate={overrides.navigate}
-    />
+    />,
   );
 
   return { loadProject };
@@ -49,55 +61,82 @@ describe("ProjectWorkspacePage", () => {
     const { loadProject } = renderPage();
 
     expect(screen.getByText("Loading project...")).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "Internal onboarding demos" })).toBeInTheDocument();
-    expect(screen.getByText("Reusable captures and guides for internal teams.")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Internal onboarding demos" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Reusable captures and guides for internal teams."),
+    ).toBeInTheDocument();
     expect(screen.getByText("active")).toBeInTheDocument();
+    expect(
+      screen.getByText("Default Project Version: Main"),
+    ).toBeInTheDocument();
     expect(screen.getByText("internal-onboarding-demos")).toBeInTheDocument();
     expect(screen.getByText(/Updated /)).toBeInTheDocument();
     expect(screen.getByText(/Created /)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open capture sessions" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: "Open capture sessions" }),
+    ).toHaveAttribute(
       "href",
-      "/projects/project_1/capture-sessions"
+      "/projects/project_1/versions/main/capture-sessions",
     );
     expect(screen.getByRole("link", { name: "Open guides" })).toHaveAttribute(
       "href",
-      "/projects/project_1/guides"
+      "/projects/project_1/versions/main/guides",
     );
-    expect(screen.getByRole("link", { name: "Open interactive demos" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: "Open interactive demos" }),
+    ).toHaveAttribute(
       "href",
-      "/projects/project_1/interactive-demos"
+      "/projects/project_1/versions/main/interactive-demos",
     );
-    expect(screen.getByRole("link", { name: "Project settings" })).toHaveAttribute(
-      "href",
-      "/projects/project_1/settings"
-    );
+    expect(
+      screen.getByRole("link", { name: "Project settings" }),
+    ).toHaveAttribute("href", "/projects/project_1/settings");
     expect(loadProject).toHaveBeenCalledWith("project_1");
     expect(screen.queryByText("organization_1")).not.toBeInTheDocument();
     expect(screen.queryByText("org_user_1")).not.toBeInTheDocument();
     expect(screen.queryByText("version")).not.toBeInTheDocument();
     expect(screen.queryByText("#2563eb")).not.toBeInTheDocument();
     expect(screen.queryByText("folder")).not.toBeInTheDocument();
+    expect(screen.queryByText("Documentation")).not.toBeInTheDocument();
+    expect(screen.queryByText("Video")).not.toBeInTheDocument();
   });
 
-  it("URL-encodes project IDs in workspace links", async () => {
-    renderPage({ projectId: "project / 1" });
+  it("URL-encodes Project and Default Project Version identifiers in workspace links", async () => {
+    renderPage({
+      projectId: "project / 1",
+      loadProject: async () => ({
+        project: {
+          ...project,
+          id: "project / 1",
+          default_project_version: {
+            ...project.default_project_version,
+            slug: "release / 1",
+          },
+        },
+      }),
+    });
 
-    expect(await screen.findByRole("link", { name: "Open capture sessions" })).toHaveAttribute(
+    expect(
+      await screen.findByRole("link", { name: "Open capture sessions" }),
+    ).toHaveAttribute(
       "href",
-      "/projects/project%20%2F%201/capture-sessions"
+      "/projects/project%20%2F%201/versions/release%20%2F%201/capture-sessions",
     );
     expect(screen.getByRole("link", { name: "Open guides" })).toHaveAttribute(
       "href",
-      "/projects/project%20%2F%201/guides"
+      "/projects/project%20%2F%201/versions/release%20%2F%201/guides",
     );
-    expect(screen.getByRole("link", { name: "Open interactive demos" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: "Open interactive demos" }),
+    ).toHaveAttribute(
       "href",
-      "/projects/project%20%2F%201/interactive-demos"
+      "/projects/project%20%2F%201/versions/release%20%2F%201/interactive-demos",
     );
-    expect(screen.getByRole("link", { name: "Project settings" })).toHaveAttribute(
-      "href",
-      "/projects/project%20%2F%201/settings"
-    );
+    expect(
+      screen.getByRole("link", { name: "Project settings" }),
+    ).toHaveAttribute("href", "/projects/project%20%2F%201/settings");
   });
 
   it("renders projects without optional description and slug", async () => {
@@ -113,9 +152,15 @@ describe("ProjectWorkspacePage", () => {
       }),
     });
 
-    expect(await screen.findByRole("heading", { name: "Internal onboarding demos" })).toBeInTheDocument();
-    expect(screen.queryByText("Reusable captures and guides for internal teams.")).not.toBeInTheDocument();
-    expect(screen.queryByText("internal-onboarding-demos")).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Internal onboarding demos" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Reusable captures and guides for internal teams."),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("internal-onboarding-demos"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders archived projects", async () => {
@@ -129,10 +174,9 @@ describe("ProjectWorkspacePage", () => {
     });
 
     expect(await screen.findByText("archived")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Project settings" })).toHaveAttribute(
-      "href",
-      "/projects/project_1/settings"
-    );
+    expect(
+      screen.getByRole("link", { name: "Project settings" }),
+    ).toHaveAttribute("href", "/projects/project_1/settings");
   });
 
   it("does not crash on invalid project timestamps", async () => {
@@ -163,13 +207,15 @@ describe("ProjectWorkspacePage", () => {
             message: "Authentication is required",
           });
         }}
-      />
+      />,
     );
 
-    expect(await screen.findByText("Sign in to view this project.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Sign in to view this project."),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
-      "/login?next=%2Fprojects%2Fproject_1%3Ftab%3Doverview"
+      "/login?next=%2Fprojects%2Fproject_1%3Ftab%3Doverview",
     );
 
     rerender(
@@ -184,10 +230,12 @@ describe("ProjectWorkspacePage", () => {
             message: "Project was not found",
           });
         }}
-      />
+      />,
     );
 
-    expect(await screen.findByText("Project was not found.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Project was not found."),
+    ).toBeInTheDocument();
   });
 
   it("signs out from the project workspace", async () => {
@@ -196,7 +244,9 @@ describe("ProjectWorkspacePage", () => {
 
     renderPage({ performLogout, navigate });
 
-    expect(await screen.findByRole("heading", { name: "Internal onboarding demos" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Internal onboarding demos" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
 
     await waitFor(() => expect(performLogout).toHaveBeenCalled());
@@ -211,11 +261,15 @@ describe("ProjectWorkspacePage", () => {
       navigate: vi.fn(),
     });
 
-    expect(await screen.findByRole("heading", { name: "Internal onboarding demos" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Internal onboarding demos" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
 
     expect(await screen.findByText("Could not sign out.")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Internal onboarding demos" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Internal onboarding demos" }),
+    ).toBeInTheDocument();
   });
 
   it("renders generic errors and supports retry", async () => {
@@ -226,10 +280,14 @@ describe("ProjectWorkspacePage", () => {
 
     renderPage({ loadProject });
 
-    expect(await screen.findByText("Could not load project.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Could not load project."),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => expect(loadProject).toHaveBeenCalledTimes(2));
-    expect(await screen.findByRole("heading", { name: "Internal onboarding demos" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Internal onboarding demos" }),
+    ).toBeInTheDocument();
   });
 });
