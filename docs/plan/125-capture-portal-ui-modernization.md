@@ -13,8 +13,7 @@ Parent plan:
 Prerequisite:
 
 - Child `124` is complete in this checkout. The latest closeout commit before
-  this expansion is `17a8884` (`docs: audit project version library UI
-closeout`).
+  this expansion is `17a8884`.
 - Child `124` established canonical Project Version library routes and recorded
   this carry-forward for child `125`:
   `/projects/:projectId/versions/:slug/capture-sessions` must remain the
@@ -91,7 +90,8 @@ Implement only portal Capture UI modernization for:
 - Capture Session list in a Project Version context.
 - Capture Session creation for manual Capture Sessions.
 - Capture Session detail view.
-- Active, draft, completed, canceled, and archived display states.
+- Capture Session status display for the actual runtime statuses: `draft`,
+  `capturing`, `completed`, `canceled`, and `archived`.
 - Manual screenshot upload, including multiple-file queue status, partial
   failure, retry, and clear recovery copy.
 - Capture Event creation from uploaded screenshots.
@@ -167,6 +167,10 @@ Existing UI behavior to preserve unless this plan explicitly changes it:
   `expected_version`.
 - Guide and Interactive Demo generation are disabled until the Capture Session
   has a non-empty name and at least one Capture Event.
+- Current server/service behavior already creates Guide and Interactive Demo
+  Artifact Editions in the source Capture Session's Project Version, including
+  named Project Versions. Child `125` must remove the current default-only UI
+  gate while preserving route-scope safety.
 
 Current implementation issues to address during child `125` implementation:
 
@@ -176,6 +180,9 @@ Current implementation issues to address during child `125` implementation:
 - Replace the detail page's local topbar wrapper with the accepted child `122`
   Project Version shell pattern or an equivalent shell-safe composition. The
   page must not create a second shell inside canonical routes.
+- Fix Capture list write gating in `App.tsx`: both legacy and canonical list
+  routes must include the selected/default Project Version `status === "active"`
+  check, matching the existing detail route behavior.
 - Split the oversized Capture detail component and test file before adding new
   behavior.
 
@@ -286,7 +293,9 @@ Capture Session:
   - Existing server contract. Use only for accepted safe Capture Session
     metadata/status edits if already supported.
 - `DELETE /api/v1/projects/:projectId/capture-sessions/:captureSessionId`
-  - Existing server contract. Do not broaden destructive behavior.
+  - Existing server contract soft-deletes the Capture Session row with
+    `is_deleted`, `deleted_at`, and Row Version updates. Do not turn this into
+    physical deletion or asset/file purge.
 
 Capture Event:
 
@@ -328,6 +337,8 @@ Artifact generation:
   Project Version/target Edition context according to existing server behavior.
   The UI must not let a user combine a Capture Session from one Project Version
   with a target artifact in a different Project Version.
+- Current service tests show named Project Version generation is supported. The
+  implementation must not keep the default-only disabled state from the old UI.
 
 ## UI Behavior Requirements
 
@@ -338,7 +349,8 @@ List page:
 - Keep legacy route compatibility through default Project Version redirect.
 - Show clear states for loading, empty, error with retry, unauthenticated, not
   found, read-only, archived Project, and archived Project Version.
-- Show active/draft/completed/canceled/archived status in a compact way.
+- Show `draft`, `capturing`, `completed`, `canceled`, and `archived` status in a
+  compact way.
 - Add status filtering only if it uses the existing `status` query contract and
   does not create a new backend contract.
 - Long names, descriptions, start URLs, browser strings, and operating systems
@@ -390,11 +402,11 @@ Detail page:
   - Use the loaded Capture Session, not a route-selected different Project
     Version.
   - Use canonical Project Version artifact routes after creation.
-  - Existing UI currently disables generation when the selected Project Version
-    is not default. Child `125` must recheck server behavior. If generation for
-    named Project Versions is already supported, enable it safely. If not, keep
-    the disabled state and record the reason as a leftover for the correct
-    later child.
+  - Enable generation for default and named Project Versions because current
+    server behavior already inherits the Capture Session's Project Version.
+  - Remove the current `isDefaultVersion` disabled condition and replace it with
+    tests that prove named Project Version generation redirects to the matching
+    canonical Project Version artifact route.
 
 Asset lifecycle:
 
@@ -438,6 +450,9 @@ Asset lifecycle:
 - Because this repository is already using real Project Version scoped Capture
   records, do not add fallback behavior that silently changes a Capture Session's
   Project Version.
+- Do not change Capture Session deletion semantics. The existing delete route is
+  a soft delete for the Capture Session record and does not purge Capture Assets
+  or Files.
 
 ## Implementation Order
 
@@ -480,6 +495,8 @@ Route and shell tests:
   - canonical Capture routes pass `projectVersionId`, `versionSlug`,
     `canWrite`, and `canPurge` correctly.
   - archived Project/Project Version yields read-only Capture UI.
+  - Capture list routes include Project Version status in `canWrite`, matching
+    Capture detail routes.
 
 List tests:
 
@@ -506,6 +523,8 @@ Detail tests:
 - Stale reassignment failure reloads detail and explains the failure.
 - Guide and Interactive Demo generation use the loaded Capture Session and
   redirect to canonical Project Version artifact routes.
+- Guide and Interactive Demo generation work from a Capture Session in a named
+  Project Version without a default-only UI gate.
 - Missing asset preview does not break the page.
 - Asset lifecycle controls still gate purge through protection review.
 
@@ -530,7 +549,7 @@ fixture with:
 - one archived Project Version;
 - one Project Admin or Editor session;
 - one Viewer session or mocked equivalent;
-- draft, active, completed, canceled, and archived Capture Sessions;
+- draft, capturing, completed, canceled, and archived Capture Sessions;
 - at least one manual Capture Session with safe screenshot assets and events;
 - one empty draft Capture Session that can be reassigned.
 
@@ -630,7 +649,8 @@ differ.
   stale tabs.
 - Viewer, archived Project, and archived Project Version states are read-only.
 - Guide and Interactive Demo generation uses the loaded Capture Session's
-  Project Version context and rejects or disables cross-scope behavior.
+  Project Version context, works for named Project Versions, and rejects or
+  disables cross-scope behavior.
 - Source assets remain immutable and protected shared assets remain protected.
 - Raw input values and raw page HTML are not exposed.
 - All touched files are under 1000 lines after implementation.
@@ -663,6 +683,9 @@ Carry forward:
 - [x] Recorded API contracts, permission rules, migration notes, testing, and
       browser validation requirements.
 - [x] Classified decisions: no critical user decision is required for expansion.
+- [x] Rechecked against master `005`, child `124` closeout, current Capture
+      routes, current Capture schemas, and Guide/Interactive Demo generation
+      service behavior.
 
 ## Implementation Log
 
@@ -675,6 +698,10 @@ Expansion notes:
   API client helpers, shared Capture schemas, domain policies, and server route
   files.
 - No runtime code was changed during expansion.
+- Rechecked on 2026-07-26 against master `005`, implemented child `124`, and
+  current server behavior. The recheck corrected the stale default-only
+  Guide/Demo generation assumption and clarified Capture Session status and
+  soft-delete wording.
 
 ## Verification Record
 
@@ -683,6 +710,10 @@ Expansion verification only:
 - Current code was inspected.
 - Runtime tests were not run because this is a planning-only step.
 - Browser validation was not run because implementation has not started.
+- Recheck verification on 2026-07-26:
+  - `rtk git status --short`
+  - current master/child docs read
+  - current Capture UI/API/schema/server routes inspected
 
 ## Leftovers
 
