@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Ossie web app route entry point.
+ */
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { OssieBrand } from "./components/OssieBrand";
@@ -24,6 +28,8 @@ import { ArtifactRevisionHistoryPage } from "./features/artifact-revision/Artifa
 import { GuideRevisionPreviewPage } from "./features/artifact-revision/GuideRevisionPreviewPage";
 import { InteractiveDemoRevisionPreviewPage } from "./features/artifact-revision/InteractiveDemoRevisionPreviewPage";
 import { ProjectCarryForwardPage } from "./features/artifact-carry-forward/ProjectCarryForwardPage";
+import { DesignSystemReviewPage } from "./features/design-system/DesignSystemReviewPage";
+import { shouldRenderDesignSystemReview } from "./appRouteGuards";
 import { getProject, getPublicInstanceStatus } from "./lib/api";
 import { parsePortalRoute, type PortalRoute } from "./lib/routes";
 import styles from "./App.module.css";
@@ -164,6 +170,10 @@ export default function App() {
 
   if (route.type === "setup") {
     return <FirstRunSetupPage />;
+  }
+
+  if (shouldRenderDesignSystemReview(route, import.meta.env.DEV)) {
+    return <DesignSystemReviewPage />;
   }
 
   if (route.type === "public_guide_reader") {

@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Portal route parser for Ossie web routes.
+ */
+
 export type PortalRoute =
   | {
       type: "login";
@@ -109,11 +113,19 @@ export type PortalRoute =
       versionSlug?: string;
     }
   | {
+      type: "design_system_review";
+    }
+  | {
       type: "unsupported";
     };
 
+/** Parses a browser pathname into the portal route union. */
 export const parsePortalRoute = (pathname: string): PortalRoute => {
   const segments = pathname.split("/").filter(Boolean);
+
+  if (segments.length === 1 && segments[0] === "__design-system") {
+    return { type: "design_system_review" };
+  }
 
   if (
     segments[0] === "projects" &&

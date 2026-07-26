@@ -1,0 +1,133 @@
+.page {
+  display: grid;
+  gap: 28px;
+  min-height: 100vh;
+  padding: 32px;
+  background: var(--ossie-color-background);
+  color: var(--ossie-color-text);
+  font-family: var(--ossie-font-sans);
+}
+
+.hero {
+  display: grid;
+  gap: 10px;
+  max-width: 76ch;
+}
+
+.hero h1,
+.section h2,
+.canvas h3,
+.reader h3 {
+  margin: 0;
+  color: var(--ossie-color-text);
+  letter-spacing: normal;
+  text-wrap: balance;
+}
+
+.hero p,
+.section p,
+.reader p {
+  margin: 0;
+  color: var(--ossie-color-muted);
+  line-height: 1.55;
+}
+
+.section {
+  display: grid;
+  gap: 14px;
+}
+
+.sectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--ossie-color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  color: var(--ossie-color-muted);
+  font-size: 12px;
+}
+
+.workbench {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(280px, 1.6fr) minmax(
+      200px,
+      0.8fr
+    );
+  gap: 12px;
+}
+
+.rail,
+.canvas,
+.reader {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-card);
+  background: var(--ossie-color-surface);
+}
+
+.rail span,
+.stateNote,
+.kicker {
+  color: var(--ossie-color-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.canvas {
+  min-height: 260px;
+}
+
+.reader {
+  padding: 20px;
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 18px;
+  }
+
+  .workbench {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page *,
+  .page *::before,
+  .page *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0ms !important;
+  }
+}

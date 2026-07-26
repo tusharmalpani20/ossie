@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Tests for Ossie portal route parsing.
+ */
+
 import { describe, expect, it } from "vitest";
 import { parsePortalRoute } from "./routes";
 
@@ -16,6 +20,15 @@ describe("parsePortalRoute", () => {
     expect(parsePortalRoute("/")).toEqual({ type: "project_list" });
     expect(parsePortalRoute("/projects")).toEqual({ type: "project_list" });
     expect(parsePortalRoute("/projects/")).toEqual({ type: "project_list" });
+  });
+
+  it("parses the development-only design system review route", () => {
+    expect(parsePortalRoute("/__design-system")).toEqual({
+      type: "design_system_review",
+    });
+    expect(parsePortalRoute("/__design-system/extra")).toEqual({
+      type: "unsupported",
+    });
   });
 
   it("parses organization member routes", () => {

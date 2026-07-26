@@ -1,6 +1,27 @@
 @import "tailwindcss";
 @source "../../../packages/ui/src";
 
+:root {
+  --ossie-color-background: #f7f8fb;
+  --ossie-color-surface: #ffffff;
+  --ossie-color-surface-elevated: #f9fafb;
+  --ossie-color-border: #d9e0e7;
+  --ossie-color-border-strong: #aab4c0;
+  --ossie-color-text: #111827;
+  --ossie-color-muted: #4d5968;
+  --ossie-color-accent: #2563eb;
+  --ossie-color-success: #0f766e;
+  --ossie-color-warning: #92400e;
+  --ossie-color-danger: #b42318;
+  --ossie-color-focus: #1d4ed8;
+  --ossie-color-selected: #eff6ff;
+  --ossie-radius-control: 6px;
+  --ossie-radius-card: 8px;
+  --ossie-font-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -9,9 +30,9 @@ body {
   width: 360px;
   min-height: 420px;
   margin: 0;
-  background: #f4f6f8;
-  color: #1c2430;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--ossie-color-background);
+  color: var(--ossie-color-text);
+  font-family: var(--ossie-font-sans);
 }
 
 .popup {
@@ -24,7 +45,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #111827;
+  color: var(--ossie-color-text);
   font-size: 14px;
   font-weight: 800;
 }
@@ -38,14 +59,14 @@ body {
   display: grid;
   gap: 12px;
   padding: 14px;
-  border: 1px solid #d9e0e7;
-  border-radius: 8px;
-  background: #ffffff;
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-card);
+  background: var(--ossie-color-surface);
 }
 
 h1 {
   margin: 0;
-  color: #111827;
+  color: var(--ossie-color-text);
   font-size: 18px;
   line-height: 1.25;
 }
@@ -62,7 +83,7 @@ p {
 label {
   display: grid;
   gap: 6px;
-  color: #4d5968;
+  color: var(--ossie-color-muted);
   font-size: 13px;
   font-weight: 700;
 }
@@ -80,13 +101,13 @@ label {
 }
 
 .error {
-  color: #b42318;
+  color: var(--ossie-color-danger);
   font-size: 13px;
   line-height: 1.4;
 }
 
 .success {
-  color: #0f766e;
+  color: var(--ossie-color-success);
   font-size: 13px;
   font-weight: 700;
   line-height: 1.4;
@@ -95,14 +116,14 @@ label {
 .state,
 .instance,
 .identity {
-  color: #637083;
+  color: var(--ossie-color-muted);
   font-size: 13px;
   line-height: 1.4;
 }
 
 .identity {
   margin-top: 6px;
-  color: #1c2430;
+  color: var(--ossie-color-text);
   font-weight: 700;
 }
 
@@ -115,33 +136,33 @@ label {
   display: grid;
   gap: 8px;
   padding: 10px;
-  border: 1px solid #d9e0e7;
+  border: 1px solid var(--ossie-color-border);
   border-radius: 6px;
-  background: #f8fafc;
+  background: var(--ossie-color-surface-elevated);
 }
 
 .captureProject {
-  color: #111827;
+  color: var(--ossie-color-text);
   font-size: 14px;
   font-weight: 800;
   line-height: 1.35;
 }
 
 .captureMode {
-  color: #111827;
+  color: var(--ossie-color-text);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.35;
 }
 
 .captureHelp {
-  color: #4d5968;
+  color: var(--ossie-color-muted);
   font-size: 12px;
   line-height: 1.4;
 }
 
 .captureSession {
-  color: #637083;
+  color: var(--ossie-color-muted);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.35;
@@ -154,18 +175,18 @@ label {
   justify-items: start;
   min-height: 52px;
   padding: 10px;
-  border-color: #d9e0e7;
-  background: #ffffff;
-  color: #111827;
+  border-color: var(--ossie-color-border);
+  background: var(--ossie-color-surface);
+  color: var(--ossie-color-text);
   text-align: left;
 }
 
 .project.selected {
-  border-color: #1f2937;
+  border-color: var(--ossie-color-code);
 }
 
 .project small {
-  color: #637083;
+  color: var(--ossie-color-muted);
   font-size: 12px;
   font-weight: 700;
 }
