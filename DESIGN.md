@@ -166,6 +166,25 @@ Motion:
 - Easing: `cubic-bezier(0.16, 1, 0.3, 1)`.
 - Reduced motion: instant state changes.
 
+Validation matrix:
+
+- Primary browser evidence uses Chromium-based browser automation.
+- Required viewport checks are desktop, narrow mobile near 390px width, and
+  200% zoom/reflow.
+- Later browser work must record console errors, failed requests, keyboard
+  focus, loading, empty, error, permission, destructive, read-only, archived, and
+  reduced-motion states when those states exist on the surface.
+
+Performance budgets:
+
+- Child `121` review-route production build baseline is web JS gzip `122.07 kB`.
+  Later children must measure and justify material increases.
+- Navigation and common command feedback should feel immediate; defer expensive
+  work rather than blocking visible state changes.
+- Editor and media layouts must reserve stable space so images, previews, and
+  inspectors do not cause avoidable layout shift.
+- Dev-only review code must stay unreachable in production behavior.
+
 ## 6. Do's and Don'ts
 
 Do:

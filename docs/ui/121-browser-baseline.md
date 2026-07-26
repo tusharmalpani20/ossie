@@ -6,9 +6,14 @@ Commit validated: `dcfb6ab`
 
 ## Status
 
-Dev-only design review route validation completed with agent-browser. Broader
-workflow screenshots for children `122` through `128` remain a handoff baseline,
-not a blocker for this source-only foundation slice.
+Dev-only design review route validation completed with agent-browser. The
+broader authenticated workflow screenshot matrix for children `122` through
+`128` was not completed in this child because no seeded authenticated local
+runtime was established for those journeys during the closeout pass.
+
+This is an explicit handoff item for child `122`: before the first broad visual
+rewrite, establish safe synthetic fixtures and capture the workflow screenshot
+matrix or record the exact blocked environment/tooling reason.
 
 ## Required Evidence Matrix
 
@@ -25,7 +30,8 @@ The implementation must validate:
 
 ## Baseline Workflow Notes
 
-Representative surfaces to compare during children `122` through `128`:
+Representative surfaces to capture before modernizing children `122` through
+`128`:
 
 - project list/library;
 - project/version workspace;
@@ -72,6 +78,21 @@ portal` route state, not the design review surface.
 Screenshots were not committed. The accessibility-tree snapshots above were
 sufficient for this synthetic review route evidence and avoid storing visual
 artifacts that may later become stale.
+
+## Blocked/Carryover Evidence
+
+The following full-workflow screenshots were not captured in child `121` and
+must be captured at the start of child `122` before broad shell/workflow visual
+changes begin, unless the environment is still unavailable and the blocked
+reason is recorded:
+
+- authenticated project list/library;
+- authenticated project/version workspace;
+- capture session list and detail;
+- Guide list, editor, preview, and public reader;
+- Interactive Demo list, editor, and public viewer;
+- setup/login/organization management;
+- project activity and compliance timelines.
 
 ## Extension Evidence Boundary
 

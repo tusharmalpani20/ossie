@@ -5,9 +5,12 @@ Date reserved: 2026-07-12
 Date expanded: 2026-07-26
 
 Status: Implemented pending explicit user acceptance. Source implementation,
-product/design docs, browser evidence, and broad verification are complete.
-Child closeout and master checklist update remain blocked until the user accepts
-`PRODUCT.md`, `DESIGN.md`, and the representative UI directions.
+product/design docs, dev-only review-route browser evidence, and broad
+verification are complete. Full authenticated workflow screenshot baselines are
+recorded as a child `122` carryover because no seeded authenticated local
+runtime was established during this closeout pass. Child closeout and master
+checklist update remain blocked until the user accepts `PRODUCT.md`,
+`DESIGN.md`, and the representative UI directions.
 
 Parent plan:
 
@@ -640,6 +643,9 @@ Decisions:
   environment variable.
 - The master checklist was not updated because explicit user acceptance is still
   pending.
+- The broader authenticated workflow screenshot matrix required before broad
+  visual rewrites was not captured in child `121`; it is now recorded as the
+  first child `122` carryover item.
 
 ## Verification Record
 
@@ -688,6 +694,26 @@ Browser evidence:
 - Production preview at `http://127.0.0.1:3001/__design-system` rendered the
   existing unsupported `Ossie portal` state, not the design review surface.
 
+Close-previous recheck on 2026-07-26:
+
+- Rechecked child `121` against master plan `005`, implemented files, and
+  closeout notes.
+- Found one overclaim: docs said browser evidence was complete without clearly
+  separating the completed dev-only review-route evidence from the missing full
+  authenticated workflow screenshot matrix.
+- Updated `DESIGN.md`, `docs/ui/121-current-ui-inventory.md`,
+  `docs/ui/121-browser-baseline.md`, and this plan to record the child `122`
+  carryover before broad visual rewrites.
+- `rtk pnpm exec prettier --check DESIGN.md docs/ui/121-browser-baseline.md docs/ui/121-current-ui-inventory.md docs/plan/121-design-system-foundation.md`
+  passed.
+- `rtk git diff --check` passed.
+- `rtk pnpm --filter @repo/ui test -- src/tokens.test.tsx` passed.
+- `rtk pnpm --filter web test -- src/lib/routes.test.ts src/appRouteGuards.test.ts src/features/design-system/DesignSystemReviewPage.test.tsx`
+  passed.
+- `rtk pnpm --filter web check-types` passed.
+- Browser was not rerun during this close-previous doc fix because no
+  browser-visible source changed after the original agent-browser validation.
+
 Database checks:
 
 - Not run. This child did not touch server, API contracts, schemas, migrations,
@@ -703,13 +729,16 @@ Blocked/not applicable evidence:
 
 Current handoff:
 
-- Implementation is complete and verified.
+- Source implementation is complete and verified.
 - Explicit user acceptance is still required for:
   - `PRODUCT.md`;
   - `DESIGN.md`;
   - `docs/ui/121-representative-directions.md`.
 - Do not start child `122` until the acceptance gate is satisfied.
 - Do not update master plan `005` as complete until acceptance is recorded.
+- At the start of child `122`, before broad shell/workflow visual rewrites,
+  capture the full authenticated workflow screenshot matrix with safe synthetic
+  fixtures or record the exact blocked environment/tooling reason.
 - If accepted, the closeout step should mark child `121` complete, update master
   checklist item `121`, and hand off to child `122`.
 - If not accepted, revise only the product/design/direction outputs needed for

@@ -114,5 +114,6 @@ Later modernization must preserve:
 - Responsive behavior is uneven across workflow families.
 - Shared tokens were minimal before this child.
 - Extension popup uses global CSS and a large single `App.tsx`.
-- Browser baseline evidence still needs real local runtime validation after the
-  product/design direction is reviewed.
+- Full authenticated workflow screenshot baselines still need a seeded local
+  runtime and must be captured at the start of child `122` before broad visual
+  rewrites.
