@@ -1,4 +1,10 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ProjectVersion } from "@repo/types/project-version";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
@@ -6,7 +12,6 @@ import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
-import { Textarea } from "@repo/ui/textarea";
 import {
   ApiClientError,
   createCaptureSessionEvent,
@@ -22,9 +27,26 @@ import {
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import type { GuideDetail } from "../guide/types";
 import type { CreateInteractiveDemoFromCaptureResponse } from "../interactive-demo/types";
-import { PortalTopbar } from "../portal/PortalTopbar";
+import {
+  allowedScreenshotMimeTypes,
+  draftFromEvent,
+  eventCreationAfterUploadErrorMessage,
+  inputFromDraft,
+  nextEventIndex,
+  optionalUploadField,
+  reorderErrorMessage,
+  updateEventErrorMessage,
+  uploadErrorMessage,
+  uploadStatusLabel,
+  type EventEditDraft,
+  type UploadQueueItem,
+} from "./CaptureSessionDetailHelpers";
+import {
+  AssetPreview,
+  CaptureSessionMetrics,
+  EventRow,
+} from "./CaptureSessionDetailSections";
 import type {
-  CaptureAsset,
   CaptureEvent,
   CaptureSessionDetail,
   CreateCaptureEventResponse,
@@ -35,6 +57,7 @@ import type {
   UploadCaptureAssetResponse,
 } from "./types";
 import { CaptureAssetLifecycleControls } from "./CaptureAssetLifecycleControls";
+import { CaptureSessionDetailShell as PortalShell } from "./CaptureSessionDetailShell";
 import styles from "./CaptureSessionDetailPage.module.css";
 
 type LoadState =
@@ -43,21 +66,6 @@ type LoadState =
   | { status: "unauthenticated" }
   | { status: "not_found" }
   | { status: "error" };
-
-type UploadQueueItem = {
-  id: string;
-  name: string;
-  status: "queued" | "uploading" | "event_created" | "failed";
-};
-
-type EventEditDraft = {
-  page_title: string;
-  page_url: string;
-  target_label: string;
-  target_text: string;
-  input_intent: string;
-  note: string;
-};
 
 type CaptureSessionDetailPageProps = {
   projectId: string;
@@ -126,203 +134,12 @@ type CaptureSessionDetailPageProps = {
   canPurge?: boolean;
   versionSlug?: string;
   isDefaultVersion?: boolean;
+  renderShell?: boolean;
   projectVersions?: ProjectVersion[];
   reassignProjectVersion?: typeof reassignCaptureSessionProjectVersion;
 };
 
-const formatDateTime = (value: string | null) => {
-  if (!value) {
-    return "Not set";
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-};
-
 const browserRedirect = (path: string) => window.location.assign(path);
-
-const formatBytes = (value: number) => {
-  if (value < 1024) {
-    return `${value} B`;
-  }
-
-  if (value < 1024 * 1024) {
-    return `${Math.round(value / 1024)} KB`;
-  }
-
-  return `${(value / 1024 / 1024).toFixed(1)} MB`;
-};
-
-const plural = (count: number, noun: string) =>
-  `${count} ${noun}${count === 1 ? "" : "s"}`;
-
-const eventTitle = (event: CaptureEvent) =>
-  event.note ??
-  event.target_label ??
-  event.page_title ??
-  event.target_text ??
-  event.event_type;
-
-const assetTitle = (asset: CaptureAsset) =>
-  asset.file.original_name ??
-  asset.page_title ??
-  asset.page_url ??
-  asset.asset_type;
-
-const assetAltText = (asset: CaptureAsset) =>
-  `${asset.page_title ?? asset.file.original_name ?? "Capture"} screenshot`;
-
-const allowedScreenshotMimeTypes = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-]);
-
-const optionalUploadField = (value: string) => {
-  const trimmed = value.trim();
-
-  return trimmed || null;
-};
-
-const optionalEventField = (value: string) => {
-  const trimmed = value.trim();
-
-  return trimmed || null;
-};
-
-const draftFromEvent = (event: CaptureEvent): EventEditDraft => ({
-  page_title: event.page_title ?? "",
-  page_url: event.page_url ?? "",
-  target_label: event.target_label ?? "",
-  target_text: event.target_text ?? "",
-  input_intent: event.input_intent ?? "",
-  note: event.note ?? "",
-});
-
-const inputFromDraft = (draft: EventEditDraft): UpdateCaptureEventInput => ({
-  page_title: optionalEventField(draft.page_title),
-  page_url: optionalEventField(draft.page_url),
-  target_label: optionalEventField(draft.target_label),
-  target_text: optionalEventField(draft.target_text),
-  input_intent: optionalEventField(draft.input_intent),
-  note: optionalEventField(draft.note),
-});
-
-const nextEventIndex = (events: CaptureEvent[]) =>
-  events.reduce(
-    (nextIndex, event) => Math.max(nextIndex, event.event_index + 1),
-    1,
-  );
-
-const uploadErrorMessage = (error: unknown) => {
-  if (error instanceof ApiClientError) {
-    if (error.kind === "unauthenticated") {
-      return "Sign in to upload screenshots.";
-    }
-
-    if (error.kind === "not_found") {
-      return "Capture session was not found.";
-    }
-
-    if (
-      error.type === "invalid_capture_asset_upload" ||
-      error.type === "upload_file_required"
-    ) {
-      return "Screenshot input is invalid.";
-    }
-
-    if (error.type === "upload_too_large") {
-      return "Screenshot is too large.";
-    }
-  }
-
-  return "Could not upload screenshot.";
-};
-
-const eventCreationAfterUploadErrorMessage = (error: unknown) => {
-  if (
-    error instanceof ApiClientError &&
-    error.type === "capture_event_index_conflict"
-  ) {
-    return "Screenshot uploaded, but another event used that order. Reload and try again.";
-  }
-
-  return "Screenshot uploaded, but the capture event could not be created. Reload and try again.";
-};
-
-const uploadStatusLabel = (status: UploadQueueItem["status"]) => {
-  if (status === "uploading") {
-    return "Uploading";
-  }
-
-  if (status === "event_created") {
-    return "Event created";
-  }
-
-  if (status === "failed") {
-    return "Failed";
-  }
-
-  return "Queued";
-};
-
-const reorderErrorMessage = (error: unknown) => {
-  if (error instanceof ApiClientError) {
-    if (error.kind === "unauthenticated") {
-      return "Sign in to reorder capture events.";
-    }
-
-    if (error.kind === "not_found") {
-      return "Capture session was not found.";
-    }
-
-    if (error.type === "invalid_capture_event_order") {
-      return "Capture event order is invalid.";
-    }
-
-    if (error.type === "capture_event_reorder_not_allowed") {
-      return "Only manual capture sessions can be reordered.";
-    }
-  }
-
-  return "Could not reorder capture events.";
-};
-
-const updateEventErrorMessage = (error: unknown) => {
-  if (error instanceof ApiClientError) {
-    if (error.kind === "unauthenticated") {
-      return "Sign in to edit capture events.";
-    }
-
-    if (error.kind === "not_found") {
-      return "Capture event was not found.";
-    }
-
-    if (error.type === "capture_event_update_not_allowed") {
-      return "Only active manual capture sessions can be edited.";
-    }
-
-    if (error.type === "invalid_capture_event") {
-      return "Capture event input is invalid.";
-    }
-  }
-
-  return "Could not update capture event.";
-};
-
-const eventPageLabel = (event: CaptureEvent) => {
-  if (!event.page_url) {
-    return null;
-  }
-
-  try {
-    return new URL(event.page_url).hostname;
-  } catch {
-    return event.page_url;
-  }
-};
 
 const loadStateFromError = (error: unknown): LoadState => {
   if (error instanceof ApiClientError) {
@@ -356,7 +173,7 @@ export const CaptureSessionDetailPage = ({
   canWrite = true,
   canPurge = false,
   versionSlug,
-  isDefaultVersion = true,
+  renderShell = true,
   projectVersions = [],
   reassignProjectVersion = reassignCaptureSessionProjectVersion,
 }: CaptureSessionDetailPageProps) => {
@@ -406,6 +223,7 @@ export const CaptureSessionDetailPage = ({
         captureSessionId={captureSessionId}
         performLogout={performLogout}
         navigate={navigate}
+        renderShell={renderShell}
       >
         <div className={styles.state}>Loading capture session...</div>
       </PortalShell>
@@ -419,6 +237,7 @@ export const CaptureSessionDetailPage = ({
         captureSessionId={captureSessionId}
         performLogout={performLogout}
         navigate={navigate}
+        renderShell={renderShell}
       >
         <div className={styles.state}>
           <div>Sign in to view this capture session.</div>
@@ -437,6 +256,7 @@ export const CaptureSessionDetailPage = ({
         captureSessionId={captureSessionId}
         performLogout={performLogout}
         navigate={navigate}
+        renderShell={renderShell}
       >
         <div className={styles.state}>Capture session was not found.</div>
       </PortalShell>
@@ -450,6 +270,7 @@ export const CaptureSessionDetailPage = ({
         captureSessionId={captureSessionId}
         performLogout={performLogout}
         navigate={navigate}
+        renderShell={renderShell}
       >
         <div className={styles.state}>
           <div>Could not load capture session.</div>
@@ -485,35 +306,12 @@ export const CaptureSessionDetailPage = ({
       canWrite={canWrite}
       canPurge={canPurge}
       versionSlug={versionSlug}
-      isDefaultVersion={isDefaultVersion}
+      renderShell={renderShell}
       projectVersions={projectVersions}
       reassignProjectVersion={reassignProjectVersion}
     />
   );
 };
-
-const PortalShell = ({
-  children,
-  projectId,
-  captureSessionId,
-  performLogout,
-  navigate,
-}: {
-  children: React.ReactNode;
-  projectId: string;
-  captureSessionId: string;
-  performLogout?: () => Promise<void>;
-  navigate?: (path: string) => void;
-}) => (
-  <div className={styles.page}>
-    <PortalTopbar
-      context={`${projectId} / ${captureSessionId}`}
-      performLogout={performLogout}
-      navigate={navigate}
-    />
-    <main className={styles.main}>{children}</main>
-  </div>
-);
 
 const CaptureSessionDetailView = ({
   detail,
@@ -533,7 +331,7 @@ const CaptureSessionDetailView = ({
   canWrite,
   canPurge,
   versionSlug,
-  isDefaultVersion,
+  renderShell,
   projectVersions,
   reassignProjectVersion,
 }: {
@@ -558,7 +356,7 @@ const CaptureSessionDetailView = ({
   canWrite: boolean;
   canPurge: boolean;
   versionSlug?: string;
-  isDefaultVersion: boolean;
+  renderShell: boolean;
   projectVersions: ProjectVersion[];
   reassignProjectVersion: typeof reassignCaptureSessionProjectVersion;
 }) => {
@@ -928,6 +726,7 @@ const CaptureSessionDetailView = ({
       captureSessionId={captureSessionId}
       performLogout={performLogout}
       navigate={navigate}
+      renderShell={renderShell}
     >
       <section className={styles.header}>
         <div className={styles.titleRow}>
@@ -984,7 +783,7 @@ const CaptureSessionDetailView = ({
             ) : null}
             <Button
               type="button"
-              disabled={!canCreateGuide || !isDefaultVersion}
+              disabled={!canCreateGuide}
               aria-describedby={artifactActionDescription}
               onClick={handleCreateGuide}
             >
@@ -995,7 +794,7 @@ const CaptureSessionDetailView = ({
             <Button
               variant="secondary"
               type="button"
-              disabled={!canCreateInteractiveDemo || !isDefaultVersion}
+              disabled={!canCreateInteractiveDemo}
               aria-describedby={artifactActionDescription}
               onClick={handleCreateInteractiveDemo}
             >
@@ -1015,12 +814,6 @@ const CaptureSessionDetailView = ({
                 artifacts.
               </div>
             ) : null}
-            {!isDefaultVersion ? (
-              <div className={styles.actionMessage}>
-                Guide and demo generation for named Project Versions arrives in
-                the next phase.
-              </div>
-            ) : null}
             {createState === "error" ? (
               <div className={styles.actionMessage}>
                 Could not create guide.
@@ -1036,49 +829,7 @@ const CaptureSessionDetailView = ({
           <Badge>Read only</Badge>
         )}
 
-        <div className={styles.metrics}>
-          <Metric
-            label="Events"
-            value={plural(detail.capture_events.length, "event")}
-          />
-          <Metric
-            label="Assets"
-            value={plural(detail.capture_assets.length, "asset")}
-          />
-          <Metric label="Started" value={formatDateTime(session.started_at)} />
-          <Metric
-            label="Completed"
-            value={formatDateTime(session.completed_at)}
-          />
-          <Metric
-            label="Browser"
-            value={
-              [session.browser_name, session.browser_version]
-                .filter(Boolean)
-                .join(" ") || "Not set"
-            }
-          />
-          <Metric
-            label="System"
-            value={session.operating_system ?? "Not set"}
-          />
-          <Metric
-            label="Viewport"
-            value={
-              session.viewport_width && session.viewport_height
-                ? `${session.viewport_width} x ${session.viewport_height}`
-                : "Not set"
-            }
-          />
-          <Metric
-            label="Device scale"
-            value={
-              session.device_pixel_ratio
-                ? `${session.device_pixel_ratio}x`
-                : "Not set"
-            }
-          />
-        </div>
+        <CaptureSessionMetrics detail={detail} />
       </section>
 
       {canUploadScreenshot ? (
@@ -1240,259 +991,3 @@ const CaptureSessionDetailView = ({
     </PortalShell>
   );
 };
-
-const Metric = ({ label, value }: { label: string; value: string }) => (
-  <div className={styles.metric}>
-    <div className={styles.metricLabel}>{label}</div>
-    <div className={styles.metricValue}>{value}</div>
-  </div>
-);
-
-const EventRow = ({
-  event,
-  stepNumber,
-  linkedAsset,
-  canReorder,
-  disableReorder,
-  canEdit,
-  disableEdit,
-  isEditing,
-  editDraft,
-  editError,
-  isSaving,
-  isFirst,
-  isLast,
-  onMoveUp,
-  onMoveDown,
-  onEdit,
-  onCancelEdit,
-  onChangeDraft,
-  onSave,
-}: {
-  event: CaptureEvent;
-  stepNumber: number;
-  linkedAsset?: CaptureAsset;
-  canReorder: boolean;
-  disableReorder: boolean;
-  canEdit: boolean;
-  disableEdit: boolean;
-  isEditing: boolean;
-  editDraft: EventEditDraft | null;
-  editError: string | null;
-  isSaving: boolean;
-  isFirst: boolean;
-  isLast: boolean;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  onEdit: () => void;
-  onCancelEdit: () => void;
-  onChangeDraft: (field: keyof EventEditDraft, value: string) => void;
-  onSave: () => void;
-}) => {
-  const pageLabel = eventPageLabel(event);
-  const title = eventTitle(event);
-  const secondaryDetails = [
-    event.target_label,
-    event.target_text,
-    event.input_intent,
-  ].filter((value): value is string => Boolean(value) && value !== title);
-
-  return (
-    <article className={styles.event}>
-      <div className={styles.eventIndex}>{stepNumber}</div>
-      <div className={styles.eventBody}>
-        {isEditing && editDraft ? (
-          <form
-            className={styles.eventEditForm}
-            onSubmit={(submitEvent) => {
-              submitEvent.preventDefault();
-              onSave();
-            }}
-          >
-            {editError ? (
-              <Alert variant="destructive">{editError}</Alert>
-            ) : null}
-            <Label className={styles.field}>
-              <span>Event page title</span>
-              <Input
-                value={editDraft.page_title}
-                disabled={isSaving}
-                onChange={(changeEvent) =>
-                  onChangeDraft("page_title", changeEvent.target.value)
-                }
-              />
-            </Label>
-            <Label className={styles.field}>
-              <span>Event page URL</span>
-              <Input
-                value={editDraft.page_url}
-                disabled={isSaving}
-                onChange={(changeEvent) =>
-                  onChangeDraft("page_url", changeEvent.target.value)
-                }
-              />
-            </Label>
-            <Label className={styles.field}>
-              <span>Event target label</span>
-              <Input
-                value={editDraft.target_label}
-                disabled={isSaving}
-                onChange={(changeEvent) =>
-                  onChangeDraft("target_label", changeEvent.target.value)
-                }
-              />
-            </Label>
-            <Label className={styles.field}>
-              <span>Event target text</span>
-              <Input
-                value={editDraft.target_text}
-                disabled={isSaving}
-                onChange={(changeEvent) =>
-                  onChangeDraft("target_text", changeEvent.target.value)
-                }
-              />
-            </Label>
-            <Label className={styles.field}>
-              <span>Event input intent</span>
-              <Input
-                value={editDraft.input_intent}
-                disabled={isSaving}
-                onChange={(changeEvent) =>
-                  onChangeDraft("input_intent", changeEvent.target.value)
-                }
-              />
-            </Label>
-            <Label className={styles.field}>
-              <span>Event note</span>
-              <Textarea
-                value={editDraft.note}
-                disabled={isSaving}
-                onChange={(changeEvent) =>
-                  onChangeDraft("note", changeEvent.target.value)
-                }
-              />
-            </Label>
-            <div className={styles.eventEditActions}>
-              <Button type="submit" disabled={isSaving}>
-                {isSaving
-                  ? `Saving event ${stepNumber}`
-                  : `Save event ${stepNumber}`}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                disabled={isSaving}
-                onClick={onCancelEdit}
-              >
-                {`Cancel event ${stepNumber} edit`}
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <div className={styles.eventHeader}>
-              <span className={styles.eventTitle}>{title}</span>
-              <span className={styles.eventType}>{event.event_type}</span>
-            </div>
-            <div className={styles.eventMeta}>
-              {formatDateTime(event.occurred_at)}
-              {pageLabel ? ` · ${pageLabel}` : ""}
-            </div>
-            {secondaryDetails.length > 0 ? (
-              <div className={styles.eventMeta}>
-                {secondaryDetails.join(" · ")}
-              </div>
-            ) : null}
-            {linkedAsset ? (
-              <div className={styles.linkedAsset}>Linked screenshot</div>
-            ) : null}
-          </>
-        )}
-      </div>
-      {canReorder || canEdit ? (
-        <div className={styles.eventActions}>
-          {canEdit ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              type="button"
-              disabled={disableEdit || isEditing}
-              aria-label={`Edit event ${stepNumber}`}
-              onClick={onEdit}
-            >
-              Edit
-            </Button>
-          ) : null}
-          {canReorder ? (
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                disabled={disableReorder || isFirst}
-                aria-label={`Move event ${stepNumber} up`}
-                onClick={onMoveUp}
-              >
-                Up
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                disabled={disableReorder || isLast}
-                aria-label={`Move event ${stepNumber} down`}
-                onClick={onMoveDown}
-              >
-                Down
-              </Button>
-            </>
-          ) : null}
-        </div>
-      ) : null}
-    </article>
-  );
-};
-
-const AssetPreview = ({
-  asset,
-  imageUrl,
-  eager,
-  controls,
-}: {
-  asset: CaptureAsset;
-  imageUrl: string;
-  eager: boolean;
-  controls?: React.ReactNode;
-}) => (
-  <article className={styles.asset}>
-    <img
-      className={styles.preview}
-      src={imageUrl}
-      alt={assetAltText(asset)}
-      loading={eager ? "eager" : "lazy"}
-    />
-    <div className={styles.assetBody}>
-      <div className={styles.assetTitle}>{assetTitle(asset)}</div>
-      <div className={styles.assetMeta}>
-        Lifecycle: {asset.status ?? "active"}
-      </div>
-      <div className={styles.assetMeta}>
-        {asset.width && asset.height
-          ? `${asset.width} x ${asset.height}`
-          : "Dimensions unknown"}
-        {asset.device_pixel_ratio ? ` · ${asset.device_pixel_ratio}x` : ""}
-      </div>
-      <div className={styles.assetMeta}>
-        {asset.file.mime_type} · {formatBytes(asset.file.size_bytes)} ·{" "}
-        {formatDateTime(asset.captured_at)}
-      </div>
-      {asset.page_title || asset.page_url ? (
-        <div className={styles.assetMeta}>
-          {asset.page_title ?? asset.page_url}
-        </div>
-      ) : null}
-      {controls}
-    </div>
-  </article>
-);

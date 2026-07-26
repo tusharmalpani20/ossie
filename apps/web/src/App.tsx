@@ -441,15 +441,16 @@ export default function App() {
         currentLabel="Capture session"
       >
         {({ project, selected, versions }) => (
-          <CaptureSessionDetailPage
-            projectId={route.projectId}
-            captureSessionId={route.captureSessionId}
-            versionSlug={route.versionSlug}
-            projectVersions={versions}
-            currentPath={currentPath}
-            canWrite={
-              project.status === "active" &&
-              selected.status === "active" &&
+            <CaptureSessionDetailPage
+              projectId={route.projectId}
+              captureSessionId={route.captureSessionId}
+              versionSlug={route.versionSlug}
+              projectVersions={versions}
+              currentPath={currentPath}
+              renderShell={false}
+              canWrite={
+                project.status === "active" &&
+                selected.status === "active" &&
               project.access.role !== "viewer"
             }
             canPurge={
@@ -457,7 +458,6 @@ export default function App() {
               selected.status === "active" &&
               project.access.role === "project_admin"
             }
-            isDefaultVersion={selected.is_default}
           />
         )}
       </ProjectVersionRouteBoundary>
@@ -478,7 +478,9 @@ export default function App() {
               versionSlug={project.default_project_version.slug}
               currentPath={currentPath}
               canWrite={
-                project.status === "active" && project.access.role !== "viewer"
+                project.status === "active" &&
+                project.default_project_version.status === "active" &&
+                project.access.role !== "viewer"
               }
             />
           )}
@@ -499,7 +501,9 @@ export default function App() {
             versionSlug={route.versionSlug}
             currentPath={currentPath}
             canWrite={
-              project.status === "active" && project.access.role !== "viewer"
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role !== "viewer"
             }
             renderShell={false}
           />
