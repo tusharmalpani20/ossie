@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Tests for the public sign-in page.
+ */
+
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ApiClientError } from "../../lib/api";
@@ -71,6 +75,18 @@ describe("LoginPage", () => {
       password: " secret ",
     }));
     expect(navigate).toHaveBeenCalledWith("/projects/project_1?tab=guides");
+  });
+
+  it("blocks duplicate submissions while sign-in is pending", async () => {
+    const submitLogin = vi.fn(() => new Promise<AuthResponse>(() => undefined));
+
+    render(<LoginPage submitLogin={submitLogin} />);
+    fillForm();
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    fireEvent.click(screen.getByRole("button", { name: "Signing in..." }));
+
+    expect(screen.getByRole("button", { name: "Signing in..." })).toBeDisabled();
+    expect(submitLogin).toHaveBeenCalledTimes(1);
   });
 
   it("rejects unsafe next paths", async () => {

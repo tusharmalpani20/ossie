@@ -1,0 +1,52 @@
+.page {
+  min-height: 100vh;
+  background: var(--ossie-color-background);
+  color: var(--ossie-color-text);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  min-height: 64px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--ossie-color-border);
+  background: var(--ossie-color-surface);
+}
+
+.brand {
+  color: var(--ossie-color-text);
+  font-size: 16px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.brand:hover {
+  color: var(--ossie-color-text-muted);
+}
+
+.main,
+.mainStandard {
+  display: grid;
+  place-items: start center;
+  padding: 80px 24px 40px;
+}
+
+.main > *,
+.mainStandard > * {
+  width: min(100%, 420px);
+}
+
+.mainStandard > * {
+  width: min(100%, 680px);
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    padding: 12px 16px;
+  }
+
+  .main,
+  .mainStandard {
+    padding: 40px 16px 32px;
+  }
+}

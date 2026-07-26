@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Tests for Organization member and invite management UI.
+ */
+
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ApiClientError } from "../../lib/api";
@@ -134,6 +138,29 @@ describe("OrganizationMembersPage", () => {
     expect(screen.getByText("Invite link copied.")).toBeInTheDocument();
   });
 
+  it("keeps the invite link visible when clipboard copy fails", async () => {
+    const copyText = vi.fn(async () => {
+      throw new Error("Clipboard unavailable");
+    });
+    renderPage({ copyText });
+
+    await screen.findByRole("heading", { name: "Organization members" });
+    fireEvent.change(screen.getByLabelText("Invite email"), {
+      target: { value: "new@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
+
+    expect(
+      await screen.findByText("http://localhost:5173/invites/plain-token"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Copy invite link" }));
+
+    expect(await screen.findByText("Could not copy invite link.")).toBeInTheDocument();
+    expect(
+      screen.getByText("http://localhost:5173/invites/plain-token"),
+    ).toBeInTheDocument();
+  });
+
   it("validates invite email before submitting", async () => {
     const { createInvite } = renderPage();
 
@@ -153,6 +180,27 @@ describe("OrganizationMembersPage", () => {
         throw new ApiClientError({
           kind: "validation",
           status: 409,
+          type: "duplicate_active_invite",
+          message: "An active invite already exists",
+        });
+      },
+    });
+
+    await screen.findByRole("heading", { name: "Organization members" });
+    fireEvent.change(screen.getByLabelText("Invite email"), {
+      target: { value: "pending@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
+
+    expect(await screen.findByText("An active invite already exists for this email.")).toBeInTheDocument();
+  });
+
+  it("keeps the legacy duplicate invite error mapping as a fallback", async () => {
+    renderPage({
+      createInvite: async () => {
+        throw new ApiClientError({
+          kind: "validation",
+          status: 409,
           type: "active_invite_exists",
           message: "An active invite already exists",
         });
@@ -166,6 +214,21 @@ describe("OrganizationMembersPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
 
     expect(await screen.findByText("An active invite already exists for this email.")).toBeInTheDocument();
+  });
+
+  it("shows owner-only permission denial copy", async () => {
+    renderPage({
+      loadMembers: async () => {
+        throw new ApiClientError({
+          kind: "forbidden",
+          status: 403,
+          type: "invite_permission_denied",
+          message: "Only organization owners can manage invites",
+        });
+      },
+    });
+
+    expect(await screen.findByText("Only organization owners can manage members and invites.")).toBeInTheDocument();
   });
 
   it("revokes pending invites and reloads the list", async () => {

@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Tests for public organization invite acceptance.
+ */
+
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ApiClientError } from "../../lib/api";
@@ -92,6 +96,21 @@ describe("InviteAcceptPage", () => {
       password: "safe password",
     }));
     expect(navigate).toHaveBeenCalledWith("/projects");
+  });
+
+  it("blocks duplicate invite acceptance while accept is pending", async () => {
+    const acceptInvite = vi.fn(() => new Promise<AuthResponse>(() => undefined));
+    renderPage({ acceptInvite });
+
+    await screen.findByRole("heading", { name: "Join Example Org" });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "safe password" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Accept invite" }));
+    fireEvent.click(screen.getByRole("button", { name: "Accepting..." }));
+
+    expect(screen.getByRole("button", { name: "Accepting..." })).toBeDisabled();
+    expect(acceptInvite).toHaveBeenCalledTimes(1);
   });
 
   it("requires a password before accepting new-user invites", async () => {

@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Public organization invite acceptance page.
+ */
+
 import { type FormEvent, useEffect, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
@@ -9,11 +13,11 @@ import {
   ApiClientError,
   getPublicOrganizationInvite,
 } from "../../lib/api";
+import { EntryPageShell } from "../auth/EntryPageShell";
 import { signInUrl } from "../auth/navigation";
 import type { AuthResponse } from "../auth/types";
 import type { AcceptOrganizationInviteInput, PublicOrganizationInvite } from "./types";
 import styles from "./InviteAcceptPage.module.css";
-import { OssieBrand } from "../../components/OssieBrand";
 
 type LoadState =
   | { status: "loading" }
@@ -42,6 +46,7 @@ const unavailableError = (error: unknown) => (
 
 const invitePath = (token: string) => `/invites/${encodeURIComponent(token)}`;
 
+/** Renders the public organization invite acceptance flow. */
 export const InviteAcceptPage = ({
   token,
   loadInvite = getPublicOrganizationInvite,
@@ -207,10 +212,5 @@ export const InviteAcceptPage = ({
 };
 
 const InviteShell = ({ children }: { children: React.ReactNode }) => (
-  <div className={styles.page}>
-    <header className={styles.topbar}>
-      <a className={styles.brand} href="/projects"><OssieBrand /></a>
-    </header>
-    <main className={styles.main}>{children}</main>
-  </div>
+  <EntryPageShell width="standard">{children}</EntryPageShell>
 );

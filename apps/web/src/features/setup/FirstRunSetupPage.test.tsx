@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Tests for the Web First-Run Setup page.
+ */
+
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ApiClientError, type PublicInstanceStatus } from "../../lib/api";
@@ -90,6 +94,29 @@ describe("FirstRunSetupPage", () => {
       },
     } satisfies FirstRunSetupInput));
     expect(navigate).toHaveBeenCalledWith("/projects");
+  });
+
+  it("blocks duplicate setup submissions while setup is pending", async () => {
+    const completeSetup = vi.fn(() => new Promise<never>(() => undefined));
+
+    render(
+      <FirstRunSetupPage
+        getInstanceStatus={async () => setupRequired}
+        completeSetup={completeSetup}
+      />,
+    );
+
+    await screen.findByRole("heading", { name: "Set up Ossie" });
+    fillSetupForm();
+    fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Creating owner account..." }),
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Creating owner account..." }),
+    ).toBeDisabled();
+    expect(completeSetup).toHaveBeenCalledTimes(1);
   });
 
   it("shows already setup state when setup is no longer required", async () => {

@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Public sign-in page for web sessions.
+ */
+
 import { FormEvent, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
@@ -5,8 +9,8 @@ import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { ApiClientError, login } from "../../lib/api";
+import { EntryPageShell } from "./EntryPageShell";
 import { safeNextPath } from "./navigation";
-import { OssieBrand } from "../../components/OssieBrand";
 import type { AuthResponse } from "./types";
 import styles from "./LoginPage.module.css";
 
@@ -25,6 +29,7 @@ const errorMessage = (error: unknown) => (
     : "Could not sign in."
 );
 
+/** Renders the public web-session sign-in form. */
 export const LoginPage = ({
   nextPath = "/projects",
   submitLogin = login,
@@ -54,48 +59,47 @@ export const LoginPage = ({
   };
 
   return (
-    <div className={styles.page}>
-      <header className={styles.topbar}>
-        <a className={styles.brand} href="/projects"><OssieBrand /></a>
-      </header>
-      <main className={styles.main}>
-        <Card className={styles.panel} aria-labelledby="login-heading">
-          <CardHeader>
-            <h1 className={styles.title} id="login-heading">Sign in</h1>
-            <p className={styles.copy}>Access your projects, capture sessions, guides, and demos.</p>
-          </CardHeader>
-          <CardContent>
-            <form className={styles.form} onSubmit={handleSubmit}>
-              <Label className={styles.field}>
-                <span>Email</span>
-                <Input
-                  type="email"
-                  value={email}
-                  required
-                  autoComplete="email"
-                  disabled={submitting}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </Label>
-              <Label className={styles.field}>
-                <span>Password</span>
-                <Input
-                  type="password"
-                  value={password}
-                  required
-                  autoComplete="current-password"
-                  disabled={submitting}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
-              </Label>
-              {error ? <Alert variant="destructive">{error}</Alert> : null}
-              <Button type="submit" disabled={submitting}>
-                {submitting ? "Signing in..." : "Sign in"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </main>
-    </div>
+    <EntryPageShell>
+      <Card aria-labelledby="login-heading">
+        <CardHeader>
+          <h1 className={styles.title} id="login-heading">
+            Sign in
+          </h1>
+          <p className={styles.copy}>
+            Access your projects, capture sessions, guides, and demos.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form className={styles.form} onSubmit={handleSubmit}>
+            <Label className={styles.field}>
+              <span>Email</span>
+              <Input
+                type="email"
+                value={email}
+                required
+                autoComplete="email"
+                disabled={submitting}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </Label>
+            <Label className={styles.field}>
+              <span>Password</span>
+              <Input
+                type="password"
+                value={password}
+                required
+                autoComplete="current-password"
+                disabled={submitting}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </Label>
+            {error ? <Alert variant="destructive">{error}</Alert> : null}
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Signing in..." : "Sign in"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </EntryPageShell>
   );
 };

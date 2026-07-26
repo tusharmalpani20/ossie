@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Organization member and invite management page.
+ */
+
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { ORGANIZATION_ROLES } from "@repo/constants";
 import { Alert } from "@repo/ui/alert";
@@ -34,6 +38,7 @@ type LoadState =
       invites: OrganizationInvite[];
     }
   | { status: "unauthenticated" }
+  | { status: "forbidden" }
   | { status: "error" };
 
 type OrganizationMembersPageProps = {
@@ -67,6 +72,10 @@ const stateFromError = (error: unknown): LoadState => {
     return { status: "unauthenticated" };
   }
 
+  if (error instanceof ApiClientError && error.kind === "forbidden") {
+    return { status: "forbidden" };
+  }
+
   return { status: "error" };
 };
 
@@ -76,7 +85,10 @@ const inviteErrorMessage = (error: unknown) => {
       return "Sign in to invite organization members.";
     }
 
-    if (error.type === "active_invite_exists") {
+    if (
+      error.type === "duplicate_active_invite" ||
+      error.type === "active_invite_exists"
+    ) {
       return "An active invite already exists for this email.";
     }
 
@@ -104,6 +116,7 @@ const reloadOrganization = async (
   };
 };
 
+/** Renders Owner-managed Organization members and invite workflows. */
 export const OrganizationMembersPage = ({
   loadMembers = listOrganizationMembers,
   loadInvites = listOrganizationInvites,
@@ -220,6 +233,16 @@ export const OrganizationMembersPage = ({
           <a className={styles.stateLink} href={signInUrl(currentPath)}>
             Sign in
           </a>
+        </div>
+      </PortalShell>
+    );
+  }
+
+  if (state.status === "forbidden") {
+    return (
+      <PortalShell performLogout={performLogout} navigate={navigate}>
+        <div className={styles.state}>
+          <div>Only organization owners can manage members and invites.</div>
         </div>
       </PortalShell>
     );

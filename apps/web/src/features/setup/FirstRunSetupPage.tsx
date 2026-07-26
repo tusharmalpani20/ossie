@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Web First-Run Setup page for self-hosted instances.
+ */
+
 import { FormEvent, useEffect, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
@@ -10,9 +14,9 @@ import {
   getPublicInstanceStatus,
   type PublicInstanceStatus,
 } from "../../lib/api";
+import { EntryPageShell } from "../auth/EntryPageShell";
 import type { FirstRunSetupInput } from "./types";
 import type { FirstRunSetupResponse } from "@repo/types/setup";
-import { OssieBrand } from "../../components/OssieBrand";
 import styles from "./FirstRunSetupPage.module.css";
 
 type FirstRunSetupPageProps = {
@@ -46,18 +50,12 @@ const setupErrorMessage = (error: unknown) => {
 };
 
 const Shell = ({ children }: { children: React.ReactNode }) => (
-  <div className={styles.page}>
-    <header className={styles.topbar}>
-      <a className={styles.brand} href="/projects"><OssieBrand /></a>
-    </header>
-    <main className={styles.main}>
-      <Card className={styles.panel}>
-        {children}
-      </Card>
-    </main>
-  </div>
+  <EntryPageShell>
+    <Card>{children}</Card>
+  </EntryPageShell>
 );
 
+/** Renders the self-hosted Web First-Run Setup flow. */
 export const FirstRunSetupPage = ({
   getInstanceStatus = getPublicInstanceStatus,
   completeSetup = completeFirstRunSetup,
