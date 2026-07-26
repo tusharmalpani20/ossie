@@ -14,7 +14,7 @@ import {
   type ProjectListResponse,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
-import { PortalTopbar } from "../portal/PortalTopbar";
+import { PortalAppShell } from "../portal/PortalAppShell";
 import type { CreateProjectInput, Project } from "./types";
 import { projectRoleLabel } from "./useProjectAccess";
 import styles from "./ProjectListPage.module.css";
@@ -26,7 +26,9 @@ type LoadState =
   | { status: "error" };
 
 type ProjectListPageProps = {
-  loadProjects?: (options?: { status?: "active" | "archived" }) => Promise<ProjectListResponse>;
+  loadProjects?: (options?: {
+    status?: "active" | "archived";
+  }) => Promise<ProjectListResponse>;
   createProject?: (input: CreateProjectInput) => Promise<ProjectCreateResponse>;
   currentPath?: string;
   performLogout?: () => Promise<void>;
@@ -60,7 +62,8 @@ const formatDateTime = (value: string) => {
   }).format(date);
 };
 
-const projectUrl = (project: Project) => `/projects/${encodeURIComponent(project.id)}/versions/${encodeURIComponent(project.default_project_version.slug)}`;
+const projectUrl = (project: Project) =>
+  `/projects/${encodeURIComponent(project.id)}/versions/${encodeURIComponent(project.default_project_version.slug)}`;
 
 const optionalProjectField = (value: string) => {
   const trimmed = value.trim();
@@ -106,7 +109,9 @@ export const ProjectListPage = ({
 }: ProjectListPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<"active" | "archived">("active");
+  const [statusFilter, setStatusFilter] = useState<"active" | "archived">(
+    "active",
+  );
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createForm, setCreateForm] = useState<CreateProjectFormState>({
     name: "",
@@ -144,7 +149,10 @@ export const ProjectListPage = ({
     }
   }, [showCreateForm]);
 
-  const updateCreateField = (field: keyof CreateProjectFormState, value: string) => {
+  const updateCreateField = (
+    field: keyof CreateProjectFormState,
+    value: string,
+  ) => {
     setCreateForm((current) => ({
       ...current,
       [field]: value,
@@ -205,7 +213,9 @@ export const ProjectListPage = ({
       <PortalShell performLogout={performLogout} navigate={navigate}>
         <div className={styles.state}>
           <div>Sign in to view projects.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>Sign in</a>
+          <a className={styles.stateLink} href={signInUrl(currentPath)}>
+            Sign in
+          </a>
         </div>
       </PortalShell>
     );
@@ -216,7 +226,12 @@ export const ProjectListPage = ({
       <PortalShell performLogout={performLogout} navigate={navigate}>
         <div className={styles.state}>
           <div>Could not load projects.</div>
-          <Button variant="secondary" size="sm" type="button" onClick={() => setReloadKey((key) => key + 1)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            onClick={() => setReloadKey((key) => key + 1)}
+          >
             Retry
           </Button>
         </div>
@@ -237,26 +252,37 @@ export const ProjectListPage = ({
       </section>
 
       {showCreateForm ? (
-        <Card className={styles.createPanel} aria-labelledby="create-project-heading">
+        <Card
+          className={styles.createPanel}
+          aria-labelledby="create-project-heading"
+        >
           <CardHeader>
-            <h2 className={styles.formTitle} id="create-project-heading">Create project</h2>
+            <h2 className={styles.formTitle} id="create-project-heading">
+              Create project
+            </h2>
           </CardHeader>
           <CardContent>
             <form className={styles.form} onSubmit={submitCreateProject}>
-              {createError ? <Alert variant="destructive">{createError}</Alert> : null}
+              {createError ? (
+                <Alert variant="destructive">{createError}</Alert>
+              ) : null}
               <Label className={styles.field}>
                 <span>Project name</span>
                 <Input
                   ref={createNameInputRef}
                   value={createForm.name}
-                  onChange={(event) => updateCreateField("name", event.target.value)}
+                  onChange={(event) =>
+                    updateCreateField("name", event.target.value)
+                  }
                 />
               </Label>
               <Label className={styles.field}>
                 <span>Slug</span>
                 <Input
                   value={createForm.slug}
-                  onChange={(event) => updateCreateField("slug", event.target.value)}
+                  onChange={(event) =>
+                    updateCreateField("slug", event.target.value)
+                  }
                 />
               </Label>
               <Label className={styles.field}>
@@ -264,14 +290,21 @@ export const ProjectListPage = ({
                 <Textarea
                   rows={4}
                   value={createForm.description}
-                  onChange={(event) => updateCreateField("description", event.target.value)}
+                  onChange={(event) =>
+                    updateCreateField("description", event.target.value)
+                  }
                 />
               </Label>
               <div className={styles.formActions}>
                 <Button type="submit" disabled={isCreating}>
                   {isCreating ? "Creating Project..." : "Create Project"}
                 </Button>
-                <Button variant="secondary" type="button" disabled={isCreating} onClick={closeCreateForm}>
+                <Button
+                  variant="secondary"
+                  type="button"
+                  disabled={isCreating}
+                  onClick={closeCreateForm}
+                >
                   Cancel
                 </Button>
               </div>
@@ -281,8 +314,23 @@ export const ProjectListPage = ({
       ) : null}
 
       <section className={styles.content} aria-labelledby="projects-heading">
-        <div className={styles.titleRow}><h2 className={styles.sectionTitle} id="projects-heading">{statusFilter === "active" ? "Active" : "Archived"} projects</h2>
-          <label>Project status <select aria-label="Project status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "active" | "archived")}><option value="active">Active</option><option value="archived">Archived</option></select></label>
+        <div className={styles.titleRow}>
+          <h2 className={styles.sectionTitle} id="projects-heading">
+            {statusFilter === "active" ? "Active" : "Archived"} projects
+          </h2>
+          <label>
+            Project status{" "}
+            <select
+              aria-label="Project status"
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as "active" | "archived")
+              }
+            >
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+            </select>
+          </label>
         </div>
         {state.projects.length === 0 ? (
           <Card className={styles.empty}>No projects yet.</Card>
@@ -307,10 +355,14 @@ const PortalShell = ({
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
 }) => (
-  <div className={styles.page}>
-    <PortalTopbar context="Projects" performLogout={performLogout} navigate={navigate} />
-    <main className={styles.main}>{children}</main>
-  </div>
+  <PortalAppShell
+    activeSection="projects"
+    currentLabel="Projects"
+    performLogout={performLogout}
+    navigate={navigate}
+  >
+    {children}
+  </PortalAppShell>
 );
 
 const ProjectCard = ({ project }: { project: Project }) => (
@@ -318,7 +370,9 @@ const ProjectCard = ({ project }: { project: Project }) => (
     <div className={styles.projectBody}>
       <div className={styles.titleRow}>
         <h3 className={styles.projectTitle}>{project.name}</h3>
-        <Badge variant={project.status === "active" ? "success" : "default"}>{project.status}</Badge>
+        <Badge variant={project.status === "active" ? "success" : "default"}>
+          {project.status}
+        </Badge>
         <Badge>{projectRoleLabel(project)}</Badge>
       </div>
       {project.description ? (

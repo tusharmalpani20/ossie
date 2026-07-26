@@ -605,6 +605,7 @@ export default function App() {
             <ProjectGuideListPage
               projectId={route.projectId}
               projectVersionId={project.default_project_version.id}
+              versionSlug={project.default_project_version.slug}
               currentPath={currentPath}
             />
           )}
@@ -639,6 +640,7 @@ export default function App() {
             <ProjectInteractiveDemoListPage
               projectId={route.projectId}
               projectVersionId={project.default_project_version.id}
+              versionSlug={project.default_project_version.slug}
               currentPath={currentPath}
               canWrite={
                 project.status === "active" && project.access.role !== "viewer"

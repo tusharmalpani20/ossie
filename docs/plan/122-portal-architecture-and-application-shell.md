@@ -4,8 +4,8 @@ Date reserved: 2026-07-12
 
 Date expanded: 2026-07-26
 
-Status: Expanded and rechecked. Implementation-ready after child `121` is
-explicitly accepted by the user.
+Status: Implemented and locally verified on 2026-07-26. Awaiting the
+close-previous audit before child `123` starts.
 
 Parent plan:
 
@@ -17,11 +17,10 @@ Preceding plan:
 
 Starting baseline for this expansion:
 
-- Starting commit: `bd73b08`.
-- Worktree ownership: clean at expansion time.
-- Child `121` source work is implemented and verified, but final closeout is
-  pending explicit user acceptance of `PRODUCT.md`, `DESIGN.md`, and
-  `docs/ui/121-representative-directions.md`.
+- Starting expansion commit: `bd73b08`.
+- Starting implementation commit: `ab02f6d`.
+- Worktree ownership: clean at expansion time and implementation start.
+- Child `121` source work is complete and explicitly accepted by the user.
 - Child `121` carryover: full authenticated workflow screenshot baselines for
   children `122` through `128` were not captured. Child `122` must capture those
   baselines before broad shell/workflow visual rewrites, or record the exact
@@ -816,31 +815,57 @@ Stop and ask before continuing if implementation requires any of these:
 
 ## Implementation Checklist
 
-- [ ] Confirm child `121` acceptance and record starting commit.
-- [ ] Capture or honestly block inherited full-workflow screenshot baseline.
-- [ ] Add route metadata tests.
-- [ ] Add route metadata helper.
-- [ ] Add navigation helper tests.
-- [ ] Add navigation helper.
-- [ ] Add Portal App shell tests.
-- [ ] Add Portal App shell component and CSS.
-- [ ] Update `PortalTopbar` while preserving sign-out behavior.
-- [ ] Adopt shell on allowed project, organization, compliance, activity, and
+- [x] Confirm child `121` acceptance and record starting commit.
+- [x] Capture or honestly block inherited full-workflow screenshot baseline.
+- [x] Add route metadata tests.
+- [x] Add route metadata helper.
+- [x] Add navigation helper tests.
+- [x] Add navigation helper.
+- [x] Add Portal App shell tests.
+- [x] Add Portal App shell component and CSS.
+- [x] Update `PortalTopbar` while preserving sign-out behavior.
+- [x] Adopt shell on allowed project, organization, compliance, activity, and
       list-level workflow pages.
-- [ ] Record whether editor/detail routes adopted the shell through safe
+- [x] Record whether editor/detail routes adopted the shell through safe
       extraction or intentionally stayed on the legacy local shell for later
       child ownership.
-- [ ] Preserve public/setup/login/invite/dev route behavior.
-- [ ] Preserve legacy and Project Version alias canonicalization.
-- [ ] Run focused tests.
-- [ ] Run broad checks.
-- [ ] Run required agent-browser validation or record exact blocked evidence.
-- [ ] Update implementation log, verification record, leftovers, and handoff.
-- [ ] Update master plan `005` only after acceptance.
+- [x] Preserve public/setup/login/invite/dev route behavior.
+- [x] Preserve legacy and Project Version alias canonicalization.
+- [x] Run focused tests.
+- [x] Run broad checks.
+- [x] Run required agent-browser validation or record exact blocked evidence.
+- [x] Update implementation log, verification record, leftovers, and handoff.
+- [x] Update master plan `005` with implementation status only.
 
 ## Implementation Log
 
-Not implemented.
+Implemented on 2026-07-26 from starting commit `ab02f6d`.
+
+Implementation changes:
+
+- Added route metadata helper and tests in
+  `apps/web/src/lib/portalRouteMetadata.ts` and
+  `apps/web/src/lib/portalRouteMetadata.test.ts`.
+- Added shared portal navigation and breadcrumb helper and tests in
+  `apps/web/src/lib/portalNavigation.ts` and
+  `apps/web/src/lib/portalNavigation.test.ts`.
+- Added shared authenticated shell component and CSS in
+  `apps/web/src/features/portal/PortalAppShell.tsx` and
+  `apps/web/src/features/portal/PortalAppShell.module.css`.
+- Added `PortalAppShell` tests and preserved `PortalTopbar` sign-out tests.
+- Adopted the shared shell on project list, project workspace, project settings,
+  organization members, compliance timeline, project activity, guide list,
+  interactive demo list, capture session list, and Project Version workspace
+  boundary states.
+- Preserved public/setup/login/invite/dev route behavior and did not introduce
+  React Router, TanStack Query, or any new runtime dependency.
+- Preserved Project Version alias canonicalization in
+  `ProjectVersionRouteBoundary`.
+- Kept editor/detail routes on their legacy local shells for later child
+  ownership. They still pass through the existing Project Version route boundary
+  where applicable.
+- Added `docs/ui/122-portal-shell-baseline.md` and safe synthetic browser
+  screenshots under `docs/ui/evidence/122/`.
 
 Expansion log:
 
@@ -859,7 +884,7 @@ Expansion log:
 
 ## Verification Record
 
-Planning verification only:
+Planning verification:
 
 - `rtk pnpm exec prettier --check docs/plan/122-portal-architecture-and-application-shell.md`
   passed after expansion.
@@ -867,20 +892,34 @@ Planning verification only:
 
 Runtime verification:
 
-- Not run. No runtime implementation has happened in this expansion.
+- `rtk pnpm --filter web test -- src/lib/portalRouteMetadata.test.ts src/lib/portalNavigation.test.ts src/features/portal/PortalTopbar.test.tsx src/features/portal/PortalAppShell.test.tsx src/features/project-version/ProjectVersionRouteBoundary.test.tsx src/features/project-version/ProjectVersionContextBar.test.tsx`
+  passed.
+- `rtk pnpm --filter web test -- src/features/project/ProjectListPage.test.tsx src/features/project/ProjectWorkspacePage.test.tsx src/features/project/ProjectSettingsPage.test.tsx src/features/organization/OrganizationMembersPage.test.tsx src/features/compliance/ComplianceTimelinePage.test.tsx src/features/project-activity/ProjectActivityTimelinePage.test.tsx src/features/guide/ProjectGuideListPage.test.tsx src/features/interactive-demo/ProjectInteractiveDemoListPage.test.tsx src/features/capture-session/ProjectCaptureSessionListPage.test.tsx`
+  passed.
+- `rtk pnpm --filter web exec tsc --noEmit` passed.
+- `rtk pnpm --filter web run build` passed.
+- Agent-browser opened the built preview at `http://localhost:3000/projects`
+  with safe mocked read-only API responses and confirmed desktop shell,
+  `390x844` mobile shell, keyboard focus reachability, and no page errors.
+- Browser screenshots:
+  - `docs/ui/evidence/122/projects-desktop-shell.png`
+  - `docs/ui/evidence/122/projects-mobile-shell.png`
 
 ## Leftovers And Handoff
 
 Current handoff:
 
-- Do not implement child `122` until child `121` is explicitly accepted and
-  master plan `005` records `121` complete.
-- The first implementation action in child `122` is safe browser baseline
-  capture for the authenticated workflows missing from child `121`.
-- Keep implementation conservative: route metadata, navigation helpers, and
-  small shell components before touching many pages.
+- Child `122` is implemented and ready for close-previous audit.
+- The full authenticated workflow screenshot matrix remains blocked until a
+  local backend, seeded database, and authenticated session are available.
+- Browser evidence in this child uses safe synthetic mocked data for the
+  `/projects` shell only; do not treat it as full authenticated workflow
+  evidence.
 - Do not add React Router, TanStack Query, or a headless primitive dependency
   without a new explicit acceptance decision.
 - Keep public reader/embed routes isolated from authenticated shell behavior.
 - Do not add code to `App.test.tsx`, `lib/api.ts`, or `lib/api.test.ts` unless a
   behavior-preserving split happens first.
+- Carry into child `123`: recheck setup/login/organization shell behavior
+  against this shared shell, and replace synthetic browser evidence with real
+  authenticated screenshots if the local backend/session is available.

@@ -8,7 +8,7 @@ import {
   type ProjectInteractiveDemoListResponse,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
-import { PortalTopbar } from "../portal/PortalTopbar";
+import { PortalAppShell } from "../portal/PortalAppShell";
 import type { InteractiveDemo } from "./types";
 import styles from "./ProjectInteractiveDemoListPage.module.css";
 
@@ -22,7 +22,9 @@ type LoadState =
 export type ProjectInteractiveDemoListPageProps = {
   projectId: string;
   projectVersionId: string;
-  loadDemos?: (projectId: string) => Promise<ProjectInteractiveDemoListResponse>;
+  loadDemos?: (
+    projectId: string,
+  ) => Promise<ProjectInteractiveDemoListResponse>;
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
@@ -44,18 +46,17 @@ const loadStateFromError = (error: unknown): LoadState => {
   return { status: "error" };
 };
 
-const formatDateTime = (value: string) => new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-}).format(new Date(value));
+const formatDateTime = (value: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 
-const demoUrl = (projectId: string, demoId: string, versionSlug?: string) => (
-  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/interactive-demos/${encodeURIComponent(demoId)}`
-);
+const demoUrl = (projectId: string, demoId: string, versionSlug?: string) =>
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/interactive-demos/${encodeURIComponent(demoId)}`;
 
-const captureSessionsUrl = (projectId: string, versionSlug?: string) => (
-  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/capture-sessions`
-);
+const captureSessionsUrl = (projectId: string, versionSlug?: string) =>
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/capture-sessions`;
 
 export const ProjectInteractiveDemoListPage = ({
   projectId,
@@ -77,7 +78,13 @@ export const ProjectInteractiveDemoListPage = ({
     loadDemos(projectId)
       .then((response) => {
         if (active) {
-          setState({ status: "loaded", demos: response.interactive_demo_editions.map((item) => ({ ...item.edition, id: item.artifact.id })) });
+          setState({
+            status: "loaded",
+            demos: response.interactive_demo_editions.map((item) => ({
+              ...item.edition,
+              id: item.artifact.id,
+            })),
+          });
         }
       })
       .catch((error: unknown) => {
@@ -89,13 +96,18 @@ export const ProjectInteractiveDemoListPage = ({
     return () => {
       active = false;
     };
-  // Route identity and reloadKey intentionally control refetching; the injected loader may be an inline adapter.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Route identity and reloadKey intentionally control refetching; the injected loader may be an inline adapter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, projectVersionId, reloadKey]);
 
   if (state.status === "loading") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+        versionSlug={versionSlug}
+      >
         <div className={styles.state}>Loading interactive demos...</div>
       </PortalShell>
     );
@@ -103,10 +115,17 @@ export const ProjectInteractiveDemoListPage = ({
 
   if (state.status === "unauthenticated") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+        versionSlug={versionSlug}
+      >
         <div className={styles.state}>
           <div>Sign in to view interactive demos.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>Sign in</a>
+          <a className={styles.stateLink} href={signInUrl(currentPath)}>
+            Sign in
+          </a>
         </div>
       </PortalShell>
     );
@@ -114,7 +133,12 @@ export const ProjectInteractiveDemoListPage = ({
 
   if (state.status === "not_found") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+        versionSlug={versionSlug}
+      >
         <div className={styles.state}>Project was not found.</div>
       </PortalShell>
     );
@@ -122,10 +146,18 @@ export const ProjectInteractiveDemoListPage = ({
 
   if (state.status === "error") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+        versionSlug={versionSlug}
+      >
         <div className={styles.state}>
           <div>Could not load interactive demos.</div>
-          <Button variant="secondary" onClick={() => setReloadKey((key) => key + 1)}>
+          <Button
+            variant="secondary"
+            onClick={() => setReloadKey((key) => key + 1)}
+          >
             Retry
           </Button>
         </div>
@@ -134,7 +166,12 @@ export const ProjectInteractiveDemoListPage = ({
   }
 
   return (
-    <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+    <PortalShell
+      projectId={projectId}
+      performLogout={performLogout}
+      navigate={navigate}
+      versionSlug={versionSlug}
+    >
       <section className={styles.header}>
         <div>
           <div className={styles.eyebrow}>Project</div>
@@ -143,17 +180,34 @@ export const ProjectInteractiveDemoListPage = ({
         </div>
       </section>
 
-      <section className={styles.content} aria-labelledby="interactive-demos-heading">
-        <h2 className={styles.sectionTitle} id="interactive-demos-heading">Project interactive demos</h2>
+      <section
+        className={styles.content}
+        aria-labelledby="interactive-demos-heading"
+      >
+        <h2 className={styles.sectionTitle} id="interactive-demos-heading">
+          Project interactive demos
+        </h2>
         {state.demos.length === 0 ? (
           <Card className={styles.empty}>
             <div>No interactive demos yet.</div>
-            {canWrite ? <a className={styles.stateLink} href={captureSessionsUrl(projectId, versionSlug)}>Open capture sessions</a> : null}
+            {canWrite ? (
+              <a
+                className={styles.stateLink}
+                href={captureSessionsUrl(projectId, versionSlug)}
+              >
+                Open capture sessions
+              </a>
+            ) : null}
           </Card>
         ) : (
           <div className={styles.list}>
             {state.demos.map((demo) => (
-              <DemoRow key={demo.id} demo={demo} projectId={projectId} versionSlug={versionSlug} />
+              <DemoRow
+                key={demo.id}
+                demo={demo}
+                projectId={projectId}
+                versionSlug={versionSlug}
+              />
             ))}
           </div>
         )}
@@ -167,16 +221,24 @@ const PortalShell = ({
   projectId,
   performLogout,
   navigate,
+  versionSlug,
 }: {
   children: React.ReactNode;
   projectId: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  versionSlug?: string;
 }) => (
-  <div className={styles.page}>
-    <PortalTopbar context={`${projectId} / interactive demos`} performLogout={performLogout} navigate={navigate} />
-    <main className={styles.main}>{children}</main>
-  </div>
+  <PortalAppShell
+    activeSection="interactive_demos"
+    currentLabel="Interactive demos"
+    project={{ id: projectId }}
+    projectVersion={versionSlug ? { slug: versionSlug } : undefined}
+    performLogout={performLogout}
+    navigate={navigate}
+  >
+    {children}
+  </PortalAppShell>
 );
 
 const DemoRow = ({
@@ -192,16 +254,27 @@ const DemoRow = ({
     <div className={styles.demoBody}>
       <div className={styles.demoHeader}>
         <h3 className={styles.demoTitle}>{demo.title}</h3>
-        <Badge variant={demo.status === "draft" ? "warning" : "success"}>{demo.status}</Badge>
+        <Badge variant={demo.status === "draft" ? "warning" : "success"}>
+          {demo.status}
+        </Badge>
       </div>
-      {demo.description ? <p className={styles.demoDescription}>{demo.description}</p> : null}
+      {demo.description ? (
+        <p className={styles.demoDescription}>{demo.description}</p>
+      ) : null}
       <div className={styles.meta}>
-        <span>{demo.source_capture_session_id ? `Source capture: ${demo.source_capture_session_id}` : "No source capture"}</span>
+        <span>
+          {demo.source_capture_session_id
+            ? `Source capture: ${demo.source_capture_session_id}`
+            : "No source capture"}
+        </span>
         <span>Updated {formatDateTime(demo.updated_at)}</span>
         <span>Created {formatDateTime(demo.created_at)}</span>
       </div>
     </div>
-    <a className={`${buttonVariants({ variant: "secondary" })} ${styles.openLink}`} href={demoUrl(projectId, demo.id, versionSlug)}>
+    <a
+      className={`${buttonVariants({ variant: "secondary" })} ${styles.openLink}`}
+      href={demoUrl(projectId, demo.id, versionSlug)}
+    >
       Open demo {demo.title}
     </a>
   </article>

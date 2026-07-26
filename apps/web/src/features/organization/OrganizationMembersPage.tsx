@@ -14,7 +14,7 @@ import {
   revokeOrganizationInvite,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
-import { PortalTopbar } from "../portal/PortalTopbar";
+import { PortalAppShell } from "../portal/PortalAppShell";
 import type {
   OrganizationInvite,
   OrganizationInviteCreateResponse,
@@ -28,15 +28,24 @@ import styles from "./OrganizationMembersPage.module.css";
 
 type LoadState =
   | { status: "loading" }
-  | { status: "loaded"; members: OrganizationMember[]; invites: OrganizationInvite[] }
+  | {
+      status: "loaded";
+      members: OrganizationMember[];
+      invites: OrganizationInvite[];
+    }
   | { status: "unauthenticated" }
   | { status: "error" };
 
 type OrganizationMembersPageProps = {
   loadMembers?: () => Promise<OrganizationMemberListResponse>;
   loadInvites?: () => Promise<OrganizationInviteListResponse>;
-  createInvite?: (input: { email: string; role?: OrganizationRole }) => Promise<OrganizationInviteCreateResponse>;
-  revokeInvite?: (inviteId: string) => Promise<OrganizationInviteUpdateResponse>;
+  createInvite?: (input: {
+    email: string;
+    role?: OrganizationRole;
+  }) => Promise<OrganizationInviteCreateResponse>;
+  revokeInvite?: (
+    inviteId: string,
+  ) => Promise<OrganizationInviteUpdateResponse>;
   copyText?: (text: string) => Promise<void>;
   currentPath?: string;
   performLogout?: () => Promise<void>;
@@ -81,7 +90,7 @@ const inviteErrorMessage = (error: unknown) => {
 
 const reloadOrganization = async (
   loadMembers: () => Promise<OrganizationMemberListResponse>,
-  loadInvites: () => Promise<OrganizationInviteListResponse>
+  loadInvites: () => Promise<OrganizationInviteListResponse>,
 ): Promise<LoadState> => {
   const [memberResponse, inviteResponse] = await Promise.all([
     loadMembers(),
@@ -151,11 +160,16 @@ export const OrganizationMembersPage = ({
     setInviteUrl(null);
 
     try {
-      const response = await createInviteAction({ email: normalizedEmail, role });
+      const response = await createInviteAction({
+        email: normalizedEmail,
+        role,
+      });
       setEmail("");
       setRole("member");
       setInviteUrl(response.invite_url);
-      setMessage("Invite link created. Copy it now; the token is only shown once.");
+      setMessage(
+        "Invite link created. Copy it now; the token is only shown once.",
+      );
       setReloadKey((key) => key + 1);
     } catch (error: unknown) {
       setFormError(inviteErrorMessage(error));
@@ -203,7 +217,9 @@ export const OrganizationMembersPage = ({
       <PortalShell performLogout={performLogout} navigate={navigate}>
         <div className={styles.state}>
           <div>Sign in to manage organization members.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>Sign in</a>
+          <a className={styles.stateLink} href={signInUrl(currentPath)}>
+            Sign in
+          </a>
         </div>
       </PortalShell>
     );
@@ -214,7 +230,12 @@ export const OrganizationMembersPage = ({
       <PortalShell performLogout={performLogout} navigate={navigate}>
         <div className={styles.state}>
           <div>Could not load organization members.</div>
-          <Button variant="secondary" size="sm" type="button" onClick={() => setReloadKey((key) => key + 1)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            onClick={() => setReloadKey((key) => key + 1)}
+          >
             Retry
           </Button>
         </div>
@@ -229,96 +250,140 @@ export const OrganizationMembersPage = ({
           <div className={styles.eyebrow}>Organization</div>
           <h1 className={styles.title}>Organization members</h1>
         </div>
-        <a className={styles.complianceLink} href="/organization/compliance">Compliance timeline</a>
+        <a className={styles.complianceLink} href="/organization/compliance">
+          Compliance timeline
+        </a>
       </section>
 
       <Card className={styles.panel} aria-labelledby="invite-member-heading">
         <CardHeader>
-          <h2 className={styles.sectionTitle} id="invite-member-heading">Invite member</h2>
+          <h2 className={styles.sectionTitle} id="invite-member-heading">
+            Invite member
+          </h2>
         </CardHeader>
         <CardContent>
-        <form className={styles.form} onSubmit={submitInvite}>
-          {formError ? <Alert variant="destructive">{formError}</Alert> : null}
-          {message ? <Alert variant="success">{message}</Alert> : null}
-          {inviteUrl ? (
-            <div className={styles.inviteLink}>
-              <span>{inviteUrl}</span>
-              <Button variant="secondary" size="sm" type="button" onClick={() => void copyInviteUrl()}>
-                Copy invite link
-              </Button>
+          <form className={styles.form} onSubmit={submitInvite}>
+            {formError ? (
+              <Alert variant="destructive">{formError}</Alert>
+            ) : null}
+            {message ? <Alert variant="success">{message}</Alert> : null}
+            {inviteUrl ? (
+              <div className={styles.inviteLink}>
+                <span>{inviteUrl}</span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  onClick={() => void copyInviteUrl()}
+                >
+                  Copy invite link
+                </Button>
+              </div>
+            ) : null}
+            <div className={styles.formGrid}>
+              <Label className={styles.field}>
+                <span>Invite email</span>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </Label>
+              <Label className={styles.field}>
+                <span>Invite role</span>
+                <select
+                  value={role}
+                  onChange={(event) =>
+                    setRole(event.target.value as OrganizationRole)
+                  }
+                >
+                  {inviteRoleOptions.map((organizationRole) => (
+                    <option key={organizationRole} value={organizationRole}>
+                      {organizationRole}
+                    </option>
+                  ))}
+                </select>
+              </Label>
             </div>
-          ) : null}
-          <div className={styles.formGrid}>
-            <Label className={styles.field}>
-              <span>Invite email</span>
-              <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-            </Label>
-            <Label className={styles.field}>
-              <span>Invite role</span>
-              <select value={role} onChange={(event) => setRole(event.target.value as OrganizationRole)}>
-                {inviteRoleOptions.map((organizationRole) => (
-                  <option key={organizationRole} value={organizationRole}>{organizationRole}</option>
-                ))}
-              </select>
-            </Label>
-          </div>
-          <Button className={styles.submitButton} type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating invite..." : "Create invite"}
-          </Button>
-        </form>
+            <Button
+              className={styles.submitButton}
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating invite..." : "Create invite"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
       <Card className={styles.panel} aria-labelledby="members-heading">
         <CardHeader>
-          <h2 className={styles.sectionTitle} id="members-heading">Members</h2>
+          <h2 className={styles.sectionTitle} id="members-heading">
+            Members
+          </h2>
         </CardHeader>
         <CardContent>
-        <div className={styles.rows}>
-          {state.members.map((member) => (
-            <article className={styles.row} data-testid="organization-member-row" key={member.id}>
-              <div>
-                <h3 className={styles.rowTitle}>{member.display_name || member.email}</h3>
-                <div className={styles.rowMeta}>{member.email}</div>
-              </div>
-              <Badge>{member.role}</Badge>
-            </article>
-          ))}
-        </div>
+          <div className={styles.rows}>
+            {state.members.map((member) => (
+              <article
+                className={styles.row}
+                data-testid="organization-member-row"
+                key={member.id}
+              >
+                <div>
+                  <h3 className={styles.rowTitle}>
+                    {member.display_name || member.email}
+                  </h3>
+                  <div className={styles.rowMeta}>{member.email}</div>
+                </div>
+                <Badge>{member.role}</Badge>
+              </article>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
       <Card className={styles.panel} aria-labelledby="pending-invites-heading">
         <CardHeader>
-          <h2 className={styles.sectionTitle} id="pending-invites-heading">Pending invites</h2>
+          <h2 className={styles.sectionTitle} id="pending-invites-heading">
+            Pending invites
+          </h2>
         </CardHeader>
         <CardContent>
-        {state.invites.length === 0 ? (
-          <div className={styles.empty}>No pending invites.</div>
-        ) : (
-          <div className={styles.rows}>
-            {state.invites.map((invite) => (
-              <article className={styles.row} data-testid="organization-invite-row" key={invite.id}>
-                <div>
-                  <h3 className={styles.rowTitle}>{invite.email}</h3>
-                  <div className={styles.rowMeta}>Expires {new Date(invite.expires_at).toLocaleDateString()}</div>
-                </div>
-                <div className={styles.rowActions}>
-                  <Badge variant="warning">{invite.status}</Badge>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    type="button"
-                    disabled={busyInviteId === invite.id}
-                    onClick={() => void revokePendingInvite(invite)}
-                  >
-                    {busyInviteId === invite.id ? "Revoking..." : `Revoke invite for ${invite.email}`}
-                  </Button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+          {state.invites.length === 0 ? (
+            <div className={styles.empty}>No pending invites.</div>
+          ) : (
+            <div className={styles.rows}>
+              {state.invites.map((invite) => (
+                <article
+                  className={styles.row}
+                  data-testid="organization-invite-row"
+                  key={invite.id}
+                >
+                  <div>
+                    <h3 className={styles.rowTitle}>{invite.email}</h3>
+                    <div className={styles.rowMeta}>
+                      Expires {new Date(invite.expires_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className={styles.rowActions}>
+                    <Badge variant="warning">{invite.status}</Badge>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      type="button"
+                      disabled={busyInviteId === invite.id}
+                      onClick={() => void revokePendingInvite(invite)}
+                    >
+                      {busyInviteId === invite.id
+                        ? "Revoking..."
+                        : `Revoke invite for ${invite.email}`}
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </PortalShell>
@@ -334,8 +399,12 @@ const PortalShell = ({
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
 }) => (
-  <div className={styles.page}>
-    <PortalTopbar context="Organization" performLogout={performLogout} navigate={navigate} />
-    <main className={styles.main}>{children}</main>
-  </div>
+  <PortalAppShell
+    activeSection="organization_members"
+    currentLabel="Organization members"
+    performLogout={performLogout}
+    navigate={navigate}
+  >
+    {children}
+  </PortalAppShell>
 );

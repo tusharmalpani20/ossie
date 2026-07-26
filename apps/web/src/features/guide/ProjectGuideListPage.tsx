@@ -9,7 +9,7 @@ import {
   type ProjectGuideListResponse,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
-import { PortalTopbar } from "../portal/PortalTopbar";
+import { PortalAppShell } from "../portal/PortalAppShell";
 import type { PublishLink } from "@repo/types/publish";
 import type { Guide } from "./types";
 import styles from "./ProjectGuideListPage.module.css";
@@ -59,10 +59,11 @@ const loadStateFromError = (error: unknown): LoadState => {
   return { status: "error" };
 };
 
-const formatDateTime = (value: string) => new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-}).format(new Date(value));
+const formatDateTime = (value: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 
 const isExpiredPublishLink = (expiresAt: string | null) => {
   if (!expiresAt) {
@@ -76,38 +77,36 @@ const isExpiredPublishLink = (expiresAt: string | null) => {
 const canOpenPublicGuide = (status: PublishStatusState) => {
   const link = status.status === "published" ? status.link : null;
   return Boolean(
-    link
-    && link.visibility === "public"
-    && !isExpiredPublishLink(link.expires_at)
+    link &&
+    link.visibility === "public" &&
+    !isExpiredPublishLink(link.expires_at),
   );
 };
 
-const guideUrl = (projectId: string, guideId: string, versionSlug?: string) => (
-  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideId)}`
-);
+const guideUrl = (projectId: string, guideId: string, versionSlug?: string) =>
+  `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideId)}`;
 
-const guidePreviewUrl = (projectId: string, guideId: string, versionSlug?: string) => (
-  `${guideUrl(projectId, guideId, versionSlug)}/preview`
-);
+const guidePreviewUrl = (
+  projectId: string,
+  guideId: string,
+  versionSlug?: string,
+) => `${guideUrl(projectId, guideId, versionSlug)}/preview`;
 
 export const ProjectGuideListPage = ({
   projectId,
   projectVersionId,
   loadGuides = (id) => listProjectGuides(id, projectVersionId),
   loadPublishLinks = (id, guideId) =>
-    listArtifactPublishLinks(
-      id,
-      "guide",
-      guideId,
-      projectVersionId,
-    ),
+    listArtifactPublishLinks(id, "guide", guideId, projectVersionId),
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
   versionSlug,
 }: ProjectGuideListPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [publishStatuses, setPublishStatuses] = useState<Record<string, PublishStatusState>>({});
+  const [publishStatuses, setPublishStatuses] = useState<
+    Record<string, PublishStatusState>
+  >({});
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -117,7 +116,13 @@ export const ProjectGuideListPage = ({
     loadGuides(projectId)
       .then((response) => {
         if (active) {
-          setState({ status: "loaded", guides: response.guide_editions.map((item) => ({ ...item.edition, id: item.artifact.id })) });
+          setState({
+            status: "loaded",
+            guides: response.guide_editions.map((item) => ({
+              ...item.edition,
+              id: item.artifact.id,
+            })),
+          });
         }
       })
       .catch((error: unknown) => {
@@ -129,8 +134,8 @@ export const ProjectGuideListPage = ({
     return () => {
       active = false;
     };
-  // Route identity and reloadKey intentionally control refetching; the injected loader may be an inline adapter.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Route identity and reloadKey intentionally control refetching; the injected loader may be an inline adapter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, projectVersionId, reloadKey]);
 
   useEffect(() => {
@@ -141,9 +146,11 @@ export const ProjectGuideListPage = ({
 
     let active = true;
     const guideIds = state.guides.map((guide) => guide.id);
-    setPublishStatuses(Object.fromEntries(
-      guideIds.map((guideId) => [guideId, { status: "checking" as const }])
-    ));
+    setPublishStatuses(
+      Object.fromEntries(
+        guideIds.map((guideId) => [guideId, { status: "checking" as const }]),
+      ),
+    );
 
     guideIds.forEach((guideId) => {
       loadPublishLinks(projectId, guideId)
@@ -170,9 +177,10 @@ export const ProjectGuideListPage = ({
           );
           setPublishStatuses((current) => ({
             ...current,
-            [guideId]: link && entry
-              ? { status: "published", link, entry }
-              : { status: "unpublished" },
+            [guideId]:
+              link && entry
+                ? { status: "published", link, entry }
+                : { status: "unpublished" },
           }));
         })
         .catch(() => {
@@ -190,13 +198,18 @@ export const ProjectGuideListPage = ({
     return () => {
       active = false;
     };
-  // Loaded list identity intentionally controls status checks; the injected loader may be an inline adapter.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Loaded list identity intentionally controls status checks; the injected loader may be an inline adapter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, projectVersionId, state]);
 
   if (state.status === "loading") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+        versionSlug={versionSlug}
+      >
         <div className={styles.state}>Loading guides...</div>
       </PortalShell>
     );
@@ -204,10 +217,17 @@ export const ProjectGuideListPage = ({
 
   if (state.status === "unauthenticated") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+        versionSlug={versionSlug}
+      >
         <div className={styles.state}>
           <div>Sign in to view guides.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>Sign in</a>
+          <a className={styles.stateLink} href={signInUrl(currentPath)}>
+            Sign in
+          </a>
         </div>
       </PortalShell>
     );
@@ -215,7 +235,12 @@ export const ProjectGuideListPage = ({
 
   if (state.status === "not_found") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+        versionSlug={versionSlug}
+      >
         <div className={styles.state}>Project was not found.</div>
       </PortalShell>
     );
@@ -223,10 +248,20 @@ export const ProjectGuideListPage = ({
 
   if (state.status === "error") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        projectId={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+        versionSlug={versionSlug}
+      >
         <div className={styles.state}>
           <div>Could not load guides.</div>
-          <Button variant="secondary" size="sm" type="button" onClick={() => setReloadKey((key) => key + 1)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            onClick={() => setReloadKey((key) => key + 1)}
+          >
             Retry
           </Button>
         </div>
@@ -235,7 +270,12 @@ export const ProjectGuideListPage = ({
   }
 
   return (
-    <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+    <PortalShell
+      projectId={projectId}
+      performLogout={performLogout}
+      navigate={navigate}
+      versionSlug={versionSlug}
+    >
       <section className={styles.header}>
         <div>
           <div className={styles.eyebrow}>Project</div>
@@ -245,7 +285,9 @@ export const ProjectGuideListPage = ({
       </section>
 
       <section className={styles.content} aria-labelledby="guides-heading">
-        <h2 className={styles.sectionTitle} id="guides-heading">Project guides</h2>
+        <h2 className={styles.sectionTitle} id="guides-heading">
+          Project guides
+        </h2>
         {state.guides.length === 0 ? (
           <Card className={styles.empty}>No guides yet.</Card>
         ) : (
@@ -256,7 +298,9 @@ export const ProjectGuideListPage = ({
                 guide={guide}
                 projectId={projectId}
                 versionSlug={versionSlug}
-                publishStatus={publishStatuses[guide.id] ?? { status: "checking" }}
+                publishStatus={
+                  publishStatuses[guide.id] ?? { status: "checking" }
+                }
               />
             ))}
           </div>
@@ -271,16 +315,24 @@ const PortalShell = ({
   projectId,
   performLogout,
   navigate,
+  versionSlug,
 }: {
   children: React.ReactNode;
   projectId: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  versionSlug?: string;
 }) => (
-  <div className={styles.page}>
-    <PortalTopbar context={`${projectId} / guides`} performLogout={performLogout} navigate={navigate} />
-    <main className={styles.main}>{children}</main>
-  </div>
+  <PortalAppShell
+    activeSection="guides"
+    currentLabel="Guides"
+    project={{ id: projectId }}
+    projectVersion={versionSlug ? { slug: versionSlug } : undefined}
+    performLogout={performLogout}
+    navigate={navigate}
+  >
+    {children}
+  </PortalAppShell>
 );
 
 const GuideRow = ({
@@ -298,26 +350,44 @@ const GuideRow = ({
     <div className={styles.guideBody}>
       <div className={styles.guideHeader}>
         <h3 className={styles.guideTitle}>{guide.title}</h3>
-        <Badge variant={guide.status === "draft" ? "success" : "default"}>{guide.status}</Badge>
+        <Badge variant={guide.status === "draft" ? "success" : "default"}>
+          {guide.status}
+        </Badge>
       </div>
-      {guide.description ? <p className={styles.guideDescription}>{guide.description}</p> : null}
+      {guide.description ? (
+        <p className={styles.guideDescription}>{guide.description}</p>
+      ) : null}
       <div className={styles.meta}>
-        <span>{guide.source_capture_session_id ? `Source capture: ${guide.source_capture_session_id}` : "No source capture"}</span>
+        <span>
+          {guide.source_capture_session_id
+            ? `Source capture: ${guide.source_capture_session_id}`
+            : "No source capture"}
+        </span>
         <span>Updated {formatDateTime(guide.updated_at)}</span>
         <span>Created {formatDateTime(guide.created_at)}</span>
       </div>
       <GuidePublishStatus status={publishStatus} />
     </div>
     <div className={styles.guideActions}>
-      {canOpenPublicGuide(publishStatus) && publishStatus.status === "published" ? (
-        <a className={styles.openLink} href={`${publishStatus.link.public_url}/versions/${encodeURIComponent(publishStatus.entry.project_version.slug)}`}>
+      {canOpenPublicGuide(publishStatus) &&
+      publishStatus.status === "published" ? (
+        <a
+          className={styles.openLink}
+          href={`${publishStatus.link.public_url}/versions/${encodeURIComponent(publishStatus.entry.project_version.slug)}`}
+        >
           Open public guide {guide.title}
         </a>
       ) : null}
-      <a className={styles.openLink} href={guidePreviewUrl(projectId, guide.id, versionSlug)}>
+      <a
+        className={styles.openLink}
+        href={guidePreviewUrl(projectId, guide.id, versionSlug)}
+      >
         Preview guide {guide.title}
       </a>
-      <a className={styles.openLink} href={guideUrl(projectId, guide.id, versionSlug)}>
+      <a
+        className={styles.openLink}
+        href={guideUrl(projectId, guide.id, versionSlug)}
+      >
         Open guide {guide.title}
       </a>
     </div>

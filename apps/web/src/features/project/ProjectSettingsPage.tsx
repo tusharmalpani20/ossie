@@ -14,7 +14,7 @@ import {
   type ProjectUpdateResponse,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
-import { PortalTopbar } from "../portal/PortalTopbar";
+import { PortalAppShell } from "../portal/PortalAppShell";
 import type { Project, UpdateProjectInput } from "./types";
 import { ProjectMembershipSection } from "./ProjectMembershipSection";
 import { ProjectVersionManagementSection } from "../project-version/ProjectVersionManagementSection";
@@ -32,7 +32,10 @@ type LoadState =
 type ProjectSettingsPageProps = {
   projectId: string;
   loadProject?: (projectId: string) => Promise<ProjectDetailResponse>;
-  updateProject?: (projectId: string, input: UpdateProjectInput) => Promise<ProjectUpdateResponse>;
+  updateProject?: (
+    projectId: string,
+    input: UpdateProjectInput,
+  ) => Promise<ProjectUpdateResponse>;
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
@@ -73,7 +76,8 @@ const formatDateTime = (value: string) => {
   }).format(date);
 };
 
-const workspaceUrl = (project: Project) => projectVersionWorkspaceUrl(project.id, project.default_project_version.slug);
+const workspaceUrl = (project: Project) =>
+  projectVersionWorkspaceUrl(project.id, project.default_project_version.slug);
 
 const formFromProject = (project: Project): ProjectSettingsForm => ({
   name: project.name,
@@ -87,11 +91,10 @@ const optionalProjectField = (value: string) => {
   return trimmed || null;
 };
 
-const sameForm = (left: ProjectSettingsForm, right: ProjectSettingsForm) => (
-  left.name === right.name
-  && left.description === right.description
-  && left.slug === right.slug
-);
+const sameForm = (left: ProjectSettingsForm, right: ProjectSettingsForm) =>
+  left.name === right.name &&
+  left.description === right.description &&
+  left.slug === right.slug;
 
 const updateErrorMessage = (error: unknown) => {
   if (error instanceof ApiClientError) {
@@ -129,8 +132,16 @@ export const ProjectSettingsPage = ({
 }: ProjectSettingsPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
-  const [form, setForm] = useState<ProjectSettingsForm>({ name: "", description: "", slug: "" });
-  const [savedForm, setSavedForm] = useState<ProjectSettingsForm>({ name: "", description: "", slug: "" });
+  const [form, setForm] = useState<ProjectSettingsForm>({
+    name: "",
+    description: "",
+    slug: "",
+  });
+  const [savedForm, setSavedForm] = useState<ProjectSettingsForm>({
+    name: "",
+    description: "",
+    slug: "",
+  });
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -221,7 +232,8 @@ export const ProjectSettingsPage = ({
       return;
     }
 
-    const nextStatus = state.project.status === "archived" ? "active" : "archived";
+    const nextStatus =
+      state.project.status === "archived" ? "active" : "archived";
 
     setSubmitState("updating_status");
     setError(null);
@@ -230,7 +242,9 @@ export const ProjectSettingsPage = ({
     try {
       const response = await updateProject(projectId, { status: nextStatus });
       applyProject(response.project);
-      setMessage(nextStatus === "archived" ? "Project archived." : "Project unarchived.");
+      setMessage(
+        nextStatus === "archived" ? "Project archived." : "Project unarchived.",
+      );
     } catch (statusError: unknown) {
       setError(updateErrorMessage(statusError));
     } finally {
@@ -240,7 +254,11 @@ export const ProjectSettingsPage = ({
 
   if (state.status === "loading") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        project={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Loading project settings...</div>
       </PortalShell>
     );
@@ -248,10 +266,16 @@ export const ProjectSettingsPage = ({
 
   if (state.status === "unauthenticated") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        project={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Sign in to manage this project.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>Sign in</a>
+          <a className={styles.stateLink} href={signInUrl(currentPath)}>
+            Sign in
+          </a>
         </div>
       </PortalShell>
     );
@@ -259,7 +283,11 @@ export const ProjectSettingsPage = ({
 
   if (state.status === "not_found") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        project={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Project was not found.</div>
       </PortalShell>
     );
@@ -267,10 +295,19 @@ export const ProjectSettingsPage = ({
 
   if (state.status === "error") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        project={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Could not load project settings.</div>
-          <Button variant="secondary" size="sm" type="button" onClick={() => setReloadKey((key) => key + 1)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            onClick={() => setReloadKey((key) => key + 1)}
+          >
             Retry
           </Button>
         </div>
@@ -281,12 +318,24 @@ export const ProjectSettingsPage = ({
   const project = state.project;
   if (project.access.role !== "project_admin") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        project={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <section className={styles.header}>
-          <div><div className={styles.eyebrow}>Project settings</div><h1 className={styles.title}>Settings unavailable</h1></div>
-          <a className={styles.backLink} href={workspaceUrl(project)}>Back to workspace</a>
+          <div>
+            <div className={styles.eyebrow}>Project settings</div>
+            <h1 className={styles.title}>Settings unavailable</h1>
+          </div>
+          <a className={styles.backLink} href={workspaceUrl(project)}>
+            Back to workspace
+          </a>
         </section>
-        <div className={styles.state}>Your {projectRoleLabel(project)} role can view Project content but cannot manage settings.</div>
+        <div className={styles.state}>
+          Your {projectRoleLabel(project)} role can view Project content but
+          cannot manage settings.
+        </div>
       </PortalShell>
     );
   }
@@ -294,16 +343,25 @@ export const ProjectSettingsPage = ({
   const isSaving = submitState === "saving";
   const isUpdatingStatus = submitState === "updating_status";
   const isBusy = submitState !== "idle";
-  const lifecycleButtonText = project.status === "archived" ? "Unarchive project" : "Archive project";
+  const lifecycleButtonText =
+    project.status === "archived" ? "Unarchive project" : "Archive project";
 
   return (
-    <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+    <PortalShell
+      project={project}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
       <section className={styles.header}>
         <div>
           <div className={styles.eyebrow}>Project settings</div>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>Project settings</h1>
-            <Badge variant={project.status === "active" ? "success" : "default"}>{project.status}</Badge>
+            <Badge
+              variant={project.status === "active" ? "success" : "default"}
+            >
+              {project.status}
+            </Badge>
           </div>
           <p className={styles.description}>{project.name}</p>
           <div className={styles.meta}>
@@ -317,9 +375,14 @@ export const ProjectSettingsPage = ({
       </section>
 
       <div className={styles.content}>
-        <Card className={styles.panel} aria-labelledby="project-details-heading">
+        <Card
+          className={styles.panel}
+          aria-labelledby="project-details-heading"
+        >
           <CardHeader>
-            <h2 className={styles.sectionTitle} id="project-details-heading">Details</h2>
+            <h2 className={styles.sectionTitle} id="project-details-heading">
+              Details
+            </h2>
           </CardHeader>
           <CardContent>
             {message ? <Alert variant="success">{message}</Alert> : null}
@@ -339,7 +402,9 @@ export const ProjectSettingsPage = ({
                   rows={4}
                   value={form.description}
                   disabled={isBusy}
-                  onChange={(event) => updateField("description", event.target.value)}
+                  onChange={(event) =>
+                    updateField("description", event.target.value)
+                  }
                 />
               </Label>
               <Label className={styles.field}>
@@ -359,9 +424,14 @@ export const ProjectSettingsPage = ({
           </CardContent>
         </Card>
 
-        <Card className={styles.panel} aria-labelledby="project-lifecycle-heading">
+        <Card
+          className={styles.panel}
+          aria-labelledby="project-lifecycle-heading"
+        >
           <CardHeader>
-            <h2 className={styles.sectionTitle} id="project-lifecycle-heading">Lifecycle</h2>
+            <h2 className={styles.sectionTitle} id="project-lifecycle-heading">
+              Lifecycle
+            </h2>
           </CardHeader>
           <CardContent>
             <p className={styles.panelText}>
@@ -369,13 +439,21 @@ export const ProjectSettingsPage = ({
                 ? "Return this project to the active project list."
                 : "Archived projects are hidden from the active project list but can still be opened directly and restored later."}
             </p>
-            <Button variant="secondary" type="button" disabled={isBusy} onClick={updateStatus}>
+            <Button
+              variant="secondary"
+              type="button"
+              disabled={isBusy}
+              onClick={updateStatus}
+            >
               {isUpdatingStatus ? "Updating project..." : lifecycleButtonText}
             </Button>
           </CardContent>
         </Card>
         <ProjectMembershipSection projectId={projectId} />
-        <ProjectVersionManagementSection project={project} onProjectChange={applyProject} />
+        <ProjectVersionManagementSection
+          project={project}
+          onProjectChange={applyProject}
+        />
       </div>
     </PortalShell>
   );
@@ -383,17 +461,34 @@ export const ProjectSettingsPage = ({
 
 const PortalShell = ({
   children,
-  projectId,
+  project,
   performLogout,
   navigate,
 }: {
   children: React.ReactNode;
-  projectId: string;
+  project: Project | string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
-}) => (
-  <div className={styles.page}>
-    <PortalTopbar context={projectId} performLogout={performLogout} navigate={navigate} />
-    <main className={styles.main}>{children}</main>
-  </div>
-);
+}) => {
+  const projectContext =
+    typeof project === "string"
+      ? { id: project }
+      : {
+          id: project.id,
+          name: project.name,
+          access: project.access,
+          defaultProjectVersionSlug: project.default_project_version.slug,
+        };
+
+  return (
+    <PortalAppShell
+      activeSection="project_settings"
+      currentLabel="Project settings"
+      project={projectContext}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
+      {children}
+    </PortalAppShell>
+  );
+};

@@ -13,7 +13,8 @@ import {
   listProjectVersions,
   resolveProjectVersion,
 } from "../../lib/api";
-import { PortalTopbar } from "../portal/PortalTopbar";
+import { portalProjectVersionFromDetail } from "../../lib/portalNavigation";
+import { PortalAppShell } from "../portal/PortalAppShell";
 import {
   ProjectVersionContextBar,
   projectVersionWorkspaceUrl,
@@ -84,51 +85,62 @@ export const ProjectVersionRouteBoundary = ({
   }, [projectId, versionSlug, reload, replace]);
   if (state.status !== "loaded")
     return (
-      <div className={styles.page}>
-        <PortalTopbar context={projectId} navigate={navigate} />
-        <main className={styles.main}>
-          {state.status === "loading" ? (
-            "Loading Project Version..."
-          ) : state.status === "not_found" ? (
-            "Project Version was not found."
-          ) : (
-            <>
-              <Alert variant="destructive">
-                Could not load this Project Version.
-              </Alert>
-              <Button onClick={() => setReload((value) => value + 1)}>
-                Retry
-              </Button>
-            </>
-          )}
-        </main>
-      </div>
+      <PortalAppShell
+        activeSection="project_workspace"
+        currentLabel="Project Version workspace"
+        project={{ id: projectId }}
+        projectVersion={{ slug: versionSlug }}
+        navigate={navigate}
+      >
+        {state.status === "loading" ? (
+          <div className={styles.state}>Loading Project Version...</div>
+        ) : state.status === "not_found" ? (
+          <div className={styles.state}>Project Version was not found.</div>
+        ) : (
+          <div className={styles.state}>
+            <Alert variant="destructive">
+              Could not load this Project Version.
+            </Alert>
+            <Button onClick={() => setReload((value) => value + 1)}>
+              Retry
+            </Button>
+          </div>
+        )}
+      </PortalAppShell>
     );
   const legacyContentAvailable =
     state.project.status === "active" &&
     state.selected.status === "active" &&
     state.selected.is_default;
   return (
-    <div className={styles.page}>
-      <PortalTopbar context={state.project.name} navigate={navigate} />
-      <main className={styles.main}>
-        <ProjectVersionContextBar {...state} navigate={navigate} />
-        {state.project.status === "archived" ? (
-          <Alert>Project archived — all content is read-only.</Alert>
-        ) : null}
-        {state.selected.status === "archived" ? (
-          <Alert>
-            Archived Project Version — metadata remains available, but this
-            Version is read-only.
-          </Alert>
-        ) : null}
-        {children && (legacyContentAvailable || allowVersionOwnedContent) ? (
-          children(state)
-        ) : (
-          <VersionWorkspace {...state} />
-        )}
-      </main>
-    </div>
+    <PortalAppShell
+      activeSection="project_workspace"
+      currentLabel="Project Version workspace"
+      project={{
+        id: state.project.id,
+        name: state.project.name,
+        access: state.project.access,
+        defaultProjectVersionSlug: state.project.default_project_version.slug,
+      }}
+      projectVersion={portalProjectVersionFromDetail(state.selected)}
+      navigate={navigate}
+    >
+      <ProjectVersionContextBar {...state} navigate={navigate} />
+      {state.project.status === "archived" ? (
+        <Alert>Project archived — all content is read-only.</Alert>
+      ) : null}
+      {state.selected.status === "archived" ? (
+        <Alert>
+          Archived Project Version — metadata remains available, but this
+          Version is read-only.
+        </Alert>
+      ) : null}
+      {children && (legacyContentAvailable || allowVersionOwnedContent) ? (
+        children(state)
+      ) : (
+        <VersionWorkspace {...state} />
+      )}
+    </PortalAppShell>
   );
 };
 

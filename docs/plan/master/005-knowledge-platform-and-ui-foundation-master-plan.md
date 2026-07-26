@@ -2,8 +2,8 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `121` are complete. The domain,
-publication, and design-system foundation is closed; child `122` is next.
+Status: In progress. Children `109` through `121` are complete. Child `122` is
+implemented and awaiting close-previous audit before child `123` starts.
 
 Master plan number: 005.
 
@@ -1364,11 +1364,13 @@ Acceptance:
 
 ### 122: Portal Architecture And Application Shell
 
-Status: Not started.
+Status: Implemented and locally verified on 2026-07-26. Awaiting close-previous
+audit.
 
 Planned file:
 
 - `docs/plan/122-portal-architecture-and-application-shell.md`
+- `docs/ui/122-portal-shell-baseline.md`
 
 Goal:
 
@@ -1403,6 +1405,18 @@ Acceptance:
 - Refresh, deep link, back/forward, expired session, and permission-denied behavior are correct.
 - Desktop and mobile browser screenshots show no clipping, overlap, dead controls, or misleading nav.
 - Architectural dependencies are justified and covered by a migration/test plan.
+
+Implementation notes:
+
+- Added shared route metadata, portal navigation, breadcrumbs, and
+  `PortalAppShell`.
+- Adopted the shared shell on the allowed project, organization, compliance,
+  activity, Project Version workspace, and list-level workflow pages.
+- Preserved public/setup/login/invite/dev route behavior and did not add new
+  runtime dependencies.
+- Full real authenticated browser workflow screenshots remain blocked by missing
+  local backend/session and are recorded as carryover in
+  `docs/ui/122-portal-shell-baseline.md`.
 
 ### 123: Authentication, Setup, And Organization UI Modernization
 
@@ -1982,11 +1996,9 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is child `122`, Portal Architecture And Application
-Shell. Child `122` is already expanded and rechecked; implementation can begin
-after confirming the current worktree and preserving the child `121` carryover
-to capture the full authenticated workflow screenshot matrix before broad
-shell/workflow visual rewrites.
+The next executable activity is the close-previous audit for child `122`, Portal
+Architecture And Application Shell. Do not start child `123` until child `122`
+is rechecked against its implementation plan and this master plan.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no

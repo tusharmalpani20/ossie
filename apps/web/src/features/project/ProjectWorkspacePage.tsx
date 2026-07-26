@@ -2,9 +2,13 @@ import { useEffect, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card } from "@repo/ui/card";
-import { ApiClientError, getProject, type ProjectDetailResponse } from "../../lib/api";
+import {
+  ApiClientError,
+  getProject,
+  type ProjectDetailResponse,
+} from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
-import { PortalTopbar } from "../portal/PortalTopbar";
+import { PortalAppShell } from "../portal/PortalAppShell";
 import type { Project } from "./types";
 import { projectRoleLabel } from "./useProjectAccess";
 import styles from "./ProjectWorkspacePage.module.css";
@@ -51,23 +55,21 @@ const formatDateTime = (value: string) => {
   }).format(date);
 };
 
-const captureSessionsUrl = (projectId: string) => (
-  `/projects/${encodeURIComponent(projectId)}/capture-sessions`
-);
+const captureSessionsUrl = (projectId: string) =>
+  `/projects/${encodeURIComponent(projectId)}/capture-sessions`;
 
-const guidesUrl = (projectId: string) => (
-  `/projects/${encodeURIComponent(projectId)}/guides`
-);
+const guidesUrl = (projectId: string) =>
+  `/projects/${encodeURIComponent(projectId)}/guides`;
 
-const interactiveDemosUrl = (projectId: string) => (
-  `/projects/${encodeURIComponent(projectId)}/interactive-demos`
-);
+const interactiveDemosUrl = (projectId: string) =>
+  `/projects/${encodeURIComponent(projectId)}/interactive-demos`;
 
-const settingsUrl = (projectId: string) => (
-  `/projects/${encodeURIComponent(projectId)}/settings`
-);
-const complianceUrl = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/compliance`;
-const activityUrl = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/activity`;
+const settingsUrl = (projectId: string) =>
+  `/projects/${encodeURIComponent(projectId)}/settings`;
+const complianceUrl = (projectId: string) =>
+  `/projects/${encodeURIComponent(projectId)}/compliance`;
+const activityUrl = (projectId: string) =>
+  `/projects/${encodeURIComponent(projectId)}/activity`;
 
 export const ProjectWorkspacePage = ({
   projectId,
@@ -102,7 +104,11 @@ export const ProjectWorkspacePage = ({
 
   if (state.status === "loading") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        project={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Loading project...</div>
       </PortalShell>
     );
@@ -110,10 +116,16 @@ export const ProjectWorkspacePage = ({
 
   if (state.status === "unauthenticated") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        project={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Sign in to view this project.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>Sign in</a>
+          <a className={styles.stateLink} href={signInUrl(currentPath)}>
+            Sign in
+          </a>
         </div>
       </PortalShell>
     );
@@ -121,7 +133,11 @@ export const ProjectWorkspacePage = ({
 
   if (state.status === "not_found") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        project={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Project was not found.</div>
       </PortalShell>
     );
@@ -129,10 +145,19 @@ export const ProjectWorkspacePage = ({
 
   if (state.status === "error") {
     return (
-      <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        project={projectId}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Could not load project.</div>
-          <Button variant="secondary" size="sm" type="button" onClick={() => setReloadKey((key) => key + 1)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            type="button"
+            onClick={() => setReloadKey((key) => key + 1)}
+          >
             Retry
           </Button>
         </div>
@@ -141,15 +166,27 @@ export const ProjectWorkspacePage = ({
   }
 
   return (
-    <PortalShell projectId={projectId} performLogout={performLogout} navigate={navigate}>
+    <PortalShell
+      project={state.project}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
       <section className={styles.header}>
         <div>
           <div className={styles.eyebrow}>Project workspace</div>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>{state.project.name}</h1>
-            <Badge variant={state.project.status === "active" ? "success" : "default"}>{state.project.status}</Badge>
+            <Badge
+              variant={
+                state.project.status === "active" ? "success" : "default"
+              }
+            >
+              {state.project.status}
+            </Badge>
             <Badge>{projectRoleLabel(state.project)}</Badge>
-            {state.project.access.source === "organization_owner" ? <span>Organization owner</span> : null}
+            {state.project.access.source === "organization_owner" ? (
+              <span>Organization owner</span>
+            ) : null}
           </div>
           {state.project.description ? (
             <p className={styles.description}>{state.project.description}</p>
@@ -160,14 +197,22 @@ export const ProjectWorkspacePage = ({
             <span>Created {formatDateTime(state.project.created_at)}</span>
           </div>
         </div>
-        {state.project.access.role === "project_admin" ? <div>
-          <a className={styles.settingsLink} href={settingsUrl(projectId)}>Project settings</a>
-          <a className={styles.settingsLink} href={complianceUrl(projectId)}>Compliance</a>
-        </div> : null}
+        {state.project.access.role === "project_admin" ? (
+          <div>
+            <a className={styles.settingsLink} href={settingsUrl(projectId)}>
+              Project settings
+            </a>
+            <a className={styles.settingsLink} href={complianceUrl(projectId)}>
+              Compliance
+            </a>
+          </div>
+        ) : null}
       </section>
 
       <section className={styles.content} aria-labelledby="workspace-heading">
-        <h2 className={styles.sectionTitle} id="workspace-heading">Workspace</h2>
+        <h2 className={styles.sectionTitle} id="workspace-heading">
+          Workspace
+        </h2>
         <div className={styles.actions}>
           <WorkspaceAction
             title="Capture sessions"
@@ -175,12 +220,14 @@ export const ProjectWorkspacePage = ({
             href={captureSessionsUrl(projectId)}
             linkLabel="Open capture sessions"
           />
-          {state.project.access.role !== "viewer" ? <WorkspaceAction
-            title="Activity"
-            description="Review curated Project changes without raw security evidence."
-            href={activityUrl(projectId)}
-            linkLabel="Open activity"
-          /> : null}
+          {state.project.access.role !== "viewer" ? (
+            <WorkspaceAction
+              title="Activity"
+              description="Review curated Project changes without raw security evidence."
+              href={activityUrl(projectId)}
+              linkLabel="Open activity"
+            />
+          ) : null}
           <WorkspaceAction
             title="Guides"
             description="Open prepared docs and demos for this project."
@@ -201,20 +248,37 @@ export const ProjectWorkspacePage = ({
 
 const PortalShell = ({
   children,
-  projectId,
+  project,
   performLogout,
   navigate,
 }: {
   children: React.ReactNode;
-  projectId: string;
+  project: Project | string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
-}) => (
-  <div className={styles.page}>
-    <PortalTopbar context={projectId} performLogout={performLogout} navigate={navigate} />
-    <main className={styles.main}>{children}</main>
-  </div>
-);
+}) => {
+  const projectContext =
+    typeof project === "string"
+      ? { id: project }
+      : {
+          id: project.id,
+          name: project.name,
+          access: project.access,
+          defaultProjectVersionSlug: project.default_project_version.slug,
+        };
+
+  return (
+    <PortalAppShell
+      activeSection="project_workspace"
+      currentLabel="Project workspace"
+      project={projectContext}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
+      {children}
+    </PortalAppShell>
+  );
+};
 
 const WorkspaceAction = ({
   title,

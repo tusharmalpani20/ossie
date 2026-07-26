@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Portal topbar with brand and sign-out controls.
+ */
+
 import { useState } from "react";
 import { Button } from "@repo/ui/button";
 import { logout } from "../../lib/api";
@@ -10,6 +14,7 @@ type PortalTopbarProps = {
   navigate?: (path: string) => void;
 };
 
+/** Renders the stable top row for authenticated portal pages. */
 export const PortalTopbar = ({
   context,
   performLogout = logout,
@@ -35,12 +40,20 @@ export const PortalTopbar = ({
   return (
     <header className={styles.topbar}>
       <div>
-        <a className={styles.brand} href="/projects"><OssieBrand /></a>
+        <a className={styles.brand} href="/projects">
+          <OssieBrand />
+        </a>
         <div className={styles.context}>{context}</div>
       </div>
       <div className={styles.actions}>
         {error ? <div className={styles.error}>{error}</div> : null}
-        <Button variant="secondary" size="sm" type="button" disabled={signingOut} onClick={handleSignOut}>
+        <Button
+          variant="secondary"
+          size="sm"
+          type="button"
+          disabled={signingOut}
+          onClick={handleSignOut}
+        >
           {signingOut ? "Signing out..." : "Sign out"}
         </Button>
       </div>

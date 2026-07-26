@@ -14,7 +14,7 @@ import {
   type ProjectCaptureSessionListResponse,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
-import { PortalTopbar } from "../portal/PortalTopbar";
+import { PortalAppShell } from "../portal/PortalAppShell";
 import {
   projectIsWritable,
   useProjectAccess,
@@ -277,6 +277,7 @@ export const ProjectCaptureSessionListPage = ({
         projectId={projectId}
         performLogout={performLogout}
         navigate={navigate}
+        versionSlug={versionSlug}
       >
         <div className={styles.state}>Loading capture sessions...</div>
       </PortalShell>
@@ -289,6 +290,7 @@ export const ProjectCaptureSessionListPage = ({
         projectId={projectId}
         performLogout={performLogout}
         navigate={navigate}
+        versionSlug={versionSlug}
       >
         <div className={styles.state}>
           <div>Sign in to view capture sessions.</div>
@@ -306,6 +308,7 @@ export const ProjectCaptureSessionListPage = ({
         projectId={projectId}
         performLogout={performLogout}
         navigate={navigate}
+        versionSlug={versionSlug}
       >
         <div className={styles.state}>Project was not found.</div>
       </PortalShell>
@@ -318,6 +321,7 @@ export const ProjectCaptureSessionListPage = ({
         projectId={projectId}
         performLogout={performLogout}
         navigate={navigate}
+        versionSlug={versionSlug}
       >
         <div className={styles.state}>
           <div>Could not load capture sessions.</div>
@@ -339,6 +343,7 @@ export const ProjectCaptureSessionListPage = ({
       projectId={projectId}
       performLogout={performLogout}
       navigate={navigate}
+      versionSlug={versionSlug}
     >
       <section className={styles.header}>
         <div>
@@ -453,20 +458,24 @@ const PortalShell = ({
   projectId,
   performLogout,
   navigate,
+  versionSlug,
 }: {
   children: React.ReactNode;
   projectId: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  versionSlug?: string;
 }) => (
-  <div className={styles.page}>
-    <PortalTopbar
-      context={`${projectId} / capture sessions`}
-      performLogout={performLogout}
-      navigate={navigate}
-    />
-    <main className={styles.main}>{children}</main>
-  </div>
+  <PortalAppShell
+    activeSection="capture_sessions"
+    currentLabel="Capture sessions"
+    project={{ id: projectId }}
+    projectVersion={versionSlug ? { slug: versionSlug } : undefined}
+    performLogout={performLogout}
+    navigate={navigate}
+  >
+    {children}
+  </PortalAppShell>
 );
 
 const CaptureSessionRow = ({
