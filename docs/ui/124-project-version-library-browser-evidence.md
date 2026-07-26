@@ -11,7 +11,7 @@ Data: safe synthetic local/mocked API responses only.
 
 ## Result
 
-Passed with safe mocked browser responses:
+Passed smoke coverage with safe mocked browser responses:
 
 - `/projects` desktop and narrow mobile render the Project list through the
   portal shell and link the Project card to the canonical Default Project
@@ -30,6 +30,32 @@ Passed with safe mocked browser responses:
   session and final mobile session.
 - Final request scans showed the mocked API requests used by the checked pages
   returning HTTP 200.
+
+## Blocked Matrix Items
+
+The full child-plan browser matrix was not completed because this closeout did
+not establish a seeded authenticated local API/runtime fixture. Browser coverage
+therefore used URL-level mocked API responses and should be treated as smoke
+evidence, not a full end-to-end mutation run.
+
+Blocked or not independently validated in browser:
+
+- 200% browser zoom/reflow across every required route.
+- Keyboard-only operation across Project create, Project archive/restore, every
+  Project Version mutation, Carry-Forward entry, all library list navigation,
+  shell navigation, and sign-out.
+- Project creation success and conflict/error through a real authenticated API.
+- Project Version create, edit, reorder, set Default, archive, restore, and
+  conflict handling through a real authenticated API.
+- Admin and non-admin settings through real authorization fixtures.
+- Archived Project and archived Project Version read-only behavior through real
+  seeded lifecycle state.
+- Public Guide and public Interactive Demo browser routes in the same
+  agent-browser run.
+
+Covered instead by focused/unit tests and broad web tests where applicable.
+Child `125` should establish a better seeded browser fixture if it needs to
+claim the full interaction matrix rather than smoke coverage.
 
 ## Screenshots
 

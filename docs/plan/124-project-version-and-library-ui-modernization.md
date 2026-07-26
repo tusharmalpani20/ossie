@@ -1013,6 +1013,22 @@ cannot be archived.`
   Capture source, Publication, Artifact Edition, or Artifact Revision behavior
   changed.
 
+Close-previous audit:
+
+- Rechecked on 2026-07-26 at `0e2937b` against this child plan, master plan
+  `005`, `CONTEXT.md`, ADRs `0021`, `0022`, `0024`, `0025`, and `0026`,
+  `PRODUCT.md`, `DESIGN.md`, and the implemented runtime files.
+- Found and fixed one plan/process gap: `App.test.tsx` had been touched while
+  still exceeding the 1000-line rule. The public reader/embed smoke tests were
+  split into `apps/web/src/AppPublicRoutes.test.tsx`, reducing
+  `App.test.tsx` to 893 lines without changing behavior.
+- Found and fixed one evidence wording gap: browser evidence was a mocked smoke
+  run, not the full child-plan browser matrix. The evidence now records the
+  exact blocked matrix items instead of overstating coverage.
+- Found no runtime behavior mismatch, server/API/schema/migration/security
+  change, out-of-scope implementation file, Documentation/Video runtime UI, or
+  Project Version/domain terminology issue requiring a product decision.
+
 ## Verification Record
 
 Planning verification:
@@ -1053,6 +1069,21 @@ Runtime verification:
   script. The master-plan recursive test command remains the correct broad
   test shape when needed across packages.
 - `rtk git diff --check` passed before the implementation commit.
+- Close-previous focused recheck after the App test split:
+  `rtk pnpm --filter web test -- src/App.test.tsx src/AppPublicRoutes.test.tsx src/features/project/ProjectListPage.test.tsx src/features/project/ProjectWorkspacePage.test.tsx src/features/project/ProjectSettingsPage.test.tsx src/features/project-version/ProjectVersionContextBar.test.tsx src/features/project-version/ProjectVersionManagementSection.test.tsx src/features/project-version/ProjectVersionRouteBoundary.test.tsx`
+  passed with 64 tests.
+- Close-previous phase-focused suite after the App test split:
+  `rtk pnpm --filter web test -- src/App.test.tsx src/AppPublicRoutes.test.tsx src/features/project/ProjectListPage.test.tsx src/features/project/ProjectWorkspacePage.test.tsx src/features/project/ProjectSettingsPage.test.tsx src/features/project/ProjectMembershipSection.test.tsx src/features/project-version/ProjectVersionContextBar.test.tsx src/features/project-version/ProjectVersionManagementSection.test.tsx src/features/project-version/ProjectVersionRouteBoundary.test.tsx src/features/capture-session/ProjectCaptureSessionListPage.test.tsx src/features/guide/ProjectGuideListPage.test.tsx src/features/interactive-demo/ProjectInteractiveDemoListPage.test.tsx src/features/artifact-carry-forward/ProjectCarryForwardPage.test.tsx src/lib/routes.test.ts src/appRouteGuards.test.ts src/lib/portalNavigation.test.ts src/lib/portalRouteMetadata.test.ts`
+  passed with 117 tests.
+- Close-previous broad checks passed:
+  - `rtk pnpm --filter web test` passed with 294 tests.
+  - `rtk pnpm --filter web check-types` passed.
+  - `rtk pnpm --filter web lint` passed.
+  - `rtk pnpm --filter web build` passed.
+  - `rtk pnpm -r --if-present test` passed.
+  - `rtk pnpm check-types` passed.
+  - `rtk pnpm lint` passed.
+  - `rtk pnpm build` passed.
 
 Browser verification:
 
@@ -1061,13 +1092,16 @@ Browser verification:
 - Used `agent-browser` against a production web build served locally with Vite
   preview and safe mocked responses.
 - Verified desktop and narrow mobile Project list and Project Version
-  management pages.
+  management pages as browser smoke coverage.
 - Verified canonical Default Project Version Project-card link,
   `/projects/project_1/versions/main` workspace, q3 Project Version switching,
   Guides route-family preservation while switching back to Main, and the
   disabled Default Project Version archive rule.
 - Final checked browser sessions had no console messages, no page errors, and
   all checked API requests returned HTTP 200.
+- Full child-plan browser matrix was not completed because no seeded
+  authenticated local API/runtime fixture was established. Exact blocked items
+  are recorded in `docs/ui/124-project-version-library-browser-evidence.md`.
 
 ## Leftovers And Handoff
 
@@ -1084,4 +1118,8 @@ Current handoff:
   belongs to child `127`.
 - Do not fold Interactive Demo authoring/viewer modernization into child `125`;
   that belongs to child `128`.
-- No blocking leftovers remain for child `125`.
+- No runtime blocking leftovers remain for child `125`.
+- Browser carry-forward for child `125`: if child `125` needs to claim full
+  browser acceptance, establish a seeded authenticated local fixture instead of
+  relying only on URL-level mocked responses. Include keyboard-only and 200%
+  zoom/reflow checks for Capture list/detail/editor paths.

@@ -1522,6 +1522,10 @@ Implementation notes:
   source, Publication, Artifact Edition, or Artifact Revision behavior changed.
 - Browser evidence is recorded in
   `docs/ui/124-project-version-library-browser-evidence.md`.
+- Close-previous audit split public App route smoke tests out of the over-limit
+  `App.test.tsx` and recorded that child `124` browser evidence is smoke
+  coverage with blocked full-matrix items due to no seeded authenticated local
+  runtime fixture.
 
 ### 125: Capture Portal UI Modernization
 
@@ -2036,6 +2040,9 @@ The next executable activity is child `125`, Capture Portal UI Modernization.
 Start by expanding child `125` against the completed child `124` Project,
 Project Version, and library UI work. Preserve Project Version route context,
 Capture source immutability, tenant isolation, and existing Capture behavior.
+If child `125` needs full browser acceptance, establish a seeded authenticated
+local fixture before claiming keyboard-only, 200% zoom/reflow, mutation, and
+permission-state browser coverage.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
