@@ -4,8 +4,8 @@ Date reserved: 2026-07-12
 
 Date expanded: 2026-07-26
 
-Status: Expanded and rechecked. Implementation is blocked until child `123` is
-actually implemented, accepted, closed, and recorded in master plan `005`.
+Status: Expanded and rechecked against the completed child `123` result. Ready
+for implementation.
 
 Parent plan:
 
@@ -17,36 +17,34 @@ Preceding plan:
 
 Starting baseline for this expansion:
 
-- Starting commit: `1da4cc3`.
+- Starting commit: `cdabfc4`.
 - Worktree ownership: clean at expansion time.
-- Actual child `123` result in this checkout: not implemented. The repository
-  contains an expanded `123` plan only. No
-  `docs/ui/123-auth-setup-organization-browser-evidence.md` exists and the
-  `123` checklist remains unchecked.
-- Actual child `122` dependency is also not implemented in this checkout. The
-  reusable `PortalAppShell`, route metadata helpers, navigation helpers, and
-  `docs/ui/122-portal-shell-baseline.md` are absent.
-- Master plan `005` still records children `121`, `122`, `123`, and `124` as not
-  closed.
+- Actual child `123` result in this checkout: complete after close-previous
+  audit at `cdabfc4`. Runtime implementation commit is `779c245`; closeout and
+  browser evidence are recorded in
+  `docs/plan/123-authentication-setup-and-organization-ui-modernization.md` and
+  `docs/ui/123-auth-setup-organization-browser-evidence.md`.
+- Actual child `122` dependency is complete. The reusable `PortalAppShell`,
+  `portalRouteMetadata`, `portalNavigation`, and Project Version route shell
+  ownership fixes exist in current code.
+- Master plan `005` records children `109` through `123` as complete and child
+  `124` as next.
 - Project Version, Artifact Edition, Artifact Revision, Publication, Project
   Membership, Audit, and Access foundations from children `111` through `120`
   are present in code and contracts, but the UI-modernization sequence has not
-  closed past planning.
+  closed past child `123`.
 
 ## Sequence Gate
 
 Prerequisite:
 
 - Child `121` must be accepted and closed.
-- Child `122` must be implemented, accepted, closed, and recorded in master plan
-  `005`.
-- Child `123` must be implemented, accepted, closed, and recorded in master plan
-  `005`.
-- The accepted child `122` Portal App shell must exist before this child
-  modernizes Project, Project Version, and library screens.
-- The accepted child `123` auth/setup/organization flows must exist before this
-  child relies on their expired-session, sign-in, and organization-management
-  behavior.
+- Child `122` is complete in this checkout and provides the accepted Portal App
+  shell and navigation helpers.
+- Child `123` is complete in this checkout and provides the accepted
+  auth/setup/invite/organization UI closeout and browser evidence.
+- Before implementation, re-confirm the above gates are still true at the then
+  current `HEAD`.
 
 Next child:
 
@@ -54,8 +52,8 @@ Next child:
   library, lifecycle, permission, responsive, accessibility, deep-link, and
   browser acceptance pass.
 
-This child is allowed to be planned before child `123` closes. It must not be
-implemented until the sequence gate above is satisfied.
+The sequence gate is satisfied at expansion time. Implementation must still
+begin with the normal recheck because other agents may change the worktree.
 
 ## Goal
 
@@ -79,7 +77,7 @@ before coding:
 - `apps/web/src/App.tsx` currently owns route selection, setup gating, legacy
   Project-route redirects to the Default Project Version, Project Version route
   boundaries, and public reader routing.
-- `apps/web/src/App.tsx` is 739 lines. Keep it under the repository 1000-line
+- `apps/web/src/App.tsx` is 768 lines. Keep it under the repository 1000-line
   limit by extracting pure helpers instead of adding more route logic there.
 - `apps/web/src/App.test.tsx` is already over the 1000-line limit at 1045 lines.
   Do not add tests there unless a behavior-preserving split happens first.
@@ -100,11 +98,12 @@ before coding:
   - `apps/web/src/features/capture-session/ProjectCaptureSessionListPage.tsx`;
   - `apps/web/src/features/guide/ProjectGuideListPage.tsx`;
   - `apps/web/src/features/interactive-demo/ProjectInteractiveDemoListPage.tsx`.
-- `ProjectCaptureSessionListPage.tsx` is 526 lines and its test file is 620
+- `ProjectCaptureSessionListPage.tsx` is 547 lines and its test file is 634
   lines. Keep any 124 edits narrow; broad Capture workflow modernization belongs
   to child `125`.
-- Current Project list and workspace still use local `PortalTopbar` wrappers.
-  After child `122`, they should use the accepted shared Portal App shell.
+- Current Project pages render through `PortalAppShell`, but their local
+  `PortalShell` wrapper functions still need cleanup, context consistency, and
+  source comments where touched.
 - `ProjectWorkspacePage` still links legacy routes such as
   `/projects/:projectId/capture-sessions`, `/guides`, and `/interactive-demos`.
   Existing `App.tsx` redirects those legacy routes to the Default Project
@@ -119,7 +118,14 @@ before coding:
   active or archived Project Versions exist.
 - `ProjectVersionManagementSection` currently supports create, edit, slug
   change, reorder, archive, restore, and set Default Project Version. It is terse
-  and uses `window.confirm` for slug/default/archive confirmation.
+  and uses `window.confirm` for slug/default/archive confirmation. It currently
+  displays Row Version in normal UI; keep Row Version hidden unless needed for
+  conflict recovery copy.
+- Child `122` added shared helpers in `apps/web/src/lib/portalNavigation.ts`,
+  `apps/web/src/lib/portalRouteMetadata.ts`, and their tests. Prefer these
+  helpers before adding a child-specific navigation helper.
+- Child `123` added `EntryPageShell` for public entry flows. Do not wrap login,
+  setup, or public invite acceptance in Project/library shell work.
 - Project and Project Version contracts already exist in:
   - `packages/types/src/project.ts`;
   - `packages/types/src/project-version.ts`;
@@ -135,9 +141,8 @@ before coding:
   - Carry-Forward creates independent target Edition drafts and never keeps them
     synchronized with the source.
 - No Documentation or Video runtime artifact family exists.
-- Child `123` has not shipped in this checkout. Any reference to an accepted auth
-  shell, expired-session behavior, or organization flow is a dependency on the
-  future completed result of child `123`, not current code.
+- Child `123` is shipped in this checkout. Preserve its sign-in, setup,
+  invite-acceptance, organization-members, and expired-session behavior.
 
 ## Product And Design Rules
 
@@ -174,9 +179,8 @@ Rules:
   quiet, and scan-friendly.
 - Use child `121` tokens and `@repo/ui` primitives where touching UI.
 - Use the accepted child `122` shell for authenticated Project, Project Version,
-  and library surfaces after it exists.
-- Preserve the accepted child `123` sign-in/expired-session behavior after it
-  exists.
+  and library surfaces.
+- Preserve the accepted child `123` sign-in/expired-session behavior.
 - Lifecycle and destructive copy must state real effects:
   - Project archive hides the Project from active lists and makes Project-owned
     authoring read-only, but does not delete content.
@@ -211,12 +215,14 @@ records it in this plan before coding.
 - `apps/web/src/appRouteGuards.test.ts`
 - `apps/web/src/lib/routes.ts`
 - `apps/web/src/lib/routes.test.ts`
-- Child `122` route metadata/navigation helpers may be touched only for small
-  Project, Project Version, and library route labels, breadcrumbs, active nav
-  state, or canonical URL builders.
+- `apps/web/src/lib/portalRouteMetadata.ts`
+- `apps/web/src/lib/portalRouteMetadata.test.ts`
+- `apps/web/src/lib/portalNavigation.ts`
+- `apps/web/src/lib/portalNavigation.test.ts`
 
-Do not add tests to `apps/web/src/App.test.tsx` unless it is first split under a
-behavior-preserving refactor. Prefer focused helper tests.
+Touch `App.tsx` only for required route orchestration that cannot live in a
+pure helper. Do not add tests to `apps/web/src/App.test.tsx` unless it is first
+split under a behavior-preserving refactor. Prefer focused helper tests.
 
 ### Project UI
 
@@ -250,7 +256,8 @@ behavior-preserving refactor. Prefer focused helper tests.
 - `apps/web/src/features/project-version/ProjectVersionManagementSection.module.css`
 - `apps/web/src/features/project-version/ProjectVersionManagementSection.test.tsx`
 - `apps/web/src/features/project-version/projectVersionNavigation.ts` may be
-  added for Project Version URL builders, selector labels, and library tab links.
+  added only if existing `portalNavigation.ts` and route helpers are not enough
+  for same-family Project Version switching.
 - `apps/web/src/features/project-version/projectVersionNavigation.test.ts` must
   be added if `projectVersionNavigation.ts` is added.
 
@@ -285,10 +292,13 @@ Project, Project Version, and library integration points:
 - `apps/web/src/features/portal/PortalTopbar.tsx`
 - `apps/web/src/features/portal/PortalTopbar.module.css`
 - `apps/web/src/features/portal/PortalTopbar.test.tsx`
-- any route metadata/navigation helper created by child `122`.
+- `apps/web/src/lib/portalNavigation.ts`
+- `apps/web/src/lib/portalNavigation.test.ts`
+- `apps/web/src/lib/portalRouteMetadata.ts`
+- `apps/web/src/lib/portalRouteMetadata.test.ts`
 
-If these files do not exist, stop. That means the predecessor gate is not
-complete.
+If these files do not exist at implementation time, stop. That means the
+predecessor gate regressed.
 
 ### API client and shared types
 
@@ -328,13 +338,13 @@ finds an existing contract bug and stops for scope confirmation:
 
 ### Source comment requirement
 
-Every new or touched source file in `apps/web/src` must include:
+Every new or touched TypeScript/TSX source file in `apps/web/src` must include:
 
 - a terse `@fileoverview` JSDoc comment at the top;
 - terse comments for exported components, helpers, and functions.
 
-Existing touched files that lack `@fileoverview` must receive one as part of the
-same edit.
+Existing touched TypeScript/TSX source files that lack `@fileoverview` must
+receive one as part of the same edit.
 
 ## Explicit Non-Scope
 
@@ -436,8 +446,10 @@ Continue using existing Project APIs:
 - `POST /api/v1/projects`
 - `GET /api/v1/projects/:projectId`
 - `PATCH /api/v1/projects/:projectId`
-- `DELETE /api/v1/projects/:projectId` only if current UI/server behavior
-  already exposes deletion; otherwise do not add delete UI.
+
+Project archive/restore must continue through the existing Project update
+contract by setting `status` to `archived` or `active`. Do not add permanent
+Project delete UI in child `124`.
 
 Continue using existing Project Version APIs:
 
@@ -553,7 +565,7 @@ Runtime compatibility:
 
 Styling compatibility:
 
-- Adopt the accepted child `122` shell only after it exists.
+- Continue using the accepted child `122` shell.
 - Use child `121` tokens where editing CSS.
 - Avoid a second permanent design system.
 - Keep page CSS modules if that is the smallest safe change.
@@ -607,6 +619,9 @@ Rollback:
   already fetched page data. Do not add new aggregate APIs in this child.
 - Permission states must separate unauthenticated, forbidden, not found, and
   recoverable load failure where current API errors allow.
+- Project workspace and library entry links must use canonical Project Version
+  URLs when the Default Project Version slug is already loaded. Legacy route
+  redirects remain compatibility paths, not preferred new links.
 
 ### Project settings
 
@@ -675,6 +690,8 @@ Rollback:
   Carry-Forward page behavior. This child may polish its entry/context only.
 - Do not change idempotency-key behavior or batch semantics.
 - Do not imply Carry-Forward merges or keeps content synchronized.
+- Use `Carry Forward` copy consistently. Do not shorten it to migration, clone,
+  merge, sync, or duplicate.
 
 ### Loading, empty, errors, and concurrency
 
@@ -701,22 +718,25 @@ Use TDD for source behavior changes.
    - Confirm children `121`, `122`, and `123` are complete in master plan `005`.
    - Confirm child `122` shell files exist.
    - Confirm child `123` closeout and browser evidence exist.
-   - If any gate is missing, stop before coding.
+   - If any gate has regressed since this expansion, stop before coding.
    - Re-read this plan, child `123` closeout, master `005`, `CONTEXT.md`, ADRs
-     `0021`, `0022`, `0024`, `0026`, `PRODUCT.md`, `DESIGN.md`, and current
-     touched code.
+     `0021`, `0022`, `0024`, `0025`, `0026`, `PRODUCT.md`, `DESIGN.md`, and
+     current touched code.
 2. Capture safe browser baseline.
    - Add `docs/ui/124-project-version-library-browser-evidence.md`.
    - Record current or honestly blocked baseline for Project list, Project
      workspace, Project settings, Project Version selector/management, Carry
      Forward entry, Capture list, Guide list, and Interactive Demo list.
 3. Add or extend Project Version navigation/helper tests first.
-   - Add `projectVersionNavigation.test.ts` if a helper is added.
+   - Prefer extending `portalNavigation.test.ts` and
+     `portalRouteMetadata.test.ts`.
+   - Add `projectVersionNavigation.test.ts` only if a helper is added.
    - Cover URL builders, current-family switching rules, default `Main`
      suppression, active/archived grouping labels, and safe fallback.
 4. Add Project Version navigation/helper implementation.
    - Keep it pure and small.
    - Use `encodeURIComponent`.
+   - Prefer existing `portalNavigation.ts` helpers before adding another helper.
    - Do not change route parser output unless a compatibility bug is proven.
 5. Add/extend Project list tests first.
    - Cover active/archived filter, long names, create duplicate-submit blocking,
@@ -954,16 +974,24 @@ Not implemented.
 
 Expansion log:
 
-- Expanded on 2026-07-26 from starting commit `1da4cc3`.
-- Rechecked against master plan `005`, expanded child `123`, expanded child
-  `122`, `CONTEXT.md`, ADRs `0021`, `0022`, `0024`, `0026`, current Project and
-  Project Version web UI, current library list entry pages, shared Project
-  Version contracts, Carry-Forward contracts, and server Project/Project Version
-  route surfaces.
-- Rechecked again before commit on 2026-07-26; child `123` is still not actually
-  implemented in this checkout, so child `124` implementation must stop until
-  children `121`, `122`, and `123` close.
+- Re-expanded on 2026-07-26 from starting commit `cdabfc4` after child `123`
+  completed and was audited.
+- Rechecked against master plan `005`, completed child `123`, completed child
+  `122` shell/navigation helpers, `CONTEXT.md`, ADRs `0021`, `0022`, `0024`,
+  `0025`, and `0026`, `PRODUCT.md`, `DESIGN.md`, current route helpers,
+  Project/Project Version UI, library list entry pages, shared Project Version
+  contracts, Carry-Forward contracts, and server Project/Project Version route
+  surfaces.
+- Removed stale predecessor-blocking language from the earlier expansion. The
+  gate is satisfied at this commit, but implementation must recheck the gate at
+  its current `HEAD`.
 - Recorded that no server/schema/API migration is expected for this child.
+- Kept implementation limited to UI, routing helpers, focused tests, docs, and
+  browser evidence.
+- Rechecked on 2026-07-26 against master plan `005`, completed child `123`, and
+  current code. Fixed local `PortalShell` wrapper wording, clarified the
+  source-comment rule for TypeScript/TSX files, and made Project
+  archive/restore ownership explicit.
 
 ## Verification Record
 
@@ -972,6 +1000,15 @@ Planning verification only:
 - `rtk pnpm exec prettier --write docs/plan/124-project-version-and-library-ui-modernization.md`
   completed with no formatting changes.
 - `rtk git diff --check` passed after expansion and recheck.
+- `rtk git status --short` was clean before the 2026-07-26 re-expansion.
+- `rtk git rev-parse --short HEAD` returned `cdabfc4`.
+- `rtk rg --files` and `rtk wc -l` confirmed current Project, Project Version,
+  library, portal, route, and API helper files. `App.test.tsx`, `api.ts`, and
+  `api.test.ts` are already over the repository 1000-line rule, so
+  implementation should avoid adding to them unless a behavior-preserving split
+  happens first.
+- Recheck on 2026-07-26 found no contradiction with master plan `005` or the
+  implemented child `123` closeout after the plan fixes above.
 
 Runtime verification:
 
@@ -981,11 +1018,14 @@ Runtime verification:
 
 Current handoff:
 
-- Do not implement child `124` until children `121`, `122`, and `123` are
-  accepted, closed, and recorded in master `005`.
-- First implementation action is to verify the accepted child `122` shell exists
-  and that child `123` auth/session behavior is closed.
+- Children `121`, `122`, and `123` are complete in this checkout. First
+  implementation action is to verify that this is still true at the current
+  `HEAD`.
 - Keep changes UI-focused and Project/Project-Version scoped.
+- Prefer existing child `122` portal helpers before adding new navigation
+  helpers.
+- Preserve child `123` entry/auth/setup/organization behavior and do not route
+  public entry pages through Project/library shell work.
 - Do not fold Capture detail/editor modernization into child `124`; carry that
   into child `125`.
 - Do not fold Guide authoring/reader modernization into child `124`; carry that
