@@ -1422,7 +1422,7 @@ Implementation notes:
 
 ### 123: Authentication, Setup, And Organization UI Modernization
 
-Status: Complete on 2026-07-26.
+Status: Complete after close-previous audit on 2026-07-26.
 
 Planned file:
 
@@ -1468,6 +1468,9 @@ Implementation notes:
 - Browser evidence used safe local mocks; the full real authenticated backend
   matrix remains recorded as a carryover until a seeded local backend/session is
   available.
+- Close-previous audit on 2026-07-26 found no runtime gaps, no out-of-scope
+  file changes, and no missing child `123` plan/master closeout fields. Focused
+  web tests, web type-check, and `git diff --check` passed.
 
 ### 124: Project, Version, And Library UI Modernization
 

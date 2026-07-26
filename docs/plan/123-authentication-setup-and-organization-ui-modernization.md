@@ -4,7 +4,7 @@ Date reserved: 2026-07-12
 
 Date expanded: 2026-07-26
 
-Status: Complete on 2026-07-26.
+Status: Complete after close-previous audit on 2026-07-26.
 
 Parent plan:
 
@@ -768,6 +768,8 @@ Runtime changes:
 - Added safe browser evidence in
   `docs/ui/123-auth-setup-organization-browser-evidence.md` and
   `docs/ui/evidence/123/`.
+- Close-previous audit on 2026-07-26 found the implemented runtime work matched
+  this plan and master plan `005`; no runtime changes were required.
 
 Expansion log:
 
@@ -825,6 +827,13 @@ Implementation verification:
 - `agent-browser` validated safe mocked login, setup, invite acceptance, and
   organization members routes in the built preview. Evidence and limitations are
   recorded in `docs/ui/123-auth-setup-organization-browser-evidence.md`.
+- Close-previous audit on 2026-07-26 reran the focused child `123` and shell
+  guard test set:
+  `rtk pnpm --filter web test -- src/features/auth/EntryPageShell.test.tsx src/features/auth/LoginPage.test.tsx src/features/setup/FirstRunSetupPage.test.tsx src/features/organization/InviteAcceptPage.test.tsx src/features/organization/OrganizationMembersPage.test.tsx src/features/portal/PortalTopbar.test.tsx src/features/portal/PortalAppShell.test.tsx src/lib/routes.test.ts src/lib/portalRouteMetadata.test.ts src/appRouteGuards.test.ts`;
+  passed: 10 files, 62 tests.
+- Close-previous audit on 2026-07-26 reran
+  `rtk pnpm --filter web check-types`; passed.
+- Close-previous audit on 2026-07-26 reran `rtk git diff --check`; passed.
 
 ## Leftovers And Handoff
 
@@ -840,4 +849,7 @@ Implementation handoff:
   members now use the shared child `121`/`122` UI foundations while preserving
   route/API/auth semantics.
 - Carry into child `124`: project, Project Version, and library UI
-  modernization. Do not fold that work back into child `123`.
+  modernization should reuse the established entry-shell contrast, portal shell,
+  design primitives, duplicate-action protection, and honest browser-evidence
+  pattern from child `123`. Do not fold Project, Project Version, or library
+  work back into child `123`.
