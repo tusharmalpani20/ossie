@@ -15,11 +15,12 @@ Full browser acceptance was blocked.
 Reason:
 
 - `agent-browser` is installed locally.
-- This checkout does not provide the seeded authenticated local fixture required
-  by child `125`.
-- The missing fixture needs admin/editor and viewer sessions, active/default,
-  named, and archived Project Versions, and representative Capture Session
-  states with safe synthetic assets.
+- Follow-up child
+  `docs/plan/125-01-capture-portal-browser-fixture.md` added a dev/test-only
+  seed command for the required fixture.
+- This checkout cannot run the live seed/browser workflow yet because
+  `apps/server/.env-cmdrc` does not define the existing
+  `testing_maintenance` environment required by DB setup and fixture seeding.
 
 No screenshot evidence was captured, and no full browser matrix is claimed from
 unit tests.
@@ -49,10 +50,26 @@ rtk pnpm build
 rtk git diff --check
 ```
 
+Fixture tooling verification:
+
+```bash
+rtk pnpm --filter server test -- src/dev-fixtures/capture-portal-browser-fixture.test.ts
+rtk pnpm --filter server check-types
+rtk pnpm --filter server lint
+rtk pnpm --filter server build
+```
+
+Blocked live fixture command:
+
+```bash
+rtk pnpm --filter server test:setup
+rtk pnpm --filter server seed:capture-portal-browser-fixture
+```
+
 ## Carry Forward
 
-Before claiming full Capture portal browser acceptance, create or reuse a safe
-authenticated local fixture with:
+Before claiming full Capture portal browser acceptance, configure the local
+testing DB environment and run the fixture command. The fixture creates:
 
 - one active Project;
 - Default Project Version `Main`;

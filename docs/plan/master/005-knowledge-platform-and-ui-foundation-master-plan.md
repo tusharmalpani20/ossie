@@ -1572,6 +1572,10 @@ Implementation notes:
   `docs/ui/125-capture-portal-browser-evidence.md`. Full browser matrix
   acceptance remains blocked by the missing seeded authenticated local fixture
   and is not claimed from unit tests.
+- Follow-up `docs/plan/125-01-capture-portal-browser-fixture.md` added
+  dev/test-only fixture tooling and a seed command. The live DB/browser run is
+  still blocked in this checkout until `apps/server/.env-cmdrc` defines the
+  disposable `testing_maintenance` environment.
 
 Acceptance:
 
@@ -2056,11 +2060,12 @@ This master plan is complete when:
 ## 19. Immediate Next Action
 
 The next executable activity is child `126`, Extension UI Modernization. Start
-by expanding child `126` against the completed child `125` Capture portal work.
-Preserve Project Version route context, Capture source immutability, tenant
-isolation, and existing Capture behavior. Full Capture portal browser matrix
-acceptance is still not claimed until a seeded authenticated local fixture
-exists.
+by expanding child `126` against the completed child `125` Capture portal work
+and the follow-up `125-01` fixture tooling. Preserve Project Version route
+context, Capture source immutability, tenant isolation, and existing Capture
+behavior. Full Capture portal browser matrix acceptance is still not claimed
+until the local disposable testing DB environment is configured and the fixture
+seed/browser run succeeds.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no

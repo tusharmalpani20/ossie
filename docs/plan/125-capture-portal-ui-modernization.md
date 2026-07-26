@@ -770,7 +770,11 @@ Browser evidence:
 - Full browser matrix remains the only blocked verification item. It requires a
   seeded authenticated local fixture with admin/editor and viewer sessions,
   active/default/named/archived Project Versions, and representative Capture
-  Session states.
+  Session states. Follow-up child
+  `docs/plan/125-01-capture-portal-browser-fixture.md` added the dev/test-only
+  fixture tooling, but the live seed/browser run remains blocked in this
+  checkout until `apps/server/.env-cmdrc` has a disposable
+  `testing_maintenance` profile.
 - `CaptureSessionDetailPage.test.tsx` remains an existing oversized test file.
   Runtime coverage was preserved and new behavior was added in focused smaller
   test files, but a full behavior-preserving split of the legacy test file
