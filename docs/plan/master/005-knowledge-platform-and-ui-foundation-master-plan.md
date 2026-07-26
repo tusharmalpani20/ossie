@@ -2,7 +2,7 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `123` are complete. Child `124` is
+Status: In progress. Children `109` through `124` are complete. Child `125` is
 next.
 
 Master plan number: 005.
@@ -1474,7 +1474,7 @@ Implementation notes:
 
 ### 124: Project, Version, And Library UI Modernization
 
-Status: Not started.
+Status: Complete on 2026-07-26.
 
 Planned file:
 
@@ -1506,6 +1506,22 @@ Acceptance:
 - Switching version context cannot show or mutate an artifact from another Project or Project Version.
 - `Main` remains low-friction while other named versions remain discoverable.
 - Existing Project deep links remain compatible or redirect according to the accepted URL decision.
+
+Implementation notes:
+
+- Runtime commit: `567359a` (`feat(web): modernize project version library UI`).
+- Project cards and Project workspace library cards now prefer canonical Default
+  Project Version URLs for Capture sessions, Guides, and Interactive demos.
+- Project Version context switching preserves same-family routes for Capture
+  sessions, Guides, and Interactive demos.
+- Project settings uses restore wording for archived Projects and keeps Project
+  Version management under the accepted portal shell.
+- Default Project Version archive remains disabled with visible explanatory
+  copy.
+- No server API, schema, migration, auth, permission, public-link, Capture
+  source, Publication, Artifact Edition, or Artifact Revision behavior changed.
+- Browser evidence is recorded in
+  `docs/ui/124-project-version-library-browser-evidence.md`.
 
 ### 125: Capture Portal UI Modernization
 
@@ -1971,7 +1987,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `121`.
 - [x] Create, expand, recheck, implement, and close child plan `122`.
 - [x] Create, expand, recheck, implement, and close child plan `123`.
-- [ ] Create, expand, recheck, implement, and close child plan `124`.
+- [x] Create, expand, recheck, implement, and close child plan `124`.
 - [ ] Create, expand, recheck, implement, and close child plan `125`.
 - [ ] Create, expand, recheck, implement, and close child plan `126`.
 - [ ] Create, expand, recheck, implement, and close child plan `127`.
@@ -2016,10 +2032,10 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is child `124`, Project, Version, And Library UI
-Modernization. Start by expanding child `124` against the completed child `123`
-auth/setup/organization UI work and preserve Project, Project Version, and
-library semantics.
+The next executable activity is child `125`, Capture Portal UI Modernization.
+Start by expanding child `125` against the completed child `124` Project,
+Project Version, and library UI work. Preserve Project Version route context,
+Capture source immutability, tenant isolation, and existing Capture behavior.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no

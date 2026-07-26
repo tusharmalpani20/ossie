@@ -4,8 +4,8 @@ Date reserved: 2026-07-12
 
 Date expanded: 2026-07-26
 
-Status: Expanded and rechecked against the completed child `123` result. Ready
-for implementation.
+Status: Complete. Implemented, verified, browser-dogfooded, and closed on
+2026-07-26.
 
 Parent plan:
 
@@ -945,32 +945,30 @@ Stop and ask before continuing if implementation requires any of these:
 
 ## Implementation Checklist
 
-- [ ] Confirm children `121`, `122`, and `123` are accepted/closed.
-- [ ] Confirm child `122` shell files exist.
-- [ ] Confirm child `123` browser evidence and closeout exist.
-- [ ] Capture or honestly block browser baseline evidence.
-- [ ] Add/extend Project Version navigation/helper tests.
-- [ ] Add Project Version navigation/helper only if needed.
-- [ ] Add/extend Project list tests.
-- [ ] Modernize Project list.
-- [ ] Add/extend Project workspace tests.
-- [ ] Modernize Project workspace and real library summary.
-- [ ] Add/extend Project settings tests.
-- [ ] Modernize Project settings layout.
-- [ ] Add/extend Project Version context/management tests.
-- [ ] Modernize Project Version context and management.
-- [ ] Add/extend touched library list tests.
-- [ ] Modernize only list-level library entry surfaces.
-- [ ] Preserve route/API/security/domain behavior.
-- [ ] Run focused tests.
-- [ ] Run broad checks.
-- [ ] Run required agent-browser validation or record exact blocked evidence.
-- [ ] Update implementation log, verification record, leftovers, and handoff.
-- [ ] Update master plan `005` only after acceptance.
+- [x] Confirm children `121`, `122`, and `123` are accepted/closed.
+- [x] Confirm child `122` shell files exist.
+- [x] Confirm child `123` browser evidence and closeout exist.
+- [x] Capture or honestly block browser baseline evidence.
+- [x] Add/extend Project Version navigation/helper tests.
+- [x] Add Project Version navigation/helper only if needed.
+- [x] Add/extend Project list tests.
+- [x] Modernize Project list.
+- [x] Add/extend Project workspace tests.
+- [x] Modernize Project workspace and real library summary.
+- [x] Add/extend Project settings tests.
+- [x] Modernize Project settings layout.
+- [x] Add/extend Project Version context/management tests.
+- [x] Modernize Project Version context and management.
+- [x] Add/extend touched library list tests.
+- [x] Modernize only list-level library entry surfaces.
+- [x] Preserve route/API/security/domain behavior.
+- [x] Run focused tests.
+- [x] Run broad checks.
+- [x] Run required agent-browser validation or record exact blocked evidence.
+- [x] Update implementation log, verification record, leftovers, and handoff.
+- [x] Update master plan `005` only after acceptance.
 
 ## Implementation Log
-
-Not implemented.
 
 Expansion log:
 
@@ -993,9 +991,31 @@ Expansion log:
   source-comment rule for TypeScript/TSX files, and made Project
   archive/restore ownership explicit.
 
+Runtime implementation:
+
+- Implemented in `567359a` (`feat(web): modernize project version library UI`).
+- Project list and App route smoke tests now expect the active Project empty
+  state copy that explains the next action without fake artifact families.
+- Project list cards keep the canonical Default Project Version workspace link.
+- Project workspace library cards now use canonical Project Version URLs for
+  Capture sessions, Guides, and Interactive demos.
+- Project workspace now shows the Default Project Version name when the Project
+  data is loaded.
+- Project settings lifecycle copy now says `Restore project` / `Project
+restored.` for archived Projects while preserving the existing `status:
+"active"` API contract.
+- Project Version context switching reuses `portalNavigation` and preserves the
+  selected route family for Capture sessions, Guides, and Interactive demos.
+- Project Version management hides Row Version from normal UI, keeps Default
+  Project Version archive disabled, and explains `Default Project Version
+cannot be archived.`
+- No server API, database schema, migration, auth, permission, public-link,
+  Capture source, Publication, Artifact Edition, or Artifact Revision behavior
+  changed.
+
 ## Verification Record
 
-Planning verification only:
+Planning verification:
 
 - `rtk pnpm exec prettier --write docs/plan/124-project-version-and-library-ui-modernization.md`
   completed with no formatting changes.
@@ -1012,23 +1032,56 @@ Planning verification only:
 
 Runtime verification:
 
-- Not run. No runtime implementation has happened in this expansion.
+- RED tests failed before implementation for the new canonical Project Version
+  workspace links, same-family Project Version switching, hidden Row Version
+  copy, active Project empty-state copy, Project settings restore copy, and
+  Default Project Version archive explanation.
+- `rtk pnpm --filter web test -- src/features/project/ProjectListPage.test.tsx src/features/project/ProjectSettingsPage.test.tsx`
+  passed after implementation.
+- `rtk pnpm --filter web test -- src/features/project/ProjectListPage.test.tsx src/features/project/ProjectWorkspacePage.test.tsx src/features/project/ProjectSettingsPage.test.tsx src/features/project/ProjectMembershipSection.test.tsx src/features/project-version/ProjectVersionContextBar.test.tsx src/features/project-version/ProjectVersionManagementSection.test.tsx src/features/project-version/ProjectVersionRouteBoundary.test.tsx src/features/capture-session/ProjectCaptureSessionListPage.test.tsx src/features/guide/ProjectGuideListPage.test.tsx src/features/interactive-demo/ProjectInteractiveDemoListPage.test.tsx src/features/artifact-carry-forward/ProjectCarryForwardPage.test.tsx src/lib/routes.test.ts src/appRouteGuards.test.ts src/lib/portalNavigation.test.ts src/lib/portalRouteMetadata.test.ts`
+  passed with 97 tests.
+- `rtk pnpm --filter web exec prettier --check ...` passed for touched source
+  and test files.
+- `rtk pnpm --filter web check-types` passed.
+- `rtk pnpm --filter web lint` passed.
+- `rtk pnpm --filter web build` passed.
+- `rtk pnpm --filter web test` passed with 294 tests.
+- `rtk pnpm check-types` passed.
+- `rtk pnpm lint` passed.
+- `rtk pnpm build` passed.
+- `rtk pnpm test` is not available because the root package has no `test`
+  script. The master-plan recursive test command remains the correct broad
+  test shape when needed across packages.
+- `rtk git diff --check` passed before the implementation commit.
+
+Browser verification:
+
+- Added `docs/ui/124-project-version-library-browser-evidence.md`.
+- Captured screenshots under `docs/ui/evidence/124/`.
+- Used `agent-browser` against a production web build served locally with Vite
+  preview and safe mocked responses.
+- Verified desktop and narrow mobile Project list and Project Version
+  management pages.
+- Verified canonical Default Project Version Project-card link,
+  `/projects/project_1/versions/main` workspace, q3 Project Version switching,
+  Guides route-family preservation while switching back to Main, and the
+  disabled Default Project Version archive rule.
+- Final checked browser sessions had no console messages, no page errors, and
+  all checked API requests returned HTTP 200.
 
 ## Leftovers And Handoff
 
 Current handoff:
 
-- Children `121`, `122`, and `123` are complete in this checkout. First
-  implementation action is to verify that this is still true at the current
-  `HEAD`.
-- Keep changes UI-focused and Project/Project-Version scoped.
-- Prefer existing child `122` portal helpers before adding new navigation
-  helpers.
-- Preserve child `123` entry/auth/setup/organization behavior and do not route
-  public entry pages through Project/library shell work.
-- Do not fold Capture detail/editor modernization into child `124`; carry that
-  into child `125`.
-- Do not fold Guide authoring/reader modernization into child `124`; carry that
-  into child `127`.
-- Do not fold Interactive Demo authoring/viewer modernization into child `124`;
-  carry that into child `128`.
+- Child `124` is complete in this checkout.
+- Carry into child `125`: modernize Capture portal detail/editor flows only
+  after rechecking the canonical Project Version route context added here.
+- Keep using canonical Project Version URLs for Capture library entry points:
+  `/projects/:projectId/versions/:slug/capture-sessions`.
+- Keep the Project Version context selector route-family behavior when Capture
+  detail/editor routes are modernized.
+- Do not fold Guide authoring/reader modernization into child `125`; that
+  belongs to child `127`.
+- Do not fold Interactive Demo authoring/viewer modernization into child `125`;
+  that belongs to child `128`.
+- No blocking leftovers remain for child `125`.
