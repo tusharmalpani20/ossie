@@ -4,8 +4,7 @@ Date reserved: 2026-07-12
 
 Date expanded: 2026-07-26
 
-Status: Expanded from the completed child `122` implementation. Not
-implemented.
+Status: Complete on 2026-07-26.
 
 Parent plan:
 
@@ -722,27 +721,53 @@ Stop and ask before continuing if implementation requires any of these:
 
 ## Implementation Checklist
 
-- [ ] Confirm current baseline and worktree ownership.
-- [ ] Capture or honestly block browser baseline evidence.
-- [ ] Add/extend login tests.
-- [ ] Modernize login UI.
-- [ ] Add/extend Web First-Run Setup tests.
-- [ ] Modernize Web First-Run Setup UI.
-- [ ] Add/extend organization member/invite tests.
-- [ ] Modernize organization member/invite management UI on the child `122`
+- [x] Confirm current baseline and worktree ownership.
+- [x] Capture or honestly block browser baseline evidence.
+- [x] Add/extend login tests.
+- [x] Modernize login UI.
+- [x] Add/extend Web First-Run Setup tests.
+- [x] Modernize Web First-Run Setup UI.
+- [x] Add/extend organization member/invite tests.
+- [x] Modernize organization member/invite management UI on the child `122`
       shell.
-- [ ] Add/extend invite acceptance tests.
-- [ ] Modernize invite acceptance UI.
-- [ ] Preserve route/API/security behavior.
-- [ ] Run focused tests.
-- [ ] Run broad checks.
-- [ ] Run required agent-browser validation or record exact blocked evidence.
-- [ ] Update implementation log, verification record, leftovers, and handoff.
-- [ ] Update master plan `005` only after implementation passes.
+- [x] Add/extend invite acceptance tests.
+- [x] Modernize invite acceptance UI.
+- [x] Preserve route/API/security behavior.
+- [x] Run focused tests.
+- [x] Run broad checks.
+- [x] Run required agent-browser validation or record exact blocked evidence.
+- [x] Update implementation log, verification record, leftovers, and handoff.
+- [x] Update master plan `005` only after implementation passes.
 
 ## Implementation Log
 
-Not implemented.
+Implemented.
+
+Implementation commit:
+
+- `779c245 feat(web): modernize auth setup organization UI`
+
+Runtime changes:
+
+- Added shared public entry shell files:
+  - `apps/web/src/features/auth/EntryPageShell.tsx`
+  - `apps/web/src/features/auth/EntryPageShell.module.css`
+  - `apps/web/src/features/auth/EntryPageShell.test.tsx`
+- Moved login, Web First-Run Setup, and invite acceptance onto the shared
+  brand-only entry shell without wrapping them in authenticated `PortalAppShell`.
+- Preserved `OrganizationMembersPage` ownership by the child `122`
+  `PortalAppShell`.
+- Fixed organization duplicate-invite UI mapping for the current server
+  `duplicate_active_invite` error while retaining the older
+  `active_invite_exists` fallback.
+- Added owner-only permission-denied UI for organization member/invite load
+  failures.
+- Added focused tests for duplicate submit blocking, clipboard failure preserving
+  invite URL visibility, duplicate invite mapping, owner-only permission denial,
+  and the public-entry shell.
+- Added safe browser evidence in
+  `docs/ui/123-auth-setup-organization-browser-evidence.md` and
+  `docs/ui/evidence/123/`.
 
 Expansion log:
 
@@ -773,17 +798,46 @@ Planning verification only:
 - Runtime verification was not run because this prompt is planning-only and
   explicitly says not to implement.
 
+Implementation verification:
+
+- `rtk pnpm --filter web test -- src/features/organization/OrganizationMembersPage.test.tsx`
+  failed before implementation for current `duplicate_active_invite` handling
+  and owner-only permission-denied copy, then passed after implementation.
+- `rtk pnpm --filter web test -- src/features/auth/EntryPageShell.test.tsx`
+  failed before implementation because the shared shell did not exist, then
+  passed after implementation.
+- `rtk pnpm --filter web test -- src/features/auth/EntryPageShell.test.tsx src/features/auth/LoginPage.test.tsx src/features/setup/FirstRunSetupPage.test.tsx src/features/organization/InviteAcceptPage.test.tsx src/features/organization/OrganizationMembersPage.test.tsx`
+  passed: 5 files, 31 tests.
+- `rtk pnpm --filter web test -- src/features/auth/EntryPageShell.test.tsx src/features/auth/LoginPage.test.tsx src/features/setup/FirstRunSetupPage.test.tsx src/features/organization/InviteAcceptPage.test.tsx src/features/organization/OrganizationMembersPage.test.tsx src/features/portal/PortalTopbar.test.tsx src/features/portal/PortalAppShell.test.tsx src/lib/routes.test.ts src/lib/portalRouteMetadata.test.ts src/appRouteGuards.test.ts`
+  passed: 10 files, 62 tests.
+- `rtk pnpm --filter web test` passed: 44 files, 290 tests.
+- `rtk pnpm --filter web check-types` passed.
+- `rtk pnpm --filter web lint` passed.
+- `rtk pnpm --filter web build` passed.
+- `rtk pnpm --filter server test -- src/modules/authentication/session.routes.test.ts src/modules/setup/first-run-setup.routes.test.ts src/modules/public-instance/public-instance.integration.test.ts src/modules/organization/organization-invites.routes.test.ts`
+  passed: 4 files, 23 tests.
+- `rtk pnpm check-types` passed.
+- `rtk pnpm lint` passed.
+- `rtk pnpm build` passed.
+- `rtk pnpm -r --if-present test` passed across workspace packages, including
+  `apps/server` non-DB tests and `apps/web`.
+- `rtk git diff --check` passed before the source commit.
+- `agent-browser` validated safe mocked login, setup, invite acceptance, and
+  organization members routes in the built preview. Evidence and limitations are
+  recorded in `docs/ui/123-auth-setup-organization-browser-evidence.md`.
+
 ## Leftovers And Handoff
 
 Implementation handoff:
 
-- Start from this plan, then immediately recheck current code because other
-  agents may have changed the worktree.
-- Do not grow `App.test.tsx`, `api.ts`, or `api.test.ts`; they already exceed
-  the repository line limit.
-- Keep login/setup/invite as public entry flows and organization members as an
-  authenticated shell page.
-- Replace child `122` synthetic/auth-blocked browser evidence with real
-  auth/setup/organization evidence if a seeded backend/session is available.
+- Full real authenticated backend/session/invite browser evidence remains a
+  carryover because this implementation used safe local browser mocks rather
+  than a seeded backend session.
+- If a later operator has a seeded local backend, rerun the browser matrix
+  without URL mocks and replace the blocked portions of
+  `docs/ui/123-auth-setup-organization-browser-evidence.md`.
+- Child `124` can assume login, setup, invite acceptance, and organization
+  members now use the shared child `121`/`122` UI foundations while preserving
+  route/API/auth semantics.
 - Carry into child `124`: project, Project Version, and library UI
-  modernization. Do not fold that work into child `123`.
+  modernization. Do not fold that work back into child `123`.

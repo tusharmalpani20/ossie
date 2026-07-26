@@ -2,7 +2,7 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `122` are complete. Child `123` is
+Status: In progress. Children `109` through `123` are complete. Child `124` is
 next.
 
 Master plan number: 005.
@@ -1422,11 +1422,12 @@ Implementation notes:
 
 ### 123: Authentication, Setup, And Organization UI Modernization
 
-Status: Not started.
+Status: Complete on 2026-07-26.
 
 Planned file:
 
 - `docs/plan/123-authentication-setup-and-organization-ui-modernization.md`
+- `docs/ui/123-auth-setup-organization-browser-evidence.md`
 
 Goal:
 
@@ -1453,6 +1454,20 @@ Acceptance:
 - Sensitive errors do not disclose account, token, or instance details improperly.
 - Forms remain keyboard and screen-reader operable at supported viewports.
 - Session expiry and failed setup checks recover without redirect loops or lost return paths.
+
+Implementation notes:
+
+- Added a shared brand-only entry shell for login, Web First-Run Setup, and
+  public invite acceptance.
+- Preserved authenticated organization member management inside the child `122`
+  `PortalAppShell`.
+- Fixed current `duplicate_active_invite` UI handling and added owner-only
+  permission-denied copy for Organization invite/member management.
+- Added focused tests for entry shell behavior, duplicate-submit blocking,
+  duplicate invite errors, owner-only permission denial, and clipboard failure.
+- Browser evidence used safe local mocks; the full real authenticated backend
+  matrix remains recorded as a carryover until a seeded local backend/session is
+  available.
 
 ### 124: Project, Version, And Library UI Modernization
 
@@ -1952,7 +1967,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `120`.
 - [x] Create, expand, recheck, implement, and close child plan `121`.
 - [x] Create, expand, recheck, implement, and close child plan `122`.
-- [ ] Create, expand, recheck, implement, and close child plan `123`.
+- [x] Create, expand, recheck, implement, and close child plan `123`.
 - [ ] Create, expand, recheck, implement, and close child plan `124`.
 - [ ] Create, expand, recheck, implement, and close child plan `125`.
 - [ ] Create, expand, recheck, implement, and close child plan `126`.
@@ -1998,9 +2013,10 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is child `123`, Authentication, Setup, And
-Organization UI Modernization. Start by expanding child `123` against the
-completed child `122` shell and preserve setup/login/organization semantics.
+The next executable activity is child `124`, Project, Version, And Library UI
+Modernization. Start by expanding child `124` against the completed child `123`
+auth/setup/organization UI work and preserve Project, Project Version, and
+library semantics.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -2013,13 +2029,16 @@ child `115`, Project Version Foundation child `116`, Capture Source Version
 Scoping child `117`, Guide/Demo Edition And Working Draft Relational Foundation
 child `118`, Guide/Demo Revision, Carry-Forward, And Protected Assets child
 `119`, Publication And Multi-Version Publish Link Integration child `120`, and
-Design-System Foundation child `121`, and Portal Architecture And Application
-Shell child `122` are complete. The final prompt-pack closure audit confirmed
+Design-System Foundation child `121`, Portal Architecture And Application Shell
+child `122`, and Authentication, Setup, And Organization UI Modernization child
+`123` are complete. The final prompt-pack closure audit confirmed
 that every completed child from `112` through `120` records status, checklist,
 implementation, verification, leftovers, and handoff evidence; child `121`
 records source implementation, verification, explicit user acceptance,
 leftovers, and handoff evidence; child `122` records implementation,
-close-previous verification, browser evidence, leftovers, and handoff evidence.
+close-previous verification, browser evidence, leftovers, and handoff evidence;
+child `123` records source implementation, verification, browser evidence,
+leftovers, and handoff evidence.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with child `123` expansion.
+continues with child `124` expansion.
