@@ -63,7 +63,8 @@ fully browser-validated.
 
 ## Carry Into Child 123
 
-Child `123` should start by confirming the shell still wraps setup/login,
-organization members, and organization compliance behavior without changing
-authentication semantics. If a seeded local backend is available, it should
-replace this synthetic shell evidence with real authenticated screenshots.
+Child `123` should start by confirming setup/login remain public entry flows,
+organization members and organization compliance remain shell-wrapped portal
+flows, and authentication semantics are unchanged. If a seeded local backend is
+available, it should replace this synthetic shell evidence with real
+authenticated screenshots.
