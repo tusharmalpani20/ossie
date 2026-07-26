@@ -95,6 +95,7 @@ const renderPage = (
     currentPath?: string;
     performLogout?: () => Promise<void>;
     navigate?: (path: string) => void;
+    renderShell?: boolean;
   } = {},
 ) => {
   const loadCaptureSessions =
@@ -118,6 +119,7 @@ const renderPage = (
       currentPath={overrides.currentPath}
       performLogout={overrides.performLogout}
       navigate={overrides.navigate}
+      renderShell={overrides.renderShell}
     />,
   );
 
@@ -247,6 +249,18 @@ describe("ProjectCaptureSessionListPage", () => {
     expect(
       screen.getByRole("button", { name: "New Capture Session" }),
     ).toBeInTheDocument();
+  });
+
+  it("can render content without its own shell inside Project Version routes", async () => {
+    renderPage({
+      renderShell: false,
+      loadCaptureSessions: async () => ({ capture_sessions: [] }),
+    });
+
+    expect(
+      await screen.findByText("No capture sessions yet."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
   });
 
   it("opens and cancels the capture session creation form", async () => {

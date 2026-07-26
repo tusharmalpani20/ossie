@@ -318,6 +318,12 @@ export default function App() {
         projectId={route.projectId}
         versionSlug={route.versionSlug}
         allowVersionOwnedContent
+        activeSection={
+          route.artifactType === "guide" ? "guides" : "interactive_demos"
+        }
+        currentLabel={
+          route.artifactType === "guide" ? "Guide revisions" : "Demo revisions"
+        }
       >
         {({ project, selected }) => (
           <ArtifactRevisionHistoryPage
@@ -342,6 +348,12 @@ export default function App() {
         projectId={route.projectId}
         versionSlug={route.versionSlug}
         allowVersionOwnedContent
+        activeSection={
+          route.artifactType === "guide" ? "guides" : "interactive_demos"
+        }
+        currentLabel={
+          route.artifactType === "guide" ? "Guide revision" : "Demo revision"
+        }
       >
         {({ selected }) => {
           const base = `/projects/${encodeURIComponent(route.projectId)}/versions/${encodeURIComponent(route.versionSlug)}/${route.artifactType === "guide" ? "guides" : "interactive-demos"}/${encodeURIComponent(route.artifactId)}/revisions`;
@@ -425,6 +437,8 @@ export default function App() {
         projectId={route.projectId}
         versionSlug={route.versionSlug}
         allowVersionOwnedContent
+        activeSection="capture_sessions"
+        currentLabel="Capture session"
       >
         {({ project, selected, versions }) => (
           <CaptureSessionDetailPage
@@ -475,6 +489,8 @@ export default function App() {
         projectId={route.projectId}
         versionSlug={route.versionSlug}
         allowVersionOwnedContent
+        activeSection="capture_sessions"
+        currentLabel="Capture sessions"
       >
         {({ project, selected }) => (
           <ProjectCaptureSessionListPage
@@ -485,6 +501,7 @@ export default function App() {
             canWrite={
               project.status === "active" && project.access.role !== "viewer"
             }
+            renderShell={false}
           />
         )}
       </ProjectVersionRouteBoundary>
@@ -525,6 +542,8 @@ export default function App() {
         projectId={route.projectId}
         versionSlug={route.versionSlug}
         allowVersionOwnedContent
+        activeSection="guides"
+        currentLabel="Guides"
       >
         {({ project, selected }) =>
           project.status === "active" &&
@@ -578,6 +597,8 @@ export default function App() {
         projectId={route.projectId}
         versionSlug={route.versionSlug}
         allowVersionOwnedContent
+        activeSection="guides"
+        currentLabel="Guides"
       >
         {({ project, selected }) => (
           <GuidePreviewPage
@@ -616,6 +637,8 @@ export default function App() {
         projectId={route.projectId}
         versionSlug={route.versionSlug}
         allowVersionOwnedContent
+        activeSection="guides"
+        currentLabel="Guides"
       >
         {({ selected }) => (
           <ProjectGuideListPage
@@ -623,6 +646,7 @@ export default function App() {
             projectVersionId={selected.id}
             currentPath={currentPath}
             versionSlug={route.versionSlug}
+            renderShell={false}
           />
         )}
       </ProjectVersionRouteBoundary>
@@ -654,6 +678,8 @@ export default function App() {
         projectId={route.projectId}
         versionSlug={route.versionSlug}
         allowVersionOwnedContent
+        activeSection="interactive_demos"
+        currentLabel="Interactive demos"
       >
         {({ project, selected }) => (
           <ProjectInteractiveDemoListPage
@@ -664,6 +690,7 @@ export default function App() {
             canWrite={
               project.status === "active" && project.access.role !== "viewer"
             }
+            renderShell={false}
           />
         )}
       </ProjectVersionRouteBoundary>

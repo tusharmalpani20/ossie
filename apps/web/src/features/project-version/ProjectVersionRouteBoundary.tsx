@@ -14,6 +14,7 @@ import {
   resolveProjectVersion,
 } from "../../lib/api";
 import { portalProjectVersionFromDetail } from "../../lib/portalNavigation";
+import type { PortalRouteSection } from "../../lib/portalRouteMetadata";
 import { PortalAppShell } from "../portal/PortalAppShell";
 import {
   ProjectVersionContextBar,
@@ -36,6 +37,8 @@ export const ProjectVersionRouteBoundary = ({
   navigate,
   replace,
   allowVersionOwnedContent = false,
+  activeSection = "project_workspace",
+  currentLabel = "Project Version workspace",
 }: {
   projectId: string;
   versionSlug: string;
@@ -43,6 +46,8 @@ export const ProjectVersionRouteBoundary = ({
   navigate?: (path: string) => void;
   replace?: (path: string) => void;
   allowVersionOwnedContent?: boolean;
+  activeSection?: PortalRouteSection;
+  currentLabel?: string;
 }) => {
   const [state, setState] = useState<State>({ status: "loading" });
   const [reload, setReload] = useState(0);
@@ -86,8 +91,8 @@ export const ProjectVersionRouteBoundary = ({
   if (state.status !== "loaded")
     return (
       <PortalAppShell
-        activeSection="project_workspace"
-        currentLabel="Project Version workspace"
+        activeSection={activeSection}
+        currentLabel={currentLabel}
         project={{ id: projectId }}
         projectVersion={{ slug: versionSlug }}
         navigate={navigate}
@@ -114,8 +119,8 @@ export const ProjectVersionRouteBoundary = ({
     state.selected.is_default;
   return (
     <PortalAppShell
-      activeSection="project_workspace"
-      currentLabel="Project Version workspace"
+      activeSection={activeSection}
+      currentLabel={currentLabel}
       project={{
         id: state.project.id,
         name: state.project.name,

@@ -57,6 +57,29 @@ describe("ProjectVersionRouteBoundary", () => {
     ).toBeInTheDocument();
   });
 
+  it("lets nested Project Version list routes own the active shell section", async () => {
+    render(
+      <ProjectVersionRouteBoundary
+        projectId="project_1"
+        versionSlug="main"
+        allowVersionOwnedContent
+        activeSection="guides"
+        currentLabel="Guides"
+      >
+        {() => <h1>Project Version guides</h1>}
+      </ProjectVersionRouteBoundary>,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Project Version guides" }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("banner")).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "Guides" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
   it("links a non-default Version to its scoped authored content and Carry-Forward", async () => {
     api.resolveProjectVersion.mockResolvedValue({
       project_version: {

@@ -2,8 +2,8 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `121` are complete. Child `122` is
-implemented and awaiting close-previous audit before child `123` starts.
+Status: In progress. Children `109` through `122` are complete. Child `123` is
+next.
 
 Master plan number: 005.
 
@@ -1364,8 +1364,7 @@ Acceptance:
 
 ### 122: Portal Architecture And Application Shell
 
-Status: Implemented and locally verified on 2026-07-26. Awaiting close-previous
-audit.
+Status: Complete after close-previous audit on 2026-07-26.
 
 Planned file:
 
@@ -1417,6 +1416,9 @@ Implementation notes:
 - Full real authenticated browser workflow screenshots remain blocked by missing
   local backend/session and are recorded as carryover in
   `docs/ui/122-portal-shell-baseline.md`.
+- Close-previous audit fixed nested shell ownership for Project Version-owned
+  list routes and verified the Project Version guide-list shell with synthetic
+  browser evidence.
 
 ### 123: Authentication, Setup, And Organization UI Modernization
 
@@ -1949,7 +1951,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `119`.
 - [x] Create, expand, recheck, implement, and close child plan `120`.
 - [x] Create, expand, recheck, implement, and close child plan `121`.
-- [ ] Create, expand, recheck, implement, and close child plan `122`.
+- [x] Create, expand, recheck, implement, and close child plan `122`.
 - [ ] Create, expand, recheck, implement, and close child plan `123`.
 - [ ] Create, expand, recheck, implement, and close child plan `124`.
 - [ ] Create, expand, recheck, implement, and close child plan `125`.
@@ -1996,9 +1998,9 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is the close-previous audit for child `122`, Portal
-Architecture And Application Shell. Do not start child `123` until child `122`
-is rechecked against its implementation plan and this master plan.
+The next executable activity is child `123`, Authentication, Setup, And
+Organization UI Modernization. Start by expanding child `123` against the
+completed child `122` shell and preserve setup/login/organization semantics.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -2011,11 +2013,13 @@ child `115`, Project Version Foundation child `116`, Capture Source Version
 Scoping child `117`, Guide/Demo Edition And Working Draft Relational Foundation
 child `118`, Guide/Demo Revision, Carry-Forward, And Protected Assets child
 `119`, Publication And Multi-Version Publish Link Integration child `120`, and
-Design-System Foundation child `121` are complete. The final prompt-pack closure
-audit confirmed that every completed child from `112` through `120` records
-status, checklist, implementation, verification, leftovers, and handoff
-evidence; child `121` now records source implementation, verification, explicit
-user acceptance, leftovers, and handoff evidence.
+Design-System Foundation child `121`, and Portal Architecture And Application
+Shell child `122` are complete. The final prompt-pack closure audit confirmed
+that every completed child from `112` through `120` records status, checklist,
+implementation, verification, leftovers, and handoff evidence; child `121`
+records source implementation, verification, explicit user acceptance,
+leftovers, and handoff evidence; child `122` records implementation,
+close-previous verification, browser evidence, leftovers, and handoff evidence.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with child `122` implementation.
+continues with child `123` expansion.

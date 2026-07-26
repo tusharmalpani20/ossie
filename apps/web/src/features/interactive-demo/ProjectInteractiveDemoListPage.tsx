@@ -30,6 +30,7 @@ export type ProjectInteractiveDemoListPageProps = {
   navigate?: (path: string) => void;
   versionSlug?: string;
   canWrite?: boolean;
+  renderShell?: boolean;
 };
 
 const loadStateFromError = (error: unknown): LoadState => {
@@ -67,6 +68,7 @@ export const ProjectInteractiveDemoListPage = ({
   navigate,
   versionSlug,
   canWrite = true,
+  renderShell = true,
 }: ProjectInteractiveDemoListPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
@@ -107,6 +109,7 @@ export const ProjectInteractiveDemoListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>Loading interactive demos...</div>
       </PortalShell>
@@ -120,6 +123,7 @@ export const ProjectInteractiveDemoListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>
           <div>Sign in to view interactive demos.</div>
@@ -138,6 +142,7 @@ export const ProjectInteractiveDemoListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>Project was not found.</div>
       </PortalShell>
@@ -151,6 +156,7 @@ export const ProjectInteractiveDemoListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>
           <div>Could not load interactive demos.</div>
@@ -171,6 +177,7 @@ export const ProjectInteractiveDemoListPage = ({
       performLogout={performLogout}
       navigate={navigate}
       versionSlug={versionSlug}
+      renderShell={renderShell}
     >
       <section className={styles.header}>
         <div>
@@ -222,24 +229,29 @@ const PortalShell = ({
   performLogout,
   navigate,
   versionSlug,
+  renderShell,
 }: {
   children: React.ReactNode;
   projectId: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   versionSlug?: string;
-}) => (
-  <PortalAppShell
-    activeSection="interactive_demos"
-    currentLabel="Interactive demos"
-    project={{ id: projectId }}
-    projectVersion={versionSlug ? { slug: versionSlug } : undefined}
-    performLogout={performLogout}
-    navigate={navigate}
-  >
-    {children}
-  </PortalAppShell>
-);
+  renderShell: boolean;
+}) =>
+  renderShell ? (
+    <PortalAppShell
+      activeSection="interactive_demos"
+      currentLabel="Interactive demos"
+      project={{ id: projectId }}
+      projectVersion={versionSlug ? { slug: versionSlug } : undefined}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
+      {children}
+    </PortalAppShell>
+  ) : (
+    <>{children}</>
+  );
 
 const DemoRow = ({
   demo,

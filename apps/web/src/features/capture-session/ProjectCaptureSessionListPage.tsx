@@ -45,6 +45,7 @@ type ProjectCaptureSessionListPageProps = {
   canWrite?: boolean;
   versionSlug?: string;
   projectVersionId: string;
+  renderShell?: boolean;
 };
 
 type CreateCaptureSessionFormState = {
@@ -162,6 +163,7 @@ export const ProjectCaptureSessionListPage = ({
   canWrite,
   versionSlug,
   projectVersionId,
+  renderShell = true,
 }: ProjectCaptureSessionListPageProps) => {
   const projectAccess = useProjectAccess(projectId).state;
   const writable =
@@ -278,6 +280,7 @@ export const ProjectCaptureSessionListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>Loading capture sessions...</div>
       </PortalShell>
@@ -291,6 +294,7 @@ export const ProjectCaptureSessionListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>
           <div>Sign in to view capture sessions.</div>
@@ -309,6 +313,7 @@ export const ProjectCaptureSessionListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>Project was not found.</div>
       </PortalShell>
@@ -322,6 +327,7 @@ export const ProjectCaptureSessionListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>
           <div>Could not load capture sessions.</div>
@@ -344,6 +350,7 @@ export const ProjectCaptureSessionListPage = ({
       performLogout={performLogout}
       navigate={navigate}
       versionSlug={versionSlug}
+      renderShell={renderShell}
     >
       <section className={styles.header}>
         <div>
@@ -459,24 +466,29 @@ const PortalShell = ({
   performLogout,
   navigate,
   versionSlug,
+  renderShell,
 }: {
   children: React.ReactNode;
   projectId: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   versionSlug?: string;
-}) => (
-  <PortalAppShell
-    activeSection="capture_sessions"
-    currentLabel="Capture sessions"
-    project={{ id: projectId }}
-    projectVersion={versionSlug ? { slug: versionSlug } : undefined}
-    performLogout={performLogout}
-    navigate={navigate}
-  >
-    {children}
-  </PortalAppShell>
-);
+  renderShell: boolean;
+}) =>
+  renderShell ? (
+    <PortalAppShell
+      activeSection="capture_sessions"
+      currentLabel="Capture sessions"
+      project={{ id: projectId }}
+      projectVersion={versionSlug ? { slug: versionSlug } : undefined}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
+      {children}
+    </PortalAppShell>
+  ) : (
+    <>{children}</>
+  );
 
 const CaptureSessionRow = ({
   captureSession,

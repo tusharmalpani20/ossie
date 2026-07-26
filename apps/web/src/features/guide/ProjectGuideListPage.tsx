@@ -33,6 +33,7 @@ type ProjectGuideListPageProps = {
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   versionSlug?: string;
+  renderShell?: boolean;
 };
 
 type PublishStatusState =
@@ -102,6 +103,7 @@ export const ProjectGuideListPage = ({
   performLogout,
   navigate,
   versionSlug,
+  renderShell = true,
 }: ProjectGuideListPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [publishStatuses, setPublishStatuses] = useState<
@@ -209,6 +211,7 @@ export const ProjectGuideListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>Loading guides...</div>
       </PortalShell>
@@ -222,6 +225,7 @@ export const ProjectGuideListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>
           <div>Sign in to view guides.</div>
@@ -240,6 +244,7 @@ export const ProjectGuideListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>Project was not found.</div>
       </PortalShell>
@@ -253,6 +258,7 @@ export const ProjectGuideListPage = ({
         performLogout={performLogout}
         navigate={navigate}
         versionSlug={versionSlug}
+        renderShell={renderShell}
       >
         <div className={styles.state}>
           <div>Could not load guides.</div>
@@ -275,6 +281,7 @@ export const ProjectGuideListPage = ({
       performLogout={performLogout}
       navigate={navigate}
       versionSlug={versionSlug}
+      renderShell={renderShell}
     >
       <section className={styles.header}>
         <div>
@@ -316,24 +323,29 @@ const PortalShell = ({
   performLogout,
   navigate,
   versionSlug,
+  renderShell,
 }: {
   children: React.ReactNode;
   projectId: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   versionSlug?: string;
-}) => (
-  <PortalAppShell
-    activeSection="guides"
-    currentLabel="Guides"
-    project={{ id: projectId }}
-    projectVersion={versionSlug ? { slug: versionSlug } : undefined}
-    performLogout={performLogout}
-    navigate={navigate}
-  >
-    {children}
-  </PortalAppShell>
-);
+  renderShell: boolean;
+}) =>
+  renderShell ? (
+    <PortalAppShell
+      activeSection="guides"
+      currentLabel="Guides"
+      project={{ id: projectId }}
+      projectVersion={versionSlug ? { slug: versionSlug } : undefined}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
+      {children}
+    </PortalAppShell>
+  ) : (
+    <>{children}</>
+  );
 
 const GuideRow = ({
   guide,

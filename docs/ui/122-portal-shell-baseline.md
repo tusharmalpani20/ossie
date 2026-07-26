@@ -29,6 +29,8 @@ The mock data used synthetic IDs, names, and dates only.
 
 - `docs/ui/evidence/122/projects-desktop-shell.png`
 - `docs/ui/evidence/122/projects-mobile-shell.png`
+- `docs/ui/evidence/122/project-version-guides-desktop-shell.png`
+- `docs/ui/evidence/122/project-version-guides-mobile-shell.png`
 
 ## Browser Checks
 
@@ -41,6 +43,15 @@ The mock data used synthetic IDs, names, and dates only.
 - Confirmed keyboard `Tab` can move focus into the visible portal controls.
 - Checked browser page errors after validation; none were reported for the
   mocked shell run.
+- During close-previous audit, opened
+  `http://localhost:3000/projects/project_1/versions/main/guides` against the
+  built Vite preview with safe mocked read-only Project, Project Version, and
+  guide-list responses.
+- Confirmed the Project Version guide-list route has one topbar, one portal
+  navigation landmark, `Guides` as the active nav item, the empty guide state
+  visible, and no retry state.
+- Confirmed the same Project Version guide-list route at `390x844` mobile keeps
+  one shell and the correct active nav item.
 
 ## Blocked Matrix
 

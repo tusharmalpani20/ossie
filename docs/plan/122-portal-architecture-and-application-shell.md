@@ -4,8 +4,7 @@ Date reserved: 2026-07-12
 
 Date expanded: 2026-07-26
 
-Status: Implemented and locally verified on 2026-07-26. Awaiting the
-close-previous audit before child `123` starts.
+Status: Complete after close-previous audit on 2026-07-26.
 
 Parent plan:
 
@@ -835,7 +834,7 @@ Stop and ask before continuing if implementation requires any of these:
 - [x] Run broad checks.
 - [x] Run required agent-browser validation or record exact blocked evidence.
 - [x] Update implementation log, verification record, leftovers, and handoff.
-- [x] Update master plan `005` with implementation status only.
+- [x] Update master plan `005` for completed phase items.
 
 ## Implementation Log
 
@@ -866,6 +865,23 @@ Implementation changes:
   where applicable.
 - Added `docs/ui/122-portal-shell-baseline.md` and safe synthetic browser
   screenshots under `docs/ui/evidence/122/`.
+
+Close-previous audit:
+
+- Rechecked the implementation against this plan and master plan `005` on
+  2026-07-26 from commit `6ddc6d5`.
+- Found and fixed one route-composition defect: Project Version-owned list
+  routes could render a list-page shell inside the Project Version route
+  boundary shell, producing duplicate shell structure or an incorrect active
+  navigation state.
+- Added `renderShell={false}` content-only behavior for capture-session, guide,
+  and interactive-demo list pages when they are rendered inside
+  `ProjectVersionRouteBoundary`.
+- Added active shell section/label props to `ProjectVersionRouteBoundary` and
+  wired Project Version list routes to `capture_sessions`, `guides`, and
+  `interactive_demos`.
+- Kept standalone list pages backward compatible; they still render their own
+  shared shell by default.
 
 Expansion log:
 
@@ -905,11 +921,30 @@ Runtime verification:
   - `docs/ui/evidence/122/projects-desktop-shell.png`
   - `docs/ui/evidence/122/projects-mobile-shell.png`
 
+Close-previous verification:
+
+- `rtk pnpm --filter web test -- src/lib/routes.test.ts src/appRouteGuards.test.ts src/lib/portalRouteMetadata.test.ts src/lib/portalNavigation.test.ts src/features/portal/PortalTopbar.test.tsx src/features/portal/PortalAppShell.test.tsx src/features/project-version/ProjectVersionRouteBoundary.test.tsx src/features/project-version/ProjectVersionContextBar.test.tsx`
+  passed.
+- `rtk pnpm --filter web test -- src/features/project/ProjectListPage.test.tsx src/features/project/ProjectWorkspacePage.test.tsx src/features/project/ProjectSettingsPage.test.tsx src/features/organization/OrganizationMembersPage.test.tsx src/features/compliance/ComplianceTimelinePage.test.tsx src/features/project-activity/ProjectActivityTimelinePage.test.tsx src/features/guide/ProjectGuideListPage.test.tsx src/features/interactive-demo/ProjectInteractiveDemoListPage.test.tsx src/features/capture-session/ProjectCaptureSessionListPage.test.tsx`
+  passed.
+- `rtk pnpm --filter web exec tsc --noEmit` passed.
+- `rtk pnpm --filter web run lint` passed.
+- `rtk pnpm --filter web run build` passed.
+- `rtk git diff --check` passed.
+- Agent-browser opened
+  `http://localhost:3000/projects/project_1/versions/main/guides` with safe
+  mocked read-only API responses and confirmed one topbar, one portal nav,
+  `Guides` active, empty guide state visible, no retry state, and no page errors
+  on desktop and `390x844` mobile.
+- Additional browser screenshots:
+  - `docs/ui/evidence/122/project-version-guides-desktop-shell.png`
+  - `docs/ui/evidence/122/project-version-guides-mobile-shell.png`
+
 ## Leftovers And Handoff
 
 Current handoff:
 
-- Child `122` is implemented and ready for close-previous audit.
+- Child `122` is complete after close-previous audit.
 - The full authenticated workflow screenshot matrix remains blocked until a
   local backend, seeded database, and authenticated session are available.
 - Browser evidence in this child uses safe synthetic mocked data for the
@@ -921,5 +956,6 @@ Current handoff:
 - Do not add code to `App.test.tsx`, `lib/api.ts`, or `lib/api.test.ts` unless a
   behavior-preserving split happens first.
 - Carry into child `123`: recheck setup/login/organization shell behavior
-  against this shared shell, and replace synthetic browser evidence with real
-  authenticated screenshots if the local backend/session is available.
+  against this shared shell, preserve auth/setup semantics, and replace
+  synthetic browser evidence with real authenticated screenshots if the local
+  backend/session is available.
