@@ -172,6 +172,7 @@ export default function App() {
     return <FirstRunSetupPage />;
   }
 
+  // eslint-disable-next-line turbo/no-undeclared-env-vars -- DEV is a Vite built-in mode flag, not a user environment variable.
   if (shouldRenderDesignSystemReview(route, import.meta.env.DEV)) {
     return <DesignSystemReviewPage />;
   }
