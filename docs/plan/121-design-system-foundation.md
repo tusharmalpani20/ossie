@@ -4,8 +4,10 @@ Date reserved: 2026-07-12
 
 Date expanded: 2026-07-26
 
-Status: Expanded. Not implemented. Implementation, verification, explicit user
-acceptance, and closeout are still required.
+Status: Implemented pending explicit user acceptance. Source implementation,
+product/design docs, browser evidence, and broad verification are complete.
+Child closeout and master checklist update remain blocked until the user accepts
+`PRODUCT.md`, `DESIGN.md`, and the representative UI directions.
 
 Parent plan:
 
@@ -588,41 +590,127 @@ Stop and ask before continuing if implementation requires any of these:
 
 ## Implementation Log
 
-Not implemented.
+Implemented on 2026-07-26.
 
-During implementation, record:
+Commits:
 
-- commit hash and subject for plan expansion;
-- commit hash and subject for implementation;
-- files changed;
-- tests added or updated;
-- browser evidence paths;
-- accepted decisions;
-- blocked evidence or environmental limits.
+- `f877ce4 docs(plan): expand design system foundation plan`
+- `dcfb6ab feat(ui): add design system foundation review surface`
+- `f96a68e fix(web): keep design review guard lint-clean`
+- `adea86b docs(ui): add design system foundation guidance`
+
+Files changed:
+
+- `PRODUCT.md`
+- `DESIGN.md`
+- `docs/ui/121-current-ui-inventory.md`
+- `docs/ui/121-browser-baseline.md`
+- `docs/ui/121-representative-directions.md`
+- `packages/ui/src/tokens.tsx`
+- `packages/ui/src/tokens.test.tsx`
+- `apps/web/src/App.tsx`
+- `apps/web/src/appRouteGuards.ts`
+- `apps/web/src/appRouteGuards.test.ts`
+- `apps/web/src/lib/routes.ts`
+- `apps/web/src/lib/routes.test.ts`
+- `apps/web/src/features/design-system/DesignSystemReviewPage.tsx`
+- `apps/web/src/features/design-system/DesignSystemReviewPage.module.css`
+- `apps/web/src/features/design-system/DesignSystemReviewPage.test.tsx`
+- `apps/web/src/index.css`
+- `apps/extension/src/index.css`
+
+Implemented behavior:
+
+- Added source-owned semantic UI tokens in `@repo/ui`.
+- Added shared CSS custom properties to web and extension global CSS.
+- Added development-only `/__design-system` route parsing and app guard.
+- Added synthetic dev-only design review page covering library/operations,
+  authoring workbench, and reader/viewer directions.
+- Added `PRODUCT.md`, `DESIGN.md`, current UI inventory, browser evidence notes,
+  and representative direction notes.
+
+Decisions:
+
+- No new runtime dependency was added.
+- No server, API, schema, migration, permission, Audit, Access, public-link,
+  protected-asset, Project Version, Edition, Revision, or Publication behavior
+  changed.
+- `import.meta.env.DEV` remains the Vite mode guard for the review route with a
+  local Turbo lint exemption because it is a Vite built-in flag, not a user
+  environment variable.
+- The master checklist was not updated because explicit user acceptance is still
+  pending.
 
 ## Verification Record
 
-Not run after expansion.
+Focused RED checks:
 
-During implementation, add exact command results here. Do not claim DB, browser,
-accessibility, performance, extension, or production-build evidence without
-running or honestly blocking the required check.
+- `rtk pnpm --filter @repo/ui test -- src/tokens.test.tsx` failed before
+  `packages/ui/src/tokens.tsx` existed.
+- `rtk pnpm --filter web test -- src/lib/routes.test.ts src/App.test.tsx src/features/design-system/DesignSystemReviewPage.test.tsx`
+  failed before the route, guard, and review page existed.
+- `rtk pnpm --filter web test -- src/appRouteGuards.test.ts` failed before
+  `apps/web/src/appRouteGuards.ts` existed.
+
+Focused GREEN checks:
+
+- `rtk pnpm --filter @repo/ui test -- src/tokens.test.tsx` passed.
+- `rtk pnpm --filter web test -- src/lib/routes.test.ts src/appRouteGuards.test.ts src/features/design-system/DesignSystemReviewPage.test.tsx`
+  passed.
+- `rtk pnpm --filter @repo/ui check-types` passed.
+- `rtk pnpm --filter web check-types` passed.
+- `rtk pnpm --filter extension check-types` passed.
+- `rtk pnpm --filter extension test -- src/App.test.tsx` passed.
+
+Broad checks:
+
+- `rtk pnpm -r --if-present test` passed.
+- `rtk pnpm check-types` passed.
+- `rtk pnpm lint` passed after the local Vite `DEV` lint exemption.
+- `rtk pnpm build` passed.
+- `rtk git diff --check` passed.
+- `rtk pnpm exec prettier --check PRODUCT.md DESIGN.md docs/ui/121-current-ui-inventory.md docs/ui/121-browser-baseline.md docs/ui/121-representative-directions.md` passed.
+
+Browser evidence:
+
+- `rtk agent-browser --session ossie-121 open http://127.0.0.1:3000/__design-system`
+  passed against the Vite dev server.
+- Desktop snapshot passed with all three representative regions present.
+- Narrow mobile viewport `390x844` snapshot passed with all three regions
+  present.
+- 200% zoom/reflow simulation passed with all three regions present.
+- Keyboard Tab smoke passed through review-surface controls.
+- Console check showed no application errors; only Vite and React DevTools
+  development info appeared.
+- Network requests showed no `/api` calls from the review route.
+- `rtk pnpm --filter web build` passed and reported production JS gzip
+  `122.07 kB`.
+- Production preview at `http://127.0.0.1:3001/__design-system` rendered the
+  existing unsupported `Ossie portal` state, not the design review surface.
+
+Database checks:
+
+- Not run. This child did not touch server, API contracts, schemas, migrations,
+  persistence, or smoke workflows.
+
+Blocked/not applicable evidence:
+
+- Real loaded extension toolbar-popup browser evidence is not applicable to this
+  child because extension popup workflow behavior was not changed. Child `126`
+  owns extension UI modernization.
 
 ## Leftovers And Handoff
 
 Current handoff:
 
-- This plan is expanded and implementation-ready.
-- Next executable step is implementation of child `121`, beginning with the TDD
-  and inventory order above.
-- No runtime implementation has started.
-- No user input is required to start implementation.
-- Explicit user acceptance is required before child `122`.
-
-Expected handoff after implementation:
-
-- If accepted and closed, hand off to child `122` with links to `PRODUCT.md`,
-  `DESIGN.md`, UI inventory, browser baseline, representative directions, and
-  known leftover evidence gaps.
-- If blocked, report the exact blocker, recommended choice, alternatives,
-  affected files, reversibility, and whether child `121` can partially close.
+- Implementation is complete and verified.
+- Explicit user acceptance is still required for:
+  - `PRODUCT.md`;
+  - `DESIGN.md`;
+  - `docs/ui/121-representative-directions.md`.
+- Do not start child `122` until the acceptance gate is satisfied.
+- Do not update master plan `005` as complete until acceptance is recorded.
+- If accepted, the closeout step should mark child `121` complete, update master
+  checklist item `121`, and hand off to child `122`.
+- If not accepted, revise only the product/design/direction outputs needed for
+  the decision and rerun affected focused checks.
