@@ -2,8 +2,8 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `120` are complete. The domain and
-publication foundation is closed; child `121` is next.
+Status: In progress. Children `109` through `121` are complete. The domain,
+publication, and design-system foundation is closed; child `122` is next.
 
 Master plan number: 005.
 
@@ -1310,7 +1310,7 @@ Acceptance:
 
 ### 121: Design-System Foundation
 
-Status: Not started.
+Status: Complete on 2026-07-26 after explicit user acceptance.
 
 Planned file:
 
@@ -1357,7 +1357,8 @@ Acceptance:
 - The Quiet Versioned Workbench and its five surface archetypes are concrete enough to compose real screens consistently.
 - Tokens and primitives cover real current workflows, not a disconnected showcase.
 - Keyboard, focus, contrast, error, disabled, loading, and reduced-motion states are defined.
-- Safe behavioral/visual baselines, browser support, viewport coverage, zoom/reflow expectations, and performance budgets are recorded.
+- Safe dev-only review-route browser evidence, browser support, viewport coverage, zoom/reflow expectations, and performance budgets are recorded.
+- The full authenticated workflow screenshot matrix is recorded as child `122` carryover before broad shell/workflow visual rewrites.
 - The chosen product display name and brand direction are reflected without forcing technical identifier churn.
 - Later screens can be modernized mostly by composition rather than inventing new one-off styling.
 
@@ -1933,7 +1934,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `118`.
 - [x] Create, expand, recheck, implement, and close child plan `119`.
 - [x] Create, expand, recheck, implement, and close child plan `120`.
-- [ ] Create, expand, recheck, implement, and close child plan `121`.
+- [x] Create, expand, recheck, implement, and close child plan `121`.
 - [ ] Create, expand, recheck, implement, and close child plan `122`.
 - [ ] Create, expand, recheck, implement, and close child plan `123`.
 - [ ] Create, expand, recheck, implement, and close child plan `124`.
@@ -1981,9 +1982,11 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is to expand and recheck child `121`, Design-System
-Foundation, against the stable contracts completed through child `120` before
-implementation begins.
+The next executable activity is child `122`, Portal Architecture And Application
+Shell. Child `122` is already expanded and rechecked; implementation can begin
+after confirming the current worktree and preserving the child `121` carryover
+to capture the full authenticated workflow screenshot matrix before broad
+shell/workflow visual rewrites.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -1995,11 +1998,12 @@ Evidence/Owner compliance timeline child `114`, Project Membership Foundation
 child `115`, Project Version Foundation child `116`, Capture Source Version
 Scoping child `117`, Guide/Demo Edition And Working Draft Relational Foundation
 child `118`, Guide/Demo Revision, Carry-Forward, And Protected Assets child
-`119`, and Publication And Multi-Version Publish Link Integration child `120`
-are complete. The final prompt-pack closure audit confirmed that every completed
-child from `112` through `120` records status, checklist, implementation,
-verification, leftovers, and handoff evidence, and that the master checklist
-advances only those completed children.
+`119`, Publication And Multi-Version Publish Link Integration child `120`, and
+Design-System Foundation child `121` are complete. The final prompt-pack closure
+audit confirmed that every completed child from `112` through `120` records
+status, checklist, implementation, verification, leftovers, and handoff
+evidence; child `121` now records source implementation, verification, explicit
+user acceptance, leftovers, and handoff evidence.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with child `121` planning.
+continues with child `122` implementation.

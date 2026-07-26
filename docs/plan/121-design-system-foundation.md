@@ -4,13 +4,11 @@ Date reserved: 2026-07-12
 
 Date expanded: 2026-07-26
 
-Status: Implemented pending explicit user acceptance. Source implementation,
-product/design docs, dev-only review-route browser evidence, and broad
-verification are complete. Full authenticated workflow screenshot baselines are
-recorded as a child `122` carryover because no seeded authenticated local
-runtime was established during this closeout pass. Child closeout and master
-checklist update remain blocked until the user accepts `PRODUCT.md`,
-`DESIGN.md`, and the representative UI directions.
+Status: Complete on 2026-07-26 after explicit user acceptance. Source
+implementation, product/design docs, dev-only review-route browser evidence, and
+broad verification are complete. Full authenticated workflow screenshot
+baselines are recorded as a child `122` carryover because no seeded
+authenticated local runtime was established during this closeout pass.
 
 Parent plan:
 
@@ -641,8 +639,7 @@ Decisions:
 - `import.meta.env.DEV` remains the Vite mode guard for the review route with a
   local Turbo lint exemption because it is a Vite built-in flag, not a user
   environment variable.
-- The master checklist was not updated because explicit user acceptance is still
-  pending.
+- The master checklist was updated after explicit user acceptance was recorded.
 - The broader authenticated workflow screenshot matrix required before broad
   visual rewrites was not captured in child `121`; it is now recorded as the
   first child `122` carryover item.
@@ -714,6 +711,14 @@ Close-previous recheck on 2026-07-26:
 - Browser was not rerun during this close-previous doc fix because no
   browser-visible source changed after the original agent-browser validation.
 
+Acceptance closeout on 2026-07-26:
+
+- User explicitly accepted `PRODUCT.md`, `DESIGN.md`, and
+  `docs/ui/121-representative-directions.md`.
+- `rtk pnpm exec prettier --check docs/plan/121-design-system-foundation.md docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
+  passed after acceptance closeout.
+- `rtk git diff --check` passed after acceptance closeout.
+
 Database checks:
 
 - Not run. This child did not touch server, API contracts, schemas, migrations,
@@ -729,17 +734,9 @@ Blocked/not applicable evidence:
 
 Current handoff:
 
-- Source implementation is complete and verified.
-- Explicit user acceptance is still required for:
-  - `PRODUCT.md`;
-  - `DESIGN.md`;
-  - `docs/ui/121-representative-directions.md`.
-- Do not start child `122` until the acceptance gate is satisfied.
-- Do not update master plan `005` as complete until acceptance is recorded.
+- Source implementation is complete, verified, and accepted.
+- Child `122` is now ungated by the child `121` acceptance requirement.
 - At the start of child `122`, before broad shell/workflow visual rewrites,
   capture the full authenticated workflow screenshot matrix with safe synthetic
   fixtures or record the exact blocked environment/tooling reason.
-- If accepted, the closeout step should mark child `121` complete, update master
-  checklist item `121`, and hand off to child `122`.
-- If not accepted, revise only the product/design/direction outputs needed for
-  the decision and rerun affected focused checks.
+- The next executable child is `122`, Portal Architecture And Application Shell.
