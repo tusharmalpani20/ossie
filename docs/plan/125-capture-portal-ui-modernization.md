@@ -2,7 +2,7 @@
 
 Date reserved: 2026-07-12
 
-Status: Expanded. Not implemented.
+Status: Complete. Implemented, verified, and closed on 2026-07-26.
 
 Parent plan:
 
@@ -686,10 +686,12 @@ Carry forward:
 - [x] Rechecked against master `005`, child `124` closeout, current Capture
       routes, current Capture schemas, and Guide/Interactive Demo generation
       service behavior.
+- [x] Implemented the scoped child `125` runtime changes.
+- [x] Recorded focused and broad verification.
+- [x] Recorded browser evidence status and the exact full-fixture limitation.
+- [x] Updated master `005` for the completed child.
 
 ## Implementation Log
-
-Not implemented.
 
 Expansion notes:
 
@@ -703,20 +705,75 @@ Expansion notes:
   Guide/Demo generation assumption and clarified Capture Session status and
   soft-delete wording.
 
+Runtime implementation on 2026-07-26:
+
+- Starting commit before runtime work: `6a1b8b8`.
+- Split `CaptureSessionDetailPage.tsx` into smaller focused files:
+  - `CaptureSessionDetailHelpers.ts`
+  - `CaptureSessionDetailSections.tsx`
+  - `CaptureSessionDetailShell.tsx`
+- Kept existing detail behavior and copy intact while moving helper and
+  presentational code out of the oversized page file.
+- Added shell-safe detail rendering through `renderShell`, and passed
+  `renderShell={false}` from the canonical Project Version detail route so the
+  Capture Session detail page no longer creates a second portal shell.
+- Fixed Capture list write gating for legacy and canonical routes so archived
+  Project Versions are read-only even for admin/editor roles.
+- Removed the stale default-only UI gate from Guide and Interactive Demo
+  generation. The UI now allows generation from a named Project Version when
+  the loaded Capture Session is writable, named, and has at least one Capture
+  Event.
+- Added focused route coverage for archived Project Version Capture list
+  read-only behavior.
+- Added focused detail coverage proving Guide and Interactive Demo generation
+  works from a named Project Version and redirects to canonical Project Version
+  artifact routes.
+- No server API, schema, database migration, permission model, Capture source
+  immutability, raw input handling, raw HTML handling, asset lifecycle, or
+  public route behavior changed.
+- The expected duplicate `source_type: "manual"` issue was rechecked during
+  implementation; current code contains a single portal create payload field.
+
 ## Verification Record
 
-Expansion verification only:
+Runtime verification on 2026-07-26:
 
-- Current code was inspected.
-- Runtime tests were not run because this is a planning-only step.
-- Browser validation was not run because implementation has not started.
-- Recheck verification on 2026-07-26:
-  - `rtk git status --short`
-  - current master/child docs read
-  - current Capture UI/API/schema/server routes inspected
+- `rtk git status --short`
+- `rtk pnpm --filter web test -- AppCaptureRoutes.test.tsx`
+- `rtk pnpm --filter web test -- src/features/capture-session/CaptureSessionDetailGeneration.test.tsx`
+- `rtk pnpm --filter web test -- src/features/capture-session/CaptureSessionDetailGeneration.test.tsx src/features/capture-session/ProjectCaptureSessionListPage.test.tsx`
+- `rtk pnpm --filter web test -- src/features/capture-session/CaptureSessionDetailPage.test.tsx`
+- `rtk pnpm --filter web test -- src/features/capture-session AppCaptureRoutes.test.tsx`
+- `rtk pnpm --filter web check-types`
+- `rtk pnpm --filter web lint`
+- `rtk pnpm -r --if-present test`
+- `rtk pnpm check-types`
+- `rtk pnpm lint`
+- `rtk pnpm build`
+- `rtk git diff --check`
+- Touched file line counts after implementation:
+  - `CaptureSessionDetailPage.tsx`: 993 lines.
+  - `CaptureSessionDetailHelpers.ts`: 217 lines.
+  - `CaptureSessionDetailSections.tsx`: 324 lines.
+  - `CaptureSessionDetailShell.tsx`: 35 lines.
+  - `ProjectCaptureSessionListPage.tsx`: 547 lines.
+  - `App.tsx`: 772 lines.
+
+Browser evidence:
+
+- Recorded in `docs/ui/125-capture-portal-browser-evidence.md`.
+- Full browser acceptance was not claimed because this checkout still lacks the
+  seeded authenticated local fixture required by this plan.
 
 ## Leftovers
 
-- Recheck this expanded plan against current code before implementation.
-- Implementation must split oversized Capture files before adding behavior.
-- Full browser acceptance requires a seeded authenticated local fixture.
+- Full browser matrix remains the only blocked verification item. It requires a
+  seeded authenticated local fixture with admin/editor and viewer sessions,
+  active/default/named/archived Project Versions, and representative Capture
+  Session states.
+- `CaptureSessionDetailPage.test.tsx` remains an existing oversized test file.
+  Runtime coverage was preserved and new behavior was added in focused smaller
+  test files, but a full behavior-preserving split of the legacy test file
+  should be handled separately if it becomes necessary before further edits.
+- Child `126` should continue to preserve exact Project Version ownership for
+  extension-created Capture Sessions and must not rely on portal-only state.

@@ -2,7 +2,7 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `124` are complete. Child `125` is
+Status: In progress. Children `109` through `125` are complete. Child `126` is
 next.
 
 Master plan number: 005.
@@ -1529,7 +1529,7 @@ Implementation notes:
 
 ### 125: Capture Portal UI Modernization
 
-Status: Not started.
+Status: Complete on 2026-07-26.
 
 Planned file:
 
@@ -1553,6 +1553,25 @@ Rules:
 - Raw input values and page HTML remain excluded.
 - A stale portal tab must fail safely instead of posting to a newly selected or archived Project Version.
 - Browser evidence must use safe synthetic screenshots and data.
+
+Implementation notes:
+
+- Runtime implementation split the oversized Capture Session detail page into
+  focused helper, section, and shell files while preserving existing behavior
+  and copy.
+- Canonical Project Version Capture Session detail routes now render without a
+  nested local portal shell.
+- Capture Session list routes now include Project Version active-status gating
+  before exposing write controls.
+- Guide and Interactive Demo generation no longer has the stale Default Project
+  Version-only UI gate; named Project Version generation is covered by focused
+  tests and redirects to canonical Project Version artifact routes.
+- No server API, schema, migration, permission, Capture source immutability,
+  raw input, raw HTML, asset lifecycle, or public route behavior changed.
+- Browser evidence is recorded in
+  `docs/ui/125-capture-portal-browser-evidence.md`. Full browser matrix
+  acceptance remains blocked by the missing seeded authenticated local fixture
+  and is not claimed from unit tests.
 
 Acceptance:
 
@@ -1992,7 +2011,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `122`.
 - [x] Create, expand, recheck, implement, and close child plan `123`.
 - [x] Create, expand, recheck, implement, and close child plan `124`.
-- [ ] Create, expand, recheck, implement, and close child plan `125`.
+- [x] Create, expand, recheck, implement, and close child plan `125`.
 - [ ] Create, expand, recheck, implement, and close child plan `126`.
 - [ ] Create, expand, recheck, implement, and close child plan `127`.
 - [ ] Create, expand, recheck, implement, and close child plan `128`.
@@ -2036,13 +2055,12 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is child `125`, Capture Portal UI Modernization.
-Start by expanding child `125` against the completed child `124` Project,
-Project Version, and library UI work. Preserve Project Version route context,
-Capture source immutability, tenant isolation, and existing Capture behavior.
-If child `125` needs full browser acceptance, establish a seeded authenticated
-local fixture before claiming keyboard-only, 200% zoom/reflow, mutation, and
-permission-state browser coverage.
+The next executable activity is child `126`, Extension UI Modernization. Start
+by expanding child `126` against the completed child `125` Capture portal work.
+Preserve Project Version route context, Capture source immutability, tenant
+isolation, and existing Capture behavior. Full Capture portal browser matrix
+acceptance is still not claimed until a seeded authenticated local fixture
+exists.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
