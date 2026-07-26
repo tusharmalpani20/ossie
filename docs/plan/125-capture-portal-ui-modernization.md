@@ -2,7 +2,7 @@
 
 Date reserved: 2026-07-12
 
-Status: Not started. Reserved from Master Plan `005`; expansion and recheck are required before implementation.
+Status: Expanded. Not implemented.
 
 Parent plan:
 
@@ -12,104 +12,680 @@ Parent plan:
 
 Prerequisite:
 
-- Completed child `124` and the Capture Project Version behavior established by child `117`.
+- Child `124` is complete in this checkout. The latest closeout commit before
+  this expansion is `17a8884` (`docs: audit project version library UI
+closeout`).
+- Child `124` established canonical Project Version library routes and recorded
+  this carry-forward for child `125`:
+  `/projects/:projectId/versions/:slug/capture-sessions` must remain the
+  preferred Capture library entry point.
+- Child `117` established Capture source Project Version scoping:
+  Capture Sessions belong to exactly one Project Version; empty draft sessions
+  may be reassigned, but started/non-empty sessions may not be moved.
 
 Next child:
 
-- `126` Extension UI Modernization, only after the portal Capture workflow passes desktop/mobile and scope-safety acceptance.
+- `126` Extension UI Modernization. Do not start it until this portal Capture
+  workflow is implemented, verified, closed, and handed off.
 
-## Planning Boundary
+Starting state for implementation:
 
-This file reserves the accepted child boundary and sequence from Master Plan
-`005`. It is not yet an implementation-ready plan. Before runtime or product
-changes begin, the active agent must re-read `CONTEXT.md`, the relevant accepted
-ADRs, the parent master, preceding child closeouts, and current code/tests; then
-expand this file with exact affected files, contracts, tests, verification,
-ownership, migration/reset implications, browser evidence where applicable, and
-a stable handoff.
+- Worktree was clean at expansion time.
+- Browser evidence from child `124` is smoke-level only because no seeded
+  authenticated local browser fixture existed. Child `125` must create or reuse a
+  seeded authenticated local fixture before claiming full browser acceptance.
+- The current Capture UI is functional but older than the accepted child
+  `121`/`122` product shell direction.
+- Current oversized files must be split before adding substantial behavior:
+  - `apps/web/src/features/capture-session/CaptureSessionDetailPage.tsx`
+    is over 1000 lines.
+  - `apps/web/src/features/capture-session/CaptureSessionDetailPage.test.tsx`
+    is over 1000 lines.
+  - `apps/web/src/lib/api.ts` is over 1000 lines. Avoid adding to it unless the
+    implementation first extracts Capture API helpers into a smaller file and
+    keeps exports compatible.
 
-Do not mark this child in progress or complete merely because this skeleton
-exists. Preserve the master's ordering and stop at any unmet predecessor gate or
-critical decision defined by `AGENTS.md`.
+## Goal
 
-## Master-Defined Goal And Boundary
+Modernize the authenticated portal Capture workflow while preserving:
 
-Goal:
+- Organization tenant isolation.
+- Project and Project Version authorization.
+- Capture source immutability.
+- Capture Event order safety.
+- Privacy defaults that exclude raw input values and raw page HTML.
+- Existing Capture behavior that guides and demos already depend on.
 
-- Modernize the portal Capture workflow while preserving source immutability, ordering, privacy, and Project Version scope.
+The result should feel like the accepted Ossie workbench: clear context, dense
+operational controls, stable panels, plain copy, keyboard-safe actions, and
+responsive layouts.
 
-Scope:
+## Product And Domain Rules
 
-- Capture Session list, creation, active/completed/archived states, detail, finalization, and archive behavior.
-- Manual screenshot upload, bulk upload progress/failure/retry, Capture Event creation, ordering, safe editing, and asset inspection.
-- Project Version context and the accepted rules for reassignment before source material exists.
-- Generation entry points for Guide and Interactive Demo with explicit target Edition context.
-- Stable loading dimensions, progress announcements, upload cancellation/failure recovery where supported, long URLs/titles, missing assets, and empty/error/permission states.
+Use these terms exactly:
 
-Rules:
+- Capture Session, Capture Event, Capture Asset.
+- Project Version, Default Project Version, named Project Version.
+- Guide and Interactive Demo only as generated artifact entry points.
 
-- Original Capture Events and Assets remain immutable except for the already accepted safe metadata/edit behavior.
-- Raw input values and page HTML remain excluded.
-- A stale portal tab must fail safely instead of posting to a newly selected or archived Project Version.
-- Browser evidence must use safe synthetic screenshots and data.
+Do not use the word `version` by itself when the meaning is Project Version.
 
-Acceptance:
+Capture invariants:
 
+- Capture Sessions are source material, not final Guide or Interactive Demo
+  artifacts.
+- Original Capture Events and Capture Assets are immutable after creation except
+  for accepted safe manual metadata edits on Capture Events.
+- Screenshot files are source assets. Do not overwrite or purge protected files.
+- Raw typed input values and raw page HTML must not be displayed, logged,
+  documented as browser evidence, or newly persisted.
+- The portal must fail safely when a stale tab tries to write to an archived,
+  moved, or changed Capture Session.
+- Project Versions inherit Project Membership. There is no per-Project-Version
+  membership UI in this child.
+
+## Scope
+
+Implement only portal Capture UI modernization for:
+
+- Capture Session list in a Project Version context.
+- Capture Session creation for manual Capture Sessions.
+- Capture Session detail view.
+- Active, draft, completed, canceled, and archived display states.
+- Manual screenshot upload, including multiple-file queue status, partial
+  failure, retry, and clear recovery copy.
+- Capture Event creation from uploaded screenshots.
+- Capture Event ordering.
+- Accepted safe Capture Event text metadata edits.
+- Capture Asset inspection and existing asset lifecycle controls.
+- Empty draft reassignment to another active Project Version.
+- Guide and Interactive Demo generation entry points from the loaded Capture
+  Session.
+- Loading, empty, error, permission, read-only, archived, long URL/title, missing
+  asset, and narrow-screen states.
+
+## Explicit Non-Scope
+
+Do not implement any of these in child `125`:
+
+- Chrome extension UI or extension capture behavior. That belongs to child
+  `126`.
+- Guide authoring, Guide reader, Guide editor, or Guide publishing
+  modernization. That belongs to child `127`.
+- Interactive Demo authoring, viewer, scene, hotspot, or public-demo
+  modernization. That belongs to child `128`.
+- Public reader/embed changes.
+- New raw HTML replay, raw DOM storage, script stripping, sandboxed replay, OCR,
+  AI generation, redaction pipeline, or screenshot processing pipeline.
+- New permission model, per-Project-Version membership model, public-link access
+  rules, or Organization role semantics.
+- Database migrations unless implementation discovers a real contract bug that
+  cannot be solved in UI. If that happens, stop and replan before changing
+  persistence.
+- Asset purge semantics beyond the already existing
+  `CaptureAssetLifecycleControls` behavior.
+- Broad design-system token changes.
+
+## Current Runtime Facts To Preserve
+
+Routes currently parsed by `apps/web/src/lib/routes.ts`:
+
+- Canonical list:
+  `/projects/:projectId/versions/:versionSlug/capture-sessions`
+- Canonical detail:
+  `/projects/:projectId/versions/:versionSlug/capture-sessions/:captureSessionId`
+- Legacy list:
+  `/projects/:projectId/capture-sessions`
+- Legacy detail:
+  `/projects/:projectId/capture-sessions/:captureSessionId`
+
+Route behavior currently owned by `apps/web/src/App.tsx`:
+
+- Legacy Capture routes redirect through the default Project Version.
+- Canonical Capture routes use `ProjectVersionRouteBoundary` with
+  `allowVersionOwnedContent`.
+- Capture list receives `projectVersionId`, `versionSlug`, `canWrite`, and
+  `renderShell={false}` inside the Project Version shell.
+- Capture detail receives `projectVersions`, `versionSlug`,
+  `isDefaultVersion`, `canWrite`, and `canPurge`.
+
+Existing UI behavior to preserve unless this plan explicitly changes it:
+
+- `ProjectCaptureSessionListPage` loads Capture Sessions by
+  `project_version_id`.
+- New portal-created sessions use `source_type: "manual"`.
+- Detail redirects to the Capture Session's actual Project Version slug if the
+  URL slug is stale.
+- Manual upload creates one Capture Asset and one linked Capture Event per
+  accepted screenshot.
+- Upload failure after partial success reloads detail without losing accepted
+  files.
+- Reorder sends the full `event_ids` array.
+- Safe manual event edits are limited to page title, page URL, target label,
+  target text, input intent, and note.
+- Empty draft reassignment sends the current `session.version` as
+  `expected_version`.
+- Guide and Interactive Demo generation are disabled until the Capture Session
+  has a non-empty name and at least one Capture Event.
+
+Current implementation issues to address during child `125` implementation:
+
+- Remove duplicate `source_type: "manual"` in
+  `ProjectCaptureSessionListPage.tsx`.
+- Remove duplicate retry `onClick` in `CaptureSessionDetailPage.tsx`.
+- Replace the detail page's local topbar wrapper with the accepted child `122`
+  Project Version shell pattern or an equivalent shell-safe composition. The
+  page must not create a second shell inside canonical routes.
+- Split the oversized Capture detail component and test file before adding new
+  behavior.
+
+## Exact Files Expected To Change
+
+Plan and evidence:
+
+- `docs/plan/125-capture-portal-ui-modernization.md`
+- `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
+  only during closeout.
+- `docs/ui/125-capture-portal-browser-evidence.md`
+- `docs/ui/evidence/125/` for safe synthetic screenshots if browser evidence is
+  captured.
+
+Routes and shell integration:
+
+- `apps/web/src/App.tsx`
+- `apps/web/src/App.test.tsx` only for route orchestration if needed; keep it
+  under 1000 lines.
+- `apps/web/src/lib/routes.ts`
+- `apps/web/src/lib/routes.test.ts`
+- `apps/web/src/lib/portalNavigation.ts`
+- `apps/web/src/lib/portalNavigation.test.ts`
+- `apps/web/src/lib/portalRouteMetadata.ts`
+- `apps/web/src/lib/portalRouteMetadata.test.ts`
+
+Capture UI:
+
+- `apps/web/src/features/capture-session/ProjectCaptureSessionListPage.tsx`
+- `apps/web/src/features/capture-session/ProjectCaptureSessionListPage.module.css`
+- `apps/web/src/features/capture-session/ProjectCaptureSessionListPage.test.tsx`
+- `apps/web/src/features/capture-session/CaptureSessionDetailPage.tsx`
+- `apps/web/src/features/capture-session/CaptureSessionDetailPage.module.css`
+- `apps/web/src/features/capture-session/CaptureSessionDetailPage.test.tsx`
+  only as a temporary source for existing tests; split before adding.
+- New focused files as needed, for example:
+  - `apps/web/src/features/capture-session/CaptureSessionDetailLayout.tsx`
+  - `apps/web/src/features/capture-session/CaptureSessionUploadPanel.tsx`
+  - `apps/web/src/features/capture-session/CaptureSessionEventTimeline.tsx`
+  - `apps/web/src/features/capture-session/CaptureSessionArtifactActions.tsx`
+  - `apps/web/src/features/capture-session/CaptureSessionReassignPanel.tsx`
+  - `apps/web/src/features/capture-session/CaptureSessionAssetGrid.tsx`
+  - `apps/web/src/features/capture-session/CaptureSessionDetail.loading.test.tsx`
+  - `apps/web/src/features/capture-session/CaptureSessionDetail.upload.test.tsx`
+  - `apps/web/src/features/capture-session/CaptureSessionDetail.events.test.tsx`
+  - `apps/web/src/features/capture-session/CaptureSessionDetail.actions.test.tsx`
+  - `apps/web/src/features/capture-session/CaptureSessionDetail.permissions.test.tsx`
+- `apps/web/src/features/capture-session/CaptureAssetLifecycleControls.tsx`
+- `apps/web/src/features/capture-session/CaptureAssetLifecycleControls.test.tsx`
+- `apps/web/src/features/capture-session/types.ts` only if new local UI types
+  are needed.
+
+API client:
+
+- Prefer no API client change.
+- If Capture API helpers must move out of oversized `apps/web/src/lib/api.ts`,
+  create `apps/web/src/lib/captureApi.ts` and re-export the same public helper
+  names from `apps/web/src/lib/api.ts` so existing imports continue to work.
+- Update `apps/web/src/lib/api.test.ts` only if a helper contract changes or is
+  extracted. If it is already over the file-size limit, split tests first.
+
+Server, schemas, and domain:
+
+- Expected to be read and verified, not changed:
+  - `packages/types/src/capture.ts`
+  - `packages/capture-domain/src/types/capture-session.ts`
+  - `packages/capture-domain/src/policies/capture-session-policy.ts`
+  - `packages/capture-domain/src/policies/capture-event-policy.ts`
+  - `packages/capture-domain/src/policies/capture-asset-policy.ts`
+  - `apps/server/src/modules/capture-session/capture-session.routes.ts`
+  - `apps/server/src/modules/capture-event/capture-event.routes.ts`
+  - `apps/server/src/modules/capture-asset/capture-asset.routes.ts`
+  - `apps/server/src/modules/guide/guide.routes.ts`
+  - `apps/server/src/modules/interactive-demo/interactive-demo.routes.ts`
+- Touch these only if implementation finds a concrete mismatch between UI
+  behavior and accepted API/domain contracts. If persistence, authorization, or
+  immutability semantics would change, stop for a decision.
+
+## API Contracts
+
+Use the existing API contracts unless a recheck finds a bug.
+
+Capture Session:
+
+- `GET /api/v1/projects/:projectId/capture-sessions?project_version_id=:projectVersionId`
+  - Optional query: `status`.
+  - Response: `{ capture_sessions: CaptureSession[] }`.
+- `POST /api/v1/projects/:projectId/capture-sessions`
+  - Body: `CreateCaptureSessionRequest`.
+  - Portal-created manual sessions must send:
+    - `name`
+    - `project_version_id`
+    - `source_type: "manual"`
+    - optional `description`
+    - optional `start_url`
+  - Response: `{ capture_session: CaptureSession }`.
+- `GET /api/v1/projects/:projectId/capture-sessions/:captureSessionId/detail`
+  - Response:
+    `{ capture_session, capture_events, capture_assets }`.
+- `POST /api/v1/projects/:projectId/capture-sessions/:captureSessionId/reassign-project-version`
+  - Body:
+    `{ project_version_id: string, expected_version: number }`.
+  - Only usable for empty draft Capture Sessions.
+- `POST /api/v1/projects/:projectId/capture-sessions/:captureSessionId/complete`
+  - Existing server contract. If surfaced in UI, use the current redirect
+    response and preserve canonical Project Version route handling.
+- `PATCH /api/v1/projects/:projectId/capture-sessions/:captureSessionId`
+  - Existing server contract. Use only for accepted safe Capture Session
+    metadata/status edits if already supported.
+- `DELETE /api/v1/projects/:projectId/capture-sessions/:captureSessionId`
+  - Existing server contract. Do not broaden destructive behavior.
+
+Capture Event:
+
+- `POST /api/v1/projects/:projectId/capture-sessions/:captureSessionId/events`
+  - Body: `CreateCaptureEventRequest`.
+  - Manual upload must create `event_type: "capture"` with a linked
+    `capture_asset_id`.
+  - `input_value_redacted` remains server-controlled/safe; UI must never collect
+    raw input values.
+- `PUT /api/v1/projects/:projectId/capture-sessions/:captureSessionId/events/order`
+  - Body: `{ event_ids: string[] }`.
+  - UI must send the complete intended order.
+- `PATCH /api/v1/projects/:projectId/capture-sessions/:captureSessionId/events/:eventId`
+  - Body may include only:
+    `page_url`, `page_title`, `target_label`, `target_text`, `input_intent`,
+    `note`.
+
+Capture Asset:
+
+- `POST /api/v1/projects/:projectId/capture-sessions/:captureSessionId/assets/upload`
+  - Multipart field: `file`.
+  - Optional fields: `page_url`, `page_title`, `captured_at`.
+  - Accepted MIME types in UI: PNG, JPEG, WebP.
+- `GET /api/v1/projects/:projectId/capture-sessions/:captureSessionId/assets/:assetId/file`
+  - Used through `file_url` from detail response.
+- `POST /api/v1/projects/:projectId/capture-sessions/:captureSessionId/assets/:assetId/archive`
+- `POST /api/v1/projects/:projectId/capture-sessions/:captureSessionId/assets/:assetId/restore`
+- `GET /api/v1/projects/:projectId/capture-sessions/:captureSessionId/assets/:assetId/protection`
+- `DELETE /api/v1/projects/:projectId/capture-sessions/:captureSessionId/assets/:assetId`
+  - Preserve existing protected-asset checks and Project Admin purge limit.
+
+Artifact generation:
+
+- `POST /api/v1/projects/:projectId/guides/from-capture-session/:captureSessionId`
+  - Body: `{ title: string, description?: string | null }`.
+- `POST /api/v1/projects/:projectId/capture-sessions/:captureSessionId/interactive-demos`
+  - Body: `{ title?: string, description?: string | null }`.
+- The generated Guide or Interactive Demo must inherit the Capture Session's
+  Project Version/target Edition context according to existing server behavior.
+  The UI must not let a user combine a Capture Session from one Project Version
+  with a target artifact in a different Project Version.
+
+## UI Behavior Requirements
+
+List page:
+
+- Render inside the accepted portal shell on canonical Project Version routes.
+- Show Project Version context without repeating noisy shell chrome.
+- Keep legacy route compatibility through default Project Version redirect.
+- Show clear states for loading, empty, error with retry, unauthenticated, not
+  found, read-only, archived Project, and archived Project Version.
+- Show active/draft/completed/canceled/archived status in a compact way.
+- Add status filtering only if it uses the existing `status` query contract and
+  does not create a new backend contract.
+- Long names, descriptions, start URLs, browser strings, and operating systems
+  must wrap or truncate safely without layout overflow.
+- New Capture Session form:
+  - Requires a non-empty name.
+  - Sends the current `projectVersionId`.
+  - Sends `source_type: "manual"` exactly once.
+  - Preserves field values after create failure.
+  - Disables submit while pending.
+  - Opens the canonical Project Version detail route after success.
+
+Detail page:
+
+- Render inside the accepted portal shell on canonical Project Version routes.
+- Keep the Capture Session's actual Project Version visible.
+- Redirect safely if the URL Project Version slug does not match the loaded
+  Capture Session's Project Version slug.
+- Keep loading dimensions stable enough that the page does not jump heavily when
+  data loads.
+- Show empty Event and Asset sections clearly.
+- Show missing or failed asset previews without breaking the timeline.
+- Keep Capture Event order readable and keyboard operable.
+- Reorder controls must be disabled while a reorder request is pending.
+- Reorder failure must keep the current visible list and expose a retry-safe
+  message.
+- Manual event edit controls must be available only for writable manual Capture
+  Sessions that are not archived or canceled.
+- Event edit failure must keep the edit form open and preserve typed values.
+- Upload controls must be available only for writable manual Capture Sessions.
+- Upload queue must announce queued, uploading, uploaded, event-created, and
+  failed states in plain language.
+- Multiple upload must process sequentially and stop safely on first failure.
+- If upload succeeds but event creation fails, reload detail and explain that
+  the screenshot was accepted but the event was not created.
+- If a later file fails after earlier files succeed, reload detail and preserve
+  enough queue state for the user to retry the failed file without duplicate
+  indexes.
+- Empty draft reassignment:
+  - Show only when `canWrite` is true, session status is `draft`,
+    `started_at` is null, and there are no events/assets.
+  - Offer only active Project Versions other than the current one.
+  - Send `expected_version: session.version`.
+  - On conflict or stale tab failure, reload current detail and show plain copy.
+- Guide/Demo generation:
+  - Show entry points only for writable users.
+  - Disable until the Capture Session has a title and at least one Capture
+    Event.
+  - Use the loaded Capture Session, not a route-selected different Project
+    Version.
+  - Use canonical Project Version artifact routes after creation.
+  - Existing UI currently disables generation when the selected Project Version
+    is not default. Child `125` must recheck server behavior. If generation for
+    named Project Versions is already supported, enable it safely. If not, keep
+    the disabled state and record the reason as a leftover for the correct
+    later child.
+
+Asset lifecycle:
+
+- Keep `CaptureAssetLifecycleControls` permission behavior:
+  - Editors/Admins may archive/restore according to existing server rules.
+  - Only Project Admin/Organization Owner equivalent may purge when server says
+    `can_purge`.
+  - Protected dependency details must be reviewed before purge.
+- Do not weaken protected shared asset behavior.
+
+## Security And Permission Rules
+
+- All data comes from authenticated internal APIs. Do not add public Capture
+  routes.
+- Viewers can read Capture Session list/detail only. They must not see enabled
+  create, upload, reorder, edit, reassign, archive, purge, complete, or
+  generation controls.
+- Editors can create, upload, order, safely edit, finalize/complete where
+  supported, archive/restore where existing permissions allow, and generate
+  Guide/Interactive Demo artifacts.
+- Project Admins can do Editor actions and asset purge where server protection
+  allows it.
+- Archived Projects and archived Project Versions must render read-only, even
+  for Editors/Admins.
+- Never trust UI-only permissions. Existing server responses must remain the
+  authority.
+- Do not expose file storage keys, cookies, session tokens, private URLs, raw
+  customer data, raw DOM HTML, or raw typed inputs in UI, logs, screenshots, or
+  docs.
+- Error messages should be clear but not leak cross-tenant existence.
+
+## Migration And Compatibility Notes
+
+- No database migration is expected.
+- No schema migration is expected.
+- No API rename is expected.
+- Keep legacy Capture URLs working by redirecting to the default Project Version
+  canonical URL.
+- Keep existing API helper exports compatible for other feature imports.
+- Keep existing test fixtures synthetic.
+- Because this repository is already using real Project Version scoped Capture
+  records, do not add fallback behavior that silently changes a Capture Session's
+  Project Version.
+
+## Implementation Order
+
+1. Re-read this plan, master `005`, `CONTEXT.md`, ADRs `0002`, `0003`, `0010`,
+   `0012`, `0021`, and `0024`.
+2. Confirm working tree ownership with `rtk git status --short`.
+3. Reconfirm current Capture route/API/component facts. If they differ from this
+   plan, update this plan first and commit docs before runtime work.
+4. Split oversized Capture detail files before adding behavior:
+   - Move presentational/detail sub-parts out of
+     `CaptureSessionDetailPage.tsx`.
+   - Split `CaptureSessionDetailPage.test.tsx` into focused files without
+     reducing coverage.
+   - If `api.ts` must change, extract Capture API helpers first.
+5. Establish failing focused tests for route/shell/list/detail behavior.
+6. Implement list modernization.
+7. Implement detail modernization.
+8. Implement upload/order/edit/reassign/generation polish.
+9. Run focused tests after each meaningful change.
+10. Run broad checks and browser validation.
+11. Update this plan and master closeout only after verification passes.
+12. Commit runtime and docs in small logical commits.
+
+## Focused Test Plan
+
+Use TDD for behavior changes.
+
+Route and shell tests:
+
+- `apps/web/src/lib/routes.test.ts`
+  - canonical Capture list/detail parsing.
+  - legacy Capture list/detail parsing.
+  - encoded project, slug, and Capture Session IDs.
+- `apps/web/src/lib/portalNavigation.test.ts`
+  - Capture navigation uses Project Version URLs when context exists.
+- `apps/web/src/lib/portalRouteMetadata.test.ts`
+  - Capture list/detail metadata matches shell behavior if metadata is expanded.
+- `apps/web/src/App.test.tsx` or a smaller route test:
+  - legacy Capture routes redirect to default Project Version.
+  - canonical Capture routes pass `projectVersionId`, `versionSlug`,
+    `canWrite`, and `canPurge` correctly.
+  - archived Project/Project Version yields read-only Capture UI.
+
+List tests:
+
+- Render Project Version scoped sessions in API order.
+- Detail links use canonical Project Version URLs.
+- Empty/loading/error/unauthenticated/not-found states.
+- Viewer and archived contexts show read-only behavior.
+- Create form validation, pending state, success redirect, and failure state.
+- Long URL/title/name wrapping behavior where unit-testable.
+
+Detail tests:
+
+- Loading/error/unauthenticated/not-found states.
+- Actual Project Version mismatch redirects to actual Project Version slug.
+- Viewer/read-only/archived contexts hide or disable all mutation controls.
+- Manual upload validation.
+- Multiple upload success creates ordered linked Capture Events.
+- Upload failure and event-creation-after-upload failure recover safely.
+- Queue status text is visible and screen-reader friendly.
+- Event reorder sends full `event_ids` array and handles failure.
+- Manual event edit saves only allowed fields and keeps draft on failure.
+- Empty draft reassignment sends `expected_version` and redirects to new
+  canonical route.
+- Stale reassignment failure reloads detail and explains the failure.
+- Guide and Interactive Demo generation use the loaded Capture Session and
+  redirect to canonical Project Version artifact routes.
+- Missing asset preview does not break the page.
+- Asset lifecycle controls still gate purge through protection review.
+
+Server/schema tests:
+
+- Run existing Capture Session/Event/Asset route tests if UI changes rely on
+  those contracts.
+- Add server tests only if a real server contract gap is found and approved by
+  the child boundary.
+
+## Browser Validation Requirements
+
+Use `agent-browser` or the repository's accepted browser validation path with
+safe synthetic data only.
+
+Before claiming full browser acceptance, establish a seeded authenticated local
+fixture with:
+
+- one active Project;
+- default Project Version `Main`;
+- one named active Project Version;
+- one archived Project Version;
+- one Project Admin or Editor session;
+- one Viewer session or mocked equivalent;
+- draft, active, completed, canceled, and archived Capture Sessions;
+- at least one manual Capture Session with safe screenshot assets and events;
+- one empty draft Capture Session that can be reassigned.
+
+Record evidence in `docs/ui/125-capture-portal-browser-evidence.md`.
+
+Required browser matrix:
+
+- Desktop viewport around 1440px wide:
+  - Capture Session list.
+  - Capture Session detail.
+  - create manual Capture Session in default Project Version.
+  - create manual Capture Session in named Project Version.
+  - manual upload success.
+  - upload failure/retry.
+  - event reorder.
+  - event edit.
+  - empty draft reassignment.
+  - Guide generation entry point.
+  - Interactive Demo generation entry point.
+- Narrow mobile viewport around 390px wide:
+  - list layout.
+  - detail layout.
+  - upload queue.
+  - event timeline.
+  - asset grid.
+- Keyboard-only:
+  - create form.
+  - upload form.
+  - reorder controls.
+  - event edit controls.
+  - reassign controls.
+  - destructive asset lifecycle controls.
+- 200% zoom/reflow:
+  - list and detail remain usable without horizontal page scroll.
+- Console/network:
+  - no uncaught console errors.
+  - no unexpected failed requests.
+- State coverage:
+  - loading.
+  - empty.
+  - generic error and retry.
+  - unauthenticated.
+  - not found.
+  - Viewer/read-only.
+  - archived Project.
+  - archived Project Version.
+  - stale tab/conflict failure.
+  - missing asset.
+
+If the fixture or browser tooling is unavailable, record the exact blocked
+reason. Do not claim browser coverage from unit tests alone.
+
+## Verification Commands
+
+Focused commands expected during implementation:
+
+```bash
+rtk pnpm --filter @repo/web test -- --run apps/web/src/lib/routes.test.ts
+rtk pnpm --filter @repo/web test -- --run apps/web/src/lib/portalNavigation.test.ts
+rtk pnpm --filter @repo/web test -- --run apps/web/src/features/capture-session
+```
+
+Run server contract checks if server/API behavior is touched or relied on by a
+new UI assumption:
+
+```bash
+rtk pnpm --filter @repo/server test -- --run apps/server/src/modules/capture-session/capture-session.routes.test.ts
+rtk pnpm --filter @repo/server test -- --run apps/server/src/modules/capture-event/capture-event.routes.test.ts
+rtk pnpm --filter @repo/server test -- --run apps/server/src/modules/capture-asset/capture-asset.routes.test.ts
+rtk pnpm --filter @repo/server test -- --run apps/server/src/modules/guide/guide.routes.test.ts
+rtk pnpm --filter @repo/server test -- --run apps/server/src/modules/interactive-demo/interactive-demo.routes.test.ts
+```
+
+Broad checks before closeout:
+
+```bash
+rtk pnpm exec prettier --check docs/plan/125-capture-portal-ui-modernization.md
+rtk pnpm -r --if-present test
+rtk pnpm -r --if-present lint
+rtk pnpm -r --if-present build
+rtk git diff --check
+```
+
+Use the package scripts that actually exist at implementation time if names
+differ.
+
+## Acceptance Criteria
+
+- Capture list and detail use the accepted portal shell and Project Version
+  context.
+- Legacy Capture routes still land on canonical default Project Version routes.
 - Manual Capture completes end to end in default and named Project Versions.
-- Upload and ordering failures are recoverable without duplicate indexes or lost accepted files.
-- Guide/Demo generation inherits the correct Project Version and rejects cross-scope IDs.
-- Portal browser tests cover narrow mobile and desktop detail/list workflows.
+- Upload and ordering failures are recoverable without duplicate event indexes
+  or lost accepted files.
+- Safe manual Capture Event edits remain limited to accepted fields.
+- Empty draft reassignment works with `expected_version` and fails safely on
+  stale tabs.
+- Viewer, archived Project, and archived Project Version states are read-only.
+- Guide and Interactive Demo generation uses the loaded Capture Session's
+  Project Version context and rejects or disables cross-scope behavior.
+- Source assets remain immutable and protected shared assets remain protected.
+- Raw input values and raw page HTML are not exposed.
+- All touched files are under 1000 lines after implementation.
+- Focused tests, broad checks, and required browser evidence are recorded.
+- This plan and master `005` are updated only after the implementation is
+  actually complete.
 
-## Expansion And Recheck Gate
+## Handoff To Child 126
 
-Before implementation:
+Child `126` should start from the closed portal Capture workflow.
 
-- [ ] Confirm every preceding child gate is complete and record the starting
-      commit and working-tree ownership.
-- [ ] Reinspect every current route, schema, migration, contract, package,
-      component, test, and operational surface named or implied by this child.
-- [ ] Replace plan-era assumptions with current runtime facts without changing
-      accepted product semantics.
-- [ ] List exact affected files and explicit out-of-scope files.
-- [ ] Define authorization, tenant isolation, lifecycle, data, API, UI, error,
-      concurrency, migration/reset/reseed, audit/access, compatibility, and
-      rollback contracts as applicable.
-- [ ] Apply the shared-package reuse gate before moving any app-local contract.
-- [ ] Define the TDD order, focused tests, broad regression checks, DB/smoke
-      coverage, and real-browser evidence required by this child.
-- [ ] Classify unresolved decisions under the repository decision policy and stop
-      only for a genuinely critical decision.
-- [ ] Record an attributable planning checkpoint before runtime implementation
-      when expansion materially changes durable plan content.
+Carry forward:
 
-## Delivery Checklist
+- Canonical Capture route context:
+  `/projects/:projectId/versions/:slug/capture-sessions`.
+- Portal-created manual Capture Sessions use the same server contracts as
+  extension-created sessions.
+- Source immutability, privacy defaults, and Project Version scoping remain
+  non-negotiable.
+- Extension UI must not rely on portal-only state or browser-only mocks.
 
-- [ ] Establish the smallest meaningful failing focused test for each behavior
-      boundary.
-- [ ] Implement the smallest coherent change that passes, then refactor only
-      while tests remain green.
-- [ ] Preserve Organization tenant isolation, explicit authorization, immutable
-      Capture source, protected shared assets, immutable Publications, and public
-      access rules.
-- [ ] Run the focused and broad verification defined by the expanded plan.
-- [ ] For browser-visible work, collect safe synthetic desktop, narrow-mobile,
-      keyboard, zoom/reflow, console, network, loading, empty, error, permission,
-      and destructive-state evidence as applicable.
-- [ ] Update this child status, implementation log, evidence, leftovers, and
-      handoff together with the parent checklist only after acceptance passes.
+## Expansion Checklist
+
+- [x] Confirmed child `124` closeout and starting commit.
+- [x] Re-read master plan `005`, child `124` closeout, this child skeleton,
+      `CONTEXT.md`, product/design docs, and relevant ADRs.
+- [x] Inspected current Capture web files, routes, API helpers, shared schemas,
+      domain policies, and server routes.
+- [x] Recorded exact affected files and explicit non-scope.
+- [x] Recorded API contracts, permission rules, migration notes, testing, and
+      browser validation requirements.
+- [x] Classified decisions: no critical user decision is required for expansion.
 
 ## Implementation Log
 
-Not started.
+Not implemented.
+
+Expansion notes:
+
+- Expanded on 2026-07-26 from clean commit `17a8884`.
+- Current runtime facts were taken from the checked-out web routes, Capture UI,
+  API client helpers, shared Capture schemas, domain policies, and server route
+  files.
+- No runtime code was changed during expansion.
 
 ## Verification Record
 
-Not run. Verification commands and outcomes must be added during execution; this
-reservation does not claim test, database, browser, accessibility, performance,
-or extension evidence.
+Expansion verification only:
 
-## Leftovers And Handoff
+- Current code was inspected.
+- Runtime tests were not run because this is a planning-only step.
+- Browser validation was not run because implementation has not started.
 
-- Expansion/recheck remains required.
-- Next executable child is determined by the parent sequence and verified
-  predecessor closeouts; this reservation does not advance that sequence.
+## Leftovers
+
+- Recheck this expanded plan against current code before implementation.
+- Implementation must split oversized Capture files before adding behavior.
+- Full browser acceptance requires a seeded authenticated local fixture.
