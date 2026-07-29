@@ -4,7 +4,9 @@ import type {
   DemoHotspotType,
   DemoScene,
   InteractiveDemo,
+  UpdateDemoHotspotInput,
 } from "./types";
+import type { CaptureAssetWithFileUrl } from "@repo/types/capture";
 
 export type DemoDraft = {
   title: string;
@@ -74,6 +76,58 @@ export const hotspotDraftsFromHotspots = (
       return drafts;
     }, {});
 
+export const mergeConfirmedSceneDrafts = (
+  drafts: Record<string, SceneDraft>,
+  scene: DemoScene,
+) => ({
+  ...drafts,
+  ...sceneDraftsFromScenes([scene]),
+});
+
+export const mergeConfirmedHotspotDrafts = (
+  drafts: Record<string, HotspotDraft>,
+  hotspot: DemoHotspot,
+) => ({
+  ...drafts,
+  [hotspot.id]: hotspotDraftFromHotspot(hotspot),
+});
+
+export const hasUnsavedSceneDrafts = (
+  drafts: Record<string, SceneDraft>,
+  scenes: DemoScene[],
+) => {
+  const persisted = sceneDraftsFromScenes(scenes);
+  return Object.entries(persisted).some(
+    ([id, draft]) =>
+      !drafts[id] ||
+      drafts[id].title !== draft.title ||
+      drafts[id].description !== draft.description ||
+      drafts[id].background_capture_asset_id !==
+        draft.background_capture_asset_id,
+  );
+};
+
+export const hasUnsavedHotspotDrafts = (
+  drafts: Record<string, HotspotDraft>,
+  hotspotsBySceneId: Record<string, DemoHotspot[]>,
+) => {
+  const persisted = hotspotDraftsFromHotspots(hotspotsBySceneId);
+  return Object.entries(persisted).some(([id, draft]) => {
+    const local = drafts[id];
+    return (
+      !local ||
+      local.hotspot_type !== draft.hotspot_type ||
+      local.label !== draft.label ||
+      local.content !== draft.content ||
+      local.x !== draft.x ||
+      local.y !== draft.y ||
+      local.width !== draft.width ||
+      local.height !== draft.height ||
+      local.target_scene_id !== draft.target_scene_id
+    );
+  });
+};
+
 export const validHotspotBox = (
   input: Pick<CreateDemoHotspotInput, "x" | "y" | "width" | "height">,
 ) =>
@@ -88,13 +142,68 @@ export const validHotspotBox = (
   input.x + input.width <= 1 &&
   input.y + input.height <= 1;
 
+export const updateInputFromHotspotDraft = (
+  draft: HotspotDraft,
+  expectedWorkingDraftVersion: number,
+): UpdateDemoHotspotInput | null => {
+  const input: UpdateDemoHotspotInput = {
+    hotspot_type: draft.hotspot_type,
+    label: draft.label.trim() || null,
+    content: draft.content.trim() || null,
+    x: Number(draft.x),
+    y: Number(draft.y),
+    width: Number(draft.width),
+    height: Number(draft.height),
+    transition: draft.target_scene_id
+      ? { target_scene_id: draft.target_scene_id }
+      : null,
+    expected_working_draft_version: expectedWorkingDraftVersion,
+  };
+  return validHotspotBox({
+    x: input.x!,
+    y: input.y!,
+    width: input.width!,
+    height: input.height!,
+  })
+    ? input
+    : null;
+};
+
 export const sourceCaptureUrl = (projectId: string, captureSessionId: string) =>
   `/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}`;
 
-export const sceneAssetFileUrl = (projectId: string, scene: DemoScene) => {
-  if (!scene.source_capture_session_id || !scene.background_capture_asset_id) {
-    return null;
+export const loadOptionalBackgroundAssets = async (
+  loader:
+    | (() => Promise<{ capture_assets: CaptureAssetWithFileUrl[] }>)
+    | undefined,
+) => {
+  if (!loader) return { response: null, failed: false };
+  try {
+    return { response: await loader(), failed: false };
+  } catch {
+    return { response: null, failed: true };
   }
+};
 
-  return `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(scene.source_capture_session_id)}/assets/${encodeURIComponent(scene.background_capture_asset_id)}/file`;
+export const refreshedBackgroundAssets = (
+  scenes: DemoScene[],
+  currentAssets: CaptureAssetWithFileUrl[],
+  selectableAssets: CaptureAssetWithFileUrl[],
+) => {
+  const referencedIds = new Set(
+    scenes
+      .map((scene) => scene.background_capture_asset_id)
+      .filter((id): id is string => Boolean(id)),
+  );
+  const referencedAssets = currentAssets.filter((asset) =>
+    referencedIds.has(asset.id),
+  );
+  return [
+    ...new Map(
+      [...selectableAssets, ...referencedAssets].map((asset) => [
+        asset.id,
+        asset,
+      ]),
+    ).values(),
+  ];
 };

@@ -28,6 +28,8 @@ export type InteractiveDemoEditorLoadState =
       scenes: DemoScene[];
       hotspotsBySceneId: Record<string, DemoHotspot[]>;
       backgroundAssets: CaptureAssetWithFileUrl[];
+      selectableBackgroundAssetIds: string[];
+      backgroundPickerError: boolean;
     }
   | { status: "unauthenticated" }
   | { status: "not_found" }

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { DemoHotspot, DemoScene } from "@repo/types/demo";
 import {
   hotspotDraftFromHotspot,
+  mergeConfirmedHotspotDrafts,
+  mergeConfirmedSceneDrafts,
   sceneDraftsFromScenes,
 } from "./interactiveDemoEditorHelpers";
 
@@ -55,5 +57,46 @@ describe("interactive Demo editor helpers", () => {
     expect(sceneDraftsFromScenes([scene]).scene_1).toMatchObject({
       background_capture_asset_id: "asset_1",
     });
+  });
+
+  it("reconciles only the confirmed Scene and preserves unrelated local drafts", () => {
+    const saved = {
+      id: "scene_1",
+      title: "Saved",
+      description: null,
+      background_capture_asset_id: null,
+    } as DemoScene;
+    expect(
+      mergeConfirmedSceneDrafts(
+        {
+          scene_1: {
+            title: "Saving",
+            description: "",
+            background_capture_asset_id: "",
+          },
+          scene_2: {
+            title: "Unrelated local edit",
+            description: "",
+            background_capture_asset_id: "",
+          },
+        },
+        saved,
+      ).scene_2!.title,
+    ).toBe("Unrelated local edit");
+  });
+
+  it("reconciles only the confirmed Hotspot and preserves unrelated local drafts", () => {
+    expect(
+      mergeConfirmedHotspotDrafts(
+        {
+          hotspot_1: hotspotDraftFromHotspot(hotspot),
+          hotspot_2: {
+            ...hotspotDraftFromHotspot(hotspot),
+            label: "Unrelated local edit",
+          },
+        },
+        hotspot,
+      ).hotspot_2!.label,
+    ).toBe("Unrelated local edit");
   });
 });

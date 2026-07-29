@@ -46,6 +46,24 @@ const emptyScenes = {
   working_draft: detail.working_draft,
   background_capture_assets: [],
 };
+const makeScene = (id: string, index: number, title: string) => ({
+  id,
+  organization_id: "org_1",
+  project_id: "project_1",
+  interactive_demo_working_draft_id: "draft_1",
+  source_capture_session_id: null,
+  source_capture_event_id: null,
+  source_capture_asset_id: null,
+  scene_index: index,
+  title,
+  description: null,
+  background_capture_asset_id: null,
+  created_by_id: "user_1",
+  updated_by_id: "user_1",
+  version: 1,
+  created_at: now,
+  updated_at: now,
+});
 
 describe("InteractiveDemoEditorPage", () => {
   it("loads relational Edition and Working Draft data", async () => {
@@ -228,25 +246,26 @@ describe("InteractiveDemoEditorPage", () => {
     expect(title).toHaveValue("Relational demo changed");
   });
 
+  it("shows an explicit failed-save state without discarding metadata", async () => {
+    const saveDemo = vi.fn().mockRejectedValue(new Error("offline"));
+    render(
+      <InteractiveDemoEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        interactiveDemoId="demo_1"
+        loadDemo={async () => detail}
+        loadScenes={async () => emptyScenes}
+        saveDemo={saveDemo}
+      />,
+    );
+    const title = await screen.findByLabelText("Demo title");
+    fireEvent.change(title, { target: { value: "Still local" } });
+    screen.getByRole("button", { name: "Save demo" }).click();
+    expect(await screen.findByText("Save failed")).toBeVisible();
+    expect(title).toHaveValue("Still local");
+  });
+
   it("keeps one Scene selected by stable ID in the workbench rail", async () => {
-    const scene = (id: string, index: number, title: string) => ({
-      id,
-      organization_id: "org_1",
-      project_id: "project_1",
-      interactive_demo_working_draft_id: "draft_1",
-      source_capture_session_id: null,
-      source_capture_event_id: null,
-      source_capture_asset_id: null,
-      scene_index: index,
-      title,
-      description: null,
-      background_capture_asset_id: null,
-      created_by_id: "user_1",
-      updated_by_id: "user_1",
-      version: 1,
-      created_at: now,
-      updated_at: now,
-    });
     render(
       <InteractiveDemoEditorPage
         projectId="project_1"
@@ -256,8 +275,8 @@ describe("InteractiveDemoEditorPage", () => {
         loadScenes={async () => ({
           ...emptyScenes,
           demo_scenes: [
-            scene("scene_1", 1, "Start here"),
-            scene("scene_2", 2, "Finish here"),
+            makeScene("scene_1", 1, "Start here"),
+            makeScene("scene_2", 2, "Finish here"),
           ],
         })}
         loadHotspots={async () => ({
@@ -276,5 +295,171 @@ describe("InteractiveDemoEditorPage", () => {
       screen.getByRole("button", { name: "Select Scene 2: Finish here" }),
     );
     expect(screen.getByRole("heading", { name: "Finish here" })).toBeVisible();
+  });
+
+  it("creates a Hotspot without inferring a target Scene", async () => {
+    const createHotspot = vi.fn().mockResolvedValue({
+      demo_hotspot: {
+        id: "hotspot_1",
+        organization_id: "org_1",
+        project_id: "project_1",
+        interactive_demo_scene_id: "scene_1",
+        hotspot_index: 1,
+        hotspot_type: "click",
+        label: "New hotspot",
+        content: null,
+        x: 0.4,
+        y: 0.35,
+        width: 0.2,
+        height: 0.12,
+        transition: null,
+        created_by_id: "user_1",
+        updated_by_id: "user_1",
+        version: 1,
+        created_at: now,
+        updated_at: now,
+      },
+      working_draft: { ...detail.working_draft, version: 9 },
+    });
+    render(
+      <InteractiveDemoEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        interactiveDemoId="demo_1"
+        loadDemo={async () => detail}
+        loadScenes={async () => ({
+          ...emptyScenes,
+          demo_scenes: [
+            makeScene("scene_1", 1, "Start"),
+            makeScene("scene_2", 2, "Finish"),
+          ],
+        })}
+        loadHotspots={async () => ({
+          demo_hotspots: [],
+          working_draft: detail.working_draft,
+        })}
+        createHotspot={createHotspot}
+      />,
+    );
+
+    (await screen.findByRole("button", { name: "Add hotspot" })).click();
+    await waitFor(() =>
+      expect(createHotspot).toHaveBeenCalledWith(
+        "project_1",
+        "demo_1",
+        "scene_1",
+        expect.objectContaining({ transition: null }),
+      ),
+    );
+  });
+
+  it("warns before unload for unsaved Scene changes", async () => {
+    render(
+      <InteractiveDemoEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        interactiveDemoId="demo_1"
+        loadDemo={async () => detail}
+        loadScenes={async () => ({
+          ...emptyScenes,
+          demo_scenes: [makeScene("scene_1", 1, "Start")],
+        })}
+        loadHotspots={async () => ({
+          demo_hotspots: [],
+          working_draft: detail.working_draft,
+        })}
+      />,
+    );
+
+    fireEvent.change(await screen.findByLabelText("Scene 1 title"), {
+      target: { value: "Locally changed" },
+    });
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("fails the editor load when Hotspots cannot be loaded", async () => {
+    render(
+      <InteractiveDemoEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        interactiveDemoId="demo_1"
+        loadDemo={async () => detail}
+        loadScenes={async () => ({
+          ...emptyScenes,
+          demo_scenes: [makeScene("scene_1", 1, "Start")],
+        })}
+        loadHotspots={async () => {
+          throw new Error("hotspot load failed");
+        }}
+      />,
+    );
+
+    expect(
+      await screen.findByText("Could not load interactive demo."),
+    ).toBeVisible();
+    expect(screen.queryByText("No hotspots yet.")).toBeNull();
+  });
+
+  it("keeps the editor usable when only background choices fail to load", async () => {
+    render(
+      <InteractiveDemoEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        interactiveDemoId="demo_1"
+        loadDemo={async () => detail}
+        loadScenes={async () => ({
+          ...emptyScenes,
+          demo_scenes: [makeScene("scene_1", 1, "Start")],
+        })}
+        loadHotspots={async () => ({
+          demo_hotspots: [],
+          working_draft: detail.working_draft,
+        })}
+        loadBackgroundAssets={async () => {
+          throw new Error("asset picker failed");
+        }}
+      />,
+    );
+
+    expect(await screen.findByLabelText("Scene 1 title")).toBeEnabled();
+    expect(
+      screen.getByText(
+        /Background choices could not be loaded. The current background is preserved./,
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Retry background choices" }),
+    ).toBeEnabled();
+  });
+
+  it("freezes aggregate mutations after a Working Draft conflict and offers recovery", async () => {
+    const createScene = vi.fn().mockRejectedValue(
+      Object.assign(new Error("conflict"), {
+        type: "interactive_demo_working_draft_conflict",
+      }),
+    );
+    render(
+      <InteractiveDemoEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        interactiveDemoId="demo_1"
+        loadDemo={async () => detail}
+        loadScenes={async () => emptyScenes}
+        createScene={createScene}
+      />,
+    );
+
+    (await screen.findByRole("button", { name: "Add Scene" })).click();
+    expect(await screen.findByText("Conflict")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Archive demo" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save demo" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Discard local changes and reload",
+      }),
+    ).toBeEnabled();
+    expect(screen.getByText("Review your local changes above")).toBeVisible();
   });
 });
