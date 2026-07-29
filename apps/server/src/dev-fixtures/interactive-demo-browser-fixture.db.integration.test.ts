@@ -53,12 +53,24 @@ describe("Interactive Demo browser fixture database seed", () => {
              AND link.slug='plan128-public'`,
           [fixture.organization_id, fixture.project_id],
         ),
+        archived_project: await client.query<{
+          status: string;
+          version_status: string;
+        }>(
+          `SELECT project.status, version.status AS version_status
+           FROM project_schema.project project
+           INNER JOIN project_schema.project_version version
+             ON version.id=project.default_project_version_id
+           WHERE project.id=$1`,
+          [fixture.archived_project.id],
+        ),
       };
     });
 
     expect({
       ...result,
       public_link_entries: result.public_link_entries.rows[0],
+      archived_project: result.archived_project.rows[0],
     }).toEqual({
       demos: 3,
       scenes: 12,
@@ -70,6 +82,10 @@ describe("Interactive Demo browser fixture database seed", () => {
       public_link_entries: {
         entry_count: 2,
         version_count: 2,
+      },
+      archived_project: {
+        status: "archived",
+        version_status: "active",
       },
     });
   });
