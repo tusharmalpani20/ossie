@@ -123,6 +123,14 @@ describe("ProjectCarryForwardPage", () => {
   });
 
   it("lists every target conflict blocker", async () => {
+    api.listProjectInteractiveDemos.mockResolvedValueOnce({
+      interactive_demo_editions: [
+        {
+          artifact: { id: "demo_1" },
+          edition: { title: "Department tour" },
+        },
+      ],
+    });
     api.carryForwardArtifactEditions.mockRejectedValueOnce(
       new ApiClientError({
         kind: "unknown",
@@ -158,7 +166,10 @@ describe("ProjectCarryForwardPage", () => {
       screen.getByRole("button", { name: "Carry forward selected" }),
     );
 
-    expect(await screen.findByText("Guide guide_1")).toBeInTheDocument();
-    expect(screen.getByText("Interactive Demo demo_1")).toBeInTheDocument();
+    expect(await screen.findByText("Guide: Account setup")).toBeInTheDocument();
+    expect(
+      screen.getByText("Interactive Demo: Department tour"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/guide_1|demo_1/u)).not.toBeInTheDocument();
   });
 });
