@@ -25,6 +25,7 @@ export const InteractiveDemoReadOnlyPage = ({
   performLogout,
   navigate,
   onRestore,
+  renderShell,
 }: {
   projectId: string;
   interactiveDemoId: string;
@@ -39,18 +40,21 @@ export const InteractiveDemoReadOnlyPage = ({
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   onRestore: () => Promise<void>;
+  renderShell: boolean;
 }) => (
   <div className={styles.page}>
-    <PortalTopbar
-      context={`${projectId} / interactive demos / ${interactiveDemoId}`}
-      performLogout={performLogout}
-      navigate={navigate}
-    />
+    {renderShell ? (
+      <PortalTopbar
+        context={`${projectId} / interactive demos / ${interactiveDemoId}`}
+        performLogout={performLogout}
+        navigate={navigate}
+      />
+    ) : null}
     <main className={styles.main}>
       <header className={styles.header}>
         <div>
           <span>Interactive demo · read only</span>
-          <h1>{demo.title}</h1>
+          <strong>{demo.title}</strong>
           {demo.description ? <p>{demo.description}</p> : null}
         </div>
         <div className={styles.actions}>

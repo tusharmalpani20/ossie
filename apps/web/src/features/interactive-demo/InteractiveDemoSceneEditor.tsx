@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DEMO_HOTSPOT_TYPES } from "@repo/constants";
 import type { CaptureAssetWithFileUrl } from "@repo/types/capture";
 import { Button } from "@repo/ui/button";
@@ -91,6 +91,15 @@ export const InteractiveDemoSceneEditor = ({
       hotspotDraftFromHotspot(selectedHotspot))
     : null;
   const pending = pendingAction !== null;
+
+  useEffect(() => {
+    if (
+      !selectedHotspotId ||
+      !hotspots.some((hotspot) => hotspot.id === selectedHotspotId)
+    ) {
+      setSelectedHotspotId(hotspots[0]?.id ?? null);
+    }
+  }, [hotspots, selectedHotspotId]);
 
   return (
     <article className={styles.scene}>

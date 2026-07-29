@@ -81,7 +81,7 @@ export const InteractiveDemoWorkbench = ({
     </section>
 
     <div className={styles.layout}>
-      <aside className={styles.sidebar}>
+      <aside aria-label="Interactive Demo controls" className={styles.sidebar}>
         <section
           className={styles.panel}
           aria-labelledby="demo-metadata-heading"
