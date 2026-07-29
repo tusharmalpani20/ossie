@@ -232,6 +232,35 @@ describe("ArtifactPublishingPanel", () => {
     );
   });
 
+  it("uses the optional Guide aggregate mutation lease for Publication", async () => {
+    const lease = vi.fn();
+    const runAggregateMutation = async <Result,>(
+      command: "publication",
+      operation: () => Promise<Result>,
+    ): Promise<Result> => {
+      lease(command);
+      return operation();
+    };
+    render(
+      <ArtifactPublishingPanel
+        projectId="p"
+        projectVersionId="named"
+        artifactType="guide"
+        artifactId="g"
+        editionVersion={4}
+        workingDraftVersion={7}
+        runAggregateMutation={runAggregateMutation}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Publish this draft" }),
+    );
+    await waitFor(() => expect(lease).toHaveBeenCalledOnce());
+    expect(lease).toHaveBeenCalledWith("publication");
+    expect(publishArtifact).toHaveBeenCalledOnce();
+  });
+
   it("shows rollback evidence and sends only the optional entered reason after confirmation", async () => {
     vi.mocked(listArtifactPublications).mockResolvedValue({
       publications: [publication, previousPublication],
