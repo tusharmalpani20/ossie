@@ -495,6 +495,14 @@ export const GuideEditorPage = ({
     blockType: "step" | "header" | "paragraph" | "tip" | "alert" | "divider",
     afterBlock?: GuideBlock,
   ) => {
+    const previousStepDrafts =
+      state.status === "loaded"
+        ? stepDraftsFromBlocks(state.detail.guide_blocks)
+        : {};
+    const previousBlockDrafts =
+      state.status === "loaded"
+        ? blockContentDraftsFromBlocks(state.detail.guide_blocks)
+        : {};
     setBusyAction(`create:${afterBlock?.id ?? "end"}:${blockType}`);
     setNotice(null);
 
@@ -517,9 +525,37 @@ export const GuideEditorPage = ({
         working_draft: response.working_draft,
         guide_blocks: response.guide_blocks,
       }));
-      setStepDrafts(stepDraftsFromBlocks(response.guide_blocks));
-      setBlockContentDrafts(
-        blockContentDraftsFromBlocks(response.guide_blocks),
+      const nextStepDrafts = stepDraftsFromBlocks(response.guide_blocks);
+      const nextBlockDrafts = blockContentDraftsFromBlocks(
+        response.guide_blocks,
+      );
+      setStepDrafts((current) =>
+        Object.fromEntries(
+          Object.entries(nextStepDrafts).map(([id, nextDraft]) => {
+            const currentDraft = current[id];
+            const previousDraft = previousStepDrafts[id];
+            const isDirty =
+              currentDraft !== undefined &&
+              previousDraft !== undefined &&
+              (currentDraft.title !== previousDraft.title ||
+                currentDraft.body !== previousDraft.body);
+            return [id, isDirty ? currentDraft : nextDraft];
+          }),
+        ),
+      );
+      setBlockContentDrafts((current) =>
+        Object.fromEntries(
+          Object.entries(nextBlockDrafts).map(([id, nextDraft]) => {
+            const currentDraft = current[id];
+            const previousDraft = previousBlockDrafts[id];
+            const isDirty =
+              currentDraft !== undefined &&
+              previousDraft !== undefined &&
+              (currentDraft.title !== previousDraft.title ||
+                currentDraft.body !== previousDraft.body);
+            return [id, isDirty ? currentDraft : nextDraft];
+          }),
+        ),
       );
       setNotice("Block added.");
     } catch (error: unknown) {
