@@ -241,6 +241,9 @@ export const GuideEditorPage = ({
     Record<string, BlockContentDraft>
   >({});
   const [notice, setNotice] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<
+    "edition_conflict" | "working_draft_conflict" | null
+  >(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [screenshotAssets, setScreenshotAssets] = useState<
     GuideSourceCaptureAsset[]
@@ -250,6 +253,31 @@ export const GuideEditorPage = ({
     useState<string | null>(null);
   const currentWorkingDraftVersion =
     state.status === "loaded" ? state.detail.working_draft.version : 0;
+  const hasUnsavedChanges = useMemo(() => {
+    if (state.status !== "loaded") return false;
+    if (
+      guideDraft.title !== state.detail.edition.title ||
+      guideDraft.description !== (state.detail.edition.description ?? "")
+    ) {
+      return true;
+    }
+    return state.detail.guide_blocks.some((block) => {
+      if (block.step) {
+        const draft = stepDrafts[block.step.id];
+        return Boolean(
+          draft &&
+            (draft.title !== block.step.title ||
+              draft.body !== (block.step.body ?? "")),
+        );
+      }
+      const draft = blockContentDrafts[block.id];
+      return Boolean(
+        draft &&
+          (draft.title !== (block.title ?? "") ||
+            draft.body !== (block.body ?? "")),
+      );
+    });
+  }, [blockContentDrafts, guideDraft, state, stepDrafts]);
 
   useEffect(() => {
     let active = true;
@@ -287,6 +315,16 @@ export const GuideEditorPage = ({
     setActiveScreenshotPickerBlockId(null);
   }, [projectId, guideId]);
 
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   const reload = () => setReloadKey((key) => key + 1);
 
   const markNotEditable = () => {
@@ -300,7 +338,40 @@ export const GuideEditorPage = ({
       return;
     }
 
+    if (
+      error instanceof ApiClientError &&
+      (error.type === "edition_conflict" ||
+        error.type === "working_draft_conflict" ||
+        error.type === "row_version_conflict")
+    ) {
+      const nextConflict =
+        error.type === "edition_conflict"
+          ? "edition_conflict"
+          : "working_draft_conflict";
+      setConflict(nextConflict);
+      setNotice(
+        nextConflict === "edition_conflict"
+          ? "This Guide Edition changed elsewhere. Your local changes are still here."
+          : "This Working Draft changed elsewhere. Your local changes are still here.",
+      );
+      return;
+    }
+
     setNotice(fallback);
+  };
+
+  const reloadLatest = () => {
+    if (
+      hasUnsavedChanges &&
+      !window.confirm(
+        "Reload the latest Guide and discard the unsaved local changes shown here?",
+      )
+    ) {
+      return;
+    }
+    setConflict(null);
+    setNotice(null);
+    reload();
   };
 
   const exportCurrentMarkdown = async (): Promise<GuideMarkdownExport> =>
@@ -370,6 +441,7 @@ export const GuideEditorPage = ({
 
     setBusyAction("guide");
     setNotice(null);
+    setConflict(null);
 
     try {
       const response = await saveGuide(projectId, guideId, {
@@ -819,6 +891,8 @@ export const GuideEditorPage = ({
       stepDrafts={stepDrafts}
       blockContentDrafts={blockContentDrafts}
       notice={notice}
+      conflict={conflict}
+      hasUnsavedChanges={hasUnsavedChanges}
       busyAction={busyAction}
       projectId={projectId}
       guideId={guideId}
@@ -848,6 +922,7 @@ export const GuideEditorPage = ({
       onDownloadMarkdown={downloadMarkdown}
       onDownloadHtmlZip={downloadHtmlZip}
       onChangeLifecycle={changeLifecycle}
+      onReloadLatest={reloadLatest}
       performLogout={performLogout}
       navigate={navigate}
       versionSlug={versionSlug}
@@ -884,6 +959,8 @@ const GuideEditorView = ({
   stepDrafts,
   blockContentDrafts,
   notice,
+  conflict,
+  hasUnsavedChanges,
   busyAction,
   projectId,
   guideId,
@@ -909,6 +986,7 @@ const GuideEditorView = ({
   onDownloadMarkdown,
   onDownloadHtmlZip,
   onChangeLifecycle,
+  onReloadLatest,
   performLogout,
   navigate,
   versionSlug,
@@ -918,6 +996,8 @@ const GuideEditorView = ({
   stepDrafts: Record<string, StepDraft>;
   blockContentDrafts: Record<string, BlockContentDraft>;
   notice: string | null;
+  conflict: "edition_conflict" | "working_draft_conflict" | null;
+  hasUnsavedChanges: boolean;
   busyAction: string | null;
   projectId: string;
   guideId: string;
@@ -949,6 +1029,7 @@ const GuideEditorView = ({
   onDownloadMarkdown: () => void;
   onDownloadHtmlZip: () => void;
   onChangeLifecycle: () => void;
+  onReloadLatest: () => void;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   versionSlug?: string;
@@ -1069,7 +1150,21 @@ const GuideEditorView = ({
         {readOnly ? (
           <div className={styles.notice}>Archived guides are read-only.</div>
         ) : null}
-        {notice ? <div className={styles.notice}>{notice}</div> : null}
+        {hasUnsavedChanges ? (
+          <div className={styles.notice} role="status">
+            Unsaved changes
+          </div>
+        ) : null}
+        {notice ? (
+          <div className={styles.notice} role="status">
+            {notice}
+            {conflict ? (
+              <Button variant="secondary" onClick={onReloadLatest}>
+                Reload latest
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <div className={styles.content}>
@@ -1129,7 +1224,13 @@ const GuideEditorView = ({
           </h2>
           {sortedBlocks.length === 0 ? (
             <div className={styles.empty}>
-              This guide does not have any blocks yet.
+              <p>This guide does not have any blocks yet.</p>
+              {!readOnly ? (
+                <BlockInsertControls
+                  disabled={busyAction?.startsWith("create:") ?? false}
+                  onAdd={(blockType) => onAddBlock(blockType)}
+                />
+              ) : null}
             </div>
           ) : (
             <div className={styles.blocks}>
@@ -1661,7 +1762,7 @@ const BlockInsertControls = ({
   disabled,
   onAdd,
 }: {
-  blockNumber: number;
+  blockNumber?: number;
   disabled: boolean;
   onAdd: (
     blockType: "step" | "header" | "paragraph" | "tip" | "alert" | "divider",
@@ -1669,7 +1770,11 @@ const BlockInsertControls = ({
 }) => (
   <div
     className={styles.insertControls}
-    aria-label={`Add block after block ${blockNumber}`}
+    aria-label={
+      blockNumber === undefined
+        ? "Add first block"
+        : `Add block after block ${blockNumber}`
+    }
   >
     <Button
       variant="secondary"
@@ -1677,7 +1782,7 @@ const BlockInsertControls = ({
       disabled={disabled}
       onClick={() => onAdd("step")}
     >
-      Add step after block {blockNumber}
+      {blockNumber === undefined ? "Add step" : `Add step after block ${blockNumber}`}
     </Button>
     <Button
       variant="secondary"
@@ -1685,7 +1790,9 @@ const BlockInsertControls = ({
       disabled={disabled}
       onClick={() => onAdd("header")}
     >
-      Add header after block {blockNumber}
+      {blockNumber === undefined
+        ? "Add header"
+        : `Add header after block ${blockNumber}`}
     </Button>
     <Button
       variant="secondary"
@@ -1693,7 +1800,9 @@ const BlockInsertControls = ({
       disabled={disabled}
       onClick={() => onAdd("paragraph")}
     >
-      Add paragraph after block {blockNumber}
+      {blockNumber === undefined
+        ? "Add paragraph"
+        : `Add paragraph after block ${blockNumber}`}
     </Button>
     <Button
       variant="secondary"
@@ -1701,7 +1810,9 @@ const BlockInsertControls = ({
       disabled={disabled}
       onClick={() => onAdd("tip")}
     >
-      Add tip after block {blockNumber}
+      {blockNumber === undefined
+        ? "Add tip"
+        : `Add tip after block ${blockNumber}`}
     </Button>
     <Button
       variant="secondary"
@@ -1709,7 +1820,9 @@ const BlockInsertControls = ({
       disabled={disabled}
       onClick={() => onAdd("alert")}
     >
-      Add alert after block {blockNumber}
+      {blockNumber === undefined
+        ? "Add alert"
+        : `Add alert after block ${blockNumber}`}
     </Button>
     <Button
       variant="secondary"
@@ -1717,7 +1830,9 @@ const BlockInsertControls = ({
       disabled={disabled}
       onClick={() => onAdd("divider")}
     >
-      Add divider after block {blockNumber}
+      {blockNumber === undefined
+        ? "Add divider"
+        : `Add divider after block ${blockNumber}`}
     </Button>
   </div>
 );

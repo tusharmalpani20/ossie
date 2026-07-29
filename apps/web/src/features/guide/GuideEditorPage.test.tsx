@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { GuideDetail } from "@repo/types/guide";
 import { GuideEditorPage } from "./GuideEditorPage";
+import { ApiClientError } from "../../lib/api";
 
 const now = "2026-07-19T10:00:00.000Z";
 const detail: GuideDetail = {
@@ -152,6 +153,115 @@ describe("GuideEditorPage", () => {
     );
     expect(
       await screen.findByRole("button", { name: "Restore guide" }),
+    ).toBeInTheDocument();
+  });
+
+  it("warns only while metadata changes are unsaved", async () => {
+    const addEventListener = vi.spyOn(window, "addEventListener");
+    const removeEventListener = vi.spyOn(window, "removeEventListener");
+    render(
+      <GuideEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        guideId="guide_1"
+        loadDetail={async () => detail}
+      />,
+    );
+
+    const title = await screen.findByLabelText("Guide title");
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
+    fireEvent.change(title, { target: { value: "Local title" } });
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    expect(addEventListener).toHaveBeenCalledWith(
+      "beforeunload",
+      expect.any(Function),
+    );
+
+    fireEvent.change(title, { target: { value: detail.edition.title } });
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
+    expect(removeEventListener).toHaveBeenCalledWith(
+      "beforeunload",
+      expect.any(Function),
+    );
+  });
+
+  it("preserves local metadata and offers reload after a Row Version conflict", async () => {
+    const saveGuide = vi.fn().mockRejectedValue(
+      new ApiClientError({
+        kind: "unknown",
+        status: 409,
+        type: "edition_conflict",
+        message: "Guide Edition changed; reload and retry",
+      }),
+    );
+    render(
+      <GuideEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        guideId="guide_1"
+        loadDetail={async () => detail}
+        saveGuide={saveGuide}
+      />,
+    );
+
+    const title = await screen.findByLabelText("Guide title");
+    fireEvent.change(title, { target: { value: "Keep my local title" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save guide" }));
+
+    expect(
+      await screen.findByText(
+        "This Guide Edition changed elsewhere. Your local changes are still here.",
+      ),
+    ).toBeInTheDocument();
+    expect(title).toHaveValue("Keep my local title");
+    expect(
+      screen.getByRole("button", { name: "Reload latest" }),
+    ).toBeInTheDocument();
+    expect(saveGuide).toHaveBeenCalledOnce();
+  });
+
+  it("creates the first structural block from an empty Guide", async () => {
+    const createBlock = vi.fn().mockResolvedValue({
+      working_draft: { ...detail.working_draft, version: 8 },
+      guide_blocks: [
+        {
+          id: "block_1",
+          guide_working_draft_id: "draft_1",
+          block_type: "paragraph",
+          block_index: 1,
+          title: null,
+          body: "Add content",
+          created_by_id: "user_1",
+          updated_by_id: "user_1",
+          created_at: now,
+          updated_at: now,
+          step: null,
+        },
+      ],
+    });
+    render(
+      <GuideEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        guideId="guide_1"
+        loadDetail={async () => detail}
+        createBlock={createBlock}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Add paragraph" }),
+    );
+    expect(createBlock).toHaveBeenCalledWith(
+      "project_1",
+      "guide_1",
+      expect.objectContaining({
+        block_type: "paragraph",
+        expected_working_draft_version: 7,
+      }),
+    );
+    expect(
+      await screen.findByLabelText("Paragraph body 1"),
     ).toBeInTheDocument();
   });
 });
