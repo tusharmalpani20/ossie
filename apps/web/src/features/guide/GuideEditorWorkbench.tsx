@@ -911,6 +911,7 @@ const BlockInsertControls = ({
 }) => (
   <div
     className={styles.insertControls}
+    role="group"
     aria-label={
       blockNumber === undefined
         ? "Add first block"

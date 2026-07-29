@@ -23,7 +23,7 @@
 
 .eyebrow {
   margin-bottom: 8px;
-  color: #64748b;
+  color: var(--ossie-color-muted);
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
