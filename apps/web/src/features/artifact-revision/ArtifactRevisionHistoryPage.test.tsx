@@ -54,8 +54,8 @@ describe("ArtifactRevisionHistoryPage", () => {
 
     expect(await screen.findByText("Revision 2")).toBeInTheDocument();
     expect(
-      screen.getByText(`Created by ${revision.created_by_id}`),
-    ).toBeInTheDocument();
+      screen.queryByText(new RegExp(revision.created_by_id, "u")),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Restore" })).toBeNull();
     expect(
       screen.getByRole("link", { name: "Open immutable preview" }),
