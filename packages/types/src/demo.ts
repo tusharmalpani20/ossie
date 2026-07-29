@@ -6,6 +6,7 @@ import {
   TrimmedIdParamSchema,
   TrimmedNonEmptyStringSchema,
 } from "./common";
+import { CaptureAssetWithFileUrlSchema } from "./capture";
 
 const RowVersionSchema = z.number().int().positive();
 const nullable_trimmed_string = z
@@ -353,6 +354,7 @@ export const InteractiveDemoSceneListResponseSchema = z
   .object({
     demo_scenes: z.array(DemoSceneSchema),
     working_draft: InteractiveDemoWorkingDraftSchema,
+    background_capture_assets: z.array(CaptureAssetWithFileUrlSchema),
   })
   .strict();
 export type InteractiveDemoSceneListResponse = z.infer<

@@ -3,6 +3,7 @@ import {
   InteractiveDemoEditionConflictError,
   InteractiveDemoWorkingDraftConflictError,
 } from "@repo/demo-domain";
+import type { CaptureAssetWithFileUrl } from "@repo/types/capture";
 import type {
   DemoHotspot,
   DemoScene,
@@ -34,6 +35,20 @@ type DraftRow = Dated<InteractiveDemoWorkingDraft>;
 type SceneRow = Dated<DemoScene>;
 type TransitionRow = Dated<DemoTransition>;
 type HotspotRow = Dated<Omit<DemoHotspot, "transition">>;
+type BackgroundAssetRow = Omit<
+  CaptureAssetWithFileUrl,
+  "file" | "file_url" | "captured_at" | "created_at" | "updated_at"
+> & {
+  captured_at: Date;
+  created_at: Date;
+  updated_at: Date;
+  file_id: string;
+  file_storage_provider: CaptureAssetWithFileUrl["file"]["storage_provider"];
+  file_mime_type: string;
+  file_size_bytes: string | number;
+  file_original_name: string | null;
+  file_checksum_sha256: string | null;
+};
 const first = <T>(r: Result<T>) => r.rows[0] ?? null;
 const iso = <T extends { created_at: Date; updated_at: Date }>(r: T) => ({
   ...r,
@@ -96,6 +111,67 @@ const scenes = async (
       [draft_id, project_id, organization_id],
     )
   ).rows.map(map_scene);
+const background_assets = async (
+  db: Queryable,
+  ids: string[],
+  project_id: string,
+  organization_id: string,
+  project_version_id: string,
+) => {
+  if (!ids.length) return [];
+  const result = await db.query<BackgroundAssetRow>(
+    `SELECT a.id,a.organization_id,a.project_id,a.capture_session_id,
+      a.asset_type,a.status,a.width,a.height,a.device_pixel_ratio,a.page_url,
+      a.page_title,a.captured_at,a.created_by_id,a.updated_by_id,a.version,
+      a.created_at,a.updated_at,f.id file_id,f.storage_provider file_storage_provider,
+      f.mime_type file_mime_type,f.size_bytes file_size_bytes,
+      f.original_name file_original_name,f.checksum_sha256 file_checksum_sha256
+     FROM capture_schema.capture_asset a
+     JOIN file_schema.file f ON f.id=a.file_id
+     JOIN capture_schema.capture_session s
+       ON s.id=a.capture_session_id AND s.project_id=a.project_id
+      AND s.organization_id=a.organization_id
+     WHERE a.id=ANY($1::varchar[]) AND a.project_id=$2 AND a.organization_id=$3
+       AND s.project_version_id=$4 AND a.is_deleted=FALSE AND f.is_deleted=FALSE`,
+    [ids, project_id, organization_id, project_version_id],
+  );
+  const mapped = new Map(
+    result.rows.map((row) => [
+      row.id,
+      {
+        id: row.id,
+        organization_id: row.organization_id,
+        project_id: row.project_id,
+        capture_session_id: row.capture_session_id,
+        file: {
+          id: row.file_id,
+          storage_provider: row.file_storage_provider,
+          mime_type: row.file_mime_type,
+          size_bytes: Number(row.file_size_bytes),
+          original_name: row.file_original_name,
+          checksum_sha256: row.file_checksum_sha256,
+        },
+        asset_type: row.asset_type,
+        status: row.status,
+        width: row.width,
+        height: row.height,
+        device_pixel_ratio: row.device_pixel_ratio,
+        page_url: row.page_url,
+        page_title: row.page_title,
+        captured_at: row.captured_at.toISOString(),
+        created_by_id: row.created_by_id,
+        updated_by_id: row.updated_by_id,
+        version: row.version,
+        created_at: row.created_at.toISOString(),
+        updated_at: row.updated_at.toISOString(),
+        file_url: `/api/v1/projects/${encodeURIComponent(row.project_id)}/capture-sessions/${encodeURIComponent(row.capture_session_id)}/assets/${encodeURIComponent(row.id)}/file`,
+      } satisfies CaptureAssetWithFileUrl,
+    ]),
+  );
+  return ids
+    .map((id) => mapped.get(id))
+    .filter((asset): asset is CaptureAssetWithFileUrl => Boolean(asset));
+};
 const hotspots = async (
   db: Queryable,
   draft_id: string,
@@ -512,9 +588,26 @@ export const build_interactive_demo_repository = (
   async list_scenes(i) {
     const d = await resolve_draft(db, i);
     if (!d) throw new InteractiveDemoWorkingDraftConflictError();
+    const demo_scenes = await scenes(db, d.id, i.project_id, i.organization_id);
+    const background_asset_ids = [
+      ...new Set(
+        demo_scenes.flatMap((scene) =>
+          scene.background_capture_asset_id
+            ? [scene.background_capture_asset_id]
+            : [],
+        ),
+      ),
+    ];
     return {
-      demo_scenes: await scenes(db, d.id, i.project_id, i.organization_id),
+      demo_scenes,
       working_draft: map_draft(d),
+      background_capture_assets: await background_assets(
+        db,
+        background_asset_ids,
+        i.project_id,
+        i.organization_id,
+        i.project_version_id,
+      ),
     };
   },
   async update_scene(i) {
