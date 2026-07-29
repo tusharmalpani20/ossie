@@ -48,7 +48,7 @@ export const provision_runtime_role = async (
     }
   }
   const format_sql = existing.rowCount
-    ? "SELECT format('ALTER ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT', $1::text, $2::text) AS statement"
+    ? "SELECT format('ALTER ROLE %I LOGIN PASSWORD %L NOCREATEDB NOCREATEROLE NOINHERIT', $1::text, $2::text) AS statement"
     : "SELECT format('CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT', $1::text, $2::text) AS statement";
   const formatted = await client.query(format_sql, [
     runtime.user,

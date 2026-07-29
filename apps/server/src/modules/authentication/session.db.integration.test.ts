@@ -195,6 +195,29 @@ describe("DB-backed authentication session", () => {
     await app.close();
   });
 
+  it("serializes concurrent session activity updates without failing authenticated reads", async () => {
+    const session_token = await setup_owner();
+    const app = build({ logger: false });
+
+    const responses = await Promise.all(
+      Array.from({ length: 100 }, () =>
+        app.inject({
+          method: "GET",
+          url: "/api/v1/authentication/me",
+          cookies: {
+            ossie_session: session_token,
+          },
+        }),
+      ),
+    );
+
+    expect(responses.map(({ statusCode }) => statusCode)).toEqual(
+      Array.from({ length: 100 }, () => 200),
+    );
+
+    await app.close();
+  });
+
   it("rejects expired sessions and invalid credentials", async () => {
     const setup_session_token = await setup_owner();
     const app = build({ logger: false });

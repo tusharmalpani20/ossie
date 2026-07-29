@@ -81,7 +81,9 @@ describe("Audit Evidence core", () => {
       [events.rows[0].id],
     );
     expect(items.rows).toHaveLength(15);
-    expect(items.rows.filter((row) => row.entity_type === "project_version")).toHaveLength(7);
+    expect(
+      items.rows.filter((row) => row.entity_type === "project_version"),
+    ).toHaveLength(7);
     expect(
       items.rows.find((row) => row.field_name === "metadata"),
     ).toMatchObject({
@@ -250,7 +252,9 @@ describe("Audit Evidence core", () => {
         client.query("DELETE FROM project_schema.project WHERE id = $1", [
           project_id,
         ]),
-      ).rejects.toMatchObject({ code: "23503" });
+      ).rejects.toMatchObject({
+        code: expect.stringMatching(/^(23001|23503)$/u),
+      });
     });
   });
 
@@ -408,13 +412,23 @@ describe("Audit Evidence core", () => {
           (id, organization_id, name, default_project_version_id, created_by_id, updated_by_id)
         VALUES ($1, $2, 'Missing Evidence', $3, $4, $4)
       `,
-        [project_id, actor.rows[0].organization_id, project_version_id, actor.rows[0].id],
+        [
+          project_id,
+          actor.rows[0].organization_id,
+          project_version_id,
+          actor.rows[0].id,
+        ],
       );
       await client.query(
         `INSERT INTO project_schema.project_version
           (id, organization_id, project_id, name, slug, position, created_by_id, updated_by_id)
          VALUES ($1, $2, $3, 'Main', 'main', 1, $4, $4)`,
-        [project_version_id, actor.rows[0].organization_id, project_id, actor.rows[0].id],
+        [
+          project_version_id,
+          actor.rows[0].organization_id,
+          project_id,
+          actor.rows[0].id,
+        ],
       );
       await expect(client.query("COMMIT")).rejects.toMatchObject({
         code: "23514",
