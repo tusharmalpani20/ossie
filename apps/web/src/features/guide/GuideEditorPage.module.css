@@ -90,9 +90,64 @@
 
 .content {
   display: grid;
-  grid-template-columns: minmax(280px, 0.36fr) minmax(0, 0.64fr);
+  grid-template-columns:
+    minmax(180px, 0.22fr) minmax(0, 0.5fr)
+    minmax(260px, 0.28fr);
   gap: 20px;
   padding-top: 24px;
+}
+
+.outline {
+  min-width: 0;
+}
+
+.outlineEmpty {
+  color: #637083;
+  font-size: 13px;
+}
+
+.outlineList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.outlineButton {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #4d5968;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.outlineButton:hover {
+  background: #eef2f6;
+}
+
+.outlineButton[aria-current="true"] {
+  border-color: #bfd0e2;
+  background: #e8eef7;
+  color: #1f4f82;
+  font-weight: 700;
+}
+
+.outlineButton:focus-visible {
+  outline: 2px solid #1f4f82;
+  outline-offset: 2px;
+}
+
+.documentCanvas {
+  min-width: 0;
 }
 
 .panel {
@@ -499,6 +554,10 @@
   .titleRow,
   .content {
     grid-template-columns: 1fr;
+  }
+
+  .documentCanvas {
+    order: -1;
   }
 
   .titleRow {
