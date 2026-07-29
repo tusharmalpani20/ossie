@@ -4,7 +4,11 @@ import {
   handleAutomaticClickCapture,
   type AutomaticClickMessage,
 } from "./automatic-capture";
-import type { CaptureAssetResponse, CaptureEventResponse } from "./api";
+import {
+  ApiClientError,
+  type CaptureAssetResponse,
+  type CaptureEventResponse,
+} from "./api";
 import type { ScreenshotCapture } from "./screenshot";
 import type { ExtensionSettings } from "./settings";
 
@@ -121,6 +125,9 @@ const build_dependencies = (
   captureVisibleTabScreenshot: vi.fn(async () => screenshot),
   uploadCaptureAsset: vi.fn(async () => capture_asset_response),
   createCaptureEvent: vi.fn(async () => capture_event_response),
+  listCaptureEvents: vi.fn(async () => ({
+    capture_events: [capture_event_response.capture_event],
+  })),
   saveActiveCaptureEventIndex: vi.fn(async () => {}),
   saveAutomaticCaptureDiagnostic: vi.fn(async () => {}),
   ...overrides,
@@ -174,6 +181,14 @@ describe("automatic capture orchestration", () => {
       }),
     );
     expect(dependencies.saveActiveCaptureEventIndex).toHaveBeenCalledWith(2);
+    expect(
+      dependencies.saveAutomaticCaptureDiagnostic,
+    ).toHaveBeenNthCalledWith(1, {
+      status: "saving",
+      message: "Saving automatic capture…",
+      eventIndex: null,
+      occurredAt: expect.any(String),
+    });
     expect(dependencies.saveAutomaticCaptureDiagnostic).toHaveBeenCalledWith({
       status: "success",
       message: null,
@@ -251,5 +266,41 @@ describe("automatic capture orchestration", () => {
     });
     expect(dependencies.uploadCaptureAsset).toHaveBeenCalledTimes(1);
     expect(dependencies.createCaptureEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("reconciles an index conflict without repeating the ambiguous Event", async () => {
+    const dependencies = build_dependencies({
+      createCaptureEvent: vi.fn(async () => {
+        throw new ApiClientError({
+          status: 409,
+          type: "capture_event_index_conflict",
+          message: "Event index already exists",
+        });
+      }),
+      listCaptureEvents: vi.fn(async () => ({
+        capture_events: [
+          {
+            ...capture_event_response.capture_event,
+            event_index: 5,
+          },
+        ],
+      })),
+    });
+
+    await expect(
+      handleAutomaticClickCapture(click_message, dependencies, 12),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "capture_reconciled",
+      message:
+        "Capture steps were reconciled. Retry the click as a new action.",
+      reconciled_event_index: 5,
+    });
+
+    expect(dependencies.captureVisibleTabScreenshot).toHaveBeenCalledWith(12);
+    expect(dependencies.uploadCaptureAsset).toHaveBeenCalledTimes(1);
+    expect(dependencies.createCaptureEvent).toHaveBeenCalledTimes(1);
+    expect(dependencies.listCaptureEvents).toHaveBeenCalledTimes(1);
+    expect(dependencies.saveActiveCaptureEventIndex).toHaveBeenCalledWith(5);
   });
 });

@@ -12,6 +12,7 @@ import {
   savePortalUrl,
   saveSelectedProjectId,
   saveSessionToken,
+  subscribeToSettingsChanges,
   clearActiveCapture,
   type ExtensionStorageArea,
 } from "./settings";
@@ -145,6 +146,53 @@ describe("extension settings", () => {
       },
       manualCaptureDiagnostic: null,
     });
+  });
+
+  it("preserves an interrupted saving diagnostic for restoration reconciliation", async () => {
+    await saveManualCaptureDiagnostic(storage, {
+      status: "saving",
+      message: "Saving manual screenshot…",
+      eventIndex: null,
+      occurredAt: "2026-07-29T09:00:00.000Z",
+    });
+
+    await expect(getSettings(storage)).resolves.toMatchObject({
+      manualCaptureDiagnostic: {
+        status: "saving",
+        message: "Saving manual screenshot…",
+        eventIndex: null,
+        occurredAt: "2026-07-29T09:00:00.000Z",
+      },
+    });
+  });
+
+  it("subscribes only to relevant local settings changes and cleans up", () => {
+    const listeners = new Set<
+      (
+        changes: Record<string, { oldValue?: unknown; newValue?: unknown }>,
+        areaName: string,
+      ) => void
+    >();
+    const event = {
+      addListener: (listener: (typeof listeners extends Set<infer T> ? T : never)) =>
+        listeners.add(listener),
+      removeListener: (listener: (typeof listeners extends Set<infer T> ? T : never)) =>
+        listeners.delete(listener),
+    };
+    let calls = 0;
+
+    const unsubscribe = subscribeToSettingsChanges(() => {
+      calls += 1;
+    }, event);
+    const [listener] = [...listeners];
+
+    listener?.({ unrelated: { newValue: true } }, "local");
+    listener?.({ activeCaptureEventIndex: { newValue: 2 } }, "sync");
+    listener?.({ activeCaptureEventIndex: { newValue: 2 } }, "local");
+    expect(calls).toBe(1);
+
+    unsubscribe();
+    expect(listeners.size).toBe(0);
   });
 
   it("saves manual capture diagnostics without clearing split-origin or active capture state", async () => {

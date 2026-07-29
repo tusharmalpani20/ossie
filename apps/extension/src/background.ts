@@ -1,9 +1,16 @@
-import { createAutomaticCaptureController, type AutomaticCaptureResult } from "./lib/automatic-capture";
+import type { AutomaticCaptureResult } from "./lib/automatic-capture";
+import {
+  buildCaptureController,
+  type CaptureMessage,
+  type CaptureMessageSender,
+} from "./lib/capture-controller";
+import {
+  isCaptureCommand,
+  type CaptureCommandResult,
+} from "./lib/capture-command";
 import type { PageClickCaptureMessage } from "./lib/content-click-capture";
 
-type RuntimeMessage = PageClickCaptureMessage | {
-  type: string;
-};
+type RuntimeMessage = PageClickCaptureMessage | CaptureMessage | { type: string };
 
 type RuntimeApi = {
   runtime?: {
@@ -11,8 +18,10 @@ type RuntimeApi = {
       addListener?: (
         callback: (
           message: RuntimeMessage,
-          sender: unknown,
-          sendResponse: (response: AutomaticCaptureResult) => void
+          sender: CaptureMessageSender,
+          sendResponse: (
+            response: AutomaticCaptureResult | CaptureCommandResult,
+          ) => void
         ) => boolean | void
       ) => void;
     };
@@ -24,14 +33,14 @@ const isPageClickCaptureMessage = (message: RuntimeMessage): message is PageClic
 );
 
 const runtime = (globalThis as { chrome?: RuntimeApi }).chrome?.runtime;
-const handleAutomaticClick = createAutomaticCaptureController();
+const controller = buildCaptureController();
 
-runtime?.onMessage?.addListener?.((message: RuntimeMessage, _sender, sendResponse) => {
-  if (!isPageClickCaptureMessage(message)) {
+runtime?.onMessage?.addListener?.((message: RuntimeMessage, sender, sendResponse) => {
+  if (!isPageClickCaptureMessage(message) && !isCaptureCommand(message)) {
     return false;
   }
 
-  handleAutomaticClick(message)
+  controller.handle(message, sender)
     .then(sendResponse)
     .catch((error: unknown) => {
       sendResponse({

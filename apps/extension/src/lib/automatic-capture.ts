@@ -1,5 +1,7 @@
 import {
+  ApiClientError,
   createCaptureEvent,
+  listCaptureEvents,
   uploadCaptureAsset,
   type CaptureAssetResponse,
   type CaptureEventResponse,
@@ -21,15 +23,22 @@ export type AutomaticCaptureResult =
   | { ok: true; event_index: number }
   | {
     ok: false;
-    reason: "automatic_capture_inactive" | "automatic_capture_failed" | "automatic_capture_busy";
+    reason:
+      | "automatic_capture_inactive"
+      | "automatic_capture_failed"
+      | "automatic_capture_busy"
+      | "capture_context_unavailable"
+      | "capture_reconciled";
     message?: string;
+    reconciled_event_index?: number;
   };
 
 type AutomaticCaptureDependencies = {
   getSettings: () => Promise<ExtensionSettings>;
-  captureVisibleTabScreenshot: () => Promise<ScreenshotCapture>;
+  captureVisibleTabScreenshot: (windowId?: number) => Promise<ScreenshotCapture>;
   uploadCaptureAsset: typeof uploadCaptureAsset;
   createCaptureEvent: typeof createCaptureEvent;
+  listCaptureEvents: typeof listCaptureEvents;
   saveActiveCaptureEventIndex: (eventIndex: number) => Promise<void>;
   saveAutomaticCaptureDiagnostic: (diagnostic: AutomaticCaptureDiagnostic | null) => Promise<void>;
 };
@@ -61,6 +70,7 @@ export const buildAutomaticCaptureDependencies = (): AutomaticCaptureDependencie
     captureVisibleTabScreenshot,
     uploadCaptureAsset,
     createCaptureEvent,
+    listCaptureEvents,
     saveActiveCaptureEventIndex: (eventIndex) => saveActiveCaptureEventIndex(storage, eventIndex),
     saveAutomaticCaptureDiagnostic: (diagnostic) => saveAutomaticCaptureDiagnostic(storage, diagnostic),
   };
@@ -79,7 +89,8 @@ const persistAutomaticCaptureDiagnostic = async (
 
 export const handleAutomaticClickCapture = async (
   message: AutomaticClickMessage,
-  dependencies: AutomaticCaptureDependencies = buildAutomaticCaptureDependencies()
+  dependencies: AutomaticCaptureDependencies = buildAutomaticCaptureDependencies(),
+  windowId?: number,
 ): Promise<AutomaticCaptureResult> => {
   const settings = await dependencies.getSettings();
 
@@ -98,8 +109,16 @@ export const handleAutomaticClickCapture = async (
   } = settings;
   const nextEventIndex = (settings.activeCaptureEventIndex ?? 0) + 1;
 
+  await persistAutomaticCaptureDiagnostic(dependencies, {
+    status: "saving",
+    message: "Saving automatic capture…",
+    eventIndex: null,
+    occurredAt: new Date().toISOString(),
+  });
+
   try {
-    const screenshot = await dependencies.captureVisibleTabScreenshot();
+    const screenshot =
+      await dependencies.captureVisibleTabScreenshot(windowId);
     const asset: CaptureAssetResponse = await dependencies.uploadCaptureAsset(
       instanceUrl ?? "",
       sessionToken ?? "",
@@ -168,6 +187,41 @@ export const handleAutomaticClickCapture = async (
       event_index: event.capture_event.event_index,
     };
   } catch (error) {
+    if (
+      error instanceof ApiClientError &&
+      error.type === "capture_event_index_conflict"
+    ) {
+      try {
+        const response = await dependencies.listCaptureEvents(
+          instanceUrl ?? "",
+          sessionToken ?? "",
+          activeCaptureProjectId ?? "",
+          activeCaptureSessionId ?? "",
+        );
+        const highestIndex = response.capture_events.reduce(
+          (highest, event) => Math.max(highest, event.event_index),
+          0,
+        );
+        await dependencies.saveActiveCaptureEventIndex(highestIndex);
+        const reconciledMessage =
+          "Capture steps were reconciled. Retry the click as a new action.";
+        await persistAutomaticCaptureDiagnostic(dependencies, {
+          status: "failed",
+          message: reconciledMessage,
+          eventIndex: highestIndex,
+          occurredAt: new Date().toISOString(),
+        });
+        return {
+          ok: false,
+          reason: "capture_reconciled",
+          message: reconciledMessage,
+          reconciled_event_index: highestIndex,
+        };
+      } catch {
+        // The original error remains the safest result when reconciliation fails.
+      }
+    }
+
     const messageText = errorMessage(error);
     await persistAutomaticCaptureDiagnostic(dependencies, {
       status: "failed",

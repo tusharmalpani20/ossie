@@ -141,7 +141,10 @@ const defaultSendMessage = (message: PageClickCaptureMessage) => new Promise<voi
       return;
     }
 
-    if (response?.ok === false && response.reason === "automatic_capture_failed") {
+    if (
+      response?.ok === false &&
+      response.reason !== "automatic_capture_inactive"
+    ) {
       reject(new Error(response.message ?? "Automatic capture failed."));
       return;
     }

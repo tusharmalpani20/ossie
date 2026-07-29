@@ -17,6 +17,9 @@ export const normalizeInstanceUrl = (value: string): NormalizedInstanceUrlResult
     if (url.protocol !== "http:" && url.protocol !== "https:") {
       return { ok: false, error: invalid_url_message };
     }
+    if (url.username || url.password || url.search || url.hash) {
+      return { ok: false, error: invalid_url_message };
+    }
 
     return {
       ok: true,
@@ -58,9 +61,13 @@ export const buildPortalCaptureSessionUrl = (
   captureSessionId: string
 ) => {
   const origin = (portalUrl ?? instanceUrl).replace(/\/+$/, "");
+  const fallbackPath = buildFallbackCaptureSessionPath(
+    projectId,
+    versionSlug,
+    captureSessionId,
+  );
   const safe = safeRedirectPath(redirectPath);
-  const path = safe?.includes("/versions/") ? safe
-    : buildFallbackCaptureSessionPath(projectId, versionSlug, captureSessionId);
+  const path = safe === fallbackPath ? safe : fallbackPath;
 
   return `${origin}${path}`;
 };

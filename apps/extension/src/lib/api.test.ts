@@ -5,6 +5,7 @@ import {
   createCaptureSession,
   getCaptureSession,
   getCurrentAuth,
+  listCaptureEvents,
   listProjectVersions,
   listProjects,
   login,
@@ -219,6 +220,7 @@ describe("extension API client", () => {
         headers: {
           accept: "application/json",
           authorization: "Bearer extension-session-token",
+          "x-ossie-client": "extension",
         },
       },
     );
@@ -311,6 +313,7 @@ describe("extension API client", () => {
         headers: {
           accept: "application/json",
           authorization: "Bearer extension-session-token",
+          "x-ossie-client": "extension",
         },
       },
     );
@@ -338,6 +341,7 @@ describe("extension API client", () => {
           name: "Capture from Example Page",
           project_version_id: "version_1",
           source_type: "extension",
+          start_immediately: true,
           start_url: "https://example.com/path",
           metadata: {
             tab_title: "Example Page",
@@ -361,11 +365,45 @@ describe("extension API client", () => {
           name: "Capture from Example Page",
           project_version_id: "version_1",
           source_type: "extension",
+          start_immediately: true,
           start_url: "https://example.com/path",
           metadata: {
             tab_title: "Example Page",
           },
         }),
+      },
+    );
+  });
+
+  it("lists Capture Events for authoritative index reconciliation", async () => {
+    const response = { capture_events: [captureEvent] };
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(
+      listCaptureEvents(
+        "https://demo.example.com",
+        "extension-session-token",
+        "project with spaces",
+        "capture/session",
+      ),
+    ).resolves.toEqual(response);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://demo.example.com/api/v1/projects/project%20with%20spaces/capture-sessions/capture%2Fsession/events",
+      {
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          authorization: "Bearer extension-session-token",
+          "x-ossie-client": "extension",
+        },
       },
     );
   });

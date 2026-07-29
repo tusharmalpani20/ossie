@@ -68,6 +68,7 @@ export const buildCaptureSessionInput = (input: {
   return {
     name: buildCaptureName(input),
     source_type: "extension",
+    start_immediately: true,
     start_url: input.tab.url,
     browser_name: browserNameFromUserAgent(userAgent),
     user_agent: userAgent,
