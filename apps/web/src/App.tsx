@@ -36,6 +36,7 @@ import {
   getPublicInstanceStatus,
   listProjectScreenshotAssets,
 } from "./lib/api";
+import { portalDocumentTitle } from "./lib/portalRouteMetadata";
 import { parsePortalRoute, type PortalRoute } from "./lib/routes";
 import styles from "./App.module.css";
 
@@ -127,6 +128,10 @@ export default function App() {
   const [setupGateState, setSetupGateState] = useState<SetupGateState>(
     setupCheckRequired ? "checking" : "ready",
   );
+
+  useEffect(() => {
+    document.title = portalDocumentTitle(route);
+  }, [route.type]);
 
   useEffect(() => {
     if (!backgroundSetupCheckRequired) {

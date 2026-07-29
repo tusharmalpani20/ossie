@@ -48,6 +48,7 @@ describe("LoginPage", () => {
     expect(screen.getByLabelText("Email")).toBeRequired();
     expect(screen.getByLabelText("Password")).toBeRequired();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Sign in" })).toBeInTheDocument();
   });
 
   it("defaults successful login navigation to projects", async () => {

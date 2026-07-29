@@ -41,6 +41,14 @@ describe("PortalAppShell", () => {
     expect(
       screen.getByRole("navigation", { name: "Breadcrumb" }),
     ).toHaveTextContent("ProjectsOSS HandbookGuides");
+    expect(
+      screen.getByRole("link", { name: "Skip to main content" }),
+    ).toHaveAttribute("href", "#portal-main-content");
+    expect(screen.getByRole("main")).toHaveAttribute(
+      "id",
+      "portal-main-content",
+    );
+    expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
   });
 
   it("keeps viewer settings links out of the shell", () => {

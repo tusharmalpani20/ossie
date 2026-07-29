@@ -58,6 +58,9 @@ export const PortalAppShell = ({
 
   return (
     <div className={styles.shell}>
+      <a className={styles.skipLink} href="#portal-main-content">
+        Skip to main content
+      </a>
       <PortalTopbar
         context={contextLabel(project, projectVersion)}
         performLogout={performLogout}
@@ -100,7 +103,13 @@ export const PortalAppShell = ({
               </aside>
             ) : null}
           </div>
-          <main className={styles.main}>{children}</main>
+          <main
+            className={styles.main}
+            id="portal-main-content"
+            tabIndex={-1}
+          >
+            {children}
+          </main>
         </div>
       </div>
     </div>

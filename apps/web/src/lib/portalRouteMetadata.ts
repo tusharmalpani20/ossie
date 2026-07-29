@@ -89,3 +89,43 @@ export const portalRouteMetadata = (route: PortalRoute): PortalRouteMetadata =>
     usesPortalShell: false,
     label: "Unsupported",
   };
+
+const documentLabelByType: Record<PortalRoute["type"], string> = {
+  login: "Sign in",
+  setup: "Set up Ossie",
+  project_list: "Projects",
+  organization_members: "Organization members",
+  organization_compliance: "Organization compliance",
+  organization_invite_accept: "Accept invitation",
+  project_workspace: "Project workspace",
+  project_version_workspace: "Project Version workspace",
+  project_carry_forward: "Carry forward artifacts",
+  artifact_revision_history: "Revision history",
+  artifact_revision_preview: "Revision preview",
+  project_settings: "Project settings",
+  project_compliance: "Project compliance",
+  project_activity: "Project activity",
+  capture_session_detail: "Capture Session",
+  project_capture_session_list: "Capture Sessions",
+  guide_detail: "Guide editor",
+  guide_preview: "Guide preview",
+  project_guide_list: "Guides",
+  project_interactive_demo_list: "Interactive demos",
+  interactive_demo_detail: "Interactive demo editor",
+  interactive_demo_preview: "Interactive demo preview",
+  public_guide_reader: "Guide",
+  public_guide_embed: "Guide",
+  public_interactive_demo_reader: "Interactive demo",
+  public_interactive_demo_embed: "Interactive demo",
+  design_system_review: "Design system review",
+  unsupported: "Page not found",
+};
+
+/**
+ * Returns a privacy-safe document title for a route.
+ *
+ * Titles intentionally describe the surface rather than interpolating opaque
+ * identifiers, invite tokens, or public slugs from the URL.
+ */
+export const portalDocumentTitle = (route: PortalRoute) =>
+  `${documentLabelByType[route.type]} | Ossie`;

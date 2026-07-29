@@ -3,7 +3,10 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { portalRouteMetadata } from "./portalRouteMetadata";
+import {
+  portalDocumentTitle,
+  portalRouteMetadata,
+} from "./portalRouteMetadata";
 import type { PortalRoute } from "./routes";
 
 describe("portalRouteMetadata", () => {
@@ -34,5 +37,26 @@ describe("portalRouteMetadata", () => {
     expect(
       routes.map((route) => portalRouteMetadata(route).usesPortalShell),
     ).toEqual([false, false, false, false, false, false, false]);
+  });
+
+  it("returns stable document titles without exposing route identifiers", () => {
+    expect(portalDocumentTitle({ type: "login" })).toBe("Sign in | Ossie");
+    expect(
+      portalDocumentTitle({
+        type: "guide_detail",
+        projectId: "secret-project-id",
+        versionSlug: "secret-version",
+        guideId: "secret-guide-id",
+      }),
+    ).toBe("Guide editor | Ossie");
+    expect(
+      portalDocumentTitle({
+        type: "public_interactive_demo_embed",
+        slug: "secret-public-slug",
+      }),
+    ).toBe("Interactive demo | Ossie");
+    expect(portalDocumentTitle({ type: "unsupported" })).toBe(
+      "Page not found | Ossie",
+    );
   });
 });
