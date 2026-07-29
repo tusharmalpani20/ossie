@@ -2,7 +2,7 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `127` are complete. Child `128` is
+Status: In progress. Children `109` through `128` are complete. Child `129` is
 next.
 
 Master plan number: 005.
@@ -1682,7 +1682,7 @@ Completed outcome:
 
 ### 128: Interactive Demo Authoring And Viewer UI Modernization
 
-Status: Not started.
+Status: Complete.
 
 Planned file:
 
@@ -1714,6 +1714,24 @@ Acceptance:
 - Carry-forward cannot mutate the source Edition.
 - Stale-write conflicts are recoverable without silently discarding work.
 - Hotspot geometry remains correct across tested viewport and media aspect ratios.
+
+Completed result:
+
+- The route controller is below the child file-size gate and composes a
+  selected-Scene workbench, exact-Version screenshot picker, normalized
+  pointer/keyboard canvas, stable Scene/Hotspot selection, explicit dirty/save/
+  conflict recovery, and aggregate Publication mutation ownership.
+- Working Draft, immutable Revision, authenticated read-only, public reader,
+  and embed surfaces share one normalized renderer with history/focus,
+  reduced-motion, terminal, protected-media, and safe public-access states.
+- The strict referenced-background Asset projection preserves archived
+  protected media without loosening public DTOs or adding a file route.
+- A guarded synthetic fixture covers roles, lifecycle, twelve Scenes, media,
+  real stale conflict, Revisions/Publications, a two-Version manifest, and the
+  public state matrix.
+- Focused, full web, DB, V1 smoke, workspace, build, and dated headless-browser
+  verification passed. No migration, public URL/access change, persistence
+  redesign, or production dependency was introduced.
 
 ### 129: Accessibility, Motion, Performance, And Browser Dogfood
 
@@ -2043,7 +2061,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `125`.
 - [x] Create, expand, recheck, implement, and close child plan `126`.
 - [x] Create, expand, recheck, implement, and close child plan `127`.
-- [ ] Create, expand, recheck, implement, and close child plan `128`.
+- [x] Create, expand, recheck, implement, and close child plan `128`.
 - [ ] Create, expand, recheck, implement, and close child plan `129`.
 - [ ] Create, expand, recheck, implement, and close child plan `130`.
 - [ ] Create, conduct, document, and accept the Documentation grill in child plan `131`.
@@ -2084,15 +2102,16 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is child `128`, Interactive Demo Authoring And
-Viewer UI Modernization. Child `127` closed on 2026-07-29 with its guarded
-Guide fixture, strict public projections, stable conflict responses,
-selected-Block workbench, dirty-draft and broken-media recovery, shared
-Publication coordination, full DB/smoke/workspace verification, and dated
-Admin/Editor/Viewer/public browser evidence. Child `128` inherits the shared
-Publication, Revision, Carry-Forward, public selector/projection, and portal
-shell patterns, but must keep Interactive Demo Scene/Hotspot composition
-independent.
+The next executable activity is child `129`, Accessibility, Motion,
+Performance, And Browser Dogfood. Child `128` closed on 2026-07-29 with its
+guarded Demo fixture, strict referenced-background projection, selected-Scene
+workbench, normalized authoring/reader renderer, conflict recovery, shared
+Publication coordination, multi-Version public state, full
+DB/smoke/workspace/build verification, and dated
+Admin/Editor/Viewer/public browser evidence. Child `129` inherits only the
+cross-product accessibility, motion, performance, and connected-browser
+closeout; it must preserve the accepted type-specific Guide and Interactive
+Demo composition.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -2108,7 +2127,8 @@ child `118`, Guide/Demo Revision, Carry-Forward, And Protected Assets child
 Design-System Foundation child `121`, Portal Architecture And Application Shell
 child `122`, Authentication, Setup, And Organization UI Modernization child
 `123`, Project/Version/Library child `124`, Capture Portal child `125`,
-Extension UI child `126`, and Guide Authoring/Reader child `127` are complete.
+Extension UI child `126`, Guide Authoring/Reader child `127`, and Interactive
+Demo Authoring/Viewer child `128` are complete.
 The final prompt-pack closure audit confirmed
 that every completed child from `112` through `120` records status, checklist,
 implementation, verification, leftovers, and handoff evidence; child `121`
@@ -2119,9 +2139,10 @@ child `123` records source implementation, verification, browser evidence,
 leftovers, and handoff evidence; child `124` records its implementation and
 closeout; and child `125` records implementation, PostgreSQL 18 fixture/DB
 verification, full browser evidence, leftovers, and extension handoff.
-Child `126` records installed-toolbar evidence and child `127` records its
-Guide implementation, DB/smoke/workspace verification, synthetic browser
-evidence, leftovers, and Interactive Demo handoff.
+Child `126` records installed-toolbar evidence, child `127` records its Guide
+implementation and Interactive Demo handoff, and child `128` records its Demo
+implementation, DB/smoke/workspace/build verification, synthetic browser
+evidence, leftovers, and cross-product handoff.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with child `128`.
+continues with child `129`.
