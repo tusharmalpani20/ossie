@@ -21,6 +21,8 @@ export const ArtifactPublishingPanel = ({
   publicationReadOnly = false,
   linkManagementReadOnly = false,
   showMutationControls = true,
+  aggregateMutationPending = false,
+  runAggregateMutation,
 }: {
   projectId: string;
   projectVersionId: string;
@@ -31,6 +33,11 @@ export const ArtifactPublishingPanel = ({
   publicationReadOnly?: boolean;
   linkManagementReadOnly?: boolean;
   showMutationControls?: boolean;
+  aggregateMutationPending?: boolean;
+  runAggregateMutation?: <Result>(
+    command: "publication",
+    operation: () => Promise<Result>,
+  ) => Promise<Result>;
 }) => {
   const [publications, setPublications] = useState<PublishedArtifact[]>([]),
     [links, setLinks] = useState<PublishLink[]>([]),
@@ -97,34 +104,38 @@ export const ArtifactPublishingPanel = ({
     setBusy(true);
     setMessage("");
     try {
-      const result = await publishArtifact(
-        projectId,
-        artifactType,
-        artifactId,
-        projectVersionId,
-        {
-          expected_edition_version: editionVersion,
-          expected_working_draft_version: workingDraftVersion,
-          update_publish_links: active
-            .filter((link) => selected.includes(link.id))
-            .map((link) => ({
-              publish_link_id: link.id,
-              expected_link_version: link.version,
-            })),
-          ...(newLinkWithPublish
-            ? {
-                create_publish_link: {
-                  name: name.trim(),
-                  visibility: newVisibility,
-                  expires_at: newExpiry
-                    ? new Date(newExpiry).toISOString()
-                    : null,
-                  password: newPassword || null,
-                },
-              }
-            : {}),
-        },
-      );
+      const operation = () =>
+        publishArtifact(
+          projectId,
+          artifactType,
+          artifactId,
+          projectVersionId,
+          {
+            expected_edition_version: editionVersion,
+            expected_working_draft_version: workingDraftVersion,
+            update_publish_links: active
+              .filter((link) => selected.includes(link.id))
+              .map((link) => ({
+                publish_link_id: link.id,
+                expected_link_version: link.version,
+              })),
+            ...(newLinkWithPublish
+              ? {
+                  create_publish_link: {
+                    name: name.trim(),
+                    visibility: newVisibility,
+                    expires_at: newExpiry
+                      ? new Date(newExpiry).toISOString()
+                      : null,
+                    password: newPassword || null,
+                  },
+                }
+              : {}),
+          },
+        );
+      const result = runAggregateMutation
+        ? await runAggregateMutation("publication", operation)
+        : await operation();
       await load();
       setNewLinkWithPublish(false);
       setMessage(
@@ -295,7 +306,7 @@ export const ArtifactPublishingPanel = ({
         </div>
         {showMutationControls && (
           <button
-            disabled={publicationReadOnly || busy}
+            disabled={publicationReadOnly || busy || aggregateMutationPending}
             onClick={() => void publish()}
           >
             {busy ? "Working…" : "Publish this draft"}

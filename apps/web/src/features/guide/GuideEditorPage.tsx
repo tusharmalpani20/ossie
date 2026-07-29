@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button, buttonVariants } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
@@ -245,6 +245,7 @@ export const GuideEditorPage = ({
     "edition_conflict" | "working_draft_conflict" | null
   >(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const aggregateMutationRef = useRef(false);
   const [screenshotAssets, setScreenshotAssets] = useState<
     GuideSourceCaptureAsset[]
   >([]);
@@ -372,6 +373,23 @@ export const GuideEditorPage = ({
     setConflict(null);
     setNotice(null);
     reload();
+  };
+
+  const runAggregateMutation = async <Result,>(
+    _command: "publication",
+    operation: () => Promise<Result>,
+  ) => {
+    if (aggregateMutationRef.current || busyAction !== null) {
+      throw new Error("Another Guide change is still in progress");
+    }
+    aggregateMutationRef.current = true;
+    setBusyAction("publication");
+    try {
+      return await operation();
+    } finally {
+      aggregateMutationRef.current = false;
+      setBusyAction(null);
+    }
   };
 
   const exportCurrentMarkdown = async (): Promise<GuideMarkdownExport> =>
@@ -906,6 +924,7 @@ export const GuideEditorPage = ({
       onDownloadHtmlZip={downloadHtmlZip}
       onChangeLifecycle={changeLifecycle}
       onReloadLatest={reloadLatest}
+      runAggregateMutation={runAggregateMutation}
       performLogout={performLogout}
       navigate={navigate}
       versionSlug={versionSlug}
@@ -969,6 +988,7 @@ const GuideEditorView = ({
   onDownloadHtmlZip,
   onChangeLifecycle,
   onReloadLatest,
+  runAggregateMutation,
   performLogout,
   navigate,
   versionSlug,
@@ -1014,6 +1034,10 @@ const GuideEditorView = ({
   onDownloadHtmlZip: () => void;
   onChangeLifecycle: () => void;
   onReloadLatest: () => void;
+  runAggregateMutation: <Result>(
+    command: "publication",
+    operation: () => Promise<Result>,
+  ) => Promise<Result>;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
   versionSlug?: string;
@@ -1161,6 +1185,8 @@ const GuideEditorView = ({
             editionVersion={detail.edition.version}
             workingDraftVersion={detail.working_draft.version}
             publicationReadOnly={readOnly}
+            aggregateMutationPending={busyAction !== null}
+            runAggregateMutation={runAggregateMutation}
           />
           <section className={styles.panel} aria-labelledby="metadata-heading">
             <h2 className={styles.sectionTitle} id="metadata-heading">
@@ -1170,7 +1196,7 @@ const GuideEditorView = ({
               <span>Guide title</span>
               <Input
                 value={guideDraft.title}
-                disabled={readOnly || busyAction === "guide"}
+                disabled={readOnly || busyAction !== null}
                 onChange={(event) =>
                   onGuideDraftChange({
                     ...guideDraft,
@@ -1183,7 +1209,7 @@ const GuideEditorView = ({
               <span>Guide description</span>
               <Textarea
                 value={guideDraft.description}
-                disabled={readOnly || busyAction === "guide"}
+                disabled={readOnly || busyAction !== null}
                 rows={5}
                 onChange={(event) =>
                   onGuideDraftChange({
@@ -1194,7 +1220,7 @@ const GuideEditorView = ({
               />
             </Label>
             <Button
-              disabled={readOnly || busyAction === "guide"}
+              disabled={readOnly || busyAction !== null}
               onClick={onSaveGuide}
             >
               Save guide
