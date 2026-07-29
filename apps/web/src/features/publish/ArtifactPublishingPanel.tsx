@@ -65,8 +65,11 @@ export const ArtifactPublishingPanel = ({
       current: PublishedArtifact;
       target: PublishedArtifact;
     } | null>(null),
-    [rollbackReason, setRollbackReason] = useState("");
-  const rollbackDialogRef = useRef<HTMLDivElement>(null);
+    [rollbackReason, setRollbackReason] = useState(""),
+    [restoreRollbackFocusAfterLoad, setRestoreRollbackFocusAfterLoad] =
+      useState(false);
+  const publishingPanelRef = useRef<HTMLElement>(null);
+  const rollbackDialogRef = useRef<HTMLDialogElement>(null);
   const rollbackReasonRef = useRef<HTMLTextAreaElement>(null);
   const rollbackTriggerRef = useRef<HTMLButtonElement>(null);
   const active = useMemo(
@@ -96,12 +99,38 @@ export const ArtifactPublishingPanel = ({
     void load().catch(() => setMessage("Could not load publishing."));
   }, [load]);
   const closeRollback = useCallback(() => {
+    const dialog = rollbackDialogRef.current;
+    if (dialog?.open) {
+      if (typeof dialog.close === "function") {
+        dialog.close();
+      } else {
+        dialog.removeAttribute("open");
+      }
+    }
     setRollback(null);
     setRollbackReason("");
     rollbackTriggerRef.current?.focus();
   }, []);
   useEffect(() => {
+    if (!restoreRollbackFocusAfterLoad) return;
+    const trigger = rollbackTriggerRef.current;
+    if (trigger?.isConnected) {
+      trigger.focus();
+    } else {
+      publishingPanelRef.current?.focus();
+    }
+    setRestoreRollbackFocusAfterLoad(false);
+  }, [restoreRollbackFocusAfterLoad]);
+  useEffect(() => {
     if (!rollback) return;
+    const dialog = rollbackDialogRef.current;
+    if (dialog && !dialog.open) {
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
+    }
     rollbackReasonRef.current?.focus();
     const handleDialogKey = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !busy) {
@@ -244,8 +273,8 @@ export const ArtifactPublishingPanel = ({
     if (!rollback) return;
     setBusy(true);
     setMessage("");
+    const reason = rollbackReason.trim();
     try {
-      const reason = rollbackReason.trim();
       await rollbackArtifactPublishLinkEntry(
         projectId,
         artifactType,
@@ -259,12 +288,23 @@ export const ArtifactPublishingPanel = ({
           ...(reason ? { reason } : {}),
         },
       );
-      closeRollback();
+    } catch {
+      setMessage("Could not roll back. Reload and try again.");
+      setBusy(false);
+      return;
+    }
+
+    setRollback(null);
+    setRollbackReason("");
+    try {
       await load();
       setMessage("Publish Link entry rolled back. No Publication was created.");
     } catch {
-      setMessage("Could not roll back. Reload and try again.");
+      setMessage(
+        "Rollback succeeded, but publishing could not be refreshed. Reload and try again.",
+      );
     } finally {
+      setRestoreRollbackFocusAfterLoad(true);
       setBusy(false);
     }
   };
@@ -325,7 +365,12 @@ export const ArtifactPublishingPanel = ({
     }
   };
   return (
-    <section className={styles.panel} aria-labelledby="publishing-heading">
+    <section
+      ref={publishingPanelRef}
+      className={styles.panel}
+      aria-labelledby="publishing-heading"
+      tabIndex={-1}
+    >
       <header>
         <div>
           <h2 id="publishing-heading">Publishing</h2>
@@ -707,11 +752,9 @@ export const ArtifactPublishingPanel = ({
         </div>
       )}
       {rollback && (
-        <div
+        <dialog
           ref={rollbackDialogRef}
           className={styles.dialog}
-          role="dialog"
-          aria-modal="true"
           aria-labelledby="rollback-heading"
         >
           <h4 id="rollback-heading">Confirm rollback</h4>
@@ -743,7 +786,7 @@ export const ArtifactPublishingPanel = ({
           <button disabled={busy} onClick={closeRollback}>
             Cancel
           </button>
-        </div>
+        </dialog>
       )}
     </section>
   );

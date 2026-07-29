@@ -73,6 +73,9 @@
   background: white;
   box-shadow: 0 1rem 3rem rgb(15 23 42 / 25%);
 }
+.dialog::backdrop {
+  background: rgb(15 23 42 / 45%);
+}
 .dialog textarea {
   min-height: 5rem;
 }
