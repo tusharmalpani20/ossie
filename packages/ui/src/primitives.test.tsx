@@ -55,4 +55,18 @@ describe("shared UI primitives", () => {
     expect(screen.getByText("Review complete")).toBeInTheDocument();
     expect(screen.getByRole("separator")).toBeInTheDocument();
   });
+
+  it("gives explicitly named cards a valid region role", () => {
+    render(
+      <Card aria-labelledby="capture-card-heading">
+        <CardHeader>
+          <CardTitle id="capture-card-heading">Capture session</CardTitle>
+        </CardHeader>
+      </Card>,
+    );
+
+    expect(
+      screen.getByRole("region", { name: "Capture session" }),
+    ).toBeInTheDocument();
+  });
 });

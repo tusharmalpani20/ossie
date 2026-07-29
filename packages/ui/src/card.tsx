@@ -2,10 +2,16 @@ import { type HTMLAttributes, forwardRef } from "react";
 import { cn } from "./utils";
 
 export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+  ({ className, role, ...props }, ref) => (
     <div
       ref={ref}
       className={cn("rounded-md border border-slate-200 bg-white text-slate-950 shadow-sm", className)}
+      role={
+        role ??
+        (props["aria-label"] || props["aria-labelledby"]
+          ? "region"
+          : undefined)
+      }
       {...props}
     />
   )

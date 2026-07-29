@@ -240,6 +240,7 @@ describe("App", () => {
       screen.getByRole("heading", { name: "Sign in" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
+    expect(document.title).toBe("Sign in | Ossie");
   });
 
   it("routes login to setup when first-run setup is required", async () => {

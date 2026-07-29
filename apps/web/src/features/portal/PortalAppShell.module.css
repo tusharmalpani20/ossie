@@ -4,6 +4,25 @@
   color: var(--ossie-color-text);
 }
 
+.skipLink {
+  position: fixed;
+  z-index: 100;
+  top: 8px;
+  left: 8px;
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-text);
+  color: var(--ossie-color-surface);
+  font-weight: 700;
+  padding: 10px 14px;
+  transform: translateY(calc(-100% - 16px));
+}
+
+.skipLink:focus {
+  outline: 2px solid var(--ossie-color-focus);
+  outline-offset: 2px;
+  transform: translateY(0);
+}
+
 .body {
   display: grid;
   grid-template-columns: minmax(180px, 236px) minmax(0, 1fr);
