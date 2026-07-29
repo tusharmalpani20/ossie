@@ -9,6 +9,10 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import cookie from "@fastify/cookie";
+import {
+  GuideEditionConflictError,
+  GuideWorkingDraftConflictError,
+} from "@repo/guide-domain";
 
 describe("guide routes", () => {
   it("requires Project Version and returns the Edition list envelope", async () => {
@@ -80,6 +84,54 @@ describe("guide routes", () => {
     });
     expect(response.statusCode).toBe(409);
     expect(response.json().error.type).toBe("project_version_read_only");
+    await app.close();
+  });
+
+  it.each([
+    [new GuideEditionConflictError(), "edition_conflict"],
+    [new GuideWorkingDraftConflictError(), "working_draft_conflict"],
+  ])("maps Guide Row Version conflicts to stable 409 responses", async (error, type) => {
+    const app = Fastify();
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
+    await app.register(cookie);
+    await app.register(
+      build_guide_routes({
+        auth_service: {
+          get_current_auth_context: vi.fn(async () => ({
+            organization: { id: "org_1" },
+            org_user: { id: "member_1" },
+          })),
+        },
+        guide_service: {
+          update_guide: vi.fn(async () => {
+            throw error;
+          }),
+        } as never,
+        guide_screenshot_upload_service: {} as never,
+      } as unknown as GuideRouteDependencies),
+      { prefix: "/api/v1/projects" },
+    );
+
+    const response = await app.inject({
+      method: "PATCH",
+      url: "/api/v1/projects/project_1/guides/guide_1?project_version_id=version_1",
+      payload: {
+        expected_edition_version: 1,
+        title: "Keep this local title",
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({
+      error: {
+        type,
+        message:
+          type === "edition_conflict"
+            ? "Guide Edition changed; reload and retry"
+            : "Guide Working Draft changed; reload and retry",
+      },
+    });
     await app.close();
   });
 });

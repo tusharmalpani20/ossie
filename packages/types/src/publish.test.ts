@@ -221,7 +221,12 @@ describe("publication and Publish Link contracts", () => {
       published_artifact: {
         artifact_type: "guide",
         publication_sequence: 3,
-        revision,
+        revision: {
+          revision_number: 2,
+          title: "Configure SSO",
+          description: null,
+          created_at: "2026-07-20T00:00:00.000Z",
+        },
         guide_blocks: [],
         capture_assets: [],
       },
@@ -233,6 +238,116 @@ describe("publication and Publish Link contracts", () => {
       PublicPublishLinkResponseSchema.parse({
         ...response,
         snapshot: {},
+      }),
+    ).toThrow();
+  });
+
+  it("accepts only the public Guide projection and rejects authoring provenance", () => {
+    const publicResponse = {
+      publish_link: {
+        slug: "opaque-link",
+        artifact_type: "guide",
+        visibility: "public",
+        status: "active",
+        expires_at: null,
+        password_protected: false,
+        entries: [
+          {
+            project_version_name: "2.0",
+            project_version_slug: "2-0",
+            position: 1,
+            is_default: true,
+            publication_sequence: 3,
+            public_url: "/p/opaque-link/versions/2-0",
+          },
+        ],
+      },
+      selected_entry: {
+        project_version_name: "2.0",
+        project_version_slug: "2-0",
+        position: 1,
+        is_default: true,
+        publication_sequence: 3,
+        public_url: "/p/opaque-link/versions/2-0",
+      },
+      published_artifact: {
+        artifact_type: "guide",
+        publication_sequence: 3,
+        revision: {
+          revision_number: 2,
+          title: "Configure SSO",
+          description: null,
+          created_at: "2026-07-20T00:00:00.000Z",
+        },
+        guide_blocks: [
+          {
+            id: "block_1",
+            block_type: "step",
+            title: "Open settings",
+            body: null,
+            block_index: 1,
+            step: {
+              display_capture_asset_id: "asset_1",
+              screenshot_hidden: false,
+              title: "Open settings",
+              body: null,
+              annotations: [
+                {
+                  annotation_type: "highlight",
+                  annotation_index: 1,
+                  x: 0.1,
+                  y: 0.2,
+                  width: 0.3,
+                  height: 0.4,
+                },
+              ],
+            },
+          },
+        ],
+        capture_assets: [
+          {
+            id: "asset_1",
+            status: "active",
+            file_url: "/api/v1/public/assets/asset_1",
+            mime_type: "image/png",
+            width: 1280,
+            height: 720,
+          },
+        ],
+      },
+      canonical_public_url: "/p/opaque-link/versions/2-0",
+    };
+
+    expect(PublicPublishLinkResponseSchema.parse(publicResponse)).toEqual(
+      publicResponse,
+    );
+    expect(() =>
+      PublicPublishLinkResponseSchema.parse({
+        ...publicResponse,
+        published_artifact: {
+          ...publicResponse.published_artifact,
+          revision: {
+            ...publicResponse.published_artifact.revision,
+            created_by_id: "member_1",
+          },
+        },
+      }),
+    ).toThrow();
+    expect(() =>
+      PublicPublishLinkResponseSchema.parse({
+        ...publicResponse,
+        published_artifact: {
+          ...publicResponse.published_artifact,
+          guide_blocks: [
+            {
+              ...publicResponse.published_artifact.guide_blocks[0],
+              step: {
+                ...publicResponse.published_artifact.guide_blocks[0]!.step,
+                source_capture_session_id: "capture_1",
+              },
+            },
+          ],
+        },
       }),
     ).toThrow();
   });

@@ -21,6 +21,10 @@ import {
 import { z } from "zod";
 import { CaptureArtifactVersionNotReadyError } from "@repo/capture-domain";
 import {
+  GuideEditionConflictError,
+  GuideWorkingDraftConflictError,
+} from "@repo/guide-domain";
+import {
   UnauthenticatedSessionError,
   type AuthContext,
 } from "../authentication/session.service";
@@ -496,6 +500,28 @@ export const build_guide_routes = (
 
       if (error instanceof UnauthenticatedSessionError) {
         return reply.status(401).send(unauthorized_response());
+      }
+
+      if (error instanceof GuideEditionConflictError) {
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "edition_conflict",
+              "Guide Edition changed; reload and retry",
+            ),
+          );
+      }
+
+      if (error instanceof GuideWorkingDraftConflictError) {
+        return reply
+          .status(409)
+          .send(
+            error_response(
+              "working_draft_conflict",
+              "Guide Working Draft changed; reload and retry",
+            ),
+          );
       }
 
       if (error instanceof ProjectNotFoundError) {
