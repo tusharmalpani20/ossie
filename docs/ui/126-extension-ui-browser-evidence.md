@@ -7,11 +7,13 @@ Implementation commit under test: `c62c7e7`
 Environment:
 
 - OS: Linux x86_64;
-- browser: Chrome 151.0.0.0 through `agent-browser`;
+- browser: Chrome 151.0.7922.47 through `agent-browser` for direct-page checks
+  and Puppeteer 25.4.0 for the installed-toolbar workflow;
 - API base URL: synthetic `https://api.synthetic.test/base` in the direct-page
-  fixture only;
+  fixture and local `http://127.0.0.1:3002` in the installed workflow;
 - portal base URL: synthetic `https://portal.synthetic.test/base` in the
-  direct-page fixture only;
+  direct-page fixture and local `http://127.0.0.1:3000` in the installed
+  workflow;
 - production extension build: `apps/extension/dist`;
 - unpacked extension id for this disposable browser profile:
   `ejihcjfabibbmmefnpfakhjahhmppcmi`.
@@ -86,41 +88,47 @@ diagnostic.
 
 ## B. Installed Unpacked Extension
 
-The production build loaded as an enabled unpacked Manifest V3 extension in a
-headed Chrome session. `chrome://extensions` showed:
+The production build loaded as an enabled unpacked Manifest V3 extension in
+Chrome for Testing 151.0.7922.47. Puppeteer 25.4.0 invoked Chrome's extension
+action for the active synthetic target tab and attached to the resulting real
+toolbar popup at
+`chrome-extension://ejihcjfabibbmmefnpfakhjahhmppcmi/index.html`.
 
-- name `Ossie`;
-- enabled state;
-- unpacked-extension marker;
-- the background service-worker target
-  `assets/background.js`.
+The disposable child `125-01` PostgreSQL fixture, testing API on port `3002`,
+portal on port `3000`, and a local synthetic target on port `4173` were used.
+The temporary automation script and target remained outside the repository.
 
-Opening the installed extension page directly proved that the real extension
-origin exposes `chrome.runtime.id`, `chrome.storage.local`, and
-`chrome.action.openPopup`. See
-`evidence/126/installed-extension-page-360.png`.
+| Installed toolbar-popup check                | Result                                                                |
+| -------------------------------------------- | --------------------------------------------------------------------- |
+| API/portal configuration and extension login | Pass; distinct bases retained and synthetic admin authenticated       |
+| Named Project Version selection              | Pass; capture owned by `Summer release` / `summer-release`            |
+| Popup close/reopen restoration               | Pass; active Session and index restored                               |
+| Automatic click                              | Pass; exactly one screenshot Asset and one `click` Event              |
+| Manual screenshot                            | Pass; exactly one screenshot Asset and one `capture` Event            |
+| Event ordering and overlap safety            | Pass; increasing unique indexes and no duplicate on rapid overlap     |
+| Privacy flag and response inspection         | Pass; every Event redacted; no fixture secret or page HTML returned   |
+| Password/contenteditable suppression         | Pass; neither target created an Asset or Event                        |
+| Pause/resume                                 | Pass; paused click suppressed and automatic capture resumed           |
+| Background service-worker restart            | Pass; same active Session and authoritative index restored            |
+| Finish and local clear                       | Pass; server Session completed once and local active state cleared    |
+| Canonical portal handoff                     | Pass; portal origin and named `summer-release` route used             |
+| Portal Capture detail rendering              | Pass; completed extension Capture rendered with named-version context |
 
-True toolbar-popup interaction is **automation-blocked in this environment**.
-During the refreshed close-previous run, the installed action created a real
-popup target, but Chrome exposed it at only 25 CSS pixels wide and
-`chrome.action.openPopup()` reported that no active browser window could be
-found. The browser-chrome toolbar exposed by agent-browser contained no
-attachable extension action control, so enlarging a direct extension page would
-not constitute toolbar validation. Therefore this evidence does not claim:
+The live run produced three ordered Events: automatic step 1, manual step 2,
+and two rapid automatic attempts of which one was safely rejected while the
+other became step 3. The resulting indexes were unique. This is the intended
+busy boundary: overlapping commands may be serialized or explicitly rejected,
+but must never allocate the same index.
 
-- toolbar action-grant behavior;
-- popup close/reopen lifetime;
-- real content-script/background screenshot integration;
-- automatic/manual Asset and Event counts from a live server;
-- sensitive-target suppression in a live installed run;
-- service-worker restart recovery;
-- installed-flow portal handoff.
+Screenshots:
 
-Those behaviors remain covered by focused extension/controller/API tests and
-existing server contract tests, but a manual or toolbar-capable automation run
-is still required for true installed end-to-end acceptance.
-`true-toolbar-popup.png` is the retained blank attachment attempt and is not
-acceptance evidence.
+- `evidence/126/installed-toolbar-active.png`
+- `evidence/126/installed-toolbar-two-steps.png`
+- `evidence/126/installed-toolbar-portal-handoff.png`
+
+The earlier `true-toolbar-popup.png` blank attachment attempt is retained as
+historical evidence of the agent-browser-only limitation; it is superseded by
+the passing Puppeteer extension-action run above.
 
 ## Build Size Comparison
 
@@ -170,8 +178,8 @@ and acknowledgement boundary.
 
 The six existing server contract files required by the plan passed: 6 files,
 51 tests. These prove the relied-on auth, Project/Project Version authorization,
-Capture Session, Capture Event, and Capture Asset contracts. They do not replace
-the blocked installed-toolbar/API evidence described above.
+Capture Session, Capture Event, and Capture Asset contracts and complement the
+installed-toolbar/API evidence above.
 
 Repository-wide verification also passed: `pnpm check-types` completed 12 tasks
 and `pnpm lint` completed 13 tasks.
@@ -183,3 +191,8 @@ Event count/status, reduced motion, console/runtime checks, and 360/320/180
 CSS-pixel reflow with no horizontal document overflow. At 180 CSS pixels, axe
 reported no violation and four contrast checks requiring manual review because
 the extremely narrow viewport clipped its background sampling.
+
+The final installed-toolbar closeout reran the same 19-file/140-test extension
+suite, six-file/51-test server contract selection, extension types/lint/build,
+and repository-wide types/lint successfully. The final code/security/contract
+audit found no additional runtime change was required.
