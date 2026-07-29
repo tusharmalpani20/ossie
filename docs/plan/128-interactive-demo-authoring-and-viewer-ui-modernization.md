@@ -4,7 +4,7 @@ Date reserved: 2026-07-12
 
 Expanded: 2026-07-29
 
-Status: Complete.
+Status: Complete. Close-previous audit passed on 2026-07-29.
 
 Parent plan:
 
@@ -964,6 +964,9 @@ browser profiles, cookies, credentials, or unrelated user/agent work.
 
 ### Verification and closeout
 
+- [x] close-previous implementation audit repeated; confirmed local-loss,
+      aggregate-conflict, media-failure, target-default, and pointer-cancel gaps
+      fixed with regression coverage.
 - [x] focused web/shared/server tests pass.
 - [x] full web types/lint/test/build pass.
 - [x] DB integration and V1 smoke pass.
@@ -1029,6 +1032,23 @@ browser profiles, cookies, credentials, or unrelated user/agent work.
   Project.
 - `f86c254` and `ce25b79` removed raw actor/Artifact identifiers from Revision
   history and Carry-Forward conflict presentation.
+- Close-previous audit commit `a656314` made authoring and shared viewer media
+  failure-safe: pointer cancellation restores the interaction-start geometry,
+  projected Asset dimensions control the canvas, broken images remove unsafe
+  overlays, and invalid Transition targets produce a stable warning without
+  traversal.
+- Close-previous audit commit `04bd4ee` fixed gaps hidden by the original
+  closeout: Scene/Hotspot dirty state now participates in unload protection;
+  unrelated local drafts survive create/save/reorder/delete reconciliation;
+  all Edition/Working Draft/Publication/lifecycle commands share one
+  synchronous aggregate lease; conflicts freeze every unsafe command until an
+  explicit discard-and-reload; new Hotspots no longer infer a target; Hotspot
+  load failures cannot masquerade as empty state; and background-picker
+  failures preserve the referenced background with a narrow retry path.
+- The same audit removed fabricated source-Capture Asset URLs, kept referenced
+  archived Assets renderable but unselectable, corrected Scene-delete copy to
+  the existing transactional behavior, and retained the route controller at
+  995 lines.
 - No migration, persisted Scene/Hotspot/Transition redesign, public URL/access
   change, or new production dependency was introduced.
 
@@ -1036,13 +1056,14 @@ browser profiles, cookies, credentials, or unrelated user/agent work.
 
 Completed 2026-07-29.
 
-Focused:
+Focused, repeated after the close-previous fixes:
 
 - `pnpm --filter @repo/types test -- src/demo.test.ts src/publish.test.ts`:
   2 files, 12 tests passed.
 - `pnpm --filter @repo/demo-domain test`: 5 files, 15 tests passed.
 - declared focused server command: 6 files, 17 tests passed.
-- declared focused web command: 13 files, 124 tests passed.
+- `pnpm --filter web test -- src/features/interactive-demo`: 8 files,
+  37 tests passed.
 - Demo fixture pure tests: 2 tests passed; dedicated fixture/Interactive Demo
   DB reruns passed after contract hardening.
 
@@ -1052,18 +1073,18 @@ Database and broad:
 - `pnpm --filter server seed:interactive-demo-browser-fixture`
 - `pnpm --filter server test:db`: 20 files, 67 tests passed.
 - `pnpm --filter server test:smoke`: 1 file, 1 workflow passed.
-- `pnpm --filter web test`: 52 files, 328 tests passed.
+- `pnpm --filter web test`: 52 files, 341 tests passed.
 - `pnpm --filter web check-types`, `pnpm --filter web lint`, and
   `pnpm --filter web build`: passed.
 - `pnpm check-types`, `pnpm lint`, `pnpm -r --if-present test`, and
   `git diff --check`: passed. The recursive gate included 19 Extension files /
-  140 tests, 52 web files / 328 tests, and 99 server files / 406 tests, plus all
+  140 tests, 52 web files / 341 tests, and 99 server files / 406 tests, plus all
   shared packages.
 
 Production build:
 
-- JS: 463.79 kB raw / 128.81 kB gzip, versus child `127`'s 453.81 / 125.30
-  baseline (`+9.98` raw, `+3.51` gzip).
+- JS after close-previous fixes: 466.56 kB raw / 129.85 kB gzip, versus child
+  `127`'s 453.81 / 125.30 baseline (`+12.75` raw, `+4.55` gzip).
 - CSS: 73.19 kB raw / 14.17 kB gzip, versus 66.16 / 13.04 (`+7.03` raw,
   `+1.13` gzip).
 - Growth is attributable to the selected-Scene workbench, pointer/keyboard
@@ -1089,6 +1110,12 @@ Browser:
   textarea contrast checks.
 - dated details and synthetic screenshots are in
   `docs/ui/128-interactive-demo-authoring-and-viewer-ui-browser-evidence.md`.
+- Close-previous headless dogfood additionally proved that a newly created
+  Hotspot starts at `No target scene`, broken selected media renders the stable
+  unavailable state without a resize overlay, and an unsaved Scene draft
+  survives Scene switching. The repeated authoring axe scan had zero
+  violations and the same three indeterminate shared-textarea contrast checks;
+  browser console/errors contained no application failures.
 
 ## Critical Decisions
 
@@ -1117,4 +1144,3 @@ Child `129` must preserve the Demo-specific normalized geometry, explicit save/
 conflict model, strict public projection, immutable Publication semantics,
 exact Project Version routes, and shared renderer accepted here. There is no
 deferred child `128` migration, security fix, permission change, or browser
-acceptance blocker.
