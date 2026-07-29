@@ -2,9 +2,10 @@
 
 Date started: 2026-07-29
 
-Status: Provisional workshop paused after Question `24`. Questions `25` through
-`32` remain. Child `131` remains Not started until child `130` is merged,
-verified, and accepted.
+Status: Provisional workshop resumed in a user-requested batch format. Questions
+`25` through `30` and `32` are provisionally accepted; the comments boundary in
+Questions `23`/`31` is being refined. Child `131` remains Not started until
+child `130` is merged, verified, and accepted.
 
 ## Sequence Boundary
 
@@ -4756,14 +4757,16 @@ Local evidence:
 
 Status:
 
-Provisionally accepted. The first release requires immutable Site Revision and
-Publication history, exact previews, optional checkpoint reasons, safe
-structural change summaries, curated Project Activity, and complete accepted
-Audit/Access Evidence. Formal review state, comments, approvals, external review
-tokens, notifications, public feedback, product analytics, and Page ownership
-are deferred. Audit/Access records remain security evidence and cannot be
-repurposed as hidden analytics. This remains subject to recheck and final
-acceptance after child `130` passes.
+Provisionally accepted, then reopened in part on 2026-07-30. Immutable Site
+Revision and Publication history, exact previews, optional checkpoint reasons,
+safe structural change summaries, curated Project Activity, and complete
+accepted Audit/Access Evidence remain accepted. The user subsequently required
+comments and related collaboration to be included rather than wholly deferred.
+Question `31` now owns the exact first-slice and later-V1 collaboration
+boundary. Public feedback and product analytics remain separate until that
+question is settled. Audit/Access records remain security evidence and cannot
+be repurposed as hidden analytics. All answers remain subject to recheck and
+final acceptance after child `130` passes.
 
 Decision records after the sequence gate:
 
@@ -5202,3 +5205,899 @@ The workshop paused after the user provisionally accepted Question `24`.
 - Sequence gate: all answers remain provisional until child `130` is merged,
   verified, and accepted
 - Runtime work: none; this workshop changed only this grill record
+
+## Batch Response Checkpoint
+
+On 2026-07-30 the user asked to answer the remaining questions together.
+
+Provisionally accepted:
+
+- Question `25`: one primary Site language now; translated variants and fallback
+  later
+- Question `26`: correct public search/social metadata now; custom domains later
+- Question `27`: prepare Publications before switching a live Publish Link;
+  failed preparation leaves the current Publication untouched; rollback points
+  back to an older immutable Publication
+- Question `29`: archive first, preserve referenced immutable history and files,
+  keep Audit/Access separate, and defer governed permanent deletion
+- Question `30`: WCAG 2.2 AA for authoring and reading, plus measurable public
+  reader performance targets
+- Question `32`: the proposed small end-to-end Documentation vertical slice
+
+Still being refined:
+
+- Questions `23` and `31`: the user wants comments and related collaboration
+  included, reopening the earlier decision to defer them; the exact first-slice
+  versus later-V1 boundary and whether approval blocks Publication remain to be
+  settled
+
+### Q25. Are localization and locale fallback part of the model now or
+explicitly deferred?
+
+Recommended answer:
+
+Give every Documentation Site one required primary language using a standard
+language tag such as `en`, `en-GB`, or `fr`. In the first release, every Page,
+Navigation label, generated API reference label, search record, and public
+reader surface inside that Site uses the primary language.
+
+The primary language:
+
+- supplies the public document language for browsers and assistive technology;
+- is frozen into each Site Revision and Publication;
+- may be changed in the Working Draft with a clear warning that the change
+  applies to the whole Site;
+- does not appear in Page identity, database IDs, or required first-release
+  public URL paths.
+
+Defer translated Page variants, translation workflows, automatic translation,
+per-locale Navigation, and locale fallback.
+
+When localization is added later:
+
+- a translated Page must be an explicit maintained variant, not a hidden live
+  machine translation;
+- missing content must be shown clearly;
+- Ossie must not silently show an old or different-language Page and imply that
+  it is the selected translation;
+- locale selection and fallback must be frozen in the Publication;
+- search must remain exact-Publication and locale aware.
+
+Alternative:
+
+Build full localization and fallback in the first slice.
+
+Why not:
+
+- it multiplies authoring, Navigation, slug, internal-link, search, preview,
+  publication, and staleness rules before the single-language Site is proven;
+- automatic fallback can show a technically valid but outdated explanation;
+- machine translation introduces privacy, quality, and provider decisions.
+
+Alternative:
+
+Create a separate Documentation Site for every language.
+
+Why not:
+
+- it duplicates Site identity, access, OpenAPI, Navigation, and Publication
+  work;
+- relationships between translations become informal and difficult to check;
+- it makes a later first-class locale model harder.
+
+Tradeoff:
+
+V1 authors who need several languages must operate separate Sites or use an
+external translation process. Ossie still records a truthful primary language
+and remains structurally open to explicit translated variants later.
+
+Reversibility:
+
+Adding translated variants later is possible because stable Site, Page,
+Revision, and Publication identities do not embed a locale. Omitting the
+primary language now would weaken accessibility and make later migration less
+reliable.
+
+Affected scope:
+
+- Documentation Site settings
+- draft, Revision, and Publication snapshots
+- public HTML language
+- reader and authoring copy
+- search metadata
+- future translated Page and Navigation model
+
+Status:
+
+Provisionally accepted. Each Documentation Site has one primary language in the
+first release. Translated variants and fallback are explicitly deferred. This
+remains subject to recheck and final acceptance after child `130` passes.
+
+Decision records after the sequence gate:
+
+- `CONTEXT.md`
+- this grill record
+
+### Q26. What public-site search discovery, canonical URL, sitemap, robots,
+social metadata, and custom-domain behavior is required or deferred?
+
+Recommended answer:
+
+Ship correct search-engine and social-sharing metadata for unrestricted public
+Documentation, while deferring custom domains.
+
+For an unrestricted active Publish Link, Ossie provides:
+
+- a Page title and description;
+- one declared canonical URL;
+- a sitemap containing only current indexable destinations;
+- robots metadata;
+- social-sharing title, description, URL, and optional image;
+- correct permanent redirects and removed-Page behavior from Question `18`.
+
+Only one public entry for the same published content may be its indexable
+canonical entry. If several Publish Links expose the same Site Publication,
+one may be selected as primary; the others point search engines to that
+canonical entry or remain unindexed. This avoids claiming several duplicate
+official URLs.
+
+The following are never indexable:
+
+- Working Draft and Revision previews;
+- private Project routes;
+- password-protected or restricted links;
+- revoked or expired links;
+- non-current historical Publication routes;
+- error and denied-access pages.
+
+An unrestricted public Publish Link may explicitly disable search indexing.
+Disabling indexing is guidance to search engines, not an access control; truly
+private content must use a restricted access mode.
+
+Defer custom domains such as `docs.example.com`. They require a later boundary
+for domain ownership checks, DNS setup, certificates, host routing, canonical
+URL migration, redirects, removal, and recovery.
+
+Alternative:
+
+Defer all search and social metadata.
+
+Why not:
+
+- public Documentation would be difficult to discover and share;
+- missing canonical rules create duplicate public results;
+- retrofitting URL meaning after indexing is costly.
+
+Alternative:
+
+Include custom domains in the first slice.
+
+Why not:
+
+- they do not prove the Documentation content model;
+- certificate and domain lifecycle failures can make a correct Publication
+  unavailable;
+- the deployment and public-host trust boundary needs its own proof.
+
+Tradeoff:
+
+Early public Sites use Ossie-hosted URLs. Organizations that need a branded
+domain must wait for a later child, but their content and Publication identity
+do not need to change.
+
+Reversibility:
+
+A custom domain can later point to the same immutable Publication and issue
+permanent redirects from the prior canonical entry. Recovering from several
+competing canonical URLs would be harder, so canonical ownership is explicit
+now.
+
+Affected scope:
+
+- Publish Link settings
+- public reader metadata
+- sitemap and robots responses
+- Page descriptions and social images
+- redirects, Gone Rules, and historical routes
+- future custom-domain lifecycle
+
+Status:
+
+Provisionally accepted. Correct metadata, canonical selection, sitemap, robots,
+and social sharing are required for unrestricted public Documentation. Private
+and historical surfaces are not indexable. Custom domains are deferred. This
+remains subject to recheck and final acceptance after child `130` passes.
+
+Decision records after the sequence gate:
+
+- `CONTEXT.md` for public access meaning where needed
+- this grill record
+
+### Q27. What caching, rendering, invalidation, Publication preparation,
+failure-recovery, and rollback model is viable for self-hosting?
+
+Recommended answer:
+
+Prepare and validate a complete immutable Site Publication before a Publish
+Link may expose it. A failed preparation never replaces the currently live
+Publication.
+
+Publication flow:
+
+```text
+exact Site Revision
+  -> validate complete graph
+  -> prepare reader/search manifest
+  -> mark preparation ready
+  -> create/select immutable Site Publication
+  -> atomically point chosen Publish Link entry to it
+```
+
+Preparation validates at least:
+
+- Page and Navigation structure;
+- slugs, aliases, redirects, and internal links;
+- referenced Snippets, assets, Guide Publications, and Demo Publications;
+- OpenAPI source and derived operation destinations;
+- safe renderer output;
+- exact-Publication search records.
+
+If validation or preparation fails:
+
+- the existing live Publish Link entry remains unchanged;
+- the failed attempt receives a clear status and safe error summary;
+- retry starts from the same exact Site Revision or a newer chosen Revision;
+- no partial Page set, Navigation, or search index becomes public.
+
+Rendering and caching:
+
+- the database and protected file storage remain the source of truth;
+- the public server renders from the exact immutable Publication manifest;
+- self-hosting does not require permanently generating one HTML file for every
+  Page;
+- caches use immutable Publication identity plus resource identity or digest;
+- mutable aliases and Publish Link entry routes resolve to an exact Publication
+  before cached content is served;
+- switching a link changes the small mutable pointer and does not mutate the
+  old cache;
+- old immutable cache entries may expire normally without becoming incorrect.
+
+Rollback:
+
+Rollback selects an older authorized immutable Site Publication for the Publish
+Link entry. It does not restore content into the Working Draft, create a new
+Revision, rebuild the old Publication, or delete the newer Publication.
+
+Alternative:
+
+Move the public link first and finish Page rendering or search afterward.
+
+Why not:
+
+- readers could receive broken Navigation, missing Pages, or search results
+  from another state;
+- a failed job could replace a healthy live Site;
+- rollback would be unclear.
+
+Alternative:
+
+Generate and retain a complete permanent static-file tree for every
+Publication.
+
+Why not initially:
+
+- large Sites multiply build duration and stored duplicate output;
+- it adds filesystem deployment and cleanup rules without changing the
+  immutable content model;
+- exact on-demand rendering with immutable caches is sufficient for the first
+  self-hosted architecture.
+
+Tradeoff:
+
+Publication takes a preparation step before becoming live, and the first
+uncached read may perform server rendering. In return, live switches and
+rollback are small, atomic, and safe.
+
+Reversibility:
+
+A later deployment may pre-render static output or place a content-delivery
+cache in front of the same immutable Publication contract. A partial-publication
+model would be much harder to repair.
+
+Affected scope:
+
+- Publication preparation jobs and status
+- validation and safe failure reporting
+- exact reader/search manifests
+- Publish Link entry switching
+- cache keys and invalidation
+- rollback UI and authorization
+- self-host operations and recovery
+
+Status:
+
+Provisionally accepted. A complete exact Site Revision is prepared before a
+Publish Link switches. Failure leaves the current public Site untouched.
+Rendering uses immutable Publication data and caches, and rollback repoints the
+link to an older immutable Publication without rebuilding it. This remains
+subject to recheck and final acceptance after child `130` passes.
+
+Decision records after the sequence gate:
+
+- `CONTEXT.md`
+- a Publication preparation/rollback ADR if the final runtime proof shows that
+  the decision remains difficult to reverse and surprising
+- this grill record
+
+### Q28. What operational limits are needed for Page size, Site size, build
+duration, asset size, and concurrent Publication?
+
+Recommended answer:
+
+Do not impose commercial-style Project or Organization quotas by default in a
+self-hosted Ossie installation.
+
+Keep three different concerns separate:
+
+1. Optional Organization quotas control how much Documentation the Organization
+   may own or operate.
+2. Deployment safety settings protect the self-hosted server from one
+   accidentally or deliberately harmful request or job.
+3. Correctness locks stop conflicting Publication work for the same Site
+   Edition.
+
+Organization quota model:
+
+- quota fields are owned by the Organization;
+- every quota is nullable;
+- `null` has one exact meaning: **no Organization quota**;
+- a positive value is enforced across all Projects in that Organization;
+- the Organization receives clear current-usage and configured-limit
+  information;
+- reducing a limit below current use blocks further growth but does not delete,
+  archive, or rewrite existing content;
+- an Organization limit change is an authorized settings mutation with Audit
+  coverage;
+- V1 has no Project-specific quota allocation.
+
+Possible Organization quota fields include:
+
+- Documentation Site count;
+- Documentation Page count;
+- Documentation-owned file bytes;
+- concurrent Documentation Publication jobs.
+
+These fields should not be created speculatively. The implementation plan must
+add only limits that have a real enforcement and usage-measurement path.
+
+Effective behavior:
+
+```text
+Organization quota is null
+  -> no Organization product quota
+
+Organization quota is 100
+  -> reject creation of item 101 with a clear limit error
+
+Organization quota is lowered below current usage
+  -> keep existing content
+  -> reject further quota-increasing work
+  -> allow deletion/archive/export and other safe corrective work
+```
+
+Project-specific quotas:
+
+Defer them. All Projects initially share the Organization's allowance. A later
+feature may let an Organization Owner allocate part of an Organization quota to
+individual Projects if real usage proves that this control is needed.
+
+Deployment safety settings:
+
+These are separate from Organization quotas. They cover the maximum size and
+complexity of one request or job, such as:
+
+- one request body or uploaded file;
+- one OpenAPI document and its parse complexity;
+- one Publication job's execution time;
+- total simultaneous heavy jobs for one server process.
+
+The self-hosting operator controls these settings and can raise them to suit the
+machine. They remain bounded because unlimited request memory, parser work, or
+execution time could freeze or crash the host. Hitting one of these settings is
+reported as a server safety error, not an Organization quota error.
+
+Correctness lock:
+
+Only one Publication job may actively prepare a given Site Edition at a time.
+Another request may wait or receive a clear already-in-progress response. This
+is not a paid limit and cannot be disabled by setting an Organization quota to
+`null`; it prevents two jobs from racing and producing an unclear live result.
+
+Alternative:
+
+Hard-code the same Page, Site, storage, and Publication quotas for every Ossie
+installation.
+
+Why not:
+
+- it conflicts with the self-hosted product model;
+- the host knows its own storage and compute capacity;
+- fixed numbers would be arbitrary before real Documentation usage is measured;
+- changing them would become a compatibility problem.
+
+Alternative:
+
+Make every safety boundary nullable and treat `null` as unlimited work.
+
+Why not:
+
+- one very large request can exhaust server memory before normal validation;
+- a deeply complex OpenAPI file can consume excessive parser time;
+- unlimited simultaneous Publication work can make the installation
+  unavailable;
+- these are host-protection boundaries, not product quotas.
+
+Tradeoff:
+
+An Organization with all quota fields set to `null` can grow until the host
+runs out of real storage or other capacity. Ossie must therefore report usage
+and operational health truthfully even when it does not enforce a product
+quota.
+
+Reversibility:
+
+Project allocations and additional Organization quota fields can be added later
+without changing the meaning of existing `null` values. Changing `null` from
+unlimited to inherited or limited later would be surprising and is rejected.
+
+Affected scope:
+
+- Organization settings and authorization
+- usage counting and quota errors
+- Documentation creation and upload paths
+- Publication job scheduling
+- deployment configuration and health reporting
+- Audit coverage for limit changes
+- future Project quota allocation
+
+Status:
+
+Provisionally accepted. Documentation quotas are Organization-owned, nullable,
+and unlimited when `null`. V1 has no Project-specific quota. Separately,
+self-hosting operators control bounded per-request and per-job server safety
+settings, and a correctness lock prevents concurrent Publication preparation
+for the same Site Edition. This remains subject to recheck and final acceptance
+after child `130` passes.
+
+Decision records after the sequence gate:
+
+- `CONTEXT.md`
+- this grill record
+
+### Q29. How are Audit history, soft deletion, retention, export, and
+Organization/Project deletion applied to Documentation content?
+
+Recommended answer:
+
+Use archive-first lifecycle and preserve immutable or referenced history.
+Do not build automatic permanent deletion for Documentation in V1.
+
+Lifecycle:
+
+- a Documentation Site, Site Edition, Page, Snippet, or Documentation Asset is
+  archived before any future permanent removal;
+- archive removes the resource from normal authoring choices but does not
+  rewrite a Site Revision or Site Publication;
+- an archived Project or Project Version makes its Documentation read-only
+  under the already accepted Project rules;
+- archive does not silently revoke an active public Publish Link;
+- stopping public access requires changing or revoking the Publish Link.
+
+Retention and references:
+
+- Site Revisions and Site Publications are immutable and non-deletable in V1;
+- files and exact Guide/Demo Publications remain protected while any Working
+  Draft, Revision, or Publication references them;
+- an unreferenced mutable upload may become eligible for a future governed
+  cleanup process, but V1 does not automatically remove it;
+- a database cascade must not erase Documentation history, shared assets, Audit
+  Events, or Access Events.
+
+Export:
+
+- the safe Site ZIP from Question `22` may export the selected Documentation
+  content and Documentation-owned files;
+- reused protected assets are included only through an authorized,
+  self-contained export rule;
+- exports do not include credentials, private request values, raw editor
+  internals, hidden security data, or unrelated Project content;
+- Audit and Access Evidence remains a separate security/compliance concern and
+  is not inserted into a content ZIP.
+
+Audit and Access:
+
+- accepted Documentation mutations create Audit Events and safe change items;
+- meaningful private/public reads create Access Events under the existing
+  evidence rules;
+- comments or reviews added by Question `31` receive their own safe actions;
+- Audit and Access Evidence remains append-only and retained for the
+  Organization lifetime;
+- it is not selectively deleted when a Page, Site, Project, member, or public
+  link is archived, removed, or revoked.
+
+Permanent deletion:
+
+Permanent Organization deletion, legal erasure, retention schedules, and
+physical file cleanup require a later governed design. It must resolve public
+link revocation, immutable history, shared references, evidence retention,
+backup behavior, operator authority, dry-run reporting, and recovery before
+deleting anything.
+
+Alternative:
+
+Hard-delete a Page or Site immediately when an author selects Delete.
+
+Why not:
+
+- immutable Publications could lose content or files;
+- shared references could break;
+- Audit/Access history could be weakened;
+- public URLs and rollback would become untruthful;
+- recovery would be impossible.
+
+Tradeoff:
+
+Archived and historical content continues to consume storage. Self-hosting
+operators receive truthful usage information but no unsafe automatic cleanup
+claim in V1.
+
+Reversibility:
+
+A reference-aware governed purge can be added later. Reconstructing deleted
+Publication content, evidence, or shared files would not be reliably possible.
+
+Affected scope:
+
+- Documentation archive actions and filters
+- Project and Project Version archive behavior
+- Revision, Publication, and Publish Link retention
+- protected file references
+- content ZIP export
+- Audit and Access coverage
+- future purge, Organization deletion, backup, and cleanup work
+
+Status:
+
+Provisionally accepted. Documentation uses archive-first lifecycle, preserves
+immutable and referenced history, keeps content export separate from
+Audit/Access Evidence, and does not implement automatic permanent deletion in
+V1. This remains subject to recheck and final acceptance after child `130`
+passes.
+
+Decision records after the sequence gate:
+
+- `CONTEXT.md`
+- the Documentation history/Audit ADR
+- this grill record
+
+### Q30. What accessibility and performance targets apply to authoring and the
+published reader?
+
+Recommended answer:
+
+Require WCAG 2.2 Level AA for both the Documentation authoring experience and
+the public reader. Treat accessibility as an acceptance condition, not optional
+polish.
+
+Both surfaces must cover, as applicable:
+
+- complete keyboard operation with visible, unobscured focus;
+- logical headings, landmarks, names, descriptions, and status announcements;
+- screen-reader access to Navigation, search, editor controls, validation,
+  comments/review, code, tables, and API reference;
+- sufficient text, control, focus, and non-text contrast;
+- no color-only meaning;
+- pointer targets and alternatives to dragging;
+- zoom, text resizing, and reflow at a narrow 320 CSS-pixel viewport without
+  losing required actions or content;
+- reduced-motion behavior and no essential meaning conveyed only by motion;
+- clear loading, empty, error, conflict, permission, and Publication states;
+- accessible authentication and password-link behavior;
+- Page-author checks for heading order, link text, image alternative text, and
+  table structure without pretending automated checks prove full conformance.
+
+The editor may warn about author-created accessibility problems. Publication
+blocks only objectively invalid required structure defined by the
+implementation plan; subjective guidance remains a warning with a clear
+explanation.
+
+Public-reader performance target:
+
+At the 75th percentile of real supported-device visits, aim for current "good"
+Core Web Vitals:
+
+- Largest Contentful Paint at or below 2.5 seconds;
+- Interaction to Next Paint at or below 200 milliseconds;
+- Cumulative Layout Shift at or below 0.1.
+
+Authoring performance:
+
+- typing and common editor actions remain immediately responsive;
+- Page save does not block continued editing;
+- large Navigation and OpenAPI views use bounded rendering rather than placing
+  every hidden item in the browser at once;
+- expensive validation and Publication preparation expose progress and can
+  fail safely;
+- performance verification uses representative small and upper-bound synthetic
+  Sites rather than customer content.
+
+Alternative:
+
+Apply accessibility and measurable performance only to the public reader.
+
+Why not:
+
+- authors with disabilities must be able to create and publish Documentation;
+- an inaccessible editor prevents accessible output from being maintained;
+- slow authoring encourages unsafe workarounds and lost changes.
+
+Tradeoff:
+
+Some rich editor, OpenAPI, and animation choices may be rejected or simplified
+when they cannot meet keyboard, screen-reader, reflow, or response targets.
+
+Reversibility:
+
+Targets and measurements can become stricter later. Shipping inaccessible
+authoring structures or a renderer that requires a complete rewrite would be
+much more costly.
+
+Affected scope:
+
+- editor and reader component choices
+- Tiptap and Fumadocs/Scalar proofs
+- keyboard, screen-reader, zoom, reflow, and reduced-motion tests
+- author-created content guidance
+- rendering, search, Navigation, and API-reference performance
+- browser evidence and production measurement
+
+Primary sources:
+
+- `https://www.w3.org/WAI/standards-guidelines/wcag/`
+- `https://www.w3.org/TR/WCAG22/`
+- `https://web.dev/articles/defining-core-web-vitals-thresholds`
+- child `129` accessibility, motion, performance, and browser evidence
+
+Status:
+
+Provisionally accepted. Documentation authoring and reading target WCAG 2.2 AA.
+The public reader targets good Core Web Vitals at the 75th percentile, and the
+editor must remain responsive under representative bounded content. This
+remains subject to recheck and final acceptance after child `130` passes.
+
+Decision records after the sequence gate:
+
+- Documentation acceptance criteria and verification plans
+- this grill record
+
+### Q31. What are the strict first-slice and V1 exclusions?
+
+Recommended answer:
+
+Keep the first slice narrow, but include basic internal comments because the
+user has identified team discussion as part of the Documentation value.
+
+First-slice collaboration:
+
+- Project Members may create private Page-level comment threads;
+- a comment may optionally target a stable authored block identity;
+- threads support replies, mentions, resolve, and reopen;
+- a deleted or substantially changed target leaves the thread recoverable at
+  Page level rather than deleting it;
+- comments belong to the mutable review workspace, never to public Page content;
+- Site Revisions and Publications do not become mutable when comments change;
+- comments never appear to anonymous/public readers;
+- comment creation, edit where allowed, resolve, reopen, and removal receive
+  authorization and safe Audit coverage;
+- notification delivery may be deferred, so a mention must not falsely promise
+  that an email or external message was sent.
+
+Later in V1:
+
+- Review Requests;
+- reviewer states such as Approved and Changes Requested;
+- notifications;
+- Page ownership or maintainers;
+- review and change-history presentation;
+- an optional Site rule requiring approval before Publication;
+- a deliberate Admin/Owner override with a required reason and Audit record.
+
+Public visitor feedback and product analytics remain later. They require
+separate consent, privacy, spam/abuse, retention, identity, and self-hosting
+decisions. Audit and Access Evidence cannot be reused as hidden product
+analytics.
+
+Other strict first-slice exclusions:
+
+- simultaneous live multi-person editing;
+- offline editing and automatic conflict merge;
+- Git or GitHub synchronization;
+- translated Page variants and locale fallback;
+- custom domains;
+- arbitrary MDX, JavaScript, React components, HTML, iframes, or external
+  renderers;
+- API request execution, API proxying, stored credentials, OAuth, and full SDK
+  generation;
+- Organization-wide or cross-artifact search;
+- merging an import into an existing populated Site;
+- automatic public access to historical Publications;
+- automatic permanent deletion or retention cleanup.
+
+Alternative:
+
+Defer every collaboration feature until after the whole V1 Documentation
+system.
+
+Why not:
+
+- internal discussion is part of the user's stated team workflow;
+- proving stable comment anchoring early checks that the structured editor model
+  can support review without tying comments to fragile text offsets;
+- adding it only after the editor and Page persistence are fixed could force a
+  more disruptive change.
+
+Alternative:
+
+Put comments, mandatory approval, public feedback, analytics, notifications,
+and live collaboration in the first slice.
+
+Why not:
+
+- these are different permission, privacy, retention, delivery, and concurrency
+  problems;
+- mandatory approval changes Publication authority and needs explicit bypass
+  and stale-approval rules;
+- public feedback and analytics collect data from people outside the Project;
+- live editing is not required to prove durable comment threads.
+
+Tradeoff:
+
+The first slice supports useful internal discussion but not a complete editorial
+workflow. Authors may need to revisit Pages to discover mentions until
+notifications ship.
+
+Reversibility:
+
+Review Requests, approval gates, notifications, public feedback, analytics, and
+live editing can be layered onto stable comments, Page identities, Revisions,
+and Publications. Allowing comments to mutate published content or Audit data
+would be difficult to undo and is rejected.
+
+Affected scope:
+
+- Page/block stable identities
+- comment thread persistence and authorization
+- Project Member roles
+- editor comment UI
+- Audit actions and privacy
+- Revision/Publication immutability
+- future review, approval, notification, ownership, feedback, and analytics
+  children
+
+Status:
+
+Awaiting provisional user decision. The user has accepted that comments and
+related collaboration belong in the product, reopening Question `23`. The
+recommended boundary is basic private comments in the first slice, fuller
+internal review later in V1, and public feedback/analytics later.
+
+Decision records after the sequence gate:
+
+- `CONTEXT.md`
+- a collaboration/review ADR only if the final approval authority decision
+  meets the ADR threshold
+- this grill record
+
+### Q32. Which vertical slice proves the Documentation model with the least
+irreversible complexity?
+
+Recommended answer:
+
+Build one small end-to-end Documentation Site that proves the accepted domain,
+OpenAPI, Publication, reader, and rollback contracts.
+
+The slice:
+
+1. Create one Documentation Site inside one Project.
+2. Create its Site Edition for one Project Version.
+3. Author two safe Pages with stable identities.
+4. Add Navigation, stable slugs, and one internal Page link.
+5. Upload, inspect, and validate one self-contained OpenAPI file.
+6. Add one read-only API Reference block and derived operation destinations.
+7. Autosave the two Pages independently with Row Version conflict protection.
+8. If Question `31` is accepted, add and resolve one private Page comment.
+9. Preview the complete Working Draft.
+10. Create one immutable Site Revision.
+11. Publish through the existing Publish Link model.
+12. Read the exact public Publication with Navigation, search, Page links, and
+    direct API operation links.
+13. Change the Working Draft and prove the first Publication did not change.
+14. Create and expose a second Publication.
+15. Roll the Publish Link entry back to the first Publication without
+    rebuilding or mutating either Publication.
+
+The slice must also prove:
+
+- Organization tenant isolation and Project Membership authorization;
+- restricted draft/revision access and exact public-link access;
+- safe authored content and asset access;
+- failed validation leaves the existing live Publication untouched;
+- keyboard, screen-reader, mobile/reflow, reduced-motion, console, request
+  failure, loading, empty, permission, conflict, and error behavior;
+- no Documentation runtime claim is made until real database and browser
+  evidence passes.
+
+Explicitly outside this slice are the later-V1 and later items in Question `31`,
+including API calls, Git synchronization, translations, custom domains, full
+review workflow, public feedback, analytics, and permanent deletion.
+
+Alternative:
+
+Start with only a plain rich-text Page and postpone OpenAPI, public search, and
+rollback.
+
+Why not:
+
+- it would not prove the user's central API-documentation vision;
+- it could validate an editor while leaving the wrong reader and Publication
+  architecture undiscovered;
+- it would not test the strongest whole-Site consistency requirements.
+
+Alternative:
+
+Start with every V1 capability.
+
+Why not:
+
+- a failure would not reveal which foundational boundary is wrong;
+- several reversible features would obscure the small irreversible domain and
+  Publication choices;
+- the first child could not be closed with focused evidence.
+
+Tradeoff:
+
+The slice is broader than a single Page editor but deliberately excludes the
+riskier request-execution and full collaboration workflows. It produces a
+genuinely useful read-only API Documentation path rather than a disconnected
+technical proof.
+
+Reversibility:
+
+Later blocks, access choices, import paths, API calls, review workflow, and
+custom domains can reuse the proven Site/Edition/Revision/Publication model.
+Changing that model after building all V1 features would be much harder.
+
+Affected scope:
+
+- the ordered implementation child sequence beginning at `132`
+- Documentation persistence and contracts
+- authoring and preview
+- OpenAPI validation and rendering
+- Navigation, links, and search
+- Revision, Publication, Publish Link, failure, and rollback
+- authorization, security, accessibility, performance, and browser evidence
+
+Status:
+
+Provisionally accepted for the base slice. The comment proof at step `8` becomes
+part of the slice if Question `31` accepts the recommended comments boundary.
+This remains subject to recheck against the merged child `129`/`130` result and
+final acceptance after child `130` passes.
+
+Decision records after the sequence gate:
+
+- `CONTEXT.md`
+- the expanded child `131` feature matrix and threat model
+- the ordered implementation children beginning at `132`
+- this grill record
+
