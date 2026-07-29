@@ -1,10 +1,4 @@
-import {
-  type FormEvent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectVersion } from "@repo/types/project-version";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
@@ -305,7 +299,6 @@ export const CaptureSessionDetailPage = ({
       navigate={navigate}
       canWrite={canWrite}
       canPurge={canPurge}
-      versionSlug={versionSlug}
       renderShell={renderShell}
       projectVersions={projectVersions}
       reassignProjectVersion={reassignProjectVersion}
@@ -330,7 +323,6 @@ const CaptureSessionDetailView = ({
   navigate,
   canWrite,
   canPurge,
-  versionSlug,
   renderShell,
   projectVersions,
   reassignProjectVersion,
@@ -355,7 +347,6 @@ const CaptureSessionDetailView = ({
   navigate?: (path: string) => void;
   canWrite: boolean;
   canPurge: boolean;
-  versionSlug?: string;
   renderShell: boolean;
   projectVersions: ProjectVersion[];
   reassignProjectVersion: typeof reassignCaptureSessionProjectVersion;
@@ -452,7 +443,7 @@ const CaptureSessionDetailView = ({
         description: session.description ?? null,
       });
       redirectTo(
-        `/projects/${encodeURIComponent(projectId)}${versionSlug ? `/versions/${encodeURIComponent(versionSlug)}` : ""}/guides/${encodeURIComponent(guideDetail.artifact.id)}`,
+        `/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(session.project_version.slug)}/guides/${encodeURIComponent(guideDetail.artifact.id)}`,
       );
     } catch {
       setCreateState("error");
@@ -475,7 +466,9 @@ const CaptureSessionDetailView = ({
           description: session.description ?? null,
         },
       );
-      redirectTo(response.redirect_path);
+      redirectTo(
+        `/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(session.project_version.slug)}/interactive-demos/${encodeURIComponent(response.artifact.id)}`,
+      );
     } catch {
       setCreateDemoState("error");
     }
@@ -835,6 +828,7 @@ const CaptureSessionDetailView = ({
       {canUploadScreenshot ? (
         <Card
           className={styles.uploadPanel}
+          role="region"
           aria-labelledby="upload-screenshot-heading"
         >
           <CardHeader>
@@ -866,6 +860,8 @@ const CaptureSessionDetailView = ({
               {uploadQueue.length > 0 ? (
                 <div
                   className={styles.uploadQueue}
+                  role="status"
+                  aria-live="polite"
                   aria-label="Selected screenshots"
                 >
                   {uploadQueue.map((item) => (

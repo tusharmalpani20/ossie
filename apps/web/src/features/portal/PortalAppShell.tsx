@@ -95,7 +95,9 @@ export const PortalAppShell = ({
               </ol>
             </nav>
             {projectVersion && !projectVersion.isDefault ? (
-              <Badge>Project Version</Badge>
+              <aside aria-label="Named Project Version context">
+                <Badge>Project Version</Badge>
+              </aside>
             ) : null}
           </div>
           <main className={styles.main}>{children}</main>

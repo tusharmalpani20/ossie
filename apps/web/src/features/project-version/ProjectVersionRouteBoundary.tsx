@@ -17,6 +17,7 @@ import {
   listProjectVersions,
   resolveProjectVersion,
 } from "../../lib/api";
+import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { portalProjectVersionFromDetail } from "../../lib/portalNavigation";
 import type { PortalRouteSection } from "../../lib/portalRouteMetadata";
 import { PortalAppShell } from "../portal/PortalAppShell";
@@ -32,7 +33,7 @@ type Loaded = {
   versions: ProjectVersion[];
 };
 type State =
-  | { status: "loading" | "not_found" | "error" }
+  | { status: "loading" | "unauthenticated" | "not_found" | "error" }
   | ({ status: "loaded" } & Loaded);
 
 const routeSuffixBySection: Partial<
@@ -93,18 +94,28 @@ export const ProjectVersionRouteBoundary = ({
           versions: list.project_versions,
         });
       })
-      .catch((error: unknown) =>
+      .catch((error: unknown) => {
+        if (!active) return;
         setState({
           status:
-            error instanceof ApiClientError && error.kind === "not_found"
-              ? "not_found"
-              : "error",
-        }),
-      );
+            error instanceof ApiClientError && error.kind === "unauthenticated"
+              ? "unauthenticated"
+              : error instanceof ApiClientError && error.kind === "not_found"
+                ? "not_found"
+                : "error",
+        });
+      });
     return () => {
       active = false;
     };
   }, [projectId, versionSlug, reload, replace]);
+  if (state.status === "unauthenticated")
+    return (
+      <main className={styles.state}>
+        <h1>Sign in to view this Project Version.</h1>
+        <a href={signInUrl(currentBrowserPath())}>Sign in</a>
+      </main>
+    );
   if (state.status !== "loaded")
     return (
       <PortalAppShell
@@ -115,11 +126,16 @@ export const ProjectVersionRouteBoundary = ({
         navigate={navigate}
       >
         {state.status === "loading" ? (
-          <div className={styles.state}>Loading Project Version...</div>
+          <div className={styles.state}>
+            <h1>Loading Project Version...</h1>
+          </div>
         ) : state.status === "not_found" ? (
-          <div className={styles.state}>Project Version was not found.</div>
+          <div className={styles.state}>
+            <h1>Project Version was not found.</h1>
+          </div>
         ) : (
           <div className={styles.state}>
+            <h1>Could not load this Project Version.</h1>
             <Alert variant="destructive">
               Could not load this Project Version.
             </Alert>

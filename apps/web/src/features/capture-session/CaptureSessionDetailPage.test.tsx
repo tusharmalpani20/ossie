@@ -5,6 +5,8 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import type { ProjectVersion } from "@repo/types/project-version";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { ApiClientError } from "../../lib/api";
 import type { GuideDetail } from "../guide/types";
@@ -330,6 +332,34 @@ const manualDetail = (): CaptureSessionDetail => ({
   },
 });
 
+const summerReleaseVersion: ProjectVersion = {
+  id: "version_2",
+  organization_id: "organization_1",
+  project_id: "project_1",
+  name: "Summer release",
+  description: null,
+  slug: "summer-release",
+  release_date: null,
+  position: 2,
+  status: "active",
+  is_default: false,
+  version: 1,
+  created_by_id: "org_user_1",
+  updated_by_id: "org_user_1",
+  created_at: "2026-06-05T10:00:00.000Z",
+  updated_at: "2026-06-05T10:00:00.000Z",
+};
+
+const emptyDraftDetail = (): CaptureSessionDetail => ({
+  ...manualDetail(),
+  capture_session: {
+    ...manualDetail().capture_session,
+    started_at: null,
+  },
+  capture_events: [],
+  capture_assets: [],
+});
+
 const renderPage = (
   overrides: {
     loadDetail?: () => Promise<CaptureSessionDetail>;
@@ -381,6 +411,10 @@ const renderPage = (
       input: UpdateCaptureEventInput,
     ) => Promise<UpdateCaptureEventResponse>;
     redirectTo?: (path: string) => void;
+    projectVersions?: ProjectVersion[];
+    reassignProjectVersion?: ComponentProps<
+      typeof CaptureSessionDetailPage
+    >["reassignProjectVersion"];
     canWrite?: boolean;
   } = {},
 ) => {
@@ -421,6 +455,8 @@ const renderPage = (
       reorderEvents={reorderEvents}
       updateEvent={updateEvent}
       redirectTo={redirectTo}
+      projectVersions={overrides.projectVersions}
+      reassignProjectVersion={overrides.reassignProjectVersion}
       canWrite={overrides.canWrite}
     />,
   );
@@ -547,6 +583,81 @@ describe("CaptureSessionDetailPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("moves an empty draft to an active Project Version with optimistic concurrency", async () => {
+    const movedSession = {
+      ...emptyDraftDetail().capture_session,
+      project_version_id: summerReleaseVersion.id,
+      project_version: {
+        id: summerReleaseVersion.id,
+        name: summerReleaseVersion.name,
+        slug: summerReleaseVersion.slug,
+        status: summerReleaseVersion.status,
+        position: summerReleaseVersion.position,
+      },
+      version: 3,
+    };
+    const reassignProjectVersion = vi.fn(async () => ({
+      capture_session: movedSession,
+    }));
+    const { redirectTo } = renderPage({
+      loadDetail: async () => emptyDraftDetail(),
+      projectVersions: [summerReleaseVersion],
+      reassignProjectVersion,
+    });
+
+    await screen.findByRole("heading", { name: "Upload screenshot" });
+    fireEvent.change(
+      screen.getByLabelText("Move empty draft to Project Version"),
+      { target: { value: summerReleaseVersion.id } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Move draft" }));
+
+    await waitFor(() =>
+      expect(reassignProjectVersion).toHaveBeenCalledWith(
+        "project_1",
+        "capture_session_1",
+        {
+          project_version_id: summerReleaseVersion.id,
+          expected_version: 2,
+        },
+      ),
+    );
+    expect(redirectTo).toHaveBeenCalledWith(
+      "/projects/project_1/versions/summer-release/capture-sessions/capture_session_1",
+    );
+  });
+
+  it("reloads an empty draft and explains a failed stale reassignment", async () => {
+    const loadDetail = vi.fn(async () => emptyDraftDetail());
+    const reassignProjectVersion = vi.fn(async () => {
+      throw new ApiClientError({
+        kind: "validation",
+        status: 409,
+        type: "capture_session_version_conflict",
+        message: "Capture Session version conflict",
+      });
+    });
+    renderPage({
+      loadDetail,
+      projectVersions: [summerReleaseVersion],
+      reassignProjectVersion,
+    });
+
+    await screen.findByRole("heading", { name: "Upload screenshot" });
+    fireEvent.change(
+      screen.getByLabelText("Move empty draft to Project Version"),
+      { target: { value: summerReleaseVersion.id } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Move draft" }));
+
+    expect(
+      await screen.findByText(
+        "The draft changed or can no longer be moved. Current data was reloaded.",
+      ),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(loadDetail).toHaveBeenCalledTimes(2));
+  });
+
   it("hides screenshot upload controls for extension capture sessions", async () => {
     renderPage();
 
@@ -614,6 +725,28 @@ describe("CaptureSessionDetailPage", () => {
         screen.queryByText("Choose a screenshot to upload."),
       ).not.toBeInTheDocument(),
     );
+  });
+
+  it("announces the screenshot upload region and selected-file queue", async () => {
+    renderPage({ loadDetail: async () => manualDetail() });
+
+    expect(
+      await screen.findByRole("region", { name: "Upload screenshot" }),
+    ).toBeInTheDocument();
+
+    const file = new File(["png"], "uploaded-department.png", {
+      type: "image/png",
+    });
+    fireEvent.change(screen.getByLabelText("Screenshot file"), {
+      target: { files: [file] },
+    });
+
+    const queue = screen.getByRole("status", {
+      name: "Selected screenshots",
+    });
+    expect(queue).toHaveAttribute("aria-live", "polite");
+    expect(queue).toHaveTextContent("uploaded-department.png");
+    expect(queue).toHaveTextContent("Queued");
   });
 
   it("uploads screenshots creates linked capture events and reloads detail", async () => {
@@ -1421,7 +1554,7 @@ describe("CaptureSessionDetailPage", () => {
       ),
     );
     expect(redirectTo).toHaveBeenCalledWith(
-      "/projects/project_1/guides/guide_1",
+      "/projects/project_1/versions/current/guides/guide_1",
     );
   });
 
@@ -1444,7 +1577,7 @@ describe("CaptureSessionDetailPage", () => {
       ),
     );
     expect(redirectTo).toHaveBeenCalledWith(
-      "/projects/project_1/versions/version_1/interactive-demos/interactive_demo_1",
+      "/projects/project_1/versions/current/interactive-demos/interactive_demo_1",
     );
   });
 
@@ -1502,7 +1635,7 @@ describe("CaptureSessionDetailPage", () => {
     resolveCreate(guideDetail);
     await waitFor(() =>
       expect(redirectTo).toHaveBeenCalledWith(
-        "/projects/project_1/guides/guide_1",
+        "/projects/project_1/versions/current/guides/guide_1",
       ),
     );
   });
@@ -1566,7 +1699,7 @@ describe("CaptureSessionDetailPage", () => {
     resolveCreate(guideDetail);
     await waitFor(() =>
       expect(redirectTo).toHaveBeenCalledWith(
-        "/projects/project_1/guides/guide_1",
+        "/projects/project_1/versions/current/guides/guide_1",
       ),
     );
   });

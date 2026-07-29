@@ -4,6 +4,7 @@
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiClientError } from "../../lib/api";
 import { ProjectVersionRouteBoundary } from "./ProjectVersionRouteBoundary";
 
 const api = vi.hoisted(() => ({
@@ -50,6 +51,43 @@ beforeEach(() => {
 });
 
 describe("ProjectVersionRouteBoundary", () => {
+  it("offers sign-in instead of a generic retry when Version context is unauthenticated", async () => {
+    api.getProject.mockRejectedValue(
+      new ApiClientError({
+        kind: "unauthenticated",
+        status: 401,
+        type: "authentication_required",
+        message: "Authentication required",
+      }),
+    );
+
+    render(
+      <ProjectVersionRouteBoundary
+        projectId="project_1"
+        versionSlug="summer-release"
+        allowVersionOwnedContent
+        activeSection="capture_sessions"
+        currentLabel="Capture Session"
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Sign in to view this Project Version.",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("/login?next="),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Retry" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Sign out" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders current legacy content only for the active Default Version", async () => {
     render(
       <ProjectVersionRouteBoundary projectId="project_1" versionSlug="main">
