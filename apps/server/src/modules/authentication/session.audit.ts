@@ -198,7 +198,10 @@ export const build_authentication_session_repository = (
             throw new Error("authentication_session_disappeared");
           const current = await client.query<{ last_active_at: Date }>(
             `
-            SELECT last_active_at FROM auth_schema.auth_session WHERE id = $1
+            SELECT last_active_at
+            FROM auth_schema.auth_session
+            WHERE id = $1
+            FOR UPDATE
           `,
             [auth_context.session.id],
           );
@@ -213,7 +216,8 @@ export const build_authentication_session_repository = (
           const updated = await client.query<{ last_active_at: Date }>(
             `
             UPDATE auth_schema.auth_session
-            SET last_active_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+            SET last_active_at = clock_timestamp(),
+              updated_at = clock_timestamp()
             WHERE id = $1 RETURNING last_active_at
           `,
             [auth_context!.session.id],

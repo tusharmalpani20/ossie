@@ -1227,8 +1227,10 @@ describe("DB-backed guide API", () => {
       url: `/api/v1/public/publish-links/${slug}?artifact_type=guide`,
     });
     expect(public_response.statusCode).toBe(200);
+    const published_capture_assets = public_response.json().published_artifact
+      .capture_assets as Array<{ id: string; mime_type: string }>;
     expect(
-      public_response.json().published_artifact.capture_assets[0],
+      published_capture_assets.find((asset) => asset.id === uploaded_asset_id),
     ).toMatchObject({
       id: uploaded_asset_id,
       mime_type: "image/png",

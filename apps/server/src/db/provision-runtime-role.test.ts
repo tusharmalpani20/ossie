@@ -17,14 +17,16 @@ describe("runtime role provisioning", () => {
   });
 
   it("requires the configured maintenance role identity", async () => {
-    await expect(provision_runtime_role(
-      { query: vi.fn() },
-      {
-        NODE_ENV: "test",
-        DB_USER: "runtime",
-        DB_PASSWORD: "runtime-password",
-      },
-    )).rejects.toThrow(/Distinct runtime role credentials must be defined/);
+    await expect(
+      provision_runtime_role(
+        { query: vi.fn() },
+        {
+          NODE_ENV: "test",
+          DB_USER: "runtime",
+          DB_PASSWORD: "runtime-password",
+        },
+      ),
+    ).rejects.toThrow(/Distinct runtime role credentials must be defined/);
   });
 
   it("keeps the password parameterized while provisioning a distinct test role", async () => {
@@ -59,6 +61,41 @@ describe("runtime role provisioning", () => {
     expect(statements.at(-1)?.sql).toBe('CREATE ROLE "runtime"');
   });
 
+  it("does not request a superuser attribute change when refreshing an existing runtime role", async () => {
+    const statements: Array<{ sql: string; values?: unknown[] }> = [];
+    const client = {
+      query: vi.fn(async (sql: string, values?: unknown[]) => {
+        statements.push({ sql, values });
+        if (sql.startsWith("SELECT 1 FROM pg_roles"))
+          return { rowCount: 1, rows: [] };
+        if (sql.includes("pg_has_role"))
+          return {
+            rowCount: 1,
+            rows: [{ maintenance_member: false }],
+          };
+        if (sql.startsWith("SELECT format"))
+          return {
+            rowCount: 1,
+            rows: [{ statement: 'ALTER ROLE "runtime"' }],
+          };
+        return { rowCount: 0, rows: [] };
+      }),
+    };
+
+    await provision_runtime_role(client, {
+      NODE_ENV: "test",
+      DB_USER: "runtime",
+      DB_PASSWORD: "runtime-password",
+      DB_MAINTENANCE_USER: "maintenance",
+    });
+
+    const formatStatement = statements.find(({ sql }) =>
+      sql.startsWith("SELECT format"),
+    )?.sql;
+    expect(formatStatement).toContain("ALTER ROLE");
+    expect(formatStatement).not.toContain("SUPERUSER");
+  });
+
   it("refuses to mutate an existing runtime role that belongs to maintenance", async () => {
     const client = {
       query: vi.fn(async (sql: string) => {
@@ -72,12 +109,14 @@ describe("runtime role provisioning", () => {
       }),
     };
 
-    await expect(provision_runtime_role(client, {
-      NODE_ENV: "test",
-      DB_USER: "runtime",
-      DB_PASSWORD: "runtime-password",
-      DB_MAINTENANCE_USER: "maintenance",
-    })).rejects.toThrow(/must not belong to the maintenance role/);
+    await expect(
+      provision_runtime_role(client, {
+        NODE_ENV: "test",
+        DB_USER: "runtime",
+        DB_PASSWORD: "runtime-password",
+        DB_MAINTENANCE_USER: "maintenance",
+      }),
+    ).rejects.toThrow(/must not belong to the maintenance role/);
     expect(client.query).toHaveBeenCalledTimes(2);
   });
 });
