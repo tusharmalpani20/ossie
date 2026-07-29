@@ -101,3 +101,25 @@ is recorded.
 
 The Child 128 browser gate passed. No migration, public URL/access semantic,
 persistence redesign, or production browser dependency was introduced.
+
+## Close-Previous Audit Addendum
+
+Repeated on 2026-07-29 after commits `a656314` and `04bd4ee` against the same
+guarded testing profile and synthetic Interactive Demo fixture:
+
+- a newly created Hotspot exposed `No target scene` rather than an inferred
+  Transition;
+- selecting the intentionally broken background produced the stable
+  unavailable-media state and removed geometry resize controls;
+- an unsaved Scene title and background selection survived switching to
+  another Scene and back;
+- the authoring axe scan again reported zero violations and only the same three
+  indeterminate shared-textarea contrast checks;
+- browser console and runtime error inspection contained no application
+  failures.
+
+The close-previous audit also repeated the focused Demo suite, full web suite,
+production build, workspace types/lint/recursive tests, all 20 DB integration
+files, and V1 smoke workflow. No additional screenshot or video artifact was
+needed because the repaired behaviors were confirmed through live semantic
+snapshots and committed regression tests.

@@ -1713,6 +1713,10 @@ Acceptance:
 - Scene, Hotspot, transition, preview, publish, password, link, embed, and public-view behavior passes focused and browser regression coverage.
 - Carry-forward cannot mutate the source Edition.
 - Stale-write conflicts are recoverable without silently discarding work.
+- [x] Close-previous audit repaired draft reconciliation/unload coverage,
+      aggregate mutation/conflict freezing, background-picker and broken-media
+      recovery, pointer cancellation, and invalid-target behavior without a
+      migration, permission, public contract, or dependency change.
 - Hotspot geometry remains correct across tested viewport and media aspect ratios.
 
 Completed result:
@@ -2103,9 +2107,11 @@ This master plan is complete when:
 ## 19. Immediate Next Action
 
 The next executable activity is child `129`, Accessibility, Motion,
-Performance, And Browser Dogfood. Child `128` closed on 2026-07-29 with its
+Performance, And Browser Dogfood. Child `128` closed and passed its
+close-previous audit on 2026-07-29 with its
 guarded Demo fixture, strict referenced-background projection, selected-Scene
-workbench, normalized authoring/reader renderer, conflict recovery, shared
+workbench, lossless local-draft reconciliation, aggregate conflict recovery,
+failure-safe normalized authoring/reader renderer, shared
 Publication coordination, multi-Version public state, full
 DB/smoke/workspace/build verification, and dated
 Admin/Editor/Viewer/public browser evidence. Child `129` inherits only the
