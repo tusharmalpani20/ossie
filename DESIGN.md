@@ -141,7 +141,9 @@ Core primitive expectations:
   icon-label support.
 - Badge: default, success, warning, and destructive states with text labels.
 - Alert: status and error communication without color-only meaning.
-- Card: restrained container only when a surface boundary is needed.
+- Card: restrained container only when a surface boundary is needed. An
+  explicitly named Card is a region; an unnamed Card remains a neutral
+  container.
 - Input, Select, Textarea, Label: visible labels, disabled state, error/helper
   placement, and stable height.
 - Separator: semantic section or control grouping, not decoration.
@@ -165,6 +167,19 @@ Motion:
 - Normal transitions: 220ms.
 - Easing: `cubic-bezier(0.16, 1, 0.3, 1)`.
 - Reduced motion: instant state changes.
+
+Accessibility:
+
+- Every route has a descriptive, privacy-safe document title. Do not place
+  opaque IDs, invite tokens, public slugs, or other URL secrets in titles.
+- Authenticated shells expose a focus-visible bypass link to the primary
+  content before repeated navigation.
+- Custom modal dialogs move focus inside, contain Tab navigation, close with
+  Escape when safe, and restore focus to the exact trigger.
+- Pointer targets are at least 24 by 24 CSS pixels or have equivalent clear
+  spacing.
+- The web and extension reduced-motion media rules suppress nonessential
+  transition/animation duration globally while preserving content and commands.
 
 Validation matrix:
 
