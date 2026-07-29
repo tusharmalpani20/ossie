@@ -31,6 +31,7 @@ import {
   GuideScreenshotViewer,
   type GuideScreenshotViewerImage,
 } from "./GuideScreenshotViewer";
+import { GuideAnnotationEditor } from "./GuideAnnotationEditor";
 import {
   annotationPercent,
   annotationsFromBlock,
@@ -39,7 +40,6 @@ import {
   assetForBlock,
   blockContentDraftsFromBlocks,
   defaultBlockInput,
-  defaultHighlightAnnotation,
   formatCapturedAt,
   mergeAssetIntoDetail,
   screenshotViewerImageId,
@@ -712,22 +712,6 @@ export const GuideEditorPage = ({
     }
   };
 
-  const addHighlight = (block: GuideBlock) => {
-    void saveAnnotations(block, [
-      ...annotationsFromBlock(block),
-      defaultHighlightAnnotation(),
-    ]);
-  };
-
-  const removeHighlight = (block: GuideBlock, annotationIndex: number) => {
-    void saveAnnotations(
-      block,
-      annotationsFromBlock(block).filter(
-        (_, index) => index !== annotationIndex,
-      ),
-    );
-  };
-
   const moveBlock = async (blockId: string, direction: -1 | 1) => {
     if (state.status !== "loaded") {
       return;
@@ -913,8 +897,7 @@ export const GuideEditorPage = ({
       onCloseScreenshotPicker={() => setActiveScreenshotPickerBlockId(null)}
       onSaveScreenshot={saveScreenshot}
       onUploadScreenshot={uploadScreenshot}
-      onAddHighlight={addHighlight}
-      onRemoveHighlight={removeHighlight}
+      onSaveAnnotations={saveAnnotations}
       onAddBlock={addBlock}
       onMoveBlock={moveBlock}
       onDeleteBlock={deleteBlock}
@@ -977,8 +960,7 @@ const GuideEditorView = ({
   onCloseScreenshotPicker,
   onSaveScreenshot,
   onUploadScreenshot,
-  onAddHighlight,
-  onRemoveHighlight,
+  onSaveAnnotations,
   onAddBlock,
   onMoveBlock,
   onDeleteBlock,
@@ -1017,8 +999,10 @@ const GuideEditorView = ({
   onCloseScreenshotPicker: () => void;
   onSaveScreenshot: (block: GuideBlock, captureAssetId: string | null) => void;
   onUploadScreenshot: (block: GuideBlock, file: File) => void;
-  onAddHighlight: (block: GuideBlock) => void;
-  onRemoveHighlight: (block: GuideBlock, annotationIndex: number) => void;
+  onSaveAnnotations: (
+    block: GuideBlock,
+    annotations: UpdateGuideBlockAnnotationsInput["annotations"],
+  ) => void;
   onAddBlock: (
     blockType: "step" | "header" | "paragraph" | "tip" | "alert" | "divider",
     afterBlock?: GuideBlock,
@@ -1259,8 +1243,7 @@ const GuideEditorView = ({
                   onCloseScreenshotPicker={onCloseScreenshotPicker}
                   onSaveScreenshot={onSaveScreenshot}
                   onUploadScreenshot={onUploadScreenshot}
-                  onAddHighlight={onAddHighlight}
-                  onRemoveHighlight={onRemoveHighlight}
+                  onSaveAnnotations={onSaveAnnotations}
                   onAddBlock={onAddBlock}
                   onMoveBlock={onMoveBlock}
                   onDeleteBlock={onDeleteBlock}
@@ -1333,8 +1316,7 @@ const GuideBlockEditor = ({
   onCloseScreenshotPicker,
   onSaveScreenshot,
   onUploadScreenshot,
-  onAddHighlight,
-  onRemoveHighlight,
+  onSaveAnnotations,
   onAddBlock,
   onMoveBlock,
   onDeleteBlock,
@@ -1360,8 +1342,10 @@ const GuideBlockEditor = ({
   onCloseScreenshotPicker: () => void;
   onSaveScreenshot: (block: GuideBlock, captureAssetId: string | null) => void;
   onUploadScreenshot: (block: GuideBlock, file: File) => void;
-  onAddHighlight: (block: GuideBlock) => void;
-  onRemoveHighlight: (block: GuideBlock, annotationIndex: number) => void;
+  onSaveAnnotations: (
+    block: GuideBlock,
+    annotations: UpdateGuideBlockAnnotationsInput["annotations"],
+  ) => void;
   onAddBlock: (
     blockType: "step" | "header" | "paragraph" | "tip" | "alert" | "divider",
     afterBlock?: GuideBlock,
@@ -1528,33 +1512,18 @@ const GuideBlockEditor = ({
                 Remove screenshot for step {blockNumber}
               </Button>
             ) : null}
-            {sourceAsset ? (
-              <Button
-                variant="secondary"
-                disabled={
-                  readOnly ||
-                  actionBusy ||
-                  annotationsBusy ||
-                  annotations.length >= 10
-                }
-                onClick={() => onAddHighlight(block)}
-              >
-                Add highlight for step {blockNumber}
-              </Button>
-            ) : null}
-            {sourceAsset
-              ? annotations.map((annotation, index) => (
-                  <Button
-                    variant="secondary"
-                    key={annotation.id}
-                    disabled={readOnly || actionBusy || annotationsBusy}
-                    onClick={() => onRemoveHighlight(block, index)}
-                  >
-                    Remove highlight {index + 1} from step {blockNumber}
-                  </Button>
-                ))
-              : null}
           </div>
+          {sourceAsset ? (
+            <GuideAnnotationEditor
+              stepNumber={blockNumber}
+              annotations={annotations}
+              disabled={readOnly || actionBusy}
+              pending={annotationsBusy}
+              onSave={(nextAnnotations) =>
+                onSaveAnnotations(block, nextAnnotations)
+              }
+            />
+          ) : null}
           {screenshotPickerOpen ? (
             <div
               className={styles.screenshotPicker}
