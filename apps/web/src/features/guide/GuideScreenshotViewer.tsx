@@ -52,8 +52,11 @@ export const GuideScreenshotViewer = ({
 }: GuideScreenshotViewerProps) => {
   const [zoom, setZoom] = useState<ZoomState>("fit");
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const activeIndex = images.findIndex((image) => image.id === activeImageId);
   const activeImage = activeIndex >= 0 ? images[activeIndex] : null;
+  const isOpen = activeImage !== null;
   const hasMultipleImages = images.length > 1;
 
   const navigation = useMemo(() => {
@@ -75,12 +78,21 @@ export const GuideScreenshotViewer = ({
   }, [activeImageId]);
 
   useEffect(() => {
-    if (!activeImage) {
+    if (!isOpen) {
       return;
     }
 
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     closeButtonRef.current?.focus();
-  }, [activeImage]);
+
+    return () => {
+      restoreFocusRef.current?.focus();
+      restoreFocusRef.current = null;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!activeImage) {
@@ -99,6 +111,26 @@ export const GuideScreenshotViewer = ({
       if (event.key === "ArrowRight" && navigation.next) {
         onActiveImageChange(navigation.next.id);
       }
+
+      if (event.key === "Tab") {
+        const focusable = Array.from(
+          dialogRef.current?.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ) ?? [],
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (first && last) {
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+      }
     };
 
     document.addEventListener("keydown", handleKeyDown);
@@ -116,6 +148,7 @@ export const GuideScreenshotViewer = ({
     <div className={styles.overlay}>
       <div className={styles.backdrop} aria-hidden="true" onClick={onClose} />
       <section
+        ref={dialogRef}
         className={styles.dialog}
         role="dialog"
         aria-modal="true"
