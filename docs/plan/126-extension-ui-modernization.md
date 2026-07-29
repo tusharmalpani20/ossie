@@ -4,9 +4,9 @@ Date reserved: 2026-07-12
 
 Expanded and rechecked: 2026-07-29
 
-Status: Implemented. Direct browser and contract verification pass; true
-installed toolbar-popup end-to-end acceptance is blocked by the available
-automation surface and remains open.
+Status: Implemented and close-previous code audit clean. Tests, contracts, and
+direct browser verification pass; true installed toolbar-popup end-to-end
+acceptance is blocked by the available automation surface and remains open.
 
 Parent plan:
 
@@ -413,6 +413,10 @@ Do not implement:
 - `apps/extension/src/App.tsx`
   - retain top-level load/orchestration compatibility;
   - reduce below 1,000 lines by extracting the panels below.
+- `apps/extension/src/lib/popup-bootstrap.ts`
+  - owns authenticated bootstrap, authoritative active-context repair,
+    Event-index reconciliation, and interrupted-diagnostic recovery extracted
+    from `App.tsx`.
 - `apps/extension/src/index.css`
   - implement stable dimensions, scrolling, focus, truncation, responsive
     action layout, status styles, and reduced-motion behavior;
@@ -428,6 +432,9 @@ Do not implement:
   - `apps/extension/src/popup/CaptureContextPanel.tsx`
   - `apps/extension/src/popup/CaptureStatusPanel.tsx`
   - `apps/extension/src/popup/LocalCaptureRecovery.tsx`
+  - `apps/extension/src/popup/PortalSettingsPanel.tsx`
+    - edits only the optional portal URL and preserves instance-bound auth,
+      selection, and active Capture state.
 
 Keep these components presentational where possible. `App.tsx` remains the
 owner of initial orchestration and dependency injection; background capture
@@ -771,48 +778,51 @@ reconciliation completes; it must not display an indefinite live upload.
 The new runtime command union must be discriminated and serializable:
 
 ```ts
-type CaptureRuntimeMessage =
-  | PageClickCaptureMessage
+type CaptureCommand =
   | {
-      type: "ossie:manual_capture";
-      payload: {
-        page_url: string | null;
-        page_title: string | null;
-      };
+      type: "ossie:capture_command";
+      action: "capture_manual";
     }
   | {
-      type: "ossie:set_capture_paused";
-      payload: { paused: boolean };
+      type: "ossie:capture_command";
+      action: "set_mode";
+      mode: "manual" | "automatic";
+      paused: boolean;
     }
   | {
-      type: "ossie:quiesce_capture";
-      payload: {
-        reason: "finish" | "clear_local" | "logout" | "change_instance";
-      };
+      type: "ossie:capture_command";
+      action: "quiesce";
+      transition: "finish" | "clear" | "logout" | "change_instance";
+    }
+  | {
+      type: "ossie:capture_command";
+      action: "acknowledge_reconciliation";
     };
 
 type CaptureCommandResult =
-  | { ok: true; event_index: number }
-  | { ok: true; state: "paused" | "resumed" | "quiesced" }
+  | { ok: true; event_index?: number }
   | {
       ok: false;
       reason:
-        | "capture_inactive"
-        | "capture_paused"
+        | "capture_command_unavailable"
         | "capture_busy"
+        | "capture_inactive"
         | "capture_context_unavailable"
-        | "capture_index_reconciled"
-        | "capture_index_reconciliation_failed"
+        | "capture_reconciled"
+        | "capture_reconciliation_failed"
         | "capture_failed";
-      message?: string;
+      message: string;
+      reconciled_event_index?: number;
     };
 ```
 
-Names may be adjusted before the planning checkpoint only if tests and docs are
-updated together. Do not include token, instance URL, Project id, Capture
-Session id, or event index in the popup message; the background must reread
-authoritative storage immediately before acting. Quiesce is a local
-coordination command, not a server Capture Session status change.
+This is the implemented runtime shape. The reconciliation acknowledgement is
+sent only after a reopened popup has authoritatively listed Events and persisted
+the restored index; it cannot bypass a failed popup bootstrap. Do not include
+token, instance URL, Project id, Capture Session id, or event index in the popup
+message; the background must reread authoritative storage immediately before
+acting. Quiesce is a local coordination command, not a server Capture Session
+status change.
 
 ### Storage compatibility
 
@@ -1527,6 +1537,11 @@ unrelated files to make this child appear green.
 - [x] Storage and API backwards compatibility preserved.
 - [x] Privacy and manifest permission invariants preserved.
 - [x] README updated.
+- [x] Failed Event-index reconciliation blocks later capture commands until a
+      successful popup restoration acknowledges the repaired index.
+- [x] Interrupted saves, failed lifecycle transitions, ambiguous logout,
+      server-success/local-state failure, instance confirmation, and portal-only
+      settings have explicit tested recovery.
 
 ### Verification
 
@@ -1565,6 +1580,11 @@ Implementation commits:
   layout, active read-only states, two-step local clear, live status,
   server-success/local-persistence recovery, and no-duplicate-completion
   handoff recovery.
+- `c62c7e7` (`fix(extension): close capture recovery gaps`) closed the
+  close-previous audit findings: fail-closed Event-index reconciliation,
+  interrupted-save restoration, lifecycle rollback, server-success/local-save
+  recovery, explicit local-only logout recovery, confirmed instance changes,
+  portal-only settings, and accurate server-confirmed Capture state.
 
 Implementation record:
 
@@ -1581,6 +1601,14 @@ Implementation record:
 - 2026-07-29: Modernized setup, authentication, Project/Project Version
   selection, active capture, diagnostics, accessibility, and local/completion
   recovery while preserving manifest permissions and privacy fields.
+- 2026-07-29: Close-previous audit found and fixed unsafe continuation after a
+  failed Event-list reconciliation, indefinite restored `saving` diagnostics,
+  transition failures that did not restore the prior mode, and incomplete
+  recovery when server success preceded local persistence/opening failure.
+- 2026-07-29: Added portal-only configuration, instance-change confirmation,
+  explicit local-only logout recovery after ambiguous network failure, and
+  current server-confirmed Event count/Capture Session status without changing
+  API, schema, migration, permission, or manifest contracts.
 
 Expansion record:
 
@@ -1678,6 +1706,52 @@ installed unpacked extension
   BLOCKED: agent-browser cannot attach to the browser-chrome toolbar popup
 ```
 
+Close-previous audit verification on 2026-07-29:
+
+```text
+pnpm --filter extension test
+  PASS: 19 files, 140 tests
+
+pnpm --filter extension check-types
+  PASS
+
+pnpm --filter extension lint
+  PASS
+
+pnpm --filter extension build
+  PASS
+  popup JS: 256.13 kB raw / 78.20 kB gzip
+  popup CSS: 16.20 kB raw / 4.24 kB gzip
+  background entry: 10.10 kB raw / 2.92 kB gzip
+  shared capture-command chunk: 9.81 kB raw / 2.44 kB gzip
+  content script: 3.12 kB raw / 1.33 kB gzip
+
+pnpm --filter server test -- [six focused contract files]
+  PASS: 6 files, 51 tests
+
+pnpm check-types
+  PASS: 12 tasks
+
+pnpm lint
+  PASS: 13 tasks
+
+agent-browser refreshed direct popup-page matrix
+  PASS: Connect, selection, active paused, portal-only editing and invalid URL
+  alert, exact Start/Finish labels, server-confirmed count/status, 360/320/180
+  CSS-pixel reflow, reduced motion, console/runtime, and automated
+  accessibility checks; no horizontal overflow
+
+installed unpacked extension
+  PARTIAL: enabled Manifest V3 build, real extension origin/storage/runtime,
+  and background service worker verified
+  BLOCKED: the action popup target opened at an unusable 25 CSS-pixel browser
+  chrome surface, and agent-browser exposed no attachable toolbar control;
+  this is not counted as true toolbar-popup acceptance
+
+git diff --check
+  PASS
+```
+
 Detailed safe synthetic evidence is recorded in
 `docs/ui/126-extension-ui-browser-evidence.md`.
 
@@ -1692,6 +1766,10 @@ Detailed safe synthetic evidence is recorded in
   Capture authenticated automatic/manual API counts, sensitive-target
   suppression, service-worker restart restoration, race/reconciliation
   behavior, and canonical portal handoff.
+- Nothing from the close-previous audit should be implemented in child `127`.
+  The only `127` carry-forward is the sequence gate: do not start its Guide
+  authoring/reader work until the child `126` installed-toolbar acceptance
+  matrix above is complete.
 - Child `129` still owns the later cross-product accessibility, motion, and
   browser dogfood pass; child `126` must nevertheless meet its own popup-specific
   accessibility and browser acceptance rather than deferring all evidence.

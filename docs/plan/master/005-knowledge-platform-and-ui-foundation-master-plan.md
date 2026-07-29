@@ -3,8 +3,9 @@
 Date: 2026-07-10
 
 Status: In progress. Children `109` through `125` are complete. Child `126`
-implementation and direct browser/contract verification pass; its true
-installed toolbar-popup end-to-end acceptance remains open.
+implementation and close-previous code audit pass, including refreshed direct
+browser/contract verification; its true installed toolbar-popup end-to-end
+acceptance remains open.
 
 Master plan number: 005.
 
@@ -1591,7 +1592,8 @@ Acceptance:
 
 ### 126: Extension UI Modernization
 
-Status: Implemented; installed toolbar-popup acceptance remains open.
+Status: Implemented and close-previous code audit clean; installed toolbar-popup
+acceptance remains open.
 
 Planned file:
 
@@ -2070,6 +2072,12 @@ Do not begin child `127` or mark child `126` Complete until automatic/manual API
 counts, sensitive-target suppression, service-worker restoration, capture
 coordination/reconciliation, and canonical named Project Version portal handoff
 are verified from the installed toolbar surface.
+The 2026-07-29 close-previous audit repaired fail-closed Event-index
+reconciliation, interrupted-save restoration, lifecycle rollback,
+server-success/local-persistence recovery, ambiguous logout handling,
+instance-change confirmation, portal-only settings, and server-confirmed
+Capture status/count presentation. It did not change schemas, migrations,
+server APIs, authorization, manifest permissions, or the child `127` scope.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no

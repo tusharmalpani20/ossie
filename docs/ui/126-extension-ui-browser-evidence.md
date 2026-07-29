@@ -2,7 +2,7 @@
 
 Date: 2026-07-29
 
-Implementation commit under test: `b5cb163`
+Implementation commit under test: `c62c7e7`
 
 Environment:
 
@@ -61,12 +61,14 @@ does not count as installed-extension capture/API evidence.
 | Authenticated Project and Project Version selectors | Pass                                                                            | `evidence/126/direct-selection-360.png`                |
 | Long-label 320px reflow                             | Pass; no horizontal overflow and controls remain reachable by vertical scroll   | `evidence/126/direct-selection-320.png`                |
 | Active paused state and server-confirmed step       | Pass                                                                            | `evidence/126/direct-active-paused-360.png`            |
+| Portal-only settings and invalid-URL alert          | Pass; save closes the panel without changing active Capture context             | refreshed interactive run                              |
+| Server-confirmed Event count and Session status     | Pass; displayed `7 captured steps` and `Capturing`                              | refreshed interactive run                              |
 | Two-step local clear and accurate server copy       | Pass                                                                            | `evidence/126/direct-local-clear-confirmation-360.png` |
 | Cancel returns focus to local-clear trigger         | Pass; active element text was `Clear local capture state`                       | same interactive run                                   |
 | One popup `h1` per state                            | Pass in Connect, selection, and active states                                   | DOM assertions and snapshots                           |
 | Reduced motion                                      | Pass; media query matched and button transition duration resolved to `0.00001s` | runtime style check                                    |
 | Reflow equivalent to a 360px popup at 200% zoom     | Pass at 180 CSS px; document/body scroll width both 180px                       | `evidence/126/direct-active-180-css-px.png`            |
-| Automated accessibility                             | Pass with zero violations                                                       | Connect: 20 passes; active: 19 passes                  |
+| Automated accessibility                             | Pass with zero violations at 320/360px; 180px leaves contrast for manual review | Connect: 17 passes; active: 19-21 passes               |
 | Console/runtime errors                              | Pass; none reported                                                             | `agent-browser errors` and `console`                   |
 | Network                                             | Pass; built HTML, JS, CSS, and icon requests returned 200/304                   | request log                                            |
 
@@ -99,9 +101,12 @@ origin exposes `chrome.runtime.id`, `chrome.storage.local`, and
 `evidence/126/installed-extension-page-360.png`.
 
 True toolbar-popup interaction is **automation-blocked in this environment**.
-A real user-gesture invocation of `chrome.action.openPopup()` created browser
-chrome, but agent-browser did not expose that toolbar surface as an attachable
-tab. Therefore this evidence does not claim:
+During the refreshed close-previous run, the installed action created a real
+popup target, but Chrome exposed it at only 25 CSS pixels wide and
+`chrome.action.openPopup()` reported that no active browser window could be
+found. The browser-chrome toolbar exposed by agent-browser contained no
+attachable extension action control, so enlarging a direct extension page would
+not constitute toolbar validation. Therefore this evidence does not claim:
 
 - toolbar action-grant behavior;
 - popup close/reopen lifetime;
@@ -138,11 +143,28 @@ shared capture-command chunk: 9.76 kB raw / 2.41 kB gzip
 content script: 3.12 kB raw / 1.33 kB gzip
 ```
 
+Close-previous audited build:
+
+```text
+popup JS: 256.13 kB raw / 78.20 kB gzip
+popup CSS: 16.20 kB raw / 4.24 kB gzip
+background entry: 10.10 kB raw / 2.92 kB gzip
+shared capture-command chunk: 9.81 kB raw / 2.44 kB gzip
+content script: 3.12 kB raw / 1.33 kB gzip
+```
+
 Popup growth is 4.29 kB raw / 1.12 kB gzip and CSS growth is 1.79 kB raw /
 0.38 kB gzip. The background growth is intentional: it contains the shared
 manual/automatic capture controller, Event-list reconciliation, sender-window
 validation, and lifecycle quiescing. No new runtime dependency or permission
 was added.
+
+The close-previous popup growth over the first implementation build is 5.61 kB
+raw / 1.16 kB gzip. It contains extracted authenticated bootstrap recovery,
+portal-only settings, fail-closed reconciliation, and explicit transition/local
+persistence recovery; it adds no dependency or browser permission. The
+background entry grew 1.64 kB raw / 0.23 kB gzip for the reconciliation block
+and acknowledgement boundary.
 
 ## Server Contract Verification
 
@@ -153,3 +175,11 @@ the blocked installed-toolbar/API evidence described above.
 
 Repository-wide verification also passed: `pnpm check-types` completed 12 tasks
 and `pnpm lint` completed 13 tasks.
+
+The close-previous extension suite passed 19 files and 140 tests. The refreshed
+direct-page run passed Connect, selection, active paused, portal-only settings,
+invalid portal URL alert behavior, exact Start/Finish labels, server-confirmed
+Event count/status, reduced motion, console/runtime checks, and 360/320/180
+CSS-pixel reflow with no horizontal document overflow. At 180 CSS pixels, axe
+reported no violation and four contrast checks requiring manual review because
+the extremely narrow viewport clipped its background sampling.
