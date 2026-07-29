@@ -352,13 +352,22 @@ describe("v1 dogfood smoke workflow", () => {
       revision: { title: "Department setup guide" },
       guide_blocks: [
         {
-          step: { source_capture_asset_id: capture_asset_id },
+          step: { display_capture_asset_id: capture_asset_id },
         },
       ],
     });
-    expect(JSON.stringify(public_guide_response.json())).not.toContain(
+    for (const prohibited_field of [
       "storage_key",
-    );
+      "created_by_id",
+      "updated_by_id",
+      "source_capture_session_id",
+      "source_working_draft_version",
+      "guide_edition_id",
+    ]) {
+      expect(JSON.stringify(public_guide_response.json())).not.toContain(
+        prohibited_field,
+      );
+    }
 
     const public_asset_response = await app.inject({
       method: "GET",
@@ -518,9 +527,18 @@ describe("v1 dogfood smoke workflow", () => {
     expect(
       public_demo_response.json().published_artifact.demo_scenes[0].id,
     ).not.toBe(scene_id);
-    expect(JSON.stringify(public_demo_response.json())).not.toContain(
+    for (const prohibited_field of [
       "storage_key",
-    );
+      "created_by_id",
+      "updated_by_id",
+      "source_capture_session_id",
+      "source_working_draft_version",
+      "interactive_demo_edition_id",
+    ]) {
+      expect(JSON.stringify(public_demo_response.json())).not.toContain(
+        prohibited_field,
+      );
+    }
 
     const archive_asset_response = await app.inject({
       method: "POST",
