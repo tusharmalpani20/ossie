@@ -668,6 +668,7 @@ describe("App", () => {
       "href",
       "/projects/project_1/versions/main/guides/guide_1",
     );
+    expect(screen.getAllByRole("button", { name: "Sign out" })).toHaveLength(1);
   });
 
   it("renders project guide list routes", async () => {
