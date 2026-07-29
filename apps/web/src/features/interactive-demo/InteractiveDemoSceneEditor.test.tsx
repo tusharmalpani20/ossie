@@ -44,6 +44,9 @@ const props = (hotspots: DemoHotspot[]): InteractiveDemoSceneEditorProps => ({
   resolveAssetUrl: (url) => url,
   scenes: [scene],
   backgroundAssets: [],
+  selectableBackgroundAssetIds: [],
+  backgroundPickerError: false,
+  retryBackgroundAssets: vi.fn(),
   hotspots,
   hotspotDrafts: {},
   updateDraft: vi.fn(),
@@ -65,5 +68,41 @@ describe("InteractiveDemoSceneEditor", () => {
     rerender(<InteractiveDemoSceneEditor {...props([hotspot])} />);
 
     expect(screen.getByLabelText("Hotspot label")).toHaveValue("Continue");
+  });
+
+  it("keeps a referenced archived background visible but not selectable", () => {
+    render(
+      <InteractiveDemoSceneEditor
+        {...props([])}
+        draft={{
+          title: "Start",
+          description: "",
+          background_capture_asset_id: "asset_archived",
+        }}
+        backgroundAssets={[
+          {
+            id: "asset_archived",
+            status: "archived",
+            page_title: "Archived screen",
+            file_url: "/archived.png",
+            file: { original_name: "archived.png" },
+          },
+          {
+            id: "asset_other_archived",
+            status: "archived",
+            page_title: "Other archived screen",
+            file_url: "/other.png",
+            file: { original_name: "other.png" },
+          },
+        ] as InteractiveDemoSceneEditorProps["backgroundAssets"]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("option", { name: "Archived screen (archived)" }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole("option", { name: "Other archived screen (archived)" }),
+    ).toBeNull();
   });
 });

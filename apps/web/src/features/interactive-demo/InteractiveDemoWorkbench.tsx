@@ -25,6 +25,7 @@ export const InteractiveDemoWorkbench = ({
   onSaveDemo,
   onCreateScene,
   onChangeLifecycle,
+  onReload,
   runAggregateMutation,
 }: {
   projectId: string;
@@ -42,6 +43,7 @@ export const InteractiveDemoWorkbench = ({
   onSaveDemo: () => Promise<void>;
   onCreateScene: () => Promise<void>;
   onChangeLifecycle: () => Promise<void>;
+  onReload: () => void;
   runAggregateMutation: <Result>(
     command: "publication",
     operation: () => Promise<Result>,
@@ -72,7 +74,7 @@ export const InteractiveDemoWorkbench = ({
         ) : null}
         <Button
           variant="destructive"
-          disabled={pendingAction !== null}
+          disabled={pendingAction !== null || conflict}
           onClick={() => void onChangeLifecycle()}
         >
           Archive demo
@@ -107,16 +109,30 @@ export const InteractiveDemoWorkbench = ({
           </Label>
           <div className={styles.commandRow}>
             <Button
-              disabled={pendingAction === "demo"}
+              disabled={pendingAction !== null || conflict}
               onClick={() => void onSaveDemo()}
             >
               {pendingAction === "demo" ? "Saving demo..." : "Save demo"}
             </Button>
             <span role="status">
-              {conflict ? "Conflict" : hasUnsavedMetadata ? "Unsaved" : "Saved"}
+              {conflict
+                ? "Conflict"
+                : message?.startsWith("Could not")
+                  ? "Save failed"
+                  : hasUnsavedMetadata
+                    ? "Unsaved"
+                    : "Saved"}
             </span>
           </div>
           {message ? <p role="alert">{message}</p> : null}
+          {conflict ? (
+            <div className={styles.commandRow}>
+              <span>Review your local changes above</span>
+              <Button variant="secondary" onClick={onReload}>
+                Discard local changes and reload
+              </Button>
+            </div>
+          ) : null}
         </section>
 
         <ArtifactPublishingPanel
@@ -127,7 +143,7 @@ export const InteractiveDemoWorkbench = ({
           editionVersion={demo.version}
           workingDraftVersion={workingDraftVersion}
           publicationReadOnly={demo.status === "archived"}
-          aggregateMutationPending={pendingAction !== null}
+          aggregateMutationPending={pendingAction !== null || conflict}
           runAggregateMutation={runAggregateMutation}
         />
       </aside>

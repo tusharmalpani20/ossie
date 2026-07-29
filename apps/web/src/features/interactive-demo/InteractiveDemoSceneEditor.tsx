@@ -8,7 +8,6 @@ import { Select } from "@repo/ui/select";
 import { Textarea } from "@repo/ui/textarea";
 import {
   hotspotDraftFromHotspot,
-  sceneAssetFileUrl,
   type HotspotDraft,
   type SceneDraft,
 } from "./interactiveDemoEditorHelpers";
@@ -27,6 +26,9 @@ export type InteractiveDemoSceneEditorProps = {
   resolveAssetUrl: (fileUrl: string) => string;
   scenes: DemoScene[];
   backgroundAssets: CaptureAssetWithFileUrl[];
+  selectableBackgroundAssetIds: string[];
+  backgroundPickerError: boolean;
+  retryBackgroundAssets: () => void;
   hotspots: DemoHotspot[];
   hotspotDrafts: Record<string, HotspotDraft>;
   updateDraft: (
@@ -54,7 +56,6 @@ export type InteractiveDemoSceneEditorProps = {
 const geometryFields = ["x", "y", "width", "height"] as const;
 
 export const InteractiveDemoSceneEditor = ({
-  projectId,
   scene,
   sceneNumber,
   isFirst,
@@ -64,6 +65,9 @@ export const InteractiveDemoSceneEditor = ({
   resolveAssetUrl,
   scenes,
   backgroundAssets,
+  selectableBackgroundAssetIds,
+  backgroundPickerError,
+  retryBackgroundAssets,
   hotspots,
   hotspotDrafts,
   updateDraft,
@@ -82,8 +86,15 @@ export const InteractiveDemoSceneEditor = ({
   const selectedBackground = backgroundAssets.find(
     (asset) => asset.id === draft.background_capture_asset_id,
   );
-  const assetFileUrl =
-    selectedBackground?.file_url ?? sceneAssetFileUrl(projectId, scene);
+  const selectableBackgrounds = backgroundAssets.filter((asset) =>
+    selectableBackgroundAssetIds.includes(asset.id),
+  );
+  const protectedSelectedBackground =
+    selectedBackground &&
+    !selectableBackgroundAssetIds.includes(selectedBackground.id)
+      ? selectedBackground
+      : null;
+  const assetFileUrl = selectedBackground?.file_url ?? null;
   const selectedHotspot =
     hotspots.find((hotspot) => hotspot.id === selectedHotspotId) ?? null;
   const selectedDraft = selectedHotspot
@@ -130,7 +141,11 @@ export const InteractiveDemoSceneEditor = ({
             size="sm"
             disabled={pending}
             onClick={() => {
-              if (window.confirm(`Delete scene ${sceneNumber}?`)) {
+              if (
+                window.confirm(
+                  `Delete scene ${sceneNumber}? Its Hotspots and inbound Transitions will be removed.`,
+                )
+              ) {
                 void deleteCurrentScene(scene);
               }
             }}
@@ -143,6 +158,11 @@ export const InteractiveDemoSceneEditor = ({
       <InteractiveDemoCanvas
         sceneTitle={scene.title ?? `Scene ${sceneNumber}`}
         backgroundUrl={assetFileUrl ? resolveAssetUrl(assetFileUrl) : null}
+        backgroundAspectRatio={
+          selectedBackground?.width && selectedBackground.height
+            ? `${selectedBackground.width} / ${selectedBackground.height}`
+            : undefined
+        }
         hotspots={hotspots.map((hotspot) => {
           const local = hotspotDrafts[hotspot.id];
           return {
@@ -196,14 +216,34 @@ export const InteractiveDemoSceneEditor = ({
               }
             >
               <option value="">No background screenshot</option>
-              {backgroundAssets.map((asset) => (
+              {protectedSelectedBackground ? (
+                <option
+                  disabled
+                  key={protectedSelectedBackground.id}
+                  value={protectedSelectedBackground.id}
+                >
+                  {protectedSelectedBackground.page_title ??
+                    protectedSelectedBackground.file.original_name ??
+                    protectedSelectedBackground.id}{" "}
+                  (archived)
+                </option>
+              ) : null}
+              {selectableBackgrounds.map((asset) => (
                 <option key={asset.id} value={asset.id}>
                   {asset.page_title ?? asset.file.original_name ?? asset.id}
-                  {asset.status === "archived" ? " (archived)" : ""}
                 </option>
               ))}
             </Select>
           </Label>
+          {backgroundPickerError ? (
+            <p role="alert">
+              Background choices could not be loaded. The current background is
+              preserved.{" "}
+              <button type="button" onClick={retryBackgroundAssets}>
+                Retry background choices
+              </button>
+            </p>
+          ) : null}
           <Button
             disabled={pending}
             onClick={() => void saveCurrentScene(scene)}
