@@ -8,7 +8,6 @@ import {
   resolveApiAssetUrl,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
-import { PortalTopbar } from "../portal/PortalTopbar";
 import { ArtifactPublishingPanel } from "../publish/ArtifactPublishingPanel";
 import {
   GuideScreenshotViewer,
@@ -117,8 +116,6 @@ export const GuidePreviewPage = ({
   copyText = defaultCopyText,
   downloadTextFile = defaultDownloadTextFile,
   currentPath = currentBrowserPath(),
-  performLogout,
-  navigate,
   canWrite = true,
   versionSlug,
 }: GuidePreviewPageProps) => {
@@ -148,60 +145,26 @@ export const GuidePreviewPage = ({
   }, [projectId, projectVersionId, guideId]);
 
   if (state.status === "loading") {
-    return (
-      <PortalShell
-        projectId={projectId}
-        guideId={guideId}
-        performLogout={performLogout}
-        navigate={navigate}
-      >
-        <div className={styles.state}>Loading guide preview...</div>
-      </PortalShell>
-    );
+    return <div className={styles.state}>Loading guide preview...</div>;
   }
 
   if (state.status === "unauthenticated") {
     return (
-      <PortalShell
-        projectId={projectId}
-        guideId={guideId}
-        performLogout={performLogout}
-        navigate={navigate}
-      >
-        <div className={styles.state}>
-          <div>Sign in to preview this guide.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>
-            Sign in
-          </a>
-        </div>
-      </PortalShell>
+      <div className={styles.state}>
+        <div>Sign in to preview this guide.</div>
+        <a className={styles.stateLink} href={signInUrl(currentPath)}>
+          Sign in
+        </a>
+      </div>
     );
   }
 
   if (state.status === "not_found") {
-    return (
-      <PortalShell
-        projectId={projectId}
-        guideId={guideId}
-        performLogout={performLogout}
-        navigate={navigate}
-      >
-        <div className={styles.state}>Guide was not found.</div>
-      </PortalShell>
-    );
+    return <div className={styles.state}>Guide was not found.</div>;
   }
 
   if (state.status === "error") {
-    return (
-      <PortalShell
-        projectId={projectId}
-        guideId={guideId}
-        performLogout={performLogout}
-        navigate={navigate}
-      >
-        <div className={styles.state}>Could not load guide preview.</div>
-      </PortalShell>
-    );
+    return <div className={styles.state}>Could not load guide preview.</div>;
   }
 
   return (
@@ -212,36 +175,11 @@ export const GuidePreviewPage = ({
       exportMarkdown={exportMarkdown}
       copyText={copyText}
       downloadTextFile={downloadTextFile}
-      performLogout={performLogout}
-      navigate={navigate}
       canWrite={canWrite}
       versionSlug={versionSlug}
     />
   );
 };
-
-const PortalShell = ({
-  children,
-  projectId,
-  guideId,
-  performLogout,
-  navigate,
-}: {
-  children: React.ReactNode;
-  projectId: string;
-  guideId: string;
-  performLogout?: () => Promise<void>;
-  navigate?: (path: string) => void;
-}) => (
-  <div className={styles.page}>
-    <PortalTopbar
-      context={`${projectId} / ${guideId} / preview`}
-      performLogout={performLogout}
-      navigate={navigate}
-    />
-    <main className={styles.main}>{children}</main>
-  </div>
-);
 
 const GuidePreviewView = ({
   detail,
@@ -250,8 +188,6 @@ const GuidePreviewView = ({
   exportMarkdown,
   copyText,
   downloadTextFile,
-  performLogout,
-  navigate,
   canWrite,
   versionSlug,
 }: {
@@ -268,8 +204,6 @@ const GuidePreviewView = ({
     contents: string,
     mimeType: string,
   ) => Promise<void>;
-  performLogout?: () => Promise<void>;
-  navigate?: (path: string) => void;
   canWrite: boolean;
   versionSlug?: string;
 }) => {
@@ -341,12 +275,7 @@ const GuidePreviewView = ({
   };
 
   return (
-    <PortalShell
-      projectId={projectId}
-      guideId={guideId}
-      performLogout={performLogout}
-      navigate={navigate}
-    >
+    <div className={styles.main}>
       <section className={styles.header}>
         <div>
           <div className={styles.eyebrow}>Guide preview</div>
@@ -434,7 +363,7 @@ const GuidePreviewView = ({
         onActiveImageChange={setActiveScreenshotId}
         onClose={() => setActiveScreenshotId(null)}
       />
-    </PortalShell>
+    </div>
   );
 };
 
