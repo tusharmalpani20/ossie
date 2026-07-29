@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   build_interactive_demo_browser_fixture,
+  interactive_demo_browser_fixture_cli_summary,
   interactive_demo_browser_fixture_password,
 } from "./interactive-demo-browser-fixture";
 
@@ -52,5 +53,22 @@ describe("Interactive Demo browser fixture", () => {
       /^\/projects\/[0-9A-HJKMNP-TV-Z]{26}\/versions\/summer-release\/interactive-demos\//u,
     );
     expect(JSON.stringify(fixture)).not.toContain("storage_key");
+  });
+
+  it("redacts credentials from the CLI seed summary", () => {
+    const fixture = build_interactive_demo_browser_fixture();
+    const summary = interactive_demo_browser_fixture_cli_summary(fixture);
+    const serialized = JSON.stringify(summary);
+
+    expect(summary.users).toEqual(
+      fixture.users.map(({ email, project_role }) => ({
+        email,
+        project_role,
+      })),
+    );
+    expect(serialized).not.toContain(fixture.password);
+    for (const user of fixture.users) {
+      expect(serialized).not.toContain(user.session_token);
+    }
   });
 });
