@@ -37,6 +37,22 @@ describe("capture portal browser fixture", () => {
           session.id === fixture.empty_reassignable_capture_session_id,
       ),
     ).toBe(true);
+    const identifiers = [
+      fixture.organization_id,
+      fixture.project_id,
+      fixture.empty_reassignable_capture_session_id,
+      fixture.screenshot_asset_id,
+      ...fixture.users.flatMap((user) => [
+        user.id,
+        user.org_user_id,
+        user.session_id,
+      ]),
+      ...fixture.project_versions.map((version) => version.id),
+      ...fixture.capture_sessions.map((session) => session.id),
+    ];
+    for (const identifier of identifiers) {
+      expect(identifier).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/u);
+    }
     expect(JSON.stringify(fixture)).not.toContain("raw_html");
     expect(JSON.stringify(fixture)).not.toContain("input_value");
   });
