@@ -381,8 +381,16 @@ export const renderApp = (
       mode: "manual" | "automatic";
       paused: boolean;
     }) => Promise<void>;
-    saveActiveCaptureEventIndex?: (eventIndex: number) => Promise<void>;
+    saveActiveCaptureEventIndex?: (eventIndex: number | null) => Promise<void>;
     saveManualCaptureDiagnostic?: (
+      diagnostic: {
+        status: "saving" | "success" | "failed";
+        message: string | null;
+        eventIndex: number | null;
+        occurredAt: string;
+      } | null,
+    ) => Promise<void>;
+    saveAutomaticCaptureDiagnostic?: (
       diagnostic: {
         status: "saving" | "success" | "failed";
         message: string | null;
@@ -469,6 +477,9 @@ export const renderApp = (
     ),
     saveManualCaptureDiagnostic: vi.fn(
       overrides.saveManualCaptureDiagnostic ?? (async () => {}),
+    ),
+    saveAutomaticCaptureDiagnostic: vi.fn(
+      overrides.saveAutomaticCaptureDiagnostic ?? (async () => {}),
     ),
     clearActiveCapture: vi.fn(overrides.clearActiveCapture ?? (async () => {})),
     logout: vi.fn(overrides.logout ?? (async () => {})),

@@ -4,6 +4,7 @@ import {
   handleManualCapture,
 } from "./capture-controller";
 import type { AutomaticClickMessage } from "./automatic-capture";
+import { ApiClientError } from "./api";
 
 const click: AutomaticClickMessage = {
   type: "ossie:page_click",
@@ -131,9 +132,12 @@ describe("background capture controller", () => {
   it("allocates manual screenshot Events from fresh storage with privacy defaults", async () => {
     const saveManualCaptureDiagnostic = vi.fn(async () => {});
     const saveActiveCaptureEventIndex = vi.fn(async () => {});
-    const createCaptureEvent = vi.fn(async () => ({
-      capture_event: { event_index: 8 },
-    }) as never);
+    const createCaptureEvent = vi.fn(
+      async () =>
+        ({
+          capture_event: { event_index: 8 },
+        }) as never,
+    );
     const deps = {
       getSettings: vi.fn(async () => ({
         instanceUrl: "https://api.example.com",
@@ -160,9 +164,12 @@ describe("background capture controller", () => {
         devicePixelRatio: 2,
         capturedAt: "2026-07-29T09:00:00.000Z",
       })),
-      uploadCaptureAsset: vi.fn(async () => ({
-        capture_asset: { id: "asset_1" },
-      }) as never),
+      uploadCaptureAsset: vi.fn(
+        async () =>
+          ({
+            capture_asset: { id: "asset_1" },
+          }) as never,
+      ),
       createCaptureEvent,
       listCaptureEvents: vi.fn(async () => ({ capture_events: [] })),
       saveActiveCaptureEventIndex,
@@ -191,6 +198,129 @@ describe("background capture controller", () => {
       message: "Saving manual screenshot…",
       eventIndex: null,
       occurredAt: expect.any(String),
+    });
+  });
+
+  it("blocks manual capture until a missing Event index is reconciled", async () => {
+    const deps = {
+      getSettings: vi.fn(async () => ({
+        instanceUrl: "https://api.example.com",
+        sessionToken: "token",
+        selectedProjectId: "project_1",
+        activeCaptureSessionId: "session_1",
+        activeCaptureProjectId: "project_1",
+        activeCaptureEventIndex: null,
+        activeCaptureMode: "manual" as const,
+        activeCapturePaused: false,
+      })),
+      getActiveTab: vi.fn(),
+      captureVisibleTabScreenshot: vi.fn(),
+      uploadCaptureAsset: vi.fn(),
+      createCaptureEvent: vi.fn(),
+      listCaptureEvents: vi.fn(),
+      saveActiveCaptureEventIndex: vi.fn(),
+      saveManualCaptureDiagnostic: vi.fn(async () => {}),
+    };
+
+    await expect(handleManualCapture(deps)).resolves.toEqual({
+      ok: false,
+      reason: "capture_reconciliation_failed",
+      message:
+        "Capture steps must be reconciled before another screenshot can be saved. Reopen or retry the extension.",
+    });
+    expect(deps.getActiveTab).not.toHaveBeenCalled();
+  });
+
+  it("marks the Event index unreconciled when conflict recovery fails", async () => {
+    const deps = {
+      getSettings: vi.fn(async () => ({
+        instanceUrl: "https://api.example.com",
+        sessionToken: "token",
+        selectedProjectId: "project_1",
+        activeCaptureSessionId: "session_1",
+        activeCaptureProjectId: "project_1",
+        activeCaptureEventIndex: 7,
+        activeCaptureMode: "manual" as const,
+        activeCapturePaused: false,
+      })),
+      getActiveTab: vi.fn(async () => ({
+        id: 1,
+        windowId: 12,
+        active: true,
+        url: "https://example.com/page",
+        title: "Example",
+      })),
+      captureVisibleTabScreenshot: vi.fn(async () => ({
+        blob: new Blob(["png"], { type: "image/png" }),
+        mimeType: "image/png" as const,
+        width: 320,
+        height: 200,
+        devicePixelRatio: 2,
+        capturedAt: "2026-07-29T09:00:00.000Z",
+      })),
+      uploadCaptureAsset: vi.fn(
+        async () =>
+          ({
+            capture_asset: { id: "asset_1" },
+          }) as never,
+      ),
+      createCaptureEvent: vi.fn(async () => {
+        throw new ApiClientError({
+          status: 409,
+          type: "capture_event_index_conflict",
+          message: "Event index already exists",
+        });
+      }),
+      listCaptureEvents: vi.fn(async () => {
+        throw new Error("Event list unavailable");
+      }),
+      saveActiveCaptureEventIndex: vi.fn(async () => {}),
+      saveManualCaptureDiagnostic: vi.fn(async () => {}),
+    };
+
+    await expect(handleManualCapture(deps)).resolves.toEqual({
+      ok: false,
+      reason: "capture_reconciliation_failed",
+      message:
+        "Capture steps could not be reconciled. Reopen or retry the extension before capturing again.",
+    });
+    expect(deps.saveActiveCaptureEventIndex).toHaveBeenCalledWith(null);
+  });
+
+  it("blocks later capture commands until restored state acknowledges reconciliation", async () => {
+    const deps = dependencies();
+    deps.runManual
+      .mockResolvedValueOnce({
+        ok: false,
+        reason: "capture_reconciliation_failed",
+        message: "Capture steps could not be reconciled.",
+      } as never)
+      .mockResolvedValueOnce({ ok: true, event_index: 8 });
+    const controller = createCaptureController(deps);
+    const manualCommand = {
+      type: "ossie:capture_command" as const,
+      action: "capture_manual" as const,
+    };
+
+    await expect(controller.handle(manualCommand)).resolves.toMatchObject({
+      ok: false,
+      reason: "capture_reconciliation_failed",
+    });
+    await expect(controller.handle(manualCommand)).resolves.toMatchObject({
+      ok: false,
+      reason: "capture_reconciliation_failed",
+    });
+    expect(deps.runManual).toHaveBeenCalledTimes(1);
+
+    await expect(
+      controller.handle({
+        type: "ossie:capture_command",
+        action: "acknowledge_reconciliation",
+      }),
+    ).resolves.toEqual({ ok: true });
+    await expect(controller.handle(manualCommand)).resolves.toEqual({
+      ok: true,
+      event_index: 8,
     });
   });
 });

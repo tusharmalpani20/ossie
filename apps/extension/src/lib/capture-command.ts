@@ -19,6 +19,10 @@ export type CaptureCommand =
       type: "ossie:capture_command";
       action: "quiesce";
       transition: CaptureLifecycleTransition;
+    }
+  | {
+      type: "ossie:capture_command";
+      action: "acknowledge_reconciliation";
     };
 
 export type CaptureCommandFailureReason =
@@ -27,6 +31,7 @@ export type CaptureCommandFailureReason =
   | "capture_inactive"
   | "capture_context_unavailable"
   | "capture_reconciled"
+  | "capture_reconciliation_failed"
   | "capture_failed";
 
 export type CaptureCommandResult =
@@ -65,14 +70,13 @@ export const sendCaptureCommand = async (
   return runtime.sendMessage(command);
 };
 
-export const isCaptureCommand = (
-  value: unknown,
-): value is CaptureCommand => {
+export const isCaptureCommand = (value: unknown): value is CaptureCommand => {
   if (!value || typeof value !== "object") return false;
   const command = value as Partial<CaptureCommand>;
   if (command.type !== "ossie:capture_command") return false;
 
   if (command.action === "capture_manual") return true;
+  if (command.action === "acknowledge_reconciliation") return true;
   if (command.action === "set_mode") {
     return (
       (command.mode === "manual" || command.mode === "automatic") &&

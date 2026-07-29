@@ -10,7 +10,10 @@ import {
 } from "./lib/capture-command";
 import type { PageClickCaptureMessage } from "./lib/content-click-capture";
 
-type RuntimeMessage = PageClickCaptureMessage | CaptureMessage | { type: string };
+type RuntimeMessage =
+  | PageClickCaptureMessage
+  | CaptureMessage
+  | { type: string };
 
 type RuntimeApi = {
   runtime?: {
@@ -21,34 +24,45 @@ type RuntimeApi = {
           sender: CaptureMessageSender,
           sendResponse: (
             response: AutomaticCaptureResult | CaptureCommandResult,
-          ) => void
-        ) => boolean | void
+          ) => void,
+        ) => boolean | void,
       ) => void;
     };
   };
 };
 
-const isPageClickCaptureMessage = (message: RuntimeMessage): message is PageClickCaptureMessage => (
-  message.type === "ossie:page_click"
-);
+const isPageClickCaptureMessage = (
+  message: RuntimeMessage,
+): message is PageClickCaptureMessage => message.type === "ossie:page_click";
 
 const runtime = (globalThis as { chrome?: RuntimeApi }).chrome?.runtime;
 const controller = buildCaptureController();
 
-runtime?.onMessage?.addListener?.((message: RuntimeMessage, sender, sendResponse) => {
-  if (!isPageClickCaptureMessage(message) && !isCaptureCommand(message)) {
-    return false;
-  }
+runtime?.onMessage?.addListener?.(
+  (message: RuntimeMessage, sender, sendResponse) => {
+    const captureCommand = isCaptureCommand(message);
+    if (!isPageClickCaptureMessage(message) && !captureCommand) {
+      return false;
+    }
 
-  controller.handle(message, sender)
-    .then(sendResponse)
-    .catch((error: unknown) => {
-      sendResponse({
-        ok: false,
-        reason: "automatic_capture_failed",
-        message: error instanceof Error ? error.message : "Automatic capture failed",
+    controller
+      .handle(message, sender)
+      .then(sendResponse)
+      .catch((error: unknown) => {
+        sendResponse({
+          ok: false,
+          reason: captureCommand
+            ? "capture_failed"
+            : "automatic_capture_failed",
+          message:
+            error instanceof Error
+              ? error.message
+              : captureCommand
+                ? "Capture command failed"
+                : "Automatic capture failed",
+        });
       });
-    });
 
-  return true;
-});
+    return true;
+  },
+);

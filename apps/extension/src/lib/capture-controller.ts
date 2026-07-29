@@ -12,10 +12,7 @@ import {
   listCaptureEvents,
   uploadCaptureAsset,
 } from "./api";
-import type {
-  CaptureCommand,
-  CaptureCommandResult,
-} from "./capture-command";
+import type { CaptureCommand, CaptureCommandResult } from "./capture-command";
 import { captureVisibleTabScreenshot } from "./screenshot";
 import {
   chromeLocalStorage,
@@ -71,7 +68,7 @@ type ManualCaptureDependencies = {
   uploadCaptureAsset: typeof uploadCaptureAsset;
   createCaptureEvent: typeof createCaptureEvent;
   listCaptureEvents: typeof listCaptureEvents;
-  saveActiveCaptureEventIndex: (eventIndex: number) => Promise<void>;
+  saveActiveCaptureEventIndex: (eventIndex: number | null) => Promise<void>;
   saveManualCaptureDiagnostic: (
     diagnostic: ManualCaptureDiagnostic | null,
   ) => Promise<void>;
@@ -142,6 +139,14 @@ export const handleManualCapture = async (
       message: "No active Capture Session is available.",
     };
   }
+  if (settings.activeCaptureEventIndex === null) {
+    return {
+      ok: false,
+      reason: "capture_reconciliation_failed",
+      message:
+        "Capture steps must be reconciled before another screenshot can be saved. Reopen or retry the extension.",
+    };
+  }
 
   await persistManualDiagnostic(dependencies, {
     status: "saving",
@@ -152,11 +157,7 @@ export const handleManualCapture = async (
 
   try {
     const tab = await dependencies.getActiveTab();
-    if (
-      !tab ||
-      tab.active !== true ||
-      typeof tab.windowId !== "number"
-    ) {
+    if (!tab || tab.active !== true || typeof tab.windowId !== "number") {
       throw new Error(
         "The active tab changed. Return to the page and retry the screenshot.",
       );
@@ -238,7 +239,24 @@ export const handleManualCapture = async (
           reconciled_event_index: highestIndex,
         };
       } catch {
-        // Fall through to a safe failure without repeating the upload/Event.
+        try {
+          await dependencies.saveActiveCaptureEventIndex(null);
+        } catch {
+          // The in-memory controller still fails closed for this command.
+        }
+        const message =
+          "Capture steps could not be reconciled. Reopen or retry the extension before capturing again.";
+        await persistManualDiagnostic(dependencies, {
+          status: "failed",
+          message,
+          eventIndex: null,
+          occurredAt: new Date().toISOString(),
+        });
+        return {
+          ok: false,
+          reason: "capture_reconciliation_failed",
+          message,
+        };
       }
     }
 
@@ -258,6 +276,7 @@ export const createCaptureController = (
   dependencies: CaptureControllerDependencies,
 ) => {
   let captureInFlight = false;
+  let reconciliationBlocked = false;
 
   const withCaptureLock = async (
     operation: () => Promise<AutomaticCaptureResult | CaptureCommandResult>,
@@ -277,6 +296,14 @@ export const createCaptureController = (
       sender: CaptureMessageSender = {},
     ): Promise<AutomaticCaptureResult | CaptureCommandResult> => {
       if (isAutomaticMessage(message)) {
+        if (reconciliationBlocked) {
+          return {
+            ok: false,
+            reason: "capture_reconciliation_failed",
+            message:
+              "Capture steps could not be reconciled. Reopen or retry the extension before capturing again.",
+          };
+        }
         return withCaptureLock(async () => {
           const senderTabId = sender.tab?.id;
           const senderWindowId = sender.tab?.windowId;
@@ -306,12 +333,40 @@ export const createCaptureController = (
             };
           }
 
-          return dependencies.runAutomatic(message, senderWindowId);
+          const result = await dependencies.runAutomatic(
+            message,
+            senderWindowId,
+          );
+          if (!result.ok && result.reason === "capture_reconciliation_failed") {
+            reconciliationBlocked = true;
+          }
+          return result;
+        });
+      }
+
+      if (message.action === "acknowledge_reconciliation") {
+        return withCaptureLock(async () => {
+          reconciliationBlocked = false;
+          return { ok: true };
         });
       }
 
       if (message.action === "capture_manual") {
-        return withCaptureLock(dependencies.runManual);
+        if (reconciliationBlocked) {
+          return {
+            ok: false,
+            reason: "capture_reconciliation_failed",
+            message:
+              "Capture steps could not be reconciled. Reopen or retry the extension before capturing again.",
+          };
+        }
+        return withCaptureLock(async () => {
+          const result = await dependencies.runManual();
+          if (!result.ok && result.reason === "capture_reconciliation_failed") {
+            reconciliationBlocked = true;
+          }
+          return result;
+        });
       }
 
       if (message.action === "set_mode") {
@@ -372,11 +427,7 @@ export const buildCaptureController = () => {
 
   return createCaptureController({
     runAutomatic: (message, windowId) =>
-      handleAutomaticClickCapture(
-        message,
-        automaticDependencies,
-        windowId,
-      ),
+      handleAutomaticClickCapture(message, automaticDependencies, windowId),
     runManual: () => handleManualCapture(manualDependencies),
     getTab: async (tabId) => {
       if (!tabs.get) return {};

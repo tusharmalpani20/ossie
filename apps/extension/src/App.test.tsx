@@ -10,6 +10,14 @@ import {
 } from "./popup/test-helpers";
 
 describe("extension popup App orchestration", () => {
+  it("announces the stable loading state", () => {
+    renderApp({
+      getSettings: () => new Promise(() => {}),
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading extension");
+  });
+
   it("starts in the unconfigured state and saves valid instance URLs", async () => {
     const dependencies = renderApp();
 
@@ -232,9 +240,7 @@ describe("extension popup App orchestration", () => {
       target: { value: "version_next" },
     });
     await screen.findByText("Internal onboarding demos / Next");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Start automatic capture" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Start capture" }));
 
     await waitFor(() =>
       expect(createCaptureSession).toHaveBeenCalledWith(
@@ -307,7 +313,7 @@ describe("extension popup App orchestration", () => {
       ),
     ).toBeVisible();
     expect(
-      screen.getByRole("button", { name: "Start automatic capture" }),
+      screen.getByRole("button", { name: "Start capture" }),
     ).toBeDisabled();
     expect(dependencies.saveSelectedProjectId).not.toHaveBeenCalled();
   });
@@ -342,7 +348,7 @@ describe("extension popup App orchestration", () => {
       screen.getByRole("button", { name: "Capture screenshot" }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "Finish capture" }),
+      screen.getByRole("button", { name: "Finish and open portal" }),
     ).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "Open in portal" }),
@@ -444,9 +450,7 @@ describe("extension popup App orchestration", () => {
       screen.getAllByText("Internal onboarding demos / Main"),
     ).toHaveLength(1);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Start automatic capture" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Start capture" }));
 
     await waitFor(() =>
       expect(dependencies.createCaptureSession).toHaveBeenCalledWith(
@@ -507,7 +511,7 @@ describe("extension popup App orchestration", () => {
 
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "Start automatic capture",
+        name: "Start capture",
       }),
     );
 
@@ -521,7 +525,24 @@ describe("extension popup App orchestration", () => {
     ).toBeInTheDocument();
     expect(dependencies.createCaptureSession).toHaveBeenCalledTimes(1);
     expect(
-      screen.queryByRole("button", { name: "Start automatic capture" }),
+      screen.queryByRole("button", { name: "Start capture" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Capture screenshot" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Retry saving local recovery" }),
+    ).toBeEnabled();
+
+    dependencies.saveActiveCapture.mockResolvedValueOnce(undefined);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry saving local recovery" }),
+    );
+    await waitFor(() =>
+      expect(dependencies.saveActiveCapture).toHaveBeenCalledTimes(2),
+    );
+    expect(
+      screen.queryByText(/local recovery could not be saved/i),
     ).not.toBeInTheDocument();
   });
 
@@ -567,5 +588,175 @@ describe("extension popup App orchestration", () => {
     expect(
       screen.getByRole("heading", { name: "Capture active" }),
     ).toBeInTheDocument();
+  });
+
+  it("updates only the portal URL without clearing auth or active capture", async () => {
+    const dependencies = renderApp({
+      settings: {
+        ...defaultSettings,
+        instanceUrl: "https://api.example.com/base",
+        portalUrl: "https://portal.example.com/old",
+        sessionToken: "extension-session-token",
+        selectedProjectId: "project_1",
+        activeCaptureSessionId: "capture_session_1",
+        activeCaptureProjectId: "project_1",
+        activeCaptureEventIndex: 2,
+        activeCaptureMode: "automatic",
+        activeCapturePaused: false,
+      },
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Portal settings" }),
+    );
+    fireEvent.change(screen.getByLabelText("Portal URL (optional)"), {
+      target: { value: "https://portal.example.com/new/" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save portal URL" }));
+
+    await waitFor(() =>
+      expect(dependencies.savePortalUrl).toHaveBeenCalledWith(
+        "https://portal.example.com/new",
+      ),
+    );
+    expect(dependencies.saveSessionToken).not.toHaveBeenCalledWith(null);
+    expect(dependencies.clearActiveCapture).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("heading", { name: "Capture active" }),
+    ).toBeVisible();
+  });
+
+  it("fails the open popup closed when background reconciliation clears the Event index", async () => {
+    let current: ExtensionSettings = {
+      ...defaultSettings,
+      instanceUrl: "https://demo.example.com",
+      sessionToken: "extension-session-token",
+      selectedProjectId: "project_1",
+      activeCaptureSessionId: "capture_session_1",
+      activeCaptureProjectId: "project_1",
+      activeCaptureEventIndex: 2,
+      activeCaptureMode: "automatic",
+      activeCapturePaused: false,
+    };
+    let onStorageChange: (() => void) | undefined;
+    renderApp({
+      getSettings: async () => current,
+      subscribeToSettingsChanges: (listener) => {
+        onStorageChange = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole("heading", { name: "Capture active" });
+
+    current = {
+      ...current,
+      activeCaptureEventIndex: null,
+    };
+    await act(async () => onStorageChange?.());
+
+    expect(
+      await screen.findByText(/capture steps could not be reconciled/i),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Capture screenshot" }),
+    ).toBeDisabled();
+  });
+
+  it("clears interrupted saving diagnostics after Event reconciliation", async () => {
+    const dependencies = renderApp({
+      settings: {
+        ...defaultSettings,
+        instanceUrl: "https://demo.example.com",
+        sessionToken: "extension-session-token",
+        selectedProjectId: "project_1",
+        activeCaptureSessionId: "capture_session_1",
+        activeCaptureProjectId: "project_1",
+        activeCaptureEventIndex: 1,
+        activeCaptureMode: "automatic",
+        automaticCaptureDiagnostic: {
+          status: "saving",
+          message: "Saving automatic capture…",
+          eventIndex: null,
+          occurredAt: "2026-07-29T09:00:00.000Z",
+        },
+      },
+      listCaptureEvents: async () => ({
+        capture_events: [
+          {
+            id: "event_2",
+            event_index: 2,
+          } as never,
+        ],
+      }),
+    });
+
+    expect(
+      await screen.findByText(/previous automatic capture was interrupted/i),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Capture screenshot" }),
+    ).toBeEnabled();
+    expect(dependencies.saveAutomaticCaptureDiagnostic).toHaveBeenCalledWith({
+      status: "failed",
+      message:
+        "The previous automatic capture was interrupted. Capture steps were reconciled; retry as a new action.",
+      eventIndex: 2,
+      occurredAt: expect.any(String),
+    });
+  });
+
+  it("fails closed when restoration cannot persist a reconciled Event index", async () => {
+    const dependencies = renderApp({
+      settings: {
+        ...defaultSettings,
+        instanceUrl: "https://demo.example.com",
+        sessionToken: "extension-session-token",
+        selectedProjectId: "project_1",
+        activeCaptureSessionId: "capture_session_1",
+        activeCaptureProjectId: "project_1",
+        activeCaptureEventIndex: 1,
+        activeCaptureMode: "automatic",
+      },
+      saveActiveCaptureEventIndex: async () => {
+        throw new Error("Storage unavailable");
+      },
+    });
+
+    expect(
+      await screen.findByText(/capture steps could not be reconciled/i),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Capture screenshot" }),
+    ).toBeDisabled();
+    expect(dependencies.saveActiveCaptureEventIndex).toHaveBeenLastCalledWith(
+      null,
+    );
+  });
+
+  it("treats an unauthenticated Event-list restoration as signed out", async () => {
+    const dependencies = renderApp({
+      settings: {
+        ...defaultSettings,
+        instanceUrl: "https://demo.example.com",
+        sessionToken: "extension-session-token",
+        selectedProjectId: "project_1",
+        activeCaptureSessionId: "capture_session_1",
+        activeCaptureProjectId: "project_1",
+        activeCaptureEventIndex: 1,
+        activeCaptureMode: "automatic",
+      },
+      listCaptureEvents: async () => {
+        throw new ApiClientError({
+          status: 401,
+          type: "unauthenticated",
+          message: "Authentication is required",
+        });
+      },
+    });
+
+    expect(
+      await screen.findByRole("heading", { name: "Sign in" }),
+    ).toBeVisible();
+    expect(dependencies.saveSessionToken).toHaveBeenCalledWith(null);
   });
 });

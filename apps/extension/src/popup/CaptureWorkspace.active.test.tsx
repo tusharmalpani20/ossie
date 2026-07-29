@@ -5,6 +5,7 @@ import {
   type CompleteCaptureSessionResponse,
 } from "../lib/api";
 import type { CaptureCommandResult } from "../lib/capture-command";
+import type { ExtensionSettings } from "../lib/settings";
 import {
   captureEventResponse,
   completeCaptureSessionResponse,
@@ -12,6 +13,27 @@ import {
 } from "./test-helpers";
 
 describe("CaptureWorkspace capture and handoff", () => {
+  it("uses the planned primary action labels", async () => {
+    renderApp({
+      settings: {
+        instanceUrl: "https://demo.example.com",
+        sessionToken: "extension-session-token",
+        selectedProjectId: "project_1",
+        activeCaptureSessionId: "capture_session_1",
+        activeCaptureProjectId: "project_1",
+        activeCaptureEventIndex: 0,
+        activeCaptureMode: "automatic",
+        activeCapturePaused: false,
+      },
+    });
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Finish and open portal",
+      }),
+    ).toBeVisible();
+  });
+
   it("uploads a screenshot and records a capture event for the active capture session", async () => {
     const dependencies = renderApp({
       settings: {
@@ -21,7 +43,7 @@ describe("CaptureWorkspace capture and handoff", () => {
         activeCaptureSessionId: "capture_session_1",
         activeCaptureProjectId: "project_1",
         activeCaptureEventIndex: 0,
-        activeCaptureMode: null,
+        activeCaptureMode: "automatic",
         activeCapturePaused: false,
       },
     });
@@ -51,7 +73,7 @@ describe("CaptureWorkspace capture and handoff", () => {
         activeCaptureSessionId: "capture_session_1",
         activeCaptureProjectId: "project_1",
         activeCaptureEventIndex: 3,
-        activeCaptureMode: null,
+        activeCaptureMode: "automatic",
         activeCapturePaused: false,
       },
       listCaptureEvents: async () => ({
@@ -90,7 +112,7 @@ describe("CaptureWorkspace capture and handoff", () => {
         activeCaptureSessionId: "capture_session_1",
         activeCaptureProjectId: "project_1",
         activeCaptureEventIndex: 0,
-        activeCaptureMode: null,
+        activeCaptureMode: "automatic",
         activeCapturePaused: false,
       },
       sendCaptureCommand: async () => ({
@@ -237,7 +259,9 @@ describe("CaptureWorkspace capture and handoff", () => {
     expect(
       await screen.findByRole("heading", { name: "Capture active" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Finish capture" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Finish and open portal" }),
+    );
 
     await waitFor(() =>
       expect(dependencies.completeCaptureSession).toHaveBeenCalledWith(
@@ -284,7 +308,9 @@ describe("CaptureWorkspace capture and handoff", () => {
     expect(
       await screen.findByRole("heading", { name: "Capture active" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Finish capture" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Finish and open portal" }),
+    );
 
     await waitFor(() =>
       expect(dependencies.completeCaptureSession).toHaveBeenCalledWith(
@@ -337,7 +363,7 @@ describe("CaptureWorkspace capture and handoff", () => {
     ).toBeInTheDocument();
     await screen.findByText(/active Capture Session is no longer available/i);
     expect(
-      screen.getByRole("button", { name: "Finish capture" }),
+      screen.getByRole("button", { name: "Finish and open portal" }),
     ).toBeDisabled();
     expect(dependencies.completeCaptureSession).not.toHaveBeenCalled();
     expect(dependencies.openPortalUrl).not.toHaveBeenCalled();
@@ -369,7 +395,9 @@ describe("CaptureWorkspace capture and handoff", () => {
     expect(
       await screen.findByRole("heading", { name: "Capture active" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Finish capture" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Finish and open portal" }),
+    );
 
     expect(
       await screen.findByRole("button", { name: "Finishing..." }),
@@ -399,7 +427,7 @@ describe("CaptureWorkspace capture and handoff", () => {
         activeCaptureSessionId: "capture_session_1",
         activeCaptureProjectId: "project_1",
         activeCaptureEventIndex: 0,
-        activeCaptureMode: null,
+        activeCaptureMode: "automatic",
         activeCapturePaused: false,
       },
       completeCaptureSession: async () => {
@@ -415,7 +443,9 @@ describe("CaptureWorkspace capture and handoff", () => {
     expect(
       await screen.findByRole("heading", { name: "Capture active" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Finish capture" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Finish and open portal" }),
+    );
 
     expect(
       await screen.findByText(
@@ -427,6 +457,12 @@ describe("CaptureWorkspace capture and handoff", () => {
     ).toBeInTheDocument();
     expect(dependencies.clearActiveCapture).not.toHaveBeenCalled();
     expect(dependencies.openPortalUrl).not.toHaveBeenCalled();
+    expect(dependencies.sendCaptureCommand).toHaveBeenLastCalledWith({
+      type: "ossie:capture_command",
+      action: "set_mode",
+      mode: "automatic",
+      paused: false,
+    });
   });
 
   it("does not open the portal when local active capture clearing fails", async () => {
@@ -449,7 +485,9 @@ describe("CaptureWorkspace capture and handoff", () => {
     expect(
       await screen.findByRole("heading", { name: "Capture active" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Finish capture" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Finish and open portal" }),
+    );
 
     expect(
       await screen.findByText(
@@ -478,7 +516,7 @@ describe("CaptureWorkspace capture and handoff", () => {
         activeCaptureSessionId: "capture_session_1",
         activeCaptureProjectId: "project_1",
         activeCaptureEventIndex: 0,
-        activeCaptureMode: null,
+        activeCaptureMode: "automatic",
         activeCapturePaused: false,
       },
       openPortalUrl: async () => {
@@ -489,7 +527,9 @@ describe("CaptureWorkspace capture and handoff", () => {
     expect(
       await screen.findByRole("heading", { name: "Capture active" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Finish capture" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Finish and open portal" }),
+    );
 
     expect(
       await screen.findByText(
@@ -503,6 +543,12 @@ describe("CaptureWorkspace capture and handoff", () => {
     expect(
       screen.getByRole("button", { name: "Retry completion recovery" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Capture screenshot" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Pause automatic capture" }),
+    ).toBeDisabled();
 
     dependencies.openPortalUrl.mockResolvedValueOnce(undefined);
     fireEvent.click(
@@ -517,7 +563,7 @@ describe("CaptureWorkspace capture and handoff", () => {
     expect(dependencies.openPortalUrl).toHaveBeenCalledTimes(2);
   });
 
-  it("clears the local session when sign out cannot reach the server", async () => {
+  it("offers explicit local-only recovery when remote sign out is ambiguous", async () => {
     const dependencies = renderApp({
       settings: {
         instanceUrl: "https://demo.example.com",
@@ -526,7 +572,7 @@ describe("CaptureWorkspace capture and handoff", () => {
         activeCaptureSessionId: "capture_session_1",
         activeCaptureProjectId: "project_1",
         activeCaptureEventIndex: 0,
-        activeCaptureMode: null,
+        activeCaptureMode: "automatic",
         activeCapturePaused: false,
       },
       logout: async () => {
@@ -539,9 +585,124 @@ describe("CaptureWorkspace capture and handoff", () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
 
+    expect(
+      await screen.findByText(/remote session may still be active/i),
+    ).toBeVisible();
+    expect(dependencies.saveSessionToken).not.toHaveBeenCalledWith(null);
+    expect(dependencies.sendCaptureCommand).toHaveBeenLastCalledWith({
+      type: "ossie:capture_command",
+      action: "set_mode",
+      mode: "automatic",
+      paused: false,
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Clear local session" }),
+    );
     await waitFor(() =>
       expect(dependencies.saveSessionToken).toHaveBeenCalledWith(null),
     );
+  });
+
+  it("keeps in-memory completion recovery when storage clearing emits a change", async () => {
+    let current: ExtensionSettings = {
+      instanceUrl: "https://demo.example.com",
+      sessionToken: "extension-session-token",
+      selectedProjectId: "project_1",
+      activeCaptureSessionId: "capture_session_1",
+      activeCaptureProjectId: "project_1",
+      activeCaptureEventIndex: 0,
+      activeCaptureMode: "automatic",
+      activeCapturePaused: false,
+    };
+    let notifyStorageChange: (() => void) | undefined;
+    const dependencies = renderApp({
+      getSettings: async () => current,
+      subscribeToSettingsChanges: (listener) => {
+        notifyStorageChange = listener;
+        return () => {};
+      },
+      clearActiveCapture: async () => {
+        current = {
+          ...current,
+          activeCaptureSessionId: null,
+          activeCaptureProjectId: null,
+          activeCaptureEventIndex: null,
+          activeCaptureMode: null,
+          activeCapturePaused: false,
+        };
+        notifyStorageChange?.();
+      },
+      openPortalUrl: async () => {
+        throw new Error("No browser navigation available");
+      },
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Finish and open portal" }),
+    );
+
+    expect(await screen.findByText(/portal could not open/i)).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Capture active" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Retry completion recovery" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Capture screenshot" }),
+    ).toBeDisabled();
+    expect(dependencies.completeCaptureSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("confirms an active Capture Session before changing instance", async () => {
+    const dependencies = renderApp({
+      settings: {
+        instanceUrl: "https://demo.example.com",
+        sessionToken: "extension-session-token",
+        selectedProjectId: "project_1",
+        activeCaptureSessionId: "capture_session_1",
+        activeCaptureProjectId: "project_1",
+        activeCaptureEventIndex: 0,
+        activeCaptureMode: "automatic",
+        activeCapturePaused: false,
+      },
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Change instance" }),
+    );
+
+    expect(dependencies.clearSettings).not.toHaveBeenCalled();
+    expect(screen.getByText(/clears local capture context/i)).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Change instance anyway" }),
+    );
+    await waitFor(() => expect(dependencies.clearSettings).toHaveBeenCalled());
+  });
+
+  it("shows the server-confirmed Event count and actual Capture Session status", async () => {
+    renderApp({
+      settings: {
+        instanceUrl: "https://demo.example.com",
+        sessionToken: "extension-session-token",
+        selectedProjectId: "project_1",
+        activeCaptureSessionId: "capture_session_1",
+        activeCaptureProjectId: "project_1",
+        activeCaptureEventIndex: 2,
+        activeCaptureMode: "automatic",
+        activeCapturePaused: false,
+      },
+      listCaptureEvents: async () => ({
+        capture_events: [
+          { ...captureEventResponse.capture_event, event_index: 1 },
+          { ...captureEventResponse.capture_event, event_index: 2 },
+        ],
+      }),
+    });
+
+    expect(await screen.findByText("2 captured steps")).toBeVisible();
+    expect(screen.getByText("Capture Session status: Draft")).toBeVisible();
   });
 
   it("renders capture start errors without clearing the selected project", async () => {
@@ -568,9 +729,7 @@ describe("CaptureWorkspace capture and handoff", () => {
     expect(
       await screen.findByRole("heading", { name: "Ready to capture" }),
     ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Start automatic capture" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Start capture" }));
 
     expect(
       await screen.findByText("Project was not found"),

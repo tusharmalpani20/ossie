@@ -6,7 +6,10 @@ import {
   type CaptureAssetResponse,
   type CaptureEventResponse,
 } from "./api";
-import { captureVisibleTabScreenshot, type ScreenshotCapture } from "./screenshot";
+import {
+  captureVisibleTabScreenshot,
+  type ScreenshotCapture,
+} from "./screenshot";
 import {
   chromeLocalStorage,
   getSettings,
@@ -22,63 +25,68 @@ export type AutomaticClickMessage = PageClickCaptureMessage;
 export type AutomaticCaptureResult =
   | { ok: true; event_index: number }
   | {
-    ok: false;
-    reason:
-      | "automatic_capture_inactive"
-      | "automatic_capture_failed"
-      | "automatic_capture_busy"
-      | "capture_context_unavailable"
-      | "capture_reconciled";
-    message?: string;
-    reconciled_event_index?: number;
-  };
+      ok: false;
+      reason:
+        | "automatic_capture_inactive"
+        | "automatic_capture_failed"
+        | "automatic_capture_busy"
+        | "capture_context_unavailable"
+        | "capture_reconciled"
+        | "capture_reconciliation_failed";
+      message?: string;
+      reconciled_event_index?: number;
+    };
 
 type AutomaticCaptureDependencies = {
   getSettings: () => Promise<ExtensionSettings>;
-  captureVisibleTabScreenshot: (windowId?: number) => Promise<ScreenshotCapture>;
+  captureVisibleTabScreenshot: (
+    windowId?: number,
+  ) => Promise<ScreenshotCapture>;
   uploadCaptureAsset: typeof uploadCaptureAsset;
   createCaptureEvent: typeof createCaptureEvent;
   listCaptureEvents: typeof listCaptureEvents;
-  saveActiveCaptureEventIndex: (eventIndex: number) => Promise<void>;
-  saveAutomaticCaptureDiagnostic: (diagnostic: AutomaticCaptureDiagnostic | null) => Promise<void>;
+  saveActiveCaptureEventIndex: (eventIndex: number | null) => Promise<void>;
+  saveAutomaticCaptureDiagnostic: (
+    diagnostic: AutomaticCaptureDiagnostic | null,
+  ) => Promise<void>;
 };
 
-const screenshotFileName = (capturedAt: string) => (
-  `screenshot-${capturedAt.replace(/[:.]/g, "-")}.png`
-);
+const screenshotFileName = (capturedAt: string) =>
+  `screenshot-${capturedAt.replace(/[:.]/g, "-")}.png`;
 
-const errorMessage = (error: unknown) => (
-  error instanceof Error ? error.message : "Automatic capture failed"
-);
+const errorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Automatic capture failed";
 
-const activeAutomaticCapture = (settings: ExtensionSettings) => (
+const activeAutomaticCapture = (settings: ExtensionSettings) =>
   Boolean(
-    settings.instanceUrl
-    && settings.sessionToken
-    && settings.activeCaptureProjectId
-    && settings.activeCaptureSessionId
-    && settings.activeCaptureMode === "automatic"
-    && !settings.activeCapturePaused
-  )
-);
+    settings.instanceUrl &&
+    settings.sessionToken &&
+    settings.activeCaptureProjectId &&
+    settings.activeCaptureSessionId &&
+    settings.activeCaptureMode === "automatic" &&
+    !settings.activeCapturePaused,
+  );
 
-export const buildAutomaticCaptureDependencies = (): AutomaticCaptureDependencies => {
-  const storage = chromeLocalStorage();
+export const buildAutomaticCaptureDependencies =
+  (): AutomaticCaptureDependencies => {
+    const storage = chromeLocalStorage();
 
-  return {
-    getSettings: () => getSettings(storage),
-    captureVisibleTabScreenshot,
-    uploadCaptureAsset,
-    createCaptureEvent,
-    listCaptureEvents,
-    saveActiveCaptureEventIndex: (eventIndex) => saveActiveCaptureEventIndex(storage, eventIndex),
-    saveAutomaticCaptureDiagnostic: (diagnostic) => saveAutomaticCaptureDiagnostic(storage, diagnostic),
+    return {
+      getSettings: () => getSettings(storage),
+      captureVisibleTabScreenshot,
+      uploadCaptureAsset,
+      createCaptureEvent,
+      listCaptureEvents,
+      saveActiveCaptureEventIndex: (eventIndex) =>
+        saveActiveCaptureEventIndex(storage, eventIndex),
+      saveAutomaticCaptureDiagnostic: (diagnostic) =>
+        saveAutomaticCaptureDiagnostic(storage, diagnostic),
+    };
   };
-};
 
 const persistAutomaticCaptureDiagnostic = async (
   dependencies: AutomaticCaptureDependencies,
-  diagnostic: AutomaticCaptureDiagnostic
+  diagnostic: AutomaticCaptureDiagnostic,
 ) => {
   try {
     await dependencies.saveAutomaticCaptureDiagnostic(diagnostic);
@@ -100,6 +108,14 @@ export const handleAutomaticClickCapture = async (
       reason: "automatic_capture_inactive",
     };
   }
+  if (settings.activeCaptureEventIndex === null) {
+    return {
+      ok: false,
+      reason: "capture_reconciliation_failed",
+      message:
+        "Capture steps must be reconciled before another click can be saved. Reopen or retry the extension.",
+    };
+  }
 
   const {
     instanceUrl,
@@ -117,8 +133,7 @@ export const handleAutomaticClickCapture = async (
   });
 
   try {
-    const screenshot =
-      await dependencies.captureVisibleTabScreenshot(windowId);
+    const screenshot = await dependencies.captureVisibleTabScreenshot(windowId);
     const asset: CaptureAssetResponse = await dependencies.uploadCaptureAsset(
       instanceUrl ?? "",
       sessionToken ?? "",
@@ -141,7 +156,7 @@ export const handleAutomaticClickCapture = async (
             bounding_box: message.payload.bounding_box,
           },
         },
-      }
+      },
     );
     const event: CaptureEventResponse = await dependencies.createCaptureEvent(
       instanceUrl ?? "",
@@ -171,10 +186,12 @@ export const handleAutomaticClickCapture = async (
           asset_type: "screenshot",
           bounding_box: message.payload.bounding_box,
         },
-      }
+      },
     );
 
-    await dependencies.saveActiveCaptureEventIndex(event.capture_event.event_index);
+    await dependencies.saveActiveCaptureEventIndex(
+      event.capture_event.event_index,
+    );
     await persistAutomaticCaptureDiagnostic(dependencies, {
       status: "success",
       message: null,
@@ -218,7 +235,24 @@ export const handleAutomaticClickCapture = async (
           reconciled_event_index: highestIndex,
         };
       } catch {
-        // The original error remains the safest result when reconciliation fails.
+        try {
+          await dependencies.saveActiveCaptureEventIndex(null);
+        } catch {
+          // The current command still fails closed if storage is unavailable.
+        }
+        const reconciliationMessage =
+          "Capture steps could not be reconciled. Reopen or retry the extension before capturing again.";
+        await persistAutomaticCaptureDiagnostic(dependencies, {
+          status: "failed",
+          message: reconciliationMessage,
+          eventIndex: null,
+          occurredAt: new Date().toISOString(),
+        });
+        return {
+          ok: false,
+          reason: "capture_reconciliation_failed",
+          message: reconciliationMessage,
+        };
       }
     }
 
@@ -239,11 +273,13 @@ export const handleAutomaticClickCapture = async (
 };
 
 export const createAutomaticCaptureController = (
-  dependencies: AutomaticCaptureDependencies = buildAutomaticCaptureDependencies()
+  dependencies: AutomaticCaptureDependencies = buildAutomaticCaptureDependencies(),
 ) => {
   let captureInFlight = false;
 
-  return async (message: AutomaticClickMessage): Promise<AutomaticCaptureResult> => {
+  return async (
+    message: AutomaticClickMessage,
+  ): Promise<AutomaticCaptureResult> => {
     if (captureInFlight) {
       return {
         ok: false,
