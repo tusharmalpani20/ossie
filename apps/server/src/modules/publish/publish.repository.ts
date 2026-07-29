@@ -9,8 +9,13 @@ import type {
   PublishedArtifact,
   PublishLink,
   PublishLinkEntry,
+  PublicPublishedArtifact,
   PublicPublishLinkResponse,
 } from "@repo/types/publish";
+import type {
+  GuideRevisionDetail,
+  InteractiveDemoRevisionDetail,
+} from "@repo/types/artifact-revision";
 import {
   create_or_reuse_demo_revision_for_publication,
   create_or_reuse_guide_revision_for_publication,
@@ -29,6 +34,103 @@ type Queryable = {
 };
 type Client = Queryable & { release(): void };
 type Pool = Queryable & { connect(): Promise<Client> };
+
+type PublicProjectionInput =
+  | {
+      artifact_type: "guide";
+      publication_sequence: number;
+      detail: GuideRevisionDetail;
+      asset_file_url: (asset_id: string) => string;
+    }
+  | {
+      artifact_type: "interactive_demo";
+      publication_sequence: number;
+      detail: InteractiveDemoRevisionDetail;
+      asset_file_url: (asset_id: string) => string;
+    };
+
+export const build_public_published_artifact = (
+  input: PublicProjectionInput,
+): PublicPublishedArtifact => {
+  const revision = {
+    revision_number: input.detail.revision.revision_number,
+    title: input.detail.revision.title,
+    description: input.detail.revision.description,
+    created_at: input.detail.revision.created_at,
+  };
+  const capture_assets = input.detail.capture_assets.map((asset) => ({
+    id: asset.id,
+    status: asset.status,
+    file_url: input.asset_file_url(asset.id),
+    mime_type: asset.mime_type,
+    width: asset.width,
+    height: asset.height,
+  }));
+
+  if (input.artifact_type === "guide") {
+    return {
+      artifact_type: "guide",
+      publication_sequence: input.publication_sequence,
+      revision,
+      guide_blocks: input.detail.guide_blocks.map((block) => ({
+        id: block.id,
+        block_type: block.block_type,
+        title: block.title,
+        body: block.body,
+        block_index: block.block_index,
+        step: block.step
+          ? {
+              display_capture_asset_id: block.step.display_capture_asset_id,
+              screenshot_hidden: block.step.screenshot_hidden,
+              title: block.step.title,
+              body: block.step.body,
+              annotations: block.step.annotations.map((annotation) => ({
+                annotation_type: annotation.annotation_type,
+                annotation_index: annotation.annotation_index,
+                x: annotation.x,
+                y: annotation.y,
+                width: annotation.width,
+                height: annotation.height,
+              })),
+            }
+          : null,
+      })),
+      capture_assets,
+    };
+  }
+
+  return {
+    artifact_type: "interactive_demo",
+    publication_sequence: input.publication_sequence,
+    revision,
+    demo_scenes: input.detail.demo_scenes.map((scene) => ({
+      id: scene.id,
+      background_capture_asset_id: scene.background_capture_asset_id,
+      scene_index: scene.scene_index,
+      title: scene.title,
+      description: scene.description,
+      hotspots: scene.hotspots.map((hotspot) => ({
+        id: hotspot.id,
+        hotspot_type: hotspot.hotspot_type,
+        label: hotspot.label,
+        content: hotspot.content,
+        x: hotspot.x,
+        y: hotspot.y,
+        width: hotspot.width,
+        height: hotspot.height,
+        hotspot_index: hotspot.hotspot_index,
+        transition: hotspot.transition
+          ? {
+              id: hotspot.transition.id,
+              target_demo_revision_scene_id:
+                hotspot.transition.target_demo_revision_scene_id,
+            }
+          : null,
+      })),
+    })),
+    capture_assets,
+  };
+};
 
 type PublicationRow = {
   id: string;
@@ -680,10 +782,24 @@ export const build_publish_transactional_repository = (
       publication_sequence: item.published_artifact.publication_sequence,
       public_url: `${public_url(input.artifact_type, input.slug)}/versions/${item.project_version.slug}`,
     }));
-    const capture_assets = detail.capture_assets.map((asset) => ({
-      ...asset,
-      file_url: `/api/v1/public/publish-links/${input.slug}/versions/${entry!.project_version.slug}/assets/${asset.id}/file?artifact_type=${input.artifact_type}`,
-    }));
+    const published_artifact =
+      input.artifact_type === "guide" && "guide_blocks" in detail
+        ? build_public_published_artifact({
+            artifact_type: "guide",
+            publication_sequence:
+              entry.published_artifact.publication_sequence,
+            detail,
+            asset_file_url: (asset_id) =>
+              `/api/v1/public/publish-links/${input.slug}/versions/${entry!.project_version.slug}/assets/${asset_id}/file?artifact_type=guide`,
+          })
+        : build_public_published_artifact({
+            artifact_type: "interactive_demo",
+            publication_sequence:
+              entry.published_artifact.publication_sequence,
+            detail: detail as InteractiveDemoRevisionDetail,
+            asset_file_url: (asset_id) =>
+              `/api/v1/public/publish-links/${input.slug}/versions/${entry!.project_version.slug}/assets/${asset_id}/file?artifact_type=interactive_demo`,
+          });
     const response = {
       publish_link: {
         slug: row.slug,
@@ -697,12 +813,7 @@ export const build_publish_transactional_repository = (
       selected_entry: entries.find(
         (e) => e.project_version_slug === entry.project_version.slug,
       )!,
-      published_artifact: {
-        artifact_type: input.artifact_type,
-        publication_sequence: entry.published_artifact.publication_sequence,
-        ...detail,
-        capture_assets,
-      },
+      published_artifact,
       canonical_public_url: `${public_url(input.artifact_type, input.slug)}/versions/${entry.project_version.slug}`,
     } as PublicPublishLinkResponse;
     return {

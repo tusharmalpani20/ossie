@@ -5,6 +5,9 @@ import {
   PUBLISH_LINK_STATUSES,
   PUBLISH_VISIBILITIES,
   PROJECT_VERSION_STATUSES,
+  DEMO_HOTSPOT_TYPES,
+  GUIDE_ANNOTATION_TYPES,
+  GUIDE_BLOCK_TYPES,
   type PublishArtifactType,
   type PublishLinkStatus,
   type PublishVisibility,
@@ -17,12 +20,7 @@ import {
   PositiveIntSchema,
   TrimmedIdParamSchema,
 } from "./common";
-import {
-  ArtifactRevisionSummarySchema,
-  DemoRevisionSceneSchema,
-  GuideRevisionBlockSchema,
-  RevisionCaptureAssetSchema,
-} from "./artifact-revision";
+import { ArtifactRevisionSummarySchema } from "./artifact-revision";
 
 export type { PublishArtifactType, PublishLinkStatus, PublishVisibility };
 
@@ -334,13 +332,95 @@ export const PublicPublishLinkSchema = z
   })
   .strict();
 
+export const PublicArtifactRevisionSchema = z
+  .object({
+    revision_number: PositiveIntSchema,
+    title: z.string(),
+    description: z.string().nullable(),
+    created_at: IsoDateTimeStringSchema,
+  })
+  .strict();
+
+export const PublicRevisionCaptureAssetSchema = z
+  .object({
+    id: IdSchema,
+    status: z.enum(["active", "archived"]),
+    file_url: z.string(),
+    mime_type: z.string(),
+    width: PositiveIntSchema.nullable(),
+    height: PositiveIntSchema.nullable(),
+  })
+  .strict();
+
+export const PublicGuideAnnotationSchema = z
+  .object({
+    annotation_type: z.enum(GUIDE_ANNOTATION_TYPES),
+    annotation_index: PositiveIntSchema,
+    x: z.number(),
+    y: z.number(),
+    width: z.number(),
+    height: z.number(),
+  })
+  .strict();
+
+export const PublicGuideStepSchema = z
+  .object({
+    display_capture_asset_id: IdSchema.nullable(),
+    screenshot_hidden: z.boolean(),
+    title: z.string(),
+    body: z.string().nullable(),
+    annotations: z.array(PublicGuideAnnotationSchema),
+  })
+  .strict();
+
+export const PublicGuideBlockSchema = z
+  .object({
+    id: IdSchema,
+    block_type: z.enum(GUIDE_BLOCK_TYPES),
+    title: z.string().nullable(),
+    body: z.string().nullable(),
+    block_index: PositiveIntSchema,
+    step: PublicGuideStepSchema.nullable(),
+  })
+  .strict();
+
+export const PublicDemoTransitionSchema = z
+  .object({ id: IdSchema, target_demo_revision_scene_id: IdSchema })
+  .strict();
+
+export const PublicDemoHotspotSchema = z
+  .object({
+    id: IdSchema,
+    hotspot_type: z.enum(DEMO_HOTSPOT_TYPES),
+    label: z.string().nullable(),
+    content: z.string().nullable(),
+    x: z.number(),
+    y: z.number(),
+    width: z.number(),
+    height: z.number(),
+    hotspot_index: PositiveIntSchema,
+    transition: PublicDemoTransitionSchema.nullable(),
+  })
+  .strict();
+
+export const PublicDemoSceneSchema = z
+  .object({
+    id: IdSchema,
+    background_capture_asset_id: IdSchema.nullable(),
+    scene_index: PositiveIntSchema,
+    title: z.string().nullable(),
+    description: z.string().nullable(),
+    hotspots: z.array(PublicDemoHotspotSchema),
+  })
+  .strict();
+
 export const PublicGuidePublicationSchema = z
   .object({
     artifact_type: z.literal("guide"),
     publication_sequence: PositiveIntSchema,
-    revision: ArtifactRevisionSummarySchema,
-    guide_blocks: z.array(GuideRevisionBlockSchema),
-    capture_assets: z.array(RevisionCaptureAssetSchema),
+    revision: PublicArtifactRevisionSchema,
+    guide_blocks: z.array(PublicGuideBlockSchema),
+    capture_assets: z.array(PublicRevisionCaptureAssetSchema),
   })
   .strict();
 
@@ -348,9 +428,9 @@ export const PublicInteractiveDemoPublicationSchema = z
   .object({
     artifact_type: z.literal("interactive_demo"),
     publication_sequence: PositiveIntSchema,
-    revision: ArtifactRevisionSummarySchema,
-    demo_scenes: z.array(DemoRevisionSceneSchema),
-    capture_assets: z.array(RevisionCaptureAssetSchema),
+    revision: PublicArtifactRevisionSchema,
+    demo_scenes: z.array(PublicDemoSceneSchema),
+    capture_assets: z.array(PublicRevisionCaptureAssetSchema),
   })
   .strict();
 
