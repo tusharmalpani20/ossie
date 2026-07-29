@@ -98,11 +98,7 @@ const automaticCaptureDiagnosticOrNull = (
   const status = diagnostic.status;
   const occurredAt = stringOrNull(diagnostic.occurredAt);
 
-  if (
-    status !== "saving" &&
-    status !== "success" &&
-    status !== "failed"
-  ) {
+  if (status !== "saving" && status !== "success" && status !== "failed") {
     return null;
   }
   if (!occurredAt) {
@@ -128,11 +124,7 @@ const manualCaptureDiagnosticOrNull = (
   const status = diagnostic.status;
   const occurredAt = stringOrNull(diagnostic.occurredAt);
 
-  if (
-    status !== "saving" &&
-    status !== "success" &&
-    status !== "failed"
-  ) {
+  if (status !== "saving" && status !== "success" && status !== "failed") {
     return null;
   }
   if (!occurredAt) {
@@ -425,9 +417,11 @@ export const saveManualCaptureDiagnostic = async (
 
 export const saveActiveCaptureEventIndex = async (
   storage: ExtensionStorageArea,
-  eventIndex: number,
+  eventIndex: number | null,
 ) => {
-  assertNonNegativeInteger(eventIndex);
+  if (eventIndex !== null) {
+    assertNonNegativeInteger(eventIndex);
+  }
   await storage.set({ [keys.activeCaptureEventIndex]: eventIndex });
 };
 

@@ -56,7 +56,7 @@ describe("CaptureWorkspace active selection and recovery", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/capture_session_1/)).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Start automatic capture" }),
+      screen.queryByRole("button", { name: "Start capture" }),
     ).not.toBeInTheDocument();
   });
 
@@ -338,7 +338,8 @@ describe("CaptureWorkspace active selection and recovery", () => {
   });
 
   it("keeps active context visible but read-only when Event reconciliation fails", async () => {
-    renderApp({
+    let attempts = 0;
+    const dependencies = renderApp({
       settings: {
         instanceUrl: "https://demo.example.com",
         sessionToken: "extension-session-token",
@@ -350,7 +351,11 @@ describe("CaptureWorkspace active selection and recovery", () => {
         activeCapturePaused: false,
       },
       listCaptureEvents: async () => {
-        throw new Error("network unavailable");
+        attempts += 1;
+        if (attempts === 1) {
+          throw new Error("network unavailable");
+        }
+        return { capture_events: [] };
       },
     });
 
@@ -363,8 +368,17 @@ describe("CaptureWorkspace active selection and recovery", () => {
       screen.getByRole("button", { name: "Capture screenshot" }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "Finish capture" }),
+      screen.getByRole("button", { name: "Finish and open portal" }),
     ).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry reconciliation" }),
+    );
+    await waitFor(() =>
+      expect(dependencies.listCaptureEvents).toHaveBeenCalledTimes(2),
+    );
+    expect(
+      await screen.findByRole("button", { name: "Capture screenshot" }),
+    ).toBeEnabled();
   });
 
   it("restores completed Capture Sessions as read-only", async () => {

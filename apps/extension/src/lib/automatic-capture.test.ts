@@ -181,14 +181,15 @@ describe("automatic capture orchestration", () => {
       }),
     );
     expect(dependencies.saveActiveCaptureEventIndex).toHaveBeenCalledWith(2);
-    expect(
-      dependencies.saveAutomaticCaptureDiagnostic,
-    ).toHaveBeenNthCalledWith(1, {
-      status: "saving",
-      message: "Saving automatic capture…",
-      eventIndex: null,
-      occurredAt: expect.any(String),
-    });
+    expect(dependencies.saveAutomaticCaptureDiagnostic).toHaveBeenNthCalledWith(
+      1,
+      {
+        status: "saving",
+        message: "Saving automatic capture…",
+        eventIndex: null,
+        occurredAt: expect.any(String),
+      },
+    );
     expect(dependencies.saveAutomaticCaptureDiagnostic).toHaveBeenCalledWith({
       status: "success",
       message: null,
@@ -302,5 +303,49 @@ describe("automatic capture orchestration", () => {
     expect(dependencies.createCaptureEvent).toHaveBeenCalledTimes(1);
     expect(dependencies.listCaptureEvents).toHaveBeenCalledTimes(1);
     expect(dependencies.saveActiveCaptureEventIndex).toHaveBeenCalledWith(5);
+  });
+
+  it("blocks automatic capture until a missing Event index is reconciled", async () => {
+    const dependencies = build_dependencies({
+      getSettings: vi.fn(async () => ({
+        ...settings,
+        activeCaptureEventIndex: null,
+      })),
+    });
+
+    await expect(
+      handleAutomaticClickCapture(click_message, dependencies, 12),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "capture_reconciliation_failed",
+      message:
+        "Capture steps must be reconciled before another click can be saved. Reopen or retry the extension.",
+    });
+    expect(dependencies.captureVisibleTabScreenshot).not.toHaveBeenCalled();
+  });
+
+  it("marks the Event index unreconciled when conflict recovery fails", async () => {
+    const dependencies = build_dependencies({
+      createCaptureEvent: vi.fn(async () => {
+        throw new ApiClientError({
+          status: 409,
+          type: "capture_event_index_conflict",
+          message: "Event index already exists",
+        });
+      }),
+      listCaptureEvents: vi.fn(async () => {
+        throw new Error("Event list unavailable");
+      }),
+    });
+
+    await expect(
+      handleAutomaticClickCapture(click_message, dependencies, 12),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "capture_reconciliation_failed",
+      message:
+        "Capture steps could not be reconciled. Reopen or retry the extension before capturing again.",
+    });
+    expect(dependencies.saveActiveCaptureEventIndex).toHaveBeenCalledWith(null);
   });
 });

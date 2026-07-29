@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  isCaptureCommand,
   sendCaptureCommand,
   type CaptureCommand,
   type CaptureCommandResult,
@@ -22,15 +23,28 @@ describe("capture command adapter", () => {
 
   it("returns an actionable failure when extension messaging is unavailable", async () => {
     await expect(
-      sendCaptureCommand({
-        type: "ossie:capture_command",
-        action: "quiesce",
-        transition: "finish",
-      }, null),
+      sendCaptureCommand(
+        {
+          type: "ossie:capture_command",
+          action: "quiesce",
+          transition: "finish",
+        },
+        null,
+      ),
     ).resolves.toEqual({
       ok: false,
       reason: "capture_command_unavailable",
-      message: "Capture controls are unavailable. Reopen the extension and retry.",
+      message:
+        "Capture controls are unavailable. Reopen the extension and retry.",
     });
+  });
+
+  it("recognizes a reconciliation acknowledgement without capture context", () => {
+    expect(
+      isCaptureCommand({
+        type: "ossie:capture_command",
+        action: "acknowledge_reconciliation",
+      }),
+    ).toBe(true);
   });
 });

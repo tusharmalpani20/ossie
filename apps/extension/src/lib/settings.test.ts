@@ -174,10 +174,12 @@ describe("extension settings", () => {
       ) => void
     >();
     const event = {
-      addListener: (listener: (typeof listeners extends Set<infer T> ? T : never)) =>
-        listeners.add(listener),
-      removeListener: (listener: (typeof listeners extends Set<infer T> ? T : never)) =>
-        listeners.delete(listener),
+      addListener: (
+        listener: typeof listeners extends Set<infer T> ? T : never,
+      ) => listeners.add(listener),
+      removeListener: (
+        listener: typeof listeners extends Set<infer T> ? T : never,
+      ) => listeners.delete(listener),
     };
     let calls = 0;
 
@@ -467,6 +469,15 @@ describe("extension settings", () => {
     await expect(saveActiveCaptureEventIndex(storage, 1.5)).rejects.toThrow(
       "Active capture event index must be a non-negative integer.",
     );
+  });
+
+  it("marks an active Capture Event index as unreconciled with null", async () => {
+    await saveActiveCaptureEventIndex(storage, 4);
+    await saveActiveCaptureEventIndex(storage, null);
+
+    await expect(getSettings(storage)).resolves.toMatchObject({
+      activeCaptureEventIndex: null,
+    });
   });
 
   it("rejects invalid active capture event indexes when starting capture", async () => {

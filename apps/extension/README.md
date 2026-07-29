@@ -25,6 +25,8 @@ start capture
 This app currently supports in code and focused tests:
 
 - configuring an Ossie instance URL
+- configuring an optional portal URL without changing the signed-in instance,
+  token, selection, or active capture
 - signing in against that instance
 - storing the extension session token in extension storage
 - checking current auth
@@ -35,7 +37,7 @@ This app currently supports in code and focused tests:
 - storing active capture session id, immutable owning Project Version context,
   capture mode, pause state, and the last server-confirmed Event index
 - restoring active capture state and authoritatively repairing its owning
-  Version context when the popup is reopened
+  Project Version context when the popup is reopened
 - automatically recording safe click metadata from http/https pages while automatic capture is active
 - uploading a visible-tab screenshot for each supported click
 - recording a linked `click` event after each successful automatic screenshot upload
@@ -49,11 +51,13 @@ This app currently supports in code and focused tests:
 - explicitly clearing local active capture state if needed, after confirmation
 - reconciling the local Event index from the server when a popup is restored or
   an Event-index conflict is reported
+- blocking further capture commands when Event-index reconciliation fails until
+  a reopened popup successfully restores the server-confirmed index
 
 It does not capture raw DOM HTML, input values, navigation events, full-page stitched screenshots, or HTML snapshots yet.
 Clearing local active capture state does not cancel, delete, or complete the
-server Capture Session. Use `Finish capture` to complete the server Capture
-Session.
+server Capture Session. Use `Finish and open portal` to complete the server
+Capture Session.
 
 ## Development
 
@@ -97,7 +101,7 @@ If the API and web portal run on different origins, also set the optional portal
 http://localhost:3000
 ```
 
-API calls still use the instance URL. `Open in portal` and `Finish capture` use the portal URL when it is configured.
+API calls still use the instance URL. `Open in portal` and `Finish and open portal` use the portal URL when it is configured.
 
 ## Auth Transport
 
@@ -119,8 +123,11 @@ The server keeps normal portal cookie behavior unchanged and additionally return
 Authorization: Bearer <session_token>
 ```
 
-The password is never stored. Changing the instance clears the stored token,
-selected Project and Version, and active capture state.
+The password is never stored. Changing the instance requires confirmation and
+clears the stored token, selected Project and Project Version, and active
+capture state. Editing only the portal URL preserves all of that state.
+Ambiguous logout failures preserve the local session and offer a separate,
+explicit local-only clear; an authoritative unauthenticated response clears it.
 
 ## Capture Session Start
 
@@ -165,7 +172,13 @@ screenshot commands share one in-flight controller, so they cannot allocate the
 same Event index or cross a pause, finish, local clear, logout, or instance
 change. Accepted commands publish a `saving` diagnostic before upload work.
 
-The latest automatic capture outcome is stored in extension storage and shown when the popup is opened during an active capture. Screenshot, upload, event-recording, and content-script message-delivery failures are shown as actionable popup errors while preserving the active capture state and manual screenshot fallback. Successful automatic clicks show the recorded step number.
+The latest automatic capture outcome is stored in extension storage and shown
+when the popup is opened during an active capture. An interrupted stored
+`saving` state is converted into a retryable failure during restoration.
+Screenshot, upload, event-recording, and content-script message-delivery
+failures are shown as actionable popup errors while preserving the active
+capture state and manual screenshot fallback. Successful automatic clicks show
+the server-confirmed recorded step number.
 
 The extension never stores raw input values or page HTML. It sends `input_value_redacted: true` for automatic click events.
 
@@ -211,8 +224,10 @@ and allocates from storage reread inside the shared controller. The
 server-returned Event index is authoritative. On an index conflict, the
 extension lists existing Events, stores the highest index, and requires a new
 user action; it never automatically repeats an ambiguous Asset upload/Event
-pair. The extension sends `input_value_redacted: true` and does not send raw
-input fields.
+pair. If listing or persisting the reconciled index fails, both manual and
+automatic capture stay blocked until a reopened popup successfully restores the
+server-confirmed index. The extension sends `input_value_redacted: true` and
+does not send raw input fields.
 
 Each manual screenshot creates one ordered capture event. In the current MVP, treat one automatic click or one manual screenshot as the source for one guide step.
 
@@ -256,6 +271,12 @@ loaded Capture Session's Project, Project Version slug, and id. If local clear
 or portal opening fails after completion, the popup retains an in-memory retry
 that does not call completion twice. Session tokens are never included in the
 portal URL.
+
+If starting a Capture Session succeeds on the server but saving its local
+recovery state fails, the popup keeps the returned session in memory, blocks new
+capture work, and offers an explicit local-save retry plus portal access. Other
+failed transitions restore the prior capture mode and pause state unless server
+success is already known.
 
 ## Permissions
 

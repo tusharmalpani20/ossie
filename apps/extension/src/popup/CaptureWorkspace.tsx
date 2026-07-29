@@ -11,6 +11,7 @@ import { errorMessage, projectContextLabel } from "./helpers";
 import { LocalCaptureRecovery } from "./LocalCaptureRecovery";
 import { CaptureContextPanel } from "./CaptureContextPanel";
 import { CaptureStatusPanel } from "./CaptureStatusPanel";
+import { PortalSettingsPanel } from "./PortalSettingsPanel";
 
 export const CaptureWorkspace = ({
   auth,
@@ -28,6 +29,8 @@ export const CaptureWorkspace = ({
   activeCaptureIndexReconciled,
   activeCaptureMode,
   activeCapturePaused,
+  activeCaptureEventIndex,
+  portalUrl,
   completionRecoveryPending,
   localRecoveryMessage,
   automaticCaptureDiagnostic,
@@ -35,6 +38,8 @@ export const CaptureWorkspace = ({
   onSelect,
   onSelectVersion,
   onStartCapture,
+  onRetryActiveCaptureSave,
+  onRetryActiveCapture,
   onSetActiveCaptureMode,
   onDiscardActiveCapture,
   onCaptureScreenshot,
@@ -42,6 +47,8 @@ export const CaptureWorkspace = ({
   onOpenActiveCapture,
   onChangeInstance,
   onSignOut,
+  onClearLocalSession,
+  onSavePortalUrl,
 }: {
   auth: AuthResponse["auth"];
   projects: Project[];
@@ -60,6 +67,8 @@ export const CaptureWorkspace = ({
   activeCaptureIndexReconciled: boolean;
   activeCaptureMode: "manual" | "automatic" | null;
   activeCapturePaused: boolean;
+  activeCaptureEventIndex: number | null;
+  portalUrl: string | null;
   completionRecoveryPending: boolean;
   localRecoveryMessage: string | null;
   automaticCaptureDiagnostic: ExtensionSettings["automaticCaptureDiagnostic"];
@@ -67,6 +76,8 @@ export const CaptureWorkspace = ({
   onSelect: (projectId: string) => Promise<void>;
   onSelectVersion: (projectVersionId: string) => Promise<void>;
   onStartCapture: (projectId: string) => Promise<void>;
+  onRetryActiveCaptureSave: () => Promise<void>;
+  onRetryActiveCapture: () => void;
   onSetActiveCaptureMode: (input: {
     mode: "manual" | "automatic";
     paused: boolean;
@@ -86,6 +97,8 @@ export const CaptureWorkspace = ({
   }) => Promise<void>;
   onChangeInstance: () => Promise<void>;
   onSignOut: () => Promise<void>;
+  onClearLocalSession: () => Promise<void>;
+  onSavePortalUrl: (portalUrl: string | null) => Promise<void>;
 }) => {
   const [starting, setStarting] = useState(false);
   const [capturingScreenshot, setCapturingScreenshot] = useState(false);
@@ -98,6 +111,10 @@ export const CaptureWorkspace = ({
   const [portalOpenError, setPortalOpenError] = useState<string | null>(null);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
+  const [remoteSignOutUnknown, setRemoteSignOutUnknown] = useState(false);
+  const [confirmingInstanceChange, setConfirmingInstanceChange] =
+    useState(false);
+  const [editingPortalUrl, setEditingPortalUrl] = useState(false);
   const [lastCaptureEventIndex, setLastCaptureEventIndex] = useState<
     number | null
   >(null);
@@ -126,6 +143,11 @@ export const CaptureWorkspace = ({
     (activeCaptureSessionStatus === "draft" ||
       activeCaptureSessionStatus === "capturing" ||
       activeCaptureSessionStatus === null);
+  const captureMutationAllowed =
+    activeCaptureWritable &&
+    !completionRecoveryPending &&
+    !localRecoveryMessage;
+  const finishAllowed = completionRecoveryPending || activeCaptureWritable;
   const captureSaving =
     automaticCaptureDiagnostic?.status === "saving" ||
     manualCaptureDiagnostic?.status === "saving";
@@ -314,6 +336,17 @@ export const CaptureWorkspace = ({
     }
   };
 
+  const handleSignOut = async () => {
+    setAccountError(null);
+    setRemoteSignOutUnknown(false);
+    try {
+      await onSignOut();
+    } catch (error: unknown) {
+      setAccountError(errorMessage(error, "Could not sign out."));
+      setRemoteSignOutUnknown(true);
+    }
+  };
+
   return (
     <section className="panel" aria-labelledby="project-heading">
       <div className="toolbar">
@@ -327,12 +360,24 @@ export const CaptureWorkspace = ({
             variant="secondary"
             className="secondary"
             disabled={busy}
-            onClick={() =>
+            onClick={() => setEditingPortalUrl(true)}
+          >
+            Portal settings
+          </Button>
+          <Button
+            variant="secondary"
+            className="secondary"
+            disabled={busy}
+            onClick={() => {
+              if (hasActiveCapture) {
+                setConfirmingInstanceChange(true);
+                return;
+              }
               void handleAccountAction(
                 onChangeInstance,
                 "Could not change instance.",
-              )
-            }
+              );
+            }}
           >
             Change instance
           </Button>
@@ -340,17 +385,70 @@ export const CaptureWorkspace = ({
             variant="secondary"
             className="secondary"
             disabled={busy}
-            onClick={() =>
-              void handleAccountAction(onSignOut, "Could not sign out.")
-            }
+            onClick={() => void handleSignOut()}
           >
             Sign out
           </Button>
         </div>
       </div>
+      {editingPortalUrl ? (
+        <PortalSettingsPanel
+          portalUrl={portalUrl}
+          onCancel={() => setEditingPortalUrl(false)}
+          onSave={async (nextPortalUrl) => {
+            await onSavePortalUrl(nextPortalUrl);
+            setEditingPortalUrl(false);
+          }}
+        />
+      ) : null}
       {accountError ? (
         <div className="error" role="alert">
           {accountError}
+        </div>
+      ) : null}
+      {remoteSignOutUnknown ? (
+        <Button
+          variant="secondary"
+          className="secondary"
+          disabled={busy}
+          onClick={() =>
+            void handleAccountAction(
+              onClearLocalSession,
+              "Could not clear the local session.",
+            )
+          }
+        >
+          Clear local session
+        </Button>
+      ) : null}
+      {confirmingInstanceChange ? (
+        <div
+          className="confirmation"
+          role="group"
+          aria-label="Confirm instance change"
+        >
+          <p>
+            Changing instance signs out and clears local capture context. The
+            server Capture Session is not completed or deleted.
+          </p>
+          <Button
+            variant="secondary"
+            className="secondary"
+            onClick={() => setConfirmingInstanceChange(false)}
+          >
+            Keep current instance
+          </Button>
+          <Button
+            autoFocus
+            onClick={() =>
+              void handleAccountAction(
+                onChangeInstance,
+                "Could not change instance.",
+              )
+            }
+          >
+            Change instance anyway
+          </Button>
         </div>
       ) : null}
 
@@ -391,7 +489,7 @@ export const CaptureWorkspace = ({
           ) : null}
           {activeCaptureProjectVersionStatus === "archived" ? (
             <div className="error" role="alert">
-              This Project Version is archived. Restore it before recording or
+              This Project Version is archived. Restore it before capturing or
               finishing the Capture Session.
             </div>
           ) : null}
@@ -404,17 +502,53 @@ export const CaptureWorkspace = ({
             </div>
           ) : null}
           {!activeCaptureIndexReconciled ? (
-            <div className="error" role="alert">
-              Capture steps could not be reconciled. Reopen or retry the
-              extension before capturing or finishing.
-            </div>
+            <>
+              <div className="error" role="alert">
+                Capture steps could not be reconciled. Reopen or retry the
+                extension before capturing or finishing.
+              </div>
+              <Button
+                variant="secondary"
+                className="secondary"
+                disabled={busy}
+                onClick={onRetryActiveCapture}
+              >
+                Retry reconciliation
+              </Button>
+            </>
           ) : null}
           <CaptureStatusPanel>
             <p className="captureSession">Session {activeCaptureSessionId}</p>
+            <p className="captureSession">
+              {activeCaptureEventIndex ?? 0} captured{" "}
+              {(activeCaptureEventIndex ?? 0) === 1 ? "step" : "steps"}
+            </p>
+            {activeCaptureSessionStatus ? (
+              <p className="captureSession">
+                Capture Session status:{" "}
+                {activeCaptureSessionStatus[0]?.toUpperCase()}
+                {activeCaptureSessionStatus.slice(1)}
+              </p>
+            ) : null}
             {localRecoveryMessage ? (
               <div className="error" role="alert">
                 {localRecoveryMessage}
               </div>
+            ) : null}
+            {localRecoveryMessage ? (
+              <Button
+                variant="secondary"
+                className="secondary"
+                disabled={busy}
+                onClick={() =>
+                  void handleAccountAction(
+                    onRetryActiveCaptureSave,
+                    "Could not save local recovery.",
+                  )
+                }
+              >
+                Retry saving local recovery
+              </Button>
             ) : null}
             {savingMessage ? (
               <p className="status" role="status" aria-live="polite">
@@ -467,7 +601,7 @@ export const CaptureWorkspace = ({
               <Button
                 className="secondary"
                 variant="secondary"
-                disabled={busy || !activeCaptureWritable}
+                disabled={busy || !captureMutationAllowed}
                 onClick={() =>
                   void handleSetAutomaticPaused(!activeCapturePaused)
                 }
@@ -478,7 +612,7 @@ export const CaptureWorkspace = ({
               </Button>
             ) : null}
             <Button
-              disabled={busy || !activeCaptureWritable}
+              disabled={busy || !captureMutationAllowed}
               onClick={() => void handleCaptureScreenshot()}
             >
               {capturingScreenshot ? "Capturing..." : "Capture screenshot"}
@@ -496,14 +630,14 @@ export const CaptureWorkspace = ({
               {openingPortal ? "Opening..." : "Open in portal"}
             </Button>
             <Button
-              disabled={busy || !activeCaptureWritable}
+              disabled={busy || !finishAllowed}
               onClick={() => void handleFinishCapture()}
             >
               {finishing
                 ? "Finishing..."
                 : completionRecoveryPending
                   ? "Retry completion recovery"
-                  : "Finish capture"}
+                  : "Finish and open portal"}
             </Button>
             <LocalCaptureRecovery
               busy={busy}
@@ -530,7 +664,7 @@ export const CaptureWorkspace = ({
           {!selectedProjectVersion ? (
             <div className="error">
               The selected Project Version is archived or unavailable. Select an
-              active Version before starting.
+              active Project Version before starting.
             </div>
           ) : null}
           {startError ? <div className="error">{startError}</div> : null}
@@ -539,13 +673,13 @@ export const CaptureWorkspace = ({
             disabled={busy || !selectedProjectVersion}
             onClick={() => void handleStartCapture()}
           >
-            {starting ? "Starting..." : "Start automatic capture"}
+            {starting ? "Starting..." : "Start capture"}
           </Button>
         </CaptureContextPanel>
       ) : null}
 
       {!hasActiveCapture && projects.length === 0 ? (
-        <div className="state">No projects yet.</div>
+        <div className="state">No capture-capable Projects are available.</div>
       ) : null}
 
       {!hasActiveCapture && projects.length > 0 ? (
