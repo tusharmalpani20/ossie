@@ -182,7 +182,9 @@ export const ProjectInteractiveDemoListPage = ({
         <div>
           <div className={styles.eyebrow}>Project</div>
           <h1 className={styles.title}>Interactive demos</h1>
-          <p className={styles.description}>{projectId}</p>
+          <p className={styles.description}>
+            Author, preview, and publish guided product journeys.
+          </p>
         </div>
       </section>
 

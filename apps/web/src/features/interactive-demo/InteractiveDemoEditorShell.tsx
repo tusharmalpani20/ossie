@@ -8,19 +8,24 @@ export const InteractiveDemoEditorShell = ({
   interactiveDemoId,
   performLogout,
   navigate,
+  renderShell = true,
 }: {
   children: ReactNode;
   projectId: string;
   interactiveDemoId: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
-}) => (
-  <div className={styles.page}>
-    <PortalTopbar
-      context={`${projectId} / interactive demos / ${interactiveDemoId}`}
-      performLogout={performLogout}
-      navigate={navigate}
-    />
-    <main className={styles.main}>{children}</main>
-  </div>
-);
+  renderShell?: boolean;
+}) =>
+  renderShell ? (
+    <div className={styles.page}>
+      <PortalTopbar
+        context={`${projectId} / interactive demos / ${interactiveDemoId}`}
+        performLogout={performLogout}
+        navigate={navigate}
+      />
+      <main className={styles.main}>{children}</main>
+    </div>
+  ) : (
+    <>{children}</>
+  );

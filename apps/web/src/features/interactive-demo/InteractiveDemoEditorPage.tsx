@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CaptureAssetWithFileUrl } from "@repo/types/capture";
 import { Button } from "@repo/ui/button";
 import {
-  ApiClientError,
   archiveInteractiveDemo,
   createInteractiveDemoScene,
   createInteractiveDemoHotspot,
@@ -40,6 +39,7 @@ import type {
   InteractiveDemoEditorLoadState as LoadState,
   InteractiveDemoEditorPageProps,
 } from "./interactiveDemoEditorContracts";
+import { interactiveDemoLoadStateFromError as loadStateFromError } from "./interactiveDemoLoadState";
 import type {
   CreateDemoHotspotInput,
   DemoHotspot,
@@ -48,20 +48,6 @@ import type {
   UpdateDemoHotspotInput,
 } from "./types";
 import styles from "./InteractiveDemoEditorPage.module.css";
-
-const loadStateFromError = (error: unknown): LoadState => {
-  if (error instanceof ApiClientError) {
-    if (error.kind === "unauthenticated") {
-      return { status: "unauthenticated" };
-    }
-
-    if (error.kind === "not_found") {
-      return { status: "not_found" };
-    }
-  }
-
-  return { status: "error" };
-};
 
 export const InteractiveDemoEditorPage = ({
   projectId,
@@ -143,6 +129,7 @@ export const InteractiveDemoEditorPage = ({
   navigate,
   canWrite = true,
   versionSlug,
+  renderShell = true,
   changeEditionStatus = (command, id, artifactId, versionId, expected) =>
     command === "archive"
       ? archiveInteractiveDemo(id, artifactId, versionId, expected)
@@ -218,6 +205,7 @@ export const InteractiveDemoEditorPage = ({
         interactiveDemoId={interactiveDemoId}
         performLogout={performLogout}
         navigate={navigate}
+        renderShell={renderShell}
       >
         <div className={styles.state}>Loading interactive demo...</div>
       </PortalShell>
@@ -231,6 +219,7 @@ export const InteractiveDemoEditorPage = ({
         interactiveDemoId={interactiveDemoId}
         performLogout={performLogout}
         navigate={navigate}
+        renderShell={renderShell}
       >
         <div className={styles.state}>
           <div>Sign in to view this interactive demo.</div>
@@ -249,6 +238,7 @@ export const InteractiveDemoEditorPage = ({
         interactiveDemoId={interactiveDemoId}
         performLogout={performLogout}
         navigate={navigate}
+        renderShell={renderShell}
       >
         <div className={styles.state}>Interactive demo was not found.</div>
       </PortalShell>
@@ -262,6 +252,7 @@ export const InteractiveDemoEditorPage = ({
         interactiveDemoId={interactiveDemoId}
         performLogout={performLogout}
         navigate={navigate}
+        renderShell={renderShell}
       >
         <div className={styles.state}>
           <div>Could not load interactive demo.</div>
@@ -313,6 +304,7 @@ export const InteractiveDemoEditorPage = ({
         resolveAssetUrl={resolveAssetUrl}
         performLogout={performLogout}
         navigate={navigate}
+        renderShell={renderShell}
         onRestore={changeLifecycle}
       />
     );
@@ -342,6 +334,7 @@ export const InteractiveDemoEditorPage = ({
       navigate={navigate}
       onChangeLifecycle={changeLifecycle}
       versionSlug={versionSlug}
+      renderShell={renderShell}
     />
   );
 };
@@ -369,6 +362,7 @@ const InteractiveDemoEditorLoaded = ({
   navigate,
   onChangeLifecycle,
   versionSlug,
+  renderShell,
 }: {
   projectId: string;
   interactiveDemoId: string;
@@ -399,6 +393,7 @@ const InteractiveDemoEditorLoaded = ({
   navigate?: (path: string) => void;
   onChangeLifecycle: () => Promise<void>;
   versionSlug?: string;
+  renderShell: boolean;
 }) => {
   const orderedScenes = useMemo(() => sortedScenes(scenes), [scenes]);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(
@@ -907,6 +902,7 @@ const InteractiveDemoEditorLoaded = ({
       interactiveDemoId={interactiveDemoId}
       performLogout={performLogout}
       navigate={navigate}
+      renderShell={renderShell}
     >
       <InteractiveDemoWorkbench
         projectId={projectId}

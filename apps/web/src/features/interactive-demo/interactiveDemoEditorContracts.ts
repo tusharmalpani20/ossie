@@ -115,6 +115,7 @@ export type InteractiveDemoEditorPageProps = {
   navigate?: (path: string) => void;
   canWrite?: boolean;
   versionSlug?: string;
+  renderShell?: boolean;
   changeEditionStatus?: (
     command: "archive" | "restore",
     projectId: string,

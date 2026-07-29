@@ -698,7 +698,9 @@ export default function App() {
             currentPath={currentPath}
             versionSlug={route.versionSlug}
             canWrite={
-              project.status === "active" && project.access.role !== "viewer"
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role !== "viewer"
             }
             renderShell={false}
           />
@@ -722,6 +724,7 @@ export default function App() {
               interactiveDemoId={route.interactiveDemoId}
               currentPath={currentPath}
               loadBackgroundAssets={listProjectScreenshotAssets}
+              renderShell
               canWrite={
                 project.status === "active" && project.access.role !== "viewer"
               }
@@ -743,6 +746,7 @@ export default function App() {
             versionSlug={route.versionSlug}
             currentPath={currentPath}
             loadBackgroundAssets={listProjectScreenshotAssets}
+            renderShell={false}
             canWrite={
               project.status === "active" &&
               selected.status === "active" &&

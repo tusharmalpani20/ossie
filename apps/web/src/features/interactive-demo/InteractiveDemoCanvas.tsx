@@ -128,6 +128,7 @@ export const InteractiveDemoCanvas = ({
       className={styles.canvas}
       aria-label={`${sceneTitle} canvas`}
       ref={canvasRef}
+      role="group"
     >
       {backgroundUrl ? (
         <>
