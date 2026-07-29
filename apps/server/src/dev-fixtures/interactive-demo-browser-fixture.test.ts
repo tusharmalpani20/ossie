@@ -49,6 +49,10 @@ describe("Interactive Demo browser fixture", () => {
       "missing",
     ]);
     expect(fixture.revision_count).toBeGreaterThanOrEqual(2);
+    expect(fixture.multi_version_public_link).toEqual({
+      slug: "plan128-public",
+      project_version_count: 2,
+    });
     expect(fixture.routes.editor).toMatch(
       /^\/projects\/[0-9A-HJKMNP-TV-Z]{26}\/versions\/summer-release\/interactive-demos\//u,
     );

@@ -39,6 +39,8 @@ const ids = {
   revision_two: fixture_id(5, 2),
   publication_one: fixture_id(6, 1),
   publication_two: fixture_id(6, 2),
+  default_revision: fixture_id(5, 3),
+  default_publication: fixture_id(6, 3),
 } as const;
 
 export const build_interactive_demo_browser_fixture = () => {
@@ -92,7 +94,11 @@ export const build_interactive_demo_browser_fixture = () => {
       { slug: "plan128-revoked", access: "revoked" as const },
     ],
     media_cases: ["active", "archived_protected", "broken", "missing"] as const,
-    revision_count: 2,
+    revision_count: 3,
+    multi_version_public_link: {
+      slug: "plan128-public",
+      project_version_count: 2,
+    },
     stale_working_draft_version: 7,
     routes: {
       list: `/projects/${capture.project_id}/versions/summer-release/interactive-demos`,
@@ -491,6 +497,88 @@ export const seed_interactive_demo_browser_fixture = async () => {
       );
     }
 
+    const default_revision_scene_one = fixture_id(26, 1);
+    const default_revision_scene_two = fixture_id(26, 2);
+    const default_revision_hotspot = fixture_id(27, 1);
+    await query(
+      `INSERT INTO interactive_demo_schema.interactive_demo_revision
+       (id,organization_id,project_id,interactive_demo_id,interactive_demo_edition_id,
+        project_version_id,revision_number,trigger,title,description,
+        source_working_draft_version,content_sha256,created_by_id)
+       VALUES($1,$2,$3,$4,$5,$6,1,'publication','Existing target Edition',
+        'Immutable default Project Version fixture',2,$7,$8)`,
+      [
+        ids.default_revision,
+        fixture.organization_id,
+        fixture.project_id,
+        ids.active_demo,
+        ids.conflict_edition,
+        default_version.id,
+        "d".repeat(64),
+        admin.org_user_id,
+      ],
+    );
+    await query(
+      `INSERT INTO interactive_demo_schema.demo_revision_scene
+       (id,organization_id,project_id,interactive_demo_revision_id,
+        background_capture_asset_id,scene_index,title,description)
+       VALUES
+        ($1,$2,$3,$4,$5,1,'Default Version start','Immutable Scene'),
+        ($6,$2,$3,$4,$5,2,'Default Version finish','Immutable destination')`,
+      [
+        default_revision_scene_one,
+        fixture.organization_id,
+        fixture.project_id,
+        ids.default_revision,
+        capture.screenshot_asset_id,
+        default_revision_scene_two,
+      ],
+    );
+    await query(
+      `INSERT INTO interactive_demo_schema.demo_revision_hotspot
+       (id,organization_id,project_id,interactive_demo_revision_id,
+        demo_revision_scene_id,hotspot_type,label,x,y,width,height,hotspot_index)
+       VALUES($1,$2,$3,$4,$5,'click','Continue',0.1,0.2,0.3,0.1,1)`,
+      [
+        default_revision_hotspot,
+        fixture.organization_id,
+        fixture.project_id,
+        ids.default_revision,
+        default_revision_scene_one,
+      ],
+    );
+    await query(
+      `INSERT INTO interactive_demo_schema.demo_revision_transition
+       (id,organization_id,project_id,interactive_demo_revision_id,
+        demo_revision_hotspot_id,target_demo_revision_scene_id)
+       VALUES($1,$2,$3,$4,$5,$6)`,
+      [
+        fixture_id(28, 1),
+        fixture.organization_id,
+        fixture.project_id,
+        ids.default_revision,
+        default_revision_hotspot,
+        default_revision_scene_two,
+      ],
+    );
+    await query(
+      `INSERT INTO publish_schema.published_artifact
+       (id,organization_id,project_id,artifact_type,project_version_id,
+        publication_sequence,interactive_demo_id,interactive_demo_edition_id,
+        interactive_demo_revision_id,created_by_id)
+       VALUES($1,$2,$3,'interactive_demo',$4,1,$5,$6,$7,$8)`,
+      [
+        ids.default_publication,
+        fixture.organization_id,
+        fixture.project_id,
+        default_version.id,
+        ids.active_demo,
+        ids.conflict_edition,
+        ids.default_revision,
+        admin.org_user_id,
+      ],
+    );
+
     for (const [index, link] of fixture.public_links.entries()) {
       const link_id = fixture_id(30, index + 1);
       const password = link.access === "password";
@@ -542,6 +630,26 @@ export const seed_interactive_demo_browser_fixture = async () => {
           admin.org_user_id,
         ],
       );
+      if (link.slug === fixture.multi_version_public_link.slug) {
+        await query(
+          `INSERT INTO publish_schema.publish_link_entry
+           (id,organization_id,project_id,publish_link_id,published_artifact_id,
+            project_version_id,interactive_demo_id,interactive_demo_edition_id,
+            position,is_default,created_by_id,updated_by_id)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8,2,FALSE,$9,$9)`,
+          [
+            fixture_id(32, index + 1),
+            fixture.organization_id,
+            fixture.project_id,
+            link_id,
+            ids.default_publication,
+            default_version.id,
+            ids.active_demo,
+            ids.conflict_edition,
+            admin.org_user_id,
+          ],
+        );
+      }
     }
   });
 

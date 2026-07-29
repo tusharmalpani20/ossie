@@ -39,17 +39,38 @@ describe("Interactive Demo browser fixture database seed", () => {
           "publish_schema.publish_link",
           "AND artifact_type='interactive_demo'",
         ),
+        public_link_entries: await client.query<{
+          entry_count: number;
+          version_count: number;
+        }>(
+          `SELECT COUNT(*)::integer AS entry_count,
+                  COUNT(DISTINCT entry.project_version_id)::integer AS version_count
+           FROM publish_schema.publish_link_entry entry
+           INNER JOIN publish_schema.publish_link link
+             ON link.id=entry.publish_link_id
+           WHERE link.organization_id=$1
+             AND link.project_id=$2
+             AND link.slug='plan128-public'`,
+          [fixture.organization_id, fixture.project_id],
+        ),
       };
     });
 
-    expect(result).toEqual({
+    expect({
+      ...result,
+      public_link_entries: result.public_link_entries.rows[0],
+    }).toEqual({
       demos: 3,
       scenes: 12,
       hotspots: 12,
       transitions: 11,
-      revisions: 2,
-      publications: 2,
+      revisions: 3,
+      publications: 3,
       links: 5,
+      public_link_entries: {
+        entry_count: 2,
+        version_count: 2,
+      },
     });
   });
 });
