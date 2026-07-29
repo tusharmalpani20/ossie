@@ -486,9 +486,7 @@ describe("ArtifactPublishingPanel", () => {
     fireEvent.click(rollbackButton);
 
     await waitFor(() =>
-      expect(
-        screen.getByLabelText("Rollback reason (optional)"),
-      ).toHaveFocus(),
+      expect(screen.getByLabelText("Rollback reason (optional)")).toHaveFocus(),
     );
     fireEvent.keyDown(document, { key: "Escape" });
 
@@ -517,9 +515,7 @@ describe("ArtifactPublishingPanel", () => {
     fireEvent.click(rollbackButton);
 
     await waitFor(() =>
-      expect(
-        screen.getByLabelText("Rollback reason (optional)"),
-      ).toHaveFocus(),
+      expect(screen.getByLabelText("Rollback reason (optional)")).toHaveFocus(),
     );
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
@@ -527,6 +523,75 @@ describe("ArtifactPublishingPanel", () => {
       screen.queryByRole("dialog", { name: "Confirm rollback" }),
     ).not.toBeInTheDocument();
     expect(rollbackButton).toHaveFocus();
+  });
+
+  it("moves focus to the Publishing region when a successful rollback removes its trigger", async () => {
+    vi.mocked(listArtifactPublications).mockResolvedValue({
+      publications: [publication, previousPublication],
+      next_before_publication_sequence: null,
+    });
+    vi.mocked(listArtifactPublishLinks)
+      .mockResolvedValueOnce({
+        publish_links: [publishLink],
+        next_cursor: null,
+      })
+      .mockResolvedValueOnce({
+        publish_links: [
+          {
+            ...publishLink,
+            entries: [
+              {
+                ...publishLink.entries[0]!,
+                published_artifact: previousPublication,
+              },
+            ],
+          },
+        ],
+        next_cursor: null,
+      });
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Roll back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm rollback" }));
+
+    expect(
+      await screen.findByText(
+        "Publish Link entry rolled back. No Publication was created.",
+      ),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "Publishing" })).toHaveFocus(),
+    );
+  });
+
+  it("reports a committed rollback truthfully when the publishing refresh fails", async () => {
+    vi.mocked(listArtifactPublications).mockResolvedValue({
+      publications: [publication, previousPublication],
+      next_before_publication_sequence: null,
+    });
+    vi.mocked(listArtifactPublishLinks)
+      .mockResolvedValueOnce({
+        publish_links: [publishLink],
+        next_cursor: null,
+      })
+      .mockRejectedValueOnce(new Error("refresh unavailable"));
+    renderPanel();
+
+    const rollbackButton = await screen.findByRole("button", {
+      name: "Roll back",
+    });
+    fireEvent.click(rollbackButton);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm rollback" }));
+
+    expect(
+      await screen.findByText(
+        "Rollback succeeded, but publishing could not be refreshed. Reload and try again.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", { name: "Confirm rollback" }),
+    ).not.toBeInTheDocument();
+    await waitFor(() => expect(rollbackButton).toHaveFocus());
   });
 
   it("does not offer a forward Publication as a rollback target", async () => {
