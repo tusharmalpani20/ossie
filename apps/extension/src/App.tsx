@@ -1,7 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@repo/ui/button";
-import { Input } from "@repo/ui/input";
-import { Label } from "@repo/ui/label";
 import {
   ApiClientError,
   completeCaptureSession,
@@ -55,7 +53,7 @@ import {
   type ExtensionStorageArea,
   type ManualCaptureDiagnostic,
 } from "./lib/settings";
-import { buildPortalCaptureSessionUrl, normalizeInstanceUrl } from "./lib/url";
+import { buildPortalCaptureSessionUrl } from "./lib/url";
 import {
   buildCaptureSessionInput,
   errorMessage,
@@ -63,6 +61,9 @@ import {
   persistManualCaptureDiagnostic,
   screenshotFileName,
 } from "./popup/helpers";
+import { ConnectInstancePanel } from "./popup/ConnectInstancePanel";
+import { PopupShell } from "./popup/PopupShell";
+import { SignInPanel } from "./popup/SignInPanel";
 import "./index.css";
 
 type Dependencies = {
@@ -436,16 +437,16 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
 
   if (state.status === "loading") {
     return (
-      <Shell>
+      <PopupShell>
         <div className="state">Loading...</div>
-      </Shell>
+      </PopupShell>
     );
   }
 
   if (state.status === "unconfigured") {
     return (
-      <Shell>
-        <ConnectInstance
+      <PopupShell>
+        <ConnectInstancePanel
           onSave={async (instanceUrl) => {
             await dependencies.saveInstanceUrl(instanceUrl.instanceUrl);
             if (instanceUrl.portalUrl) {
@@ -454,14 +455,14 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
             reload();
           }}
         />
-      </Shell>
+      </PopupShell>
     );
   }
 
   if (state.status === "signed_out") {
     return (
-      <Shell>
-        <SignIn
+      <PopupShell>
+        <SignInPanel
           instanceUrl={state.settings.instanceUrl ?? ""}
           onChangeInstance={async () => {
             await dependencies.clearSettings();
@@ -498,13 +499,13 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
             });
           }}
         />
-      </Shell>
+      </PopupShell>
     );
   }
 
   if (state.status === "error") {
     return (
-      <Shell>
+      <PopupShell>
         <div className="panel">
           <h1>Connection issue</h1>
           <p className="error">{state.message}</p>
@@ -522,12 +523,12 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
             </Button>
           </div>
         </div>
-      </Shell>
+      </PopupShell>
     );
   }
 
   return (
-    <Shell>
+    <PopupShell>
       <ProjectPicker
         auth={state.auth}
         projects={state.projects}
@@ -877,175 +878,7 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
           reload();
         }}
       />
-    </Shell>
-  );
-};
-
-const Shell = ({ children }: { children: React.ReactNode }) => (
-  <main className="popup">
-    <div className="brand">
-      <img
-        src="/icons/ossie-32.png"
-        alt=""
-        aria-hidden="true"
-        width="28"
-        height="28"
-      />
-      <span>Ossie</span>
-    </div>
-    {children}
-  </main>
-);
-
-const ConnectInstance = ({
-  onSave,
-}: {
-  onSave: (input: {
-    instanceUrl: string;
-    portalUrl: string | null;
-  }) => Promise<void>;
-}) => {
-  const [instanceUrl, setInstanceUrl] = useState("");
-  const [portalUrl, setPortalUrl] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const result = normalizeInstanceUrl(instanceUrl);
-
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-
-    const portalUrlValue = portalUrl.trim();
-    const normalizedPortalUrl = portalUrlValue
-      ? normalizeInstanceUrl(portalUrlValue)
-      : null;
-    if (normalizedPortalUrl && !normalizedPortalUrl.ok) {
-      setError("Enter a valid http:// or https:// portal URL.");
-      return;
-    }
-
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      await onSave({
-        instanceUrl: result.value,
-        portalUrl: normalizedPortalUrl?.value ?? null,
-      });
-    } catch {
-      setError("Could not save instance URL.");
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <section className="panel" aria-labelledby="connect-heading">
-      <h1 id="connect-heading">Connect instance</h1>
-      <form className="form" onSubmit={handleSubmit}>
-        <Label>
-          <span>Instance URL</span>
-          <Input
-            type="url"
-            value={instanceUrl}
-            placeholder="http://localhost:3002"
-            disabled={submitting}
-            onChange={(event) => setInstanceUrl(event.target.value)}
-          />
-        </Label>
-        <Label>
-          <span>Portal URL (optional)</span>
-          <Input
-            type="url"
-            value={portalUrl}
-            placeholder="http://localhost:3000"
-            disabled={submitting}
-            onChange={(event) => setPortalUrl(event.target.value)}
-          />
-        </Label>
-        {error ? <div className="error">{error}</div> : null}
-        <Button type="submit" disabled={submitting}>
-          {submitting ? "Connecting..." : "Connect"}
-        </Button>
-      </form>
-    </section>
-  );
-};
-
-const SignIn = ({
-  instanceUrl,
-  onSignIn,
-  onChangeInstance,
-}: {
-  instanceUrl: string;
-  onSignIn: (data: { email: string; password: string }) => Promise<void>;
-  onChangeInstance: () => Promise<void>;
-}) => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      await onSignIn({
-        email: email.trim(),
-        password,
-      });
-    } catch (submitError: unknown) {
-      setError(errorMessage(submitError, "Could not sign in."));
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <section className="panel" aria-labelledby="sign-in-heading">
-      <h1 id="sign-in-heading">Sign in</h1>
-      <p className="instance">{instanceUrl}</p>
-      <form className="form" onSubmit={handleSubmit}>
-        <Label>
-          <span>Email</span>
-          <Input
-            type="email"
-            value={email}
-            autoComplete="email"
-            disabled={submitting}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </Label>
-        <Label>
-          <span>Password</span>
-          <Input
-            type="password"
-            value={password}
-            autoComplete="current-password"
-            disabled={submitting}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </Label>
-        {error ? <div className="error">{error}</div> : null}
-        <div className="actions">
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Signing in..." : "Sign in"}
-          </Button>
-          <Button
-            variant="secondary"
-            className="secondary"
-            disabled={submitting}
-            onClick={() => void onChangeInstance()}
-          >
-            Change instance
-          </Button>
-        </div>
-      </form>
-    </section>
+    </PopupShell>
   );
 };
 
