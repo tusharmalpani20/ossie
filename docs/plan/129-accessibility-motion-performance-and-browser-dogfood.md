@@ -6,8 +6,9 @@ Expanded: 2026-07-29
 
 Rechecked: 2026-07-29
 
-Status: Ready for implementation. Planning-only recheck passed; no runtime
-work has started.
+Status: Complete on 2026-07-29. Accessibility, motion, reflow, performance,
+long-session, direct-extension, installed-toolbar, DB, smoke, and workspace
+verification passed with only documented environment/tooling blocks.
 
 Parent plan:
 
@@ -1241,30 +1242,30 @@ finds no issue. Do not invent five issues to satisfy a generic dogfood target.
 
 ### Implementation
 
-- [ ] baseline/evidence document and issue register created before runtime edits.
-- [ ] all scoped critical/high-impact findings fixed test-first.
-- [ ] shared fixes placed at the narrowest correct ownership boundary.
-- [ ] no unrelated redesign/domain/API/migration/dependency change.
-- [ ] motion inventory and changed-transition review complete.
-- [ ] performance decision gate applied with before/after evidence.
-- [ ] web and extension file-size/bundle constraints preserved or justified.
+- [x] baseline/evidence document and issue register created before runtime edits.
+- [x] all scoped critical/high-impact findings fixed test-first.
+- [x] shared fixes placed at the narrowest correct ownership boundary.
+- [x] no unrelated redesign/domain/API/migration/dependency change.
+- [x] motion inventory and changed-transition review complete.
+- [x] performance decision gate applied with before/after evidence.
+- [x] web and extension file-size/bundle constraints preserved or justified.
 
 ### Verification/closeout
 
-- [ ] focused and full web/extension tests pass.
-- [ ] server DB integration and V1 smoke pass.
-- [ ] workspace types/lint/recursive tests/builds/format/diff checks pass.
-- [ ] required agent-browser role/journey/state matrix passes.
-- [ ] WCAG 2.2 AA automated/manual review is clean or has only accepted
+- [x] focused and full web/extension tests pass.
+- [x] server DB integration and V1 smoke pass.
+- [x] workspace types/lint/recursive tests/builds/format/diff checks pass.
+- [x] required agent-browser role/journey/state matrix passes.
+- [x] WCAG 2.2 AA automated/manual review is clean or has only accepted
       non-blocking exceptions.
-- [ ] desktop/mobile/wide-editor/200%-reflow/popup checks pass.
-- [ ] normal/reduced-motion behavior passes.
-- [ ] deterministic visual comparisons show no unintended state, hierarchy,
+- [x] desktop/mobile/wide-editor/200%-reflow/popup checks pass.
+- [x] normal/reduced-motion behavior passes.
+- [x] deterministic visual comparisons show no unintended state, hierarchy,
       clipping, or layout regression.
-- [ ] performance/build findings are fixed or explicitly justified.
-- [ ] direct extension-page and true toolbar-popup evidence are distinct.
-- [ ] unavailable secondary engines are recorded as blocked, not passed.
-- [ ] plan status, implementation log, verification record, evidence, leftovers,
+- [x] performance/build findings are fixed or explicitly justified.
+- [x] direct extension-page and true toolbar-popup evidence are distinct.
+- [x] unavailable secondary engines are recorded as blocked, not passed.
+- [x] plan status, implementation log, verification record, evidence, leftovers,
       handoff, `DESIGN.md` if needed, and master completed items are current.
 
 ## Commit Strategy
@@ -1319,37 +1320,86 @@ reversible as normal source commits, grouped by the commit strategy above:
 
 ## Implementation Log
 
-Not started. This expansion changes only this plan.
+Implemented on 2026-07-29 from starting checkpoint `5e78723`.
+
+1. Created the child evidence record before runtime edits and captured exact
+   web/extension production baselines, browser/tool versions, capability
+   limits, and the accepted behavior-parity sources.
+2. Reproduced and fixed privacy-safe document titles, authenticated-shell
+   bypass navigation, legacy eyebrow contrast, and invalid named-Card
+   semantics. Named Card behavior was repaired once in `@repo/ui`; unnamed
+   Cards remain neutral containers.
+3. Fixed the Guide block-insertion control-group semantics, raised the Demo
+   Hotspot resize target from 16 to 24 CSS pixels, and added global web
+   reduced-motion suppression aligned with the extension.
+4. The long-session dialog pass found a further focus-loss defect. Publication
+   rollback now focuses the reason field, traps Tab/Shift+Tab, closes on Escape,
+   and restores focus to the exact trigger.
+5. Repeated Chromium axe, keyboard, reflow, reduced-motion, console, network,
+   build, vitals, Guide/Demo long-session, direct extension, and true installed
+   toolbar checks after repair.
+6. Updated `DESIGN.md` only with reusable title, bypass, named-Card, modal
+   focus, target-size, and reduced-motion rules. No schema, DTO, route, API,
+   domain, migration, public access, extension permission, or dependency
+   change was made.
+
+Runtime commits:
+
+- `c46e316` `fix(ui): harden shared accessibility behavior`
+- `f23ff13` `fix(ui): close audited contrast and target gaps`
+- `4d039d0` `fix(web): stabilize route title updates`
+- `133274e` `fix(publish): preserve rollback dialog focus`
 
 ## Verification Record
 
-Planning verification only:
+Passed on 2026-07-29:
 
-- source checkpoint `4cd4b52`;
-- worktree clean before expansion;
-- current `agent-browser` core/dogfood guidance loaded;
-- `agent-browser doctor --offline --quick --json` passed with Chrome for Testing
-  `151.0.7922.47`;
-- no supported secondary engine was found in the current environment;
-- every listed existing runtime/test/fixture path was checked against the
-  current tree; root and legacy route aliases and current package scripts were
-  rechecked;
-- the recheck added missing WCAG 2.2 title/bypass/focus-obscured/target-size
-  rules, behavior parity, long-session leak evidence, source-size guards,
-  workspace build coverage, and rollback rules;
-- no application tests, browser journeys, fixture seeds, or runtime builds were
-  run as part of this planning-only task.
+- focused web/shared UI tests, including 15 publishing-panel tests after the
+  final dialog repair;
+- full web suite: 52 files / 343 tests;
+- full extension suite: 19 files / 140 tests;
+- full server non-DB suite through recursive workspace tests: 99 files / 406
+  tests;
+- all 20 selected DB integration files / 67 tests;
+- V1 smoke: 1 workflow;
+- web, extension, shared UI, and workspace type/lint gates;
+- workspace recursive tests and all 12 build tasks;
+- agent-browser final axe scans with zero violations on representative entry,
+  portal, Capture, Guide, Demo, public, and extension surfaces;
+- desktop, 390px, 640-CSS-pixel reflow, 320px popup, and 180-CSS-pixel popup
+  checks with no unexplained document overflow;
+- normal/reduced-motion computed behavior;
+- three-run production vitals for Demo editor and public embed;
+- Guide/Demo selection, dialog, and save/preview long-session workloads;
+- direct extension page and a separate real unpacked toolbar-action Capture,
+  including exactly-once ordered redacted Asset/Event effects, suppression,
+  pause/resume, service-worker restart, finish, clear, and canonical portal
+  handoff.
+
+Final standard web build:
+
+- JS `468.52 kB` raw / `130.36 kB` gzip;
+- CSS `73.89 kB` raw / `14.28 kB` gzip.
+
+The extension build remains exactly at the child `126` closeout baseline. The
+complete dated command/result record is
+`docs/ui/129-accessibility-motion-performance-browser-dogfood.md`.
 
 ## Leftovers And Handoff
 
-Child `130` should inherit only:
+Child `130` inherits no runtime repair.
 
-- accepted low-impact findings that do not undermine this child’s completion;
-- explicitly blocked secondary-engine or environment-specific checks;
-- final pre-Documentation consistency/closure work;
-- reusable, evidence-backed rules for the later Documentation editor/reader.
+The only recorded blocks/exceptions are:
 
-Child `130` must not inherit an unfixed critical/high-impact accessibility,
-motion, reflow, browser, extension, security, or material performance
-regression. Child `129` must preserve the accepted domain-specific behavior from
-children `123` through `128` while making their connected experience stable.
+- Firefox/WebKit/Safari validation is blocked because no supported executable
+  is installed;
+- axe cannot resolve the layered Guide/Demo Textarea background, while manual
+  contrast inspection passed;
+- comparable forced-GC heap and listener/timer metrics are unavailable in the
+  current tool surface; observable long-session behavior passed.
+
+Child `130` should preserve the recorded build/vitals baseline, reuse the
+clarified `DESIGN.md` rules for later Documentation surfaces, and perform the
+planned pre-Documentation consistency/closure work. No critical/high-impact
+accessibility, motion, reflow, browser, extension, security, privacy,
+permission, or material performance regression carries forward.

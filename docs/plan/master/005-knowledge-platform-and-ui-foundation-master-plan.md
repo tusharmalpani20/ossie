@@ -2,7 +2,7 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `128` are complete. Child `129` is
+Status: In progress. Children `109` through `129` are complete. Child `130` is
 next.
 
 Master plan number: 005.
@@ -1739,7 +1739,7 @@ Completed result:
 
 ### 129: Accessibility, Motion, Performance, And Browser Dogfood
 
-Status: Not started.
+Status: Complete on 2026-07-29.
 
 Planned file:
 
@@ -1782,6 +1782,33 @@ Acceptance:
 - Reduced motion preserves comprehension and functionality.
 - No incoherent overlap, clipping, blank media/canvas, dead navigation, or material uninvestigated performance regression remains at tested viewports.
 - Known browser/extension limitations are dated and documented instead of being silently treated as passing.
+
+Completed result:
+
+- Eight reproduced cross-product issues were repaired: privacy-safe route
+  titles, authenticated bypass navigation, legacy small-text contrast, named
+  Card semantics, Guide insertion-group semantics, Demo resize target size,
+  global web reduced motion, and Publication rollback focus containment/return.
+- Final representative Chromium axe scans had zero violations. Layered
+  Textarea contrast remained an accepted axe indeterminacy after manual review;
+  Firefox/WebKit/Safari were honestly blocked because no supported executable
+  was installed.
+- Desktop, 390px, 640-CSS-pixel reflow, 320px popup, and 180-CSS-pixel popup
+  checks passed without unexplained document overflow or hidden critical
+  controls.
+- Three-run production vitals, Guide/Demo long-session workloads, full direct
+  popup checks, and a separate real installed-toolbar Capture passed. The
+  installed path proved ordered exactly-once redacted effects, suppression,
+  pause/resume, restart recovery, finish-once behavior, and canonical
+  named-Version handoff.
+- Web closed at JS `468.52 kB` raw / `130.36 kB` gzip and CSS `73.89 kB` raw /
+  `14.28 kB` gzip. Extension sizes remained unchanged. No speculative
+  performance split, runtime dependency, permission, API, schema, migration,
+  or product-semantic change was introduced.
+- Full web/extension/server/workspace tests, all 20 DB integration files, V1
+  smoke, types, lint, builds, formatting, and diff checks passed. Dated details
+  are in
+  `docs/ui/129-accessibility-motion-performance-browser-dogfood.md`.
 
 ### 130: Pre-Documentation Closeout
 
@@ -2066,7 +2093,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `126`.
 - [x] Create, expand, recheck, implement, and close child plan `127`.
 - [x] Create, expand, recheck, implement, and close child plan `128`.
-- [ ] Create, expand, recheck, implement, and close child plan `129`.
+- [x] Create, expand, recheck, implement, and close child plan `129`.
 - [ ] Create, expand, recheck, implement, and close child plan `130`.
 - [ ] Create, conduct, document, and accept the Documentation grill in child plan `131`.
 - [ ] Produce an implementation-ready Documentation child-plan sequence beginning at `132`.
@@ -2106,18 +2133,13 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is child `129`, Accessibility, Motion,
-Performance, And Browser Dogfood. Child `128` closed and passed its
-close-previous audit on 2026-07-29 with its
-guarded Demo fixture, strict referenced-background projection, selected-Scene
-workbench, lossless local-draft reconciliation, aggregate conflict recovery,
-failure-safe normalized authoring/reader renderer, shared
-Publication coordination, multi-Version public state, full
-DB/smoke/workspace/build verification, and dated
-Admin/Editor/Viewer/public browser evidence. Child `129` inherits only the
-cross-product accessibility, motion, performance, and connected-browser
-closeout; it must preserve the accepted type-specific Guide and Interactive
-Demo composition.
+The next executable activity is child `130`, Pre-Documentation Closeout. Child
+`129` completed on 2026-07-29 with eight repaired cross-product accessibility
+and motion findings, passing responsive/reflow and production-vitals evidence,
+Guide/Demo long-session checks, a full installed-toolbar Capture, and complete
+DB/smoke/workspace/build verification. Child `130` inherits no runtime repair;
+it should preserve the final child `129` build/vitals baseline and complete the
+planned consistency/closure audit before Documentation-domain decisions.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
