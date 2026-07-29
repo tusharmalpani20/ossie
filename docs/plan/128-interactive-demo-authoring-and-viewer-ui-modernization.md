@@ -4,7 +4,7 @@ Date reserved: 2026-07-12
 
 Expanded: 2026-07-29
 
-Status: Implementation-ready; not started.
+Status: Complete.
 
 Parent plan:
 
@@ -951,27 +951,27 @@ browser profiles, cookies, credentials, or unrelated user/agent work.
 
 ### Implementation
 
-- [ ] guarded Demo browser fixture complete.
-- [ ] editor extracted below the file-size boundary.
-- [ ] list/generation/workbench/dirty/conflict behavior complete.
-- [ ] Scene/background and Hotspot/Transition behavior complete.
-- [ ] preview/Revision/Carry-Forward/archive behavior complete.
-- [ ] Publication/Publish Link coordination complete.
-- [ ] reader/embed state, geometry, focus, and motion complete.
-- [ ] security, permissions, protected Assets, immutable Publications, and
+- [x] guarded Demo browser fixture complete.
+- [x] editor extracted below the file-size boundary.
+- [x] list/generation/workbench/dirty/conflict behavior complete.
+- [x] Scene/background and Hotspot/Transition behavior complete.
+- [x] preview/Revision/Carry-Forward/archive behavior complete.
+- [x] Publication/Publish Link coordination complete.
+- [x] reader/embed state, geometry, focus, and motion complete.
+- [x] security, permissions, protected Assets, immutable Publications, and
       public projection preserved.
-- [ ] no migration/public URL/persistence/major dependency change.
+- [x] no migration/public URL/persistence/major dependency change.
 
 ### Verification and closeout
 
-- [ ] focused web/shared/server tests pass.
-- [ ] full web types/lint/test/build pass.
-- [ ] DB integration and V1 smoke pass.
-- [ ] workspace types/lint/recursive tests pass or unrelated failures recorded.
-- [ ] `agent-browser` role/workflow/public/viewport matrix passes.
-- [ ] build-size and accessibility/performance observations recorded.
-- [ ] status/checklists/implementation log/verification/leftovers updated.
-- [ ] master `005` updated only for completed child `128` items.
+- [x] focused web/shared/server tests pass.
+- [x] full web types/lint/test/build pass.
+- [x] DB integration and V1 smoke pass.
+- [x] workspace types/lint/recursive tests pass or unrelated failures recorded.
+- [x] `agent-browser` role/workflow/public/viewport matrix passes.
+- [x] build-size and accessibility/performance observations recorded.
+- [x] status/checklists/implementation log/verification/leftovers updated.
+- [x] master `005` updated only for completed child `128` items.
 
 ## Expansion Log
 
@@ -999,21 +999,100 @@ browser profiles, cookies, credentials, or unrelated user/agent work.
   boundaries explicit.
 - 2026-07-29: Assigned a dedicated guarded Demo fixture rather than coupling
   Scene/Hotspot browser data to the Guide fixture.
-- 2026-07-29: No runtime implementation performed.
+- 2026-07-29: The planning-only statement above records the expansion
+  checkpoint; runtime implementation and closeout subsequently completed in
+  the commits and verification record below.
 
 ## Implementation Log
 
-Not started.
+- `d78604c` added the strict authenticated referenced-background Asset
+  projection and preserved active, archived-protected, missing-file, tenant,
+  Project, and exact Project Version boundaries.
+- `7999859` added the canonical Working Draft preview route, shared normalized
+  canvas primitives, and the Scene-create client.
+- `a4a7b1b` extracted the workbench, editor shell/contracts/helpers, Scene
+  editor, canvas, and renderer. The final route controller is 988 lines and
+  every new/extracted Demo runtime/test file remains below 1,000 lines.
+- `878adc8` coordinated Edition/Working Draft baselines, local metadata/Scene/
+  Hotspot drafts, unload protection, aggregate mutation ownership, stable
+  selection, explicit save states, and conflict recovery.
+- `cd7edfc` unified Working Draft, immutable Revision, authenticated read-only,
+  public reader, and embed rendering with normalized overlays, history/focus,
+  terminal states, and reduced-motion behavior.
+- `6c4f47e` added the guarded, repeatable Interactive Demo browser fixture,
+  seed CLI, pure safety test, and live relationship test.
+- `f023b25`, `ee87aa2`, and `50246e3` closed browser and broad-suite findings:
+  single-shell composition, lifecycle write gates, landmark/contrast fixes,
+  first-Hotspot selection, strict App test fixtures, and lint cleanup.
+- `e39e364`, `5ac6b26`, and `44ab9f3` redacted seed output and completed the
+  fixture with a real two-Project-Version manifest and a separate archived
+  Project.
+- `f86c254` and `ce25b79` removed raw actor/Artifact identifiers from Revision
+  history and Carry-Forward conflict presentation.
+- No migration, persisted Scene/Hotspot/Transition redesign, public URL/access
+  change, or new production dependency was introduced.
 
 ## Verification Record
 
-Planning inspection only. No implementation, test, DB, smoke, browser,
-accessibility, performance, or build-size acceptance is claimed by this
-expansion.
+Completed 2026-07-29.
+
+Focused:
+
+- `pnpm --filter @repo/types test -- src/demo.test.ts src/publish.test.ts`:
+  2 files, 12 tests passed.
+- `pnpm --filter @repo/demo-domain test`: 5 files, 15 tests passed.
+- declared focused server command: 6 files, 17 tests passed.
+- declared focused web command: 13 files, 124 tests passed.
+- Demo fixture pure tests: 2 tests passed; dedicated fixture/Interactive Demo
+  DB reruns passed after contract hardening.
+
+Database and broad:
+
+- `pnpm --filter server test:setup`
+- `pnpm --filter server seed:interactive-demo-browser-fixture`
+- `pnpm --filter server test:db`: 20 files, 67 tests passed.
+- `pnpm --filter server test:smoke`: 1 file, 1 workflow passed.
+- `pnpm --filter web test`: 52 files, 328 tests passed.
+- `pnpm --filter web check-types`, `pnpm --filter web lint`, and
+  `pnpm --filter web build`: passed.
+- `pnpm check-types`, `pnpm lint`, `pnpm -r --if-present test`, and
+  `git diff --check`: passed. The recursive gate included 19 Extension files /
+  140 tests, 52 web files / 328 tests, and 99 server files / 406 tests, plus all
+  shared packages.
+
+Production build:
+
+- JS: 463.79 kB raw / 128.81 kB gzip, versus child `127`'s 453.81 / 125.30
+  baseline (`+9.98` raw, `+3.51` gzip).
+- CSS: 73.19 kB raw / 14.17 kB gzip, versus 66.16 / 13.04 (`+7.03` raw,
+  `+1.13` gzip).
+- Growth is attributable to the selected-Scene workbench, pointer/keyboard
+  canvas, shared overlay renderer, preview route, and explicit public states;
+  no new runtime dependency was added.
+
+Browser:
+
+- loaded current `agent-browser` core/dogfood guidance and used headless
+  Chromium against the disposable testing API/database.
+- Admin/Editor/Viewer, active/archived Project, active/archived Project
+  Version, active/empty/archived Edition, twelve-Scene authoring, generation,
+  background states, Hotspot geometry, stale two-session conflict, Working
+  Draft/Revision preview, checkpoint, Carry-Forward conflict, zero-Link
+  Publication, multi-Version selector, password/restricted/expired/revoked,
+  reader, and embed states passed.
+- exact-Version generation navigated canonically; keyboard geometry persisted
+  after reload; Revision 3 checkpoint and Publication 3 were created; raw public
+  JSON contained two manifest entries and no prohibited metadata.
+- `390 × 844` embed and `640` CSS-pixel/reduced-motion reflow had no document
+  overflow. Final public, Revision, Carry-Forward, and authoring axe passes had
+  zero violations; the authoring pass retained only three indeterminate
+  textarea contrast checks.
+- dated details and synthetic screenshots are in
+  `docs/ui/128-interactive-demo-authoring-and-viewer-ui-browser-evidence.md`.
 
 ## Critical Decisions
 
-No unresolved critical decision was found.
+No unresolved critical decision or child `128` blocker remains.
 
 This plan preserves explicit save semantics, accessible up/down ordering,
 existing Hotspot types, normalized relational geometry, and accepted internal/
@@ -1021,14 +1100,21 @@ public routes. If implementation evidence requires persistence changes, new
 Hotspot semantics, public access/URL changes, permission changes, destructive
 data handling, or a major dependency, stop and amend/recheck this plan first.
 
-## Handoff
+## Leftovers And Handoff
 
-The implementation agent should begin with the fixture and characterization
-tests, then extract the Demo editor before adding behavior. It should reuse
-child `127`'s shared Publication lease, Revision history, Carry-Forward,
-strict-public-projection, portal-shell, public-selector, and recovery patterns
-without importing Guide content composition.
+Child `129` inherits only cross-product closeout work:
 
-Child `129` should receive only cross-product accessibility, motion,
-performance, and dogfood leftovers that remain after this Demo-specific matrix.
-No child `128` runtime work is complete yet.
+- compare the modernized Capture, Guide, Demo, and Extension experiences as one
+  keyboard/reflow/motion system rather than redesigning Demo composition;
+- decide whether the measured JS/CSS growth warrants route-level splitting or
+  other cross-product performance work;
+- repeat manual contrast inspection for layered shared textarea styles that
+  axe marked indeterminate, while preserving the zero-violation Demo scans;
+- review broader browser responsiveness and performance budgets across the
+  connected product.
+
+Child `129` must preserve the Demo-specific normalized geometry, explicit save/
+conflict model, strict public projection, immutable Publication semantics,
+exact Project Version routes, and shared renderer accepted here. There is no
+deferred child `128` migration, security fix, permission change, or browser
+acceptance blocker.
