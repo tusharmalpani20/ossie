@@ -37,7 +37,7 @@ The immutable baseline was captured before runtime edits:
 
 | Artifact                  | Baseline raw | Baseline gzip | Final raw | Final gzip |
 | ------------------------- | -----------: | ------------: | --------: | ---------: |
-| Web JS                    |    466.56 kB |     129.85 kB | 468.52 kB |  130.36 kB |
+| Web JS                    |    466.56 kB |     129.85 kB | 468.52 kB |  130.37 kB |
 | Web CSS                   |     73.19 kB |      14.17 kB |  73.89 kB |   14.28 kB |
 | Extension popup JS        |    256.13 kB |      78.20 kB | 256.13 kB |   78.20 kB |
 | Extension popup CSS       |     16.20 kB |       4.24 kB |  16.20 kB |    4.24 kB |
@@ -47,7 +47,7 @@ The immutable baseline was captured before runtime edits:
 
 The final web number above is the standard production build. The browser build
 with the explicit testing API origin was 468.54 kB raw / 130.39 kB gzip. Child
-129 added 0.51 kB gzip JS and 0.11 kB gzip CSS for exhaustive route titles,
+129 added 0.52 kB gzip JS and 0.11 kB gzip CSS for exhaustive route titles,
 shared Card semantics, bypass navigation, and dialog focus management.
 
 The prior web growth is already attributable to the accepted Guide and Demo
