@@ -4,9 +4,9 @@ Date reserved: 2026-07-12
 
 Expanded and rechecked: 2026-07-29
 
-Status: Implemented and close-previous code audit clean. Tests, contracts, and
-direct browser verification pass; true installed toolbar-popup end-to-end
-acceptance is blocked by the available automation surface and remains open.
+Status: Complete after installed-toolbar acceptance and closeout recheck on
+2026-07-29. Tests, contracts, direct browser verification, and the real
+unpacked toolbar-popup workflow pass.
 
 Parent plan:
 
@@ -1549,14 +1549,14 @@ unrelated files to make this child appear green.
 - [x] Extension TypeScript, lint, and build pass.
 - [x] Relevant server contract checks pass.
 - [x] Direct agent-browser popup-page validation recorded.
-- [x] True installed toolbar-popup validation recorded or precisely blocked.
-- [ ] Automatic/manual API evidence proves unique indexes and redaction.
-- [ ] Portal handoff proves canonical named Project Version routing.
+- [x] True installed toolbar-popup validation recorded.
+- [x] Automatic/manual API evidence proves unique indexes and redaction.
+- [x] Portal handoff proves canonical named Project Version routing.
 - [x] Console/network/accessibility/reflow evidence recorded.
 
 ### Closeout
 
-- [ ] Status changed to Complete only after acceptance.
+- [x] Status changed to Complete only after acceptance.
 - [x] Implementation log lists exact commits and behavior.
 - [x] Verification record contains dated commands/results.
 - [x] Master `005` updated only for completed child `126` items.
@@ -1565,7 +1565,7 @@ unrelated files to make this child appear green.
 
 ## Implementation Log
 
-Implemented, with installed-toolbar end-to-end acceptance still open.
+Complete, including installed-toolbar end-to-end acceptance.
 
 Implementation commits:
 
@@ -1609,6 +1609,18 @@ Implementation record:
   explicit local-only logout recovery after ambiguous network failure, and
   current server-confirmed Event count/Capture Session status without changing
   API, schema, migration, permission, or manifest contracts.
+- 2026-07-29: Installed Puppeteer `25.4.0` globally outside the repository and
+  used Chrome 151's extension-action protocol to drive the production unpacked
+  Manifest V3 toolbar popup on this headless server.
+- 2026-07-29: The live disposable child `125-01` fixture proved API/portal
+  separation, extension login, named Project Version selection, automatic and
+  manual screenshot persistence, redaction, sensitive/editable suppression,
+  pause/resume, overlap safety, popup/service-worker restoration, completion,
+  local-state clear, and canonical portal handoff.
+- 2026-07-29: Final code, contract, security, permission, migration, and
+  backwards-compatibility recheck found no additional runtime defect. No
+  schema, migration, API, permission, manifest, dependency, or production-code
+  change was required for closeout.
 
 Expansion record:
 
@@ -1752,6 +1764,47 @@ git diff --check
   PASS
 ```
 
+Installed-toolbar closeout verification on 2026-07-29:
+
+```text
+Puppeteer 25.4.0 + Chrome for Testing 151.0.7922.47
+  PASS: loaded apps/extension/dist as the enabled unpacked Ossie MV3 extension
+  PASS: invoked the real extension action and attached to its toolbar popup
+  PASS: connected http://127.0.0.1:3002 as the API base
+  PASS: configured http://127.0.0.1:3000 as the distinct portal base
+  PASS: signed in with the synthetic child 125-01 admin fixture
+  PASS: selected named Project Version "Summer release"
+  PASS: automatic click created exactly one screenshot Asset and click Event
+  PASS: manual screenshot created exactly one screenshot Asset and capture Event
+  PASS: indexes were unique and increasing; overlapping clicks were accepted or
+        rejected safely without a duplicate
+  PASS: every returned Event had input_value_redacted: true
+  PASS: no fixture secret or page HTML appeared in the Event response
+  PASS: password and contenteditable targets created no Asset or Event
+  PASS: pause suppressed automatic capture and resume restored it
+  PASS: popup and service-worker restart restored the same active session/index
+  PASS: Finish completed once, cleared local active state, and opened
+        /projects/:projectId/versions/summer-release/capture-sessions/:id
+        on the portal origin
+
+pnpm --filter extension test
+  PASS: 19 files, 140 tests
+
+pnpm --filter extension check-types
+pnpm --filter extension lint
+pnpm --filter extension build
+  PASS
+
+pnpm --filter server test -- [six focused contract files]
+  PASS: 6 files, 51 tests
+
+pnpm check-types
+  PASS: 12 tasks
+
+pnpm lint
+  PASS: 13 tasks
+```
+
 Detailed safe synthetic evidence is recorded in
 `docs/ui/126-extension-ui-browser-evidence.md`.
 
@@ -1761,15 +1814,10 @@ Detailed safe synthetic evidence is recorded in
   portal-handoff validation.
 - Child `126` owns extension UI and the narrow automatic/manual coordination fix
   described here. It must not absorb portal editor or artifact-authoring work.
-- Before marking child `126` Complete or beginning child `127`, run the true
-  installed toolbar-popup matrix against the disposable child `125-01` fixture.
-  Capture authenticated automatic/manual API counts, sensitive-target
-  suppression, service-worker restart restoration, race/reconciliation
-  behavior, and canonical portal handoff.
-- Nothing from the close-previous audit should be implemented in child `127`.
-  The only `127` carry-forward is the sequence gate: do not start its Guide
-  authoring/reader work until the child `126` installed-toolbar acceptance
-  matrix above is complete.
+- The true installed toolbar-popup matrix passed against the disposable child
+  `125-01` fixture. Child `127`'s predecessor gate is satisfied.
+- Nothing from child `126` needs implementation in child `127`; Guide
+  authoring/reader work can proceed within child `127`'s own scope.
 - Child `129` still owns the later cross-product accessibility, motion, and
   browser dogfood pass; child `126` must nevertheless meet its own popup-specific
   accessibility and browser acceptance rather than deferring all evidence.

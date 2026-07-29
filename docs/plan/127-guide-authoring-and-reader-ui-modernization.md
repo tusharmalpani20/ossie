@@ -4,9 +4,9 @@ Date reserved: 2026-07-12
 
 Expanded and rechecked: 2026-07-29
 
-Status: Implementation-ready but sequence-blocked. Planning is complete; runtime
-implementation must not begin until child `126` passes its remaining true
-installed toolbar-popup acceptance matrix and is marked Complete.
+Status: Implementation-ready. Child `126` passed its installed-toolbar
+acceptance gate on 2026-07-29; runtime implementation may begin after the
+required preflight in this plan.
 
 Parent plan:
 
@@ -23,15 +23,15 @@ Prerequisites:
 - Children `121` through `125` are complete. Their design system, portal shell,
   Project/Project Version workspace, and Capture portal patterns are the UI
   baseline for this child.
-- Child `126` is implemented and its close-previous code audit is clean at
-  commit `f9abd7d`, but it is not Complete. The true installed toolbar-popup
-  matrix remains open.
-- Before the first runtime change for this child, recheck child `126`. It must
-  be marked Complete and master `005` must no longer identify its toolbar matrix
-  as the immediate next action.
+- Child `126` is Complete after its 2026-07-29 installed toolbar-popup matrix
+  proved automatic/manual API persistence, privacy suppression, restart
+  restoration, overlap safety, and canonical named-version portal handoff.
+- Before the first runtime change for this child, confirm child `126` remains
+  Complete and account for any later repository changes.
 
-Planning this child does not waive the predecessor gate. If child `126` is still
-open, stop after this planning checkpoint.
+The predecessor gate is satisfied. If later repository changes reopen child
+`126`, stop after preflight and report the blocker without changing runtime
+files.
 
 Next child:
 
@@ -1493,7 +1493,7 @@ agent work.
 - [x] Exact affected files, contracts, non-scope, baseline, and verification
       recorded.
 - [x] No unresolved critical product/domain decision identified.
-- [ ] Child `126` marked Complete before runtime implementation.
+- [x] Child `126` marked Complete before runtime implementation.
 
 ### Implementation
 
@@ -1541,6 +1541,9 @@ agent work.
   browser/contracts are clean, but its true installed toolbar-popup acceptance
   remains open. Child `127` planning may be recorded; implementation remains
   sequence-blocked.
+- 2026-07-29: Child `126` subsequently passed its true installed
+  toolbar/API/handoff acceptance matrix. The predecessor gate is satisfied; no
+  child `127` runtime implementation was performed during that closeout.
 - 2026-07-29: Mapped current Guide callers from Capture generation through the
   Project-Version-scoped library, mutable Working Draft editor, immutable
   Revision/Carry-Forward workflows, Publication/Publish Link controls, and
@@ -1626,10 +1629,9 @@ stop and amend the plan before coding that change.
 
 Before implementation:
 
-- close child `126` by running its true installed toolbar-popup matrix;
-- update master `005` to mark child `126` Complete only if that acceptance
-  genuinely passes;
-- then recheck this plan against any intervening Guide code changes.
+- child `126` is Complete; retain its evidence as the accepted predecessor
+  baseline;
+- recheck this plan against any intervening Guide code changes.
 
 After child `127`:
 

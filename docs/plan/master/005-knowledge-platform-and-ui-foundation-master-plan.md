@@ -2,10 +2,8 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `125` are complete. Child `126`
-implementation and close-previous code audit pass, including refreshed direct
-browser/contract verification; its true installed toolbar-popup end-to-end
-acceptance remains open.
+Status: In progress. Children `109` through `126` are complete. Child `127` is
+implementation-ready.
 
 Master plan number: 005.
 
@@ -1592,8 +1590,8 @@ Acceptance:
 
 ### 126: Extension UI Modernization
 
-Status: Implemented and close-previous code audit clean; installed toolbar-popup
-acceptance remains open.
+Status: Complete after installed toolbar-popup acceptance and closeout recheck
+on 2026-07-29.
 
 Planned file:
 
@@ -2023,7 +2021,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `123`.
 - [x] Create, expand, recheck, implement, and close child plan `124`.
 - [x] Create, expand, recheck, implement, and close child plan `125`.
-- [ ] Create, expand, recheck, implement, and close child plan `126`.
+- [x] Create, expand, recheck, implement, and close child plan `126`.
 - [ ] Create, expand, recheck, implement, and close child plan `127`.
 - [ ] Create, expand, recheck, implement, and close child plan `128`.
 - [ ] Create, expand, recheck, implement, and close child plan `129`.
@@ -2066,18 +2064,12 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is the remaining child `126` true installed
-toolbar-popup acceptance matrix against the disposable child `125-01` fixture.
-Do not begin child `127` or mark child `126` Complete until automatic/manual API
-counts, sensitive-target suppression, service-worker restoration, capture
-coordination/reconciliation, and canonical named Project Version portal handoff
-are verified from the installed toolbar surface.
-The 2026-07-29 close-previous audit repaired fail-closed Event-index
-reconciliation, interrupted-save restoration, lifecycle rollback,
-server-success/local-persistence recovery, ambiguous logout handling,
-instance-change confirmation, portal-only settings, and server-confirmed
-Capture status/count presentation. It did not change schemas, migrations,
-server APIs, authorization, manifest permissions, or the child `127` scope.
+The next executable activity is child `127`, Guide Authoring And Reader UI
+Modernization. Child `126` passed its real installed toolbar-popup matrix on
+2026-07-29 with automatic/manual API evidence, privacy suppression,
+service-worker restoration, overlap safety, and canonical named Project Version
+portal handoff. Its final recheck required no schema, migration, server API,
+authorization, manifest-permission, dependency, or production-code change.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
