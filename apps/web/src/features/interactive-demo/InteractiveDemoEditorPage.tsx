@@ -36,7 +36,10 @@ import { InteractiveDemoSceneEditor } from "./InteractiveDemoSceneEditor";
 import { InteractiveDemoWorkbench } from "./InteractiveDemoWorkbench";
 import { InteractiveDemoReadOnlyPage } from "./InteractiveDemoReadOnlyPage";
 import { InteractiveDemoEditorShell as PortalShell } from "./InteractiveDemoEditorShell";
-import type { InteractiveDemoEditorPageProps } from "./interactiveDemoEditorContracts";
+import type {
+  InteractiveDemoEditorLoadState as LoadState,
+  InteractiveDemoEditorPageProps,
+} from "./interactiveDemoEditorContracts";
 import type {
   CreateDemoHotspotInput,
   DemoHotspot,
@@ -45,19 +48,6 @@ import type {
   UpdateDemoHotspotInput,
 } from "./types";
 import styles from "./InteractiveDemoEditorPage.module.css";
-
-type LoadState =
-  | { status: "loading" }
-  | {
-      status: "loaded";
-      demo: InteractiveDemo;
-      scenes: DemoScene[];
-      hotspotsBySceneId: Record<string, DemoHotspot[]>;
-      backgroundAssets: CaptureAssetWithFileUrl[];
-    }
-  | { status: "unauthenticated" }
-  | { status: "not_found" }
-  | { status: "error" };
 
 const loadStateFromError = (error: unknown): LoadState => {
   if (error instanceof ApiClientError) {
@@ -81,6 +71,7 @@ export const InteractiveDemoEditorPage = ({
     getInteractiveDemo(id, artifactId, projectVersionId),
   loadScenes = (id, artifactId) =>
     listInteractiveDemoScenes(id, artifactId, projectVersionId),
+  loadBackgroundAssets,
   createScene = (id, artifactId, input) =>
     createInteractiveDemoScene(id, artifactId, input, projectVersionId),
   saveDemo = (id, artifactId, input) =>
@@ -168,8 +159,9 @@ export const InteractiveDemoEditorPage = ({
     Promise.all([
       loadDemo(projectId, interactiveDemoId),
       loadScenes(projectId, interactiveDemoId),
+      loadBackgroundAssets?.(projectId, projectVersionId) ?? null,
     ])
-      .then(async ([demoResponse, sceneResponse]) => {
+      .then(async ([demoResponse, sceneResponse, assetResponse]) => {
         const scenes = sortedScenes(sceneResponse.demo_scenes);
         const hotspotEntries = await Promise.all(
           scenes.map(async (scene) => {
@@ -190,12 +182,18 @@ export const InteractiveDemoEditorPage = ({
         );
 
         if (active) {
+          const assetsById = new Map(
+            [
+              ...(assetResponse?.capture_assets ?? []),
+              ...sceneResponse.background_capture_assets,
+            ].map((asset) => [asset.id, asset]),
+          );
           setState({
             status: "loaded",
             demo: demoResponse.edition,
             scenes,
             hotspotsBySceneId: Object.fromEntries(hotspotEntries),
-            backgroundAssets: sceneResponse.background_capture_assets,
+            backgroundAssets: [...assetsById.values()],
           });
           setWorkingDraftVersion(demoResponse.working_draft.version);
         }
@@ -403,6 +401,9 @@ const InteractiveDemoEditorLoaded = ({
   versionSlug?: string;
 }) => {
   const orderedScenes = useMemo(() => sortedScenes(scenes), [scenes]);
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(
+    orderedScenes[0]?.id ?? null,
+  );
   const [demoDraft, setDemoDraft] = useState<DemoDraft>(() =>
     demoDraftFromDemo(demo),
   );
@@ -422,6 +423,19 @@ const InteractiveDemoEditorLoaded = ({
   const hasUnsavedMetadata =
     demoDraft.title !== demo.title ||
     demoDraft.description !== (demo.description ?? "");
+  const selectedScene =
+    orderedScenes.find((scene) => scene.id === selectedSceneId) ??
+    orderedScenes[0] ??
+    null;
+
+  useEffect(() => {
+    if (
+      !selectedSceneId ||
+      !orderedScenes.some((scene) => scene.id === selectedSceneId)
+    ) {
+      setSelectedSceneId(orderedScenes[0]?.id ?? null);
+    }
+  }, [orderedScenes, selectedSceneId]);
 
   useEffect(() => {
     if (!hasUnsavedMetadata) return;
@@ -474,6 +488,21 @@ const InteractiveDemoEditorLoaded = ({
     setMessage(null);
   };
 
+  const handleWorkingDraftFailure = (error: unknown, fallback: string) => {
+    const type =
+      typeof error === "object" && error !== null && "type" in error
+        ? String(error.type)
+        : "";
+    if (type.includes("conflict")) {
+      setConflict(true);
+      setMessage(
+        "This Working Draft changed elsewhere. Your local changes are still here.",
+      );
+    } else {
+      setMessage(fallback);
+    }
+  };
+
   const handleSaveDemo = async () => {
     setPendingAction("demo");
     setMessage(null);
@@ -518,6 +547,7 @@ const InteractiveDemoEditorLoaded = ({
       });
       const nextScenes = sortedScenes([...orderedScenes, response.demo_scene]);
       setWorkingDraftVersion(response.working_draft.version);
+      setSelectedSceneId(response.demo_scene.id);
       updateLoadedState(demo, nextScenes, {
         ...hotspotsBySceneId,
         [response.demo_scene.id]: [],
@@ -592,8 +622,8 @@ const InteractiveDemoEditorLoaded = ({
       updateLoadedState(demo, nextScenes, hotspotsBySceneId);
       setSceneDrafts(sceneDraftsFromScenes(nextScenes));
       setMessage("Scene saved.");
-    } catch {
-      setMessage("Could not save scene.");
+    } catch (error) {
+      handleWorkingDraftFailure(error, "Could not save scene.");
     } finally {
       setPendingAction(null);
     }
@@ -629,8 +659,8 @@ const InteractiveDemoEditorLoaded = ({
       const nextScenes = sortedScenes(response.demo_scenes);
       updateLoadedState(demo, nextScenes, hotspotsBySceneId);
       setSceneDrafts(sceneDraftsFromScenes(nextScenes));
-    } catch {
-      setMessage("Could not reorder scenes.");
+    } catch (error) {
+      handleWorkingDraftFailure(error, "Could not reorder scenes.");
     } finally {
       setPendingAction(null);
     }
@@ -651,12 +681,18 @@ const InteractiveDemoEditorLoaded = ({
       const nextScenes = orderedScenes.filter(
         (candidate) => candidate.id !== scene.id,
       );
+      const deletedIndex = orderedScenes.findIndex(
+        (candidate) => candidate.id === scene.id,
+      );
+      setSelectedSceneId(
+        nextScenes[Math.min(deletedIndex, nextScenes.length - 1)]?.id ?? null,
+      );
       const nextHotspotsBySceneId = { ...hotspotsBySceneId };
       delete nextHotspotsBySceneId[scene.id];
       updateLoadedState(demo, nextScenes, nextHotspotsBySceneId);
       setSceneDrafts(sceneDraftsFromScenes(nextScenes));
-    } catch {
-      setMessage("Could not delete scene.");
+    } catch (error) {
+      handleWorkingDraftFailure(error, "Could not delete scene.");
     } finally {
       setPendingAction(null);
     }
@@ -728,8 +764,8 @@ const InteractiveDemoEditorLoaded = ({
         ...(hotspotsBySceneId[scene.id] ?? []),
         response.demo_hotspot,
       ]);
-    } catch {
-      setMessage("Could not create hotspot.");
+    } catch (error) {
+      handleWorkingDraftFailure(error, "Could not create hotspot.");
     } finally {
       setPendingAction(null);
     }
@@ -789,8 +825,8 @@ const InteractiveDemoEditorLoaded = ({
         ),
       );
       setMessage("Hotspot saved.");
-    } catch {
-      setMessage("Could not save hotspot.");
+    } catch (error) {
+      handleWorkingDraftFailure(error, "Could not save hotspot.");
     } finally {
       setPendingAction(null);
     }
@@ -818,8 +854,8 @@ const InteractiveDemoEditorLoaded = ({
           (candidate) => candidate.id !== hotspot.id,
         ),
       );
-    } catch {
-      setMessage("Could not delete hotspot.");
+    } catch (error) {
+      handleWorkingDraftFailure(error, "Could not delete hotspot.");
     } finally {
       setPendingAction(null);
     }
@@ -858,8 +894,8 @@ const InteractiveDemoEditorLoaded = ({
       );
       setWorkingDraftVersion(response.working_draft.version);
       replaceSceneHotspots(scene.id, response.demo_hotspots);
-    } catch {
-      setMessage("Could not reorder hotspots.");
+    } catch (error) {
+      handleWorkingDraftFailure(error, "Could not reorder hotspots.");
     } finally {
       setPendingAction(null);
     }
@@ -889,45 +925,66 @@ const InteractiveDemoEditorLoaded = ({
         onChangeLifecycle={onChangeLifecycle}
         runAggregateMutation={runAggregateMutation}
       >
-        {orderedScenes.length === 0 ? (
+        {orderedScenes.length === 0 || !selectedScene ? (
           <div className={styles.empty}>No scenes yet.</div>
         ) : (
-          <div className={styles.sceneList}>
-            {orderedScenes.map((scene, index) => (
+          <>
+            <nav aria-label="Scene rail" className={styles.sceneRail}>
+              {orderedScenes.map((scene, index) => (
+                <button
+                  aria-current={
+                    scene.id === selectedScene.id ? "true" : undefined
+                  }
+                  key={scene.id}
+                  onClick={() => setSelectedSceneId(scene.id)}
+                  type="button"
+                >
+                  Select Scene {index + 1}: {scene.title ?? "Untitled Scene"}
+                </button>
+              ))}
+            </nav>
+            <div className={styles.sceneList}>
               <InteractiveDemoSceneEditor
-                key={scene.id}
+                key={selectedScene.id}
                 projectId={projectId}
-                scene={scene}
-                sceneNumber={index + 1}
-                isFirst={index === 0}
-                isLast={index === orderedScenes.length - 1}
+                scene={selectedScene}
+                sceneNumber={orderedScenes.indexOf(selectedScene) + 1}
+                isFirst={orderedScenes.indexOf(selectedScene) === 0}
+                isLast={
+                  orderedScenes.indexOf(selectedScene) ===
+                  orderedScenes.length - 1
+                }
                 draft={
-                  sceneDrafts[scene.id] ?? {
+                  sceneDrafts[selectedScene.id] ?? {
                     title: "",
                     description: "",
                     background_capture_asset_id: "",
                   }
                 }
-                pendingAction={pendingAction}
+                pendingAction={conflict ? "conflict" : pendingAction}
                 resolveAssetUrl={resolveAssetUrl}
                 scenes={orderedScenes}
                 backgroundAssets={backgroundAssets}
-                hotspots={sortedHotspots(hotspotsBySceneId[scene.id] ?? [])}
+                hotspots={sortedHotspots(
+                  hotspotsBySceneId[selectedScene.id] ?? [],
+                )}
                 hotspotDrafts={hotspotDrafts}
                 updateDraft={updateSceneDraft}
                 updateHotspotDraft={updateHotspotDraft}
                 saveCurrentScene={handleSaveScene}
-                moveScene={(direction) => moveScene(index, direction)}
+                moveScene={(direction) =>
+                  moveScene(orderedScenes.indexOf(selectedScene), direction)
+                }
                 deleteCurrentScene={handleDeleteScene}
                 createCurrentHotspot={handleCreateHotspot}
                 saveCurrentHotspot={handleSaveHotspot}
                 moveHotspot={(hotspotIndex, direction) =>
-                  moveHotspot(scene, hotspotIndex, direction)
+                  moveHotspot(selectedScene, hotspotIndex, direction)
                 }
                 deleteCurrentHotspot={handleDeleteHotspot}
               />
-            ))}
-          </div>
+            </div>
+          </>
         )}
       </InteractiveDemoWorkbench>
     </PortalShell>

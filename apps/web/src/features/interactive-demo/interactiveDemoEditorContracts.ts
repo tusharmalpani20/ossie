@@ -1,6 +1,8 @@
 import type {
   CreateDemoHotspotInput,
   CreateDemoSceneInput,
+  DemoHotspot,
+  DemoScene,
   InteractiveDemoDetailResponse,
   InteractiveDemoHotspotCreateResponse,
   InteractiveDemoHotspotListResponse,
@@ -14,7 +16,22 @@ import type {
   UpdateDemoHotspotInput,
   UpdateDemoSceneInput,
   UpdateInteractiveDemoInput,
+  InteractiveDemo,
 } from "@repo/types/demo";
+import type { CaptureAssetWithFileUrl } from "@repo/types/capture";
+
+export type InteractiveDemoEditorLoadState =
+  | { status: "loading" }
+  | {
+      status: "loaded";
+      demo: InteractiveDemo;
+      scenes: DemoScene[];
+      hotspotsBySceneId: Record<string, DemoHotspot[]>;
+      backgroundAssets: CaptureAssetWithFileUrl[];
+    }
+  | { status: "unauthenticated" }
+  | { status: "not_found" }
+  | { status: "error" };
 
 export type InteractiveDemoEditorPageProps = {
   projectId: string;
@@ -28,6 +45,10 @@ export type InteractiveDemoEditorPageProps = {
     projectId: string,
     interactiveDemoId: string,
   ) => Promise<InteractiveDemoSceneListResponse>;
+  loadBackgroundAssets?: (
+    projectId: string,
+    projectVersionId: string,
+  ) => Promise<{ capture_assets: CaptureAssetWithFileUrl[] }>;
   createScene?: (
     projectId: string,
     interactiveDemoId: string,
