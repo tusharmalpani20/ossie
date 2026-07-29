@@ -2,6 +2,7 @@ import {
   Fragment,
   useEffect,
   useRef,
+  useState,
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
@@ -22,6 +23,7 @@ const clamp = (value: number, minimum: number, maximum: number) =>
 export const InteractiveDemoCanvas = ({
   sceneTitle,
   backgroundUrl,
+  backgroundAspectRatio,
   hotspots,
   selectedHotspotId,
   onSelect,
@@ -29,6 +31,7 @@ export const InteractiveDemoCanvas = ({
 }: {
   sceneTitle: string;
   backgroundUrl: string | null;
+  backgroundAspectRatio?: string;
   hotspots: DemoCanvasHotspot[];
   selectedHotspotId: string | null;
   onSelect: (hotspotId: string) => void;
@@ -38,6 +41,7 @@ export const InteractiveDemoCanvas = ({
   ) => void;
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const [imageFailed, setImageFailed] = useState(false);
   const pointerOperationRef = useRef<{
     mode: "move" | "resize";
     hotspot: DemoCanvasHotspot;
@@ -46,6 +50,8 @@ export const InteractiveDemoCanvas = ({
     width: number;
     height: number;
   } | null>(null);
+
+  useEffect(() => setImageFailed(false), [backgroundUrl]);
 
   useEffect(() => {
     const move = (event: globalThis.PointerEvent) => {
@@ -74,13 +80,21 @@ export const InteractiveDemoCanvas = ({
     const end = () => {
       pointerOperationRef.current = null;
     };
+    const cancel = () => {
+      const operation = pointerOperationRef.current;
+      if (operation) {
+        const { id, x, y, width, height } = operation.hotspot;
+        onGeometryChange(id, { x, y, width, height });
+      }
+      pointerOperationRef.current = null;
+    };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", end);
-    window.addEventListener("pointercancel", end);
+    window.addEventListener("pointercancel", cancel);
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", end);
-      window.removeEventListener("pointercancel", end);
+      window.removeEventListener("pointercancel", cancel);
     };
   }, [onGeometryChange]);
 
@@ -129,10 +143,19 @@ export const InteractiveDemoCanvas = ({
       aria-label={`${sceneTitle} canvas`}
       ref={canvasRef}
       role="group"
+      style={
+        backgroundAspectRatio
+          ? { aspectRatio: backgroundAspectRatio }
+          : undefined
+      }
     >
-      {backgroundUrl ? (
+      {backgroundUrl && !imageFailed ? (
         <>
-          <img src={backgroundUrl} alt={`${sceneTitle} captured screen`} />
+          <img
+            src={backgroundUrl}
+            alt={`${sceneTitle} captured screen`}
+            onError={() => setImageFailed(true)}
+          />
           {hotspots.map((hotspot) => (
             <Fragment key={hotspot.id}>
               <button

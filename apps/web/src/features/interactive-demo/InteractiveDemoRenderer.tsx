@@ -48,6 +48,9 @@ export const InteractiveDemoRenderer = ({
   const [sceneId, setSceneId] = useState(orderedScenes[0]?.id ?? null);
   const [history, setHistory] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState("");
+  const [failedBackgroundKey, setFailedBackgroundKey] = useState<
+    string | null
+  >(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const focusSceneRef = useRef(false);
   const assetsById = useMemo(
@@ -82,6 +85,12 @@ export const InteractiveDemoRenderer = ({
     ? assetsById.get(scene.backgroundAssetId)
     : null;
   const backgroundUrl = backgroundAsset?.fileUrl;
+  const backgroundKey =
+    backgroundUrl && backgroundAsset
+      ? `${scene.id}:${backgroundAsset.id}:${backgroundUrl}`
+      : null;
+  const backgroundAvailable =
+    Boolean(backgroundUrl) && failedBackgroundKey !== backgroundKey;
 
   const activate = (hotspot: InteractiveDemoRenderHotspot) => {
     const target = hotspot.targetSceneId
@@ -89,6 +98,10 @@ export const InteractiveDemoRenderer = ({
           (candidate) => candidate.id === hotspot.targetSceneId,
         )
       : null;
+    if (hotspot.targetSceneId && !target) {
+      setAnnouncement("The target Scene is unavailable.");
+      return;
+    }
     if (!target) {
       setAnnouncement(
         hotspot.content ??
@@ -141,12 +154,16 @@ export const InteractiveDemoRenderer = ({
             : undefined
         }
       >
-        {backgroundUrl ? (
-          <img src={backgroundUrl} alt={`${sceneTitle} captured screen`} />
+        {backgroundAvailable ? (
+          <img
+            src={backgroundUrl}
+            alt={`${sceneTitle} captured screen`}
+            onError={() => setFailedBackgroundKey(backgroundKey)}
+          />
         ) : (
           <div className={styles.missing}>Captured screen is unavailable.</div>
         )}
-        {backgroundUrl
+        {backgroundAvailable
           ? scene.hotspots.map((hotspot) => (
               <button
                 className={styles.hotspot}

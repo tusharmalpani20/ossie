@@ -94,4 +94,44 @@ describe("InteractiveDemoRenderer", () => {
       "This is the end of the walkthrough.",
     );
   });
+
+  it("blocks invalid Transitions with an explicit warning", () => {
+    render(
+      <InteractiveDemoRenderer
+        title="Invalid transition demo"
+        scenes={[
+          {
+            ...scenes[0]!,
+            hotspots: [
+              {
+                ...scenes[0]!.hotspots[0]!,
+                targetSceneId: "missing_scene",
+              },
+            ],
+          },
+        ]}
+        assets={[{ id: "asset_1", fileUrl: "/scene.png" }]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "The target Scene is unavailable.",
+    );
+    expect(screen.getByRole("heading", { name: "Start" })).toBeVisible();
+  });
+
+  it("renders a stable missing-media state and hides Hotspots after an image error", () => {
+    render(
+      <InteractiveDemoRenderer
+        title="Broken media demo"
+        scenes={scenes}
+        assets={[{ id: "asset_1", fileUrl: "/broken.png" }]}
+      />,
+    );
+
+    fireEvent.error(screen.getByRole("img", { name: "Start captured screen" }));
+    expect(screen.getByText("Captured screen is unavailable.")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
+  });
 });
