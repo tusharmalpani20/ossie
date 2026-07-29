@@ -5,12 +5,12 @@ Date reserved: 2026-07-12
 Expanded and rechecked: 2026-07-29. Refreshed after child `126` completion at
 `361df03`.
 
-Status: In progress. Child `126` passed its installed-toolbar acceptance gate
-on 2026-07-29. Runtime slices began on 2026-07-29; the security contracts,
-conflict recovery foundation, empty-Guide insertion, normalized annotation
-editing, and Guide publication coordination are implemented, but the fixture,
-full editor extraction, remaining surface modernization, DB/smoke acceptance,
-and browser matrix are not yet complete.
+Status: Complete after close-previous audit on 2026-07-29. The audit completed
+the guarded fixture, selected-Block workbench and extraction, public-response
+and conflict contracts, safe dirty-draft reconciliation, normalized highlight
+and broken-media behavior, shared Publication coordination, single-shell
+composition, modal focus recovery, DB/smoke coverage, and the full
+`agent-browser` role/access/responsive matrix.
 
 Parent plan:
 
@@ -1744,43 +1744,43 @@ agent work.
 
 ### Implementation
 
-- [ ] Guide conflict errors mapped to stable `409` responses.
-- [ ] Public Guide/Demo DTOs use strict server-side allowlist projections and
+- [x] Guide conflict errors mapped to stable `409` responses.
+- [x] Public Guide/Demo DTOs use strict server-side allowlist projections and
       omit accepted child `120` prohibited metadata.
-- [ ] Guarded Guide browser fixture and DB integration coverage complete.
-- [ ] Oversized Guide editor split; `GuideEditorPage.tsx` and every
+- [x] Guarded Guide browser fixture and DB integration coverage complete.
+- [x] Oversized Guide editor split; `GuideEditorPage.tsx` and every
       new/extracted Guide editor runtime/test file below 1,000 lines.
-- [ ] Guide generation/list/editor workbench modernized.
-- [ ] Dirty/save/error/conflict/read-only recovery complete.
-- [ ] Blocks/Steps/screenshots/annotations/order/delete complete.
-- [ ] Preview/Revision/Carry-Forward/archive/export complete.
-- [ ] Publication/Publish Link Guide composition complete.
-- [ ] Public reader/embed state matrix complete.
-- [ ] Security, permission, immutable Publication, and protected Asset rules
+- [x] Guide generation/list/editor workbench modernized.
+- [x] Dirty/save/error/conflict/read-only recovery complete.
+- [x] Blocks/Steps/screenshots/annotations/order/delete complete.
+- [x] Preview/Revision/Carry-Forward/archive/export complete.
+- [x] Publication/Publish Link Guide composition complete.
+- [x] Public reader/embed state matrix complete.
+- [x] Security, permission, immutable Publication, and protected Asset rules
       preserved.
-- [ ] No migration, public URL, dependency, or unsupported schema change added.
+- [x] No migration, public URL, dependency, or unsupported schema change added.
 
 ### Verification
 
-- [ ] Focused web and server tests pass.
-- [ ] Full web tests, types, lint, and build pass.
-- [ ] Relevant DB integration and V1 smoke pass.
-- [ ] Repository-wide types, lint, and recursive tests pass or unrelated
+- [x] Focused web and server tests pass.
+- [x] Full web tests, types, lint, and build pass.
+- [x] Relevant DB integration and V1 smoke pass.
+- [x] Repository-wide types, lint, and recursive tests pass or unrelated
       pre-existing failures are recorded.
-- [ ] `agent-browser` authenticated role/state/workflow matrix passes.
-- [ ] Reader/embed public access matrix passes.
-- [ ] Desktop, narrow, keyboard, 200% reflow, reduced motion, accessibility,
+- [x] `agent-browser` authenticated role/state/workflow matrix passes.
+- [x] Reader/embed public access matrix passes.
+- [x] Desktop, narrow, keyboard, 200% reflow, reduced motion, accessibility,
       console, network, and media stability evidence recorded.
-- [ ] Build-size comparison recorded.
+- [x] Build-size comparison recorded.
 
 ### Closeout
 
-- [ ] Status changed to Complete only after every required acceptance item.
-- [ ] Implementation log lists exact commits/files/behavior.
-- [ ] Verification record contains dated commands and outcomes.
-- [ ] Browser evidence contains synthetic data only.
-- [ ] Master `005` updated only for completed child `127` items.
-- [ ] Leftovers are assigned explicitly to child `128`, child `129`, or a
+- [x] Status changed to Complete only after every required acceptance item.
+- [x] Implementation log lists exact commits/files/behavior.
+- [x] Verification record contains dated commands and outcomes.
+- [x] Browser evidence contains synthetic data only.
+- [x] Master `005` updated only for completed child `127` items.
+- [x] Leftovers are assigned explicitly to child `128`, child `129`, or a
       separately approved reliability child.
 
 ## Expansion Log
@@ -1869,8 +1869,38 @@ agent work.
   mutation lease to `ArtifactPublishingPanel`, preserving its default
   Interactive Demo behavior while coordinating Guide Publication with editor
   mutations.
-- 2026-07-29: Child remains In progress. Do not mark the master checklist or
-  begin child `128` until the remaining closeout work below passes.
+- 2026-07-29: Commit `79183a7` prevented empty-Guide structural commands from
+  overlapping metadata or other aggregate Working Draft mutations.
+- 2026-07-29: Commit `7be98d4` added the guarded Guide browser fixture, CLI,
+  pure contract test, DB integration test, and explicit server seed command.
+- 2026-07-29: Commits `269fec2` and `4c6a711` removed nested Guide editor and
+  Viewer-preview shells after real browser evidence showed duplicate Ossie and
+  `Sign out` controls inside the shared portal shell.
+- 2026-07-29: Commit `33ea457` extracted
+  `GuideEditorWorkbench.tsx`. Final sizes are 901 lines for the route
+  controller, 981 for the consolidated workbench, and 482 for its route test;
+  every new/extracted Guide editor runtime/test file is below 1,000 lines.
+- 2026-07-29: Commit `d89c19e` added the responsive outline/document/inspector
+  workbench and stable selected-Block editing so long Guides no longer render
+  every form simultaneously.
+- 2026-07-29: Commit `a01ac4b` added screenshot-dialog focus containment and
+  reliable trigger-focus restoration after close/Escape.
+- 2026-07-29: Commits `cb4853f` and `e643573` added DB-backed public
+  allowlist assertions and corrected the V1 smoke contract to the dedicated
+  public `display_capture_asset_id` shape for Guide output while asserting the
+  shared Guide/Demo metadata exclusions.
+- 2026-07-29: Commit `fedff1a` preserved unrelated dirty Step/Block drafts
+  across structural insertion by stable ID instead of replacing the entire
+  local draft map.
+- 2026-07-29: Commit `3253b9e` made broken screenshot media explicit,
+  disabled the invalid viewer trigger, and withheld highlight editing without
+  deleting stored annotations.
+- 2026-07-29: Commit `46df7cd` applied the repository formatter to the
+  extracted Guide editor and screenshot viewer files; focused tests, types,
+  lint, and the sub-1,000-line gate remained green.
+- 2026-07-29: Close-previous browser, database, smoke, broad workspace, and
+  documentation audits passed. Child `127` is Complete and child `128` may
+  begin from the handoff below.
 
 ## Verification Record
 
@@ -1951,6 +1981,82 @@ git diff --check
 Only this plan changed during the readiness recheck; no runtime, schema,
 migration, route, dependency, or product behavior was implemented.
 
+Close-previous acceptance on 2026-07-29:
+
+```text
+pnpm --filter web test
+  PASS: 48 files, 312 tests
+
+pnpm --filter web check-types
+pnpm --filter web lint
+  PASS
+
+pnpm --filter web build
+  PASS
+  JS: 453.81 kB raw / 125.30 kB gzip
+  CSS: 66.16 kB raw / 13.04 kB gzip
+  Delta from expansion baseline:
+    JS +4.33 kB raw / +1.84 kB gzip
+    CSS +1.57 kB raw / +0.28 kB gzip
+
+pnpm --filter server test
+  PASS: 98 files, 404 tests
+
+pnpm --filter server check-types
+pnpm --filter server lint
+pnpm --filter server build
+  PASS
+
+pnpm --filter server test:db
+  PASS: 19 files, 66 tests
+
+pnpm --filter server test:smoke
+  INITIAL EXPECTED RED:
+    stale public Guide smoke assertion requested authenticated
+    source_capture_asset_id
+  PASS after correction: 1 file, 1 end-to-end workflow
+
+pnpm check-types
+  PASS: 12 tasks
+
+pnpm lint
+  PASS: 13 tasks
+
+pnpm -r --if-present test
+  PASS across every test-bearing workspace:
+    constants 5; UI 6; docs 12; audit-domain 48; file-domain 10;
+    types 60; capture-domain 12; demo-domain 15; guide-domain 11;
+    publish-domain 14; extension 140; web 310 at that checkpoint;
+    server 404
+
+pnpm exec prettier --check \
+  docs/plan/127-guide-authoring-and-reader-ui-modernization.md \
+  docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md \
+  docs/ui/127-guide-authoring-and-reader-ui-browser-evidence.md \
+  docs/v1-dogfood-smoke-suite.md
+git diff --check
+  PASS
+```
+
+The final two Guide media/draft regression tests were added after the recursive
+workspace checkpoint and are included in the final 312-test web run above.
+
+DB-backed projection acceptance explicitly rejects storage, private Capture,
+actor, source-Capture, source-Working-Draft, and Edition metadata. The guarded
+Guide fixture DB test additionally proves three Guide Editions, twenty Blocks,
+two Revisions, two Publications, five access-state links, and the Editor/Viewer
+roles.
+
+Browser acceptance used Headless Chrome `151.0.0.0` through `agent-browser`.
+Admin, Editor, Viewer, active/empty/archived Guide, generation/list/workbench,
+Revision, Carry-Forward, broken media, screenshot-dialog focus, public/embed,
+password/wrong-password, restricted, expired, revoked, missing entry,
+desktop/narrow/200%-reflow-equivalent, and reduced-motion checks passed. See
+`docs/ui/127-guide-authoring-and-reader-ui-browser-evidence.md`.
+
+No schema, migration, public route, access semantic, persistence model, major
+dependency, or production fixture hook changed.
+
 ## Critical Decisions
 
 No unresolved critical decision was found.
@@ -1972,28 +2078,16 @@ stop and amend the plan before coding that change.
 
 ## Leftovers And Handoff
 
-Before implementation:
+Completion state:
 
-- child `126` is Complete; retain its evidence as the accepted predecessor
-  baseline;
-- recheck this plan against any intervening Guide code changes.
-
-Remaining before completion:
-
-- implement and DB-prove the guarded Guide browser fixture;
-- finish splitting `GuideEditorPage.tsx` and its editor responsibilities so the
-  page and every extracted runtime/test file meet the sub-1,000-line boundary;
-- finish the planned workbench/outline/screenshot/recovery composition and
-  precise command-state presentation;
-- complete Guide list, Capture handoff, preview, screenshot viewer, Revision,
-  Carry-Forward, export, lifecycle, Publication/Publish Link, public reader,
-  and embed modernization and focused coverage;
-- add DB-backed raw public projection assertions and smoke coverage;
-- run the disposable DB, smoke, broad repository, responsive accessibility,
-  and full `agent-browser` role/public-state matrix;
-- create the browser evidence record and safe screenshots, then close every
-  applicable checklist item and only then mark child `127` Complete in master
-  `005`.
+- child `126` remains Complete and unchanged;
+- the guarded fixture, public projection, conflict recovery, extracted
+  workbench, selected-Block composition, media/highlight recovery, shared
+  Publication lease, DB/smoke checks, broad repository checks, and browser
+  matrix are all closed;
+- the stale smoke assertion and three browser-discovered defects were repaired
+  and reverified before closeout;
+- there is no uncommitted child `127` runtime work.
 
 After child `127`:
 
@@ -2001,7 +2095,14 @@ After child `127`:
   ArtifactRevisionHistoryPage, ProjectCarryForwardPage, public selector, and
   reader/viewer layout patterns without forcing Guide composition onto
   Interactive Demo;
-- hand child `129` only cross-product accessibility/motion/dogfood leftovers,
-  not unverified Guide acceptance;
+- child `128` must use the dedicated public projection rather than
+  authenticated Revision DTOs and must preserve the optional aggregate
+  Publication lease so Guide coordination is not regressed;
+- child `128` should provide its own guarded Scene/Hotspot browser fixture and
+  broken-background/target cases instead of extending the Guide fixture;
+- hand child `129` only cross-product accessibility/motion/dogfood expansion
+  beyond this Guide's passed keyboard, modal-focus, narrow, reflow, and
+  reduced-motion acceptance;
+- no Guide defect or unverified Child 127 acceptance item carries forward.
 - do not begin child `128` until this child's complete Guide editor/public-reader
   matrix passes and the child is marked Complete.
