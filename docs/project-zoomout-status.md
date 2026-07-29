@@ -1,10 +1,14 @@
 # Project Zoom-Out Status
 
-Last reviewed: 2026-07-20
+Last reviewed: 2026-07-29
 
 ## Product Intent
 
-Ossie is a self-hosted open-source product for capturing browser workflows and turning them into polished walkthrough artifacts. Its accepted direction is a project-organized internal knowledge platform, but that broader foundation is not yet runtime behavior.
+Ossie is a self-hosted open-source product for capturing browser workflows and
+turning them into polished walkthrough artifacts. Its implemented foundation is
+a project-organized, Project Version-aware internal knowledge platform for the
+current Guide and Interactive Demo artifact families. Product Documentation is
+the next domain to design; Video remains later and unmodeled.
 
 The current alpha has two authored output families:
 
@@ -41,7 +45,15 @@ The automated DB-backed smoke test for that workflow lives in `apps/server/src/s
 rtk pnpm --filter server test:smoke
 ```
 
-Manual portal dogfood smoke completed with non-blocking limitations on 2026-06-22 and is recorded in `docs/v1-dogfood-smoke-suite.md`. Portal alpha screenshots from safe synthetic data are committed under `docs/assets/alpha/` and linked from `README.md`. Public guide/demo screenshots and the extension setup popup screenshot were refreshed on 2026-06-30 during the modern UI browser QA pass. Plan 103 browser validation on 2026-07-07 proved the automatic-click extension path can create screenshot-backed server assets/events and produce non-empty guide/demo source material; captured-workflow extension screenshots are now committed. True toolbar-popup manual validation remains pending.
+Manual portal dogfood smoke completed with non-blocking limitations on
+2026-06-22 and is preserved in `docs/v1-dogfood-smoke-suite.md`. Portal alpha
+screenshots from safe synthetic data are committed under `docs/assets/alpha/`
+and linked from `README.md`. Children `123` through `129` later completed
+fixture-backed Chromium validation for the modernized entry, Organization,
+Project, Capture, Guide, Interactive Demo, public, responsive, accessibility,
+motion, and performance surfaces. Children `126` and `129` also passed a real
+unpacked toolbar Capture; direct extension-page automation remains recorded as
+a distinct evidence class.
 
 ## Built So Far
 
@@ -103,41 +115,46 @@ Manual portal dogfood smoke completed with non-blocking limitations on 2026-06-2
 - Authoritative active Capture restoration with its immutable owning Version.
 - Visible-tab screenshot upload.
 - Automatic click capture MVP exists in code/tests and produced two screenshot-backed `click` events from safe synthetic data in plan 103 browser validation on 2026-07-07.
-- Manual screenshot fallback exists in code/tests and produced a screenshot-backed `capture` event from direct extension-page automation in plan 101 browser validation on 2026-07-07; true toolbar-popup manual validation remains pending, and plan 103 found a direct extension-page duplicate event-index follow-up after automatic clicks.
+- Manual screenshot fallback and automatic Capture pass code/tests, direct-page
+  automation, and a separate real unpacked toolbar workflow. Shared in-flight
+  coordination and server reconciliation preserve unique ordered Event indexes.
 - Pause/resume and finish behavior; finish completed the backend session in dogfood.
 - Finish-to-portal and open-active portal flows use the configured portal origin in the tested split API/web path; plan 102 formally closed this on 2026-07-07 with browser validation against API `http://localhost:4021` and portal `http://localhost:3000`.
 - Focused popup/content/background tests.
 
 ## Known Gaps
 
-- Manual portal dogfood found non-blocking guide editor and local dev URL friction that should feed the next hardening phases.
-- Chrome extension dogfood is no longer blocked at upload/event creation for the validated automatic click path; true toolbar-popup manual validation is still pending.
-- Direct extension-page manual fallback after automatic clicks needs a focused duplicate event-index follow-up before it should be treated as fully closed.
+- Firefox/WebKit/Safari verification remains unavailable on the current
+  headless environment; Chromium is the fully validated browser engine.
+- Comparable forced-GC heap and listener/timer metrics are unavailable through
+  the current browser tool surface; observable Guide/Demo long-session checks
+  pass.
 - HTML capture/replay is deferred.
 - AI/BYO-key authoring is deferred.
 - Analytics, lead capture, sales tracking, and custom branding are deferred.
-- Chrome Web Store packaging is not done.
 - One-command production deployment packaging is deferred.
 - Local file storage is the only storage provider.
 - Automated retention cleanup is not built.
 - Rate limiting is in-memory and should be replaced before multi-instance production deployments.
-- Advanced editor/demo polish remains a V1 hardening area.
+- Chrome Web Store packaging remains future work; the validated extension is an
+  unpacked Manifest V3 build.
 
 ## Recommended Next Direction
 
-Master Plan `005` is the accepted next track:
+Master Plan `005` has completed children `109` through `130`: repository
+workflow, naming/documentation truth, Audit and Access Evidence, Project
+Membership, Project Versions, Version-owned Captures, Guide/Demo
+Artifacts/Editions/Working Drafts/Revisions, Carry-Forward, protected Assets,
+revision-backed Publications, multi-version Publish Links, the design system,
+current workflow modernization, and cross-product browser closeout.
 
-1. Completed through child `120`: naming/documentation truth, Audit and Access
-   Evidence, Project Membership, Project Versions, Version-owned Captures,
-   Guide/Demo Artifacts and Editions, relational Working Drafts, immutable
-   Revisions, Carry-Forward, protected shared Assets, revision-backed
-   Publications, and independent multi-version Publish Links.
-2. Next: establish the design system and modernize each existing workflow with
-   browser, accessibility, motion, and responsive evidence in children `121`
-   through `129`.
-3. Close the foundation at child `130`, then conduct the mandatory Product
-   Documentation domain grill at child `131`.
+The next activity is the mandatory Product Documentation domain grill in child
+`131`. Runtime implementation may begin only in accepted plans starting at
+`132`.
 
-The accepted Project Version and Artifact Edition decisions are recorded in `CONTEXT.md`, ADRs `0021` through `0026`, the completed grill record, and `docs/plan/111-project-version-and-artifact-edition-grill.md`. The domain foundation through revision-backed Publication and multi-version Publish Links is implemented and verified; the remaining work in this master is UI foundation and workflow modernization.
+The accepted Project Version and Artifact Edition decisions are recorded in
+`CONTEXT.md`, ADRs `0021` through `0026`, the completed grill record, and
+`docs/plan/111-project-version-and-artifact-edition-grill.md`. The existing
+foundation and modernized current product are implemented and verified.
 
 Product Documentation implementation begins only after child `131` and new `132+` plans. Loom-style Video remains a later direction with no accepted runtime model.

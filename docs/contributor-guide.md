@@ -6,9 +6,10 @@ Current runtime behavior includes Project Version-owned screenshot-first
 Capture Sessions; stable Guide and Interactive Demo Artifacts with
 Version-scoped Editions, relational Working Drafts, immutable Revisions, and
 Carry-Forward; revision-backed Publications; independent multi-version Publish
-Links; Project Membership; and Audit/Access Evidence. `CONTEXT.md` also contains
-accepted future language for UI modernization and Product Documentation; those
-future terms are not a claim that their runtime implementation exists.
+Links; Project Membership; Audit/Access Evidence; and the modernized current
+product UI. `CONTEXT.md` also contains accepted future language for Product
+Documentation; those future terms are not a claim that its runtime
+implementation exists.
 
 ## Repo Layout
 

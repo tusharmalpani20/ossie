@@ -13,11 +13,17 @@ Ossie lets a team capture browser workflow source material, reuse that source as
 - step-by-step guides for internal documentation, onboarding, support, and enablement
 - interactive demos with scenes and hotspots for walkthrough-style sharing
 
-Both guides and demos can be published as immutable snapshots behind public/restricted links, password gates, and embeds.
+Both Guides and Interactive Demos can be published from exact immutable
+Artifact Revisions through public/restricted Publish Links, password gates, and
+embeds.
 
 ## Next Platform Direction
 
-Master Plan `005` will add relational Audit and Access Evidence, Project Membership, Project Versions, version-scoped Capture source, and Guide/Demo Editions, Working Drafts, Revisions, Publications, protected assets, and multi-version Publish Links. These are accepted targets, not alpha capabilities.
+Master Plan `005` has added relational Audit and Access Evidence, Project
+Membership, Project Versions, version-scoped Capture source, Guide/Demo
+Editions, Working Drafts, Revisions, Publications, protected Assets,
+multi-version Publish Links, and a modernized current-product UI. These are
+implemented alpha foundations.
 
 Product Documentation is the next artifact family to grill after the foundation. It is distinct from Guides and from `apps/docs`, the repository documentation hub. Loom-style Video is later and does not yet have an accepted runtime model.
 
@@ -29,7 +35,9 @@ Workflow captures often contain internal product screens, operational processes,
 
 - first-run setup, auth, projects, and org membership basics
 - screenshot-first capture sessions
-- Chrome extension capture with automatic click capture MVP in code/tests; automatic click capture now has screenshot-backed 2026-07-07 browser evidence through generated guide/demo source material, split-origin portal navigation is closed, and true toolbar-popup manual validation remains pending
+- Chrome extension Capture with automatic/manual screenshot paths, direct-page
+  evidence, and real unpacked toolbar evidence for ordered Events, privacy
+  suppression, restart recovery, and split-origin portal handoff
 - manual portal capture and screenshot upload
 - guide generation, editing, preview, publishing, password access, embeds, Markdown export, and HTML ZIP export
 - interactive demo generation, editing, hotspots, publishing, password access, embeds, and public viewer
@@ -42,13 +50,12 @@ Workflow captures often contain internal product screens, operational processes,
 ## Known Limits
 
 - alpha quality
-- true toolbar-popup manual Chrome extension dogfood evidence remains pending
-- direct extension-page manual fallback after automatic clicks needs duplicate event-index follow-up
+- Chrome Web Store packaging remains pending; verified extension evidence uses
+  an unpacked Manifest V3 build
 - no HTML replay
 - no analytics or lead capture
 - no custom branding
 - no hosted SaaS signup flow
-- no Chrome Web Store distribution
 - no one-command production deployment packaging
 - local file storage only
 - in-memory rate limiting only

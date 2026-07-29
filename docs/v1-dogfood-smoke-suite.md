@@ -10,6 +10,22 @@ The v1 alpha is smoke-usable when all required automated smoke checks pass and t
 
 Do not mark a flow as passed from assumption. Record pending manual checks as pending.
 
+## Current Supersession Note
+
+This file preserves the original 2026-06-22 manual dogfood result and its
+then-pending follow-ups. It is historical evidence, not the current product
+status.
+
+Children `123` through `129` subsequently completed fixture-backed Chromium
+validation for the modernized portal, Capture, Guide, Interactive Demo, public,
+responsive, accessibility, motion, and performance surfaces. Children `126`
+and `129` also passed a separate real unpacked toolbar Capture covering
+automatic and manual screenshot paths, unique ordered Events, privacy
+suppression, pause/resume, service-worker restart, finish/local clear, and
+canonical portal handoff. Current status is recorded in
+`docs/pre-documentation-closeout.md`; the original entries below remain
+unchanged.
+
 ## Prerequisites
 
 - Node and pnpm versions supported by the repo.

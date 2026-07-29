@@ -10,17 +10,17 @@ Ossie is an alpha-stage, self-hosted open-source tool for turning browser workfl
 
 ## What Works Today
 
-| Area              | Current alpha capability                                                                                                                                                                                                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Setup and auth    | Web first-run setup, password login, cookie-backed portal sessions, and organization-scoped users.                                                                                                                                                                                                           |
-| Projects          | Project creation, Project Membership, explicit Project Versions with a transactional default `Main`, canonical Version workspaces, lifecycle management, and project settings/archive controls.                                                                                                    |
-| Capture           | Manual portal capture sessions, screenshot upload, ordered capture events, and event editing; Chrome extension automatic-click capture now has screenshot-backed browser evidence, with true toolbar-popup manual validation still pending.                                                                  |
-| Extension         | Instance URL setup, login, project selection, manual screenshot fallback, automatic click capture MVP, and finish/open-active portal flow exist in code/tests; 2026-07-07 dogfood closed the split-origin portal link path and refreshed captured-workflow evidence.                                         |
-| Guides            | Generate guides from capture sessions, edit blocks and steps, manage screenshots, annotate screenshots, preview, publish, password-protect, embed, export Markdown, and export HTML ZIP.                                                                                                                     |
-| Interactive demos | Generate demos from capture sessions, edit scenes, add hotspots, publish, password-protect, embed, and view public demos.                                                                                                                                                                                    |
-| Sharing           | Revision-backed immutable Publications and independent multi-version Publish Link manifests for Guides and Demos, with explicit rollout, canonical version URLs, public/restricted/password access, expiry, embeds, rollback, and revocation.                                                                  |
-| Team basics       | Organization invite creation, invite acceptance, and member access to shared projects.                                                                                                                                                                                                                       |
-| Operations        | Local PostgreSQL, local file storage, health/readiness endpoints, CORS/cookie hardening, rate limits, and documented backup/restore expectations.                                                                                                                                                            |
+| Area              | Current alpha capability                                                                                                                                                                                                                                         |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Setup and auth    | Web first-run setup, password login, cookie-backed portal sessions, and organization-scoped users.                                                                                                                                                               |
+| Projects          | Project creation, Project Membership, explicit Project Versions with a transactional default `Main`, canonical Version workspaces, lifecycle management, and project settings/archive controls.                                                                  |
+| Capture           | Manual portal Capture Sessions, screenshot upload, ordered Capture Events, and safe event editing; the Chrome extension has current direct-page and real installed toolbar evidence for automatic and manual screenshot Capture.                                 |
+| Extension         | Instance/portal URL setup, login, Project and Project Version selection, automatic/manual Capture, pause/resume, restart recovery, exactly-once Event ordering, finish/local clear, and canonical portal handoff pass code, tests, and unpacked-toolbar dogfood. |
+| Guides            | Generate guides from capture sessions, edit blocks and steps, manage screenshots, annotate screenshots, preview, publish, password-protect, embed, export Markdown, and export HTML ZIP.                                                                         |
+| Interactive demos | Generate demos from capture sessions, edit scenes, add hotspots, publish, password-protect, embed, and view public demos.                                                                                                                                        |
+| Sharing           | Revision-backed immutable Publications and independent multi-version Publish Link manifests for Guides and Demos, with explicit rollout, canonical version URLs, public/restricted/password access, expiry, embeds, rollback, and revocation.                    |
+| Team basics       | Organization invite creation, invite acceptance, and member access to shared projects.                                                                                                                                                                           |
+| Operations        | Local PostgreSQL, local file storage, health/readiness endpoints, CORS/cookie hardening, rate limits, and documented backup/restore expectations.                                                                                                                |
 
 The DB-backed v1 smoke workflow now proves the main backend path from first-run setup to published guide/demo and accepted teammate invite. See [V1 dogfood smoke suite](docs/v1-dogfood-smoke-suite.md).
 
@@ -64,7 +64,9 @@ The product intentionally keeps guides and interactive demos separate. A capture
 
 ## Next Platform Direction
 
-Master Plan `005` has shipped the following platform foundation through child `120`; Product Documentation remains the next domain-design step after the remaining UI-foundation children:
+Master Plan `005` has shipped its version/governance foundation and modernized
+current-product UI through the Phase `130` pre-Documentation closeout. Product
+Documentation remains the next domain-design step:
 
 ```text
 Organization
@@ -87,13 +89,14 @@ Product Documentation means future customer-authored documentation sites and kno
 - AI/BYO-key authoring is deferred.
 - Analytics, lead capture, sales tracking, and custom branding are not built.
 - Hosted SaaS signup is not built; the current path is self-hosted first-run setup.
-- Chrome Web Store packaging is not done; the extension is loaded unpacked.
 - One-command production deployment packaging is deferred.
 - Automated retention cleanup is not built.
 - Local file storage is the only storage provider.
 - Rate limiting is in-memory and should be replaced before multi-instance production deployments.
 - Operators are responsible for database and local file storage backup/restore.
-- True Chrome toolbar-popup manual screenshot validation is still pending; automatic-click extension captured-workflow screenshots are current as of the 2026-07-07 evidence pass.
+- Chrome Web Store packaging remains pending. Current extension evidence uses a
+  real unpacked Manifest V3 toolbar action with synthetic data; direct-page
+  automation remains a separate evidence class.
 - Product Documentation authoring is not implemented; its domain grill occurs after the current foundation track.
 - Loom-style Video recording, storage, playback, transcription, and collaboration are later work and have no accepted runtime model yet.
 

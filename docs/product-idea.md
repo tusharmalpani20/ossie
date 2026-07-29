@@ -1,6 +1,6 @@
 # Ossie Product Idea
 
-Last reviewed: 2026-07-20
+Last reviewed: 2026-07-29
 
 ## Status And Purpose
 
@@ -42,8 +42,10 @@ The alpha implements:
   revocation; and
 - comprehensive append-only Audit/Access Evidence for the implemented scope.
 
-The current alpha does not implement Product Documentation authoring, Video, or
-the UI modernization accepted for children `121` through `130`.
+The current alpha does not implement Product Documentation authoring or Video.
+The design-system and current Capture, Guide, Interactive Demo, extension,
+accessibility, motion, responsive, and performance modernization in children
+`121` through `130` is implemented.
 
 ## Next Platform Direction
 
@@ -80,8 +82,9 @@ The foundation is ordered deliberately:
 8. Modernized authoring, library, reader, extension, and compliance workflows.
 9. Product Documentation domain grill.
 
-Items `1` through `7` are available behavior. Items `8` and `9` remain the
-accepted next direction.
+Items `1` through `8` are available behavior or repository foundation. Item `9`
+is the accepted next design activity; it does not implement Product
+Documentation.
 
 ## Intentionally Deferred
 

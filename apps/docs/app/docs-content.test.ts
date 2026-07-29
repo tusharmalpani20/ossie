@@ -55,23 +55,29 @@ describe("docs content", () => {
   it("keeps current alpha limitations and operations leftovers visible", () => {
     expect(knownLimitations).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("toolbar-popup manual validation"),
         "Storage inventory and cleanup tooling are still future self-host operations work.",
         "Backup/restore rehearsal, one-command packaging, shared rate limiting, and object storage remain deferred.",
       ]),
+    );
+    expect(knownLimitations.join(" ")).not.toMatch(
+      /toolbar-popup manual validation|event-ordering follow-up/iu,
     );
   });
 
   it("separates the shipped foundation from the remaining platform direction", () => {
     expect(nextPlatformDirection.status).toContain(
-      "implemented through the Publication and multi-version Publish Link foundation",
+      "complete through the pre-Documentation closeout",
     );
     expect(nextPlatformDirection.items).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("Design-system"),
+        expect.stringContaining("domain grill"),
+        expect.stringContaining("132+"),
         expect.stringContaining("Product Documentation"),
         expect.stringContaining("Video"),
       ]),
+    );
+    expect(nextPlatformDirection.items.join(" ")).not.toContain(
+      "workflow-by-workflow portal",
     );
     expect(nextPlatformDirection.docsAppBoundary).toContain(
       "repository documentation",

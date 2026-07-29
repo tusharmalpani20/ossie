@@ -23,10 +23,10 @@ export const productCapabilities = [
 
 export const nextPlatformDirection = {
   status:
-    "Master Plan 005 is implemented through the Publication and multi-version Publish Link foundation; UI modernization and Product Documentation domain design remain planned.",
+    "Master Plan 005's version, governance, publication, design-system, workflow UI, accessibility, motion, performance, and browser foundation is complete through the pre-Documentation closeout.",
   items: [
-    "Design-system and workflow-by-workflow portal, extension, authoring, reader, accessibility, motion, and browser modernization.",
-    "Product Documentation as the next artifact family after the foundation and its dedicated domain grill.",
+    "The Product Documentation domain grill is next; it must settle the content, source-of-truth, publication, access, URL, search, and rendering boundaries before implementation.",
+    "Product Documentation implementation planning begins at child 132+ only after the domain grill is accepted.",
     "Loom-style Video later; its recording, storage, playback, and collaboration model remains deliberately unplanned.",
   ],
   docsAppBoundary:
@@ -91,7 +91,7 @@ export const evidenceItems = [
 ];
 
 export const knownLimitations = [
-  "Automatic-click extension capture has screenshot-backed evidence; true toolbar-popup manual validation and one direct-page event-ordering follow-up remain open.",
+  "Chrome Web Store distribution remains future work; the verified extension path uses an unpacked Manifest V3 build.",
   "Storage inventory and cleanup tooling are still future self-host operations work.",
   "Backup/restore rehearsal, one-command packaging, shared rate limiting, and object storage remain deferred.",
   "HTML capture/replay, required AI authoring, analytics, lead capture, and custom branding remain deferred.",

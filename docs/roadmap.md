@@ -1,6 +1,6 @@
 # Roadmap
 
-Last reviewed: 2026-07-20
+Last reviewed: 2026-07-29
 
 Ossie is alpha software. This roadmap separates shipped behavior from accepted
 direction and intentionally deferred work; it does not promise dates.
@@ -14,9 +14,9 @@ direction and intentionally deferred work; it does not promise dates.
   ordering, and active/archived lifecycle management.
 - Screenshot-first portal and Chrome extension Capture Sessions with mandatory,
   immutable Project Version ownership and exact owning-Version deep links.
-- Automatic-click extension capture with screenshot-backed browser evidence;
-  true toolbar-popup manual validation and one direct-page ordering follow-up
-  remain open.
+- Automatic and manual extension Capture with direct-page and real unpacked
+  toolbar evidence, ordered exactly-once redacted Assets/Events, pause/resume,
+  restart recovery, and canonical portal handoff.
 - Scribe-style Guide generation, Version-scoped relational authoring,
   Revisions, Carry-Forward, annotations, preview, immutable publishing,
   multi-version Publish Links, password access, embeds, Markdown export, and
@@ -30,9 +30,9 @@ direction and intentionally deferred work; it does not promise dates.
 - A compact `apps/docs` repository documentation hub with safe historical alpha
   screenshots.
 
-## Next Platform Foundation
+## Completed Platform Foundation
 
-Master Plan `005` is the accepted implementation track:
+Master Plan `005` has completed these implemented foundation tracks:
 
 1. Repository workflow and the Ossie display-name/documentation truth foundation.
 2. Relational append-only Audit Events, Audit Change Items, and Access Events.
@@ -50,17 +50,18 @@ Master Plan `005` is the accepted implementation track:
    child `120`; the 2026-07-20 closure repair reverified the full DB/smoke suite
    and authenticated/public browser flow.
 10. Design-system and workflow-by-workflow portal, extension, authoring, reader,
-    accessibility, motion, and browser modernization.
-11. Cross-workflow closeout before new artifact-family design.
+    accessibility, motion, performance, and browser modernization. Completed in
+    children `121` through `129`.
+11. Cross-workflow pre-Documentation closeout. Completed in child `130`.
 
-Items 1 through 9 are verified current runtime behavior. Later UI modernization
-remains accepted target behavior rather than shipped behavior.
+Items 1 through 11 are verified current behavior or repository foundation.
 See `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 for gates and exact child ordering.
 
 ## Documentation Next
 
-Product Documentation is the next artifact family. Child `131` will grill its
+Product Documentation is the next artifact family to design. Child `131` will
+grill its
 identity, hierarchy, navigation, authoring, rendering, Project Version,
 Publication, access, and site-configuration semantics after the foundation
 closes. Implementation planning begins at `132+` only after that grill is

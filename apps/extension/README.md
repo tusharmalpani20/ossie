@@ -6,7 +6,14 @@ Chrome extension popup for connecting a browser to a hosted or self-hosted Ossie
 
 This extension is currently an alpha automatic click capture tool with manual screenshot capture as a fallback.
 
-Manual dogfood on 2026-06-22 showed that these flows existed in code/tests but were not yet reliable in a real browser run: automatic clicks produced no events/files, manual fallback produced no upload/event, and portal links opened the API origin in a split API/web local setup. Follow-up validation on 2026-07-07 closed the automatic click upload/event path, refreshed captured-workflow screenshots from a safe synthetic browser run, and closed the split-origin portal URL path. Direct extension-page manual fallback has bounded passing evidence from plan 101, but true toolbar-popup manual validation remains pending; plan 103 also found a direct extension-page duplicate event-index follow-up when manual capture was attempted after automatic clicks.
+The 2026-06-22 dogfood exposed automatic/manual upload and split-origin portal
+failures. Follow-up work closed those defects, and children `126` and `129`
+validated a real unpacked toolbar action with safe synthetic data. The installed
+flow passed automatic and manual screenshot Capture, unique ordered Events,
+password/contenteditable suppression, pause/resume, service-worker restart,
+finish/local clear, and canonical named-Project-Version portal handoff.
+Directly opening the extension page remains a separate, narrower automation
+class and is not used to claim toolbar behavior.
 
 The current workflow is:
 

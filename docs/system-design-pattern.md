@@ -176,9 +176,10 @@ Owns authenticated portal workflows, editors, public readers, embeds, and
 browser-facing state. Product-specific components stay with their feature until
 they are truly reusable. Shared primitives belong in `packages/ui`.
 
-Child `121` owns design tokens and primitives. Child `122` owns routing/data
-architecture. Later UI children modernize workflows without weakening server
-authorization or inventing client-only domain truth.
+Child `121` established design tokens and primitives. Child `122` established
+routing/data architecture, and children `123` through `130` modernized and
+closed the current workflows without weakening server authorization or
+inventing client-only domain truth.
 
 ### `apps/extension`
 

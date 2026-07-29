@@ -5,9 +5,10 @@
 It is not the future customer-authored Product Documentation artifact family. The markdown files under the repo root and `docs/` remain the source of truth for setup, operations, roadmap, dogfood evidence, and contribution flow.
 
 The rendered site separates `What Works Today` from the accepted `Next Platform
-Direction`. Future-direction copy must never imply that Project Versions,
-Editions/Revisions/Publications, Product Documentation, or Video is already
-implemented.
+Direction`. Project Versions, Editions, Revisions, Publications, and the
+modernized current-product UI are shipped alpha foundations. Future-direction
+copy must never imply that customer-authored Product Documentation or Video is
+already implemented.
 
 ## Run Locally
 
