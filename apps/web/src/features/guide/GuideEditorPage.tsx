@@ -19,10 +19,7 @@ import {
   updateGuideStep,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
-import {
-  GuideEditorWorkbench,
-  type GuideDraft,
-} from "./GuideEditorWorkbench";
+import { GuideEditorWorkbench, type GuideDraft } from "./GuideEditorWorkbench";
 import {
   blockContentDraftsFromBlocks,
   defaultBlockInput,
@@ -236,15 +233,15 @@ export const GuideEditorPage = ({
         const draft = stepDrafts[block.step.id];
         return Boolean(
           draft &&
-            (draft.title !== block.step.title ||
-              draft.body !== (block.step.body ?? "")),
+          (draft.title !== block.step.title ||
+            draft.body !== (block.step.body ?? "")),
         );
       }
       const draft = blockContentDrafts[block.id];
       return Boolean(
         draft &&
-          (draft.title !== (block.title ?? "") ||
-            draft.body !== (block.body ?? "")),
+        (draft.title !== (block.title ?? "") ||
+          draft.body !== (block.body ?? "")),
       );
     });
   }, [blockContentDrafts, guideDraft, state, stepDrafts]);
@@ -845,9 +842,7 @@ export const GuideEditorPage = ({
   }
 
   if (state.status === "not_found") {
-    return (
-      <div className={styles.state}>Guide was not found.</div>
-    );
+    return <div className={styles.state}>Guide was not found.</div>;
   }
 
   if (state.status === "error") {

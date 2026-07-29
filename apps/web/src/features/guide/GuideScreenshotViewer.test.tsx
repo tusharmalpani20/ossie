@@ -1,7 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { GuideScreenshotViewer, type GuideScreenshotViewerImage } from "./GuideScreenshotViewer";
+import {
+  GuideScreenshotViewer,
+  type GuideScreenshotViewerImage,
+} from "./GuideScreenshotViewer";
 
 const images: GuideScreenshotViewerImage[] = [
   {
@@ -28,7 +31,7 @@ describe("GuideScreenshotViewer", () => {
         activeImageId={null}
         onActiveImageChange={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -39,7 +42,7 @@ describe("GuideScreenshotViewer", () => {
         activeImageId="missing"
         onActiveImageChange={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -52,14 +55,20 @@ describe("GuideScreenshotViewer", () => {
         activeImageId="block_1:asset_1"
         onActiveImageChange={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
 
-    expect(screen.getByRole("dialog", { name: "Navigate to Department List" })).toHaveAttribute("aria-modal", "true");
-    expect(screen.getByRole("img", { name: "Department List" })).toHaveAttribute("src", "/assets/department-list.png");
+    expect(
+      screen.getByRole("dialog", { name: "Navigate to Department List" }),
+    ).toHaveAttribute("aria-modal", "true");
+    expect(
+      screen.getByRole("img", { name: "Department List" }),
+    ).toHaveAttribute("src", "/assets/department-list.png");
     expect(screen.getByText("1 / 2")).toBeInTheDocument();
     expect(screen.getByText("Fit")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close screenshot viewer" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Close screenshot viewer" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("asset_1")).not.toBeInTheDocument();
   });
 
@@ -71,10 +80,12 @@ describe("GuideScreenshotViewer", () => {
         activeImageId="block_1:asset_1"
         onActiveImageChange={vi.fn()}
         onClose={onClose}
-      />
+      />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Close screenshot viewer" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close screenshot viewer" }),
+    );
     fireEvent.keyDown(document, { key: "Escape" });
 
     expect(onClose).toHaveBeenCalledTimes(2);
@@ -120,7 +131,7 @@ describe("GuideScreenshotViewer", () => {
         activeImageId="block_1:asset_1"
         onActiveImageChange={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
@@ -144,7 +155,7 @@ describe("GuideScreenshotViewer", () => {
         activeImageId="block_1:asset_1"
         onActiveImageChange={onActiveImageChange}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Next screenshot" }));
@@ -159,10 +170,12 @@ describe("GuideScreenshotViewer", () => {
         activeImageId="block_2:asset_1"
         onActiveImageChange={onActiveImageChange}
         onClose={vi.fn()}
-      />
+      />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Previous screenshot" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Previous screenshot" }),
+    );
     expect(onActiveImageChange).toHaveBeenCalledWith("block_1:asset_1");
   });
 
@@ -173,10 +186,14 @@ describe("GuideScreenshotViewer", () => {
         activeImageId="block_1:asset_1"
         onActiveImageChange={vi.fn()}
         onClose={vi.fn()}
-      />
+      />,
     );
 
-    expect(screen.getByRole("button", { name: "Previous screenshot" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Next screenshot" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Previous screenshot" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Next screenshot" }),
+    ).toBeDisabled();
   });
 });
