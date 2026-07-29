@@ -2,7 +2,8 @@
 
 Date reserved: 2026-07-12
 
-Expanded and rechecked: 2026-07-29
+Expanded and rechecked: 2026-07-29. Refreshed after child `126` completion at
+`361df03`.
 
 Status: Implementation-ready. Child `126` passed its installed-toolbar
 acceptance gate on 2026-07-29; runtime implementation may begin after the
@@ -40,7 +41,12 @@ Next child:
 
 Starting state for this expansion:
 
-- starting commit: `f9abd7d`;
+- original expansion commit: `f9abd7d`;
+- post-child-`126` readiness-refresh commit: `361df03`;
+- `git diff 32a4414..361df03` contains only child `126`/`127` plans, master
+  status, browser evidence, and synthetic screenshots; no Guide, Publication,
+  route, schema, migration, or runtime file changed after this plan's original
+  code inspection;
 - worktree: clean;
 - `rtk` is not installed, so baseline commands used the documented direct
   `pnpm` fallback;
@@ -50,12 +56,25 @@ Starting state for this expansion:
 - `pnpm --filter web build`: passed;
   - JS: 449.48 kB raw / 123.46 kB gzip;
   - CSS: 64.59 kB raw / 12.76 kB gzip;
-- eight focused Guide/Publication/Revision/Carry-Forward server contract files:
-  16 tests passed;
+- nine focused Guide/Publication/Revision/Carry-Forward server contract files:
+  19 tests passed;
 - `apps/web/src/features/guide/GuideEditorPage.tsx` is 1,723 lines and must be
   split before adding behavior;
 - no runtime, schema, migration, or product behavior change is included in this
   planning checkpoint.
+
+Child `126`'s completed result contributes only a satisfied sequence gate and
+the already-verified canonical Capture Session handoff into this child:
+
+- the installed extension completes a Capture Session and opens its canonical
+  named Project Version Capture detail route;
+- child `125` Capture detail remains the owner of explicit `Create guide` and
+  `Create interactive demo` actions;
+- no extension storage, token, popup, background worker, content script,
+  Puppeteer harness, or extension permission becomes a Guide authoring
+  dependency;
+- child `127` starts at the portal/API boundary and must not reopen child `126`
+  behavior unless a separately demonstrated predecessor regression exists.
 
 ## Goal
 
@@ -275,6 +294,9 @@ Implement only:
   can otherwise surface repository Row Version conflicts as `500`;
 - tests, safe fixtures, documentation, and browser evidence required for those
   behaviors.
+- one dev/test-only Guide browser fixture that safely creates the roles,
+  lifecycle states, Revisions, Publications, Publish Links, and synthetic media
+  needed by this child's mandatory browser matrix.
 
 ## Explicit Non-Scope
 
@@ -327,6 +349,22 @@ Do not implement:
 - `docs/v1-dogfood-smoke-suite.md`
   - update only with a dated Guide run or a precise blocked result.
 
+### Dev/test browser fixture
+
+- `apps/server/package.json`
+  - add one explicit local-only Guide browser seed script.
+- `apps/server/src/dev-fixtures/guide-browser-fixture.ts` (new)
+- `apps/server/src/dev-fixtures/guide-browser-fixture.cli.ts` (new)
+- `apps/server/src/dev-fixtures/guide-browser-fixture.test.ts` (new)
+- `apps/server/src/dev-fixtures/guide-browser-fixture.db.integration.test.ts`
+  (new)
+
+The fixture may compose the existing child `125-01` Capture fixture data, but
+must not change that fixture's public contract or make production startup depend
+on fixture code. It must use the existing disposable-database maintenance guard,
+refuse a non-testing database, use only synthetic content/media, and print no
+environment-file secrets.
+
 ### Capture-to-Guide handoff
 
 - `apps/web/src/features/capture-session/CaptureSessionDetailPage.tsx`
@@ -373,8 +411,8 @@ New editor files:
 
 The implementation agent may consolidate a pair of these new presentational
 files when the extracted responsibility remains clear and every touched
-runtime/test file stays below 1,000 lines. Do not keep adding behavior to the
-1,723-line page.
+new/extracted Guide editor runtime/test file stays below 1,000 lines. Do not
+keep adding behavior to the 1,723-line page.
 
 ### Revision, Carry-Forward, Publication, and public selection
 
@@ -396,6 +434,14 @@ runtime/test file stays below 1,000 lines. Do not keep adding behavior to the
 
 Changes to shared Artifact/Demo-capable components must be presentation-safe for
 Interactive Demo. Do not modernize Demo-specific editor/viewer behavior early.
+
+The existing server files
+`apps/server/src/modules/guide/guide.routes.ts` (1,258 lines) and
+`apps/server/src/modules/guide/guide.db.integration.test.ts` (1,345 lines)
+already exceed 1,000 lines. Child `127` owns only surgical conflict mapping and
+DB assertions there; it must not expand into a server-module split solely to
+satisfy the Guide editor extraction rule. If a server extraction becomes
+necessary for correctness, amend this plan first and keep it behavior-preserving.
 
 ### Shared public contract and server corrections
 
@@ -487,6 +533,11 @@ Do not change these files merely to restate UI behavior. If a focused failing
 test proves a current server/schema/domain contract is unsafe or inconsistent,
 amend this plan before expanding beyond the two corrections explicitly owned
 here: the public-response allowlist and Guide route conflict mapping.
+
+The new Guide browser fixture is test support rather than product persistence.
+It may reset/reseed only the configured disposable testing database. It must not
+add a production route, migration, runtime registration, startup hook, or
+deployable dependency.
 
 ## Browser Routes
 
@@ -739,15 +790,53 @@ type PublicGuideRevisionBlock = {
   block_index: number;
   step: PublicGuideRevisionStep | null;
 };
+
+type PublicInteractiveDemoRevisionTransition = {
+  target_demo_revision_scene_id: string;
+};
+
+type PublicInteractiveDemoRevisionHotspot = {
+  id: string; // immutable viewer navigation key
+  hotspot_type: DemoHotspotType;
+  label: string | null;
+  content: string | null;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  hotspot_index: number;
+  transition: PublicInteractiveDemoRevisionTransition | null;
+};
+
+type PublicInteractiveDemoRevisionScene = {
+  id: string; // immutable viewer navigation key
+  background_capture_asset_id: string | null;
+  scene_index: number;
+  title: string | null;
+  description: string | null;
+  hotspots: PublicInteractiveDemoRevisionHotspot[];
+};
+
+type PublicRevisionCaptureAsset = {
+  id: string; // required by the protected-media route
+  status: "active" | "archived";
+  file_url: string;
+  mime_type: string;
+  width: number | null;
+  height: number | null;
+};
 ```
 
-The Interactive Demo public projection must retain only the scene/hotspot/
-transition identifiers and fields required by the existing immutable viewer,
-including `background_capture_asset_id`; omit Capture Session/Event/source Asset
-provenance. Public capture-asset entries retain the Asset ID required by the
-accepted protected-media route plus safe file URL, MIME type, dimensions, and
-archive status. They must not expose storage provider/key or Capture source
-metadata.
+These are contract responsibilities, not permission to rename existing
+`@repo/constants` types. Import the current `DemoHotspotType` directly.
+
+The Interactive Demo public projection retains only the scene/hotspot/
+transition identifiers and fields above that the existing immutable viewer
+needs, including `background_capture_asset_id`; it omits Capture
+Session/Event/source Asset provenance. Public capture-asset entries retain only
+the Asset ID required by the accepted protected-media route plus safe file URL,
+MIME type, dimensions, and archive status. They must not expose storage
+provider/key or Capture source metadata.
 
 `PublicGuidePublication`, `PublicInteractiveDemoPublication`, and
 `PublicPublishLinkResponse` must compose these public-only schemas rather than
@@ -868,9 +957,21 @@ Rules:
 
 Target ownership after extraction:
 
-- `GuideEditorPage` remains the route-level controller. It owns bootstrap,
+- `App.tsx` preserves the current route composition:
+  - active Project + active Project Version + Project Admin/Editor uses
+    `GuideEditorPage`;
+  - Viewer, archived Project, or archived Project Version uses
+    `GuidePreviewPage` as the purposeful read-only detail surface;
+  - an archived Artifact Edition in an otherwise writable context remains in
+    `GuideEditorPage`, read-only except for authorized restore and allowed Link
+    management;
+  - do not route a Viewer through a mutation-heavy disabled editor.
+- `GuideEditorPage` remains the writable route-level controller. It owns bootstrap,
   authoritative `GuideDetail`, authorization/read-only state, selected Block,
   mutation coordination, local-draft reconciliation, and navigation.
+- `GuidePreviewPage` owns effective Project/Project Version/Viewer read-only
+  composition and must keep Revision/Publication history reachable without
+  exposing mutation controls.
 - `GuideEditorWorkbench` owns responsive composition and receives state and
   commands; it does not fetch or keep a second authoritative Guide copy.
 - `GuideEditorOutline` owns presentation of ordered selection/insert/move
@@ -887,6 +988,29 @@ Target ownership after extraction:
   an external-pending signal. Link-only commands keep their own Link Row Version
   locks. Preserve the current default integration for Interactive Demo until
   child `128`; do not require Demo UI modernization here.
+- Implement that boundary with optional presentation-local props equivalent to:
+
+  ```ts
+  type RunAggregateMutation = <Result>(
+    command: "publication",
+    operation: () => Promise<Result>,
+  ) => Promise<Result>;
+
+  type ArtifactPublishingCoordination = {
+    aggregateMutationPending: boolean;
+    runAggregateMutation?: RunAggregateMutation;
+  };
+  ```
+
+  Guide supplies both values from its one route-level coordinator. The current
+  default behavior remains valid when Interactive Demo does not supply the
+  optional lease. This is a React ownership contract only; do not add it to
+  shared API schemas.
+
+- Replace the panel's single global `busy` boolean with command scope precise
+  enough to keep unrelated Link rows readable while preventing a second command
+  against the same Link Row Version. Publication still blocks every aggregate
+  Guide mutation and every selected Link until it settles.
 - one stable Block ID keys local drafts. Changing selection must not discard an
   unsaved draft, and a successful response for another Block must not replace
   it.
@@ -926,7 +1050,10 @@ Target ownership after extraction:
 - Register `beforeunload` only while unsaved local changes exist. Do not trap
   normal navigation after save and do not persist authored text to localStorage.
 - If permission or lifecycle changes during editing, reload into read-only mode
-  while retaining a safe copy/review opportunity for unsaved text.
+  while retaining a safe copy/review opportunity for unsaved text. A lost
+  Project write capability must return through the route boundary into
+  `GuidePreviewPage`; an archived Artifact Edition may remain in
+  `GuideEditorPage` under its narrower restore/link-management rules.
 - Reconcile successful server responses by stable Block ID. Preserve unrelated
   dirty local drafts instead of replacing the entire local form map.
 - Before delete, archive, restore-from-Revision, or navigation would discard
@@ -965,8 +1092,10 @@ Target ownership after extraction:
   selection.
 - The picker has loading, empty, error, retry, selected, slow-image, and broken
   thumbnail states.
-- Upload shows selected filename, type/size validation feedback, progress state,
-  retry, and authoritative result.
+- Upload shows selected filename, type/size validation feedback, an
+  indeterminate pending state, retry, and authoritative result. Do not invent a
+  percentage when the current fetch transport exposes no upload-progress
+  signal.
 - Failed upload must not change the displayed screenshot or Row Version.
 - Replacing/removing a screenshot removes incompatible annotations through the
   existing server transaction; UI copy must warn when highlights will be
@@ -1076,11 +1205,85 @@ Target ownership after extraction:
 - Public copy must not reveal internal IDs, storage facts, non-selected Project
   Versions, or authorization details.
 
+## Dev/Test Browser Fixture Contract
+
+The mandatory browser matrix must not depend on hand-edited database rows or
+customer-like data. Add one repeatable Guide fixture that uses the same
+maintenance safety boundary as child `125-01`.
+
+Required synthetic identities:
+
+- one Organization Owner or Project Admin;
+- one Project Editor;
+- one Project Viewer;
+- active authenticated sessions or documented local login credentials for all
+  three roles;
+- no real email address, password, token, URL, or captured content.
+
+Required Project and Project Version state:
+
+- one active Project with Default Project Version `Main`;
+- one named active Project Version;
+- one archived Project Version;
+- one separate archived Project with a directly addressable Guide Edition, so
+  its effective read-only state does not make the active workflows unreachable.
+
+Required Guide state:
+
+- one empty draft Guide Edition;
+- one active draft Edition with at least 20 mixed Blocks;
+- Step Blocks with active and archived-protected synthetic screenshots;
+- a broken-media case created through a valid Asset/File row whose disposable
+  local test file is intentionally unavailable, plus missing-media requests
+  against an unrecognized synthetic Asset ID; do not violate authored-reference
+  foreign keys or protection constraints to manufacture either state;
+- normalized highlight annotations at boundary and ordinary positions;
+- one archived Artifact Edition;
+- at least two immutable Artifact Revisions, including a checkpoint that can be
+  restored;
+- a second Project Version suitable for Carry-Forward plus an explicit
+  target-conflict case;
+- enough deterministic Row Versions for a second browser context to create a
+  real stale-write conflict.
+
+Required Publication and public-access state:
+
+- immutable Guide Publications with distinct Publication Sequences and Revision
+  Numbers;
+- one active public multi-version Publish Link;
+- one password-protected public link with a documented synthetic password;
+- one restricted link;
+- one expired link;
+- one revoked link;
+- one link suitable for rollback and manifest/default/order changes;
+- safe public Guide media plus the minimum Interactive Demo Publication fixture
+  needed to inspect the shared hardened public DTO without modernizing the Demo
+  UI.
+
+Fixture safety and lifecycle:
+
+- reuse `reset_test_database()`/`with_maintenance_client()` or their current
+  guarded equivalents;
+- fail closed unless the configured database is explicitly recognized as
+  disposable testing state;
+- write small generated/synthetic local image files only beneath the configured
+  testing storage root;
+- make fixture IDs and expected routes deterministic where practical, while
+  allowing mutation-created IDs to be recorded by the browser run;
+- expose fixture shape through a pure builder test and prove the live database
+  relationships through a DB integration test;
+- seed through one package script and record only synthetic browser guidance;
+- rerun the seed after DB suites that reset the test database;
+- never commit emitted tokens, cookies, browser profiles, database dumps, or
+  generated storage files.
+
 ## Migration And Backwards Compatibility
 
 - No new migration is expected.
 - Do not edit migrations `022`, `023`, or `024`.
-- No database reset, reseed, data backfill, or destructive operation is required.
+- No production/development database reset, data backfill, or destructive
+  operation is required. Browser validation may reset and reseed only the
+  explicitly guarded disposable testing database through the fixture above.
 - Existing relational Working Draft, Revision, Publication, and Publish Link
   rows remain valid.
 - Existing Artifact/Edition/Revision/Publication IDs and Row Versions retain
@@ -1112,7 +1315,7 @@ Target ownership after extraction:
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | unauthenticated internal request      | sign-in action with encoded return path                                                                                                      |
 | Project/Guide not found or denied     | non-disclosing unavailable state                                                                                                             |
-| Viewer role                           | readable workbench/preview/history; no mutation controls                                                                                     |
+| Viewer role                           | readable preview/history; no mutation controls                                                                                               |
 | archived Project                      | all internal mutations blocked; existing public access unchanged                                                                             |
 | archived Project Version              | Edition readable; authoring/checkpoint/publish/Carry-Forward target blocked; existing-link management remains available while Project active |
 | archived Artifact Edition             | Working Draft readable; restore/link management rules shown accurately                                                                       |
@@ -1142,10 +1345,13 @@ Use TDD for every behavior change.
    existing reader/viewer and protected-media behavior green.
 4. Add failing Guide route tests for Edition and Working Draft conflicts.
 5. Map both existing exceptions to stable `409` envelopes.
-6. Add characterization tests around current editor behavior.
-7. Extract workbench, Block editor, and helper responsibilities until every
-   touched runtime/test file is below 1,000 lines.
-8. Keep editor behavior unchanged and commit this slice.
+6. Add failing pure-shape and disposable-database safety tests for the Guide
+   browser fixture, then implement the guarded fixture and DB integration test.
+7. Add characterization tests around current editor behavior.
+8. Extract workbench, Block editor, and helper responsibilities until
+   `GuideEditorPage.tsx` and every new/extracted Guide editor runtime/test file
+   are below 1,000 lines.
+9. Keep editor behavior unchanged and commit this slice.
 
 ### Slice 2: Workbench and safe save state
 
@@ -1214,6 +1420,19 @@ Use TDD for every behavior change.
 - base, exact Project Version, alias, reader, embed, password-session, and
   protected-media behavior remains unchanged.
 
+### Dev/test browser fixture
+
+- pure fixture shape includes every required role, lifecycle, Guide, Revision,
+  Carry-Forward, Publication, Publish Link, and media case;
+- the maintenance guard rejects a non-testing database before reset/write;
+- live seed creates valid relational foreign keys, protected Asset references,
+  deterministic canonical routes, and usable local synthetic media;
+- repeated seed produces the documented clean baseline without accumulating
+  conflicting rows;
+- CLI guidance contains only explicitly synthetic credentials/session material
+  and never echoes environment-file values;
+- production server startup and normal tests never invoke the fixture.
+
 ### Generation and list
 
 - title/no-event disable reasons;
@@ -1238,6 +1457,8 @@ Use TDD for every behavior change.
 - reload/review and discard confirmation;
 - Publication command acquires the Guide aggregate lease; concurrent editor
   mutation is blocked without issuing a request;
+- ArtifactPublishingPanel's optional coordination props preserve its current
+  Interactive Demo behavior when absent;
 - beforeunload registration/cleanup;
 - mid-edit permission/archive transition;
 - component extraction preserves current behavior.
@@ -1313,6 +1534,7 @@ Focused non-DB tests:
 ```bash
 pnpm --filter @repo/types test -- src/publish.test.ts
 pnpm --filter server test -- \
+  src/dev-fixtures/guide-browser-fixture.test.ts \
   src/modules/guide/guide.routes.test.ts \
   src/modules/guide/guide.service.test.ts \
   src/modules/publish/publish.repository.test.ts \
@@ -1328,14 +1550,17 @@ DB-backed verification must run against a disposable migrated test database:
 
 ```bash
 pnpm --filter server test:setup
+pnpm --filter server seed:guide-browser-fixture
 pnpm --filter server test:db
 pnpm --filter server test:smoke
 ```
 
 At minimum, record the Guide, Revision/Carry-Forward, Publication, foundation
-schema, and V1 smoke outcomes. The Publication/Guide DB evidence must assert the
-raw public JSON allowlist for both Artifact families, not only rendered copy. Do
-not drop or reset a non-disposable database.
+schema, Guide browser fixture DB integration, and V1 smoke outcomes. Add the
+fixture DB integration file to the existing `test:db` command so the normal
+configured DB gate exercises it. The Publication/Guide DB evidence must assert
+the raw public JSON allowlist for both Artifact families, not only rendered
+copy. Do not drop or reset a non-disposable database.
 
 Smoke data must prove:
 
@@ -1363,6 +1588,13 @@ agent-browser skills get core
 agent-browser skills get dogfood
 ```
 
+Child `126` used globally installed Puppeteer only because a Chrome extension
+toolbar action was outside agent-browser's attachable surface. Child `127` is a
+normal portal/public-web workflow: use agent-browser as the primary validator.
+Do not add Puppeteer to the repository or create a second browser harness unless
+agent-browser is demonstrably incapable of a required accepted check and the
+plan is amended with that exact limitation.
+
 Use a freshly migrated disposable database, safe local URLs, and synthetic data.
 Do not commit credentials, cookies, tokens, private URLs, customer content, or
 raw captured input.
@@ -1372,6 +1604,17 @@ Required authenticated roles:
 - Project Admin or Organization Owner;
 - Project Editor;
 - Project Viewer.
+
+Seed them with:
+
+```bash
+pnpm --filter server test:setup
+pnpm --filter server seed:guide-browser-fixture
+```
+
+Start the API with the repository's testing environment and the portal against
+that API. The browser evidence record must name the synthetic fixture revision
+and routes used, but must not copy its session tokens or cookies.
 
 Required Project/Edition states:
 
@@ -1471,12 +1714,13 @@ Prefer small logical commits:
 
 1. `fix(publish): restrict public revision projections`
 2. `fix(server): expose guide row version conflicts`
-3. `refactor(web): extract guide editor workbench`
-4. `feat(web): harden guide authoring recovery`
-5. `feat(web): modernize guide media and annotations`
-6. `feat(web): modernize guide revision and publication flows`
-7. `feat(web): modernize public guide reader`
-8. `docs(guide): record child 127 verification`
+3. `test(server): add guide browser fixture`
+4. `refactor(web): extract guide editor workbench`
+5. `feat(web): harden guide authoring recovery`
+6. `feat(web): modernize guide media and annotations`
+7. `feat(web): modernize guide revision and publication flows`
+8. `feat(web): modernize public guide reader`
+9. `docs(guide): record child 127 verification`
 
 Commit only files owned by the slice. Do not include generated `dist`, local
 storage, browser profiles, fixture databases, credentials, or unrelated user/
@@ -1487,7 +1731,7 @@ agent work.
 ### Planning and gate
 
 - [x] Children `118` through `125` completion rechecked.
-- [x] Actual implemented child `126` result and remaining gate rechecked.
+- [x] Actual implemented child `126` result and completed gate rechecked.
 - [x] Current Guide/Revision/Carry-Forward/Publication/public-reader code,
       schemas, routes, permissions, tests, and migrations inspected.
 - [x] Exact affected files, contracts, non-scope, baseline, and verification
@@ -1500,8 +1744,9 @@ agent work.
 - [ ] Guide conflict errors mapped to stable `409` responses.
 - [ ] Public Guide/Demo DTOs use strict server-side allowlist projections and
       omit accepted child `120` prohibited metadata.
-- [ ] Oversized Guide editor split; every touched runtime/test file below 1,000
-      lines.
+- [ ] Guarded Guide browser fixture and DB integration coverage complete.
+- [ ] Oversized Guide editor split; `GuideEditorPage.tsx` and every
+      new/extracted Guide editor runtime/test file below 1,000 lines.
 - [ ] Guide generation/list/editor workbench modernized.
 - [ ] Dirty/save/error/conflict/read-only recovery complete.
 - [ ] Blocks/Steps/screenshots/annotations/order/delete complete.
@@ -1544,6 +1789,28 @@ agent work.
 - 2026-07-29: Child `126` subsequently passed its true installed
   toolbar/API/handoff acceptance matrix. The predecessor gate is satisfied; no
   child `127` runtime implementation was performed during that closeout.
+- 2026-07-29: Refreshed at `361df03` after child `126` closeout. Repository
+  history confirms there were no intervening Guide, Publication, route, schema,
+  migration, or runtime changes after the original child `127` inspection.
+- 2026-07-29: The refresh found one implementation-safety gap in the plan
+  rather than runtime code: the mandatory multi-role/state browser matrix had no
+  owned repeatable Guide fixture. Added exact dev-fixture files, safety rules,
+  required relational/public states, tests, seed command, and commit boundary.
+- 2026-07-29: Confirmed child `126`'s global Puppeteer installation is not a
+  child `127` dependency. Portal/public Guide validation remains agent-browser
+  owned.
+- 2026-07-29: Final readiness audit preserved the current route split:
+  Admin/Editor authoring uses `GuideEditorPage`, while Viewer or effective
+  Project/Project Version read-only contexts use `GuidePreviewPage`; archived
+  Edition restore/link behavior remains in the writable-context editor.
+- 2026-07-29: Corrected the editor file-size rule so it does not force unrelated
+  refactors of the already-oversized Guide route and DB integration files.
+- 2026-07-29: Made shared publishing coordination explicit through an optional
+  Guide aggregate-mutation lease that preserves the current Interactive Demo
+  integration, and required per-Link Row Version pending ownership.
+- 2026-07-29: Clarified that upload feedback is indeterminate unless transport
+  exposes real progress and that missing/broken browser media must be exercised
+  without violating relational/protected-Asset constraints.
 - 2026-07-29: Mapped current Guide callers from Capture generation through the
   Project-Version-scoped library, mutable Working Draft editor, immutable
   Revision/Carry-Forward workflows, Publication/Publish Link controls, and
@@ -1560,7 +1827,8 @@ agent work.
   add-block controls did not create header, paragraph, or divider Blocks in a
   real run.
 - 2026-07-29: Recorded green expansion baseline: web 47 files/301 tests, types,
-  lint, build, and eight focused server files/16 tests.
+  lint, build, and nine focused server files/19 tests. The same baseline passed
+  again after child `126` completion.
 - 2026-07-29: Readiness recheck corrected every authenticated Guide mutation
   and Publication/Publish Link path to show its required
   `project_version_id`; delete also records its query-carried Working Draft Row
@@ -1599,12 +1867,34 @@ pnpm --filter web build
   JS: 449.48 kB raw / 123.46 kB gzip
   CSS: 64.59 kB raw / 12.76 kB gzip
 
-pnpm --filter server test -- [eight focused Guide/Publication/Revision/Carry-Forward files]
-  PASS: 8 files, 16 tests
+pnpm --filter server test -- [nine focused Guide/Publication/Revision/Carry-Forward files]
+  PASS: 9 files, 19 tests
 ```
 
 This baseline does not claim child `127` implementation, DB acceptance, smoke
 acceptance, accessibility acceptance, or browser evidence.
+
+Final readiness recheck on 2026-07-29:
+
+```text
+pnpm --filter web test
+  PASS: 47 files, 301 tests
+
+pnpm --filter web check-types
+pnpm --filter web lint
+pnpm --filter web build
+  PASS
+
+pnpm --filter server test -- [nine focused Guide/Publication/Revision/Carry-Forward files]
+  PASS: 9 files, 19 tests
+
+pnpm exec prettier --check docs/plan/127-guide-authoring-and-reader-ui-modernization.md
+git diff --check
+  PASS
+```
+
+Only this plan changed during the readiness recheck; no runtime, schema,
+migration, route, dependency, or product behavior was implemented.
 
 ## Critical Decisions
 
