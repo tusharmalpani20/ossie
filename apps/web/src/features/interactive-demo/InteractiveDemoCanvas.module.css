@@ -1,0 +1,63 @@
+.canvas {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 18rem;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-card);
+  background: var(--ossie-color-surface-elevated);
+}
+
+.canvas img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.missing {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  color: var(--ossie-color-muted);
+}
+
+.hotspot {
+  position: absolute;
+  min-width: 2px;
+  min-height: 2px;
+  border: 2px solid var(--ossie-color-accent);
+  background: color-mix(in srgb, var(--ossie-color-accent) 12%, transparent);
+}
+
+.hotspot[data-selected="true"] {
+  border-width: 3px;
+  background: color-mix(in srgb, var(--ossie-color-accent) 24%, transparent);
+}
+
+.hotspot:focus-visible {
+  outline: 3px solid var(--ossie-color-focus);
+  outline-offset: 2px;
+}
+
+.hotspot span {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 4px);
+  max-width: 12rem;
+  overflow: hidden;
+  padding: 2px 6px;
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-text);
+  color: var(--ossie-color-surface);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  .canvas {
+    min-height: 12rem;
+  }
+}

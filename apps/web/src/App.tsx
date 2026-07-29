@@ -13,6 +13,7 @@ import { GuidePreviewPage } from "./features/guide/GuidePreviewPage";
 import { PublicGuideReaderPage } from "./features/guide/PublicGuideReaderPage";
 import { ProjectGuideListPage } from "./features/guide/ProjectGuideListPage";
 import { InteractiveDemoEditorPage } from "./features/interactive-demo/InteractiveDemoEditorPage";
+import { InteractiveDemoPreviewPage } from "./features/interactive-demo/InteractiveDemoPreviewPage";
 import { ProjectInteractiveDemoListPage } from "./features/interactive-demo/ProjectInteractiveDemoListPage";
 import { PublicInteractiveDemoViewerPage } from "./features/interactive-demo/PublicInteractiveDemoViewerPage";
 import { InviteAcceptPage } from "./features/organization/InviteAcceptPage";
@@ -52,6 +53,7 @@ const setupGuardedRouteTypes = new Set<PortalRoute["type"]>([
   "project_guide_list",
   "project_interactive_demo_list",
   "interactive_demo_detail",
+  "interactive_demo_preview",
   "project_carry_forward",
   "artifact_revision_history",
   "artifact_revision_preview",
@@ -441,16 +443,16 @@ export default function App() {
         currentLabel="Capture session"
       >
         {({ project, selected, versions }) => (
-            <CaptureSessionDetailPage
-              projectId={route.projectId}
-              captureSessionId={route.captureSessionId}
-              versionSlug={route.versionSlug}
-              projectVersions={versions}
-              currentPath={currentPath}
-              renderShell={false}
-              canWrite={
-                project.status === "active" &&
-                selected.status === "active" &&
+          <CaptureSessionDetailPage
+            projectId={route.projectId}
+            captureSessionId={route.captureSessionId}
+            versionSlug={route.versionSlug}
+            projectVersions={versions}
+            currentPath={currentPath}
+            renderShell={false}
+            canWrite={
+              project.status === "active" &&
+              selected.status === "active" &&
               project.access.role !== "viewer"
             }
             canPurge={
@@ -740,6 +742,33 @@ export default function App() {
               selected.status === "active" &&
               project.access.role !== "viewer"
             }
+          />
+        )}
+      </ProjectVersionRouteBoundary>
+    );
+  }
+
+  if (route.type === "interactive_demo_preview") {
+    if (!route.versionSlug)
+      return (
+        <LegacyProjectRedirect
+          projectId={route.projectId}
+          suffix={`/interactive-demos/${encodeURIComponent(route.interactiveDemoId)}/preview`}
+        />
+      );
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+        activeSection="interactive_demos"
+        currentLabel="Interactive demos"
+      >
+        {({ selected }) => (
+          <InteractiveDemoPreviewPage
+            projectId={route.projectId}
+            projectVersionId={selected.id}
+            interactiveDemoId={route.interactiveDemoId}
           />
         )}
       </ProjectVersionRouteBoundary>
