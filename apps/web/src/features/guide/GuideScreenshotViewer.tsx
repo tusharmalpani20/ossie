@@ -20,11 +20,10 @@ export type GuideScreenshotViewerProps = {
 
 const zoomLevels = [0.75, 1, 1.25, 1.5, 2, 3] as const;
 
-type ZoomState = "fit" | typeof zoomLevels[number];
+type ZoomState = "fit" | (typeof zoomLevels)[number];
 
-const zoomLabel = (zoom: ZoomState) => (
-  zoom === "fit" ? "Fit" : `${Math.round(zoom * 100)}%`
-);
+const zoomLabel = (zoom: ZoomState) =>
+  zoom === "fit" ? "Fit" : `${Math.round(zoom * 100)}%`;
 
 const nextZoom = (zoom: ZoomState) => {
   if (zoom === "fit") {
@@ -138,7 +137,13 @@ export const GuideScreenshotViewer = ({
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [activeImage, navigation.next, navigation.previous, onActiveImageChange, onClose]);
+  }, [
+    activeImage,
+    navigation.next,
+    navigation.previous,
+    onActiveImageChange,
+    onClose,
+  ]);
 
   if (!activeImage) {
     return null;
@@ -157,7 +162,9 @@ export const GuideScreenshotViewer = ({
         <header className={styles.header}>
           <div className={styles.titleGroup}>
             <h2 className={styles.title}>{activeImage.title}</h2>
-            <div className={styles.counter}>{activeIndex + 1} / {images.length}</div>
+            <div className={styles.counter}>
+              {activeIndex + 1} / {images.length}
+            </div>
           </div>
           <Button
             ref={closeButtonRef}

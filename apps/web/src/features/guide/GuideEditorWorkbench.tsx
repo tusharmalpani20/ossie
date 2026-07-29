@@ -923,7 +923,9 @@ const BlockInsertControls = ({
       disabled={disabled}
       onClick={() => onAdd("step")}
     >
-      {blockNumber === undefined ? "Add step" : `Add step after block ${blockNumber}`}
+      {blockNumber === undefined
+        ? "Add step"
+        : `Add step after block ${blockNumber}`}
     </Button>
     <Button
       variant="secondary"

@@ -90,11 +90,9 @@ describe("GuideEditorPage", () => {
   });
 
   it("sends the current Edition Row Version when saving metadata", async () => {
-    const saveGuide = vi
-      .fn()
-      .mockResolvedValue({
-        edition: { ...detail.edition, title: "Changed", version: 5 },
-      });
+    const saveGuide = vi.fn().mockResolvedValue({
+      edition: { ...detail.edition, title: "Changed", version: 5 },
+    });
     render(
       <GuideEditorPage
         projectId="project_1"
@@ -129,11 +127,9 @@ describe("GuideEditorPage", () => {
 
   it("archives with the current Edition Row Version", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    const changeEditionStatus = vi
-      .fn()
-      .mockResolvedValue({
-        edition: { ...detail.edition, status: "archived", version: 5 },
-      });
+    const changeEditionStatus = vi.fn().mockResolvedValue({
+      edition: { ...detail.edition, status: "archived", version: 5 },
+    });
     render(
       <GuideEditorPage
         projectId="project_1"
@@ -313,12 +309,12 @@ describe("GuideEditorPage", () => {
       />,
     );
 
-    expect(await screen.findByLabelText("Paragraph body 1")).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText("Paragraph body 1"),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText("Paragraph body 2")).not.toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Edit Paragraph 2" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Edit Paragraph 2" }));
 
     expect(screen.getByLabelText("Paragraph body 2")).toHaveValue(
       "Second paragraph",
@@ -346,9 +342,7 @@ describe("GuideEditorPage", () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Save guide" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "Save guide" }));
     const addParagraph = screen.getByRole("button", {
       name: "Add paragraph",
     });
