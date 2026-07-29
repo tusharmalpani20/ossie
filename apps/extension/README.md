@@ -32,8 +32,8 @@ This app currently supports in code and focused tests:
 - selecting the project and active Project Version that future captures should
   use
 - starting a capture session with the exact selected Project Version ID
-- storing active capture session id, immutable owning Version context, capture
-  mode, pause state, and local event index
+- storing active capture session id, immutable owning Project Version context,
+  capture mode, pause state, and the last server-confirmed Event index
 - restoring active capture state and authoritatively repairing its owning
   Version context when the popup is reopened
 - automatically recording safe click metadata from http/https pages while automatic capture is active
@@ -46,10 +46,14 @@ This app currently supports in code and focused tests:
 - persisting the local event index for the active capture session
 - finishing the active capture session and opening the portal capture detail page
 - opening the active capture session in the portal without finishing it
-- discarding local active capture state if needed
+- explicitly clearing local active capture state if needed, after confirmation
+- reconciling the local Event index from the server when a popup is restored or
+  an Event-index conflict is reported
 
 It does not capture raw DOM HTML, input values, navigation events, full-page stitched screenshots, or HTML snapshots yet.
-Discarding local active capture state does not cancel or complete the backend capture session. Use `Finish capture` to complete the backend capture session.
+Clearing local active capture state does not cancel, delete, or complete the
+server Capture Session. Use `Finish capture` to complete the server Capture
+Session.
 
 ## Development
 
@@ -154,7 +158,12 @@ The content script listens for trusted primary click events on `http://` and `ht
 - device pixel ratio
 - target bounding box
 
-The background service worker checks local active capture state again before doing any upload work. If automatic capture is active and not paused, it captures the visible tab, uploads the screenshot asset, creates a linked `click` event, then advances the local event index. A simple in-flight guard prevents duplicate ordered events while a previous automatic click capture is still being processed.
+The background service worker checks local active capture state again before
+doing any upload work. It verifies that the click sender is still the active tab
+in the same window and captures that window explicitly. Manual and automatic
+screenshot commands share one in-flight controller, so they cannot allocate the
+same Event index or cross a pause, finish, local clear, logout, or instance
+change. Accepted commands publish a `saving` diagnostic before upload work.
 
 The latest automatic capture outcome is stored in extension storage and shown when the popup is opened during an active capture. Screenshot, upload, event-recording, and content-script message-delivery failures are shown as actionable popup errors while preserving the active capture state and manual screenshot fallback. Successful automatic clicks show the recorded step number.
 
@@ -162,7 +171,8 @@ The extension never stores raw input values or page HTML. It sends `input_value_
 
 ## Manual Screenshot Upload
 
-When an active capture session exists, the popup can capture the visible active tab:
+When an active Capture Session exists, the popup asks the background controller
+to capture the visible active tab:
 
 ```text
 chrome.tabs.captureVisibleTab({ format: "png" })
@@ -196,7 +206,13 @@ Authorization: Bearer <session_token>
 x-ossie-client: extension
 ```
 
-The event uses `event_type: "capture"`, links to the uploaded screenshot asset, and uses the next locally stored event index for the active capture session. The extension sends `input_value_redacted: true` and does not send raw input fields. Screenshot pixel dimensions remain on the asset record; the event does not pretend those pixels are CSS viewport dimensions.
+The Event uses `event_type: "capture"`, links to the uploaded screenshot Asset,
+and allocates from storage reread inside the shared controller. The
+server-returned Event index is authoritative. On an index conflict, the
+extension lists existing Events, stores the highest index, and requires a new
+user action; it never automatically repeats an ambiguous Asset upload/Event
+pair. The extension sends `input_value_redacted: true` and does not send raw
+input fields.
 
 Each manual screenshot creates one ordered capture event. In the current MVP, treat one automatic click or one manual screenshot as the source for one guide step.
 
@@ -231,7 +247,15 @@ Authorization: Bearer <session_token>
 x-ossie-client: extension
 ```
 
-After backend completion succeeds, the extension clears only the local active capture fields and preserves the selected project. It then opens the portal capture session detail page on the configured portal URL when present, using the backend's relative redirect path when safe, or a locally constructed project/capture-session route as fallback. Session tokens are never included in the portal URL.
+Before completion, the background controller atomically pauses capture or
+rejects Finish while a Capture Event is still saving. After server completion,
+the extension clears only local active-capture fields and opens the canonical
+named Project Version route on the configured portal URL. Only an exact
+canonical relative redirect is accepted; all other redirects fall back to the
+loaded Capture Session's Project, Project Version slug, and id. If local clear
+or portal opening fails after completion, the popup retains an in-memory retry
+that does not call completion twice. Session tokens are never included in the
+portal URL.
 
 ## Permissions
 
