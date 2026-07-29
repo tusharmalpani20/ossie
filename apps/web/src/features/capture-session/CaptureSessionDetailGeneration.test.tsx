@@ -155,7 +155,7 @@ const interactiveDemoDetail: CreateInteractiveDemoFromCaptureResponse = {
   authored_updated_at: "2026-06-05T10:00:00.000Z",
   demo_scenes: [],
   redirect_path:
-    "/projects/project_1/versions/summer-release/interactive-demos/interactive_demo_1",
+    "/projects/project_1/versions/version_named/interactive-demos/interactive_demo_1",
 };
 
 describe("CaptureSessionDetailPage generation", () => {
@@ -167,7 +167,7 @@ describe("CaptureSessionDetailPage generation", () => {
       <CaptureSessionDetailPage
         projectId="project_1"
         captureSessionId="capture_session_1"
-        versionSlug="summer-release"
+        versionSlug="stale-route-slug"
         isDefaultVersion={false}
         loadDetail={async () => namedVersionDetail}
         resolveAssetUrl={(fileUrl) => fileUrl}

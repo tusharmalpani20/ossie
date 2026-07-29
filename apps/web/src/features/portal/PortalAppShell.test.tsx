@@ -65,4 +65,27 @@ describe("PortalAppShell", () => {
       screen.queryByRole("link", { name: "Project settings" }),
     ).not.toBeInTheDocument();
   });
+
+  it("keeps named Project Version context inside a labeled landmark", () => {
+    render(
+      <PortalAppShell
+        activeSection="capture_sessions"
+        currentLabel="Capture Session"
+        project={{ id: "project_1", name: "OSS Handbook" }}
+        projectVersion={{
+          slug: "summer-release",
+          name: "Summer release",
+          isDefault: false,
+        }}
+      >
+        <h1>Capture Session</h1>
+      </PortalAppShell>,
+    );
+
+    expect(
+      screen.getByRole("complementary", {
+        name: "Named Project Version context",
+      }),
+    ).toHaveTextContent("Project Version");
+  });
 });
