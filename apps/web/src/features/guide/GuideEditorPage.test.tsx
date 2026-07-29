@@ -360,4 +360,56 @@ describe("GuideEditorPage", () => {
       edition: { ...detail.edition, version: 5 },
     });
   });
+
+  it("preserves an unrelated dirty block draft after inserting a block", async () => {
+    const paragraph = {
+      id: "block_1",
+      organization_id: "org_1",
+      project_id: "project_1",
+      guide_working_draft_id: "draft_1",
+      block_type: "paragraph" as const,
+      block_index: 1,
+      title: null,
+      body: "Server paragraph",
+      created_by_id: "user_1",
+      updated_by_id: "user_1",
+      version: 1,
+      created_at: now,
+      updated_at: now,
+      step: null,
+    };
+    const inserted = {
+      ...paragraph,
+      id: "block_2",
+      block_type: "header" as const,
+      block_index: 2,
+      title: "New section",
+      body: null,
+    };
+    const createBlock = vi.fn().mockResolvedValue({
+      working_draft: { ...detail.working_draft, version: 8 },
+      guide_blocks: [paragraph, inserted],
+    });
+
+    render(
+      <GuideEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        guideId="guide_1"
+        loadDetail={async () => ({ ...detail, guide_blocks: [paragraph] })}
+        createBlock={createBlock}
+      />,
+    );
+
+    const body = await screen.findByLabelText("Paragraph body 1");
+    fireEvent.change(body, { target: { value: "Keep this local draft" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add header after block 1" }),
+    );
+
+    await screen.findByRole("button", { name: "Edit Header 2" });
+    expect(screen.getByLabelText("Paragraph body 1")).toHaveValue(
+      "Keep this local draft",
+    );
+  });
 });
