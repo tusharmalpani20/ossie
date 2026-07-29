@@ -265,6 +265,67 @@ describe("GuideEditorPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("uses the outline to edit one selected block without rendering every form", async () => {
+    const twoBlockDetail: GuideDetail = {
+      ...detail,
+      guide_blocks: [
+        {
+          id: "block_1",
+          organization_id: "org_1",
+          project_id: "project_1",
+          guide_working_draft_id: "draft_1",
+          block_type: "paragraph",
+          block_index: 1,
+          title: null,
+          body: "First paragraph",
+          created_by_id: "user_1",
+          updated_by_id: "user_1",
+          version: 1,
+          created_at: now,
+          updated_at: now,
+          step: null,
+        },
+        {
+          id: "block_2",
+          organization_id: "org_1",
+          project_id: "project_1",
+          guide_working_draft_id: "draft_1",
+          block_type: "paragraph",
+          block_index: 2,
+          title: null,
+          body: "Second paragraph",
+          created_by_id: "user_1",
+          updated_by_id: "user_1",
+          version: 1,
+          created_at: now,
+          updated_at: now,
+          step: null,
+        },
+      ],
+    };
+
+    render(
+      <GuideEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        guideId="guide_1"
+        loadDetail={async () => twoBlockDetail}
+      />,
+    );
+
+    expect(await screen.findByLabelText("Paragraph body 1")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Paragraph body 2")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Edit Paragraph 2" }),
+    );
+
+    expect(screen.getByLabelText("Paragraph body 2")).toHaveValue(
+      "Second paragraph",
+    );
+    expect(screen.queryByLabelText("Paragraph body 1")).not.toBeInTheDocument();
+  });
+
   it("does not overlap metadata and structural Working Draft commands", async () => {
     let finishSave: ((value: unknown) => void) | undefined;
     const saveGuide = vi.fn(

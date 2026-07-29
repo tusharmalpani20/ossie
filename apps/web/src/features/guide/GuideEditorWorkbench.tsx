@@ -136,6 +136,9 @@ export const GuideEditorWorkbench = ({
   const [activeScreenshotId, setActiveScreenshotId] = useState<string | null>(
     null,
   );
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(
+    sortedBlocks[0]?.id ?? null,
+  );
   const readOnly = detail.edition.status !== "draft";
   const assetsById = useMemo(
     () =>
@@ -155,6 +158,21 @@ export const GuideEditorWorkbench = ({
       setActiveScreenshotId(null);
     }
   }, [activeScreenshotId, screenshotImages]);
+
+  useEffect(() => {
+    if (
+      selectedBlockId === null ||
+      !sortedBlocks.some((block) => block.id === selectedBlockId)
+    ) {
+      setSelectedBlockId(sortedBlocks[0]?.id ?? null);
+    }
+  }, [selectedBlockId, sortedBlocks]);
+
+  const selectedBlock =
+    sortedBlocks.find((block) => block.id === selectedBlockId) ?? null;
+  const selectedBlockIndex = selectedBlock
+    ? sortedBlocks.findIndex((block) => block.id === selectedBlock.id)
+    : -1;
 
   return (
     <div className={styles.main}>
@@ -258,6 +276,90 @@ export const GuideEditorWorkbench = ({
       </section>
 
       <div className={styles.content}>
+        <nav className={styles.outline} aria-labelledby="guide-outline-heading">
+          <h2 className={styles.sectionTitle} id="guide-outline-heading">
+            Guide outline
+          </h2>
+          {sortedBlocks.length === 0 ? (
+            <p className={styles.outlineEmpty}>No blocks yet.</p>
+          ) : (
+            <ol className={styles.outlineList}>
+              {sortedBlocks.map((block, index) => (
+                <li key={block.id}>
+                  <button
+                    aria-label={`Edit ${labelForBlockType(block.block_type)} ${index + 1}`}
+                    aria-current={
+                      selectedBlockId === block.id ? "true" : undefined
+                    }
+                    className={styles.outlineButton}
+                    type="button"
+                    onClick={() => setSelectedBlockId(block.id)}
+                  >
+                    <span>{index + 1}</span>
+                    <span>
+                      Edit {labelForBlockType(block.block_type)} {index + 1}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          )}
+        </nav>
+
+        <section
+          className={`${styles.panel} ${styles.documentCanvas}`}
+          aria-labelledby="blocks-heading"
+        >
+          <h2 className={styles.sectionTitle} id="blocks-heading">
+            Guide block
+          </h2>
+          {selectedBlock === null ? (
+            <div className={styles.empty}>
+              <p>This guide does not have any blocks yet.</p>
+              {!readOnly ? (
+                <BlockInsertControls
+                  disabled={busyAction !== null}
+                  onAdd={(blockType) => onAddBlock(blockType)}
+                />
+              ) : null}
+            </div>
+          ) : (
+            <GuideBlockEditor
+              block={selectedBlock}
+              blockNumber={selectedBlockIndex + 1}
+              isFirst={selectedBlockIndex === 0}
+              isLast={selectedBlockIndex === sortedBlocks.length - 1}
+              readOnly={readOnly}
+              busyAction={busyAction}
+              draft={
+                selectedBlock.step
+                  ? stepDrafts[selectedBlock.step.id]
+                  : undefined
+              }
+              contentDraft={blockContentDrafts[selectedBlock.id]}
+              sourceAsset={assetForBlock(selectedBlock, assetsById)}
+              screenshotAssets={screenshotAssets}
+              screenshotAssetsError={screenshotAssetsError}
+              screenshotPickerOpen={
+                activeScreenshotPickerBlockId === selectedBlock.id
+              }
+              onDraftChange={onStepDraftChange}
+              onContentDraftChange={onBlockContentDraftChange}
+              onSaveStep={onSaveStep}
+              onSaveBlock={onSaveBlock}
+              onOpenScreenshotPicker={onOpenScreenshotPicker}
+              onCloseScreenshotPicker={onCloseScreenshotPicker}
+              onSaveScreenshot={onSaveScreenshot}
+              onUploadScreenshot={onUploadScreenshot}
+              onSaveAnnotations={onSaveAnnotations}
+              onAddBlock={onAddBlock}
+              onMoveBlock={onMoveBlock}
+              onDeleteBlock={onDeleteBlock}
+              onOpenScreenshot={setActiveScreenshotId}
+            />
+          )}
+        </section>
+
         <div className={styles.panelStack}>
           <ArtifactPublishingPanel
             projectId={projectId}
@@ -309,58 +411,6 @@ export const GuideEditorWorkbench = ({
             </Button>
           </section>
         </div>
-
-        <section className={styles.panel} aria-labelledby="blocks-heading">
-          <h2 className={styles.sectionTitle} id="blocks-heading">
-            Guide blocks
-          </h2>
-          {sortedBlocks.length === 0 ? (
-            <div className={styles.empty}>
-              <p>This guide does not have any blocks yet.</p>
-              {!readOnly ? (
-                <BlockInsertControls
-                  disabled={busyAction !== null}
-                  onAdd={(blockType) => onAddBlock(blockType)}
-                />
-              ) : null}
-            </div>
-          ) : (
-            <div className={styles.blocks}>
-              {sortedBlocks.map((block, index) => (
-                <GuideBlockEditor
-                  key={block.id}
-                  block={block}
-                  blockNumber={index + 1}
-                  isFirst={index === 0}
-                  isLast={index === sortedBlocks.length - 1}
-                  readOnly={readOnly}
-                  busyAction={busyAction}
-                  draft={block.step ? stepDrafts[block.step.id] : undefined}
-                  contentDraft={blockContentDrafts[block.id]}
-                  sourceAsset={assetForBlock(block, assetsById)}
-                  screenshotAssets={screenshotAssets}
-                  screenshotAssetsError={screenshotAssetsError}
-                  screenshotPickerOpen={
-                    activeScreenshotPickerBlockId === block.id
-                  }
-                  onDraftChange={onStepDraftChange}
-                  onContentDraftChange={onBlockContentDraftChange}
-                  onSaveStep={onSaveStep}
-                  onSaveBlock={onSaveBlock}
-                  onOpenScreenshotPicker={onOpenScreenshotPicker}
-                  onCloseScreenshotPicker={onCloseScreenshotPicker}
-                  onSaveScreenshot={onSaveScreenshot}
-                  onUploadScreenshot={onUploadScreenshot}
-                  onSaveAnnotations={onSaveAnnotations}
-                  onAddBlock={onAddBlock}
-                  onMoveBlock={onMoveBlock}
-                  onDeleteBlock={onDeleteBlock}
-                  onOpenScreenshot={setActiveScreenshotId}
-                />
-              ))}
-            </div>
-          )}
-        </section>
       </div>
       <GuideScreenshotViewer
         images={screenshotImages}
