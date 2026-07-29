@@ -2,8 +2,8 @@
 
 Date: 2026-07-26
 
-Status: Complete for fixture tooling. DB/browser execution blocked by missing
-local testing maintenance environment.
+Status: Complete. Fixture tooling, live PostgreSQL 18 seed, and authenticated
+browser execution passed on 2026-07-29.
 
 Parent plan:
 
@@ -64,7 +64,7 @@ Session, Capture Event, and Capture Asset data.
 - Tests cover fixture shape and disposable-database safety.
 - Focused server checks pass.
 - Plan `125`, master `005`, and evidence docs are updated after verification.
-- Live DB/browser execution remains gated on a configured disposable
+- Live DB/browser execution passes with the configured disposable
   `testing_maintenance` environment.
 
 ## Verification Plan
@@ -99,38 +99,38 @@ rtk pnpm --filter server seed:capture-portal-browser-fixture
 - The fixture writes one safe local PNG for seeded Capture Asset previews.
 - The seed command prints synthetic local-only session tokens for the admin and
   viewer browser contexts.
+- The 2026-07-29 close-previous audit corrected PostgreSQL 18 parameter typing,
+  replaced mnemonic identifiers with valid ULIDs, made the admin an implicit
+  Organization Owner, retained explicit Viewer membership, and added
+  `capture-portal-browser-fixture.db.integration.test.ts`.
+- The fixture DB integration test is part of `pnpm --filter server test:db`.
 
 ## Verification Record
 
 Passed:
 
 ```bash
-rtk pnpm --filter server test -- src/dev-fixtures/capture-portal-browser-fixture.test.ts
-rtk pnpm --filter server check-types
-rtk pnpm --filter server lint
-rtk pnpm --filter server build
+pnpm --filter server test -- src/dev-fixtures/capture-portal-browser-fixture.test.ts
+pnpm --filter server test:setup
+pnpm --filter server seed:capture-portal-browser-fixture
+pnpm --filter server test:db
+pnpm --filter server test:smoke
+pnpm --filter server check-types
+pnpm --filter server lint
+pnpm --filter server build
 ```
 
-Blocked:
+Live seed result:
 
-```bash
-rtk pnpm --filter server test:setup
-rtk pnpm --filter server seed:capture-portal-browser-fixture
-```
-
-Reason:
-
-- `apps/server/.env-cmdrc` in this checkout does not define the
-  `testing_maintenance` environment needed by the existing DB setup and seed
-  scripts.
-- No DB rows or browser screenshots were claimed from this blocked command.
+- PostgreSQL 18.4 accepted all fixture rows and the seeded PNG.
+- Admin and Viewer login contexts were exercised through the live API/web
+  runtime with `agent-browser`.
+- Browser results and screenshots are recorded in
+  `docs/ui/125-capture-portal-browser-evidence.md`.
+- `rtk` was not installed in this environment, so equivalent commands were run
+  directly.
 
 ## Leftovers
 
-- Configure `apps/server/.env-cmdrc` with disposable `testing` and
-  `testing_maintenance` profiles, then run:
-  - `rtk pnpm --filter server test:setup`
-  - `rtk pnpm --filter server seed:capture-portal-browser-fixture`
-- Start the server against the same testing database and the web portal, then
-  use the printed admin/viewer session tokens or login credentials for real
-  browser validation.
+- Keep the fixture disposable and synthetic. Re-run the seed after any DB test
+  that resets `ossie_test` before starting another browser session.

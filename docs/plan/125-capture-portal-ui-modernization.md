@@ -2,7 +2,8 @@
 
 Date reserved: 2026-07-12
 
-Status: Complete. Implemented, verified, and closed on 2026-07-26.
+Status: Complete. Implemented on 2026-07-26 and closed again after the full
+DB/browser acceptance audit on 2026-07-29.
 
 Parent plan:
 
@@ -651,6 +652,9 @@ differ.
 - Guide and Interactive Demo generation uses the loaded Capture Session's
   Project Version context, works for named Project Versions, and rejects or
   disables cross-scope behavior.
+- Treat the loaded Capture Session's canonical Project Version slug as the
+  source of truth for portal artifact links; do not reuse an API redirect path
+  that embeds a Project Version ID.
 - Source assets remain immutable and protected shared assets remain protected.
 - Raw input values and raw page HTML are not exposed.
 - All touched files are under 1000 lines after implementation.
@@ -688,7 +692,7 @@ Carry forward:
       service behavior.
 - [x] Implemented the scoped child `125` runtime changes.
 - [x] Recorded focused and broad verification.
-- [x] Recorded browser evidence status and the exact full-fixture limitation.
+- [x] Ran and recorded the full authenticated browser fixture matrix.
 - [x] Updated master `005` for the completed child.
 
 ## Implementation Log
@@ -734,6 +738,30 @@ Runtime implementation on 2026-07-26:
 - The expected duplicate `source_type: "manual"` issue was rechecked during
   implementation; current code contains a single portal create payload field.
 
+Close-previous audit on 2026-07-29:
+
+- Re-ran the fixture against PostgreSQL 18.4 and fixed existing-role
+  provisioning so a delegated maintenance role is not asked to alter its
+  `SUPERUSER` attribute.
+- Made the fixture executable against PostgreSQL 18 by adding explicit status
+  casts, valid 26-character ULIDs, one implicit Organization Owner, one
+  explicit Viewer Project membership, and a DB-backed fixture acceptance test.
+- Serialized concurrent authentication-session touches and used wall-clock
+  timestamps so parallel authenticated portal requests cannot create invalid
+  equal/stale audit transitions.
+- Made Guide and Interactive Demo redirects derive canonical routes from the
+  loaded Capture Session Project Version. This fixed named-version Demo
+  generation when the API response contained a Project Version ID path.
+- Added missing empty-draft reassignment success/conflict coverage.
+- Added an accessible upload region and polite selected-file status, corrected
+  Capture eyebrow contrast, placed named-version context inside a landmark, and
+  gave unauthenticated Project Version routes a real sign-in state instead of a
+  generic retry.
+- Updated two DB assertions discovered by the PostgreSQL 18 full gate: guarded
+  Project deletion accepts the standards-correct `restrict_violation` code, and
+  published replacement-asset verification no longer depends on unordered SQL
+  rows.
+
 ## Verification Record
 
 Runtime verification on 2026-07-26:
@@ -762,22 +790,32 @@ Runtime verification on 2026-07-26:
 Browser evidence:
 
 - Recorded in `docs/ui/125-capture-portal-browser-evidence.md`.
-- Full browser acceptance was not claimed because this checkout still lacks the
-  seeded authenticated local fixture required by this plan.
+- Full fixture-backed browser acceptance passed on 2026-07-29 with PostgreSQL
+  18.4, Chromium 151, admin and viewer sessions, desktop/mobile/reflow checks,
+  failure injection, signed-out behavior, and zero axe violations.
+
+Close-previous verification on 2026-07-29:
+
+- `pnpm --filter web test -- ProjectVersionRouteBoundary.test.tsx PortalAppShell.test.tsx CaptureSessionDetailPage.test.tsx CaptureSessionDetailGeneration.test.tsx AppCaptureRoutes.test.tsx`
+  passed: 5 files, 53 tests.
+- `pnpm -r --if-present test` passed, including web 301 tests, extension 99
+  tests, and server 399 non-DB tests.
+- `pnpm --filter server test:db` passed: 18 files, 65 tests.
+- `pnpm --filter server test:smoke` passed: 1 file, 1 test.
+- `pnpm --filter server test:setup` passed against PostgreSQL 18.4.
+- `pnpm check-types`, `pnpm lint`, and `pnpm build` passed.
+- `pnpm exec prettier --check <all changed code and plan files>` and
+  `git diff --check` passed at closeout.
+- `rtk` was unavailable in this environment, so the documented commands were
+  run directly with the same arguments.
 
 ## Leftovers
 
-- Full browser matrix remains the only blocked verification item. It requires a
-  seeded authenticated local fixture with admin/editor and viewer sessions,
-  active/default/named/archived Project Versions, and representative Capture
-  Session states. Follow-up child
-  `docs/plan/125-01-capture-portal-browser-fixture.md` added the dev/test-only
-  fixture tooling, but the live seed/browser run remains blocked in this
-  checkout until `apps/server/.env-cmdrc` has a disposable
-  `testing_maintenance` profile.
 - `CaptureSessionDetailPage.test.tsx` remains an existing oversized test file.
   Runtime coverage was preserved and new behavior was added in focused smaller
   test files, but a full behavior-preserving split of the legacy test file
   should be handled separately if it becomes necessary before further edits.
 - Child `126` should continue to preserve exact Project Version ownership for
-  extension-created Capture Sessions and must not rely on portal-only state.
+  extension-created Capture Sessions, derive open-portal links from canonical
+  loaded scope, fail signed-out/stale context safely, and not rely on
+  portal-only state.
