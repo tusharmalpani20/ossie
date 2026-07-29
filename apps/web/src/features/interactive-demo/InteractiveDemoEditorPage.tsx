@@ -1,15 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { DEMO_HOTSPOT_TYPES } from "@repo/constants";
-import { Badge } from "@repo/ui/badge";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CaptureAssetWithFileUrl } from "@repo/types/capture";
 import { Button } from "@repo/ui/button";
-import { Card, CardContent } from "@repo/ui/card";
-import { Input } from "@repo/ui/input";
-import { Label } from "@repo/ui/label";
-import { Select } from "@repo/ui/select";
-import { Textarea } from "@repo/ui/textarea";
 import {
   ApiClientError,
   archiveInteractiveDemo,
+  createInteractiveDemoScene,
   createInteractiveDemoHotspot,
   deleteInteractiveDemoHotspot,
   deleteInteractiveDemoScene,
@@ -23,42 +18,31 @@ import {
   updateInteractiveDemoHotspot,
   updateInteractiveDemo,
   updateInteractiveDemoScene,
-  type InteractiveDemoHotspotCreateResponse,
-  type InteractiveDemoHotspotListResponse,
-  type InteractiveDemoHotspotReorderResponse,
-  type InteractiveDemoHotspotUpdateResponse,
-  type InteractiveDemoDetailResponse,
-  type InteractiveDemoSceneListResponse,
-  type InteractiveDemoSceneReorderResponse,
-  type InteractiveDemoSceneUpdateResponse,
-  type InteractiveDemoWorkingDraftMutationResponse,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
-import { PortalTopbar } from "../portal/PortalTopbar";
-import { ArtifactPublishingPanel } from "../publish/ArtifactPublishingPanel";
 import {
   demoDraftFromDemo,
   hotspotDraftFromHotspot,
   hotspotDraftsFromHotspots,
-  sceneAssetFileUrl,
   sceneDraftsFromScenes,
   sortedHotspots,
   sortedScenes,
-  sourceCaptureUrl,
   validHotspotBox,
   type DemoDraft,
   type HotspotDraft,
   type SceneDraft,
 } from "./interactiveDemoEditorHelpers";
+import { InteractiveDemoSceneEditor } from "./InteractiveDemoSceneEditor";
+import { InteractiveDemoWorkbench } from "./InteractiveDemoWorkbench";
+import { InteractiveDemoReadOnlyPage } from "./InteractiveDemoReadOnlyPage";
+import { InteractiveDemoEditorShell as PortalShell } from "./InteractiveDemoEditorShell";
+import type { InteractiveDemoEditorPageProps } from "./interactiveDemoEditorContracts";
 import type {
   CreateDemoHotspotInput,
   DemoHotspot,
-  DemoHotspotType,
   DemoScene,
   InteractiveDemo,
   UpdateDemoHotspotInput,
-  UpdateDemoSceneInput,
-  UpdateInteractiveDemoInput,
 } from "./types";
 import styles from "./InteractiveDemoEditorPage.module.css";
 
@@ -69,92 +53,11 @@ type LoadState =
       demo: InteractiveDemo;
       scenes: DemoScene[];
       hotspotsBySceneId: Record<string, DemoHotspot[]>;
+      backgroundAssets: CaptureAssetWithFileUrl[];
     }
   | { status: "unauthenticated" }
   | { status: "not_found" }
   | { status: "error" };
-
-export type InteractiveDemoEditorPageProps = {
-  projectId: string;
-  projectVersionId: string;
-  interactiveDemoId: string;
-  loadDemo?: (
-    projectId: string,
-    interactiveDemoId: string,
-  ) => Promise<InteractiveDemoDetailResponse>;
-  loadScenes?: (
-    projectId: string,
-    interactiveDemoId: string,
-  ) => Promise<InteractiveDemoSceneListResponse>;
-  saveDemo?: (
-    projectId: string,
-    interactiveDemoId: string,
-    input: UpdateInteractiveDemoInput,
-  ) => Promise<InteractiveDemoDetailResponse>;
-  saveScene?: (
-    projectId: string,
-    interactiveDemoId: string,
-    sceneId: string,
-    input: UpdateDemoSceneInput,
-  ) => Promise<InteractiveDemoSceneUpdateResponse>;
-  reorderScenes?: (
-    projectId: string,
-    interactiveDemoId: string,
-    sceneIds: string[],
-    expectedWorkingDraftVersion: number,
-  ) => Promise<InteractiveDemoSceneReorderResponse>;
-  deleteScene?: (
-    projectId: string,
-    interactiveDemoId: string,
-    sceneId: string,
-    expectedWorkingDraftVersion: number,
-  ) => Promise<InteractiveDemoWorkingDraftMutationResponse>;
-  loadHotspots?: (
-    projectId: string,
-    interactiveDemoId: string,
-    sceneId: string,
-  ) => Promise<InteractiveDemoHotspotListResponse>;
-  createHotspot?: (
-    projectId: string,
-    interactiveDemoId: string,
-    sceneId: string,
-    input: CreateDemoHotspotInput,
-  ) => Promise<InteractiveDemoHotspotCreateResponse>;
-  saveHotspot?: (
-    projectId: string,
-    interactiveDemoId: string,
-    sceneId: string,
-    hotspotId: string,
-    input: UpdateDemoHotspotInput,
-  ) => Promise<InteractiveDemoHotspotUpdateResponse>;
-  reorderHotspots?: (
-    projectId: string,
-    interactiveDemoId: string,
-    sceneId: string,
-    hotspotIds: string[],
-    expectedWorkingDraftVersion: number,
-  ) => Promise<InteractiveDemoHotspotReorderResponse>;
-  deleteHotspot?: (
-    projectId: string,
-    interactiveDemoId: string,
-    sceneId: string,
-    hotspotId: string,
-    expectedWorkingDraftVersion: number,
-  ) => Promise<InteractiveDemoWorkingDraftMutationResponse>;
-  resolveAssetUrl?: (fileUrl: string) => string;
-  currentPath?: string;
-  performLogout?: () => Promise<void>;
-  navigate?: (path: string) => void;
-  canWrite?: boolean;
-  versionSlug?: string;
-  changeEditionStatus?: (
-    command: "archive" | "restore",
-    projectId: string,
-    interactiveDemoId: string,
-    projectVersionId: string,
-    expectedEditionVersion: number,
-  ) => Promise<{ edition: InteractiveDemoDetailResponse["edition"] }>;
-};
 
 const loadStateFromError = (error: unknown): LoadState => {
   if (error instanceof ApiClientError) {
@@ -178,6 +81,8 @@ export const InteractiveDemoEditorPage = ({
     getInteractiveDemo(id, artifactId, projectVersionId),
   loadScenes = (id, artifactId) =>
     listInteractiveDemoScenes(id, artifactId, projectVersionId),
+  createScene = (id, artifactId, input) =>
+    createInteractiveDemoScene(id, artifactId, input, projectVersionId),
   saveDemo = (id, artifactId, input) =>
     updateInteractiveDemo(id, artifactId, input, projectVersionId),
   saveScene = (id, artifactId, sceneId, input) =>
@@ -290,6 +195,7 @@ export const InteractiveDemoEditorPage = ({
             demo: demoResponse.edition,
             scenes,
             hotspotsBySceneId: Object.fromEntries(hotspotEntries),
+            backgroundAssets: sceneResponse.background_capture_assets,
           });
           setWorkingDraftVersion(demoResponse.working_draft.version);
         }
@@ -396,127 +302,21 @@ export const InteractiveDemoEditorPage = ({
 
   if (!canWrite || state.demo.status === "archived") {
     return (
-      <PortalShell
+      <InteractiveDemoReadOnlyPage
         projectId={projectId}
         interactiveDemoId={interactiveDemoId}
+        demo={state.demo}
+        scenes={state.scenes}
+        hotspotsBySceneId={state.hotspotsBySceneId}
+        backgroundAssets={state.backgroundAssets}
+        workingDraftVersion={workingDraftVersion}
+        canWrite={canWrite}
+        versionSlug={versionSlug}
+        resolveAssetUrl={resolveAssetUrl}
         performLogout={performLogout}
         navigate={navigate}
-      >
-        <section className={styles.header}>
-          <div>
-            <div className={styles.eyebrow}>Interactive demo · read only</div>
-            <h1 className={styles.title}>{state.demo.title}</h1>
-            {state.demo.description ? (
-              <p className={styles.description}>{state.demo.description}</p>
-            ) : null}
-          </div>
-          <div>
-            <Badge>{state.demo.status}</Badge>
-            {versionSlug ? (
-              <a
-                href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/revisions`}
-              >
-                Revision history
-              </a>
-            ) : null}
-            {canWrite && state.demo.status === "archived" ? (
-              <Button
-                variant="secondary"
-                onClick={() => void changeLifecycle()}
-              >
-                Restore demo
-              </Button>
-            ) : null}
-          </div>
-        </section>
-        <ArtifactPublishingPanel
-          projectId={projectId}
-          projectVersionId={state.demo.project_version_id}
-          artifactType="interactive_demo"
-          artifactId={interactiveDemoId}
-          editionVersion={state.demo.version}
-          workingDraftVersion={workingDraftVersion}
-          publicationReadOnly
-          linkManagementReadOnly={!canWrite}
-          showMutationControls={canWrite}
-        />
-        <section aria-labelledby="demo-scenes-readonly-heading">
-          <h2 id="demo-scenes-readonly-heading" className={styles.sectionTitle}>
-            Scenes
-          </h2>
-          {state.scenes.length === 0 ? (
-            <div className={styles.state}>
-              This demo does not have any scenes yet.
-            </div>
-          ) : (
-            state.scenes.map((scene, index) => {
-              const sceneNumber = index + 1;
-              const sceneTitle = scene.title ?? `Scene ${sceneNumber}`;
-              const assetFileUrl = sceneAssetFileUrl(projectId, scene);
-              const hotspots = state.hotspotsBySceneId[scene.id] ?? [];
-              return (
-                <Card key={scene.id} className={styles.panel}>
-                  <CardContent>
-                    <h3>
-                      Scene {sceneNumber}: {sceneTitle}
-                    </h3>
-                    {scene.description ? <p>{scene.description}</p> : null}
-                    <div className={styles.screenshotFrame}>
-                      {assetFileUrl ? (
-                        <>
-                          <img
-                            className={styles.screenshot}
-                            src={resolveAssetUrl(assetFileUrl)}
-                            alt={`${sceneTitle} screenshot`}
-                          />
-                          {hotspots.map((hotspot) => (
-                            <span
-                              key={hotspot.id}
-                              role="note"
-                              className={styles.hotspotOverlay}
-                              aria-label={`Hotspot ${hotspot.label ?? hotspot.hotspot_index}`}
-                              style={{
-                                left: `${hotspot.x * 100}%`,
-                                top: `${hotspot.y * 100}%`,
-                                width: `${hotspot.width * 100}%`,
-                                height: `${hotspot.height * 100}%`,
-                              }}
-                            />
-                          ))}
-                        </>
-                      ) : (
-                        <div className={styles.placeholder}>
-                          No screenshot attached.
-                        </div>
-                      )}
-                    </div>
-                    {hotspots.length === 0 ? (
-                      <p>No hotspots.</p>
-                    ) : (
-                      <ol
-                        className={styles.hotspotList}
-                        aria-label={`Scene ${sceneNumber} hotspot content`}
-                      >
-                        {hotspots.map((hotspot) => (
-                          <li key={hotspot.id}>
-                            <strong>
-                              {hotspot.label ??
-                                `Hotspot ${hotspot.hotspot_index}`}
-                            </strong>
-                            <span>
-                              {hotspot.content ?? hotspot.hotspot_type}
-                            </span>
-                          </li>
-                        ))}
-                      </ol>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </section>
-      </PortalShell>
+        onRestore={changeLifecycle}
+      />
     );
   }
 
@@ -527,8 +327,10 @@ export const InteractiveDemoEditorPage = ({
       demo={state.demo}
       scenes={state.scenes}
       hotspotsBySceneId={state.hotspotsBySceneId}
+      backgroundAssets={state.backgroundAssets}
       initialWorkingDraftVersion={workingDraftVersion}
       saveDemo={saveDemo}
+      createScene={createScene}
       saveScene={saveScene}
       reorderScenes={reorderScenes}
       deleteScene={deleteScene}
@@ -546,37 +348,16 @@ export const InteractiveDemoEditorPage = ({
   );
 };
 
-const PortalShell = ({
-  children,
-  projectId,
-  interactiveDemoId,
-  performLogout,
-  navigate,
-}: {
-  children: React.ReactNode;
-  projectId: string;
-  interactiveDemoId: string;
-  performLogout?: () => Promise<void>;
-  navigate?: (path: string) => void;
-}) => (
-  <div className={styles.page}>
-    <PortalTopbar
-      context={`${projectId} / interactive demos / ${interactiveDemoId}`}
-      performLogout={performLogout}
-      navigate={navigate}
-    />
-    <main className={styles.main}>{children}</main>
-  </div>
-);
-
 const InteractiveDemoEditorLoaded = ({
   projectId,
   interactiveDemoId,
   demo,
   scenes,
   hotspotsBySceneId,
+  backgroundAssets,
   initialWorkingDraftVersion,
   saveDemo,
+  createScene,
   saveScene,
   reorderScenes,
   deleteScene,
@@ -596,8 +377,10 @@ const InteractiveDemoEditorLoaded = ({
   demo: InteractiveDemo;
   scenes: DemoScene[];
   hotspotsBySceneId: Record<string, DemoHotspot[]>;
+  backgroundAssets: CaptureAssetWithFileUrl[];
   initialWorkingDraftVersion: number;
   saveDemo: NonNullable<InteractiveDemoEditorPageProps["saveDemo"]>;
+  createScene: NonNullable<InteractiveDemoEditorPageProps["createScene"]>;
   saveScene: NonNullable<InteractiveDemoEditorPageProps["saveScene"]>;
   reorderScenes: NonNullable<InteractiveDemoEditorPageProps["reorderScenes"]>;
   deleteScene: NonNullable<InteractiveDemoEditorPageProps["deleteScene"]>;
@@ -612,6 +395,7 @@ const InteractiveDemoEditorLoaded = ({
     demo: InteractiveDemo;
     scenes: DemoScene[];
     hotspotsBySceneId: Record<string, DemoHotspot[]>;
+    backgroundAssets: CaptureAssetWithFileUrl[];
   }) => void;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
@@ -629,10 +413,25 @@ const InteractiveDemoEditorLoaded = ({
     Record<string, HotspotDraft>
   >(() => hotspotDraftsFromHotspots(hotspotsBySceneId));
   const [message, setMessage] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const aggregateMutationRef = useRef(false);
   const [workingDraftVersion, setWorkingDraftVersion] = useState(
     initialWorkingDraftVersion,
   );
+  const hasUnsavedMetadata =
+    demoDraft.title !== demo.title ||
+    demoDraft.description !== (demo.description ?? "");
+
+  useEffect(() => {
+    if (!hasUnsavedMetadata) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [hasUnsavedMetadata]);
 
   const updateLoadedState = (
     nextDemo: InteractiveDemo,
@@ -643,6 +442,7 @@ const InteractiveDemoEditorLoaded = ({
       demo: nextDemo,
       scenes: nextScenes,
       hotspotsBySceneId: nextHotspotsBySceneId,
+      backgroundAssets,
     });
   };
 
@@ -652,6 +452,7 @@ const InteractiveDemoEditorLoaded = ({
       [field]: field === "status" && value === "archived" ? "archived" : value,
     }));
     setMessage(null);
+    setConflict(false);
   };
 
   const updateSceneDraft = (
@@ -662,7 +463,11 @@ const InteractiveDemoEditorLoaded = ({
     setSceneDrafts((drafts) => ({
       ...drafts,
       [sceneId]: {
-        ...(drafts[sceneId] ?? { title: "", description: "" }),
+        ...(drafts[sceneId] ?? {
+          title: "",
+          description: "",
+          background_capture_asset_id: "",
+        }),
         [field]: value,
       },
     }));
@@ -682,15 +487,92 @@ const InteractiveDemoEditorLoaded = ({
       updateLoadedState(response.edition, orderedScenes, hotspotsBySceneId);
       setDemoDraft(demoDraftFromDemo(response.edition));
       setMessage("Demo saved.");
-    } catch {
-      setMessage("Could not save demo.");
+      setConflict(false);
+    } catch (error) {
+      const type =
+        typeof error === "object" && error !== null && "type" in error
+          ? String(error.type)
+          : "";
+      if (type.includes("conflict")) {
+        setConflict(true);
+        setMessage(
+          "This Demo Edition changed elsewhere. Your local changes are still here.",
+        );
+      } else {
+        setMessage("Could not save demo.");
+      }
     } finally {
       setPendingAction(null);
     }
   };
 
+  const handleCreateScene = async () => {
+    setPendingAction("scene:create");
+    setMessage(null);
+    try {
+      const response = await createScene(projectId, interactiveDemoId, {
+        title: `Scene ${orderedScenes.length + 1}`,
+        description: null,
+        background_capture_asset_id: null,
+        expected_working_draft_version: workingDraftVersion,
+      });
+      const nextScenes = sortedScenes([...orderedScenes, response.demo_scene]);
+      setWorkingDraftVersion(response.working_draft.version);
+      updateLoadedState(demo, nextScenes, {
+        ...hotspotsBySceneId,
+        [response.demo_scene.id]: [],
+      });
+      setSceneDrafts((drafts) => ({
+        ...drafts,
+        [response.demo_scene.id]: sceneDraftsFromScenes([response.demo_scene])[
+          response.demo_scene.id
+        ] ?? {
+          title: "",
+          description: "",
+          background_capture_asset_id: "",
+        },
+      }));
+    } catch (error) {
+      const type =
+        typeof error === "object" && error !== null && "type" in error
+          ? String(error.type)
+          : "";
+      if (type.includes("conflict")) {
+        setConflict(true);
+        setMessage(
+          "This Working Draft changed elsewhere. Reload after reviewing local changes.",
+        );
+      } else {
+        setMessage("Could not create scene.");
+      }
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const runAggregateMutation = async <Result,>(
+    _command: "publication",
+    operation: () => Promise<Result>,
+  ) => {
+    if (aggregateMutationRef.current || pendingAction !== null) {
+      throw new Error("Another Demo change is still in progress");
+    }
+    aggregateMutationRef.current = true;
+    setPendingAction("publication");
+    try {
+      return await operation();
+    } finally {
+      aggregateMutationRef.current = false;
+      setPendingAction(null);
+    }
+  };
+
   const handleSaveScene = async (scene: DemoScene) => {
-    const draft = sceneDrafts[scene.id] ?? { title: "", description: "" };
+    const draft = sceneDrafts[scene.id] ?? {
+      title: "",
+      description: "",
+      background_capture_asset_id: "",
+    };
     setPendingAction(`scene:${scene.id}`);
     setMessage(null);
 
@@ -698,6 +580,7 @@ const InteractiveDemoEditorLoaded = ({
       const response = await saveScene(projectId, interactiveDemoId, scene.id, {
         title: draft.title.trim() || null,
         description: draft.description.trim() || null,
+        background_capture_asset_id: draft.background_capture_asset_id || null,
         expected_working_draft_version: workingDraftVersion,
       });
       setWorkingDraftVersion(response.working_draft.version);
@@ -989,502 +872,64 @@ const InteractiveDemoEditorLoaded = ({
       performLogout={performLogout}
       navigate={navigate}
     >
-      <section className={styles.header}>
-        <div className={styles.titleRow}>
-          <div>
-            <div className={styles.eyebrow}>Interactive demo</div>
-            <h1 className={styles.title}>{demo.title}</h1>
-            {demo.description ? (
-              <p className={styles.description}>{demo.description}</p>
-            ) : null}
-            <div className={styles.meta}>
-              <span>
-                {demo.source_capture_session_id
-                  ? `Source capture: ${demo.source_capture_session_id}`
-                  : "No source capture"}
-              </span>
-              {demo.source_capture_session_id ? (
-                <a
-                  className={styles.sourceLink}
-                  href={sourceCaptureUrl(
-                    projectId,
-                    demo.source_capture_session_id,
-                  )}
-                >
-                  Open source capture
-                </a>
-              ) : null}
-            </div>
-          </div>
-          <div>
-            <Badge variant={demo.status === "draft" ? "warning" : "success"}>
-              {demo.status}
-            </Badge>
-            {versionSlug ? (
-              <a
-                href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/revisions`}
-              >
-                Revision history
-              </a>
-            ) : null}
-            <Button
-              variant="destructive"
-              onClick={() => void onChangeLifecycle()}
-            >
-              Archive demo
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <div className={styles.content}>
-        <div className={styles.sidePanelStack}>
-          <section
-            className={styles.panel}
-            aria-labelledby="demo-metadata-heading"
-          >
-            <h2 className={styles.sectionTitle} id="demo-metadata-heading">
-              Demo metadata
-            </h2>
-            <Label className={styles.field}>
-              Demo title
-              <Input
-                value={demoDraft.title}
-                onChange={(event) =>
-                  updateDemoDraft("title", event.target.value)
-                }
-              />
-            </Label>
-            <Label className={styles.field}>
-              Demo description
-              <Textarea
-                value={demoDraft.description}
-                onChange={(event) =>
-                  updateDemoDraft("description", event.target.value)
-                }
-              />
-            </Label>
-            <Button
-              disabled={pendingAction === "demo"}
-              onClick={handleSaveDemo}
-            >
-              {pendingAction === "demo" ? "Saving demo..." : "Save demo"}
-            </Button>
-            {message ? <div className={styles.message}>{message}</div> : null}
-          </section>
-
-          <ArtifactPublishingPanel
-            projectId={projectId}
-            projectVersionId={demo.project_version_id}
-            artifactType="interactive_demo"
-            artifactId={interactiveDemoId}
-            editionVersion={demo.version}
-            workingDraftVersion={workingDraftVersion}
-            publicationReadOnly={demo.status === "archived"}
-          />
-        </div>
-
-        <section aria-labelledby="demo-scenes-heading">
-          <h2 className={styles.sectionTitle} id="demo-scenes-heading">
-            Scenes
-          </h2>
-          {orderedScenes.length === 0 ? (
-            <div className={styles.empty}>No scenes yet.</div>
-          ) : (
-            <div className={styles.sceneList}>
-              {orderedScenes.map((scene, index) => (
-                <SceneEditor
-                  key={scene.id}
-                  projectId={projectId}
-                  scene={scene}
-                  sceneNumber={index + 1}
-                  isFirst={index === 0}
-                  isLast={index === orderedScenes.length - 1}
-                  draft={
-                    sceneDrafts[scene.id] ?? { title: "", description: "" }
+      <InteractiveDemoWorkbench
+        projectId={projectId}
+        interactiveDemoId={interactiveDemoId}
+        demo={demo}
+        demoDraft={demoDraft}
+        workingDraftVersion={workingDraftVersion}
+        pendingAction={pendingAction}
+        conflict={conflict}
+        hasUnsavedMetadata={hasUnsavedMetadata}
+        message={message}
+        versionSlug={versionSlug}
+        onUpdateDemoDraft={updateDemoDraft}
+        onSaveDemo={handleSaveDemo}
+        onCreateScene={handleCreateScene}
+        onChangeLifecycle={onChangeLifecycle}
+        runAggregateMutation={runAggregateMutation}
+      >
+        {orderedScenes.length === 0 ? (
+          <div className={styles.empty}>No scenes yet.</div>
+        ) : (
+          <div className={styles.sceneList}>
+            {orderedScenes.map((scene, index) => (
+              <InteractiveDemoSceneEditor
+                key={scene.id}
+                projectId={projectId}
+                scene={scene}
+                sceneNumber={index + 1}
+                isFirst={index === 0}
+                isLast={index === orderedScenes.length - 1}
+                draft={
+                  sceneDrafts[scene.id] ?? {
+                    title: "",
+                    description: "",
+                    background_capture_asset_id: "",
                   }
-                  pendingAction={pendingAction}
-                  resolveAssetUrl={resolveAssetUrl}
-                  scenes={orderedScenes}
-                  hotspots={sortedHotspots(hotspotsBySceneId[scene.id] ?? [])}
-                  hotspotDrafts={hotspotDrafts}
-                  updateDraft={updateSceneDraft}
-                  updateHotspotDraft={updateHotspotDraft}
-                  saveCurrentScene={handleSaveScene}
-                  moveScene={(direction) => moveScene(index, direction)}
-                  deleteCurrentScene={handleDeleteScene}
-                  createCurrentHotspot={handleCreateHotspot}
-                  saveCurrentHotspot={handleSaveHotspot}
-                  moveHotspot={(hotspotIndex, direction) =>
-                    moveHotspot(scene, hotspotIndex, direction)
-                  }
-                  deleteCurrentHotspot={handleDeleteHotspot}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </PortalShell>
-  );
-};
-
-const SceneEditor = ({
-  projectId,
-  scene,
-  sceneNumber,
-  isFirst,
-  isLast,
-  draft,
-  pendingAction,
-  resolveAssetUrl,
-  scenes,
-  hotspots,
-  hotspotDrafts,
-  updateDraft,
-  updateHotspotDraft,
-  saveCurrentScene,
-  moveScene,
-  deleteCurrentScene,
-  createCurrentHotspot,
-  saveCurrentHotspot,
-  moveHotspot,
-  deleteCurrentHotspot,
-}: {
-  projectId: string;
-  scene: DemoScene;
-  sceneNumber: number;
-  isFirst: boolean;
-  isLast: boolean;
-  draft: SceneDraft;
-  pendingAction: string | null;
-  resolveAssetUrl: (fileUrl: string) => string;
-  scenes: DemoScene[];
-  hotspots: DemoHotspot[];
-  hotspotDrafts: Record<string, HotspotDraft>;
-  updateDraft: (
-    sceneId: string,
-    field: keyof SceneDraft,
-    value: string,
-  ) => void;
-  updateHotspotDraft: (
-    hotspotId: string,
-    field: keyof HotspotDraft,
-    value: string,
-  ) => void;
-  saveCurrentScene: (scene: DemoScene) => Promise<void>;
-  moveScene: (direction: -1 | 1) => Promise<void>;
-  deleteCurrentScene: (scene: DemoScene) => Promise<void>;
-  createCurrentHotspot: (scene: DemoScene) => Promise<void>;
-  saveCurrentHotspot: (scene: DemoScene, hotspot: DemoHotspot) => Promise<void>;
-  moveHotspot: (hotspotIndex: number, direction: -1 | 1) => Promise<void>;
-  deleteCurrentHotspot: (
-    scene: DemoScene,
-    hotspot: DemoHotspot,
-  ) => Promise<void>;
-}) => {
-  const assetFileUrl = sceneAssetFileUrl(projectId, scene);
-  const imageAlt = `${scene.title ?? `Scene ${sceneNumber}`} screenshot`;
-  const pending = pendingAction !== null;
-
-  return (
-    <article className={styles.scene}>
-      <div className={styles.sceneHeader}>
-        <h3 className={styles.sceneTitle}>
-          {scene.title ?? `Scene ${sceneNumber}`}
-        </h3>
-        <div className={styles.sceneActions}>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={pending || isFirst}
-            onClick={() => void moveScene(-1)}
-          >
-            Move scene {sceneNumber} up
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={pending || isLast}
-            onClick={() => void moveScene(1)}
-          >
-            Move scene {sceneNumber} down
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            disabled={pending}
-            onClick={() => void deleteCurrentScene(scene)}
-          >
-            Delete scene {sceneNumber}
-          </Button>
-        </div>
-      </div>
-      <div className={styles.screenshotFrame}>
-        {assetFileUrl ? (
-          <>
-            <img
-              className={styles.screenshot}
-              src={resolveAssetUrl(assetFileUrl)}
-              alt={imageAlt}
-            />
-            {hotspots.map((hotspot) => (
-              <button
-                key={hotspot.id}
-                type="button"
-                className={styles.hotspotOverlay}
-                aria-label={`Hotspot ${hotspot.label ?? hotspot.hotspot_index}`}
-                style={{
-                  left: `${hotspot.x * 100}%`,
-                  top: `${hotspot.y * 100}%`,
-                  width: `${hotspot.width * 100}%`,
-                  height: `${hotspot.height * 100}%`,
-                }}
+                }
+                pendingAction={pendingAction}
+                resolveAssetUrl={resolveAssetUrl}
+                scenes={orderedScenes}
+                backgroundAssets={backgroundAssets}
+                hotspots={sortedHotspots(hotspotsBySceneId[scene.id] ?? [])}
+                hotspotDrafts={hotspotDrafts}
+                updateDraft={updateSceneDraft}
+                updateHotspotDraft={updateHotspotDraft}
+                saveCurrentScene={handleSaveScene}
+                moveScene={(direction) => moveScene(index, direction)}
+                deleteCurrentScene={handleDeleteScene}
+                createCurrentHotspot={handleCreateHotspot}
+                saveCurrentHotspot={handleSaveHotspot}
+                moveHotspot={(hotspotIndex, direction) =>
+                  moveHotspot(scene, hotspotIndex, direction)
+                }
+                deleteCurrentHotspot={handleDeleteHotspot}
               />
             ))}
-          </>
-        ) : (
-          <div className={styles.placeholder}>No screenshot attached.</div>
-        )}
-      </div>
-      <Label className={styles.field}>
-        Scene {sceneNumber} title
-        <Input
-          value={draft.title}
-          onChange={(event) =>
-            updateDraft(scene.id, "title", event.target.value)
-          }
-        />
-      </Label>
-      <Label className={styles.field}>
-        Scene {sceneNumber} description
-        <Textarea
-          value={draft.description}
-          onChange={(event) =>
-            updateDraft(scene.id, "description", event.target.value)
-          }
-        />
-      </Label>
-      <Button
-        disabled={pendingAction === `scene:${scene.id}`}
-        onClick={() => void saveCurrentScene(scene)}
-      >
-        {pendingAction === `scene:${scene.id}`
-          ? `Saving scene ${sceneNumber}...`
-          : `Save scene ${sceneNumber}`}
-      </Button>
-      <section
-        className={styles.hotspotSection}
-        aria-label={`Scene ${sceneNumber} hotspots`}
-      >
-        <div className={styles.hotspotHeader}>
-          <h4 className={styles.hotspotTitle}>Hotspots</h4>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={pending}
-            onClick={() => void createCurrentHotspot(scene)}
-          >
-            Add hotspot to scene {sceneNumber}
-          </Button>
-        </div>
-        {hotspots.length === 0 ? (
-          <div className={styles.emptyInline}>No hotspots yet.</div>
-        ) : (
-          <div className={styles.hotspotList}>
-            {hotspots.map((hotspot, hotspotIndex) => {
-              const hotspotNumber = hotspotIndex + 1;
-              const hotspotDraft =
-                hotspotDrafts[hotspot.id] ?? hotspotDraftFromHotspot(hotspot);
-
-              return (
-                <div className={styles.hotspotEditor} key={hotspot.id}>
-                  <div className={styles.hotspotEditorHeader}>
-                    <strong>Hotspot {hotspotNumber}</strong>
-                    <div className={styles.sceneActions}>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={pending || hotspotIndex === 0}
-                        onClick={() => void moveHotspot(hotspotIndex, -1)}
-                      >
-                        Move hotspot {hotspotNumber} up
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={
-                          pending || hotspotIndex === hotspots.length - 1
-                        }
-                        onClick={() => void moveHotspot(hotspotIndex, 1)}
-                      >
-                        Move hotspot {hotspotNumber} down
-                      </Button>
-                    </div>
-                  </div>
-                  <Label className={styles.field}>
-                    Hotspot {hotspotNumber} type
-                    <Select
-                      value={hotspotDraft.hotspot_type}
-                      onChange={(event) =>
-                        updateHotspotDraft(
-                          hotspot.id,
-                          "hotspot_type",
-                          event.target.value as DemoHotspotType,
-                        )
-                      }
-                    >
-                      {DEMO_HOTSPOT_TYPES.map((hotspotType) => (
-                        <option key={hotspotType} value={hotspotType}>
-                          {hotspotType}
-                        </option>
-                      ))}
-                    </Select>
-                  </Label>
-                  <Label className={styles.field}>
-                    Hotspot {hotspotNumber} label
-                    <Input
-                      value={hotspotDraft.label}
-                      onChange={(event) =>
-                        updateHotspotDraft(
-                          hotspot.id,
-                          "label",
-                          event.target.value,
-                        )
-                      }
-                    />
-                  </Label>
-                  <Label className={styles.field}>
-                    Hotspot {hotspotNumber} content
-                    <Textarea
-                      value={hotspotDraft.content}
-                      onChange={(event) =>
-                        updateHotspotDraft(
-                          hotspot.id,
-                          "content",
-                          event.target.value,
-                        )
-                      }
-                    />
-                  </Label>
-                  <div className={styles.coordinateGrid}>
-                    <Label className={styles.field}>
-                      Hotspot {hotspotNumber} x
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="1"
-                        value={hotspotDraft.x}
-                        onChange={(event) =>
-                          updateHotspotDraft(
-                            hotspot.id,
-                            "x",
-                            event.target.value,
-                          )
-                        }
-                      />
-                    </Label>
-                    <Label className={styles.field}>
-                      Hotspot {hotspotNumber} y
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="1"
-                        value={hotspotDraft.y}
-                        onChange={(event) =>
-                          updateHotspotDraft(
-                            hotspot.id,
-                            "y",
-                            event.target.value,
-                          )
-                        }
-                      />
-                    </Label>
-                    <Label className={styles.field}>
-                      Hotspot {hotspotNumber} width
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        max="1"
-                        value={hotspotDraft.width}
-                        onChange={(event) =>
-                          updateHotspotDraft(
-                            hotspot.id,
-                            "width",
-                            event.target.value,
-                          )
-                        }
-                      />
-                    </Label>
-                    <Label className={styles.field}>
-                      Hotspot {hotspotNumber} height
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        max="1"
-                        value={hotspotDraft.height}
-                        onChange={(event) =>
-                          updateHotspotDraft(
-                            hotspot.id,
-                            "height",
-                            event.target.value,
-                          )
-                        }
-                      />
-                    </Label>
-                  </div>
-                  <Label className={styles.field}>
-                    Hotspot {hotspotNumber} target scene
-                    <Select
-                      value={hotspotDraft.target_scene_id}
-                      onChange={(event) =>
-                        updateHotspotDraft(
-                          hotspot.id,
-                          "target_scene_id",
-                          event.target.value,
-                        )
-                      }
-                    >
-                      <option value="">No target scene</option>
-                      {scenes.map((candidate) => (
-                        <option key={candidate.id} value={candidate.id}>
-                          Scene {candidate.scene_index}:{" "}
-                          {candidate.title ?? "Untitled scene"}
-                        </option>
-                      ))}
-                    </Select>
-                  </Label>
-                  <div className={styles.sceneActions}>
-                    <Button
-                      size="sm"
-                      disabled={pendingAction === `hotspot:save:${hotspot.id}`}
-                      onClick={() => void saveCurrentHotspot(scene, hotspot)}
-                    >
-                      {pendingAction === `hotspot:save:${hotspot.id}`
-                        ? `Saving hotspot ${hotspotNumber}...`
-                        : `Save hotspot ${hotspotNumber}`}
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={
-                        pendingAction === `hotspot:delete:${hotspot.id}`
-                      }
-                      onClick={() => void deleteCurrentHotspot(scene, hotspot)}
-                    >
-                      Delete hotspot {hotspotNumber}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         )}
-      </section>
-    </article>
+      </InteractiveDemoWorkbench>
+    </PortalShell>
   );
 };

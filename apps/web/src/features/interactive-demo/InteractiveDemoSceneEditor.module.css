@@ -1,0 +1,80 @@
+.scene {
+  display: grid;
+  gap: var(--ossie-space-4);
+  padding: var(--ossie-space-5);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-lg);
+  background: var(--ossie-color-surface);
+}
+
+.header,
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ossie-space-2);
+  flex-wrap: wrap;
+}
+
+.header h3,
+.header h4,
+.inspector h4 {
+  margin: 0;
+}
+
+.inspectorGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 1fr);
+  gap: var(--ossie-space-4);
+}
+
+.inspector,
+.hotspotForm {
+  display: grid;
+  gap: var(--ossie-space-3);
+  align-content: start;
+}
+
+.hotspotRail {
+  display: grid;
+  gap: var(--ossie-space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.hotspotRail li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--ossie-space-2);
+}
+
+.hotspotRail li > button:first-child {
+  overflow: hidden;
+  padding: var(--ossie-space-2);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-sm);
+  background: var(--ossie-color-surface-subtle);
+  text-align: left;
+  text-overflow: ellipsis;
+}
+
+.hotspotRail li > button[aria-pressed="true"] {
+  border-color: var(--ossie-color-focus);
+  box-shadow: 0 0 0 2px var(--ossie-color-focus-ring);
+}
+
+.geometry {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ossie-space-2);
+}
+
+@media (max-width: 800px) {
+  .inspectorGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .geometry {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

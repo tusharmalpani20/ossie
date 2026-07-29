@@ -41,6 +41,21 @@
   outline-offset: 2px;
 }
 
+.resizeHandle {
+  position: absolute;
+  z-index: 2;
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  min-height: 1rem;
+  padding: 0;
+  border: 2px solid var(--ossie-color-surface);
+  border-radius: 50%;
+  background: var(--ossie-color-accent);
+  transform: translate(-50%, -50%);
+  cursor: nwse-resize;
+}
+
 .hotspot span {
   position: absolute;
   left: 0;

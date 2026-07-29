@@ -1,4 +1,10 @@
-import type { KeyboardEvent } from "react";
+import {
+  Fragment,
+  useEffect,
+  useRef,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
 import styles from "./InteractiveDemoCanvas.module.css";
 
 export type DemoCanvasHotspot = {
@@ -31,6 +37,72 @@ export const InteractiveDemoCanvas = ({
     box: Pick<DemoCanvasHotspot, "x" | "y" | "width" | "height">,
   ) => void;
 }) => {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const pointerOperationRef = useRef<{
+    mode: "move" | "resize";
+    hotspot: DemoCanvasHotspot;
+    startX: number;
+    startY: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const move = (event: globalThis.PointerEvent) => {
+      const operation = pointerOperationRef.current;
+      if (!operation) return;
+      const deltaX = (event.clientX - operation.startX) / operation.width;
+      const deltaY = (event.clientY - operation.startY) / operation.height;
+      const { hotspot } = operation;
+      onGeometryChange(
+        hotspot.id,
+        operation.mode === "move"
+          ? {
+              x: clamp(hotspot.x + deltaX, 0, 1 - hotspot.width),
+              y: clamp(hotspot.y + deltaY, 0, 1 - hotspot.height),
+              width: hotspot.width,
+              height: hotspot.height,
+            }
+          : {
+              x: hotspot.x,
+              y: hotspot.y,
+              width: clamp(hotspot.width + deltaX, 0.01, 1 - hotspot.x),
+              height: clamp(hotspot.height + deltaY, 0.01, 1 - hotspot.y),
+            },
+      );
+    };
+    const end = () => {
+      pointerOperationRef.current = null;
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+    };
+  }, [onGeometryChange]);
+
+  const startPointerOperation = (
+    event: PointerEvent<HTMLElement>,
+    hotspot: DemoCanvasHotspot,
+    mode: "move" | "resize",
+  ) => {
+    const bounds = canvasRef.current?.getBoundingClientRect();
+    if (!bounds?.width || !bounds.height) return;
+    event.preventDefault();
+    onSelect(hotspot.id);
+    pointerOperationRef.current = {
+      mode,
+      hotspot,
+      startX: event.clientX,
+      startY: event.clientY,
+      width: bounds.width,
+      height: bounds.height,
+    };
+  };
+
   const adjust = (
     event: KeyboardEvent<HTMLButtonElement>,
     hotspot: DemoCanvasHotspot,
@@ -52,28 +124,50 @@ export const InteractiveDemoCanvas = ({
   };
 
   return (
-    <div className={styles.canvas} aria-label={`${sceneTitle} canvas`}>
+    <div
+      className={styles.canvas}
+      aria-label={`${sceneTitle} canvas`}
+      ref={canvasRef}
+    >
       {backgroundUrl ? (
         <>
           <img src={backgroundUrl} alt={`${sceneTitle} captured screen`} />
           {hotspots.map((hotspot) => (
-            <button
-              aria-pressed={selectedHotspotId === hotspot.id}
-              className={styles.hotspot}
-              data-selected={selectedHotspotId === hotspot.id}
-              key={hotspot.id}
-              onClick={() => onSelect(hotspot.id)}
-              onKeyDown={(event) => adjust(event, hotspot)}
-              style={{
-                left: `${hotspot.x * 100}%`,
-                top: `${hotspot.y * 100}%`,
-                width: `${hotspot.width * 100}%`,
-                height: `${hotspot.height * 100}%`,
-              }}
-              type="button"
-            >
-              <span>{hotspot.label ?? "Hotspot"}</span>
-            </button>
+            <Fragment key={hotspot.id}>
+              <button
+                aria-pressed={selectedHotspotId === hotspot.id}
+                className={styles.hotspot}
+                data-selected={selectedHotspotId === hotspot.id}
+                onClick={() => onSelect(hotspot.id)}
+                onKeyDown={(event) => adjust(event, hotspot)}
+                onPointerDown={(event) =>
+                  startPointerOperation(event, hotspot, "move")
+                }
+                style={{
+                  left: `${hotspot.x * 100}%`,
+                  top: `${hotspot.y * 100}%`,
+                  width: `${hotspot.width * 100}%`,
+                  height: `${hotspot.height * 100}%`,
+                }}
+                type="button"
+              >
+                <span>{hotspot.label ?? "Hotspot"}</span>
+              </button>
+              {selectedHotspotId === hotspot.id ? (
+                <button
+                  aria-label={`Resize ${hotspot.label ?? "Hotspot"}`}
+                  className={styles.resizeHandle}
+                  onPointerDown={(event) =>
+                    startPointerOperation(event, hotspot, "resize")
+                  }
+                  style={{
+                    left: `${(hotspot.x + hotspot.width) * 100}%`,
+                    top: `${(hotspot.y + hotspot.height) * 100}%`,
+                  }}
+                  type="button"
+                />
+              ) : null}
+            </Fragment>
           ))}
         </>
       ) : (

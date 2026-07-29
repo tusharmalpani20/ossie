@@ -1,0 +1,26 @@
+.page {
+  min-height: 100vh;
+  background: var(--ossie-color-canvas);
+}
+
+.main {
+  display: grid;
+  gap: var(--ossie-space-5);
+  width: min(100% - 2rem, 88rem);
+  margin: 0 auto;
+  padding: var(--ossie-space-6) 0;
+}
+
+.header,
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ossie-space-3);
+  flex-wrap: wrap;
+}
+
+.header h1,
+.header p {
+  margin: 0;
+}
