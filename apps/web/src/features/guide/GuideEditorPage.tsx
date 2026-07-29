@@ -25,7 +25,6 @@ import {
   updateGuideStep,
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
-import { PortalTopbar } from "../portal/PortalTopbar";
 import { ArtifactPublishingPanel } from "../publish/ArtifactPublishingPanel";
 import {
   GuideScreenshotViewer,
@@ -222,8 +221,6 @@ export const GuideEditorPage = ({
   removeBlock = (id, artifactId, blockId, expected) =>
     deleteGuideBlock(id, artifactId, blockId, expected, projectVersionId),
   currentPath = currentBrowserPath(),
-  performLogout,
-  navigate,
   versionSlug,
   changeEditionStatus = (command, id, artifactId, versionId, expected) =>
     command === "archive"
@@ -825,64 +822,34 @@ export const GuideEditorPage = ({
   };
 
   if (state.status === "loading") {
-    return (
-      <PortalShell
-        projectId={projectId}
-        guideId={guideId}
-        performLogout={performLogout}
-        navigate={navigate}
-      >
-        <div className={styles.state}>Loading guide...</div>
-      </PortalShell>
-    );
+    return <div className={styles.state}>Loading guide...</div>;
   }
 
   if (state.status === "unauthenticated") {
     return (
-      <PortalShell
-        projectId={projectId}
-        guideId={guideId}
-        performLogout={performLogout}
-        navigate={navigate}
-      >
-        <div className={styles.state}>
-          <div>Sign in to edit this guide.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>
-            Sign in
-          </a>
-        </div>
-      </PortalShell>
+      <div className={styles.state}>
+        <div>Sign in to edit this guide.</div>
+        <a className={styles.stateLink} href={signInUrl(currentPath)}>
+          Sign in
+        </a>
+      </div>
     );
   }
 
   if (state.status === "not_found") {
     return (
-      <PortalShell
-        projectId={projectId}
-        guideId={guideId}
-        performLogout={performLogout}
-        navigate={navigate}
-      >
-        <div className={styles.state}>Guide was not found.</div>
-      </PortalShell>
+      <div className={styles.state}>Guide was not found.</div>
     );
   }
 
   if (state.status === "error") {
     return (
-      <PortalShell
-        projectId={projectId}
-        guideId={guideId}
-        performLogout={performLogout}
-        navigate={navigate}
-      >
-        <div className={styles.state}>
-          <div>Could not load guide.</div>
-          <Button variant="secondary" onClick={reload}>
-            Retry
-          </Button>
-        </div>
-      </PortalShell>
+      <div className={styles.state}>
+        <div>Could not load guide.</div>
+        <Button variant="secondary" onClick={reload}>
+          Retry
+        </Button>
+      </div>
     );
   }
 
@@ -925,35 +892,10 @@ export const GuideEditorPage = ({
       onChangeLifecycle={changeLifecycle}
       onReloadLatest={reloadLatest}
       runAggregateMutation={runAggregateMutation}
-      performLogout={performLogout}
-      navigate={navigate}
       versionSlug={versionSlug}
     />
   );
 };
-
-const PortalShell = ({
-  children,
-  projectId,
-  guideId,
-  performLogout,
-  navigate,
-}: {
-  children: React.ReactNode;
-  projectId: string;
-  guideId: string;
-  performLogout?: () => Promise<void>;
-  navigate?: (path: string) => void;
-}) => (
-  <div className={styles.page}>
-    <PortalTopbar
-      context={`${projectId} / ${guideId}`}
-      performLogout={performLogout}
-      navigate={navigate}
-    />
-    <main className={styles.main}>{children}</main>
-  </div>
-);
 
 const GuideEditorView = ({
   detail,
@@ -989,8 +931,6 @@ const GuideEditorView = ({
   onChangeLifecycle,
   onReloadLatest,
   runAggregateMutation,
-  performLogout,
-  navigate,
   versionSlug,
 }: {
   detail: GuideDetail;
@@ -1038,8 +978,6 @@ const GuideEditorView = ({
     command: "publication",
     operation: () => Promise<Result>,
   ) => Promise<Result>;
-  performLogout?: () => Promise<void>;
-  navigate?: (path: string) => void;
   versionSlug?: string;
 }) => {
   const sortedBlocks = useMemo(
@@ -1070,12 +1008,7 @@ const GuideEditorView = ({
   }, [activeScreenshotId, screenshotImages]);
 
   return (
-    <PortalShell
-      projectId={projectId}
-      guideId={guideId}
-      performLogout={performLogout}
-      navigate={navigate}
-    >
+    <div className={styles.main}>
       <section className={styles.header}>
         <div className={styles.titleRow}>
           <div>
@@ -1286,7 +1219,7 @@ const GuideEditorView = ({
         onActiveImageChange={setActiveScreenshotId}
         onClose={() => setActiveScreenshotId(null)}
       />
-    </PortalShell>
+    </div>
   );
 };
 
