@@ -31,7 +31,11 @@ import { InteractiveDemoRevisionPreviewPage } from "./features/artifact-revision
 import { ProjectCarryForwardPage } from "./features/artifact-carry-forward/ProjectCarryForwardPage";
 import { DesignSystemReviewPage } from "./features/design-system/DesignSystemReviewPage";
 import { shouldRenderDesignSystemReview } from "./appRouteGuards";
-import { getProject, getPublicInstanceStatus } from "./lib/api";
+import {
+  getProject,
+  getPublicInstanceStatus,
+  listProjectScreenshotAssets,
+} from "./lib/api";
 import { parsePortalRoute, type PortalRoute } from "./lib/routes";
 import styles from "./App.module.css";
 
@@ -717,6 +721,7 @@ export default function App() {
               versionSlug={project.default_project_version.slug}
               interactiveDemoId={route.interactiveDemoId}
               currentPath={currentPath}
+              loadBackgroundAssets={listProjectScreenshotAssets}
               canWrite={
                 project.status === "active" && project.access.role !== "viewer"
               }
@@ -737,6 +742,7 @@ export default function App() {
             interactiveDemoId={route.interactiveDemoId}
             versionSlug={route.versionSlug}
             currentPath={currentPath}
+            loadBackgroundAssets={listProjectScreenshotAssets}
             canWrite={
               project.status === "active" &&
               selected.status === "active" &&

@@ -196,7 +196,7 @@ export const InteractiveDemoSceneEditor = ({
             </Select>
           </Label>
           <Button
-            disabled={pendingAction === `scene:${scene.id}`}
+            disabled={pending}
             onClick={() => void saveCurrentScene(scene)}
           >
             {pendingAction === `scene:${scene.id}`
@@ -343,9 +343,7 @@ export const InteractiveDemoSceneEditor = ({
               <div className={styles.actions}>
                 <Button
                   size="sm"
-                  disabled={
-                    pendingAction === `hotspot:save:${selectedHotspot.id}`
-                  }
+                  disabled={pending}
                   onClick={() =>
                     void saveCurrentHotspot(scene, selectedHotspot)
                   }
@@ -355,9 +353,7 @@ export const InteractiveDemoSceneEditor = ({
                 <Button
                   variant="destructive"
                   size="sm"
-                  disabled={
-                    pendingAction === `hotspot:delete:${selectedHotspot.id}`
-                  }
+                  disabled={pending}
                   onClick={() => {
                     if (window.confirm("Delete this hotspot?")) {
                       void deleteCurrentHotspot(scene, selectedHotspot);

@@ -94,12 +94,10 @@ describe("InteractiveDemoEditorPage", () => {
   });
 
   it("uses the Edition Row Version for metadata saves", async () => {
-    const saveDemo = vi
-      .fn()
-      .mockResolvedValue({
-        ...detail,
-        edition: { ...detail.edition, version: 4 },
-      });
+    const saveDemo = vi.fn().mockResolvedValue({
+      ...detail,
+      edition: { ...detail.edition, version: 4 },
+    });
     render(
       <InteractiveDemoEditorPage
         projectId="project_1"
@@ -136,11 +134,9 @@ describe("InteractiveDemoEditorPage", () => {
 
   it("archives with the current Edition Row Version", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    const changeEditionStatus = vi
-      .fn()
-      .mockResolvedValue({
-        edition: { ...detail.edition, status: "archived", version: 4 },
-      });
+    const changeEditionStatus = vi.fn().mockResolvedValue({
+      edition: { ...detail.edition, status: "archived", version: 4 },
+    });
     render(
       <InteractiveDemoEditorPage
         projectId="project_1"
@@ -230,5 +226,55 @@ describe("InteractiveDemoEditorPage", () => {
     screen.getByRole("button", { name: "Save demo" }).click();
     expect(await screen.findByText("Conflict")).toBeVisible();
     expect(title).toHaveValue("Relational demo changed");
+  });
+
+  it("keeps one Scene selected by stable ID in the workbench rail", async () => {
+    const scene = (id: string, index: number, title: string) => ({
+      id,
+      organization_id: "org_1",
+      project_id: "project_1",
+      interactive_demo_working_draft_id: "draft_1",
+      source_capture_session_id: null,
+      source_capture_event_id: null,
+      source_capture_asset_id: null,
+      scene_index: index,
+      title,
+      description: null,
+      background_capture_asset_id: null,
+      created_by_id: "user_1",
+      updated_by_id: "user_1",
+      version: 1,
+      created_at: now,
+      updated_at: now,
+    });
+    render(
+      <InteractiveDemoEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        interactiveDemoId="demo_1"
+        loadDemo={async () => detail}
+        loadScenes={async () => ({
+          ...emptyScenes,
+          demo_scenes: [
+            scene("scene_1", 1, "Start here"),
+            scene("scene_2", 2, "Finish here"),
+          ],
+        })}
+        loadHotspots={async () => ({
+          demo_hotspots: [],
+          working_draft: detail.working_draft,
+        })}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("navigation", { name: "Scene rail" }),
+    ).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Start here" })).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Finish here" })).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select Scene 2: Finish here" }),
+    );
+    expect(screen.getByRole("heading", { name: "Finish here" })).toBeVisible();
   });
 });
