@@ -182,14 +182,21 @@ export const ProjectCarryForwardPage = ({
           {errorMessage}
           {blockers.length ? (
             <ul>
-              {blockers.map((blocker) => (
-                <li key={`${blocker.artifact_type}:${blocker.artifact_id}`}>
-                  {blocker.artifact_type === "interactive_demo"
-                    ? "Interactive Demo"
-                    : "Guide"}{" "}
-                  {blocker.artifact_id}
-                </li>
-              ))}
+              {blockers.map((blocker) => {
+                const choice = choices.find(
+                  (value) =>
+                    value.artifact_type === blocker.artifact_type &&
+                    value.artifact_id === blocker.artifact_id,
+                );
+                return (
+                  <li key={`${blocker.artifact_type}:${blocker.artifact_id}`}>
+                    {blocker.artifact_type === "interactive_demo"
+                      ? "Interactive Demo"
+                      : "Guide"}
+                    : {choice?.title ?? "Existing Edition"}
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
         </Alert>
