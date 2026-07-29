@@ -9,12 +9,14 @@ import {
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalAppShell } from "../portal/PortalAppShell";
-import type { InteractiveDemo } from "./types";
 import styles from "./ProjectInteractiveDemoListPage.module.css";
+
+type InteractiveDemoListItem =
+  ProjectInteractiveDemoListResponse["interactive_demo_editions"][number];
 
 type LoadState =
   | { status: "loading" }
-  | { status: "loaded"; demos: InteractiveDemo[] }
+  | { status: "loaded"; demos: InteractiveDemoListItem[] }
   | { status: "unauthenticated" }
   | { status: "not_found" }
   | { status: "error" };
@@ -82,10 +84,7 @@ export const ProjectInteractiveDemoListPage = ({
         if (active) {
           setState({
             status: "loaded",
-            demos: response.interactive_demo_editions.map((item) => ({
-              ...item.edition,
-              id: item.artifact.id,
-            })),
+            demos: response.interactive_demo_editions,
           });
         }
       })
@@ -210,8 +209,8 @@ export const ProjectInteractiveDemoListPage = ({
           <div className={styles.list}>
             {state.demos.map((demo) => (
               <DemoRow
-                key={demo.id}
-                demo={demo}
+                key={demo.artifact.id}
+                item={demo}
                 projectId={projectId}
                 versionSlug={versionSlug}
               />
@@ -254,40 +253,46 @@ const PortalShell = ({
   );
 
 const DemoRow = ({
-  demo,
+  item,
   projectId,
   versionSlug,
 }: {
-  demo: InteractiveDemo;
+  item: InteractiveDemoListItem;
   projectId: string;
   versionSlug?: string;
-}) => (
-  <article className={styles.demo}>
-    <div className={styles.demoBody}>
-      <div className={styles.demoHeader}>
-        <h3 className={styles.demoTitle}>{demo.title}</h3>
-        <Badge variant={demo.status === "draft" ? "warning" : "success"}>
-          {demo.status}
-        </Badge>
+}) => {
+  const { edition: demo } = item;
+  return (
+    <article className={styles.demo}>
+      <div className={styles.demoBody}>
+        <div className={styles.demoHeader}>
+          <h3 className={styles.demoTitle}>{demo.title}</h3>
+          <Badge variant={demo.status === "draft" ? "warning" : "success"}>
+            {demo.status}
+          </Badge>
+        </div>
+        {demo.description ? (
+          <p className={styles.demoDescription}>{demo.description}</p>
+        ) : null}
+        <div className={styles.meta}>
+          {demo.source_capture_session_id ? (
+            <a
+              href={`${captureSessionsUrl(projectId, versionSlug)}/${encodeURIComponent(demo.source_capture_session_id)}`}
+            >
+              Open source Capture
+            </a>
+          ) : (
+            <span>Created without a source Capture</span>
+          )}
+          <span>Authored {formatDateTime(item.authored_updated_at)}</span>
+        </div>
       </div>
-      {demo.description ? (
-        <p className={styles.demoDescription}>{demo.description}</p>
-      ) : null}
-      <div className={styles.meta}>
-        <span>
-          {demo.source_capture_session_id
-            ? `Source capture: ${demo.source_capture_session_id}`
-            : "No source capture"}
-        </span>
-        <span>Updated {formatDateTime(demo.updated_at)}</span>
-        <span>Created {formatDateTime(demo.created_at)}</span>
-      </div>
-    </div>
-    <a
-      className={`${buttonVariants({ variant: "secondary" })} ${styles.openLink}`}
-      href={demoUrl(projectId, demo.id, versionSlug)}
-    >
-      Open demo {demo.title}
-    </a>
-  </article>
-);
+      <a
+        className={`${buttonVariants({ variant: "secondary" })} ${styles.openLink}`}
+        href={demoUrl(projectId, item.artifact.id, versionSlug)}
+      >
+        Open demo {demo.title}
+      </a>
+    </article>
+  );
+};

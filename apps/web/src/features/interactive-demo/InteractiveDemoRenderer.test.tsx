@@ -39,7 +39,14 @@ describe("InteractiveDemoRenderer", () => {
       <InteractiveDemoRenderer
         title="Department demo"
         scenes={scenes}
-        assets={[{ id: "asset_1", fileUrl: "/scene.png" }]}
+        assets={[
+          {
+            id: "asset_1",
+            fileUrl: "/scene.png",
+            width: 1200,
+            height: 800,
+          },
+        ]}
       />,
     );
 
@@ -49,6 +56,9 @@ describe("InteractiveDemoRenderer", () => {
       top: "20%",
       width: "30%",
       height: "10%",
+    });
+    expect(screen.getByTestId("interactive-demo-scene-canvas")).toHaveStyle({
+      aspectRatio: "1200 / 800",
     });
 
     fireEvent.click(hotspot);

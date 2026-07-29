@@ -33,7 +33,12 @@ export const InteractiveDemoRenderer = ({
   title: string;
   description?: string | null;
   scenes: InteractiveDemoRenderScene[];
-  assets: Array<{ id: string; fileUrl: string }>;
+  assets: Array<{
+    id: string;
+    fileUrl: string;
+    width?: number | null;
+    height?: number | null;
+  }>;
   emptyMessage?: string;
 }) => {
   const orderedScenes = useMemo(
@@ -45,8 +50,8 @@ export const InteractiveDemoRenderer = ({
   const [announcement, setAnnouncement] = useState("");
   const headingRef = useRef<HTMLHeadingElement>(null);
   const focusSceneRef = useRef(false);
-  const assetUrls = useMemo(
-    () => new Map(assets.map((asset) => [asset.id, asset.fileUrl])),
+  const assetsById = useMemo(
+    () => new Map(assets.map((asset) => [asset.id, asset])),
     [assets],
   );
   const scene =
@@ -73,9 +78,10 @@ export const InteractiveDemoRenderer = ({
   }
 
   const sceneTitle = scene.title ?? `Scene ${scene.sceneIndex}`;
-  const backgroundUrl = scene.backgroundAssetId
-    ? assetUrls.get(scene.backgroundAssetId)
+  const backgroundAsset = scene.backgroundAssetId
+    ? assetsById.get(scene.backgroundAssetId)
     : null;
+  const backgroundUrl = backgroundAsset?.fileUrl;
 
   const activate = (hotspot: InteractiveDemoRenderHotspot) => {
     const target = hotspot.targetSceneId
@@ -124,7 +130,17 @@ export const InteractiveDemoRenderer = ({
         </h2>
         {scene.description ? <p>{scene.description}</p> : null}
       </div>
-      <div className={styles.canvas}>
+      <div
+        className={styles.canvas}
+        data-testid="interactive-demo-scene-canvas"
+        style={
+          backgroundAsset?.width && backgroundAsset.height
+            ? {
+                aspectRatio: `${backgroundAsset.width} / ${backgroundAsset.height}`,
+              }
+            : undefined
+        }
+      >
         {backgroundUrl ? (
           <img src={backgroundUrl} alt={`${sceneTitle} captured screen`} />
         ) : (

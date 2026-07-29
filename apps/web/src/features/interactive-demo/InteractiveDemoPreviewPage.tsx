@@ -20,7 +20,12 @@ type PreviewState =
       status: "ready";
       detail: InteractiveDemoDetailResponse;
       scenes: InteractiveDemoRenderScene[];
-      assets: Array<{ id: string; fileUrl: string }>;
+      assets: Array<{
+        id: string;
+        fileUrl: string;
+        width: number | null;
+        height: number | null;
+      }>;
     }
   | { status: "error" };
 
@@ -97,6 +102,8 @@ export const InteractiveDemoPreviewPage = ({
           assets: sceneResponse.background_capture_assets.map((asset) => ({
             id: asset.id,
             fileUrl: resolveApiAssetUrl(asset.file_url),
+            width: asset.width,
+            height: asset.height,
           })),
         });
       })

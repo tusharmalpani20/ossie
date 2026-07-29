@@ -49,6 +49,46 @@ describe("ProjectInteractiveDemoListPage", () => {
       "href",
       "/projects/project_1/versions/q3/interactive-demos/demo_1",
     );
+    expect(screen.getByText(/Authored/)).toBeVisible();
+  });
+
+  it("uses the qualified source Capture route without exposing its raw ID", async () => {
+    render(
+      <ProjectInteractiveDemoListPage
+        projectId="project_1"
+        projectVersionId="version_2"
+        versionSlug="q3"
+        loadDemos={async () =>
+          ({
+            interactive_demo_editions: [
+              {
+                artifact: { id: "demo_1" },
+                edition: {
+                  id: "edition_1",
+                  interactive_demo_id: "demo_1",
+                  project_version_id: "version_2",
+                  source_capture_session_id: "capture_secret_id",
+                  title: "Captured demo",
+                  description: null,
+                  status: "draft",
+                  created_at: now,
+                  updated_at: now,
+                },
+                authored_updated_at: now,
+              },
+            ],
+          }) as never
+        }
+      />,
+    );
+
+    expect(
+      await screen.findByRole("link", { name: "Open source Capture" }),
+    ).toHaveAttribute(
+      "href",
+      "/projects/project_1/versions/q3/capture-sessions/capture_secret_id",
+    );
+    expect(screen.queryByText(/capture_secret_id/)).not.toBeInTheDocument();
   });
 
   it("can render content without its own shell inside Project Version routes", async () => {
