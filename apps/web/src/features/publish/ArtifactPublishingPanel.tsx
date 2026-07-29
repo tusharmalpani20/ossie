@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PublishLink, PublishedArtifact } from "@repo/types/publish";
 import {
   createArtifactPublishLink,
@@ -66,6 +66,9 @@ export const ArtifactPublishingPanel = ({
       target: PublishedArtifact;
     } | null>(null),
     [rollbackReason, setRollbackReason] = useState("");
+  const rollbackDialogRef = useRef<HTMLDivElement>(null);
+  const rollbackReasonRef = useRef<HTMLTextAreaElement>(null);
+  const rollbackTriggerRef = useRef<HTMLButtonElement>(null);
   const active = useMemo(
     () => links.filter((link) => link.status === "active"),
     [links],
@@ -92,14 +95,42 @@ export const ArtifactPublishingPanel = ({
   useEffect(() => {
     void load().catch(() => setMessage("Could not load publishing."));
   }, [load]);
+  const closeRollback = useCallback(() => {
+    setRollback(null);
+    setRollbackReason("");
+    rollbackTriggerRef.current?.focus();
+  }, []);
   useEffect(() => {
     if (!rollback) return;
-    const cancel = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) setRollback(null);
+    rollbackReasonRef.current?.focus();
+    const handleDialogKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) {
+        event.preventDefault();
+        closeRollback();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusable = [
+        ...(rollbackDialogRef.current?.querySelectorAll<HTMLElement>(
+          "textarea, button:not(:disabled)",
+        ) ?? []),
+      ];
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (!first || !last) return;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    document.addEventListener("keydown", cancel);
-    return () => document.removeEventListener("keydown", cancel);
-  }, [busy, rollback]);
+    document.addEventListener("keydown", handleDialogKey);
+    return () => document.removeEventListener("keydown", handleDialogKey);
+  }, [busy, closeRollback, rollback]);
   const publish = async () => {
     setBusy(true);
     setMessage("");
@@ -228,8 +259,7 @@ export const ArtifactPublishingPanel = ({
           ...(reason ? { reason } : {}),
         },
       );
-      setRollback(null);
-      setRollbackReason("");
+      closeRollback();
       await load();
       setMessage("Publish Link entry rolled back. No Publication was created.");
     } catch {
@@ -449,7 +479,8 @@ export const ArtifactPublishingPanel = ({
                         ) && (
                           <button
                             disabled={linkManagementReadOnly || busy}
-                            onClick={() => {
+                            onClick={(event) => {
+                              rollbackTriggerRef.current = event.currentTarget;
                               const target = publications.find(
                                 (item) =>
                                   item.edition_id ===
@@ -677,6 +708,7 @@ export const ArtifactPublishingPanel = ({
       )}
       {rollback && (
         <div
+          ref={rollbackDialogRef}
           className={styles.dialog}
           role="dialog"
           aria-modal="true"
@@ -699,6 +731,7 @@ export const ArtifactPublishingPanel = ({
           <label>
             Rollback reason (optional)
             <textarea
+              ref={rollbackReasonRef}
               maxLength={500}
               value={rollbackReason}
               onChange={(event) => setRollbackReason(event.target.value)}
@@ -707,7 +740,7 @@ export const ArtifactPublishingPanel = ({
           <button disabled={busy} onClick={() => void confirmRollback()}>
             Confirm rollback
           </button>
-          <button disabled={busy} onClick={() => setRollback(null)}>
+          <button disabled={busy} onClick={closeRollback}>
             Cancel
           </button>
         </div>
