@@ -18,7 +18,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--ossie-color-muted);
 }
 .blocks {
   display: grid;
