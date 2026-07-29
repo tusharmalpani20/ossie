@@ -156,7 +156,7 @@ const insert_screenshot_asset = async (input: {
     );
   });
 
-  return capture_asset_id;
+  return { capture_asset_id, capture_session_id };
 };
 
 const insert_capture_source_material = async (input: {
@@ -320,11 +320,12 @@ describe("DB-backed interactive demo API", () => {
     const { project_id, project_version_id } =
       await create_project(session_token);
     const owner_context = await get_owner_context();
-    const capture_asset_id = await insert_screenshot_asset({
-      organization_id: owner_context?.organization_id ?? "",
-      org_user_id: owner_context?.org_user_id ?? "",
-      project_id,
-    });
+    const { capture_asset_id, capture_session_id } =
+      await insert_screenshot_asset({
+        organization_id: owner_context?.organization_id ?? "",
+        org_user_id: owner_context?.org_user_id ?? "",
+        project_id,
+      });
     const app = build({ logger: false });
 
     const created = await app.inject({
@@ -421,7 +422,8 @@ describe("DB-backed interactive demo API", () => {
       expect.objectContaining({
         id: capture_asset_id,
         project_id,
-        project_version_id,
+        capture_session_id,
+        file_url: `/api/v1/projects/${project_id}/capture-sessions/${capture_session_id}/assets/${capture_asset_id}/file`,
       }),
     ]);
 

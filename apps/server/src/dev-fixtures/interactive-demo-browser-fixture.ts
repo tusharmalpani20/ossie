@@ -109,6 +109,21 @@ export const build_interactive_demo_browser_fixture = () => {
   };
 };
 
+export const interactive_demo_browser_fixture_cli_summary = (
+  fixture: ReturnType<typeof build_interactive_demo_browser_fixture>,
+) => ({
+  seeded: true,
+  warning: "Synthetic disposable testing fixture only.",
+  organization_id: fixture.organization_id,
+  project_id: fixture.project_id,
+  users: fixture.users.map(({ email, project_role }) => ({
+    email,
+    project_role,
+  })),
+  routes: fixture.routes,
+  public_links: fixture.public_links,
+});
+
 export const seed_interactive_demo_browser_fixture = async () => {
   await seed_capture_portal_browser_fixture();
   const fixture = build_interactive_demo_browser_fixture();
