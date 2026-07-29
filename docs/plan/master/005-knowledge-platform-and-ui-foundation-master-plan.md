@@ -2,7 +2,8 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `125` are complete. Child `126` is
+Status: In progress. Children `109` through `125` are complete; child `125`
+passed its full DB/browser close-previous audit on 2026-07-29. Child `126` is
 next.
 
 Master plan number: 005.
@@ -1474,7 +1475,7 @@ Implementation notes:
 
 ### 124: Project, Version, And Library UI Modernization
 
-Status: Complete on 2026-07-26.
+Status: Complete after full DB/browser close-previous audit on 2026-07-29.
 
 Planned file:
 
@@ -1569,13 +1570,17 @@ Implementation notes:
 - No server API, schema, migration, permission, Capture source immutability,
   raw input, raw HTML, asset lifecycle, or public route behavior changed.
 - Browser evidence is recorded in
-  `docs/ui/125-capture-portal-browser-evidence.md`. Full browser matrix
-  acceptance remains blocked by the missing seeded authenticated local fixture
-  and is not claimed from unit tests.
+  `docs/ui/125-capture-portal-browser-evidence.md`. The full fixture-backed
+  admin/viewer/signed-out desktop, mobile, reflow, failure-recovery, and
+  accessibility matrix passed on 2026-07-29.
 - Follow-up `docs/plan/125-01-capture-portal-browser-fixture.md` added
-  dev/test-only fixture tooling and a seed command. The live DB/browser run is
-  still blocked in this checkout until `apps/server/.env-cmdrc` defines the
-  disposable `testing_maintenance` environment.
+  dev/test-only fixture tooling, a DB integration test, and a live seed command
+  verified against PostgreSQL 18.4.
+- Close-previous fixes covered PostgreSQL 18 delegated-role provisioning,
+  canonical fixture ULIDs/ownership, concurrent authentication-session
+  touches, canonical named-version artifact redirects, empty-draft
+  reassignment coverage, upload/status accessibility, and signed-out Project
+  Version recovery.
 
 Acceptance:
 
@@ -2063,9 +2068,9 @@ The next executable activity is child `126`, Extension UI Modernization. Start
 by expanding child `126` against the completed child `125` Capture portal work
 and the follow-up `125-01` fixture tooling. Preserve Project Version route
 context, Capture source immutability, tenant isolation, and existing Capture
-behavior. Full Capture portal browser matrix acceptance is still not claimed
-until the local disposable testing DB environment is configured and the fixture
-seed/browser run succeeds.
+behavior. Reuse the now-passing disposable fixture where portal handoff must be
+verified, keep the selected Version stable after Capture starts, and derive
+open-portal links from canonical loaded Version scope.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -2087,7 +2092,9 @@ records source implementation, verification, explicit user acceptance,
 leftovers, and handoff evidence; child `122` records implementation,
 close-previous verification, browser evidence, leftovers, and handoff evidence;
 child `123` records source implementation, verification, browser evidence,
-leftovers, and handoff evidence.
+leftovers, and handoff evidence; child `124` records its implementation and
+closeout; and child `125` records implementation, PostgreSQL 18 fixture/DB
+verification, full browser evidence, leftovers, and extension handoff.
 Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
 their existence does not advance any implementation gate. Sequential execution
-continues with child `124` expansion.
+continues with child `126` expansion.
