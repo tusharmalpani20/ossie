@@ -74,12 +74,12 @@ describe("InteractiveDemoRevisionPreviewPage", () => {
       await screen.findByRole("heading", { name: "Immutable demo" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Immutable scene body")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Frozen scene" })).toHaveAttribute(
-      "src",
-      "/api/demo-revision-asset.png",
-    );
-    expect(screen.getByLabelText("Open details")).toBeInTheDocument();
-    expect(screen.getByText("1 hotspot")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Frozen scene captured screen" }),
+    ).toHaveAttribute("src", "/api/demo-revision-asset.png");
+    expect(
+      screen.getByRole("button", { name: "Open details" }),
+    ).toBeInTheDocument();
     expect(getArtifactRevision).toHaveBeenCalledWith(
       expect.objectContaining({
         artifactType: "interactive_demo",

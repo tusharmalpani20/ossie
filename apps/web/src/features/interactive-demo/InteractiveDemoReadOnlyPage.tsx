@@ -96,6 +96,8 @@ export const InteractiveDemoReadOnlyPage = ({
         assets={backgroundAssets.map((asset) => ({
           id: asset.id,
           fileUrl: resolveAssetUrl(asset.file_url),
+          width: asset.width,
+          height: asset.height,
         }))}
       />
 

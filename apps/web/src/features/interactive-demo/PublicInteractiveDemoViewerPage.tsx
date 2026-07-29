@@ -6,6 +6,7 @@ import {
   getPublicPublishLink,
 } from "../../lib/api";
 import { PublicVersionSelector } from "../publish/PublicVersionSelector";
+import { InteractiveDemoRenderer } from "./InteractiveDemoRenderer";
 import styles from "./PublicInteractiveDemoViewerPage.module.css";
 export type PublicInteractiveDemoViewerPageProps = {
   slug: string;
@@ -18,7 +19,7 @@ type State =
   | { kind: "loading" }
   | { kind: "ready"; response: PublicPublishLinkResponse }
   | { kind: "password" }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string; retryable: boolean };
 export const PublicInteractiveDemoViewerPage = ({
   slug,
   versionSlug,
@@ -29,8 +30,7 @@ export const PublicInteractiveDemoViewerPage = ({
   const [state, setState] = useState<State>({ kind: "loading" }),
     [password, setPassword] = useState(""),
     [passwordError, setPasswordError] = useState<string | null>(null),
-    [retry, setRetry] = useState(0),
-    [sceneIndex, setSceneIndex] = useState(0);
+    [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
     loadPublishLink(slug, "interactive_demo", versionSlug ?? null, mode)
@@ -40,12 +40,12 @@ export const PublicInteractiveDemoViewerPage = ({
           return setState({
             kind: "error",
             message: "Published demo was not found.",
+            retryable: false,
           });
         const target =
           response.canonical_public_url + (mode === "embed" ? "/embed" : "");
         if (versionSlug && window.location.pathname !== target)
           window.history.replaceState(null, "", target);
-        setSceneIndex(0);
         setState({ kind: "ready", response });
       })
       .catch((error) => {
@@ -63,7 +63,17 @@ export const PublicInteractiveDemoViewerPage = ({
                     : error instanceof ApiClientError &&
                         error.type === "publish_link_not_public"
                       ? "This Publish Link is restricted."
-                      : "Published demo was not found.",
+                      : error instanceof ApiClientError &&
+                          error.type === "publish_link_not_found"
+                        ? "Published demo was not found."
+                        : "Published demo could not be loaded.",
+                retryable:
+                  !(error instanceof ApiClientError) ||
+                  ![
+                    "publish_link_expired",
+                    "publish_link_not_public",
+                    "publish_link_not_found",
+                  ].includes(error.type ?? ""),
               },
         );
       });
@@ -106,56 +116,56 @@ export const PublicInteractiveDemoViewerPage = ({
     return (
       <main className={styles.state}>
         <h1>{state.message}</h1>
+        {state.retryable ? (
+          <button
+            type="button"
+            onClick={() => {
+              setState({ kind: "loading" });
+              setRetry((value) => value + 1);
+            }}
+          >
+            Try again
+          </button>
+        ) : null}
       </main>
     );
   const publication = state.response.published_artifact;
   if (publication.artifact_type !== "interactive_demo") return null;
-  const scene = publication.demo_scenes[sceneIndex];
-  const assets = new Map(
-    publication.capture_assets.map((asset) => [asset.id, asset]),
-  );
   return (
     <main className={mode === "embed" ? styles.embed : styles.page}>
       <header>
-        <div>
-          <span>Published interactive demo</span>
-          <h1>{publication.revision.title}</h1>
-        </div>
+        <span>Published interactive demo</span>
         <PublicVersionSelector response={state.response} mode={mode} />
       </header>
-      {scene ? (
-        <section className={styles.scene}>
-          <h2>{scene.title ?? `Scene ${scene.scene_index}`}</h2>
-          {scene.background_capture_asset_id &&
-            assets.get(scene.background_capture_asset_id) && (
-              <img
-                src={assets.get(scene.background_capture_asset_id)!.file_url}
-                alt="Demo scene"
-              />
-            )}
-          <div className={styles.hotspots}>
-            {scene.hotspots.map((hotspot) => (
-              <button
-                key={hotspot.id}
-                onClick={() => {
-                  const target =
-                    hotspot.transition?.target_demo_revision_scene_id;
-                  if (target) {
-                    const index = publication.demo_scenes.findIndex(
-                      (item) => item.id === target,
-                    );
-                    if (index >= 0) setSceneIndex(index);
-                  }
-                }}
-              >
-                {hotspot.label ?? hotspot.content ?? "Continue"}
-              </button>
-            ))}
-          </div>
-        </section>
-      ) : (
-        <p>This demo has no scenes.</p>
-      )}
+      <InteractiveDemoRenderer
+        title={publication.revision.title}
+        description={publication.revision.description}
+        scenes={publication.demo_scenes.map((scene) => ({
+          id: scene.id,
+          sceneIndex: scene.scene_index,
+          title: scene.title,
+          description: scene.description,
+          backgroundAssetId: scene.background_capture_asset_id,
+          hotspots: scene.hotspots.map((hotspot) => ({
+            id: hotspot.id,
+            type: hotspot.hotspot_type,
+            label: hotspot.label,
+            content: hotspot.content,
+            x: hotspot.x,
+            y: hotspot.y,
+            width: hotspot.width,
+            height: hotspot.height,
+            targetSceneId:
+              hotspot.transition?.target_demo_revision_scene_id ?? null,
+          })),
+        }))}
+        assets={publication.capture_assets.map((asset) => ({
+          id: asset.id,
+          fileUrl: asset.file_url,
+          width: asset.width,
+          height: asset.height,
+        }))}
+      />
     </main>
   );
 };
