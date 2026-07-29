@@ -23,6 +23,24 @@ describe("normalizeInstanceUrl", () => {
       error: "Enter a valid http:// or https:// instance URL.",
     });
   });
+
+  it("preserves base paths and rejects credentials, queries, and fragments", () => {
+    expect(normalizeInstanceUrl("https://demo.example.com/ossie/api/")).toEqual({
+      ok: true,
+      value: "https://demo.example.com/ossie/api",
+    });
+
+    for (const value of [
+      "https://user:secret@demo.example.com",
+      "https://demo.example.com?tenant=one",
+      "https://demo.example.com/#capture",
+    ]) {
+      expect(normalizeInstanceUrl(value)).toEqual({
+        ok: false,
+        error: "Enter a valid http:// or https:// instance URL.",
+      });
+    }
+  });
 });
 
 describe("buildPortalCaptureSessionUrl", () => {
@@ -84,5 +102,50 @@ describe("buildPortalCaptureSessionUrl", () => {
       "main",
       "capture/session"
     )).toBe("http://localhost:3000/projects/project%20with%20spaces/versions/main/capture-sessions/capture%2Fsession");
+  });
+
+  it("accepts only the exact canonical Capture Session redirect", () => {
+    const expected =
+      "https://portal.example.com/base/projects/project_1/versions/main/capture-sessions/session_1";
+    const build = (redirectPath: string) =>
+      buildPortalCaptureSessionUrl(
+        "https://api.example.com/base",
+        "https://portal.example.com/base",
+        redirectPath,
+        "project_1",
+        "main",
+        "session_1",
+      );
+
+    expect(
+      build(
+        "/projects/project_1/versions/main/capture-sessions/session_1",
+      ),
+    ).toBe(expected);
+    expect(
+      build(
+        "/projects/other/versions/main/capture-sessions/session_1",
+      ),
+    ).toBe(expected);
+    expect(
+      build(
+        "/projects/project_1/versions/other/capture-sessions/session_1",
+      ),
+    ).toBe(expected);
+    expect(
+      build(
+        "/projects/project_1/versions/main/capture-sessions/other",
+      ),
+    ).toBe(expected);
+    expect(
+      build(
+        "/projects/project_1/versions/main/capture-sessions/session_1?tab=events",
+      ),
+    ).toBe(expected);
+    expect(
+      build(
+        "/projects/project_1/versions/main/capture-sessions/session_1#events",
+      ),
+    ).toBe(expected);
   });
 });

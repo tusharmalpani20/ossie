@@ -62,6 +62,7 @@ describe("popup helpers", () => {
     })).toEqual({
       name: "Capture from Example Page",
       source_type: "extension",
+      start_immediately: true,
       start_url: "https://example.com/path",
       browser_name: "Chrome",
       user_agent: "Mozilla/5.0 Chrome/126.0.0.0",

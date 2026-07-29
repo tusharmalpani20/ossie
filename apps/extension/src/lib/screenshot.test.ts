@@ -57,6 +57,15 @@ describe("visible tab screenshot capture", () => {
     expect(result.height).toBeNull();
   });
 
+  it("targets the validated sender window for automatic capture", async () => {
+    const captureVisibleTab = vi.fn(async () => pngDataUrl);
+    vi.stubGlobal("chrome", { tabs: { captureVisibleTab } });
+
+    await captureVisibleTabScreenshot(42);
+
+    expect(captureVisibleTab).toHaveBeenCalledWith(42, { format: "png" });
+  });
+
   it("fails when visible tab capture is unavailable", async () => {
     vi.stubGlobal("chrome", {
       tabs: {},

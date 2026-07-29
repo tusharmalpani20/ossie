@@ -1,12 +1,12 @@
 export type AutomaticCaptureDiagnostic = {
-  status: "success" | "failed";
+  status: "saving" | "success" | "failed";
   message: string | null;
   eventIndex: number | null;
   occurredAt: string;
 };
 
 export type ManualCaptureDiagnostic = {
-  status: "success" | "failed";
+  status: "saving" | "success" | "failed";
   message: string | null;
   eventIndex: number | null;
   occurredAt: string;
@@ -98,7 +98,14 @@ const automaticCaptureDiagnosticOrNull = (
   const status = diagnostic.status;
   const occurredAt = stringOrNull(diagnostic.occurredAt);
 
-  if ((status !== "success" && status !== "failed") || !occurredAt) {
+  if (
+    status !== "saving" &&
+    status !== "success" &&
+    status !== "failed"
+  ) {
+    return null;
+  }
+  if (!occurredAt) {
     return null;
   }
 
@@ -121,7 +128,14 @@ const manualCaptureDiagnosticOrNull = (
   const status = diagnostic.status;
   const occurredAt = stringOrNull(diagnostic.occurredAt);
 
-  if ((status !== "success" && status !== "failed") || !occurredAt) {
+  if (
+    status !== "saving" &&
+    status !== "success" &&
+    status !== "failed"
+  ) {
+    return null;
+  }
+  if (!occurredAt) {
     return null;
   }
 
@@ -167,6 +181,70 @@ export const chromeLocalStorage = (): ExtensionStorageArea => {
   }
 
   return chromeStorage;
+};
+
+type StorageChange = {
+  oldValue?: unknown;
+  newValue?: unknown;
+};
+
+export type ExtensionStorageChangeEvent = {
+  addListener: (
+    listener: (
+      changes: Record<string, StorageChange>,
+      areaName: string,
+    ) => void,
+  ) => void;
+  removeListener: (
+    listener: (
+      changes: Record<string, StorageChange>,
+      areaName: string,
+    ) => void,
+  ) => void;
+};
+
+const relevantLiveSettingKeys = new Set<string>([
+  keys.activeCaptureSessionId,
+  keys.activeCaptureProjectId,
+  keys.activeCaptureProjectVersionId,
+  keys.activeCaptureProjectVersionSlug,
+  keys.activeCaptureProjectVersionName,
+  keys.activeCaptureEventIndex,
+  keys.activeCaptureMode,
+  keys.activeCapturePaused,
+  keys.automaticCaptureDiagnostic,
+  keys.manualCaptureDiagnostic,
+]);
+
+const chromeStorageChangeEvent = (): ExtensionStorageChangeEvent | null =>
+  (
+    globalThis as {
+      chrome?: { storage?: { onChanged?: ExtensionStorageChangeEvent } };
+    }
+  ).chrome?.storage?.onChanged ?? null;
+
+export const subscribeToSettingsChanges = (
+  onChange: () => void,
+  event: ExtensionStorageChangeEvent | null = chromeStorageChangeEvent(),
+) => {
+  if (!event) {
+    return () => {};
+  }
+
+  const listener = (
+    changes: Record<string, StorageChange>,
+    areaName: string,
+  ) => {
+    if (
+      areaName === "local" &&
+      Object.keys(changes).some((key) => relevantLiveSettingKeys.has(key))
+    ) {
+      onChange();
+    }
+  };
+
+  event.addListener(listener);
+  return () => event.removeListener(listener);
 };
 
 export const getSettings = async (

@@ -6,6 +6,7 @@ import type {
   CaptureAsset,
   CaptureAssetResponse,
   CaptureEvent,
+  CaptureEventListResponse,
   CaptureEventResponse,
   CaptureSession,
   CaptureSessionResponse,
@@ -24,6 +25,7 @@ export type {
   CaptureAsset,
   CaptureAssetResponse,
   CaptureEvent,
+  CaptureEventListResponse,
   CaptureEventResponse,
   CaptureSession,
   CaptureSessionResponse,
@@ -40,6 +42,7 @@ export type CreateCaptureSessionInput = {
   project_version_id: string;
   description?: string | null;
   source_type: Extract<CaptureSessionSourceType, "extension">;
+  start_immediately: true;
   start_url?: string | null;
   browser_name?: string | null;
   browser_version?: string | null;
@@ -188,7 +191,10 @@ export const getCurrentAuth = async (
   sessionToken: string,
 ): Promise<AuthResponse> =>
   requestJson<AuthResponse>(instanceUrl, "/api/v1/authentication/me", {
-    headers: authHeaders(sessionToken),
+    headers: {
+      ...authHeaders(sessionToken),
+      "x-ossie-client": "extension",
+    },
   });
 
 export const listProjects = async (
@@ -245,7 +251,10 @@ export const logout = async (
 ): Promise<void> =>
   requestJson<void>(instanceUrl, "/api/v1/authentication/logout", {
     method: "POST",
-    headers: authHeaders(sessionToken),
+    headers: {
+      ...authHeaders(sessionToken),
+      "x-ossie-client": "extension",
+    },
   });
 
 export const createCaptureSession = async (
@@ -267,6 +276,7 @@ export const createCaptureSession = async (
       body: JSON.stringify({
         ...data,
         source_type: "extension",
+        start_immediately: true,
       }),
     },
   );
@@ -330,6 +340,23 @@ export const createCaptureEvent = async (
         ...data,
         input_value_redacted: true,
       }),
+    },
+  );
+
+export const listCaptureEvents = async (
+  instanceUrl: string,
+  sessionToken: string,
+  projectId: string,
+  captureSessionId: string,
+): Promise<CaptureEventListResponse> =>
+  requestJson<CaptureEventListResponse>(
+    instanceUrl,
+    `/api/v1/projects/${encodeURIComponent(projectId)}/capture-sessions/${encodeURIComponent(captureSessionId)}/events`,
+    {
+      headers: {
+        ...authHeaders(sessionToken),
+        "x-ossie-client": "extension",
+      },
     },
   );
 
