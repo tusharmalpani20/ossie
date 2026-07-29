@@ -68,6 +68,34 @@ The DB-backed smoke test covers:
 - Capture Asset archive plus protected-purge rejection for referenced media
 - relational Publication/Publish Link responses without legacy snapshot fields
 
+## 2026-07-29 Child 127 Guide Closeout
+
+- Plan: `docs/plan/127-guide-authoring-and-reader-ui-modernization.md`
+- Runtime checkpoint: `3253b9e`
+- Environment: guarded synthetic Guide fixture in disposable `ossie_test`; API
+  `http://127.0.0.1:3002`; web `http://127.0.0.1:3000`
+- Browser: Headless Chrome `151.0.0.0` through `agent-browser`
+- Automated smoke:
+  - `pnpm --filter server test:db`: 19 files, 66 tests passed
+  - initial `pnpm --filter server test:smoke`: failed on one stale public Guide
+    DTO assertion that expected authenticated `source_capture_asset_id`
+  - corrected smoke assertion uses public `display_capture_asset_id` and
+    rejects actor/source-authoring metadata for Guide and Interactive Demo
+  - repeated `pnpm --filter server test:smoke`: 1 file, 1 end-to-end workflow
+    passed
+- Manual portal smoke: passed for Capture-to-Guide handoff, Guide library,
+  Admin/Editor authoring, Viewer read-only preview, empty/archived Editions,
+  Block selection, normalized highlights, broken media, Revision history and
+  preview, Carry-Forward selection, Publication history, public reader, embed,
+  password/wrong-password, restricted, expired, revoked, narrow/reflow,
+  reduced-motion, and modal focus restoration.
+- Evidence:
+  `docs/ui/127-guide-authoring-and-reader-ui-browser-evidence.md`
+- Flows failed after correction: none.
+- Follow-up: Child `128` should reuse the accepted shared Publication,
+  Revision, Carry-Forward, public projection, and shell patterns while keeping
+  Interactive Demo Scene/Hotspot composition independent.
+
 ## Manual Portal Checklist
 
 Use safe synthetic screenshots only.
