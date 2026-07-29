@@ -6,9 +6,12 @@ Date expanded: 2026-07-29
 
 Date rechecked: 2026-07-29
 
-Status: Ready for implementation after implementation-readiness expansion and
-recheck. No closeout audit, runtime change, documentation correction, database
-reset, or browser verification was performed by this planning pass.
+Date implemented: 2026-07-29
+
+Status: Complete. The closeout audit, active-documentation synchronization,
+clean-database rehearsal, full automated verification, Chromium browser
+dogfood, and real installed-toolbar Capture passed. No S1/S2 finding remains,
+and child `131` is ready to begin as a documentation-only domain grill.
 
 Parent plan:
 
@@ -958,32 +961,32 @@ workloads and state the forced-GC/listener/timer limitation if it remains.
       behavior, permission, migration, compatibility, verification, browser,
       handoff, and non-scope rules.
 - [x] Record the child `129` actual completion baseline and known limitations.
-- [ ] Record the implementation starting commit and worktree ownership.
+- [x] Record the implementation starting commit and worktree ownership.
 
 ### Closeout execution
 
-- [ ] Create the dated closeout report and child-by-child ledger.
-- [ ] Recheck children `109` through `129` against actual acceptance evidence.
-- [ ] Complete the terminology, docs, routes, contracts, schemas, packages,
+- [x] Create the dated closeout report and child-by-child ledger.
+- [x] Recheck children `109` through `129` against actual acceptance evidence.
+- [x] Complete the terminology, docs, routes, contracts, schemas, packages,
       permissions, and absence audit.
-- [ ] Correct only recorded active-documentation drift.
-- [ ] Prove the clean disposable database, migrations, fixtures, DB integration,
+- [x] Correct only recorded active-documentation drift.
+- [x] Prove the clean disposable database, migrations, fixtures, DB integration,
       and V1 smoke flow.
-- [ ] Pass focused and broad automated verification.
-- [ ] Pass the required agent-browser and installed-toolbar matrix.
-- [ ] Preserve or explicitly disposition the child `129` accessibility,
+- [x] Pass focused and broad automated verification.
+- [x] Pass the required agent-browser and installed-toolbar matrix.
+- [x] Preserve or explicitly disposition the child `129` accessibility,
       responsive, motion, build, and performance baseline.
-- [ ] Classify and disposition every finding; no S1/S2 remains.
+- [x] Classify and disposition every finding; no S1/S2 remains.
 
 ### Closure
 
-- [ ] Update this file with final status, implementation log, verification
+- [x] Update this file with final status, implementation log, verification
       record, commits, limitations, and child `131` handoff.
-- [ ] Update Master Plan `005` only for completed Phase `130` items.
-- [ ] Confirm no user/agent changes or unrelated files entered the commits.
-- [ ] Confirm the final worktree is clean except for explicitly preserved
+- [x] Update Master Plan `005` only for completed Phase `130` items.
+- [x] Confirm no user/agent changes or unrelated files entered the commits.
+- [x] Confirm the final worktree is clean except for explicitly preserved
       pre-existing changes.
-- [ ] Mark child `131` ready only if every Documentation entry gate passes.
+- [x] Mark child `131` ready only if every Documentation entry gate passes.
 
 ## Commit Strategy
 
@@ -1019,53 +1022,72 @@ refusal that is already documented and does not invalidate the gate.
 
 ## Implementation Log
 
-Planning-only expansion and implementation-readiness recheck completed on
-2026-07-29.
+Implementation completed on 2026-07-29 from starting commit
+`bc28f4d065c970f2b082c6acba7f5c196310f605`:
 
-The recheck:
+1. `201c153` (`docs(closeout): establish phase 130 audit ledger`) created
+   `docs/pre-documentation-closeout.md` with the starting-state record,
+   child-by-child acceptance ledger, severity model, inventories, and
+   verification matrix.
+2. `684f76c` (`docs: synchronize shipped foundation status`) corrected the four
+   recorded DOC-01 through DOC-04 active-documentation drift groups. This
+   synchronized root/app READMEs, roadmap/status/product/architecture/
+   contributor/smoke documents, and the Docs App truth bands and tests.
+3. `228292c` (`docs(closeout): record phase 130 verification`) recorded the
+   completed database, automated, browser, accessibility, responsive, motion,
+   performance, link, screenshot, and absence evidence and marked the
+   Documentation entry gate Passed.
+4. The final `docs(plan): close child 130` commit synchronizes this child and
+   Master Plan `005` with the passed result and child `131` handoff.
 
-- replaced the unsafe populated-database rollback ordering with an empty-schema
-  latest-migration down/up rehearsal followed by separate CI-aligned DB and
-  smoke cycles;
-- made all three browser-fixture seeds explicit;
-- assigned already-known stale status, extension, UI-track, Docs App, and web
-  README claims;
-- added child `109` skill/CI ownership and the master's screenshot-drift audit;
-- distinguished active documentation from immutable historical evidence;
-- added Docs App browser validation and the exact external installed-toolbar
-  evidence boundary;
-- recorded the non-equivalent local/remote publication-modal divergence without
-  mutating Git history.
-
-No implementation, documentation truth correction, test execution, database
-mutation, browser session, or runtime change was performed in this planning
-work.
+The four findings were documentation-only S3/S4 drift: obsolete UI-track
+status, obsolete installed-extension limitations, future-tense descriptions of
+already shipped foundation behavior, and unrelated create-next-app boilerplate
+in `apps/web/README.md`. No runtime repair was required. There were no
+runtime/API/schema/type/migration/permission/dependency changes, no Product
+Documentation or Video implementation, and no Git-history synchronization.
 
 ## Verification Record
 
-Planning verification only:
+The dated command-by-command evidence, exact tool versions, result counts,
+browser matrix, vitals, issue register, and limitation dispositions are in
+`docs/pre-documentation-closeout.md`.
 
-- inspected the actual child `129` completion/verification/handoff record;
-- reconciled Master Plan `005` Phase `130`, cross-cutting requirements,
-  Documentation entry gate, completion criteria, and immediate next action;
-- inspected the current route parser, server module registration, workspace
-  scripts, migrations `001`-`024`, shared types/constants ownership, active
-  documentation inventory, and current stale-status examples;
-- checked current CI's separate database/smoke reset behavior, migration
-  runner/DOWN semantics, guarded test-database drop behavior, repository skill
-  ownership, screenshot directories, Docs App copy, and the recorded installed
-  toolbar method;
-- compared the local and remote publication-modal commits and documented that
-  they are not equivalent;
-- confirmed this plan introduces no runtime/API/schema behavior.
-
-Implementation verification remains pending.
+- all children `109` through `129`, accepted ADRs, canonical terminology,
+  routes, APIs, schemas/types, packages, permissions, migrations, current-state
+  docs, screenshots, and Product Documentation/Video absence checks passed;
+- local Markdown links passed (`198` files, `45` local links, zero missing),
+  Docs App external links returned HTTP `200`, and all `76` PNG evidence files
+  decoded successfully;
+- a disposable `ossie_test` database applied migrations `001` through `024`,
+  rehearsed migration `024` down/up on an empty schema, finished with clean
+  migration status, passed all `20` DB integration files / `67` tests, and
+  passed the separately reset V1 smoke test (`1`/`1`);
+- web passed `52` files / `345` tests, extension `19` / `140`, server unit
+  `99` / `406`, types `16` / `61`, constants `1` / `5`, and UI `3` / `7`;
+  recursive tests passed all `15` selected workspaces, check-types `12`/`12`,
+  lint `13`/`13`, and production builds `12`/`12`;
+- Chromium browser validation passed authenticated roles, canonical Version
+  routing, Capture, Guide, Demo, carry-forward conflict/no-overwrite,
+  archive/read-only, Publication access states, protected Assets, Docs App,
+  responsive/reflow, reduced-motion, keyboard/focus/modal, direct extension,
+  and real installed-toolbar Capture/restart/finish/handoff journeys;
+- representative axe scans reported zero violations. Layered Guide/Demo
+  Textarea contrast remained an axe indeterminate result with a manual pass;
+- all seven required three-run production-vitals surfaces remained within or
+  better than child `129`, Guide/Demo long-session checks passed, and build
+  sizes matched the accepted baseline;
+- Firefox, Firefox ESR, WebKit, Safari, and SafariDriver were unavailable on
+  this headless host. Comparable forced-GC heap and listener/timer metrics
+  remain unavailable. These are recorded non-blocking environment/tooling
+  limitations, not support claims;
+- all browser sessions and local services were stopped, temporary external
+  Puppeteer material was not added to the repository, and the final scoped
+  diff passed formatting and whitespace checks.
 
 ## Leftovers And Handoff
 
-Implementation of this closeout remains the next executable work.
-
-If Phase `130` passes, child `131` receives:
+Child `131` is the next executable work and receives:
 
 - the dated closeout report and final commit;
 - the verified current route/schema/permission/publication model;
@@ -1075,6 +1097,20 @@ If Phase `130` passes, child `131` receives:
 - all non-blocking limitations and environment constraints;
 - explicit questions that belong to Documentation domain design rather than
   hidden foundation repair.
+
+The following non-blocking constraints carry forward:
+
+- Chromium is the only browser engine verified on this host; do not imply
+  Firefox/WebKit/Safari support without running those engines;
+- retain manual contrast review for the layered Guide/Demo Textarea until the
+  automation can resolve it deterministically;
+- fixture families reset shared Capture data and therefore must be reseeded for
+  the browser family that owns each scenario;
+- forced-GC heap and listener/timer comparisons remain unavailable in the
+  current browser tooling;
+- local `main` and `origin/main` remain intentionally diverged as recorded in
+  the closeout report; no pull, merge, rebase, or history rewrite was part of
+  this phase.
 
 Child `131` must remain a planning/grill phase. It may decide Documentation
 terms and update canonical decision documents, but it must not add runtime

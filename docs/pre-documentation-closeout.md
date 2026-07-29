@@ -26,6 +26,7 @@ Status: Passed
 - Primary browser: Chrome for Testing `151.0.7922.47`
 - Documentation audit ledger commit: `201c153`
 - Active-documentation correction commit: `684f76c`
+- Verification report commit: `228292c`
 
 The report contains only repository facts and synthetic local validation. It
 does not contain credentials, cookies, tokens, private URLs, captured input,

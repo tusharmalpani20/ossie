@@ -2,8 +2,8 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `129` are complete. Child `130` is
-next.
+Status: In progress. Children `109` through `130` are complete. Child `131`,
+the Documentation Domain Grill, is next.
 
 Master plan number: 005.
 
@@ -48,8 +48,8 @@ This track starts from the following decisions:
 
 ## 3. Current Baseline
 
-Baseline reviewed on 2026-07-10 and reconciled through child `120` on
-2026-07-20:
+Baseline reviewed on 2026-07-10 and reconciled through child `130` on
+2026-07-29:
 
 - The repository is an AGPL-3.0-only pnpm/Turborepo monorepo.
 - `apps/server` is a Fastify REST API backed by PostgreSQL and local file storage.
@@ -93,19 +93,35 @@ Baseline reviewed on 2026-07-10 and reconciled through child `120` on
   accepted clean pre-live transition and refuses populated User or Organization
   data; no production-row backfill exists.
 - The repository is pre-live. There are no production records, external API clients, or deployed public links requiring data-preserving compatibility; development/test databases may be reset and reseeded for the clean target model.
-- The portal uses a lightweight custom pathname parser and substantial page-local request/state management. That foundation must be reviewed before the information architecture grows.
-- `apps/web` and `apps/extension` already use Tailwind CSS 4, and `packages/ui` already owns source-level Alert, Badge, Button, Card, Code, Input, Label, Select, Separator, and Textarea primitives using CVA-style variants and shared class utilities.
+- Child `122` retained the lightweight custom pathname parser behind a tested
+  route registry and application shell. Request/state ownership remains
+  deliberately local where appropriate; no router or query dependency was
+  introduced merely for framework parity.
+- `apps/web` and `apps/extension` use Tailwind CSS 4, and `packages/ui` owns
+  semantic tokens plus source-level Alert, Badge, Button, Card, Code, Input,
+  Label, Select, Separator, and Textarea primitives using CVA-style variants
+  and shared class utilities.
 - Lucide is already the shared icon dependency. The repository does not currently depend on Radix, React Router, TanStack Query, Sonner, or React Hook Form; child plans must justify any of them against a concrete workflow need.
-- Current pages still rely heavily on CSS Modules, hard-coded slate/hex values, repeated control styling, and only minimal global tokens. The UI track is therefore a consolidation and product-design effort, not a fresh Tailwind or icon migration.
+- CSS Modules remain a supported application styling boundary alongside shared
+  tokens/primitives. Children `121` through `129` consolidated the product
+  shell and current workflows without forcing an unrelated framework rewrite.
 - Child `109` installed the accepted external design guidance as pinned, optional repository tooling and documented provenance, compatibility changes, update/removal procedure, and rejected sources in `docs/agent-workflow.md`. It remains outside application dependencies and runtime behavior.
-- The current UI works at alpha level but does not yet provide the consistency, hierarchy, density, responsive behavior, accessibility, or navigation expected from a daily internal tool.
-- Master plans `001` through `004` are complete. Children `109` through `120`
-  are complete. Child `120` and its closure repair passed fresh migration, the
-  full DB/smoke suite, broad workspace checks, and authenticated/public browser
-  validation on 2026-07-20. The
+- The current setup, authentication, Organization, Project/Version, Capture,
+  extension, Guide, Demo, public-reader, and embed surfaces have completed the
+  accepted Quiet Versioned Workbench modernization and child `129`
+  accessibility, motion, responsive, and performance dogfood.
+- Master plans `001` through `004` are complete. Children `109` through `130`
+  are complete. Child `130` rechecked every child from `109` onward and passed
+  clean migrations, full DB/smoke/workspace verification, documentation and
+  absence audits, authenticated/public/direct-extension/installed-toolbar
+  Chromium validation, and the child `129` accessibility, responsive, motion,
+  build, and performance baselines on 2026-07-29. The
   optional overnight-runner tooling checkpoint was deferred on 2026-07-19 and
   is not a gate for sequential child execution.
-- Known extension and production-readiness leftovers from master plan `004` remain real unless a child plan explicitly closes them.
+- Historical direct-page and installed-toolbar extension limitations from
+  master plan `004` were closed by children `126` and `129`. Remaining
+  production-readiness and environment limitations are enumerated in
+  `docs/pre-documentation-closeout.md`.
 
 Each implementation child must re-run and record the applicable non-database baseline. The broad workspace test command is recursive because this Turbo graph has no root `test` task:
 
@@ -1814,7 +1830,7 @@ Completed result:
 
 ### 130: Pre-Documentation Closeout
 
-Status: Not started.
+Status: Complete on 2026-07-29.
 
 Planned file:
 
@@ -1851,6 +1867,33 @@ Acceptance:
 
 - A dated closeout report lists commands, results, browser evidence, migrations exercised, known limitations, and handoff questions.
 - The repository is ready for a domain grill without mixing unresolved foundation bugs into Documentation design.
+
+Completed result:
+
+- `docs/pre-documentation-closeout.md` records the starting/final state,
+  acceptance ledger for children `109` through `129`, terminology and ownership
+  audits, issue register, exact commands/counts, browser matrix, limitations,
+  and a Passed Documentation entry gate.
+- Four S3/S4 active-documentation drift groups were corrected. No S1/S2
+  regression or runtime repair was found, and no API, schema, type, migration,
+  permission, dependency, Product Documentation, or Video runtime change was
+  introduced.
+- A disposable test database applied migrations `001` through `024`, rehearsed
+  migration `024` down/up on an empty schema, passed all `20` DB integration
+  files / `67` tests and the separately reset V1 smoke test, and ended with
+  clean migration status.
+- Web, extension, server, shared-package, recursive workspace, type, lint, and
+  production-build verification passed. Local/external documentation links and
+  all committed PNG evidence also passed.
+- Chromium regression dogfood passed connected role/workflow, public access,
+  accessibility, keyboard/focus/modal, responsive/reflow, reduced-motion,
+  direct-extension, and real installed-toolbar restart/finish/handoff checks.
+  All seven production-vitals surfaces remained within or better than child
+  `129`.
+- Firefox/WebKit/Safari availability, axe-indeterminate layered Textarea
+  contrast, and unavailable forced-GC/listener/timer measurement remain
+  explicitly recorded non-blocking limitations. Child `131` may proceed as a
+  planning/grill phase.
 
 ### 131: Documentation Domain Grill
 
@@ -2096,7 +2139,7 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `127`.
 - [x] Create, expand, recheck, implement, and close child plan `128`.
 - [x] Create, expand, recheck, implement, and close child plan `129`.
-- [ ] Create, expand, recheck, implement, and close child plan `130`.
+- [x] Create, expand, recheck, implement, and close child plan `130`.
 - [ ] Create, conduct, document, and accept the Documentation grill in child plan `131`.
 - [ ] Produce an implementation-ready Documentation child-plan sequence beginning at `132`.
 - [ ] Run final closure against this master plan.
@@ -2135,16 +2178,16 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is child `130`, Pre-Documentation Closeout. Child
-`129` completed its repeat-until-clean audit on 2026-07-29 with eleven repaired
-cross-product accessibility, motion, modal, focus, and async-status findings,
-passing responsive/reflow and all seven required production-vitals surfaces,
-Guide/Demo long-session checks, a full installed-toolbar Capture, and complete
-DB/smoke/workspace/build verification. Child `130` inherits no open runtime
-repair; it should preserve the final child `129` build/vitals baseline, retain
-native modal background isolation and stable post-mutation focus in its
-cross-child checks, and complete the planned consistency/closure audit before
-Documentation-domain decisions.
+The next executable activity is child `131`, Documentation Domain Grill. Child
+`130` completed the pre-Documentation closeout on 2026-07-29: children `109`
+through `129`, current-state documentation, terminology, routes/contracts,
+schemas/packages, permissions, migrations, browser behavior, committed
+evidence, and absence of premature Documentation/Video runtime were rechecked;
+four documentation-only drift groups were corrected; the clean database,
+DB/smoke/workspace/build matrix and Chromium/direct-extension/installed-toolbar
+dogfood passed; and no S1/S2 regression remains. Child `131` must use the dated
+closeout report as its factual baseline, remain a planning/grill phase, and add
+no Product Documentation runtime code, tables, routes, packages, or navigation.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
@@ -2176,6 +2219,8 @@ Child `126` records installed-toolbar evidence, child `127` records its Guide
 implementation and Interactive Demo handoff, and child `128` records its Demo
 implementation, DB/smoke/workspace/build verification, synthetic browser
 evidence, leftovers, and cross-product handoff.
-Reserved child-plan skeletons for `112` through `131` were created on 2026-07-12;
-their existence does not advance any implementation gate. Sequential execution
-continues with child `129`.
+Child `129` records the final accessibility/motion/performance/browser dogfood,
+and child `130` records the complete foundation closeout and Documentation
+entry-gate result. Reserved child-plan skeletons for `112` through `131` were
+created on 2026-07-12; their existence does not advance any implementation
+gate. Sequential execution continues with child `131`.
