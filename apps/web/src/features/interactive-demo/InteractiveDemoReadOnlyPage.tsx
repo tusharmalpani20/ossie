@@ -2,11 +2,7 @@ import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { PortalTopbar } from "../portal/PortalTopbar";
 import { ArtifactPublishingPanel } from "../publish/ArtifactPublishingPanel";
-import {
-  sceneAssetFileUrl,
-  sortedHotspots,
-  sortedScenes,
-} from "./interactiveDemoEditorHelpers";
+import { sortedHotspots, sortedScenes } from "./interactiveDemoEditorHelpers";
 import { InteractiveDemoRenderer } from "./InteractiveDemoRenderer";
 import type { DemoHotspot, DemoScene, InteractiveDemo } from "./types";
 import styles from "./InteractiveDemoReadOnlyPage.module.css";
