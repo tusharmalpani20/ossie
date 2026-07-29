@@ -23,6 +23,7 @@ type FixtureUser = {
   session_id: string;
   email: string;
   display_name: string;
+  organization_role: "owner" | "member";
   project_role: "project_admin" | "viewer";
   session_token: string;
 };
@@ -64,28 +65,28 @@ export const capture_portal_browser_fixture_password =
   "safe local browser fixture password";
 
 const ids = {
-  organization: "01K125ORG0000000000001",
-  project: "01K125PROJ000000000000",
-  admin_user: "01K125USERADMIN0000000",
-  admin_org_user: "01K125ORGUSERADMIN000",
-  admin_session: "01K125SESSIONADMIN000",
-  viewer_user: "01K125USERVIEWER00000",
-  viewer_org_user: "01K125ORGUSERVIEWER00",
-  viewer_session: "01K125SESSIONVIEWER00",
-  main_version: "01K125VERSIONMAIN0000",
-  named_version: "01K125VERSIONNAMED000",
-  archived_version: "01K125VERSIONARCH0000",
-  membership_admin: "01K125MEMBERADMIN000",
-  membership_viewer: "01K125MEMBERVIEWER00",
-  empty_draft_session: "01K125CAPEMPTYDRAFT00",
-  capturing_session: "01K125CAPCAPTURING000",
-  completed_session: "01K125CAPCOMPLETED00",
-  canceled_session: "01K125CAPCANCELED000",
-  archived_session: "01K125CAPARCHIVED000",
-  file: "01K125FILESCREEN00000",
-  asset: "01K125ASSETSCREEN0000",
-  event_one: "01K125EVENT000000001",
-  event_two: "01K125EVENT000000002",
+  organization: "01K12500000000000000000001",
+  project: "01K12500000000000000000002",
+  admin_user: "01K12500000000000000000003",
+  admin_org_user: "01K12500000000000000000004",
+  admin_session: "01K12500000000000000000005",
+  viewer_user: "01K12500000000000000000006",
+  viewer_org_user: "01K12500000000000000000007",
+  viewer_session: "01K12500000000000000000008",
+  main_version: "01K12500000000000000000009",
+  named_version: "01K12500000000000000000010",
+  archived_version: "01K12500000000000000000011",
+  membership_admin: "01K12500000000000000000012",
+  membership_viewer: "01K12500000000000000000013",
+  empty_draft_session: "01K12500000000000000000014",
+  capturing_session: "01K12500000000000000000015",
+  completed_session: "01K12500000000000000000016",
+  canceled_session: "01K12500000000000000000017",
+  archived_session: "01K12500000000000000000018",
+  file: "01K12500000000000000000019",
+  asset: "01K12500000000000000000020",
+  event_one: "01K12500000000000000000021",
+  event_two: "01K12500000000000000000022",
 };
 
 const admin_session_token = "plan125-admin-browser-session-token";
@@ -118,6 +119,7 @@ export const build_capture_portal_browser_fixture =
         session_id: ids.admin_session,
         email: "plan125-admin@example.test",
         display_name: "Plan 125 Admin",
+        organization_role: "owner",
         project_role: "project_admin",
         session_token: admin_session_token,
       },
@@ -127,6 +129,7 @@ export const build_capture_portal_browser_fixture =
         session_id: ids.viewer_session,
         email: "plan125-viewer@example.test",
         display_name: "Plan 125 Viewer",
+        organization_role: "member",
         project_role: "viewer",
         session_token: viewer_session_token,
       },
@@ -220,9 +223,14 @@ const insert_users = async (query: FixtureQuery, password_hash: string) => {
       `
       INSERT INTO organization_schema.org_user (
         id, organization_id, user_id, role
-      ) VALUES ($1, $2, $3, 'member')
+      ) VALUES ($1, $2, $3, $4)
     `,
-      [user.org_user_id, fixture.organization_id, user.id],
+      [
+        user.org_user_id,
+        fixture.organization_id,
+        user.id,
+        user.organization_role,
+      ],
     );
     await query(
       `
@@ -284,6 +292,10 @@ const insert_project = async (query: FixtureQuery) => {
   }
 
   for (const user of fixture.users) {
+    if (user.organization_role === "owner") {
+      continue;
+    }
+
     await query(
       `
       INSERT INTO project_schema.project_membership (
@@ -319,12 +331,14 @@ const insert_capture_sessions = async (query: FixtureQuery) => {
         viewport_height, device_pixel_ratio, created_by_id, updated_by_id
       ) VALUES (
         $1, $2, $3, $4, $5, 'Safe synthetic Capture Session fixture',
-        $6, 'manual',
-        CASE WHEN $6 IN ('capturing', 'completed', 'canceled', 'archived')
+        $6::text, 'manual',
+        CASE WHEN $6::text IN ('capturing', 'completed', 'canceled', 'archived')
           THEN CURRENT_TIMESTAMP - interval '2 hours' ELSE NULL END,
-        CASE WHEN $6 = 'completed' THEN CURRENT_TIMESTAMP - interval '1 hour'
+        CASE WHEN $6::text = 'completed'
+          THEN CURRENT_TIMESTAMP - interval '1 hour'
           ELSE NULL END,
-        CASE WHEN $6 = 'canceled' THEN CURRENT_TIMESTAMP - interval '1 hour'
+        CASE WHEN $6::text = 'canceled'
+          THEN CURRENT_TIMESTAMP - interval '1 hour'
           ELSE NULL END,
         'https://example.test/safe-fixture',
         'Chromium', 'fixture', 'Linux', 1440, 900, 1, $7, $7
