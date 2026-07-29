@@ -1785,24 +1785,26 @@ Acceptance:
 
 Completed result:
 
-- Eight reproduced cross-product issues were repaired: privacy-safe route
+- Eleven confirmed cross-product issues were repaired: privacy-safe route
   titles, authenticated bypass navigation, legacy small-text contrast, named
   Card semantics, Guide insertion-group semantics, Demo resize target size,
-  global web reduced motion, and Publication rollback focus containment/return.
+  global web reduced motion, Publication rollback focus containment/return,
+  native modal background isolation, stable post-mutation focus fallback, and
+  truthful committed-mutation/failed-refresh status.
 - Final representative Chromium axe scans had zero violations. Layered
   Textarea contrast remained an accepted axe indeterminacy after manual review;
   Firefox/WebKit/Safari were honestly blocked because no supported executable
   was installed.
-- Desktop, 390px, 640-CSS-pixel reflow, 320px popup, and 180-CSS-pixel popup
-  checks passed without unexplained document overflow or hidden critical
-  controls.
-- Three-run production vitals, Guide/Demo long-session workloads, full direct
-  popup checks, and a separate real installed-toolbar Capture passed. The
-  installed path proved ordered exactly-once redacted effects, suppression,
-  pause/resume, restart recovery, finish-once behavior, and canonical
-  named-Version handoff.
-- Web closed at JS `468.52 kB` raw / `130.37 kB` gzip and CSS `73.89 kB` raw /
-  `14.28 kB` gzip. Extension sizes remained unchanged. No speculative
+- 1440×900 wide editor, desktop, 390px, 640-CSS-pixel reflow, 360/320px popup,
+  and 180-CSS-pixel popup checks passed without unexplained document overflow
+  or hidden critical controls.
+- Three-run production vitals for all seven required web/extension surfaces,
+  Guide/Demo long-session workloads, full direct popup checks, and a separate
+  real installed-toolbar Capture passed. The installed path proved ordered
+  exactly-once redacted effects, suppression, pause/resume, restart recovery,
+  finish-once behavior, and canonical named-Version handoff.
+- Web closed at JS `468.99 kB` raw / `130.54 kB` gzip and CSS `73.94 kB` raw /
+  `14.29 kB` gzip. Extension sizes remained unchanged. No speculative
   performance split, runtime dependency, permission, API, schema, migration,
   or product-semantic change was introduced.
 - Full web/extension/server/workspace tests, all 20 DB integration files, V1
@@ -2134,12 +2136,15 @@ This master plan is complete when:
 ## 19. Immediate Next Action
 
 The next executable activity is child `130`, Pre-Documentation Closeout. Child
-`129` completed on 2026-07-29 with eight repaired cross-product accessibility
-and motion findings, passing responsive/reflow and production-vitals evidence,
+`129` completed its repeat-until-clean audit on 2026-07-29 with eleven repaired
+cross-product accessibility, motion, modal, focus, and async-status findings,
+passing responsive/reflow and all seven required production-vitals surfaces,
 Guide/Demo long-session checks, a full installed-toolbar Capture, and complete
-DB/smoke/workspace/build verification. Child `130` inherits no runtime repair;
-it should preserve the final child `129` build/vitals baseline and complete the
-planned consistency/closure audit before Documentation-domain decisions.
+DB/smoke/workspace/build verification. Child `130` inherits no open runtime
+repair; it should preserve the final child `129` build/vitals baseline, retain
+native modal background isolation and stable post-mutation focus in its
+cross-child checks, and complete the planned consistency/closure audit before
+Documentation-domain decisions.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no

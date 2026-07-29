@@ -4,11 +4,14 @@ Date reserved: 2026-07-12
 
 Expanded: 2026-07-29
 
-Rechecked: 2026-07-29
+Rechecked: 2026-07-29, including a repeat-until-clean close-previous audit.
 
 Status: Complete on 2026-07-29. Accessibility, motion, reflow, performance,
 long-session, direct-extension, installed-toolbar, DB, smoke, and workspace
-verification passed with only documented environment/tooling blocks.
+verification passed with only documented environment/tooling blocks. The
+close-previous audit repaired modal background isolation, post-mutation focus,
+truthful refresh-failure status, and incomplete performance/wide-viewport
+evidence before reconfirming this status.
 
 Parent plan:
 
@@ -1333,7 +1336,7 @@ Implemented on 2026-07-29 from starting checkpoint `5e78723`.
    Hotspot resize target from 16 to 24 CSS pixels, and added global web
    reduced-motion suppression aligned with the extension.
 4. The long-session dialog pass found a further focus-loss defect. Publication
-   rollback now focuses the reason field, traps Tab/Shift+Tab, closes on Escape,
+   rollback focuses the reason field, traps Tab/Shift+Tab, closes on Escape,
    and restores focus to the exact trigger.
 5. Repeated Chromium axe, keyboard, reflow, reduced-motion, console, network,
    build, vitals, Guide/Demo long-session, direct extension, and true installed
@@ -1342,6 +1345,16 @@ Implemented on 2026-07-29 from starting checkpoint `5e78723`.
    focus, target-size, and reduced-motion rules. No schema, DTO, route, API,
    domain, migration, public access, extension permission, or dependency
    change was made.
+7. The close-previous audit reproduced two additional high-impact rollback
+   defects: background links remained pointer-operable, and a successful
+   refresh that removed the opener dropped focus to `body`. It also found a
+   misleading failure status when the rollback committed but refresh failed.
+   Native modal behavior, a stable Publishing-region focus fallback, and
+   truthful mutation/refresh outcomes repaired those gaps.
+8. The same audit found that only two of seven required production-vitals
+   surfaces and a 1280px rather than required 1440px wide editor had been
+   recorded. It completed all seven three-run samples, the 1440×900 editor
+   check, and the missing 360px direct-extension check.
 
 Runtime commits:
 
@@ -1349,14 +1362,15 @@ Runtime commits:
 - `f23ff13` `fix(ui): close audited contrast and target gaps`
 - `4d039d0` `fix(web): stabilize route title updates`
 - `133274e` `fix(publish): preserve rollback dialog focus`
+- `fa15378` `fix(publish): complete rollback modal isolation`
 
 ## Verification Record
 
 Passed on 2026-07-29:
 
-- focused web/shared UI tests, including 15 publishing-panel tests after the
-  final dialog repair;
-- full web suite: 52 files / 343 tests;
+- focused web/shared UI tests, including 17 publishing-panel tests after the
+  close-previous dialog repairs;
+- full web suite: 52 files / 345 tests;
 - full extension suite: 19 files / 140 tests;
 - full server non-DB suite through recursive workspace tests: 99 files / 406
   tests;
@@ -1366,10 +1380,12 @@ Passed on 2026-07-29:
 - workspace recursive tests and all 12 build tasks;
 - agent-browser final axe scans with zero violations on representative entry,
   portal, Capture, Guide, Demo, public, and extension surfaces;
-- desktop, 390px, 640-CSS-pixel reflow, 320px popup, and 180-CSS-pixel popup
-  checks with no unexplained document overflow;
+- 1440×900 wide editor, desktop, 390px, 640-CSS-pixel reflow, 360/320px popup,
+  and 180-CSS-pixel popup checks with no unexplained document overflow;
 - normal/reduced-motion computed behavior;
-- three-run production vitals for Demo editor and public embed;
+- three-run production vitals for Project Version workspace, Guide editor,
+  public Guide reader, Demo editor, public Demo reader/embed, and the direct
+  extension popup;
 - Guide/Demo selection, dialog, and save/preview long-session workloads;
 - direct extension page and a separate real unpacked toolbar-action Capture,
   including exactly-once ordered redacted Asset/Event effects, suppression,
@@ -1378,8 +1394,8 @@ Passed on 2026-07-29:
 
 Final standard web build:
 
-- JS `468.52 kB` raw / `130.37 kB` gzip;
-- CSS `73.89 kB` raw / `14.28 kB` gzip.
+- JS `468.99 kB` raw / `130.54 kB` gzip;
+- CSS `73.94 kB` raw / `14.29 kB` gzip.
 
 The extension build remains exactly at the child `126` closeout baseline. The
 complete dated command/result record is
@@ -1387,7 +1403,7 @@ complete dated command/result record is
 
 ## Leftovers And Handoff
 
-Child `130` inherits no runtime repair.
+Child `130` inherits no open runtime repair.
 
 The only recorded blocks/exceptions are:
 
@@ -1398,8 +1414,10 @@ The only recorded blocks/exceptions are:
 - comparable forced-GC heap and listener/timer metrics are unavailable in the
   current tool surface; observable long-session behavior passed.
 
-Child `130` should preserve the recorded build/vitals baseline, reuse the
-clarified `DESIGN.md` rules for later Documentation surfaces, and perform the
-planned pre-Documentation consistency/closure work. No critical/high-impact
-accessibility, motion, reflow, browser, extension, security, privacy,
-permission, or material performance regression carries forward.
+Child `130` should preserve the recorded build/vitals baseline, retain native
+modal background isolation and stable post-mutation focus fallback in its
+cross-child checks, reuse the clarified `DESIGN.md` rules for later
+Documentation surfaces, and perform the planned pre-Documentation
+consistency/closure work. No critical/high-impact accessibility, motion,
+reflow, browser, extension, security, privacy, permission, or material
+performance regression carries forward.
