@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { GuideScreenshotViewer, type GuideScreenshotViewerImage } from "./GuideScreenshotViewer";
 
@@ -77,6 +78,39 @@ describe("GuideScreenshotViewer", () => {
     fireEvent.keyDown(document, { key: "Escape" });
 
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("restores focus to the trigger after closing", () => {
+    const Harness = () => {
+      const [activeImageId, setActiveImageId] = useState<string | null>(null);
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setActiveImageId("block_1:asset_1")}
+          >
+            Open screenshot
+          </button>
+          <GuideScreenshotViewer
+            images={images}
+            activeImageId={activeImageId}
+            onActiveImageChange={setActiveImageId}
+            onClose={() => setActiveImageId(null)}
+          />
+        </>
+      );
+    };
+
+    render(<Harness />);
+    const trigger = screen.getByRole("button", { name: "Open screenshot" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close screenshot viewer" }),
+    );
+
+    expect(trigger).toHaveFocus();
   });
 
   it("zooms in out and resets to fit", () => {
