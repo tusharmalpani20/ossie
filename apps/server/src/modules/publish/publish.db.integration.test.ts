@@ -224,10 +224,18 @@ describe("DB-backed relational Publication API", () => {
         publication_sequence: 1,
       },
     });
-    expect(JSON.stringify(public_response.json())).not.toContain("storage_key");
-    expect(JSON.stringify(public_response.json())).not.toContain(
+    const serialized_public_response = JSON.stringify(public_response.json());
+    for (const prohibited_field of [
+      "storage_key",
       "private_note",
-    );
+      "created_by_id",
+      "updated_by_id",
+      "source_capture_session_id",
+      "source_working_draft_version",
+      "guide_edition_id",
+    ]) {
+      expect(serialized_public_response).not.toContain(prohibited_field);
+    }
 
     const asset = await app.inject({
       method: "GET",
