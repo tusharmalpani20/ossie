@@ -41,6 +41,8 @@ const ids = {
   publication_two: fixture_id(6, 2),
   default_revision: fixture_id(5, 3),
   default_publication: fixture_id(6, 3),
+  archived_project: fixture_id(7, 1),
+  archived_project_version: fixture_id(7, 2),
 } as const;
 
 export const build_interactive_demo_browser_fixture = () => {
@@ -55,6 +57,12 @@ export const build_interactive_demo_browser_fixture = () => {
   return {
     organization_id: capture.organization_id,
     project_id: capture.project_id,
+    archived_project: {
+      id: ids.archived_project,
+      status: "archived" as const,
+      version_slug: "main",
+      route: `/projects/${ids.archived_project}/versions/main/interactive-demos`,
+    },
     password: interactive_demo_browser_fixture_password,
     users: [
       {
@@ -189,6 +197,32 @@ export const seed_interactive_demo_browser_fixture = async () => {
         fixture.organization_id,
         fixture.project_id,
         ids.editor_org_user,
+        admin.org_user_id,
+      ],
+    );
+    await query(
+      `INSERT INTO project_schema.project
+       (id,organization_id,name,description,slug,status,
+        default_project_version_id,created_by_id,updated_by_id)
+       VALUES($1,$2,'Plan 128 archived Project',
+        'Safe synthetic archived lifecycle fixture',
+        'plan-128-archived-project','archived',$3,$4,$4)`,
+      [
+        ids.archived_project,
+        fixture.organization_id,
+        ids.archived_project_version,
+        admin.org_user_id,
+      ],
+    );
+    await query(
+      `INSERT INTO project_schema.project_version
+       (id,organization_id,project_id,name,slug,position,status,
+        created_by_id,updated_by_id)
+       VALUES($1,$2,$3,'Main','main',1,'active',$4,$4)`,
+      [
+        ids.archived_project_version,
+        fixture.organization_id,
+        ids.archived_project,
         admin.org_user_id,
       ],
     );

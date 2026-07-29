@@ -18,6 +18,10 @@ describe("Interactive Demo browser fixture", () => {
     expect(fixture.project_versions.map(({ status }) => status)).toContain(
       "archived",
     );
+    expect(fixture.archived_project).toMatchObject({
+      status: "archived",
+      version_slug: "main",
+    });
     expect(fixture.demos.map(({ state }) => state).sort()).toEqual([
       "active",
       "archived",
