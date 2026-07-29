@@ -46,6 +46,7 @@ import {
   type NormalizedUpdateDemoSceneInput,
   type NormalizedUpdateInteractiveDemoInput,
 } from "@repo/demo-domain";
+import type { CaptureAssetWithFileUrl } from "@repo/types/capture";
 import type {
   CreateDemoHotspotInput,
   CreateDemoSceneInput,
@@ -225,6 +226,7 @@ export type InteractiveDemoRepository = {
   }) => Promise<{
     demo_scenes: DemoScene[];
     working_draft: InteractiveDemoWorkingDraft;
+    background_capture_assets: CaptureAssetWithFileUrl[];
   }>;
   update_scene: (input: {
     organization_id: string;

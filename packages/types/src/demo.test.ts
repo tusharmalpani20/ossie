@@ -8,6 +8,7 @@ import {
   DemoSceneSchema,
   InteractiveDemoArtifactSchema,
   InteractiveDemoEditionSchema,
+  InteractiveDemoSceneListResponseSchema,
   InteractiveDemoWorkingDraftSchema,
   InteractiveDemoWorkingDraftMutationResponseSchema,
   ReorderDemoHotspotsRequestSchema,
@@ -116,7 +117,9 @@ describe("interactive demo shared contracts", () => {
     expect(InteractiveDemoEditionSchema.parse(edition)).toMatchObject({
       status: "draft",
     });
-    expect(InteractiveDemoWorkingDraftSchema.parse(working_draft)).toMatchObject({ version: 1 });
+    expect(
+      InteractiveDemoWorkingDraftSchema.parse(working_draft),
+    ).toMatchObject({ version: 1 });
     expect(DemoSceneSchema.parse(demo_scene)).toMatchObject({
       id: "demo_scene_1",
       background_capture_asset_id: "asset_1",
@@ -130,80 +133,153 @@ describe("interactive demo shared contracts", () => {
   });
 
   it("uses strict requests with aggregate concurrency", () => {
-    expect(() => CreateInteractiveDemoFromCaptureRequestSchema.parse({
-      title: " Demo ",
-      description: null,
-      ignored_client_field: true,
-    })).toThrow();
+    expect(() =>
+      CreateInteractiveDemoFromCaptureRequestSchema.parse({
+        title: " Demo ",
+        description: null,
+        ignored_client_field: true,
+      }),
+    ).toThrow();
 
-    expect(UpdateDemoSceneRequestSchema.parse({
-      title: "Scene",
-      background_capture_asset_id: " asset_1 ",
-      expected_working_draft_version: 1,
-    })).toMatchObject({
+    expect(
+      UpdateDemoSceneRequestSchema.parse({
+        title: "Scene",
+        background_capture_asset_id: " asset_1 ",
+        expected_working_draft_version: 1,
+      }),
+    ).toMatchObject({
       title: "Scene",
       background_capture_asset_id: "asset_1",
       expected_working_draft_version: 1,
     });
 
-    expect(ReorderDemoScenesRequestSchema.parse({
-      scene_ids: [" scene_1 "],
-      expected_working_draft_version: 1,
-    })).toMatchObject({
+    expect(
+      ReorderDemoScenesRequestSchema.parse({
+        scene_ids: [" scene_1 "],
+        expected_working_draft_version: 1,
+      }),
+    ).toMatchObject({
       scene_ids: ["scene_1"],
       expected_working_draft_version: 1,
     });
 
-    expect(ReorderDemoHotspotsRequestSchema.parse({
-      hotspot_ids: [" hotspot_1 "],
+    expect(
+      ReorderDemoHotspotsRequestSchema.parse({
+        hotspot_ids: [" hotspot_1 "],
+        expected_working_draft_version: 1,
+      }),
+    ).toEqual({
+      hotspot_ids: ["hotspot_1"],
       expected_working_draft_version: 1,
-    })).toEqual({ hotspot_ids: ["hotspot_1"], expected_working_draft_version: 1 });
+    });
   });
 
   it("keeps semantic hotspot box validation in the domain layer", () => {
-    expect(CreateDemoHotspotRequestSchema.parse({
-      hotspot_type: "click",
-      x: 2,
-      y: 0.2,
-      width: 0,
-      height: 0.1,
-      transition: { target_scene_id: " scene_2 " },
-      expected_working_draft_version: 1,
-    })).toMatchObject({
+    expect(
+      CreateDemoHotspotRequestSchema.parse({
+        hotspot_type: "click",
+        x: 2,
+        y: 0.2,
+        width: 0,
+        height: 0.1,
+        transition: { target_scene_id: " scene_2 " },
+        expected_working_draft_version: 1,
+      }),
+    ).toMatchObject({
       hotspot_type: "click",
       x: 2,
       width: 0,
       transition: { target_scene_id: "scene_2" },
     });
 
-    expect(UpdateDemoHotspotRequestSchema.parse({
+    expect(
+      UpdateDemoHotspotRequestSchema.parse({
+        x: Number.POSITIVE_INFINITY,
+        expected_working_draft_version: 1,
+      }),
+    ).toEqual({
       x: Number.POSITIVE_INFINITY,
       expected_working_draft_version: 1,
-    })).toEqual({ x: Number.POSITIVE_INFINITY, expected_working_draft_version: 1 });
+    });
   });
 
   it("parses create-from-capture response envelopes", () => {
-    expect(InteractiveDemoWorkingDraftMutationResponseSchema.parse({
-      working_draft,
-    })).toEqual({ working_draft });
-    expect(() => InteractiveDemoWorkingDraftMutationResponseSchema.parse({
-      working_draft,
-      version: 2,
-    })).toThrow();
+    expect(
+      InteractiveDemoWorkingDraftMutationResponseSchema.parse({
+        working_draft,
+      }),
+    ).toEqual({ working_draft });
+    expect(() =>
+      InteractiveDemoWorkingDraftMutationResponseSchema.parse({
+        working_draft,
+        version: 2,
+      }),
+    ).toThrow();
 
-    expect(CreateInteractiveDemoFromCaptureResponseSchema.parse({
-      artifact,
-      edition,
-      working_draft,
-      authored_updated_at: edition.updated_at,
-      demo_scenes: [demo_scene],
-      redirect_path: "/projects/project_1/interactive-demos/interactive_demo_1",
-    })).toMatchObject({
+    expect(
+      CreateInteractiveDemoFromCaptureResponseSchema.parse({
+        artifact,
+        edition,
+        working_draft,
+        authored_updated_at: edition.updated_at,
+        demo_scenes: [demo_scene],
+        redirect_path:
+          "/projects/project_1/interactive-demos/interactive_demo_1",
+      }),
+    ).toMatchObject({
       artifact: { id: "interactive_demo_1" },
       edition: { id: "interactive_demo_edition_1" },
       working_draft: { id: "interactive_demo_working_draft_1" },
       demo_scenes: [{ id: "demo_scene_1" }],
       redirect_path: "/projects/project_1/interactive-demos/interactive_demo_1",
     });
+  });
+
+  it("requires referenced background assets in Scene list responses", () => {
+    const background = {
+      id: "asset_1",
+      organization_id: "org_1",
+      project_id: "project_1",
+      capture_session_id: "capture_session_1",
+      file: {
+        id: "file_1",
+        storage_provider: "local",
+        mime_type: "image/png",
+        size_bytes: 128,
+        original_name: "scene.png",
+        checksum_sha256: null,
+      },
+      asset_type: "screenshot",
+      status: "archived",
+      width: 1280,
+      height: 720,
+      device_pixel_ratio: 1,
+      page_url: null,
+      page_title: "Synthetic scene",
+      captured_at: "2026-07-07T00:00:00.000Z",
+      created_by_id: "org_user_1",
+      updated_by_id: "org_user_1",
+      version: 2,
+      created_at: "2026-07-07T00:00:00.000Z",
+      updated_at: "2026-07-07T00:00:00.000Z",
+      file_url:
+        "/api/v1/projects/project_1/capture-sessions/capture_session_1/assets/asset_1/file",
+    };
+
+    expect(
+      InteractiveDemoSceneListResponseSchema.parse({
+        demo_scenes: [demo_scene],
+        working_draft,
+        background_capture_assets: [background],
+      }),
+    ).toMatchObject({
+      background_capture_assets: [{ id: "asset_1", status: "archived" }],
+    });
+    expect(() =>
+      InteractiveDemoSceneListResponseSchema.parse({
+        demo_scenes: [demo_scene],
+        working_draft,
+      }),
+    ).toThrow();
   });
 });

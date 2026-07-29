@@ -411,6 +411,20 @@ describe("DB-backed interactive demo API", () => {
       version: 2,
     });
 
+    const listed_scenes = await app.inject({
+      method: "GET",
+      url: `/api/v1/projects/${project_id}/interactive-demos/${demo_id}/scenes?project_version_id=${project_version_id}`,
+      cookies: { ossie_session: session_token },
+    });
+    expect(listed_scenes.statusCode, listed_scenes.body).toBe(200);
+    expect(listed_scenes.json().background_capture_assets).toEqual([
+      expect.objectContaining({
+        id: capture_asset_id,
+        project_id,
+        project_version_id,
+      }),
+    ]);
+
     const archived = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${project_id}/interactive-demos/${demo_id}/archive?project_version_id=${project_version_id}`,
