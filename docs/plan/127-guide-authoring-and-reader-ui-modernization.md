@@ -5,9 +5,12 @@ Date reserved: 2026-07-12
 Expanded and rechecked: 2026-07-29. Refreshed after child `126` completion at
 `361df03`.
 
-Status: Implementation-ready. Child `126` passed its installed-toolbar
-acceptance gate on 2026-07-29; runtime implementation may begin after the
-required preflight in this plan.
+Status: In progress. Child `126` passed its installed-toolbar acceptance gate
+on 2026-07-29. Runtime slices began on 2026-07-29; the security contracts,
+conflict recovery foundation, empty-Guide insertion, normalized annotation
+editing, and Guide publication coordination are implemented, but the fixture,
+full editor extraction, remaining surface modernization, DB/smoke acceptance,
+and browser matrix are not yet complete.
 
 Parent plan:
 
@@ -1846,7 +1849,28 @@ agent work.
 
 ## Implementation Log
 
-Not started. This document is an implementation-readiness checkpoint only.
+- 2026-07-29: Rechecked the clean worktree, completed child `126`, this child,
+  master `005`, repository instructions, accepted terminology, and current
+  Guide/Publication runtime before changing code.
+- 2026-07-29: Commit `9f784e0` replaced authenticated Revision DTO reuse with
+  strict public-only Guide and Interactive Demo schemas and an explicit
+  server-side allowlist projection. Public Asset projection now omits Capture
+  Session provenance, and Guide routes map Edition/Working Draft conflicts to
+  stable `409` envelopes.
+- 2026-07-29: Commit `a060ced` added metadata dirty-state detection,
+  `beforeunload` registration only while dirty, explicit conflict copy and
+  reload/discard recovery, preservation of local metadata on failed saves, and
+  first-block controls for an empty Guide.
+- 2026-07-29: Commit `da9c1f5` added an extracted
+  `GuideAnnotationEditor` with keyboard-operable numeric normalized geometry,
+  bounds enforcement, ten-highlight limit, local editing without
+  per-interaction requests, and one explicit complete-array save.
+- 2026-07-29: Commit `21c4d0e` added the optional aggregate Publication
+  mutation lease to `ArtifactPublishingPanel`, preserving its default
+  Interactive Demo behavior while coordinating Guide Publication with editor
+  mutations.
+- 2026-07-29: Child remains In progress. Do not mark the master checklist or
+  begin child `128` until the remaining closeout work below passes.
 
 ## Verification Record
 
@@ -1873,6 +1897,37 @@ pnpm --filter server test -- [nine focused Guide/Publication/Revision/Carry-Forw
 
 This baseline does not claim child `127` implementation, DB acceptance, smoke
 acceptance, accessibility acceptance, or browser evidence.
+
+In-progress runtime verification on 2026-07-29:
+
+```text
+pnpm --filter @repo/types test -- src/publish.test.ts
+  PASS: 1 file, 7 tests
+
+pnpm --filter server test -- \
+  src/modules/guide/guide.routes.test.ts \
+  src/modules/publish/publish.repository.test.ts \
+  src/modules/publish/publish.routes.test.ts \
+  src/modules/publish/publish.service.test.ts
+  PASS: 4 files, 15 tests
+
+pnpm --filter web test
+  PASS: 48 files, 307 tests
+
+pnpm --filter web check-types
+pnpm --filter web lint
+  PASS
+
+pnpm --filter web build
+  PASS
+  JS: 452.87 kB raw / 124.61 kB gzip
+  CSS: 65.09 kB raw / 12.85 kB gzip
+```
+
+No DB suite, smoke suite, seeded Guide browser fixture, or `agent-browser`
+acceptance is claimed by this in-progress record. The headless browser skill
+was loaded, but no local app/fixture was available to exercise the required
+role and public-access matrix.
 
 Final readiness recheck on 2026-07-29:
 
@@ -1922,6 +1977,23 @@ Before implementation:
 - child `126` is Complete; retain its evidence as the accepted predecessor
   baseline;
 - recheck this plan against any intervening Guide code changes.
+
+Remaining before completion:
+
+- implement and DB-prove the guarded Guide browser fixture;
+- finish splitting `GuideEditorPage.tsx` and its editor responsibilities so the
+  page and every extracted runtime/test file meet the sub-1,000-line boundary;
+- finish the planned workbench/outline/screenshot/recovery composition and
+  precise command-state presentation;
+- complete Guide list, Capture handoff, preview, screenshot viewer, Revision,
+  Carry-Forward, export, lifecycle, Publication/Publish Link, public reader,
+  and embed modernization and focused coverage;
+- add DB-backed raw public projection assertions and smoke coverage;
+- run the disposable DB, smoke, broad repository, responsive accessibility,
+  and full `agent-browser` role/public-state matrix;
+- create the browser evidence record and safe screenshots, then close every
+  applicable checklist item and only then mark child `127` Complete in master
+  `005`.
 
 After child `127`:
 
