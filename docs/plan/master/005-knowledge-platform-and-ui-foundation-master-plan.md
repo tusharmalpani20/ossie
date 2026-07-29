@@ -1801,7 +1801,7 @@ Completed result:
   installed path proved ordered exactly-once redacted effects, suppression,
   pause/resume, restart recovery, finish-once behavior, and canonical
   named-Version handoff.
-- Web closed at JS `468.52 kB` raw / `130.36 kB` gzip and CSS `73.89 kB` raw /
+- Web closed at JS `468.52 kB` raw / `130.37 kB` gzip and CSS `73.89 kB` raw /
   `14.28 kB` gzip. Extension sizes remained unchanged. No speculative
   performance split, runtime dependency, permission, API, schema, migration,
   or product-semantic change was introduced.

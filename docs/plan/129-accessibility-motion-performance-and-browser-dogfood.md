@@ -1378,7 +1378,7 @@ Passed on 2026-07-29:
 
 Final standard web build:
 
-- JS `468.52 kB` raw / `130.36 kB` gzip;
+- JS `468.52 kB` raw / `130.37 kB` gzip;
 - CSS `73.89 kB` raw / `14.28 kB` gzip.
 
 The extension build remains exactly at the child `126` closeout baseline. The
