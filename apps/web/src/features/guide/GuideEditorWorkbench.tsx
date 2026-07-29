@@ -521,11 +521,16 @@ const GuideBlockEditor = ({
   const pickerLoading = busyAction === `screenshots:${block.id}`;
   const annotationsBusy = busyAction === `annotations:${block.id}`;
   const annotations = annotationsFromBlock(block);
+  const [mediaFailed, setMediaFailed] = useState(false);
   const editableContentBlock =
     block.block_type === "header" ||
     block.block_type === "paragraph" ||
     block.block_type === "tip" ||
     block.block_type === "alert";
+
+  useEffect(() => {
+    setMediaFailed(false);
+  }, [sourceAsset?.id]);
 
   return (
     <article className={styles.block}>
@@ -614,6 +619,7 @@ const GuideBlockEditor = ({
                 className={styles.mediaButton}
                 type="button"
                 aria-label={`Open screenshot for step ${blockNumber}`}
+                disabled={mediaFailed}
                 onClick={() =>
                   onOpenScreenshot(screenshotViewerImageId(block, sourceAsset))
                 }
@@ -623,10 +629,18 @@ const GuideBlockEditor = ({
                     className={styles.screenshot}
                     src={resolveApiAssetUrl(sourceAsset.file_url)}
                     alt={assetAltText(sourceAsset, blockNumber)}
+                    onLoad={() => setMediaFailed(false)}
+                    onError={() => setMediaFailed(true)}
                   />
                   <ScreenshotAnnotationOverlay annotations={annotations} />
                 </span>
               </button>
+            </div>
+          ) : null}
+          {mediaFailed ? (
+            <div className={styles.mediaError} role="status">
+              This screenshot could not be loaded. Highlight editing is
+              unavailable.
             </div>
           ) : null}
           <div className={styles.mediaActions}>
@@ -671,7 +685,7 @@ const GuideBlockEditor = ({
               </Button>
             ) : null}
           </div>
-          {sourceAsset ? (
+          {sourceAsset && !mediaFailed ? (
             <GuideAnnotationEditor
               stepNumber={blockNumber}
               annotations={annotations}

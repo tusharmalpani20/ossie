@@ -331,6 +331,16 @@
   gap: 8px;
 }
 
+.mediaError {
+  padding: 10px 12px;
+  border: 1px solid #f3c37a;
+  border-radius: 7px;
+  background: #fff8eb;
+  color: #7a4a00;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .uploadButton {
   display: inline-flex;
   align-items: center;

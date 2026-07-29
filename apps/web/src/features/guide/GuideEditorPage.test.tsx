@@ -412,4 +412,77 @@ describe("GuideEditorPage", () => {
       "Keep this local draft",
     );
   });
+
+  it("disables highlight editing when the selected screenshot cannot load", async () => {
+    const screenshotDetail = {
+      ...detail,
+      guide_blocks: [
+        {
+          id: "block_1",
+          organization_id: "org_1",
+          project_id: "project_1",
+          guide_working_draft_id: "draft_1",
+          block_type: "step",
+          block_index: 1,
+          title: null,
+          body: null,
+          created_by_id: "user_1",
+          updated_by_id: "user_1",
+          version: 1,
+          created_at: now,
+          updated_at: now,
+          step: {
+            id: "step_1",
+            organization_id: "org_1",
+            project_id: "project_1",
+            guide_working_draft_id: "draft_1",
+            guide_block_id: "block_1",
+            source_capture_event_id: null,
+            source_capture_asset_id: null,
+            selected_capture_asset_id: "asset_1",
+            display_capture_asset_id: "asset_1",
+            title: "Broken media",
+            body: null,
+            screenshot_hidden: false,
+            annotations: [],
+            created_by_id: "user_1",
+            updated_by_id: "user_1",
+            version: 1,
+            created_at: now,
+            updated_at: now,
+          },
+        },
+      ],
+      source_capture_assets: [
+        {
+          id: "asset_1",
+          page_title: "Missing screenshot",
+          file_url: "/api/v1/missing.png",
+          file: { original_name: "missing.png" },
+        },
+      ],
+    } as unknown as GuideDetail;
+
+    render(
+      <GuideEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        guideId="guide_1"
+        loadDetail={async () => screenshotDetail}
+      />,
+    );
+
+    fireEvent.error(
+      await screen.findByRole("img", { name: "Missing screenshot" }),
+    );
+
+    expect(
+      screen.getByText(
+        "This screenshot could not be loaded. Highlight editing is unavailable.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: "Highlights for step 1" }),
+    ).not.toBeInTheDocument();
+  });
 });
