@@ -189,7 +189,6 @@ export const ArtifactRevisionHistoryPage = ({
                     {item.trigger.replaceAll("_", " ")} ·{" "}
                     {new Date(item.created_at).toLocaleString()}
                   </span>
-                  <span>Created by {item.created_by_id}</span>
                 </div>
                 <div>
                   <a href={`${base}/revisions/${item.revision_number}`}>
