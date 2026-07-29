@@ -820,7 +820,16 @@ describe("App", () => {
           return jsonResponse({
             demo_scenes: [],
             working_draft: demoDetailResponse.working_draft,
+            background_capture_assets: [],
           });
+        }
+
+        if (
+          url.includes(
+            "/capture-assets?project_version_id=version_1&asset_type=screenshot",
+          )
+        ) {
+          return jsonResponse({ capture_assets: [] });
         }
 
         if (url.includes("/publish-status?project_version_id=version_1"))
