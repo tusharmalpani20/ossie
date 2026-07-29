@@ -625,6 +625,7 @@ describe("App", () => {
     expect(
       screen.getByText("This guide does not have any blocks yet."),
     ).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Sign out" })).toHaveLength(1);
   });
 
   it("renders guide preview routes", async () => {
