@@ -547,31 +547,31 @@ Record for each evidence item:
 
 This child can close only when all of the following are true:
 
-- `PRODUCT.md` exists, is accepted by the user, and defers to `CONTEXT.md` and
-  ADRs for domain truth.
-- `DESIGN.md` exists, is accepted by the user, and defines the Quiet Versioned
-  Workbench clearly enough for child `122`.
-- `docs/ui/121-current-ui-inventory.md` records the current UI baseline and
-  exact surfaces to protect during modernization.
-- `docs/ui/121-browser-baseline.md` records safe browser evidence or honest
-  blocked evidence.
-- `docs/ui/121-representative-directions.md` records the accepted library,
-  authoring-workbench, and reader/viewer directions.
-- Shared UI tokens and any changed primitives are covered by focused tests.
-- Existing routes and public behavior remain compatible.
-- The dev-only review route is unavailable in production behavior.
-- The dev-only review route's production bundle impact is measured or recorded
-  as not applicable if it is excluded.
-- Accessibility states are defined for keyboard, focus, contrast, errors,
-  disabled/read-only, loading, empty, and reduced motion.
-- Browser support, viewport coverage, zoom/reflow expectations, and performance
-  budgets are recorded.
-- No new major dependency was added without an explicit stop-and-accept decision.
-- No over-1000-line file was made larger without first being split.
-- Focused tests and broad checks pass or any pre-existing/environment failures
-  are recorded with evidence.
-- Master plan `005` checklist is updated only after this child is accepted and
-  closed.
+- [x] `PRODUCT.md` exists, is accepted by the user, and defers to `CONTEXT.md` and
+      ADRs for domain truth.
+- [x] `DESIGN.md` exists, is accepted by the user, and defines the Quiet Versioned
+      Workbench clearly enough for child `122`.
+- [x] `docs/ui/121-current-ui-inventory.md` records the current UI baseline and
+      exact surfaces to protect during modernization.
+- [x] `docs/ui/121-browser-baseline.md` records safe browser evidence or honest
+      blocked evidence.
+- [x] `docs/ui/121-representative-directions.md` records the accepted library,
+      authoring-workbench, and reader/viewer directions.
+- [x] Shared UI tokens and any changed primitives are covered by focused tests.
+- [x] Existing routes and public behavior remain compatible.
+- [x] The dev-only review route is unavailable in production behavior.
+- [x] The dev-only review route's production bundle impact is measured or recorded
+      as not applicable if it is excluded.
+- [x] Accessibility states are defined for keyboard, focus, contrast, errors,
+      disabled/read-only, loading, empty, and reduced motion.
+- [x] Browser support, viewport coverage, zoom/reflow expectations, and performance
+      budgets are recorded.
+- [x] No new major dependency was added without an explicit stop-and-accept decision.
+- [x] No over-1000-line file was made larger without first being split.
+- [x] Focused tests and broad checks pass or any pre-existing/environment failures
+      are recorded with evidence.
+- [x] Master plan `005` checklist is updated only after this child is accepted and
+      closed.
 
 ## Critical Decision Triggers
 

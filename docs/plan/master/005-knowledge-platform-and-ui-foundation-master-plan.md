@@ -1873,11 +1873,17 @@ Completed result:
 - `docs/pre-documentation-closeout.md` records the starting/final state,
   acceptance ledger for children `109` through `129`, terminology and ownership
   audits, issue register, exact commands/counts, browser matrix, limitations,
-  and a Passed Documentation entry gate.
+  and a Passed child `131` grill-entry gate. The separate Documentation
+  implementation entry gate below remains pending until child `131` is
+  accepted.
 - Four S3/S4 active-documentation drift groups were corrected. No S1/S2
   regression or runtime repair was found, and no API, schema, type, migration,
   permission, dependency, Product Documentation, or Video runtime change was
   introduced.
+- Final prompt-pack closure added explicit checked acceptance lists to the
+  otherwise complete children `111`, `121`, and `125-01`, and distinguished the
+  passed child `131` grill-entry gate from the still-pending Documentation
+  implementation gate.
 - A disposable test database applied migrations `001` through `024`, rehearsed
   migration `024` down/up on an empty schema, passed all `20` DB integration
   files / `67` tests and the separately reset V1 smoke test, and ended with
@@ -2220,7 +2226,7 @@ implementation and Interactive Demo handoff, and child `128` records its Demo
 implementation, DB/smoke/workspace/build verification, synthetic browser
 evidence, leftovers, and cross-product handoff.
 Child `129` records the final accessibility/motion/performance/browser dogfood,
-and child `130` records the complete foundation closeout and Documentation
-entry-gate result. Reserved child-plan skeletons for `112` through `131` were
+and child `130` records the complete foundation closeout and child `131`
+grill-entry result. Reserved child-plan skeletons for `112` through `131` were
 created on 2026-07-12; their existence does not advance any implementation
 gate. Sequential execution continues with child `131`.

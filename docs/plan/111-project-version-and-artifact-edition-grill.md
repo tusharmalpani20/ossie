@@ -37,7 +37,19 @@ The session accepted questions 1 through 21 and 23 through 40. Question 22, whic
 - `docs/adr/0026-publish-links-are-multi-version-artifact-manifests.md`
 - `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 
-## Implementation Handoff
+## Implementation Log
+
+The version-domain grill completed on 2026-07-10 without runtime
+implementation. The accepted session record was synchronized into `CONTEXT.md`,
+ADRs `0021` through `0026`, this child, and Master Plan `005`. Question `22`
+was withdrawn after the accepted pre-live reset/reseed decision made a
+legacy-row mapping inapplicable; every other question in the recorded session
+has an explicit accepted result.
+
+No application source, route, API contract, schema, migration, package,
+permission, navigation, or UI behavior changed during this grill.
+
+## Leftovers And Handoff
 
 The accepted dependency order after repository workflow/documentation truth work is:
 
@@ -62,3 +74,22 @@ No migration, runtime feature, route, or UI implementation was performed during 
 - Master Plan 005 contains the accepted child-plan dependency order and scope boundary.
 - ADRs record only hard-to-reverse accepted architectural tradeoffs.
 - Prettier and `git diff --check` pass for the changed planning/domain documents.
+
+## Acceptance Checklist
+
+- [x] Questions `1` through `21` and `23` through `40` have explicit accepted
+      answers in the session record.
+- [x] Question `22` has an explicit withdrawn disposition tied to the accepted
+      pre-live reset/reseed strategy.
+- [x] `CONTEXT.md` records the accepted canonical vocabulary and relationships.
+- [x] ADRs `0021` through `0026` record the durable accepted decisions.
+- [x] Master Plan `005` records the accepted dependency order and phase
+      boundaries.
+- [x] Audit/Access, membership, Project Version, Edition, Revision, Publication,
+      Carry-Forward, protected-asset, and Publish Link decisions have explicit
+      owners in children `112` through `120`.
+- [x] Documentation remains assigned to child `131`, and Video remains
+      unmodeled/deferred.
+- [x] No migration, runtime feature, route, API, package, permission,
+      navigation, or UI implementation was introduced by the grill.
+- [x] Planning/domain documents passed Prettier and `git diff --check`.

@@ -48,7 +48,7 @@ Session, Capture Event, and Capture Asset data.
 
 ## Acceptance Criteria
 
-- The fixture builder defines:
+- [x] The fixture builder defines:
   - one active Project;
   - Default Project Version `Main`;
   - one named active Project Version;
@@ -58,14 +58,14 @@ Session, Capture Event, and Capture Asset data.
   - draft, capturing, completed, canceled, and archived Capture Sessions;
   - safe synthetic Capture Events and Capture Assets;
   - one empty draft Capture Session that can be reassigned.
-- The fixture creates usable local screenshot bytes for seeded Capture Assets.
-- The fixture prints local-only browser login/session guidance without printing
-  secrets from environment files.
-- Tests cover fixture shape and disposable-database safety.
-- Focused server checks pass.
-- Plan `125`, master `005`, and evidence docs are updated after verification.
-- Live DB/browser execution passes with the configured disposable
-  `testing_maintenance` environment.
+- [x] The fixture creates usable local screenshot bytes for seeded Capture Assets.
+- [x] The fixture prints local-only browser login/session guidance without printing
+      secrets from environment files.
+- [x] Tests cover fixture shape and disposable-database safety.
+- [x] Focused server checks pass.
+- [x] Plan `125`, master `005`, and evidence docs are updated after verification.
+- [x] Live DB/browser execution passes with the configured disposable
+      `testing_maintenance` environment.
 
 ## Verification Plan
 

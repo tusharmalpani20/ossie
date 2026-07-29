@@ -226,7 +226,7 @@ when it does not undermine a child `131` premise and has an explicit owner.
 - accessibility, keyboard/focus/modal, reduced-motion, responsive/reflow, and
   targeted production-performance confirmation against child `129`;
 - absence checks for premature Product Documentation and Video runtime work;
-- a dated closeout report and explicit child `131` entry-gate decision.
+- a dated closeout report and explicit child `131` grill-entry decision.
 
 ### Explicit non-scope
 
@@ -776,7 +776,8 @@ failures, and record only synthetic evidence.
 3. confirm no S1/S2 remains and every S3/S4 has a disposition;
 4. update the report, this plan's status/checklists/log/verification/leftovers,
    and only then the completed Phase `130` items in the master;
-5. name child `131` as next only if every Documentation entry gate passes.
+5. name child `131` as next only if every child `131` grill-entry gate passes;
+   do not mark the separate Documentation implementation gate passed.
 
 ## Focused Verification Plan
 
@@ -948,7 +949,8 @@ workloads and state the forced-GC/listener/timer limitation if it remains.
 - secondary-browser and tooling limitations;
 - explicit checks for no Documentation/Video runtime surface;
 - every remaining limitation with owner and child `131` blocking decision;
-- a final Documentation entry-gate Pass/Fail result and handoff questions.
+- a final child `131` grill-entry Pass/Fail result and handoff questions, kept
+  distinct from the post-grill Documentation implementation entry gate;
 
 ## Acceptance Checklist
 
@@ -986,7 +988,8 @@ workloads and state the forced-GC/listener/timer limitation if it remains.
 - [x] Confirm no user/agent changes or unrelated files entered the commits.
 - [x] Confirm the final worktree is clean except for explicitly preserved
       pre-existing changes.
-- [x] Mark child `131` ready only if every Documentation entry gate passes.
+- [x] Mark child `131` ready only if every child `131` grill-entry gate passes,
+      without marking the Documentation implementation gate complete.
 
 ## Commit Strategy
 
@@ -1036,16 +1039,23 @@ Implementation completed on 2026-07-29 from starting commit
 3. `228292c` (`docs(closeout): record phase 130 verification`) recorded the
    completed database, automated, browser, accessibility, responsive, motion,
    performance, link, screenshot, and absence evidence and marked the
-   Documentation entry gate Passed.
-4. The final `docs(plan): close child 130` commit synchronizes this child and
-   Master Plan `005` with the passed result and child `131` handoff.
+   child `131` grill-entry gate Passed. The post-grill Documentation
+   implementation entry gate remains pending.
+4. `4388522` (`docs(plan): close child 130`) synchronizes this child and Master
+   Plan `005` with the passed result and child `131` handoff.
 
-The four findings were documentation-only S3/S4 drift: obsolete UI-track
-status, obsolete installed-extension limitations, future-tense descriptions of
-already shipped foundation behavior, and unrelated create-next-app boilerplate
-in `apps/web/README.md`. No runtime repair was required. There were no
-runtime/API/schema/type/migration/permission/dependency changes, no Product
-Documentation or Video implementation, and no Git-history synchronization.
+The initial four findings were documentation-only S3/S4 drift: obsolete
+UI-track status, obsolete installed-extension limitations, future-tense
+descriptions of already shipped foundation behavior, and unrelated
+create-next-app boilerplate in `apps/web/README.md`. The final prompt-pack
+closure audit added two documentation-only findings: `DOC-05` separated the
+passed child `131` grill-entry gate from the still-pending Documentation
+implementation gate, and `DOC-06` added explicit checked acceptance lists to
+the otherwise complete children `111`, `121`, and `125-01`.
+
+No runtime repair was required. There were no runtime/API/schema/type/migration/
+permission/dependency changes, no Product Documentation or Video
+implementation, and no Git-history synchronization.
 
 ## Verification Record
 
@@ -1056,6 +1066,13 @@ browser matrix, vitals, issue register, and limitation dispositions are in
 - all children `109` through `129`, accepted ADRs, canonical terminology,
   routes, APIs, schemas/types, packages, permissions, migrations, current-state
   docs, screenshots, and Product Documentation/Video absence checks passed;
+- the final structural ledger confirmed that every completed prompt-pack child,
+  including `125-01`, has a complete status, checked acceptance list,
+  verification notes, and explicit leftovers/handoff;
+- the final code/plan inventory confirmed `23` complete records with zero
+  unchecked items, only children `109` through `130` checked in the master,
+  migrations still ending at `024`, no Product Documentation/Video runtime,
+  and no `apps`/`packages` diff after the recorded browser-verified source;
 - local Markdown links passed (`198` files, `45` local links, zero missing),
   Docs App external links returned HTTP `200`, and all `76` PNG evidence files
   decoded successfully;
@@ -1084,6 +1101,10 @@ browser matrix, vitals, issue register, and limitation dispositions are in
 - all browser sessions and local services were stopped, temporary external
   Puppeteer material was not added to the repository, and the final scoped
   diff passed formatting and whitespace checks.
+- final-closure Prettier and whitespace checks passed; Docs App passed `4`
+  files / `12` tests, type-check, and lint. Browser dogfood was not repeated
+  because the final closure changed only plan/report records and the runtime/
+  browser-visible tree remained identical to the recorded Phase `130` pass.
 
 ## Leftovers And Handoff
 
