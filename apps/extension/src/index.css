@@ -28,7 +28,9 @@
 
 body {
   width: 360px;
+  max-width: 100vw;
   min-height: 420px;
+  max-height: 600px;
   margin: 0;
   background: var(--ossie-color-background);
   color: var(--ossie-color-text);
@@ -38,7 +40,10 @@ body {
 .popup {
   display: grid;
   gap: 12px;
+  max-height: 600px;
   padding: 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .brand {
@@ -95,6 +100,10 @@ label {
   gap: 8px;
 }
 
+.actions > * {
+  min-width: 0;
+}
+
 .toolbar {
   display: grid;
   gap: 10px;
@@ -121,6 +130,12 @@ label {
   line-height: 1.4;
 }
 
+.instance,
+.identity,
+.captureProject {
+  overflow-wrap: anywhere;
+}
+
 .identity {
   margin-top: 6px;
   color: var(--ossie-color-text);
@@ -132,6 +147,26 @@ label {
   gap: 8px;
 }
 
+.field select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 32px 8px 10px;
+  border: 1px solid var(--ossie-color-border-strong);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface);
+  color: var(--ossie-color-text);
+  font: inherit;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.field select:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--ossie-color-focus);
+  outline-offset: 2px;
+}
+
 .captureState {
   display: grid;
   gap: 8px;
@@ -139,6 +174,11 @@ label {
   border: 1px solid var(--ossie-color-border);
   border-radius: 6px;
   background: var(--ossie-color-surface-elevated);
+}
+
+.captureStatus {
+  display: grid;
+  gap: 8px;
 }
 
 .captureProject {
@@ -182,11 +222,63 @@ label {
 }
 
 .project.selected {
-  border-color: var(--ossie-color-code);
+  border-color: var(--ossie-color-accent);
 }
 
 .project small {
   color: var(--ossie-color-muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.status {
+  color: var(--ossie-color-accent);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.confirmation {
+  display: grid;
+  flex: 1 1 100%;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--ossie-color-warning);
+  border-radius: var(--ossie-radius-control);
+  background: #fffbeb;
+  color: var(--ossie-color-text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (max-width: 340px), (min-resolution: 1.9dppx) {
+  .popup {
+    padding: 10px;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+
+  .actions,
+  .toolbarActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .actions button,
+  .toolbarActions button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

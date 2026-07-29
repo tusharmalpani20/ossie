@@ -3,37 +3,29 @@ import { Button } from "@repo/ui/button";
 import {
   ApiClientError,
   completeCaptureSession,
-  createCaptureEvent,
   createCaptureSession,
   getCaptureSession,
   getCurrentAuth,
   listProjectVersions,
   listProjects,
+  listCaptureEvents,
   login,
   logout,
   type AuthResponse,
-  type CaptureAssetResponse,
-  type CaptureEventResponse,
+  type CaptureEventListResponse,
   type CaptureSessionResponse,
   type CompleteCaptureSessionResponse,
-  type CreateCaptureEventInput,
   type CreateCaptureSessionInput,
   type LoginResponse,
   type Project,
   type ProjectListResponse,
   type ProjectVersionListResponse,
-  type UploadCaptureAssetInput,
-  uploadCaptureAsset,
 } from "./lib/api";
 import {
   getCurrentTabSnapshot,
   type CurrentTabSnapshot,
 } from "./lib/current-tab";
 import { openPortalUrl } from "./lib/navigation";
-import {
-  captureVisibleTabScreenshot,
-  type ScreenshotCapture,
-} from "./lib/screenshot";
 import {
   chromeLocalStorage,
   clearActiveCapture,
@@ -45,22 +37,21 @@ import {
   saveActiveCaptureEventIndex,
   saveActiveCaptureMode,
   saveInstanceUrl,
-  saveManualCaptureDiagnostic,
   savePortalUrl,
   saveSelectedProjectId,
   saveSessionToken,
+  subscribeToSettingsChanges,
   type ExtensionSettings,
   type ExtensionStorageArea,
-  type ManualCaptureDiagnostic,
 } from "./lib/settings";
 import { buildPortalCaptureSessionUrl } from "./lib/url";
 import {
-  buildCaptureSessionInput,
-  errorMessage,
-  projectContextLabel,
-  persistManualCaptureDiagnostic,
-  screenshotFileName,
-} from "./popup/helpers";
+  sendCaptureCommand,
+  type CaptureCommand,
+  type CaptureCommandResult,
+} from "./lib/capture-command";
+import { buildCaptureSessionInput, errorMessage } from "./popup/helpers";
+import { CaptureWorkspace } from "./popup/CaptureWorkspace";
 import { ConnectInstancePanel } from "./popup/ConnectInstancePanel";
 import { PopupShell } from "./popup/PopupShell";
 import { SignInPanel } from "./popup/SignInPanel";
@@ -68,6 +59,7 @@ import "./index.css";
 
 type Dependencies = {
   getSettings: () => Promise<ExtensionSettings>;
+  subscribeToSettingsChanges: (onChange: () => void) => () => void;
   saveInstanceUrl: (instanceUrl: string) => Promise<void>;
   savePortalUrl: (portalUrl: string | null) => Promise<void>;
   saveSessionToken: (sessionToken: string | null) => Promise<void>;
@@ -102,9 +94,6 @@ type Dependencies = {
     paused: boolean;
   }) => Promise<void>;
   saveActiveCaptureEventIndex: (eventIndex: number) => Promise<void>;
-  saveManualCaptureDiagnostic: (
-    diagnostic: ManualCaptureDiagnostic | null,
-  ) => Promise<void>;
   clearActiveCapture: () => Promise<void>;
   clearSettings: () => Promise<void>;
   getCurrentAuth: (
@@ -130,6 +119,15 @@ type Dependencies = {
     projectId: string,
     captureSessionId: string,
   ) => Promise<CaptureSessionResponse>;
+  listCaptureEvents: (
+    instanceUrl: string,
+    sessionToken: string,
+    projectId: string,
+    captureSessionId: string,
+  ) => Promise<CaptureEventListResponse>;
+  sendCaptureCommand: (
+    command: CaptureCommand,
+  ) => Promise<CaptureCommandResult>;
   createCaptureSession: (
     instanceUrl: string,
     sessionToken: string,
@@ -137,21 +135,6 @@ type Dependencies = {
     data: CreateCaptureSessionInput,
   ) => Promise<CaptureSessionResponse>;
   getCurrentTabSnapshot: () => Promise<CurrentTabSnapshot>;
-  captureVisibleTabScreenshot: () => Promise<ScreenshotCapture>;
-  uploadCaptureAsset: (
-    instanceUrl: string,
-    sessionToken: string,
-    projectId: string,
-    captureSessionId: string,
-    data: UploadCaptureAssetInput,
-  ) => Promise<CaptureAssetResponse>;
-  createCaptureEvent: (
-    instanceUrl: string,
-    sessionToken: string,
-    projectId: string,
-    captureSessionId: string,
-    data: CreateCaptureEventInput,
-  ) => Promise<CaptureEventResponse>;
   completeCaptureSession: (
     instanceUrl: string,
     sessionToken: string,
@@ -181,6 +164,10 @@ type ViewState =
       projectVersions: ProjectVersionListResponse["project_versions"];
       activeCaptureContextAvailable: boolean;
       activeCaptureProjectVersionStatus: "active" | "archived" | null;
+      activeCaptureSessionStatus:
+        | CaptureSessionResponse["capture_session"]["status"]
+        | null;
+      activeCaptureIndexReconciled: boolean;
     }
   | { status: "error"; settings: ExtensionSettings; message: string };
 
@@ -189,6 +176,7 @@ const buildDefaultDependencies = (): Dependencies => {
 
   return {
     getSettings: () => getSettings(storage),
+    subscribeToSettingsChanges,
     saveInstanceUrl: (instanceUrl) => saveInstanceUrl(storage, instanceUrl),
     savePortalUrl: (portalUrl) => savePortalUrl(storage, portalUrl),
     saveSessionToken: (sessionToken) => saveSessionToken(storage, sessionToken),
@@ -200,8 +188,6 @@ const buildDefaultDependencies = (): Dependencies => {
     saveActiveCaptureMode: (input) => saveActiveCaptureMode(storage, input),
     saveActiveCaptureEventIndex: (eventIndex) =>
       saveActiveCaptureEventIndex(storage, eventIndex),
-    saveManualCaptureDiagnostic: (diagnostic) =>
-      saveManualCaptureDiagnostic(storage, diagnostic),
     clearActiveCapture: () => clearActiveCapture(storage),
     clearSettings: () => clearSettings(storage),
     getCurrentAuth,
@@ -209,11 +195,10 @@ const buildDefaultDependencies = (): Dependencies => {
     listProjects,
     listProjectVersions,
     getCaptureSession,
+    listCaptureEvents,
+    sendCaptureCommand,
     createCaptureSession,
     getCurrentTabSnapshot,
-    captureVisibleTabScreenshot,
-    uploadCaptureAsset,
-    createCaptureEvent,
     completeCaptureSession,
     openPortalUrl,
     logout,
@@ -230,6 +215,58 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
   );
   const [state, setState] = useState<ViewState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
+  const [completedHandoff, setCompletedHandoff] = useState<{
+    captureSessionId: string;
+    portalUrl: string;
+  } | null>(null);
+  const [localRecoveryMessage, setLocalRecoveryMessage] = useState<
+    string | null
+  >(null);
+
+  useEffect(
+    () =>
+      dependencies.subscribeToSettingsChanges(() => {
+        void dependencies
+          .getSettings()
+          .then((settings) => {
+            setState((current) => {
+              if (
+                current.status !== "signed_in" ||
+                settings.instanceUrl !== current.settings.instanceUrl ||
+                settings.sessionToken !== current.settings.sessionToken
+              ) {
+                setReloadKey((key) => key + 1);
+                return current;
+              }
+
+              return {
+                ...current,
+                settings: {
+                  ...current.settings,
+                  activeCaptureSessionId: settings.activeCaptureSessionId,
+                  activeCaptureProjectId: settings.activeCaptureProjectId,
+                  activeCaptureProjectVersionId:
+                    settings.activeCaptureProjectVersionId,
+                  activeCaptureProjectVersionSlug:
+                    settings.activeCaptureProjectVersionSlug,
+                  activeCaptureProjectVersionName:
+                    settings.activeCaptureProjectVersionName,
+                  activeCaptureEventIndex: settings.activeCaptureEventIndex,
+                  activeCaptureMode: settings.activeCaptureMode,
+                  activeCapturePaused: settings.activeCapturePaused,
+                  automaticCaptureDiagnostic:
+                    settings.automaticCaptureDiagnostic,
+                  manualCaptureDiagnostic: settings.manualCaptureDiagnostic,
+                },
+              };
+            });
+          })
+          .catch(() => {
+            // A later storage event or popup reopen will retry live settings.
+          });
+      }),
+    [dependencies],
+  );
 
   useEffect(() => {
     let active = true;
@@ -284,6 +321,10 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
         );
         let activeCaptureProjectVersionStatus: "active" | "archived" | null =
           null;
+        let activeCaptureSessionStatus:
+          | CaptureSessionResponse["capture_session"]["status"]
+          | null = null;
+        let activeCaptureIndexReconciled = true;
 
         if (!selectedProjectExists) {
           await dependencies.saveSelectedProjectId(null);
@@ -341,14 +382,31 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
               settings.activeCaptureSessionId,
             );
             const session = response.capture_session;
+            let highestEventIndex = settings.activeCaptureEventIndex ?? 0;
+            try {
+              const eventResponse = await dependencies.listCaptureEvents(
+                settings.instanceUrl,
+                settings.sessionToken,
+                settings.activeCaptureProjectId,
+                settings.activeCaptureSessionId,
+              );
+              highestEventIndex = eventResponse.capture_events.reduce(
+                (highest, event) => Math.max(highest, event.event_index),
+                0,
+              );
+            } catch {
+              activeCaptureIndexReconciled = false;
+            }
             activeCaptureContextAvailable = true;
             activeCaptureProjectVersionStatus = session.project_version.status;
+            activeCaptureSessionStatus = session.status;
             nextSettings = {
               ...nextSettings,
               activeCaptureProjectId: session.project_id,
               activeCaptureProjectVersionId: session.project_version.id,
               activeCaptureProjectVersionSlug: session.project_version.slug,
               activeCaptureProjectVersionName: session.project_version.name,
+              activeCaptureEventIndex: highestEventIndex,
             };
             await dependencies.saveActiveCaptureVersionContext({
               captureSessionId: session.id,
@@ -357,6 +415,9 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
               projectVersionSlug: session.project_version.slug,
               projectVersionName: session.project_version.name,
             });
+            if (activeCaptureIndexReconciled) {
+              await dependencies.saveActiveCaptureEventIndex(highestEventIndex);
+            }
           } catch (error: unknown) {
             if (
               error instanceof ApiClientError &&
@@ -382,6 +443,8 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
             projectVersions,
             activeCaptureContextAvailable,
             activeCaptureProjectVersionStatus,
+            activeCaptureSessionStatus,
+            activeCaptureIndexReconciled,
           });
         }
       } catch (error: unknown) {
@@ -434,6 +497,17 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
   }, [dependencies, reloadKey]);
 
   const reload = () => setReloadKey((key) => key + 1);
+  const requireCaptureCommand = async (command: CaptureCommand) => {
+    const result = await dependencies.sendCaptureCommand(command);
+    if (!result.ok) {
+      throw new ApiClientError({
+        status: 0,
+        type: result.reason,
+        message: result.message,
+      });
+    }
+    return result;
+  };
 
   if (state.status === "loading") {
     return (
@@ -496,6 +570,8 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
               projectVersions: [],
               activeCaptureContextAvailable: true,
               activeCaptureProjectVersionStatus: null,
+              activeCaptureSessionStatus: null,
+              activeCaptureIndexReconciled: true,
             });
           }}
         />
@@ -529,7 +605,7 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
 
   return (
     <PopupShell>
-      <ProjectPicker
+      <CaptureWorkspace
         auth={state.auth}
         projects={state.projects}
         projectVersions={state.projectVersions}
@@ -549,9 +625,12 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
         activeCaptureProjectVersionStatus={
           state.activeCaptureProjectVersionStatus
         }
-        activeCaptureEventIndex={state.settings.activeCaptureEventIndex}
+        activeCaptureSessionStatus={state.activeCaptureSessionStatus}
+        activeCaptureIndexReconciled={state.activeCaptureIndexReconciled}
         activeCaptureMode={state.settings.activeCaptureMode}
         activeCapturePaused={state.settings.activeCapturePaused}
+        completionRecoveryPending={Boolean(completedHandoff)}
+        localRecoveryMessage={localRecoveryMessage}
         automaticCaptureDiagnostic={
           state.settings.automaticCaptureDiagnostic ?? null
         }
@@ -644,36 +723,62 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
               project_version_id: selectedVersionId,
             },
           );
-
-          await dependencies.saveActiveCapture({
-            captureSessionId: result.capture_session.id,
-            projectId,
-            projectVersionId: result.capture_session.project_version.id,
-            projectVersionSlug: result.capture_session.project_version.slug,
-            projectVersionName: result.capture_session.project_version.name,
-            eventIndex: 0,
-            mode: "automatic",
-          });
+          const activeSettings = {
+            ...state.settings,
+            activeCaptureSessionId: result.capture_session.id,
+            activeCaptureProjectId: projectId,
+            activeCaptureProjectVersionId:
+              result.capture_session.project_version.id,
+            activeCaptureProjectVersionSlug:
+              result.capture_session.project_version.slug,
+            activeCaptureProjectVersionName:
+              result.capture_session.project_version.name,
+            activeCaptureEventIndex: 0,
+            activeCaptureMode: "automatic" as const,
+            activeCapturePaused: false,
+          };
           setState({
             ...state,
-            settings: {
-              ...state.settings,
-              activeCaptureSessionId: result.capture_session.id,
-              activeCaptureProjectId: projectId,
-              activeCaptureProjectVersionId:
-                result.capture_session.project_version.id,
-              activeCaptureProjectVersionSlug:
-                result.capture_session.project_version.slug,
-              activeCaptureProjectVersionName:
-                result.capture_session.project_version.name,
-              activeCaptureEventIndex: 0,
-              activeCaptureMode: "automatic",
-              activeCapturePaused: false,
-            },
+            settings: activeSettings,
+            activeCaptureContextAvailable: true,
+            activeCaptureProjectVersionStatus:
+              result.capture_session.project_version.status,
+            activeCaptureSessionStatus: result.capture_session.status,
+            activeCaptureIndexReconciled: true,
           });
+          setLocalRecoveryMessage(null);
+
+          try {
+            await dependencies.saveActiveCapture({
+              captureSessionId: result.capture_session.id,
+              projectId,
+              projectVersionId: result.capture_session.project_version.id,
+              projectVersionSlug: result.capture_session.project_version.slug,
+              projectVersionName: result.capture_session.project_version.name,
+              eventIndex: 0,
+              mode: "automatic",
+            });
+          } catch {
+            setLocalRecoveryMessage(
+              "The Capture Session started, but local recovery could not be saved. Keep this popup open and finish or open the session.",
+            );
+            setState({
+              ...state,
+              settings: activeSettings,
+              activeCaptureContextAvailable: true,
+              activeCaptureProjectVersionStatus:
+                result.capture_session.project_version.status,
+              activeCaptureSessionStatus: result.capture_session.status,
+              activeCaptureIndexReconciled: true,
+            });
+          }
         }}
         onSetActiveCaptureMode={async (input) => {
-          await dependencies.saveActiveCaptureMode(input);
+          await requireCaptureCommand({
+            type: "ossie:capture_command",
+            action: "set_mode",
+            ...input,
+          });
           setState({
             ...state,
             settings: {
@@ -684,7 +789,14 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
           });
         }}
         onDiscardActiveCapture={async () => {
+          await requireCaptureCommand({
+            type: "ossie:capture_command",
+            action: "quiesce",
+            transition: "clear",
+          });
           await dependencies.clearActiveCapture();
+          setCompletedHandoff(null);
+          setLocalRecoveryMessage(null);
           setState({
             ...state,
             settings: {
@@ -697,147 +809,114 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
             },
           });
         }}
-        onCaptureScreenshot={async (input) => {
-          try {
-            const [screenshot, tab] = await Promise.all([
-              dependencies.captureVisibleTabScreenshot(),
-              dependencies.getCurrentTabSnapshot(),
-            ]);
-            const captureAssetResult = await dependencies.uploadCaptureAsset(
-              state.settings.instanceUrl,
-              state.settings.sessionToken,
-              input.projectId,
-              input.captureSessionId,
-              {
-                file: screenshot.blob,
-                fileName: screenshotFileName(screenshot.capturedAt),
-                width: screenshot.width,
-                height: screenshot.height,
-                devicePixelRatio: screenshot.devicePixelRatio,
-                pageUrl: tab.url,
-                pageTitle: tab.title,
-                capturedAt: screenshot.capturedAt,
-                metadata: {
-                  extension_version: "0.1.0",
-                  capture_source: "extension_popup",
-                },
-              },
-            );
-            const result = await dependencies.createCaptureEvent(
-              state.settings.instanceUrl,
-              state.settings.sessionToken,
-              input.projectId,
-              input.captureSessionId,
-              {
-                event_type: "capture",
-                event_index: input.eventIndex,
-                capture_asset_id: captureAssetResult.capture_asset.id,
-                occurred_at: screenshot.capturedAt,
-                page_url: tab.url,
-                page_title: tab.title,
-                input_value_redacted: true,
-                metadata: {
-                  extension_version: "0.1.0",
-                  capture_source: "extension_popup",
-                  asset_type: "screenshot",
-                },
-              },
-            );
-            await dependencies.saveActiveCaptureEventIndex(input.eventIndex);
-            await persistManualCaptureDiagnostic(
-              dependencies.saveManualCaptureDiagnostic,
-              {
-                status: "success",
-                message: null,
-                eventIndex: result.capture_event.event_index,
-                occurredAt: screenshot.capturedAt,
-              },
-            );
-            setState({
-              ...state,
-              settings: {
-                ...state.settings,
-                activeCaptureEventIndex: input.eventIndex,
-                manualCaptureDiagnostic: {
-                  status: "success",
-                  message: null,
-                  eventIndex: result.capture_event.event_index,
-                  occurredAt: screenshot.capturedAt,
-                },
-              },
+        onCaptureScreenshot={async () => {
+          const result = await dependencies.sendCaptureCommand({
+            type: "ossie:capture_command",
+            action: "capture_manual",
+          });
+          if (!result.ok) {
+            throw new ApiClientError({
+              status: 0,
+              type: result.reason,
+              message: result.message,
             });
-
-            return result;
-          } catch (error: unknown) {
-            await persistManualCaptureDiagnostic(
-              dependencies.saveManualCaptureDiagnostic,
-              {
-                status: "failed",
-                message: errorMessage(error, "Could not capture screenshot."),
-                eventIndex: null,
-                occurredAt: new Date().toISOString(),
-              },
-            );
-            throw error;
           }
+          if (result.event_index === undefined) {
+            throw new ApiClientError({
+              status: 0,
+              type: "capture_failed",
+              message: "The Capture Event was not confirmed. Retry manually.",
+            });
+          }
+          setState({
+            ...state,
+            settings: {
+              ...state.settings,
+              activeCaptureEventIndex: result.event_index,
+            },
+          });
+          return { event_index: result.event_index };
         }}
         onFinishCapture={async (input) => {
-          const contextProject = state.projects.find(
-            ({ id }) => id === input.projectId,
-          );
-          if (!contextProject)
+          await requireCaptureCommand({
+            type: "ossie:capture_command",
+            action: "quiesce",
+            transition: "finish",
+          });
+          const activeVersionSlug =
+            state.settings.activeCaptureProjectVersionSlug;
+          if (!activeVersionSlug)
             throw new ApiClientError({
-              status: 404,
-              type: "project_not_found",
+              status: 409,
+              type: "project_version_context_unavailable",
               message: "Project Version context is unavailable.",
             });
-          const result = await dependencies.completeCaptureSession(
-            state.settings.instanceUrl,
-            state.settings.sessionToken,
-            input.projectId,
-            input.captureSessionId,
-          );
-          const portalUrl = buildPortalCaptureSessionUrl(
-            state.settings.instanceUrl,
-            state.settings.portalUrl,
-            result.redirect.path,
-            input.projectId,
-            state.settings.activeCaptureProjectVersionSlug ??
-              contextProject.default_project_version.slug,
-            input.captureSessionId,
-          );
+          let portalUrl =
+            completedHandoff?.captureSessionId === input.captureSessionId
+              ? completedHandoff.portalUrl
+              : null;
+          if (!portalUrl) {
+            const result = await dependencies.completeCaptureSession(
+              state.settings.instanceUrl,
+              state.settings.sessionToken,
+              input.projectId,
+              input.captureSessionId,
+            );
+            portalUrl = buildPortalCaptureSessionUrl(
+              state.settings.instanceUrl,
+              state.settings.portalUrl,
+              result.redirect.path,
+              input.projectId,
+              activeVersionSlug,
+              input.captureSessionId,
+            );
+            setCompletedHandoff({
+              captureSessionId: input.captureSessionId,
+              portalUrl,
+            });
+          }
 
-          await dependencies.clearActiveCapture();
-          setState({
-            ...state,
-            settings: {
-              ...state.settings,
-              activeCaptureSessionId: null,
-              activeCaptureProjectId: null,
-              activeCaptureEventIndex: null,
-              activeCaptureMode: null,
-              activeCapturePaused: false,
-            },
-          });
-
+          try {
+            await dependencies.clearActiveCapture();
+          } catch {
+            throw new ApiClientError({
+              status: 0,
+              type: "local_capture_clear_failed",
+              message:
+                "Capture completed, but local recovery could not be cleared. Retry to clear and open it; completion will not repeat.",
+            });
+          }
           try {
             await dependencies.openPortalUrl(portalUrl);
           } catch {
             throw new ApiClientError({
               status: 0,
               type: "portal_open_failed",
-              message: "Could not open portal after finishing capture.",
+              message:
+                "Capture completed, but the portal could not open. Retry to open it; completion will not repeat.",
             });
           }
+          setCompletedHandoff(null);
+          setLocalRecoveryMessage(null);
+          setState({
+            ...state,
+            settings: {
+              ...state.settings,
+              activeCaptureSessionId: null,
+              activeCaptureProjectId: null,
+              activeCaptureEventIndex: null,
+              activeCaptureMode: null,
+              activeCapturePaused: false,
+            },
+          });
         }}
         onOpenActiveCapture={async (input) => {
-          const contextProject = state.projects.find(
-            ({ id }) => id === input.projectId,
-          );
-          if (!contextProject)
+          const activeVersionSlug =
+            state.settings.activeCaptureProjectVersionSlug;
+          if (!activeVersionSlug)
             throw new ApiClientError({
-              status: 404,
-              type: "project_not_found",
+              status: 409,
+              type: "project_version_context_unavailable",
               message: "Project Version context is unavailable.",
             });
           const portalUrl = buildPortalCaptureSessionUrl(
@@ -845,8 +924,7 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
             state.settings.portalUrl,
             null,
             input.projectId,
-            state.settings.activeCaptureProjectVersionSlug ??
-              contextProject.default_project_version.slug,
+            activeVersionSlug,
             input.captureSessionId,
           );
 
@@ -861,10 +939,22 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
           }
         }}
         onChangeInstance={async () => {
+          await requireCaptureCommand({
+            type: "ossie:capture_command",
+            action: "quiesce",
+            transition: "change_instance",
+          });
           await dependencies.clearSettings();
+          setCompletedHandoff(null);
+          setLocalRecoveryMessage(null);
           reload();
         }}
         onSignOut={async () => {
+          await requireCaptureCommand({
+            type: "ossie:capture_command",
+            action: "quiesce",
+            transition: "logout",
+          });
           try {
             await dependencies.logout(
               state.settings.instanceUrl,
@@ -875,509 +965,11 @@ export const App = ({ dependencies: dependencyOverrides }: AppProps) => {
           }
 
           await dependencies.saveSessionToken(null);
+          setCompletedHandoff(null);
+          setLocalRecoveryMessage(null);
           reload();
         }}
       />
     </PopupShell>
-  );
-};
-
-const ProjectPicker = ({
-  auth,
-  projects,
-  projectVersions,
-  selectedProjectId,
-  selectedProjectVersionId,
-  activeCaptureSessionId,
-  activeCaptureProjectId,
-  activeCaptureProjectVersionName,
-  activeCaptureProjectVersionSlug,
-  activeCaptureContextAvailable,
-  activeCaptureProjectVersionStatus,
-  activeCaptureEventIndex,
-  activeCaptureMode,
-  activeCapturePaused,
-  automaticCaptureDiagnostic,
-  manualCaptureDiagnostic,
-  onSelect,
-  onSelectVersion,
-  onStartCapture,
-  onSetActiveCaptureMode,
-  onDiscardActiveCapture,
-  onCaptureScreenshot,
-  onFinishCapture,
-  onOpenActiveCapture,
-  onChangeInstance,
-  onSignOut,
-}: {
-  auth: AuthResponse["auth"];
-  projects: Project[];
-  projectVersions: ProjectVersionListResponse["project_versions"];
-  selectedProjectId: string | null;
-  selectedProjectVersionId: string | null;
-  activeCaptureSessionId: string | null;
-  activeCaptureProjectId: string | null;
-  activeCaptureProjectVersionName: string | null;
-  activeCaptureProjectVersionSlug: string | null;
-  activeCaptureContextAvailable: boolean;
-  activeCaptureProjectVersionStatus: "active" | "archived" | null;
-  activeCaptureEventIndex: number | null;
-  activeCaptureMode: "manual" | "automatic" | null;
-  activeCapturePaused: boolean;
-  automaticCaptureDiagnostic: ExtensionSettings["automaticCaptureDiagnostic"];
-  manualCaptureDiagnostic: ExtensionSettings["manualCaptureDiagnostic"];
-  onSelect: (projectId: string) => Promise<void>;
-  onSelectVersion: (projectVersionId: string) => Promise<void>;
-  onStartCapture: (projectId: string) => Promise<void>;
-  onSetActiveCaptureMode: (input: {
-    mode: "manual" | "automatic";
-    paused: boolean;
-  }) => Promise<void>;
-  onDiscardActiveCapture: () => Promise<void>;
-  onCaptureScreenshot: (input: {
-    projectId: string;
-    captureSessionId: string;
-    eventIndex: number;
-  }) => Promise<CaptureEventResponse>;
-  onFinishCapture: (input: {
-    projectId: string;
-    captureSessionId: string;
-  }) => Promise<void>;
-  onOpenActiveCapture: (input: {
-    projectId: string;
-    captureSessionId: string;
-  }) => Promise<void>;
-  onChangeInstance: () => Promise<void>;
-  onSignOut: () => Promise<void>;
-}) => {
-  const [starting, setStarting] = useState(false);
-  const [capturingScreenshot, setCapturingScreenshot] = useState(false);
-  const [finishing, setFinishing] = useState(false);
-  const [openingPortal, setOpeningPortal] = useState(false);
-  const [changingCaptureMode, setChangingCaptureMode] = useState(false);
-  const [startError, setStartError] = useState<string | null>(null);
-  const [screenshotError, setScreenshotError] = useState<string | null>(null);
-  const [finishError, setFinishError] = useState<string | null>(null);
-  const [portalOpenError, setPortalOpenError] = useState<string | null>(null);
-  const [selectionError, setSelectionError] = useState<string | null>(null);
-  const [lastCaptureEventIndex, setLastCaptureEventIndex] = useState<
-    number | null
-  >(null);
-  const selectedProject = selectedProjectId
-    ? (projects.find((project) => project.id === selectedProjectId) ?? null)
-    : null;
-  const activeProject = activeCaptureProjectId
-    ? (projects.find((project) => project.id === activeCaptureProjectId) ??
-      null)
-    : null;
-  const selectedProjectVersion = selectedProjectVersionId
-    ? (projectVersions.find(
-        (version) => version.id === selectedProjectVersionId,
-      ) ?? null)
-    : null;
-  const hasActiveCapture = Boolean(
-    activeCaptureSessionId && activeCaptureProjectId,
-  );
-  const busy =
-    starting ||
-    capturingScreenshot ||
-    finishing ||
-    openingPortal ||
-    changingCaptureMode;
-  const resolvedCaptureMode = activeCaptureMode ?? "manual";
-  const isAutomaticCapture = resolvedCaptureMode === "automatic";
-  const automaticCaptureDiagnosticMessage =
-    automaticCaptureDiagnostic?.status === "failed"
-      ? `Automatic click capture failed: ${automaticCaptureDiagnostic.message ?? "Check extension permissions and supported pages."}`
-      : null;
-  const automaticCaptureSuccessMessage =
-    automaticCaptureDiagnostic?.status === "success" &&
-    automaticCaptureDiagnostic.eventIndex
-      ? `Automatic capture event recorded: step ${automaticCaptureDiagnostic.eventIndex}`
-      : null;
-  const manualCaptureDiagnosticMessage =
-    manualCaptureDiagnostic?.status === "failed"
-      ? `Manual screenshot failed: ${manualCaptureDiagnostic.message ?? "Could not capture screenshot."}`
-      : null;
-  const manualCaptureSuccessMessage =
-    manualCaptureDiagnostic?.status === "success" &&
-    manualCaptureDiagnostic.eventIndex
-      ? `Manual screenshot recorded: step ${manualCaptureDiagnostic.eventIndex}`
-      : null;
-
-  const heading = hasActiveCapture
-    ? "Capture active"
-    : selectedProject
-      ? "Ready to capture"
-      : "Select project";
-
-  const handleStartCapture = async () => {
-    if (!selectedProject || !selectedProjectVersion || busy) {
-      return;
-    }
-
-    setStarting(true);
-    setStartError(null);
-
-    try {
-      await onStartCapture(selectedProject.id);
-      setStarting(false);
-    } catch (error: unknown) {
-      setStartError(errorMessage(error, "Could not start capture."));
-      setStarting(false);
-    }
-  };
-
-  const handleCaptureScreenshot = async () => {
-    if (!activeCaptureProjectId || !activeCaptureSessionId || busy) {
-      return;
-    }
-
-    setCapturingScreenshot(true);
-    setScreenshotError(null);
-    setFinishError(null);
-    setPortalOpenError(null);
-    setLastCaptureEventIndex(null);
-
-    try {
-      const nextEventIndex = (activeCaptureEventIndex ?? 0) + 1;
-      const result = await onCaptureScreenshot({
-        projectId: activeCaptureProjectId,
-        captureSessionId: activeCaptureSessionId,
-        eventIndex: nextEventIndex,
-      });
-      setLastCaptureEventIndex(result.capture_event.event_index);
-      setCapturingScreenshot(false);
-    } catch (error: unknown) {
-      setScreenshotError(errorMessage(error, "Could not capture screenshot."));
-      setCapturingScreenshot(false);
-    }
-  };
-
-  const handleFinishCapture = async () => {
-    if (!activeCaptureProjectId || !activeCaptureSessionId || busy) {
-      return;
-    }
-
-    setFinishing(true);
-    setScreenshotError(null);
-    setFinishError(null);
-    setPortalOpenError(null);
-
-    try {
-      await onFinishCapture({
-        projectId: activeCaptureProjectId,
-        captureSessionId: activeCaptureSessionId,
-      });
-      setFinishing(false);
-    } catch (error: unknown) {
-      setFinishError(errorMessage(error, "Could not finish capture."));
-      setFinishing(false);
-    }
-  };
-
-  const handleOpenActiveCapture = async () => {
-    if (!activeCaptureProjectId || !activeCaptureSessionId || busy) {
-      return;
-    }
-
-    setOpeningPortal(true);
-    setScreenshotError(null);
-    setFinishError(null);
-    setPortalOpenError(null);
-
-    try {
-      await onOpenActiveCapture({
-        projectId: activeCaptureProjectId,
-        captureSessionId: activeCaptureSessionId,
-      });
-      setOpeningPortal(false);
-    } catch (error: unknown) {
-      setPortalOpenError(
-        errorMessage(error, "Could not open capture in portal."),
-      );
-      setOpeningPortal(false);
-    }
-  };
-
-  const handleSetAutomaticPaused = async (paused: boolean) => {
-    if (busy) {
-      return;
-    }
-
-    setChangingCaptureMode(true);
-    setScreenshotError(null);
-    setFinishError(null);
-    setPortalOpenError(null);
-
-    try {
-      await onSetActiveCaptureMode({
-        mode: "automatic",
-        paused,
-      });
-      setChangingCaptureMode(false);
-    } catch (error: unknown) {
-      setScreenshotError(
-        errorMessage(error, "Could not update automatic capture state."),
-      );
-      setChangingCaptureMode(false);
-    }
-  };
-
-  const handleSelectProject = async (projectId: string) => {
-    if (busy) return;
-    setSelectionError(null);
-    try {
-      await onSelect(projectId);
-    } catch (error: unknown) {
-      setSelectionError(
-        errorMessage(error, "Could not load Project Versions."),
-      );
-    }
-  };
-
-  const handleSelectVersion = async (projectVersionId: string) => {
-    if (busy) return;
-    setSelectionError(null);
-    try {
-      await onSelectVersion(projectVersionId);
-    } catch (error: unknown) {
-      setSelectionError(
-        errorMessage(error, "Could not select Project Version."),
-      );
-    }
-  };
-
-  return (
-    <section className="panel" aria-labelledby="project-heading">
-      <div className="toolbar">
-        <div>
-          <h1 id="project-heading">{heading}</h1>
-          <p className="identity">{auth.user.email}</p>
-          <p className="instance">{auth.organization.name}</p>
-        </div>
-        <div className="toolbarActions">
-          <Button
-            variant="secondary"
-            className="secondary"
-            disabled={busy}
-            onClick={() => void onChangeInstance()}
-          >
-            Change instance
-          </Button>
-          <Button
-            variant="secondary"
-            className="secondary"
-            disabled={busy}
-            onClick={() => void onSignOut()}
-          >
-            Sign out
-          </Button>
-        </div>
-      </div>
-
-      {hasActiveCapture ? (
-        <div className="captureState">
-          <p className="captureMode">
-            {isAutomaticCapture
-              ? "Automatic click capture"
-              : "Manual screenshot capture"}
-          </p>
-          <p className="captureHelp">
-            {isAutomaticCapture
-              ? activeCapturePaused
-                ? "Automatic click capture is paused. Manual screenshots still work."
-                : "Clicks on supported pages create ordered screenshot-backed steps."
-              : "Capture one screenshot for each step you want in the guide."}
-          </p>
-          <p className="captureProject">
-            {activeProject
-              ? projectContextLabel(activeProject, {
-                  name:
-                    activeCaptureProjectVersionName ?? "Unavailable Version",
-                })
-              : "Project unavailable"}
-          </p>
-          {!activeCaptureContextAvailable ? (
-            <div className="error">
-              The active Capture Session is no longer available. Discard local
-              capture state or retry after access is restored.
-            </div>
-          ) : null}
-          {activeCaptureProjectVersionStatus === "archived" ? (
-            <div className="error">
-              This Project Version is archived. Restore it before recording or
-              finishing the Capture Session.
-            </div>
-          ) : null}
-          <p className="captureSession">Session {activeCaptureSessionId}</p>
-          {screenshotError ? (
-            <div className="error">{screenshotError}</div>
-          ) : null}
-          {automaticCaptureDiagnosticMessage ? (
-            <div className="error">{automaticCaptureDiagnosticMessage}</div>
-          ) : null}
-          {manualCaptureDiagnosticMessage ? (
-            <div className="error">{manualCaptureDiagnosticMessage}</div>
-          ) : null}
-          {finishError ? <div className="error">{finishError}</div> : null}
-          {portalOpenError ? (
-            <div className="error">{portalOpenError}</div>
-          ) : null}
-          {automaticCaptureSuccessMessage ? (
-            <p className="success">{automaticCaptureSuccessMessage}</p>
-          ) : null}
-          {manualCaptureSuccessMessage && !lastCaptureEventIndex ? (
-            <p className="success">{manualCaptureSuccessMessage}</p>
-          ) : null}
-          {lastCaptureEventIndex ? (
-            <p className="success">
-              Capture event recorded: step {lastCaptureEventIndex}
-            </p>
-          ) : null}
-          <div className="actions">
-            {isAutomaticCapture ? (
-              <Button
-                className="secondary"
-                variant="secondary"
-                disabled={
-                  busy ||
-                  !activeCaptureContextAvailable ||
-                  activeCaptureProjectVersionStatus === "archived"
-                }
-                onClick={() =>
-                  void handleSetAutomaticPaused(!activeCapturePaused)
-                }
-              >
-                {activeCapturePaused
-                  ? "Resume automatic capture"
-                  : "Pause automatic capture"}
-              </Button>
-            ) : null}
-            <Button
-              disabled={
-                busy ||
-                !activeCaptureContextAvailable ||
-                activeCaptureProjectVersionStatus === "archived"
-              }
-              onClick={() => void handleCaptureScreenshot()}
-            >
-              {capturingScreenshot ? "Capturing..." : "Capture screenshot"}
-            </Button>
-            <Button
-              variant="secondary"
-              className="secondary"
-              disabled={
-                busy ||
-                !activeCaptureContextAvailable ||
-                !activeCaptureProjectVersionSlug
-              }
-              onClick={() => void handleOpenActiveCapture()}
-            >
-              {openingPortal ? "Opening..." : "Open in portal"}
-            </Button>
-            <Button
-              disabled={
-                busy ||
-                !activeCaptureContextAvailable ||
-                activeCaptureProjectVersionStatus === "archived"
-              }
-              onClick={() => void handleFinishCapture()}
-            >
-              {finishing ? "Finishing..." : "Finish capture"}
-            </Button>
-            <Button
-              variant="secondary"
-              className="secondary"
-              disabled={busy}
-              onClick={() => void onDiscardActiveCapture()}
-            >
-              Discard local capture state
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {!hasActiveCapture && selectedProject ? (
-        <div className="captureState">
-          <p className="captureMode">Automatic click capture</p>
-          <p className="captureHelp">
-            Clicks on supported pages create ordered screenshot-backed steps.
-          </p>
-          <p className="captureHelp">
-            Manual screenshots remain available after capture starts.
-          </p>
-          <p className="captureProject">
-            {selectedProjectVersion
-              ? projectContextLabel(selectedProject, selectedProjectVersion)
-              : `${selectedProject.name} / Version unavailable`}
-          </p>
-          {!selectedProjectVersion ? (
-            <div className="error">
-              The selected Project Version is archived or unavailable. Select an
-              active Version before starting.
-            </div>
-          ) : null}
-          {startError ? <div className="error">{startError}</div> : null}
-          {finishError ? <div className="error">{finishError}</div> : null}
-          <Button
-            disabled={busy || !selectedProjectVersion}
-            onClick={() => void handleStartCapture()}
-          >
-            {starting ? "Starting..." : "Start automatic capture"}
-          </Button>
-        </div>
-      ) : null}
-
-      {!hasActiveCapture && projects.length === 0 ? (
-        <div className="state">No projects yet.</div>
-      ) : null}
-
-      {!hasActiveCapture && projects.length > 0 ? (
-        <div className="projects">
-          {selectionError ? (
-            <div className="error">{selectionError}</div>
-          ) : null}
-          {projects.map((project) => (
-            <Button
-              variant="secondary"
-              className={
-                project.id === selectedProjectId
-                  ? "project selected"
-                  : "project"
-              }
-              disabled={busy}
-              key={project.id}
-              onClick={() => void handleSelectProject(project.id)}
-            >
-              <span>
-                Use <strong>{projectContextLabel(project)}</strong>
-              </span>
-              <small>{project.status}</small>
-            </Button>
-          ))}
-          {selectedProject
-            ? projectVersions.map((version) => (
-                <Button
-                  variant="secondary"
-                  className={
-                    version.id === selectedProjectVersionId
-                      ? "project selected"
-                      : "project"
-                  }
-                  disabled={busy}
-                  key={version.id}
-                  onClick={() => void handleSelectVersion(version.id)}
-                >
-                  <span>
-                    Use <strong>{version.name}</strong>
-                  </span>
-                  <small>{version.is_default ? "default" : "active"}</small>
-                </Button>
-              ))
-            : null}
-        </div>
-      ) : null}
-    </section>
   );
 };
