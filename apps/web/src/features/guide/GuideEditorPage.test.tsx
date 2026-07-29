@@ -264,4 +264,39 @@ describe("GuideEditorPage", () => {
       await screen.findByLabelText("Paragraph body 1"),
     ).toBeInTheDocument();
   });
+
+  it("does not overlap metadata and structural Working Draft commands", async () => {
+    let finishSave: ((value: unknown) => void) | undefined;
+    const saveGuide = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          finishSave = resolve;
+        }),
+    );
+    const createBlock = vi.fn();
+    render(
+      <GuideEditorPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        guideId="guide_1"
+        loadDetail={async () => detail}
+        saveGuide={saveGuide as never}
+        createBlock={createBlock}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Save guide" }),
+    );
+    const addParagraph = screen.getByRole("button", {
+      name: "Add paragraph",
+    });
+    expect(addParagraph).toBeDisabled();
+    fireEvent.click(addParagraph);
+    expect(createBlock).not.toHaveBeenCalled();
+
+    finishSave?.({
+      edition: { ...detail.edition, version: 5 },
+    });
+  });
 });

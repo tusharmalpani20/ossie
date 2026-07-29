@@ -1237,7 +1237,7 @@ const GuideEditorView = ({
               <p>This guide does not have any blocks yet.</p>
               {!readOnly ? (
                 <BlockInsertControls
-                  disabled={busyAction?.startsWith("create:") ?? false}
+                  disabled={busyAction !== null}
                   onAdd={(blockType) => onAddBlock(blockType)}
                 />
               ) : null}
