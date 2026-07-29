@@ -220,6 +220,26 @@ describe("parsePortalRoute", () => {
     });
   });
 
+  it("parses Project-Version-qualified Interactive Demo draft previews", () => {
+    expect(
+      parsePortalRoute(
+        "/projects/project_1/versions/q3/interactive-demos/demo_1/preview",
+      ),
+    ).toEqual({
+      type: "interactive_demo_preview",
+      projectId: "project_1",
+      versionSlug: "q3",
+      interactiveDemoId: "demo_1",
+    });
+    expect(
+      parsePortalRoute("/projects/project_1/interactive-demos/demo_1/preview"),
+    ).toEqual({
+      type: "interactive_demo_preview",
+      projectId: "project_1",
+      interactiveDemoId: "demo_1",
+    });
+  });
+
   it("parses project interactive demo list routes", () => {
     expect(parsePortalRoute("/projects/project_1/interactive-demos")).toEqual({
       type: "project_interactive_demo_list",

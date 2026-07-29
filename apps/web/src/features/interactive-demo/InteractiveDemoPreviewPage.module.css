@@ -1,0 +1,16 @@
+.page {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.label {
+  width: fit-content;
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-control);
+  color: var(--ossie-color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}

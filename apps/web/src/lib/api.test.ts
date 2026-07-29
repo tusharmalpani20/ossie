@@ -8,6 +8,7 @@ import {
   createGuideBlock,
   createGuideFromCaptureSession,
   createInteractiveDemoFromCaptureSession,
+  createInteractiveDemoScene,
   createInteractiveDemoHotspot,
   createOrganizationInvite,
   completeFirstRunSetup,
@@ -171,6 +172,7 @@ const demo_scene_response = {
 
 const demo_scene_list_response = {
   demo_scenes: interactive_demo_from_capture_response.demo_scenes,
+  background_capture_assets: [],
 };
 
 const demo_hotspot_response = {
@@ -1727,6 +1729,53 @@ describe("api client", () => {
         method: "DELETE",
         credentials: "include",
         headers: { accept: "application/json" },
+      },
+    );
+  });
+
+  it("creates a Scene with exact Project Version and Working Draft scope", async () => {
+    const response = {
+      demo_scene: interactive_demo_from_capture_response.demo_scenes[0],
+      working_draft: { version: 8 },
+    };
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify(response), {
+          status: 201,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(
+      createInteractiveDemoScene(
+        "project / 1",
+        "demo / 1",
+        {
+          title: "New scene",
+          description: null,
+          background_capture_asset_id: null,
+          expected_working_draft_version: 8,
+        },
+        "version / 1",
+      ),
+    ).resolves.toEqual(response);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/v1/projects/project%20%2F%201/interactive-demos/demo%20%2F%201/scenes?project_version_id=version%20%2F%201",
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          title: "New scene",
+          description: null,
+          background_capture_asset_id: null,
+          expected_working_draft_version: 8,
+        }),
       },
     );
   });

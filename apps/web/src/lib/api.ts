@@ -21,6 +21,7 @@ import type {
 } from "@repo/types/capture";
 import type {
   CreateDemoHotspotInput,
+  CreateDemoSceneInput,
   CreateInteractiveDemoFromCaptureResponse,
   InteractiveDemoDetailResponse,
   InteractiveDemoEdition,
@@ -29,6 +30,7 @@ import type {
   InteractiveDemoHotspotReorderResponse,
   InteractiveDemoHotspotUpdateResponse,
   InteractiveDemoSceneListResponse,
+  InteractiveDemoSceneResponse,
   InteractiveDemoSceneReorderResponse,
   InteractiveDemoSceneUpdateResponse,
   InteractiveDemoWorkingDraftMutationResponse,
@@ -1238,6 +1240,23 @@ export const listInteractiveDemoScenes = async (
 ): Promise<InteractiveDemoSceneListResponse> =>
   requestJson<InteractiveDemoSceneListResponse>(
     `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes?project_version_id=${encodeURIComponent(projectVersionId)}`,
+  );
+
+export const createInteractiveDemoScene = async (
+  projectId: string,
+  interactiveDemoId: string,
+  data: CreateDemoSceneInput,
+  projectVersionId: string,
+): Promise<InteractiveDemoSceneResponse> =>
+  requestJson<InteractiveDemoSceneResponse>(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/interactive-demos/${encodeURIComponent(interactiveDemoId)}/scenes?project_version_id=${encodeURIComponent(projectVersionId)}`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(data),
+    },
   );
 
 export const updateInteractiveDemoScene = async (

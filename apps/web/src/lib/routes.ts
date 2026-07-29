@@ -93,6 +93,12 @@ export type PortalRoute =
       versionSlug?: string;
     }
   | {
+      type: "interactive_demo_preview";
+      projectId: string;
+      interactiveDemoId: string;
+      versionSlug?: string;
+    }
+  | {
       type: "public_guide_reader";
       slug: string;
       versionSlug?: string;
@@ -201,6 +207,13 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
       if (rest.length === 2 && rest[1])
         return {
           type: "interactive_demo_detail",
+          projectId,
+          versionSlug,
+          interactiveDemoId: decodeURIComponent(rest[1]),
+        };
+      if (rest.length === 3 && rest[1] && rest[2] === "preview")
+        return {
+          type: "interactive_demo_preview",
           projectId,
           versionSlug,
           interactiveDemoId: decodeURIComponent(rest[1]),
@@ -395,6 +408,26 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
           ? "project_compliance"
           : "project_activity",
       projectId: decodeURIComponent(projectId),
+    };
+  }
+
+  if (
+    segments.length === 5 &&
+    segments[0] === "projects" &&
+    segments[2] === "interactive-demos" &&
+    segments[4] === "preview"
+  ) {
+    const projectId = segments[1];
+    const interactiveDemoId = segments[3];
+
+    if (!projectId || !interactiveDemoId) {
+      return { type: "unsupported" };
+    }
+
+    return {
+      type: "interactive_demo_preview",
+      projectId: decodeURIComponent(projectId),
+      interactiveDemoId: decodeURIComponent(interactiveDemoId),
     };
   }
 
