@@ -128,10 +128,11 @@ export default function App() {
   const [setupGateState, setSetupGateState] = useState<SetupGateState>(
     setupCheckRequired ? "checking" : "ready",
   );
+  const documentTitle = portalDocumentTitle(route);
 
   useEffect(() => {
-    document.title = portalDocumentTitle(route);
-  }, [route.type]);
+    document.title = documentTitle;
+  }, [documentTitle]);
 
   useEffect(() => {
     if (!backgroundSetupCheckRequired) {
