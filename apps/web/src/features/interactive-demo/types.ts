@@ -1,6 +1,7 @@
 import type { DemoHotspotType } from "@repo/constants";
 import type {
   CreateDemoHotspotInput,
+  CreateDemoSceneInput,
   CreateInteractiveDemoFromCaptureResponse,
   DemoHotspot,
   DemoScene,
@@ -11,6 +12,7 @@ import type {
   InteractiveDemoHotspotUpdateResponse,
   InteractiveDemo,
   InteractiveDemoSceneListResponse,
+  InteractiveDemoSceneResponse,
   InteractiveDemoSceneReorderResponse,
   InteractiveDemoSceneUpdateResponse,
   ProjectInteractiveDemoListResponse,
@@ -18,12 +20,11 @@ import type {
   UpdateDemoSceneInput,
   UpdateInteractiveDemoInput,
 } from "@repo/types/demo";
-import type {
-  PublicPublishLinkResponse,
-} from "@repo/types/publish";
+import type { PublicPublishLinkResponse } from "@repo/types/publish";
 
 export type {
   CreateDemoHotspotInput,
+  CreateDemoSceneInput,
   CreateInteractiveDemoFromCaptureResponse,
   DemoHotspot,
   DemoHotspotType,
@@ -35,6 +36,7 @@ export type {
   InteractiveDemoHotspotReorderResponse,
   InteractiveDemoHotspotUpdateResponse,
   InteractiveDemoSceneListResponse,
+  InteractiveDemoSceneResponse,
   InteractiveDemoSceneReorderResponse,
   InteractiveDemoSceneUpdateResponse,
   ProjectInteractiveDemoListResponse,
