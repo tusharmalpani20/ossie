@@ -4,7 +4,9 @@ Date reserved: 2026-07-12
 
 Expanded and rechecked: 2026-07-29
 
-Status: Implementation-ready. Not started.
+Status: Implemented. Direct browser and contract verification pass; true
+installed toolbar-popup end-to-end acceptance is blocked by the available
+automation surface and remains open.
 
 Parent plan:
 
@@ -1515,40 +1517,70 @@ unrelated files to make this child appear green.
 
 ### Implementation
 
-- [ ] Oversized App and test files split without behavior loss.
-- [ ] Every touched runtime/test source file remains below 1,000 lines after
+- [x] Oversized App and test files split without behavior loss.
+- [x] Every touched runtime/test source file remains below 1,000 lines after
       extraction.
-- [ ] Capture command/index/lifecycle races and sender-tab integrity covered
+- [x] Capture command/index/lifecycle races and sender-tab integrity covered
       behind one background boundary.
-- [ ] Setup/auth/selection UI modernized.
-- [ ] Active/recovery/handoff UI modernized.
-- [ ] Storage and API backwards compatibility preserved.
-- [ ] Privacy and manifest permission invariants preserved.
-- [ ] README updated.
+- [x] Setup/auth/selection UI modernized.
+- [x] Active/recovery/handoff UI modernized.
+- [x] Storage and API backwards compatibility preserved.
+- [x] Privacy and manifest permission invariants preserved.
+- [x] README updated.
 
 ### Verification
 
-- [ ] Focused extension tests pass.
-- [ ] Extension TypeScript, lint, and build pass.
-- [ ] Relevant server contract checks pass.
-- [ ] Direct agent-browser popup-page validation recorded.
-- [ ] True installed toolbar-popup validation recorded or precisely blocked.
+- [x] Focused extension tests pass.
+- [x] Extension TypeScript, lint, and build pass.
+- [x] Relevant server contract checks pass.
+- [x] Direct agent-browser popup-page validation recorded.
+- [x] True installed toolbar-popup validation recorded or precisely blocked.
 - [ ] Automatic/manual API evidence proves unique indexes and redaction.
 - [ ] Portal handoff proves canonical named Project Version routing.
-- [ ] Console/network/accessibility/reflow evidence recorded.
+- [x] Console/network/accessibility/reflow evidence recorded.
 
 ### Closeout
 
 - [ ] Status changed to Complete only after acceptance.
-- [ ] Implementation log lists exact commits and behavior.
-- [ ] Verification record contains dated commands/results.
-- [ ] Master `005` updated only for completed child `126` items.
-- [ ] Leftovers are handed to child `127`, child `129`, or a separately approved
+- [x] Implementation log lists exact commits and behavior.
+- [x] Verification record contains dated commands/results.
+- [x] Master `005` updated only for completed child `126` items.
+- [x] Leftovers are handed to child `127`, child `129`, or a separately approved
       reliability child without silently expanding those phases.
 
 ## Implementation Log
 
-Not started.
+Implemented, with installed-toolbar end-to-end acceptance still open.
+
+Implementation commits:
+
+- `1969bd8` (`refactor(extension): extract popup setup panels`) extracted the
+  setup shell/panels without behavior loss.
+- `41af21a` (`feat(extension): serialize capture commands and reconcile events`)
+  added the shared background controller, manual runtime command, sender
+  tab/window validation, saving diagnostics, Event-list reconciliation, strict
+  URL/API contracts, storage subscription, and focused tests.
+- `b5cb163` (`feat(extension): modernize popup workflow and recovery`) split the
+  popup and tests below 1,000 lines; added compact selectors, stable/reflowing
+  layout, active read-only states, two-step local clear, live status,
+  server-success/local-persistence recovery, and no-duplicate-completion
+  handoff recovery.
+
+Implementation record:
+
+- 2026-07-29: Added `start_immediately: true`, consistent extension client
+  headers, strict credential/query/fragment base-URL rejection, and exact
+  canonical redirect matching.
+- 2026-07-29: Routed automatic and manual screenshots, pause/resume, Finish,
+  local clear, logout, and instance change through one background in-flight
+  boundary.
+- 2026-07-29: Reconciled the highest server Event index on restoration and
+  index conflict without repeating an ambiguous Asset/Event operation.
+- 2026-07-29: Added active sender-window screenshot targeting and fail-closed
+  stale-tab behavior without adding tab/window ids to server metadata.
+- 2026-07-29: Modernized setup, authentication, Project/Project Version
+  selection, active capture, diagnostics, accessibility, and local/completion
+  recovery while preserving manifest permissions and privacy fields.
 
 Expansion record:
 
@@ -1606,13 +1638,60 @@ git diff --check
 This baseline does not claim UI acceptance, installed-extension validation,
 accessibility acceptance, or browser evidence for child `126`.
 
+Implementation verification on 2026-07-29:
+
+```text
+pnpm --filter extension test
+  PASS: 19 files, 123 tests
+
+pnpm --filter extension check-types
+  PASS
+
+pnpm --filter extension lint
+  PASS
+
+pnpm --filter extension build
+  PASS
+  popup JS: 250.52 kB raw / 77.04 kB gzip
+  popup CSS: 16.20 kB raw / 4.24 kB gzip
+  background entry: 8.46 kB raw / 2.69 kB gzip
+  shared capture-command chunk: 9.76 kB raw / 2.41 kB gzip
+  content script: 3.12 kB raw / 1.33 kB gzip
+
+pnpm --filter server test -- [six focused contract files]
+  PASS: 6 files, 51 tests
+
+pnpm check-types
+  PASS: 12 tasks
+
+pnpm lint
+  PASS: 13 tasks
+
+agent-browser direct popup-page matrix
+  PASS: Connect, signed-out, selection, active paused, long labels,
+  two-step local clear, focus return, 360/320/180 CSS-pixel reflow,
+  reduced motion, console, network, and automated accessibility checks
+
+installed unpacked extension
+  PARTIAL: enabled Manifest V3 build, real extension origin/storage/runtime,
+  and background service worker verified
+  BLOCKED: agent-browser cannot attach to the browser-chrome toolbar popup
+```
+
+Detailed safe synthetic evidence is recorded in
+`docs/ui/126-extension-ui-browser-evidence.md`.
+
 ## Leftovers And Handoff
 
 - Child `125` portal fixtures and canonical routes are available for extension
   portal-handoff validation.
 - Child `126` owns extension UI and the narrow automatic/manual coordination fix
   described here. It must not absorb portal editor or artifact-authoring work.
-- Child `127` may begin only after this plan is implemented and closed.
+- Before marking child `126` Complete or beginning child `127`, run the true
+  installed toolbar-popup matrix against the disposable child `125-01` fixture.
+  Capture authenticated automatic/manual API counts, sensitive-target
+  suppression, service-worker restart restoration, race/reconciliation
+  behavior, and canonical portal handoff.
 - Child `129` still owns the later cross-product accessibility, motion, and
   browser dogfood pass; child `126` must nevertheless meet its own popup-specific
   accessibility and browser acceptance rather than deferring all evidence.

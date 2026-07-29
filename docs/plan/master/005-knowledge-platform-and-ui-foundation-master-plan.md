@@ -2,9 +2,9 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `125` are complete; child `125`
-passed its full DB/browser close-previous audit on 2026-07-29. Child `126` is
-next.
+Status: In progress. Children `109` through `125` are complete. Child `126`
+implementation and direct browser/contract verification pass; its true
+installed toolbar-popup end-to-end acceptance remains open.
 
 Master plan number: 005.
 
@@ -1591,7 +1591,7 @@ Acceptance:
 
 ### 126: Extension UI Modernization
 
-Status: Not started.
+Status: Implemented; installed toolbar-popup acceptance remains open.
 
 Planned file:
 
@@ -2064,13 +2064,12 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is child `126`, Extension UI Modernization. Start
-by expanding child `126` against the completed child `125` Capture portal work
-and the follow-up `125-01` fixture tooling. Preserve Project Version route
-context, Capture source immutability, tenant isolation, and existing Capture
-behavior. Reuse the now-passing disposable fixture where portal handoff must be
-verified, keep the selected Version stable after Capture starts, and derive
-open-portal links from canonical loaded Version scope.
+The next executable activity is the remaining child `126` true installed
+toolbar-popup acceptance matrix against the disposable child `125-01` fixture.
+Do not begin child `127` or mark child `126` Complete until automatic/manual API
+counts, sensitive-target suppression, service-worker restoration, capture
+coordination/reconciliation, and canonical named Project Version portal handoff
+are verified from the installed toolbar surface.
 The separate overnight-runner tooling
 checkpoint was deferred by user decision on 2026-07-19 because it was taking
 disproportionate time to build; it is optional future workflow tooling and no
