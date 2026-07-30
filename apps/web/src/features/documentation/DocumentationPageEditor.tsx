@@ -8,6 +8,7 @@ import {
   saveDocumentationPage,
   type DocumentationPage,
 } from "../../lib/documentationApi";
+import { DocumentationCommentsPanel } from "./DocumentationCommentsPanel";
 
 type Props = {
   projectId: string;
@@ -157,6 +158,13 @@ export const DocumentationPageEditor = ({
                 : "Saved"}
       </p>
       {canWrite ? <Button onClick={() => void save()}>Save Page</Button> : null}
+      <DocumentationCommentsPanel
+        projectId={projectId}
+        versionSlug={versionSlug}
+        siteId={siteId}
+        pageId={pageId}
+        canComment={canWrite}
+      />
     </main>
   );
 };

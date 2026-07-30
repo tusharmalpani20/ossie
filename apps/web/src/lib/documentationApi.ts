@@ -334,3 +334,105 @@ export const searchPublicDocumentation = (
       }>;
     }>(response),
   );
+
+export type DocumentationCommentThread = {
+  id: string;
+  body: string;
+  state: "open" | "resolved";
+  version: number;
+  block_anchor_id: string | null;
+  replies: Array<{ id: string; body: string }>;
+};
+
+const commentsPath = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  pageId: string,
+) => `${pagePath(projectId, versionSlug, siteId, pageId)}/comments`;
+
+export const listDocumentationComments = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  pageId: string,
+) =>
+  fetch(
+    `${baseUrl()}${commentsPath(projectId, versionSlug, siteId, pageId)}`,
+    { credentials: "include" },
+  ).then((response) =>
+    json<{ comments: DocumentationCommentThread[] }>(response),
+  );
+
+export const createDocumentationComment = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  pageId: string,
+  body: string,
+) =>
+  fetch(
+    `${baseUrl()}${commentsPath(projectId, versionSlug, siteId, pageId)}`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": crypto.randomUUID(),
+      },
+      body: JSON.stringify({
+        body,
+        block_anchor_id: null,
+        mentioned_project_membership_ids: [],
+      }),
+    },
+  ).then((response) =>
+    json<{ thread: Omit<DocumentationCommentThread, "replies"> }>(response),
+  );
+
+const threadPath = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  threadId: string,
+) =>
+  `${sitePath(projectId, versionSlug, siteId)}/comments/${encodeURIComponent(threadId)}`;
+
+export const createDocumentationCommentReply = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  threadId: string,
+  body: string,
+) =>
+  fetch(`${baseUrl()}${threadPath(projectId, versionSlug, siteId, threadId)}/replies`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
+      "idempotency-key": crypto.randomUUID(),
+    },
+    body: JSON.stringify({ body, mentioned_project_membership_ids: [] }),
+  }).then((response) =>
+    json<{ reply: { id: string; body: string } }>(response),
+  );
+
+export const transitionDocumentationComment = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  threadId: string,
+  expectedVersion: number,
+  transition: "resolve" | "reopen",
+) =>
+  fetch(`${baseUrl()}${threadPath(projectId, versionSlug, siteId, threadId)}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      expected_version: expectedVersion,
+      transition,
+    }),
+  }).then((response) =>
+    json<{ thread: Omit<DocumentationCommentThread, "replies"> }>(response),
+  );
