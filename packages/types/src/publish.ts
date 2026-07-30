@@ -107,6 +107,27 @@ export const PublishLinkSchema = z
   .strict();
 export type PublishLink = z.infer<typeof PublishLinkSchema>;
 
+export const DocumentationPublishLinkSchema = z
+  .object({
+    id: IdSchema,
+    resource_family: z.literal("documentation_site"),
+    documentation_site_id: IdSchema,
+    name: PublishLinkNameSchema,
+    slug: z.string().min(1).max(80),
+    visibility: z.enum(PUBLISH_VISIBILITIES),
+    status: z.enum(PUBLISH_LINK_STATUSES),
+    expires_at: NullableIsoDateTimeStringSchema,
+    password_protected: z.boolean(),
+    version: PositiveIntSchema,
+    entries: z.array(z.unknown()).max(PUBLISH_LINK_ENTRY_MAX),
+    public_url: z.string().min(1),
+    default_public_url: z.string().min(1),
+    created_at: IsoDateTimeStringSchema,
+    updated_at: IsoDateTimeStringSchema,
+    revoked_at: NullableIsoDateTimeStringSchema,
+  })
+  .strict();
+
 export const PublicationVersionQuerySchema = z
   .object({ project_version_id: TrimmedIdParamSchema })
   .strict();

@@ -5,6 +5,7 @@ export * from "./capture";
 export * from "./compliance";
 export * from "./common";
 export * from "./demo";
+export * from "./documentation";
 export * from "./guide";
 export * from "./instance";
 export * from "./organization";

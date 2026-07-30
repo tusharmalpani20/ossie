@@ -34,6 +34,11 @@ import {
   PROJECT_ROLES,
   PROJECT_VERSION_RESOLUTION_KINDS,
   PROJECT_VERSION_STATUSES,
+  DOCUMENTATION_BLOCK_KINDS,
+  DOCUMENTATION_COMMENT_STATES,
+  DOCUMENTATION_NAVIGATION_KINDS,
+  DOCUMENTATION_ROUTING_OUTCOMES,
+  PUBLISH_RESOURCE_FAMILIES,
   PUBLISH_ARTIFACT_TYPES,
   PUBLISH_LINK_ENTRY_MAX,
   PUBLISH_LINK_NAME_MAX_LENGTH,
@@ -76,6 +81,11 @@ const exported_constant_sets = {
   PROJECT_ROLES,
   PROJECT_VERSION_RESOLUTION_KINDS,
   PROJECT_VERSION_STATUSES,
+  DOCUMENTATION_BLOCK_KINDS,
+  DOCUMENTATION_COMMENT_STATES,
+  DOCUMENTATION_NAVIGATION_KINDS,
+  DOCUMENTATION_ROUTING_OUTCOMES,
+  PUBLISH_RESOURCE_FAMILIES,
   DEPLOYMENT_MODES,
   ONBOARDING_MODES,
 } as const;
@@ -99,6 +109,15 @@ describe("@repo/constants", () => {
   it("exports the bounded multi-version publish link limits", () => {
     expect(PUBLISH_LINK_ENTRY_MAX).toBe(50);
     expect(PUBLISH_LINK_NAME_MAX_LENGTH).toBe(120);
+  });
+
+  it("keeps Documentation and Artifact publication families explicit", () => {
+    expect(PUBLISH_RESOURCE_FAMILIES).toEqual([
+      "artifact",
+      "documentation_site",
+    ]);
+    expect(PUBLISH_ARTIFACT_TYPES).toEqual(["guide", "interactive_demo"]);
+    expect(DOCUMENTATION_BLOCK_KINDS).toContain("api_reference");
   });
 
   it("keeps public instance mode defaults representable by exported constants", () => {

@@ -3,6 +3,7 @@ export * from "./artifact-edition";
 export * from "./artifact-revision";
 export * from "./capture";
 export * from "./demo";
+export * from "./documentation";
 export * from "./file";
 export * from "./guide";
 export * from "./organization";
