@@ -18,9 +18,13 @@ The portal owns:
 - Guide and Interactive Demo libraries, editors, previews, Revisions,
   Carry-Forward, Publications, and Publish Links;
 - public Guide/Interactive Demo readers and embeds.
+- version-scoped Product Documentation Site/Page authoring, navigation,
+  comments, OpenAPI references, protected images, draft preview, immutable
+  Revisions/Publications, Publish Links, rollback, and public readers/search.
 
-Customer-authored Product Documentation and Video are not implemented routes or
-navigation items.
+The shipped Product Documentation surface is the child `132` first vertical
+slice. Remaining V1 Documentation workflows belong to children `133`–`140`.
+Video is not implemented.
 
 ## Development
 

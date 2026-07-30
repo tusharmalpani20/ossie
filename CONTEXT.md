@@ -1,6 +1,9 @@
 # Ossie Context
 
-Ossie captures real software workflows and currently turns those captures into shareable Guides and Interactive Demos. Its accepted direction is a project-organized internal knowledge platform that adds version-aware governance before Product Documentation and, later, Video.
+Ossie captures real software workflows and turns those captures into shareable
+Guides and Interactive Demos. It also ships the first complete vertical slice
+of version-aware Product Documentation Sites. Remaining Documentation V1 work
+is sequenced separately; Video remains later.
 
 This context owns canonical product language. It contains both implemented alpha concepts and accepted target terms from Master Plan `005`; inclusion here does not mean a target capability has shipped. `docs/project-zoomout-status.md` and `docs/roadmap.md` own the current-versus-planned implementation boundary.
 
@@ -246,7 +249,14 @@ _Avoid_: Artifact revision number, row version, project version
 A stable shareable access route for one authored output. The implemented Guide/Interactive Demo form belongs to one Artifact and exposes explicitly selected Artifact Editions through immutable Published Artifact entries. The accepted Documentation form belongs to one Documentation Site and exposes explicitly selected Site Editions through immutable Site Publication entries. Each link has one explicit default version and one link-wide access policy.
 _Avoid_: Draft link
 
-## Accepted Documentation Target Language
+## Documentation Language: Shipped First Slice And Accepted V1
+
+Documentation Site, Site Edition, Site Working Draft, Documentation Page,
+Navigation Tree, redirect/alias rules, OpenAPI Source, Documentation Asset,
+private comments, Site Revision, Site Publication, and Documentation Publish
+Link are implemented by child `132`. Reusable snippets, Carry-Forward, and
+later review/lifecycle extensions below remain accepted V1 target language and
+must not be described as shipped yet.
 
 The terms below are accepted by child `131` for implementation beginning at
 `132`. They describe the target domain and do not claim shipped tables, routes,
@@ -452,21 +462,26 @@ _Avoid_: Publish Link, Site Publication
 - An **Extension Session** authenticates a **User** for capture APIs on that **Instance**
 - A **Capture Session** is started inside exactly one **Project**
 
-### Accepted Documentation Target Relationships
+### Documentation Relationships: Shipped First Slice And Accepted V1
 
 - A **Project** may own many **Documentation Sites**
 - Every **Documentation Site** belongs to exactly one Project
 - A **Documentation Site** has at most one **Site Edition** for each Project Version
 - Every **Site Edition** belongs to exactly one Documentation Site and one Project Version in the same Project
 - Every **Site Edition** owns exactly one **Site Working Draft**
-- A **Site Working Draft** owns many Documentation Pages, Navigation Groups, reusable snippets, redirect rules, OpenAPI Sources, and Documentation Asset references
+- A **Site Working Draft** currently owns many Documentation Pages, Navigation
+  Groups, redirect rules, OpenAPI Sources, and Documentation Asset references;
+  reusable snippets remain child `133` scope
 - Every **Documentation Page** belongs to exactly one Site Edition and appears at most once in its authoritative Navigation Tree; unlisted Pages are allowed
 - Page slugs and **Page Slug Aliases** are unique within one Site Edition, and aliases cannot be reassigned
 - Every **Site Revision** belongs to exactly one Site Edition and freezes the complete reader-visible Site state
 - Every **Site Publication** belongs to exactly one Site Edition and references exactly one Site Revision from that Edition
 - A Documentation **Publish Link** belongs to one Documentation Site and exposes explicitly selected immutable Site Publications using one link-wide access policy
 - A **Documentation Comment Thread** belongs to one Documentation Page, remains private authoring state, and is never included in a Site Revision or Site Publication
-- Documentation Carry-Forward copies one selected whole Documentation Site from an exact Site Revision into an independent missing target Site Edition; it does not live-link later edits
+- Accepted V1 Documentation Carry-Forward will copy one selected whole
+  Documentation Site from an exact Site Revision into an independent missing
+  target Site Edition; it does not live-link later edits and is not shipped by
+  child `132`
 
 ## Example Dialogue
 

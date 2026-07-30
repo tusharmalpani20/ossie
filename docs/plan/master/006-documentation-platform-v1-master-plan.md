@@ -2739,6 +2739,12 @@ follows the same close-predecessor rule.
 - 2026-07-30: repeated full web/server/extension/database/smoke/workspace/build
   verification, recorded the production bundle delta and environment limits,
   marked child `132` complete, and moved the active handoff to child `133`.
+- 2026-07-30: close-previous audit repaired child `132` Editor publication
+  authorization/UI, numeric Revision-history addressing, absolute sitemap
+  locations, the accepted hard safety ceilings, decoded image validation, and
+  serialized cross-table path-namespace mutation. Current-truth/evidence docs
+  were reconciled and real Chrome proved an Editor checkpoint and existing-link
+  publication.
 
 ## 47. Master Planning Verification Record
 
@@ -2764,7 +2770,7 @@ Required final results:
 Child `132` runtime evidence includes:
 
 - full web suite: 62 files, 374 tests;
-- full server unit suite: 104 files, 436 tests;
+- full server unit suite: 105 files, 441 tests;
 - full server DB suite: 22 files, 71 tests;
 - V1 smoke suite: 1 file, 2 tests;
 - full extension suite: 19 files, 140 tests;
@@ -2774,6 +2780,10 @@ Child `132` runtime evidence includes:
   exactness, protected image, search, 2,000-block upper-bound, reflow,
   reduced-motion, axe, and local Web Vitals evidence in
   `docs/ui/132-documentation-site-first-vertical-slice-browser-evidence.md`.
+- close-previous focused additions: Documentation domain 8 files / 11 tests,
+  shared Documentation contracts 2 files / 13 tests, Documentation DB lifecycle
+  1 file / 2 tests, portal permission/site/publishing 3 files / 8 tests, and
+  workspace type check.
 - production web bundle delta against pre-child `50d009c`: `47.91 kB`
   JavaScript raw / `11.64 kB` gzip and `0.59 kB` CSS raw / `0.11 kB` gzip.
 
@@ -2800,3 +2810,6 @@ Child `132` runtime evidence includes:
 - The measured single-chunk bundle growth, organization-configurable
   quotas/reporting, production observability, and capability-dependent
   Firefox/WebKit or production-p75 evidence remain child `138` work.
+- Child `133` must preserve the first-slice hard ceilings and Edition
+  path-namespace serialization. Child `138` must measure and, where needed,
+  split public immutable snapshot loading by Page/search/metadata access shape.

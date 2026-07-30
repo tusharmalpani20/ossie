@@ -9,7 +9,8 @@ environment. Environment limitations and later-child work are recorded below.
 
 ## Environment
 
-- Repository exercised through runtime commit `6ddf72a`.
+- Original full matrix exercised through runtime commit `6ddf72a`; closure
+  recheck exercised commits `a0f8de7` and `50552ec`.
 - API: Fastify on `http://127.0.0.1:3002`, testing configuration, disposable
   `ossie_test`.
 - Web: Vite on `http://127.0.0.1:3000`.
@@ -17,7 +18,9 @@ environment. Environment limitations and later-child work are recorded below.
 - Browser: Chrome for Testing `151.0.7922.47`, headless Linux.
 - Fixture: `pnpm --filter server seed:documentation-browser-fixture`.
 - Synthetic users only: `plan125-admin@example.test` and
-  `plan125-viewer@example.test`.
+  `plan125-viewer@example.test`. During the disposable closure pass, the Viewer
+  membership was temporarily promoted to Project Editor through the real
+  membership API, then the database was discarded.
 - Screenshots were written under `/tmp/ossie-plan132-browser/screenshots` and
   deliberately not committed.
 
@@ -51,8 +54,10 @@ environment. Environment limitations and later-child work are recorded below.
 - Viewer opened the same Site and Page. Revision/mutation controls and editable
   fields were absent while saved Page content remained readable.
 - Admin/Editor/Viewer capability and tenant/nested-resource swaps were covered
-  by the focused route and database matrix; browser dogfood covered the Admin
-  and Viewer surfaces without weakening the server-authoritative checks.
+  by the focused route and database matrix. The closure browser pass additionally
+  exercised a real Project Editor: Site creation stayed absent, authoring and
+  `Create revision` were present, checkpoint reuse succeeded, and publishing
+  Revision 2 to the existing link moved the live pointer to Publication 2.
 
 ## Preview, Revision, Publication, And Rollback
 
@@ -84,6 +89,8 @@ environment. Environment limitations and later-child work are recorded below.
 - Direct API checks returned `308` for alias/redirect, `410` for gone, `404`
   for missing, `200 application/xml` for sitemap, and `200 text/plain` for
   robots.
+- Closure recheck confirmed every sitemap `<loc>` is an absolute canonical URL
+  rooted at validated `OSSIE_PUBLIC_WEB_URL`.
 - The shared resolver with
   `resource_family=documentation_site` returned the Documentation Site family.
 - A protected PNG rendered only through its exact Publication-scoped asset URL,

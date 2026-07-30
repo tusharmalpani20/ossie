@@ -139,6 +139,13 @@ converted without invented history. Reset and reseed a disposable pre-`024`
 database, or preserve non-disposable data for a separately designed conversion;
 do not run mixed old/new server and portal clients across this transition.
 
+Migration `025` additively introduces Product Documentation Sites, Editions,
+mutable Pages/navigation/routing/comments/OpenAPI/Assets, immutable Site
+Revisions and Site Publications, and the Documentation Publish Link family.
+There is no pre-`025` Product Documentation data to backfill. Deploy the
+migrated server and portal together; older clients do not know the new strict
+Documentation contracts.
+
 ## Running Apps
 
 Server:
@@ -159,6 +166,15 @@ Chrome extension:
 rtk pnpm --filter extension dev
 rtk pnpm --filter extension build
 ```
+
+Disposable Product Documentation browser fixture:
+
+```bash
+rtk pnpm --filter server seed:documentation-browser-fixture
+```
+
+The fixture resets `ossie_test`, uses synthetic users/content only, and must
+never target a retained database.
 
 For self-hosted extension use, build the extension, load `apps/extension/dist` as an unpacked Chrome extension, and configure the extension with the server URL for the instance it should talk to.
 
@@ -210,5 +226,7 @@ rtk pnpm --filter server run test:db
   `testing_maintenance`, including both runtime and maintenance DB variables,
   and make sure PostgreSQL is running.
 - migrations fail because the database is already in a bad state: reset the testing DB with `test:db:drop`, `test:db:create`, and `test:migrate`.
-- public guide images fail locally: check `OSSIE_LOCAL_STORAGE_ROOT` and make sure the server can read files written during upload.
+- public guide or Documentation images fail locally: check
+  `OSSIE_LOCAL_STORAGE_ROOT` and make sure the server can read files written
+  during upload. Documentation accepts decoded PNG, JPEG, and WebP only.
 - extension cannot authenticate: confirm the extension instance URL points to the running server and that cookies/credentials are accepted by the backend.

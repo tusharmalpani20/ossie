@@ -23,8 +23,10 @@ and `129` also passed a separate real unpacked toolbar Capture covering
 automatic and manual screenshot paths, unique ordered Events, privacy
 suppression, pause/resume, service-worker restart, finish/local clear, and
 canonical portal handoff. Current status is recorded in
-`docs/pre-documentation-closeout.md`; the original entries below remain
-unchanged.
+`docs/pre-documentation-closeout.md`. Child `132` then shipped and verified the
+first Product Documentation vertical slice; its current evidence is
+`docs/ui/132-documentation-site-first-vertical-slice-browser-evidence.md`.
+The original entries below remain unchanged.
 
 ## Prerequisites
 
@@ -83,6 +85,26 @@ The DB-backed smoke test covers:
 - named Project Version Carry-Forward with exact replay of one idempotency key
 - Capture Asset archive plus protected-purge rejection for referenced media
 - relational Publication/Publish Link responses without legacy snapshot fields
+- Product Documentation Site/Page creation, safe content, private comments,
+  protected image delivery, two immutable Site Revisions/Publications, exact
+  public Page/alias/search behavior, and pointer-only rollback
+
+## 2026-07-30 Child 132 Documentation Closeout
+
+- Plan: `docs/plan/132-documentation-site-first-vertical-slice.md`
+- Runtime closure commits: `a0f8de7`, `50552ec`
+- Automated: Documentation domain 8 files / 11 tests; shared Documentation
+  contracts 2 files / 13 tests; server 105 files / 441 tests; web 62 files /
+  374 tests; focused Documentation DB lifecycle 1 file / 2 tests.
+- Browser: headless Chrome through `agent-browser`; Admin and Viewer surfaces,
+  a disposable Project Editor checkpoint/publication pass, public reader,
+  canonical absolute sitemap, protected assets, access outcomes, conflicts,
+  accessibility, reflow, reduced motion, and the accepted 2,000-block ceiling.
+- Closeout fixes: Editor publication capability/UI, numeric Revision history
+  URL, absolute sitemap URLs, path/keyword/text/navigation/OpenAPI/Page/comment
+  ceilings, and decoded image type/dimension validation.
+- Evidence:
+  `docs/ui/132-documentation-site-first-vertical-slice-browser-evidence.md`
 
 ## 2026-07-29 Child 127 Guide Closeout
 

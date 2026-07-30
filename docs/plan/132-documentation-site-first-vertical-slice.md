@@ -325,6 +325,8 @@ if so, update this plan before touching `packages/audit-domain`.
 - `apps/server/src/modules/documentation/documentation-openapi.test.ts`
 - `apps/server/src/modules/documentation/documentation-assets.ts`
 - `apps/server/src/modules/documentation/documentation-assets.test.ts`
+- `apps/server/src/modules/documentation/documentation-asset.ts`
+- `apps/server/src/modules/documentation/documentation-asset.test.ts`
 - `apps/server/src/modules/documentation/documentation-publication.repository.ts`
 - `apps/server/src/modules/documentation/documentation-publication.repository.test.ts`
 - `apps/server/src/modules/documentation/documentation-publication.service.ts`
@@ -425,6 +427,15 @@ if so, update this plan before touching `packages/audit-domain`.
 - `apps/web/src/features/documentation/DocumentationSearch.test.tsx`
 - `apps/web/src/features/documentation/DocumentationPublishingPanel.tsx`
 - `apps/web/src/features/documentation/DocumentationPublishingPanel.test.tsx`
+- `apps/web/src/features/documentation/documentationPermissions.ts`
+- `apps/web/src/features/documentation/documentationPermissions.test.ts`
+
+The implemented slice consolidated the planned fine-grained server module
+layout into `documentation.repository.ts`, `documentation.routes.ts`,
+`documentation.service.ts`, and focused policy helpers rather than creating
+every provisional pluralized filename above. This is a file-organization
+choice only; the route, schema, ownership, and verification contracts remain
+the authority.
 
 ### 7.8 Dependency and truth/evidence files
 
@@ -2022,6 +2033,21 @@ against the actual child `132` result.
   revoked access, injected publication failure, all safe authoring controls,
   axe/reflow/reduced-motion, a 2,000-block editor fixture, and production bundle
   comparison.
+- 2026-07-30: Close-previous recheck found and fixed stale completion
+  assumptions: default service authorization denied Editors publication/link
+  commands, the portal hid Editor publication controls, Revision history used
+  internal IDs instead of Edition revision numbers, sitemap locations were
+  relative, and several accepted hard ceilings were declared but not enforced.
+- 2026-07-30: Added non-bypassable path/keyword/saved-text/navigation/OpenAPI/
+  Page/comment/image ceilings, decoded image MIME/dimension validation, and a
+  shared Edition advisory lock that serializes canonical Page, alias, and
+  redirect namespace mutations without changing migration `025`.
+- 2026-07-30: Repeated the DB-backed lifecycle and real Chrome pass. A
+  disposable Viewer membership was promoted through the real membership API to
+  Project Editor; Site creation remained absent while authoring, checkpoint,
+  existing-link publication, and pointer movement succeeded.
+- 2026-07-30: Reconciled README, Context, portal setup, dogfood, and browser
+  evidence from pre-runtime target wording to the child `132` shipped subset.
 
 ## 27. Verification Record
 
@@ -2048,10 +2074,11 @@ Planning-checkpoint verification completed before runtime implementation:
 
 Runtime verification completed:
 
-- `@repo/documentation-domain`: 8 files, 9 tests passed; type check passed.
-- `@repo/types` Documentation/Publish: 18 focused tests passed.
+- `@repo/documentation-domain`: 8 files, 11 tests passed; type check passed.
+- `@repo/types` Documentation/Publish: 13 focused tests passed in the final
+  closure selection.
 - full web suite: 62 files, 374 tests passed.
-- full server unit suite: 104 files, 436 tests passed.
+- full server unit suite: 105 files, 441 tests passed.
 - full server DB suite: 22 files, 71 tests passed.
 - V1 smoke suite: 1 file, 2 tests passed, including exact public Page/alias,
   protected asset isolation, two Revisions/Publications, and pointer rollback.
@@ -2067,6 +2094,13 @@ Runtime verification completed:
 - `git diff --check`: passed at every scoped commit boundary.
 - Agent Browser evidence: see
   `docs/ui/132-documentation-site-first-vertical-slice-browser-evidence.md`.
+- Close-previous focused verification: Documentation repository/routes/image
+  policy 3 files / 17 tests; Documentation DB lifecycle 1 file / 2 tests;
+  Documentation portal permission/site/publishing 3 files / 8 tests; workspace
+  type check passed.
+- Closure commits: `a0f8de7` (server/contracts/safety) and `50552ec`
+  (Project Editor publication UI). Final docs/concurrency commit is recorded by
+  the repository history containing this log.
 
 Environment limitations recorded without weakening child closure:
 
@@ -2088,6 +2122,18 @@ quotas/reporting, production observability, and capability-dependent
 Firefox/WebKit or production-p75 evidence to child `138`. Do not reopen the
 Ossie-owned persistence, local-router, type-specific Publication, protected
 asset, access, or publication authority boundaries proved here.
+
+Child `133` must preserve the now-enforced first-slice ceilings and the shared
+Edition path-namespace lock while adding typed content/snippet/Asset workflows.
+Its replacement-command design should decide whether independently mutable
+future child aggregates need explicit delete-version commands; child `132`
+keeps Page `expected_page_version` as the authoritative atomic content-replace
+guard and round-trips child versions for retained UI state.
+
+Child `138` must profile and, if necessary, split the current public immutable
+snapshot loader so Page, search, operation, and metadata requests do not
+over-fetch at large multi-Page Publication sizes. This is a measured
+hardening task, not permission to weaken the Page/text/count ceilings.
 
 Git/GitHub source sync, translation, custom domains, public feedback/analytics,
 realtime collaboration, permanent deletion, cross-artifact search, server
