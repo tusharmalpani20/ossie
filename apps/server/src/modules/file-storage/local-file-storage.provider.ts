@@ -45,6 +45,7 @@ const extension_by_mime_type = new Map([
   ["image/png", "png"],
   ["image/jpeg", "jpg"],
   ["image/webp", "webp"],
+  ["image/gif", "gif"],
   ["application/json", "json"],
   ["application/yaml", "yaml"],
   ["text/yaml", "yaml"],

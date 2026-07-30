@@ -8,10 +8,10 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(83);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(84);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(83);
+    ).toBe(84);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
@@ -25,12 +25,12 @@ describe("audit coverage registry", () => {
 
   it("covers all product tables and the relational Publish Link DELETE boundary", () => {
     const writes = AUDIT_COVERAGE_REGISTRY.flatMap(({ writes }) => writes);
-    expect(new Set(writes.map(({ table }) => table)).size).toBe(42);
+    expect(new Set(writes.map(({ table }) => table)).size).toBe(43);
     expect(
       new Set(
         writes.map(({ table, sql_operation }) => `${table}:${sql_operation}`),
       ).size,
-    ).toBe(66);
+    ).toBe(67);
     expect(
       writes
         .filter(({ sql_operation }) => sql_operation === "DELETE")
@@ -381,6 +381,11 @@ describe("audit coverage registry", () => {
       ["publish_link_entry", "INSERT", "publish_link_entry_i_audit_ctx"],
       ["publish_link_entry", "UPDATE", "publish_link_entry_u_audit_ctx"],
       ["file", "INSERT", "file_i_audit_ctx"],
+      [
+        "documentation_asset",
+        "INSERT",
+        "documentation_asset_i_audit_ctx",
+      ],
     ] as const) {
       const triggerStart = migration_025_up.indexOf(
         `CREATE TRIGGER ${triggerName}`,
@@ -394,7 +399,13 @@ describe("audit coverage registry", () => {
         -1,
       )?.[1];
       actual.set(
-        `${table === "file" ? "file_schema" : "publish_schema"}.${table}:${operation}`,
+        `${
+          table === "file"
+            ? "file_schema"
+            : table === "documentation_asset"
+              ? "documentation_schema"
+              : "publish_schema"
+        }.${table}:${operation}`,
         commandArgument?.split(",") ?? [],
       );
     }

@@ -101,6 +101,30 @@ export const saveDocumentationPage = (
     },
   ).then((response) => json<{ page: DocumentationPage }>(response));
 
+export const uploadDocumentationAsset = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  file: File,
+) => {
+  const form = new FormData();
+  form.append("file", file);
+  return fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/assets`, {
+    method: "POST",
+    credentials: "include",
+    body: form,
+  }).then((response) =>
+    json<{
+      asset: {
+        id: string;
+        mime_type: string;
+        width: number;
+        height: number;
+      };
+    }>(response),
+  );
+};
+
 export type DocumentationDraftPreview = {
   site: { id: string; name: string; description: string | null };
   working_draft: {

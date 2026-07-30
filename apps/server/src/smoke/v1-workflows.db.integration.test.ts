@@ -741,6 +741,18 @@ describe("v1 dogfood smoke workflow", () => {
       expect(alias.headers.location).toBe(
         "/docs/plan132-public/install-guide",
       );
+      const image = await app.inject({
+        method: "GET",
+        url: `/api/v1/public/publish-links/plan132-public/documentation/assets/${fixture.asset_id}/file`,
+        headers: { "x-ossie-access-surface": "public_reader" },
+      });
+      expect(image.statusCode, image.body).toBe(200);
+      expect(image.headers["content-type"]).toBe("image/png");
+      const foreign_image = await app.inject({
+        method: "GET",
+        url: "/api/v1/public/publish-links/plan132-public/documentation/assets/01K00000000000000000000000/file",
+      });
+      expect(foreign_image.statusCode).toBe(404);
 
       const persisted = await pool.query<{
         selected_publication_id: string;

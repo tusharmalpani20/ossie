@@ -6,6 +6,7 @@ import type { DocumentationBlock } from "@repo/types";
 import {
   getDocumentationPage,
   saveDocumentationPage,
+  uploadDocumentationAsset,
   type DocumentationPage,
 } from "../../lib/documentationApi";
 import { DocumentationCommentsPanel } from "./DocumentationCommentsPanel";
@@ -18,6 +19,7 @@ type Props = {
   canWrite: boolean;
   loadPage?: typeof getDocumentationPage;
   savePage?: typeof saveDocumentationPage;
+  uploadAsset?: typeof uploadDocumentationAsset;
   autosaveDelayMs?: number;
 };
 
@@ -29,6 +31,7 @@ export const DocumentationPageEditor = ({
   canWrite,
   loadPage = getDocumentationPage,
   savePage = saveDocumentationPage,
+  uploadAsset = uploadDocumentationAsset,
   autosaveDelayMs = 800,
 }: Props) => {
   const [page, setPage] = useState<DocumentationPage | null>(null);
@@ -36,6 +39,9 @@ export const DocumentationPageEditor = ({
   const [saveState, setSaveState] = useState<
     "saved" | "unsaved" | "saving" | "conflict" | "error"
   >("saved");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageAlt, setImageAlt] = useState("");
+  const [assetStatus, setAssetStatus] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -96,6 +102,38 @@ export const DocumentationPageEditor = ({
     setSaveState("unsaved");
   };
 
+  const addImage = async () => {
+    if (!imageFile || !imageAlt.trim()) return;
+    setAssetStatus("Uploading image…");
+    try {
+      const { asset } = await uploadAsset(
+        projectId,
+        versionSlug,
+        siteId,
+        imageFile,
+      );
+      setBlocks((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          kind: "image",
+          position:
+            Math.max(0, ...current.map((block) => block.position)) + 1,
+          expected_version: null,
+          asset_id: asset.id,
+          alt_text: imageAlt.trim(),
+          caption: null,
+        },
+      ]);
+      setImageFile(null);
+      setImageAlt("");
+      setSaveState("unsaved");
+      setAssetStatus("Image added. Save the Page to retain the reference.");
+    } catch {
+      setAssetStatus("Image could not be uploaded.");
+    }
+  };
+
   return (
     <main id="main-content">
       <p>Documentation Page</p>
@@ -109,6 +147,35 @@ export const DocumentationPageEditor = ({
             onChange={(event) => updateParagraph(event.target.value)}
           />
         </>
+      ) : null}
+      {canWrite ? (
+        <section aria-labelledby="documentation-image-heading">
+          <h2 id="documentation-image-heading">Add image</h2>
+          <label>
+            Documentation image
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={(event) =>
+                setImageFile(event.target.files?.[0] ?? null)
+              }
+            />
+          </label>
+          <label>
+            Image alternative text
+            <input
+              value={imageAlt}
+              onChange={(event) => setImageAlt(event.target.value)}
+            />
+          </label>
+          <Button
+            disabled={!imageFile || !imageAlt.trim()}
+            onClick={() => void addImage()}
+          >
+            Upload and add image
+          </Button>
+          <p role="status">{assetStatus}</p>
+        </section>
       ) : null}
       {!canWrite ? (
         <section aria-label="Saved Page content">

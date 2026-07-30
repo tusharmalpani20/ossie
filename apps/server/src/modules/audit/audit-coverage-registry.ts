@@ -84,6 +84,12 @@ const U = {
   file_insert: () => write("file_schema.file", "INSERT", "file"),
   file_update: (operation: AuditOperation = "update") =>
     write("file_schema.file", "UPDATE", "file", [operation]),
+  documentation_asset_insert: () =>
+    write(
+      "documentation_schema.documentation_asset",
+      "INSERT",
+      "documentation_asset",
+    ),
   asset_insert: () =>
     write("capture_schema.capture_asset", "INSERT", "capture_asset"),
   asset_update: (operation: AuditOperation = "update") =>
@@ -881,6 +887,14 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
       "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/inspections",
     ],
     [U.file_insert()],
+  ),
+  command(
+    "documentation.asset.upload",
+    "documentation.asset.uploaded",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets",
+    ],
+    [U.file_insert(), U.documentation_asset_insert()],
   ),
   command(
     "publish.interactive_demo",

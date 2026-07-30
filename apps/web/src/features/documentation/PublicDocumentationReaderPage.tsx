@@ -24,11 +24,13 @@ const Block = ({
   snapshot,
   pageBase,
   operationBase,
+  assetBase,
 }: {
   block: DocumentationBlock;
   snapshot: PublicDocumentationSnapshot;
   pageBase: string;
   operationBase: string;
+  assetBase: string;
 }) => {
   switch (block.kind) {
     case "paragraph":
@@ -82,7 +84,15 @@ const Block = ({
     case "divider":
       return <hr />;
     case "image":
-      return <figure><figcaption>{block.caption ?? block.alt_text}</figcaption></figure>;
+      return (
+        <figure>
+          <img
+            src={`${assetBase}/${encodeURIComponent(block.asset_id)}/file`}
+            alt={block.alt_text}
+          />
+          {block.caption ? <figcaption>{block.caption}</figcaption> : null}
+        </figure>
+      );
   }
 };
 
@@ -170,6 +180,9 @@ export const PublicDocumentationReaderPage = ({
     );
   if (!snapshot) return <p role="status">Loading Documentation…</p>;
   const operationBase = `${pageBase}/operations`;
+  const assetBase = versionSlug
+    ? `/api/v1/public/publish-links/${encodeURIComponent(slug)}/versions/${encodeURIComponent(versionSlug)}/documentation/assets`
+    : `/api/v1/public/publish-links/${encodeURIComponent(slug)}/documentation/assets`;
   return (
     <>
       <a href="#main-content">Skip to content</a>
@@ -230,6 +243,7 @@ export const PublicDocumentationReaderPage = ({
               snapshot={snapshot}
               pageBase={pageBase}
               operationBase={operationBase}
+              assetBase={assetBase}
             />
           ))}
         </main>

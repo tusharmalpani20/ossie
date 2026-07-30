@@ -120,6 +120,22 @@ export const seed_documentation_browser_fixture = async () => {
     const site = created.site as { id: string };
     const home = created.home_page as { id: string };
     const siteRoot = `${root}/${site.id}`;
+    const image = require_success(
+      await app.inject({
+        method: "POST",
+        url: `${siteRoot}/assets`,
+        cookies: cookie,
+        ...multipart_file(
+          "pixel.png",
+          "image/png",
+          Buffer.from(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+            "base64",
+          ),
+        ),
+      }),
+      "upload Documentation image",
+    ).asset as { id: string };
     const reference = require_success(
       await app.inject({
         method: "POST",
@@ -178,9 +194,18 @@ export const seed_documentation_browser_fixture = async () => {
               text: "Install Ossie safely in your environment.",
             },
             {
+              id: "01K13200000000000000000006",
+              kind: "image",
+              position: 2,
+              expected_version: null,
+              asset_id: image.id,
+              alt_text: "One-pixel Documentation fixture image",
+              caption: "Synthetic fixture image.",
+            },
+            {
               id: "01K13200000000000000000003",
               kind: "link",
-              position: 2,
+              position: 3,
               expected_version: null,
               label: "Read the API reference",
               page_id: reference.id,
@@ -326,9 +351,18 @@ export const seed_documentation_browser_fixture = async () => {
               page_id: reference.id,
             },
             {
+              id: "01K13200000000000000000006",
+              kind: "image",
+              position: 3,
+              expected_version: 1,
+              asset_id: image.id,
+              alt_text: "One-pixel Documentation fixture image",
+              caption: "Synthetic fixture image.",
+            },
+            {
               id: "01K13200000000000000000008",
               kind: "api_reference",
-              position: 3,
+              position: 4,
               expected_version: null,
               openapi_source_id: source.id,
               operation_key: "get-widgets-listwidgets",
@@ -512,6 +546,7 @@ export const seed_documentation_browser_fixture = async () => {
       ...base,
       site_id: site.id,
       page_ids: { home: home.id, reference: reference.id },
+      asset_id: image.id,
       revision_id: revision.id,
       revision_two_id: revisionTwo.id,
       publication_id: publicationOne.id,

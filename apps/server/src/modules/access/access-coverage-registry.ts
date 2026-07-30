@@ -516,6 +516,13 @@ const reads: AccessRouteRegistration[] = [
     "site_id",
   ),
   read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets/:asset_id/file",
+    "documentation_asset.downloaded",
+    "documentation_asset",
+    "asset_id",
+    "download",
+  ),
+  read(
     "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id",
     "documentation_page.viewed",
     "documentation_page",
@@ -667,6 +674,10 @@ const public_routes: AccessRouteRegistration[] = [
     public_documentation_read(
       `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation/robots.txt`,
       "documentation_publication.robots_viewed",
+    ),
+    public_documentation_read(
+      `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation/assets/:asset_id/file`,
+      "documentation_asset.public_downloaded",
     ),
   ]),
 ];

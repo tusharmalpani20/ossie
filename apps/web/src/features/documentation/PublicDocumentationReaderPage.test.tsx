@@ -46,6 +46,15 @@ describe("PublicDocumentationReaderPage", () => {
                 openapi_source_id: "source",
                 operation_key: "get-widgets",
               },
+              {
+                id: "image",
+                kind: "image",
+                position: 3,
+                expected_version: 1,
+                asset_id: "asset",
+                alt_text: "Installer screenshot",
+                caption: "Choose the safe option.",
+              },
             ],
           },
         })}
@@ -67,6 +76,12 @@ describe("PublicDocumentationReaderPage", () => {
     expect(screen.getByRole("link", { name: /List widgets/ })).toHaveAttribute(
       "href",
       "/docs/product-docs/operations/get-widgets",
+    );
+    expect(
+      screen.getByRole("img", { name: "Installer screenshot" }),
+    ).toHaveAttribute(
+      "src",
+      "/api/v1/public/publish-links/product-docs/documentation/assets/asset/file",
     );
     expect(document.title).toBe("Install · Product docs");
     expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute(

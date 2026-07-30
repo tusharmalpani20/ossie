@@ -1,5 +1,6 @@
 import { Readable } from "node:stream";
 import { ulid } from "ulid";
+import sharp from "sharp";
 import cookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
 import fastifyMultipart from "@fastify/multipart";
@@ -958,6 +959,84 @@ export const build = (opts: BuildOptions = {}) => {
               return repository.rollback_publication(input);
             },
             resolve_public_site: repository.resolve_public_site,
+            upload_asset: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              const metadata = await sharp(input.bytes, {
+                limitInputPixels: 40_000_000,
+              }).metadata();
+              if (!metadata.width || !metadata.height) {
+                const error = new Error("Documentation image is invalid");
+                Object.assign(error, { code: "documentation_asset_invalid" });
+                throw error;
+              }
+              const file_id = ulid();
+              const asset_id = ulid();
+              const stored = await default_capture_file_storage.put({
+                organization_id: input.organization_id,
+                project_id: input.project_id,
+                documentation_site_id: input.site_id,
+                file_id,
+                mime_type: input.mime_type,
+                stream: Readable.from(input.bytes),
+                max_size_bytes: 10 * 1024 * 1024,
+              });
+              try {
+                return await repository.create_asset({
+                  ...input,
+                  file_id,
+                  asset_id,
+                  width: metadata.width,
+                  height: metadata.height,
+                  file: {
+                    ...stored,
+                    mime_type: input.mime_type,
+                    original_name: input.original_name,
+                  },
+                });
+              } catch (error) {
+                await default_capture_file_storage.delete_best_effort(stored);
+                throw error;
+              }
+            },
+            get_asset_file: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              const file = await repository.get_asset_file_record(input);
+              if (!file || file.storage_provider !== "local") return null;
+              const stored = await default_capture_file_storage.get({
+                storage_key: file.storage_key,
+              });
+              return {
+                stream: stored.stream,
+                size_bytes: stored.size_bytes,
+                mime_type: file.mime_type,
+              };
+            },
+            get_public_asset_file: async (input) => {
+              const file = await repository.get_public_asset_file_record(input);
+              if (!file || file.storage_provider !== "local") return null;
+              const stored = await default_capture_file_storage.get({
+                storage_key: file.storage_key,
+              });
+              return {
+                stream: stored.stream,
+                size_bytes: stored.size_bytes,
+                mime_type: file.mime_type,
+              };
+            },
             inspect_openapi: async (input) => {
               await project_access_service.authorize({
                 auth: {

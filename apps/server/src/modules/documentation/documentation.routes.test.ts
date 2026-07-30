@@ -1,5 +1,7 @@
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
+import multipart from "@fastify/multipart";
+import { Readable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 import {
   build_documentation_routes,
@@ -46,6 +48,9 @@ const documentation_service_stubs = (
   inspect_openapi: vi.fn(),
   apply_openapi_source: vi.fn(),
   get_openapi_source: vi.fn(),
+  upload_asset: vi.fn(),
+  get_asset_file: vi.fn(),
+  get_public_asset_file: vi.fn(),
   ...overrides,
 });
 
@@ -345,5 +350,68 @@ describe("Documentation routes", () => {
     expect(found.statusCode).toBe(200);
     expect(found.json().results).toHaveLength(1);
     expect(absent.json().results).toEqual([]);
+  });
+
+  it("accepts one bounded image and serves only a resolved public Asset", async () => {
+    const upload_asset = vi.fn(async () => ({
+      id: "asset",
+      mime_type: "image/png",
+      width: 1,
+      height: 1,
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(multipart);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          upload_asset,
+          get_public_asset_file: vi.fn(async ({ asset_id }) =>
+            asset_id === "asset"
+              ? {
+                  stream: Readable.from(Buffer.from("image-bytes")),
+                  mime_type: "image/png",
+                  size_bytes: 11,
+                }
+              : null,
+          ),
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const boundary = "documentation-asset-test";
+    const upload = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/assets",
+      cookies: { ossie_session: "session" },
+      headers: {
+        "content-type": `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="pixel.png"\r\nContent-Type: image/png\r\n\r\npng\r\n--${boundary}--\r\n`,
+      ),
+    });
+    const download = await app.inject({
+      method: "GET",
+      url: "/api/v1/public/publish-links/docs/documentation/assets/asset/file",
+    });
+    const missing = await app.inject({
+      method: "GET",
+      url: "/api/v1/public/publish-links/docs/documentation/assets/foreign/file",
+    });
+    await app.close();
+
+    expect(upload.statusCode).toBe(201);
+    expect(upload_asset).toHaveBeenCalledWith(
+      expect.objectContaining({
+        site_id: "site",
+        mime_type: "image/png",
+        original_name: "pixel.png",
+      }),
+    );
+    expect(download.statusCode).toBe(200);
+    expect(download.headers["content-type"]).toBe("image/png");
+    expect(missing.statusCode).toBe(404);
   });
 });

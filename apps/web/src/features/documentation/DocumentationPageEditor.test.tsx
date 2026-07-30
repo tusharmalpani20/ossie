@@ -128,4 +128,76 @@ describe("DocumentationPageEditor", () => {
     expect(await screen.findByText("Conflict — local work is preserved")).toBeInTheDocument();
     expect(text).toHaveValue("Unsaved local copy");
   });
+
+  it("uploads a protected image with required alternative text and attaches it", async () => {
+    const uploadAsset = vi.fn(async () => ({
+      asset: {
+        id: "asset",
+        mime_type: "image/png",
+        width: 1,
+        height: 1,
+      },
+    }));
+    const savePage = vi.fn(async (_project, _version, _site, _page, input) => ({
+      page: {
+        id: "page",
+        title: "Home",
+        canonical_path: "home",
+        version: 2,
+        blocks: input.blocks,
+      },
+    }));
+    render(
+      <DocumentationPageEditor
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        pageId="page"
+        canWrite
+        loadPage={async () => ({
+          page: {
+            id: "page",
+            title: "Home",
+            canonical_path: "home",
+            version: 1,
+            blocks: [],
+          },
+        })}
+        savePage={savePage}
+        uploadAsset={uploadAsset}
+      />,
+    );
+    const file = new File(["png"], "pixel.png", { type: "image/png" });
+    fireEvent.change(await screen.findByLabelText("Documentation image"), {
+      target: { files: [file] },
+    });
+    fireEvent.change(screen.getByLabelText("Image alternative text"), {
+      target: { value: "Installer dialog" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Upload and add image" }),
+    );
+    await waitFor(() => expect(uploadAsset).toHaveBeenCalled());
+    expect(
+      await screen.findByText("Image added. Save the Page to retain the reference."),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save Page" }));
+    await waitFor(() =>
+      expect(savePage).toHaveBeenCalledWith(
+        "project",
+        "main",
+        "site",
+        "page",
+        expect.objectContaining({
+          blocks: [
+            expect.objectContaining({
+              kind: "image",
+              asset_id: "asset",
+              alt_text: "Installer dialog",
+            }),
+          ],
+        }),
+      ),
+    );
+  });
 });

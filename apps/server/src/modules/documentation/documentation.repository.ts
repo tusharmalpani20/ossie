@@ -651,6 +651,126 @@ const load_revision_snapshot = async (
 };
 
 export const build_documentation_repository = (database: Database) => ({
+  create_asset: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    actor_org_user_id: string;
+    asset_id: string;
+    file_id: string;
+    width: number;
+    height: number;
+    file: {
+      storage_provider: string;
+      storage_key: string;
+      mime_type: string;
+      size_bytes: number;
+      original_name: string;
+      checksum_sha256: string;
+    };
+  }) =>
+    with_transaction(database, async (client) => {
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.asset.upload",
+        action: "documentation.asset.uploaded",
+      });
+      const edition = await client.query<{ id: string }>(
+        `SELECT id FROM documentation_schema.site_edition
+          WHERE organization_id=$1 AND project_id=$2
+            AND project_version_id=$3 AND documentation_site_id=$4`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+        ],
+      );
+      if (!edition.rows[0]) throw new Error("Documentation Site was not found");
+      await client.query(
+        `INSERT INTO file_schema.file
+          (id,organization_id,storage_provider,storage_key,mime_type,
+           size_bytes,original_name,checksum_sha256,metadata,
+           created_by_id,updated_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$10)`,
+        [
+          input.file_id,
+          input.organization_id,
+          input.file.storage_provider,
+          input.file.storage_key,
+          input.file.mime_type,
+          input.file.size_bytes,
+          input.file.original_name,
+          input.file.checksum_sha256,
+          JSON.stringify({ purpose: "documentation_asset" }),
+          input.actor_org_user_id,
+        ],
+      );
+      await client.query(
+        `INSERT INTO documentation_schema.documentation_asset
+          (id,organization_id,project_id,documentation_site_id,site_edition_id,
+           file_id,mime_type,byte_size,width,height,digest,created_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+        [
+          input.asset_id,
+          input.organization_id,
+          input.project_id,
+          input.site_id,
+          edition.rows[0].id,
+          input.file_id,
+          input.file.mime_type,
+          input.file.size_bytes,
+          input.width,
+          input.height,
+          input.file.checksum_sha256,
+          input.actor_org_user_id,
+        ],
+      );
+      const audit_event = build_entity_audit_event({
+        id: audit.event_id,
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        root_resource_type: "documentation_site",
+        root_resource_id: input.site_id,
+        action: "documentation.asset.uploaded",
+        actor_org_user_id: input.actor_org_user_id,
+        actor_label: audit.actor_label,
+        source_type: audit.source_type,
+        occurred_at: audit.occurred_at,
+        before_row_version: null,
+        after_row_version: null,
+        changes: [
+          {
+            entity_type: "file",
+            entity_id: input.file_id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: input.site_id,
+            before: null,
+            after: { id: input.file_id },
+          },
+          {
+            entity_type: "documentation_asset",
+            entity_id: input.asset_id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: input.site_id,
+            before: null,
+            after: { id: input.asset_id },
+          },
+        ],
+      });
+      if (audit_event) await write_audit_event(client, audit_event);
+      return {
+        id: input.asset_id,
+        file_id: input.file_id,
+        mime_type: input.file.mime_type,
+        byte_size: input.file.size_bytes,
+        width: input.width,
+        height: input.height,
+        digest: input.file.checksum_sha256,
+      };
+    }),
+
   create_openapi_inspection: async (input: {
     organization_id: string;
     project_id: string;
@@ -1969,6 +2089,79 @@ export const build_documentation_repository = (database: Database) => ({
       });
       return { ...result, idempotent_replay: false };
     }),
+
+  get_asset_file_record: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    asset_id: string;
+  }) => {
+    const result = await database.query<{
+      storage_provider: string;
+      storage_key: string;
+      mime_type: string;
+      size_bytes: number;
+    }>(
+      `SELECT file.storage_provider,file.storage_key,file.mime_type,
+              file.size_bytes
+         FROM documentation_schema.documentation_asset asset
+         JOIN documentation_schema.site_edition edition
+           ON edition.id=asset.site_edition_id
+         JOIN file_schema.file file
+           ON file.id=asset.file_id AND file.organization_id=asset.organization_id
+        WHERE asset.id=$1 AND asset.organization_id=$2 AND asset.project_id=$3
+          AND asset.documentation_site_id=$4
+          AND edition.project_version_id=$5
+          AND file.is_deleted=FALSE`,
+      [
+        input.asset_id,
+        input.organization_id,
+        input.project_id,
+        input.site_id,
+        input.project_version_id,
+      ],
+    );
+    return result.rows[0] ?? null;
+  },
+
+  get_public_asset_file_record: async (input: {
+    slug: string;
+    version_slug: string | null;
+    asset_id: string;
+  }) => {
+    const result = await database.query<{
+      storage_provider: string;
+      storage_key: string;
+      mime_type: string;
+      size_bytes: number;
+    }>(
+      `SELECT file.storage_provider,file.storage_key,file.mime_type,
+              file.size_bytes
+         FROM publish_schema.publish_link link
+         JOIN publish_schema.publish_link_entry entry
+           ON entry.publish_link_id=link.id
+         JOIN project_schema.project_version version
+           ON version.id=entry.project_version_id
+         JOIN publish_schema.site_publication publication
+           ON publication.id=entry.site_publication_id
+         JOIN documentation_schema.site_revision_asset_reference reference
+           ON reference.site_revision_id=publication.site_revision_id
+          AND reference.source_asset_id=$3
+         JOIN file_schema.file file ON file.id=reference.file_id
+        WHERE link.slug=$1 AND link.resource_family='documentation_site'
+          AND link.status='active' AND link.visibility='public'
+          AND (link.expires_at IS NULL OR link.expires_at>CURRENT_TIMESTAMP)
+          AND (
+            ($2::varchar IS NULL AND entry.is_default)
+            OR ($2::varchar IS NOT NULL AND version.slug=$2)
+          )
+          AND file.is_deleted=FALSE
+        LIMIT 1`,
+      [input.slug, input.version_slug, input.asset_id],
+    );
+    return result.rows[0] ?? null;
+  },
 
   resolve_public_site: async (input: {
     slug: string;

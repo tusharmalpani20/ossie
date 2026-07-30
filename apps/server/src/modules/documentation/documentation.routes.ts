@@ -49,6 +49,9 @@ const ThreadParamsSchema = SiteParamsSchema.extend({
 const RevisionParamsSchema = SiteParamsSchema.extend({
   revision_id: z.string().trim().min(1),
 }).strict();
+const AssetParamsSchema = SiteParamsSchema.extend({
+  asset_id: z.string().trim().min(1),
+}).strict();
 const PublicationEntryParamsSchema = SiteParamsSchema.extend({
   link_id: z.string().trim().min(1),
   entry_id: z.string().trim().min(1),
@@ -65,6 +68,13 @@ const PublicOperationParamsSchema = z
     slug: z.string().trim().min(1).max(80),
     version_slug: z.string().trim().min(1).optional(),
     operation_key: z.string().trim().min(1).max(255),
+  })
+  .strict();
+const PublicAssetParamsSchema = z
+  .object({
+    slug: z.string().trim().min(1).max(80),
+    version_slug: z.string().trim().min(1).optional(),
+    asset_id: z.string().trim().min(1),
   })
   .strict();
 
@@ -296,6 +306,37 @@ export type DocumentationRouteDependencies = {
       actor_org_user_id: string;
       site_id: string;
     }) => Promise<unknown>;
+    upload_asset: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      bytes: Buffer;
+      mime_type: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+      original_name: string;
+    }) => Promise<unknown>;
+    get_asset_file: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      asset_id: string;
+    }) => Promise<{
+      stream: NodeJS.ReadableStream;
+      mime_type: string;
+      size_bytes: number;
+    } | null>;
+    get_public_asset_file: (input: {
+      slug: string;
+      version_slug: string | null;
+      asset_id: string;
+    }) => Promise<{
+      stream: NodeJS.ReadableStream;
+      mime_type: string;
+      size_bytes: number;
+    } | null>;
   };
   resolve_project_version: (input: {
     organization_id: string;
@@ -576,6 +617,106 @@ export const build_documentation_routes = (
         } catch (error) {
           return documentation_error(error, reply);
         }
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        if (!params.success || !request.isMultipart())
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Exactly one Documentation image is required",
+            ),
+          );
+        let upload:
+          | {
+              bytes: Buffer;
+              mime_type:
+                | "image/png"
+                | "image/jpeg"
+                | "image/webp"
+                | "image/gif";
+              original_name: string;
+            }
+          | undefined;
+        for await (const part of request.parts({
+          limits: { files: 1, fields: 0, fileSize: 10 * 1024 * 1024 },
+        })) {
+          if (
+            part.type !== "file" ||
+            upload ||
+            !["image/png", "image/jpeg", "image/webp", "image/gif"].includes(
+              part.mimetype,
+            )
+          )
+            return reply.status(400).send(
+              error_response(
+                "documentation_asset_invalid",
+                "Documentation image is invalid",
+              ),
+            );
+          upload = {
+            bytes: await part.toBuffer(),
+            mime_type: part.mimetype as
+              | "image/png"
+              | "image/jpeg"
+              | "image/webp"
+              | "image/gif",
+            original_name: part.filename,
+          };
+        }
+        if (!upload)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Exactly one Documentation image is required",
+            ),
+          );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const asset = await dependencies.documentation_service.upload_asset({
+            ...scope,
+            site_id: params.data.site_id,
+            ...upload,
+          });
+          return reply.status(201).send({ asset });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets/:asset_id/file",
+      async (request, reply) => {
+        const params = AssetParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply.status(404).send(
+            error_response(
+              "documentation_asset_not_found",
+              "Documentation Asset was not found",
+            ),
+          );
+        const scope = await authorized_scope(request, params.data);
+        const file = await dependencies.documentation_service.get_asset_file({
+          ...scope,
+          site_id: params.data.site_id,
+          asset_id: params.data.asset_id,
+        });
+        if (!file)
+          return reply.status(404).send(
+            error_response(
+              "documentation_asset_not_found",
+              "Documentation Asset was not found",
+            ),
+          );
+        reply
+          .header("content-type", file.mime_type)
+          .header("content-length", String(file.size_bytes));
+        return reply.send(file.stream);
       },
     );
 
@@ -1448,6 +1589,29 @@ export const build_documentation_routes = (
       });
     register_public_operation(
       "/api/v1/public/publish-links/:slug/documentation/operations/:operation_key",
+    );
+
+    const register_public_asset = (path: string) =>
+      fastify.get(path, async (request, reply) => {
+        const params = PublicAssetParamsSchema.safeParse(request.params);
+        if (!params.success) return reply.status(404).send();
+        const file =
+          await dependencies.documentation_service.get_public_asset_file({
+            slug: params.data.slug,
+            version_slug: params.data.version_slug ?? null,
+            asset_id: params.data.asset_id,
+          });
+        if (!file) return reply.status(404).send();
+        reply
+          .header("content-type", file.mime_type)
+          .header("content-length", String(file.size_bytes));
+        return reply.send(file.stream);
+      });
+    register_public_asset(
+      "/api/v1/public/publish-links/:slug/documentation/assets/:asset_id/file",
+    );
+    register_public_asset(
+      "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/assets/:asset_id/file",
     );
     register_public_operation(
       "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/operations/:operation_key",

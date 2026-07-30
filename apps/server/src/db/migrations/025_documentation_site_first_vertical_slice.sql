@@ -758,7 +758,8 @@ RETURNS BOOLEAN AS $$
       ('publish.documentation_link.create','documentation.publish_link.created'),
       ('publish.documentation_link.manifest_update','documentation.publish_link.manifest_updated'),
       ('publish.documentation_link.entry_rollback','documentation.publish_link.entry_rolled_back'),
-      ('documentation.openapi.inspect','documentation.openapi.inspected')
+      ('documentation.openapi.inspect','documentation.openapi.inspected'),
+      ('documentation.asset.upload','documentation.asset.uploaded')
     )
     AND selected_actor_type='org_user'
     AND selected_source_type IN ('web','api','extension')
@@ -822,12 +823,24 @@ CREATE CONSTRAINT TRIGGER publish_link_entry_u_audit_evd AFTER UPDATE ON publish
 CREATE TRIGGER file_i_audit_ctx BEFORE INSERT ON file_schema.file
   FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
     'file','direct',
-    'capture_asset.create,capture_asset.upload,guide.block.screenshot_upload,documentation.openapi.inspect'
+    'capture_asset.create,capture_asset.upload,guide.block.screenshot_upload,documentation.openapi.inspect,documentation.asset.upload'
   );
 CREATE CONSTRAINT TRIGGER file_i_audit_evd AFTER INSERT ON file_schema.file
   DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
     'file','direct',
-    'capture_asset.create,capture_asset.upload,guide.block.screenshot_upload,documentation.openapi.inspect'
+    'capture_asset.create,capture_asset.upload,guide.block.screenshot_upload,documentation.openapi.inspect,documentation.asset.upload'
+  );
+
+CREATE TRIGGER documentation_asset_i_audit_ctx
+  BEFORE INSERT ON documentation_schema.documentation_asset
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'documentation_asset','direct','documentation.asset.upload'
+  );
+CREATE CONSTRAINT TRIGGER documentation_asset_i_audit_evd
+  AFTER INSERT ON documentation_schema.documentation_asset
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'documentation_asset','direct','documentation.asset.upload'
   );
 
 CREATE FUNCTION documentation_schema.prevent_immutable_documentation_mutation()
