@@ -150,13 +150,21 @@ export const seed_documentation_browser_fixture = async () => {
       }),
       "create reference Page",
     ).page as { id: string };
+    const currentReference = require_success(
+      await app.inject({
+        method: "GET",
+        url: `${siteRoot}/pages/${reference.id}`,
+        cookies: cookie,
+      }),
+      "load reference Page",
+    ).page as { version: number };
     require_success(
       await app.inject({
         method: "PUT",
         url: `${siteRoot}/pages/${reference.id}/content`,
         cookies: cookie,
         payload: {
-          expected_page_version: 1,
+          expected_page_version: currentReference.version,
           blocks: [
             {
               id: "01K13200000000000000000001",

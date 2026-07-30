@@ -998,7 +998,7 @@ export const build_documentation_routes = (
               expected_version: body.data.expected_version,
               rules: body.data.rules,
             });
-          return reply.send(routing);
+          return reply.send({ routing });
         } catch (error) {
           return documentation_error(error, reply);
         }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@repo/ui/button";
+import { ulid } from "ulid";
 import {
   createDocumentationPage,
   replaceDocumentationNavigation,
@@ -75,7 +76,7 @@ export const DocumentationStructurePanel = ({
           nodes: pages.map((page, index) => ({
             id:
               preview.navigation.nodes.find((node) => node.page_id === page.id)
-                ?.id ?? crypto.randomUUID(),
+                ?.id ?? ulid(),
             parent_id: null,
             kind: "page",
             label: null,
@@ -106,7 +107,7 @@ export const DocumentationStructurePanel = ({
           expected_version: rule.version,
         })),
         {
-          id: crypto.randomUUID(),
+          id: ulid(),
           source_path: retiredPath,
           outcome: "gone" as const,
           target_page_id: null,

@@ -52,4 +52,10 @@ describe("cors config", () => {
       "X-Ossie-Access-Surface",
     );
   });
+
+  it("allows the idempotency header required by browser mutation contracts", () => {
+    const config = get_cors_config();
+
+    expect(config.fastify_options.allowedHeaders).toContain("Idempotency-Key");
+  });
 });

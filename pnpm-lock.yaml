@@ -282,6 +282,9 @@ importers:
       react-dom:
         specifier: ^19.2.0
         version: 19.2.0(react@19.2.0)
+      ulid:
+        specifier: ^3.0.2
+        version: 3.0.2
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*

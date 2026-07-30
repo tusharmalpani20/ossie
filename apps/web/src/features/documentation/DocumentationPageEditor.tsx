@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
+import { ulid } from "ulid";
 import { Textarea } from "@repo/ui/textarea";
 import { Label } from "@repo/ui/label";
 import type { DocumentationBlock } from "@repo/types";
@@ -115,7 +116,7 @@ export const DocumentationPageEditor = ({
       setBlocks((current) => [
         ...current,
         {
-          id: crypto.randomUUID(),
+          id: ulid(),
           kind: "image",
           position:
             Math.max(0, ...current.map((block) => block.position)) + 1,
