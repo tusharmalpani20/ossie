@@ -155,6 +155,7 @@ import {
   assert_documentation_image_dimensions,
   assert_documentation_image_format,
 } from "./modules/documentation/documentation-asset.js";
+import { validate_documentation_asset_bytes } from "./modules/documentation/documentation-asset-integrity.js";
 import {
   normalize_documentation_blocks,
   validate_documentation_snippet_blocks,
@@ -738,6 +739,65 @@ export const build = (opts: BuildOptions = {}) => {
             throw new Error("Documentation operation is not available");
           };
           const repository = build_documentation_repository(pool);
+          const validate_referenced_asset_bytes = async (
+            input: {
+              organization_id: string;
+              project_id: string;
+              project_version_id: string;
+              site_id: string;
+            },
+            blocks: Array<Record<string, unknown>>,
+          ) => {
+            const sources = new Map<
+              string,
+              { kind: "documentation_asset" | "capture_asset"; id: string }
+            >();
+            for (const block of blocks) {
+              if (
+                block.kind !== "image" ||
+                !block.source ||
+                typeof block.source !== "object"
+              )
+                continue;
+              const source = block.source as { kind?: unknown; id?: unknown };
+              if (
+                (source.kind !== "documentation_asset" &&
+                  source.kind !== "capture_asset") ||
+                typeof source.id !== "string"
+              )
+                continue;
+              sources.set(`${source.kind}:${source.id}`, {
+                kind: source.kind,
+                id: source.id,
+              });
+            }
+            const inspected = await Promise.all(
+              [...sources.values()].map(async (source) => {
+                const file =
+                  source.kind === "documentation_asset"
+                    ? await repository.get_asset_file_record({
+                        ...input,
+                        asset_id: source.id,
+                      })
+                    : await repository.get_capture_asset_file_record({
+                        ...input,
+                        asset_id: source.id,
+                      });
+                if (!file) {
+                  throw Object.assign(
+                    new Error("Documentation Asset bytes are unavailable"),
+                    { code: "documentation_asset_source_unavailable" },
+                  );
+                }
+                const digest = await validate_documentation_asset_bytes({
+                  file,
+                  get: default_capture_file_storage.get,
+                });
+                return [`${source.kind}:${source.id}`, digest] as const;
+              }),
+            );
+            return Object.fromEntries(inspected);
+          };
           const service = build_documentation_service({
             ...repository,
             save_page: unavailable,
@@ -805,6 +865,10 @@ export const build = (opts: BuildOptions = {}) => {
                   typeof normalize_documentation_blocks
                 >[0],
               );
+              await validate_referenced_asset_bytes(
+                input,
+                input.blocks as Array<Record<string, unknown>>,
+              );
               return repository.save_page({
                 ...input,
                 blocks: input.blocks as Array<Record<string, unknown>>,
@@ -864,6 +928,10 @@ export const build = (opts: BuildOptions = {}) => {
                 capability: "documentation.write",
               });
               validate_documentation_snippet_blocks(input.blocks);
+              await validate_referenced_asset_bytes(
+                input,
+                input.blocks as Array<Record<string, unknown>>,
+              );
               return repository.save_snippet({
                 ...input,
                 blocks: input.blocks as Array<Record<string, unknown>>,
@@ -1076,7 +1144,23 @@ export const build = (opts: BuildOptions = {}) => {
                 project_id: input.project_id,
                 capability: "documentation.checkpoint",
               });
-              return repository.create_revision(input);
+              const preview = (await repository.get_preview(input)) as {
+                pages?: Array<{ blocks?: Array<Record<string, unknown>> }>;
+                snippets?: Array<{ blocks?: Array<Record<string, unknown>> }>;
+              } | null;
+              const verified_asset_digests =
+                await validate_referenced_asset_bytes(input, [
+                  ...(preview?.pages ?? []).flatMap(
+                    (page) => page.blocks ?? [],
+                  ),
+                  ...(preview?.snippets ?? []).flatMap(
+                    (snippet) => snippet.blocks ?? [],
+                  ),
+                ]);
+              return repository.create_revision({
+                ...input,
+                verified_asset_digests,
+              });
             },
             create_publication: async (input) => {
               await project_access_service.authorize({

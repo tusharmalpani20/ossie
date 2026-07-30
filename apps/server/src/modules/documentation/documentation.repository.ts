@@ -1883,6 +1883,7 @@ export const build_documentation_repository = (database: Database) => ({
     actor_org_user_id: string;
     idempotency_key: string;
     expected_draft_version: number;
+    verified_asset_digests?: Record<string, string>;
   }) =>
     with_transaction(database, async (client) => {
       const request_digest = command_digest({
@@ -1973,7 +1974,75 @@ export const build_documentation_repository = (database: Database) => ({
           referencedSnippetIds.has(snippet.id as string),
       );
       validate_documentation_revision_aggregate(snapshot);
-      const content_digest = command_digest(snapshot);
+      const imageBlocksForDigest = [
+        ...snapshot.pages.flatMap(
+          (page) => page.blocks as Array<Record<string, unknown>>,
+        ),
+        ...snapshot.snippets.flatMap(
+          (snippet) => snippet.blocks as Array<Record<string, unknown>>,
+        ),
+      ].filter((block) => block.kind === "image");
+      const protectedAssetDigests = new Map<string, string>();
+      for (const block of imageBlocksForDigest) {
+        const source = block.source as
+          | { kind: "documentation_asset" | "capture_asset"; id: string }
+          | undefined;
+        if (!source) continue;
+        const key = `${source.kind}:${source.id}`;
+        const verified = input.verified_asset_digests?.[key];
+        if (verified) {
+          protectedAssetDigests.set(key, verified);
+          continue;
+        }
+        if (source.kind === "documentation_asset") {
+          const asset = snapshot.assets.find(
+            (candidate) => candidate.id === source.id,
+          ) as { digest?: string } | undefined;
+          if (asset?.digest) protectedAssetDigests.set(key, asset.digest);
+          continue;
+        }
+        const capture = await client.query<{ digest: string | null }>(
+          `SELECT file.checksum_sha256 digest
+             FROM capture_schema.capture_asset asset
+             JOIN file_schema.file file ON file.id=asset.file_id
+            WHERE asset.id=$1 AND asset.organization_id=$2
+              AND asset.project_id=$3 AND asset.is_deleted=FALSE
+              AND file.is_deleted=FALSE
+              AND asset.asset_type IN ('screenshot','redacted_screenshot')
+              AND asset.status IN ('active','archived')
+              AND file.mime_type IN ('image/png','image/jpeg','image/webp')
+              AND NOT EXISTS (
+                SELECT 1
+                  FROM capture_schema.capture_asset_purge_operation purge
+                 WHERE purge.capture_asset_id=asset.id
+              )
+            FOR UPDATE OF asset,file`,
+          [source.id, input.organization_id, input.project_id],
+        );
+        if (capture.rows[0]?.digest)
+          protectedAssetDigests.set(key, capture.rows[0].digest);
+      }
+      if (
+        protectedAssetDigests.size !==
+        new Set(
+          imageBlocksForDigest.map((block) => {
+            const source = block.source as { kind: string; id: string };
+            return `${source.kind}:${source.id}`;
+          }),
+        ).size
+      ) {
+        const error = new Error("Documentation Asset bytes are unavailable");
+        Object.assign(error, {
+          code: "documentation_asset_source_unavailable",
+        });
+        throw error;
+      }
+      const content_digest = command_digest({
+        ...snapshot,
+        protected_asset_digests: [...protectedAssetDigests.entries()].sort(
+          ([left], [right]) => left.localeCompare(right),
+        ),
+      });
       const existing = await client.query<{
         id: string;
         revision_number: number;
@@ -2702,7 +2771,8 @@ export const build_documentation_repository = (database: Database) => ({
             asset.id,
             asset.file_id,
             asset.mime_type,
-            asset.digest,
+            protectedAssetDigests.get(`${source.kind}:${source.id}`) ??
+              asset.digest,
             asset.byte_size,
             asset.width,
             asset.height,
@@ -3481,9 +3551,12 @@ export const build_documentation_repository = (database: Database) => ({
       storage_key: string;
       mime_type: string;
       size_bytes: number;
+      checksum_sha256: string;
+      width: number;
+      height: number;
     }>(
       `SELECT file.storage_provider,file.storage_key,file.mime_type,
-              file.size_bytes
+              file.size_bytes,file.checksum_sha256,asset.width,asset.height
          FROM documentation_schema.documentation_asset asset
          JOIN documentation_schema.site_edition edition
            ON edition.id=asset.site_edition_id
@@ -3516,9 +3589,12 @@ export const build_documentation_repository = (database: Database) => ({
       storage_key: string;
       mime_type: string;
       size_bytes: number;
+      checksum_sha256: string;
+      width: number;
+      height: number;
     }>(
       `SELECT file.storage_provider,file.storage_key,file.mime_type,
-              file.size_bytes
+              file.size_bytes,file.checksum_sha256,asset.width,asset.height
          FROM capture_schema.capture_asset asset
          JOIN file_schema.file file
            ON file.id=asset.file_id AND file.organization_id=asset.organization_id
@@ -3526,6 +3602,11 @@ export const build_documentation_repository = (database: Database) => ({
           AND asset.is_deleted=FALSE AND file.is_deleted=FALSE
           AND asset.asset_type IN ('screenshot','redacted_screenshot')
           AND file.mime_type IN ('image/png','image/jpeg','image/webp')
+          AND NOT EXISTS (
+            SELECT 1
+              FROM capture_schema.capture_asset_purge_operation purge
+             WHERE purge.capture_asset_id=asset.id
+          )
           AND (
             asset.status='active'
             OR (
