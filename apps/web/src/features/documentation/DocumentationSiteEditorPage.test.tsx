@@ -27,6 +27,8 @@ describe("DocumentationSiteEditorPage", () => {
                 blocks: [],
               },
             ],
+            navigation: { version: 1, nodes: [] },
+            routing: { version: 1, aliases: [], rules: [] },
             openapi_operations: [],
           },
         })}
@@ -64,6 +66,8 @@ describe("DocumentationSiteEditorPage", () => {
             site: { id: "site", name: "Product docs", description: null },
             working_draft: { id: "draft", home_page_id: null, version: 1 },
             pages: [],
+            navigation: { version: 1, nodes: [] },
+            routing: { version: 1, aliases: [], rules: [] },
             openapi_operations: [],
           },
         })}

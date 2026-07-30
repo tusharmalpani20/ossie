@@ -30,6 +30,8 @@ describe("DocumentationDraftPreviewPage", () => {
                 ],
               },
             ],
+            navigation: { version: 1, nodes: [] },
+            routing: { version: 1, aliases: [], rules: [] },
             openapi_operations: [],
           },
         })}

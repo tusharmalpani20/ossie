@@ -7,6 +7,7 @@ import {
 } from "../../lib/documentationApi";
 import { DocumentationOpenApiPanel } from "./DocumentationOpenApiPanel";
 import { DocumentationPublishingPanel } from "./DocumentationPublishingPanel";
+import { DocumentationStructurePanel } from "./DocumentationStructurePanel";
 
 type Props = {
   projectId: string;
@@ -89,6 +90,13 @@ export const DocumentationSiteEditorPage = ({
           <p>No Pages yet.</p>
         )}
       </nav>
+      <DocumentationStructurePanel
+        projectId={projectId}
+        versionSlug={versionSlug}
+        siteId={siteId}
+        canWrite={canWrite}
+        preview={preview}
+      />
       <section aria-labelledby="checkpoint-heading">
         <h2 id="checkpoint-heading">Publish</h2>
         <p>

@@ -289,16 +289,24 @@ const load_draft_snapshot = async (
     working_draft_id: string;
     home_page_id: string | null;
     draft_version: number;
+    navigation_version: number;
+    routing_version: number;
   }>(
     `SELECT site.id site_id,site.name site_name,
             site.description site_description,edition.id site_edition_id,
             edition.primary_language,draft.id working_draft_id,
-            draft.home_page_id,draft.version draft_version
+            draft.home_page_id,draft.version draft_version,
+            navigation.version navigation_version,
+            routing.version routing_version
        FROM documentation_schema.documentation_site site
        JOIN documentation_schema.site_edition edition
          ON edition.documentation_site_id=site.id
        JOIN documentation_schema.site_working_draft draft
          ON draft.site_edition_id=edition.id
+       JOIN documentation_schema.navigation_tree navigation
+         ON navigation.site_edition_id=edition.id
+       JOIN documentation_schema.routing_set routing
+         ON routing.site_edition_id=edition.id
       WHERE site.organization_id=$1 AND site.project_id=$2
         AND edition.project_version_id=$3 AND site.id=$4`,
     [
@@ -427,9 +435,15 @@ const load_draft_snapshot = async (
         .filter((block) => block.documentation_page_id === page.id)
         .map(to_documentation_block),
     })),
-    navigation: navigation.rows,
-    aliases: aliases.rows,
-    redirects: redirects.rows,
+    navigation: {
+      version: root.navigation_version,
+      nodes: navigation.rows,
+    },
+    routing: {
+      version: root.routing_version,
+      aliases: aliases.rows,
+      rules: redirects.rows,
+    },
     openapi_operations: operations.rows,
     assets: assets.rows,
   };
@@ -1142,7 +1156,7 @@ export const build_documentation_repository = (database: Database) => ({
           }
         }
       }
-      for (const node of snapshot.navigation) {
+      for (const node of snapshot.navigation.nodes) {
         await client.query(
           `INSERT INTO documentation_schema.site_revision_navigation_node
             (id,organization_id,project_id,site_edition_id,site_revision_id,
@@ -1164,7 +1178,7 @@ export const build_documentation_repository = (database: Database) => ({
           ],
         );
       }
-      for (const alias of snapshot.aliases) {
+      for (const alias of snapshot.routing.aliases) {
         await client.query(
           `INSERT INTO documentation_schema.site_revision_page_alias
             (id,organization_id,project_id,site_edition_id,site_revision_id,
@@ -1181,7 +1195,7 @@ export const build_documentation_repository = (database: Database) => ({
           ],
         );
       }
-      for (const rule of snapshot.redirects) {
+      for (const rule of snapshot.routing.rules) {
         await client.query(
           `INSERT INTO documentation_schema.site_revision_redirect_rule
             (id,organization_id,project_id,site_edition_id,site_revision_id,

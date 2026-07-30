@@ -109,6 +109,33 @@ export type DocumentationDraftPreview = {
     version: number;
   };
   pages: Array<DocumentationPage & { description?: string | null }>;
+  navigation: {
+    version: number;
+    nodes: Array<{
+      id: string;
+      parent_id: string | null;
+      kind: "group" | "page";
+      label: string | null;
+      page_id: string | null;
+      position: number;
+      version: number;
+    }>;
+  };
+  routing: {
+    version: number;
+    aliases: Array<{
+      id: string;
+      documentation_page_id: string;
+      former_path: string;
+    }>;
+    rules: Array<{
+      id: string;
+      source_path: string;
+      outcome: "redirect" | "gone";
+      target_page_id: string | null;
+      version: number;
+    }>;
+  };
   openapi_operations: Array<{
     destination_key: string;
     method: string;
@@ -131,6 +158,85 @@ export const getDocumentationPreview = (
   fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/preview`, {
     credentials: "include",
   }).then((response) => json<{ preview: DocumentationDraftPreview }>(response));
+
+export const createDocumentationPage = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  input: { title: string; description: null; canonical_path: string },
+) =>
+  fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/pages`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
+      "idempotency-key": crypto.randomUUID(),
+    },
+    body: JSON.stringify(input),
+  }).then((response) => json<{ page: DocumentationPage }>(response));
+
+export const replaceDocumentationNavigation = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  input: {
+    expected_version: number;
+    nodes: Array<{
+      id: string;
+      parent_id: string | null;
+      kind: "page";
+      label: null;
+      page_id: string;
+      position: number;
+      expected_version: number | null;
+    }>;
+  },
+) =>
+  fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/navigation`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }).then((response) =>
+    json<{
+      navigation: {
+        id: string;
+        version: number;
+        nodes: typeof input.nodes;
+      };
+    }>(response),
+  );
+
+export const replaceDocumentationRouting = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  input: {
+    expected_version: number;
+    rules: Array<{
+      id: string;
+      source_path: string;
+      outcome: "redirect" | "gone";
+      target_page_id: string | null;
+      expected_version: number | null;
+    }>;
+  },
+) =>
+  fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/routing`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }).then((response) =>
+    json<{
+      routing: {
+        id: string;
+        version: number;
+        rules: typeof input.rules;
+        aliases: DocumentationDraftPreview["routing"]["aliases"];
+      };
+    }>(response),
+  );
 
 export const createDocumentationRevision = (
   projectId: string,
