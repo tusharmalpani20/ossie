@@ -880,6 +880,28 @@ export const build = (opts: BuildOptions = {}) => {
               });
               return repository.list_revisions(input);
             },
+            list_publications: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.list_publications(input);
+            },
+            list_publish_links: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.list_publish_links(input);
+            },
             get_revision: async (input) => {
               await project_access_service.authorize({
                 auth: {

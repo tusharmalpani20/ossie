@@ -4,7 +4,12 @@ import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import {
   createDocumentationPublication,
+  listDocumentationPublications,
+  listDocumentationPublishLinks,
   listDocumentationRevisions,
+  rollbackDocumentationPublication,
+  type DocumentationPublicationSummary,
+  type DocumentationPublishLinkSummary,
   type DocumentationRevisionSummary,
 } from "../../lib/documentationApi";
 
@@ -14,7 +19,10 @@ type Props = {
   siteId: string;
   canPublish: boolean;
   loadRevisions?: typeof listDocumentationRevisions;
+  loadPublications?: typeof listDocumentationPublications;
+  loadPublishLinks?: typeof listDocumentationPublishLinks;
   publish?: typeof createDocumentationPublication;
+  rollback?: typeof rollbackDocumentationPublication;
 };
 
 export const DocumentationPublishingPanel = ({
@@ -23,9 +31,18 @@ export const DocumentationPublishingPanel = ({
   siteId,
   canPublish,
   loadRevisions = listDocumentationRevisions,
+  loadPublications = listDocumentationPublications,
+  loadPublishLinks = listDocumentationPublishLinks,
   publish = createDocumentationPublication,
+  rollback = rollbackDocumentationPublication,
 }: Props) => {
   const [revisions, setRevisions] = useState<DocumentationRevisionSummary[]>([]);
+  const [publications, setPublications] = useState<
+    DocumentationPublicationSummary[]
+  >([]);
+  const [publishLinks, setPublishLinks] = useState<
+    DocumentationPublishLinkSummary[]
+  >([]);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
@@ -33,12 +50,18 @@ export const DocumentationPublishingPanel = ({
 
   useEffect(() => {
     let active = true;
-    loadRevisions(projectId, versionSlug, siteId)
-      .then(({ revisions: loaded }) => {
+    Promise.all([
+      loadRevisions(projectId, versionSlug, siteId),
+      loadPublications(projectId, versionSlug, siteId),
+      loadPublishLinks(projectId, versionSlug, siteId),
+    ])
+      .then(([revisionResult, publicationResult, linkResult]) => {
         if (!active) return;
-        setRevisions(loaded);
+        setRevisions(revisionResult.revisions);
+        setPublications(publicationResult.publications);
+        setPublishLinks(linkResult.publish_links);
         setStatus(
-          loaded.length
+          revisionResult.revisions.length
             ? "Select the latest exact Revision to publish."
             : "Create a Revision before publishing.",
         );
@@ -49,7 +72,14 @@ export const DocumentationPublishingPanel = ({
     return () => {
       active = false;
     };
-  }, [loadRevisions, projectId, siteId, versionSlug]);
+  }, [
+    loadPublishLinks,
+    loadPublications,
+    loadRevisions,
+    projectId,
+    siteId,
+    versionSlug,
+  ]);
 
   const publishRevision = async () => {
     const revision = revisions[0];
@@ -77,6 +107,95 @@ export const DocumentationPublishingPanel = ({
     }
   };
 
+  const publishToExisting = async () => {
+    const revision = revisions[0];
+    const link = publishLinks[0];
+    const entry = link?.entries[0];
+    if (!revision || !link || !entry) return;
+    setStatus("Preparing the exact Publication; the live link is unchanged until success…");
+    try {
+      const result = await publish(
+        projectId,
+        versionSlug,
+        siteId,
+        revision.id,
+        {
+          mode: "existing",
+          link_id: link.id,
+          entry_id: entry.id,
+          expected_entry_version: entry.version,
+        },
+      );
+      setPublishedSlug(result.link.slug);
+      setPublishLinks((current) =>
+        current.map((candidate) =>
+          candidate.id === link.id
+            ? {
+                ...candidate,
+                entries: candidate.entries.map((candidateEntry) =>
+                  candidateEntry.id === entry.id
+                    ? {
+                        ...candidateEntry,
+                        version: result.entry.version,
+                        site_publication_id: result.publication.id,
+                      }
+                    : candidateEntry,
+                ),
+              }
+            : candidate,
+        ),
+      );
+      setStatus(
+        `Publication ${result.publication.publication_sequence} is live.`,
+      );
+    } catch {
+      setStatus("Publication failed. The live link was not changed.");
+    }
+  };
+
+  const rollBackTo = async (publication: DocumentationPublicationSummary) => {
+    const link = publishLinks[0];
+    const entry = link?.entries[0];
+    if (!link || !entry) return;
+    setStatus(`Rolling back to exact Publication ${publication.publication_sequence}…`);
+    try {
+      const result = await rollback(
+        projectId,
+        versionSlug,
+        siteId,
+        link.id,
+        entry.id,
+        publication.id,
+        entry.version,
+      );
+      setPublishLinks((current) =>
+        current.map((candidate) =>
+          candidate.id === link.id
+            ? {
+                ...candidate,
+                entries: candidate.entries.map((candidateEntry) =>
+                  candidateEntry.id === entry.id
+                    ? { ...candidateEntry, ...result.entry }
+                    : candidateEntry,
+                ),
+              }
+            : candidate,
+        ),
+      );
+      setStatus(
+        `Link now serves exact Publication ${publication.publication_sequence}.`,
+      );
+    } catch {
+      setStatus("Rollback failed. The live link was not changed.");
+    }
+  };
+
+  const existingLink = publishLinks[0];
+  const existingEntry = existingLink?.entries[0];
+  const livePublication = publications.find(
+    (publication) => publication.id === existingEntry?.site_publication_id,
+  );
+
   return (
     <section aria-labelledby="documentation-publishing-heading">
       <h2 id="documentation-publishing-heading">Revision history and publication</h2>
@@ -89,7 +208,35 @@ export const DocumentationPublishingPanel = ({
       ) : (
         <p>No Revisions yet.</p>
       )}
-      {canPublish && revisions.length ? (
+      {existingLink && existingEntry ? (
+        <section aria-labelledby="documentation-live-link-heading">
+          <h3 id="documentation-live-link-heading">{existingLink.name}</h3>
+          <p>
+            Live: Publication{" "}
+            {livePublication?.publication_sequence ?? "not in this history"}
+          </p>
+          {canPublish && revisions[0] ? (
+            <Button onClick={() => void publishToExisting()}>
+              Publish Revision {revisions[0].revision_number} to existing link
+            </Button>
+          ) : null}
+          <ul>
+            {publications.map((publication) => (
+              <li key={publication.id}>
+                Publication {publication.publication_sequence} (Revision{" "}
+                {publication.revision_number})
+                {canPublish &&
+                publication.id !== existingEntry.site_publication_id ? (
+                  <Button onClick={() => void rollBackTo(publication)}>
+                    Roll back to Publication {publication.publication_sequence}
+                  </Button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {canPublish && revisions.length && !existingLink ? (
         <>
           <Label htmlFor="documentation-link-name">Public link name</Label>
           <Input

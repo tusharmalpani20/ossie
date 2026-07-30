@@ -240,6 +240,20 @@ export type DocumentationRouteDependencies = {
       actor_org_user_id: string;
       site_id: string;
     }) => Promise<unknown[]>;
+    list_publications: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+    }) => Promise<unknown[]>;
+    list_publish_links: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+    }) => Promise<unknown[]>;
     get_revision: (input: {
       organization_id: string;
       project_id: string;
@@ -1141,6 +1155,48 @@ export const build_documentation_routes = (
             ),
           );
         return reply.send({ revision });
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publications",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        const scope = await authorized_scope(request, params.data);
+        const publications =
+          await dependencies.documentation_service.list_publications({
+            ...scope,
+            site_id: params.data.site_id,
+          });
+        return reply.send({ publications });
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        const scope = await authorized_scope(request, params.data);
+        const publish_links =
+          await dependencies.documentation_service.list_publish_links({
+            ...scope,
+            site_id: params.data.site_id,
+          });
+        return reply.send({ publish_links });
       },
     );
 

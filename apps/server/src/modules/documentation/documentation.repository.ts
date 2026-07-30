@@ -1310,6 +1310,97 @@ export const build_documentation_repository = (database: Database) => ({
     }));
   },
 
+  list_publications: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+  }) => {
+    const result = await database.query<{
+      id: string;
+      publication_sequence: number;
+      revision_id: string;
+      revision_number: number;
+      output_digest: string;
+      published_at: Date;
+    }>(
+      `SELECT publication.id,publication.publication_sequence,
+              revision.id revision_id,revision.revision_number,
+              publication.output_digest,publication.published_at
+         FROM publish_schema.site_publication publication
+         JOIN documentation_schema.site_revision revision
+           ON revision.id=publication.site_revision_id
+        WHERE publication.organization_id=$1 AND publication.project_id=$2
+          AND publication.project_version_id=$3
+          AND publication.documentation_site_id=$4
+        ORDER BY publication.publication_sequence DESC`,
+      [
+        input.organization_id,
+        input.project_id,
+        input.project_version_id,
+        input.site_id,
+      ],
+    );
+    return result.rows.map((row) => ({
+      ...row,
+      published_at: row.published_at.toISOString(),
+    }));
+  },
+
+  list_publish_links: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+  }) => {
+    const links = await database.query<{
+      id: string;
+      name: string;
+      slug: string;
+      visibility: "public" | "restricted";
+      status: "active" | "revoked";
+      version: number;
+      expires_at: Date | null;
+    }>(
+      `SELECT id,name,slug,visibility,status,version,expires_at
+         FROM publish_schema.publish_link
+        WHERE organization_id=$1 AND project_id=$2
+          AND documentation_site_id=$3
+          AND resource_family='documentation_site'
+        ORDER BY created_at,id`,
+      [input.organization_id, input.project_id, input.site_id],
+    );
+    if (!links.rows.length) return [];
+    const entries = await database.query<{
+      id: string;
+      publish_link_id: string;
+      project_version_id: string;
+      site_publication_id: string;
+      version: number;
+      is_default: boolean;
+      position: number;
+    }>(
+      `SELECT id,publish_link_id,project_version_id,site_publication_id,
+              version,is_default,position
+         FROM publish_schema.publish_link_entry
+        WHERE organization_id=$1 AND project_id=$2
+          AND publish_link_id=ANY($3::varchar[])
+          AND project_version_id=$4
+        ORDER BY position,id`,
+      [
+        input.organization_id,
+        input.project_id,
+        links.rows.map((link) => link.id),
+        input.project_version_id,
+      ],
+    );
+    return links.rows.map((link) => ({
+      ...link,
+      expires_at: link.expires_at?.toISOString() ?? null,
+      entries: entries.rows.filter((entry) => entry.publish_link_id === link.id),
+    }));
+  },
+
   get_revision: async (input: {
     organization_id: string;
     project_id: string;

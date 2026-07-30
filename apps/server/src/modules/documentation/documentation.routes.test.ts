@@ -35,6 +35,8 @@ const documentation_service_stubs = (
   transition_comment: vi.fn(),
   get_preview: vi.fn(),
   list_revisions: vi.fn(async () => []),
+  list_publications: vi.fn(async () => []),
+  list_publish_links: vi.fn(async () => []),
   get_revision: vi.fn(),
   create_revision: vi.fn(),
   create_publication: vi.fn(),
@@ -141,6 +143,52 @@ describe("Documentation routes", () => {
         { id: "site", name: "Product docs", edition_id: "edition" },
       ],
     });
+  });
+
+  it("lists exact Publications and stable link entries for portal history", async () => {
+    const list_publications = vi.fn(async () => [
+      { id: "publication", publication_sequence: 1, revision_number: 1 },
+    ]);
+    const list_publish_links = vi.fn(async () => [
+      {
+        id: "link",
+        slug: "product-docs",
+        entries: [{ id: "entry", version: 2, site_publication_id: "publication" }],
+      },
+    ]);
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          list_publications,
+          list_publish_links,
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const root =
+      "/api/v1/projects/project/versions/main/documentation-sites/site";
+    const publications = await app.inject({
+      method: "GET",
+      url: `${root}/publications`,
+      cookies: { ossie_session: "session" },
+    });
+    const links = await app.inject({
+      method: "GET",
+      url: `${root}/publish-links`,
+      cookies: { ossie_session: "session" },
+    });
+    await app.close();
+
+    expect(publications.statusCode).toBe(200);
+    expect(publications.json().publications).toHaveLength(1);
+    expect(links.statusCode).toBe(200);
+    expect(links.json().publish_links[0].entries[0].version).toBe(2);
+    expect(list_publications).toHaveBeenCalledWith(
+      expect.objectContaining({ site_id: "site", project_version_id: "version" }),
+    );
   });
 
   it("rejects unknown fields and missing idempotency keys", async () => {

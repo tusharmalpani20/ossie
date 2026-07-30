@@ -608,6 +608,24 @@ export type DocumentationRevisionSummary = {
   created_at: string;
 };
 
+export type DocumentationPublicationSummary = {
+  id: string;
+  publication_sequence: number;
+  revision_number: number;
+  published_at: string;
+};
+
+export type DocumentationPublishLinkSummary = {
+  id: string;
+  name: string;
+  slug: string;
+  entries: Array<{
+    id: string;
+    version: number;
+    site_publication_id: string;
+  }>;
+};
+
 export const listDocumentationRevisions = (
   projectId: string,
   versionSlug: string,
@@ -617,6 +635,28 @@ export const listDocumentationRevisions = (
     credentials: "include",
   }).then((response) =>
     json<{ revisions: DocumentationRevisionSummary[] }>(response),
+  );
+
+export const listDocumentationPublications = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+) =>
+  fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publications`, {
+    credentials: "include",
+  }).then((response) =>
+    json<{ publications: DocumentationPublicationSummary[] }>(response),
+  );
+
+export const listDocumentationPublishLinks = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+) =>
+  fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publish-links`, {
+    credentials: "include",
+  }).then((response) =>
+    json<{ publish_links: DocumentationPublishLinkSummary[] }>(response),
   );
 
 type DocumentationPublicationLinkSelection =
@@ -657,5 +697,35 @@ export const createDocumentationPublication = (
         resource_family: "documentation_site";
       };
       entry: { id: string; version: number };
+    }>(response),
+  );
+
+export const rollbackDocumentationPublication = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  linkId: string,
+  entryId: string,
+  publicationId: string,
+  expectedEntryVersion: number,
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publish-links/${encodeURIComponent(linkId)}/entries/${encodeURIComponent(entryId)}/rollback`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": crypto.randomUUID(),
+      },
+      body: JSON.stringify({
+        site_publication_id: publicationId,
+        expected_entry_version: expectedEntryVersion,
+      }),
+    },
+  ).then((response) =>
+    json<{
+      link: { id: string; slug: string };
+      entry: { id: string; version: number; site_publication_id: string };
     }>(response),
   );

@@ -546,6 +546,18 @@ const reads: AccessRouteRegistration[] = [
     "revision_id",
   ),
   read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publications",
+    "documentation_publication.list_viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links",
+    "documentation_publish_link.list_viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
     "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/search",
     "documentation_search.viewed",
     "documentation_site",
