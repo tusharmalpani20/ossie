@@ -2,8 +2,9 @@
 
 Date reserved: 2026-07-30
 
-Status: Reserved. This file records future scope only. It must be expanded and
-rechecked after child `135` is implemented, closed, documented, and committed.
+Status: Reserved; sequence gate satisfied. This file records future scope only
+and must now be expanded and rechecked against the independently closed child
+`135` result before implementation.
 
 Parent plan:
 
@@ -23,6 +24,13 @@ Review work cannot start until child `135` establishes stable Edition,
 Revision, lifecycle, and archived-parent behavior. Private Page comments from
 child `132` remain a separate authoring concern and must not be silently
 reclassified as approvals.
+
+Child `135` now satisfies this gate. Expansion must use its final separate
+`carry_forward` operation plus ordered `items` response, exact selector
+Working Draft/Revision identities, typed target blocker, inherited
+Project/Version read-only state, and stable concurrent Carry-Forward
+semantics. Archived Page comments remain authorized read-only history: new
+threads, replies, resolve, and reopen mutations are blocked.
 
 ## Reserved Goal
 
@@ -98,7 +106,7 @@ The implementation-ready rewrite must:
 - [x] Sequence position reserved.
 - [x] Master-defined goal, scope, decision boundary, non-scope, and exit gate
       recorded.
-- [ ] Actual child `135` result inspected.
+- [x] Actual independently closed child `135` result inspected for handoff.
 - [ ] Deferred in-boundary decisions resolved during expansion.
 - [ ] Implementation-ready expansion completed and rechecked.
 - [ ] Plan checkpoint committed before runtime implementation.
@@ -107,6 +115,8 @@ The implementation-ready rewrite must:
 ## Planning Log
 
 - 2026-07-30: Reserved from Master Plan `006`; no review runtime was added.
+- 2026-07-30: Child `135` close-recheck handoff recorded. No review runtime,
+  schema, route, or policy decision was added.
 
 ## Verification Record
 

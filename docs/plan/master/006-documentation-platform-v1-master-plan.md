@@ -2860,8 +2860,8 @@ Child `135` implementation evidence includes:
   no-overwrite target blockers, and Access/Audit coverage;
 - Edition, Page, OpenAPI, Snippet, and Asset lifecycle enforcement with
   inherited read-only state and retained immutable Publication output;
-- server unit 112 files / 485 tests, web unit 72 files / 405 tests, server DB
-  22 files / 77 tests, V1 smoke 1 file / 2 tests, and extension 19 files / 140
+- server unit 112 files / 487 tests, web unit 72 files / 405 tests, server DB
+  22 files / 79 tests, V1 smoke 1 file / 2 tests, and extension 19 files / 140
   tests;
 - workspace type check, lint, and production build completed successfully;
 - headless Chromium two-Site creation/reuse Carry-Forward, exact replay,
@@ -2869,6 +2869,14 @@ Child `135` implementation evidence includes:
   retained public output, 320-pixel reflow, reduced motion, request/console
   review, and zero-violation axe evidence in
   `docs/ui/135-documentation-carry-forward-multi-site-and-lifecycle-browser-evidence.md`.
+- independent implemented-work closure aligned the strict operation/options
+  contracts, added stable same-key/different-key concurrency proofs, blocked
+  archived-Page comment mutation, completed inherited Project/Version
+  read-only summaries, required ordinary source read authorization, and
+  verified bounded exact OpenAPI bytes before Carry-Forward mutation;
+- the independent browser rerun reconfirmed the deterministic two-Site
+  library, lifecycle workbench, source lifecycle grouping, retained immutable
+  public reader, safe `gone` output, and clean browser console.
 
 ## 48. Planning Leftovers And Handoff
 
@@ -2890,6 +2898,10 @@ Child `135` implementation evidence includes:
   recorded.
 - The next work is to expand child `136` against the closed child `135`
   result, then recheck that implementation-ready plan before runtime work.
+- Child `136` must use the final separate `carry_forward` plus ordered `items`
+  response, exact selector Working Draft/Revision identities, and typed target
+  blocker. It must preserve archived Page comments as read-only history and
+  never treat Carry-Forward provenance as inherited review approval.
 - The measured single-chunk bundle growth, organization-configurable
   quotas/reporting, production observability, and capability-dependent
   Firefox/WebKit or production-p75 evidence remain child `138` work.

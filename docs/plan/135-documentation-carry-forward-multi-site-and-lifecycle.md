@@ -9,8 +9,8 @@ Date independently rechecked: 2026-07-30
 Date implemented and verified: 2026-07-30
 
 Status: Complete. Runtime, migration, focused/full verification, and mandatory
-headless browser evidence are implemented and recorded. Child `136` is the
-next bounded phase.
+headless browser evidence are implemented, independently close-rechecked, and
+recorded. Child `136` is the next bounded phase.
 
 Parent plan:
 
@@ -1204,6 +1204,8 @@ Child `135` is complete only when:
 - [x] Agent-browser evidence recorded and passed.
 - [x] Plan and Master closeout updated.
 - [x] Scoped logical runtime/docs commits complete.
+- [x] Independent implemented-work recheck completed; confirmed gaps fixed,
+      reverified, documented, and committed.
 
 ## 17. Planning Log
 
@@ -1252,6 +1254,18 @@ Child `135` is complete only when:
   unit/DB/smoke/type/lint/build verification, and the agent-browser evidence
   recorded in
   `docs/ui/135-documentation-carry-forward-multi-site-and-lifecycle-browser-evidence.md`.
+- 2026-07-30: Independent implemented-work recheck aligned the shipped
+  Carry-Forward operation/result and safe-selector payloads with the strict
+  Plan `135` contracts, including actor/time provenance, exact Working Draft
+  and Revision identity, typed blockers, and source Version metadata.
+- 2026-07-30: The same recheck added actor/key advisory serialization, stable
+  Version/Site/Edition/Draft lock order, and concurrent database proofs for
+  identical-key replay and different-key target conflict.
+- 2026-07-30: Closed lifecycle/security seams by blocking thread, reply, and
+  thread-state mutation on archived Pages; deriving inherited read-only state
+  through Project and Project Version for Site/Page/OpenAPI summaries; requiring
+  ordinary source read authorization; and verifying bounded exact OpenAPI
+  bytes before the final Carry-Forward transaction.
 
 ## 18. Planning Verification Record
 
@@ -1301,9 +1315,10 @@ Implementation verification completed with:
 - clean migration `001`–`028`, followed by guarded clean `028` down/up;
 - `pnpm -r --if-present test`: all completed package suites passed except the
   initially exposed Audit coverage gaps, which were fixed before the clean
-  focused/full reruns; final server unit `112` files / `485` tests and web unit
+  focused/full reruns; final server unit `112` files / `487` tests and web unit
   `72` files / `405` tests passed;
-- `pnpm --filter server test:db`: `22` files / `77` tests passed;
+- `pnpm --filter server test:db`: `22` files / `79` tests passed, including
+  concurrent identical-key replay and different-key target-conflict proofs;
 - `pnpm --filter server test:smoke`: `1` file / `2` tests passed;
 - extension regression: `19` files / `140` tests passed;
 - `pnpm check-types`: `13` successful tasks;
@@ -1317,6 +1332,10 @@ Implementation verification completed with:
   OpenAPI and Snippet archive/restore, Viewer read-only, retained public
   Publication/assets, `320` CSS-pixel reflow, reduced motion, console/network
   review, and axe (`0` violations on authenticated and public pages): passed.
+- independent close-recheck browser rerun against the deterministic testing
+  fixture confirmed the two-Site library, active/archived source grouping,
+  complete lifecycle workbench, retained immutable public reader and safe
+  `gone` result, with no browser console errors.
 
 The final scoped implementation commits are:
 
@@ -1327,6 +1346,8 @@ The final scoped implementation commits are:
   lifecycle errors, effective state, and Access Evidence;
 - `c6b9f3c` deterministic multi-Site browser fixture;
 - `a05a4da` archived read-only and immutable public-reader portal fixes.
+- `f69e8f2` independent Carry-Forward contract, concurrency, inherited
+  lifecycle, comment-mutation, and protected OpenAPI closeout fixes.
 
 ## 19. Leftovers And Handoff To Child 136
 
@@ -1350,6 +1371,14 @@ their immutable Revisions. Carry-Forward provenance is informative lineage,
 not inherited approval. It must keep the source Revision `creation_trigger`
 unchanged when reused and must not infer review state from whether the
 Carry-Forward action created or reused that Revision.
+
+The accepted runtime boundary handed to child `136` now exposes
+`carry_forward` operation metadata separately from ordered `items`, uses
+`target_working_draft_id`, and exposes exact selector Revision/Working Draft
+identity plus a typed target blocker. Review planning must consume these
+current contracts rather than the superseded nested `operation.items` shape.
+Archived Page comments remain inspectable history but cannot be created,
+replied to, resolved, or reopened.
 
 Later children retain:
 
