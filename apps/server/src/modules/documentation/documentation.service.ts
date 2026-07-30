@@ -32,6 +32,15 @@ export class DocumentationPublicationPreparationError extends Error {
   }
 }
 
+export class DocumentationIdempotencyConflictError extends Error {
+  readonly code = "documentation_idempotency_conflict";
+
+  constructor() {
+    super("Idempotency key was already used for a different request");
+    this.name = "DocumentationIdempotencyConflictError";
+  }
+}
+
 type Repository = {
   create_site: (input: {
     organization_id: string;

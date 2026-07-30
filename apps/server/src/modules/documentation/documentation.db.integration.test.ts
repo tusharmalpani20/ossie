@@ -111,6 +111,32 @@ describe("DB-backed Documentation repository", () => {
       edition: { primary_language: "en-US" },
       home_page: { canonical_path: "home" },
     });
+    const replay = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "site-create-route-1" },
+      payload: {
+        name: "Product docs",
+        description: null,
+        primary_language: "en-US",
+        initial_home_page: { title: "Home", path: "home" },
+      },
+    });
+    expect(replay.statusCode).toBe(200);
+    expect(replay.json().site.id).toBe(response.json().site.id);
+    const mismatchedReplay = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "site-create-route-1" },
+      payload: {
+        name: "Different docs",
+        description: null,
+        primary_language: "en-US",
+      },
+    });
+    expect(mismatchedReplay.statusCode).toBe(409);
     const list = await app.inject({
       method: "GET",
       url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites`,
@@ -144,6 +170,20 @@ describe("DB-backed Documentation repository", () => {
             expected_version: null,
             text: "Install Ossie safely.",
           },
+          {
+            id: "01J00000000000000000000002",
+            kind: "ordered_list",
+            position: 2,
+            expected_version: null,
+            items: [
+              {
+                id: "01J00000000000000000000003",
+                text: "Create a Project.",
+                position: 1,
+                expected_version: null,
+              },
+            ],
+          },
         ],
       },
     });
@@ -162,6 +202,20 @@ describe("DB-backed Documentation repository", () => {
         position: 1,
         expected_version: 1,
         text: "Install Ossie safely.",
+      },
+      {
+        id: "01J00000000000000000000002",
+        kind: "ordered_list",
+        position: 2,
+        expected_version: 1,
+        items: [
+          {
+            id: "01J00000000000000000000003",
+            text: "Create a Project.",
+            position: 1,
+            expected_version: 1,
+          },
+        ],
       },
     ]);
     const secondPage = await app.inject({

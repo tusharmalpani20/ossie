@@ -8,6 +8,10 @@ import { z } from "zod";
 import { web_session_cookie_name } from "../authentication/session-cookie";
 import type { AuthContext } from "../authentication/session.service";
 import { error_response } from "../shared/http-errors";
+import {
+  DocumentationIdempotencyConflictError,
+  DocumentationRowVersionConflictError,
+} from "./documentation.service";
 
 const ParamsSchema = z
   .object({
@@ -26,6 +30,16 @@ const SiteParamsSchema = ParamsSchema.extend({
 const PageParamsSchema = SiteParamsSchema.extend({
   page_id: z.string().trim().min(1),
 }).strict();
+
+const unwrap_idempotent_result = (result: unknown) => {
+  if (!result || typeof result !== "object")
+    return { body: result, replayed: false };
+  const {
+    idempotent_replay,
+    ...body
+  } = result as Record<string, unknown> & { idempotent_replay?: boolean };
+  return { body, replayed: idempotent_replay === true };
+};
 
 export type DocumentationRouteDependencies = {
   auth_service: {
@@ -163,8 +177,16 @@ export const build_documentation_routes = (
             idempotency_key: idempotency_key.data,
             data: body.data,
           });
-          return reply.status(201).send(result);
-        } catch {
+          const command = unwrap_idempotent_result(result);
+          return reply.status(command.replayed ? 200 : 201).send(command.body);
+        } catch (error) {
+          if (error instanceof DocumentationIdempotencyConflictError)
+            return reply.status(409).send(
+              error_response(
+                error.code,
+                "Idempotency key was already used for a different request",
+              ),
+            );
           return reply
             .status(401)
             .send(error_response("unauthenticated", "Authentication required"));
@@ -207,8 +229,18 @@ export const build_documentation_routes = (
             idempotency_key: key.data,
             data: body.data,
           });
-          return reply.status(201).send({ page: result });
-        } catch {
+          const command = unwrap_idempotent_result(result);
+          return reply
+            .status(command.replayed ? 200 : 201)
+            .send({ page: command.body });
+        } catch (error) {
+          if (error instanceof DocumentationIdempotencyConflictError)
+            return reply.status(409).send(
+              error_response(
+                error.code,
+                "Idempotency key was already used for a different request",
+              ),
+            );
           return reply.status(404).send(
             error_response(
               "documentation_site_not_found",
@@ -254,12 +286,15 @@ export const build_documentation_routes = (
           });
           return reply.send({ page: result });
         } catch (error) {
-          request.log.error({ err: error }, "Documentation Page save failed");
+          if (!(error instanceof DocumentationRowVersionConflictError)) throw error;
           return reply.status(409).send(
-            error_response(
-              "documentation_row_version_conflict",
-              "Documentation Page changed; preserve local work and reconcile",
-            ),
+            {
+              ...error_response(
+                "documentation_row_version_conflict",
+                "Documentation Page changed; preserve local work and reconcile",
+              ),
+              latest_page: error.latest_page,
+            },
           );
         }
       },

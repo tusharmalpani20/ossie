@@ -1,5 +1,9 @@
+import { createHash } from "node:crypto";
 import { ulid } from "ulid";
-import { DocumentationRowVersionConflictError } from "./documentation.service";
+import {
+  DocumentationIdempotencyConflictError,
+  DocumentationRowVersionConflictError,
+} from "./documentation.service";
 
 type QueryResult<Row> = { rows: Row[] };
 type Queryable = {
@@ -29,6 +33,71 @@ const with_transaction = async <T>(
   }
 };
 
+const command_digest = (value: unknown) =>
+  createHash("sha256").update(JSON.stringify(value)).digest("hex");
+
+const read_command_receipt = async (
+  client: Queryable,
+  input: {
+    organization_id: string;
+    project_id: string;
+    operation: string;
+    idempotency_key: string;
+    request_digest: string;
+  },
+) => {
+  const receipt = await client.query<{
+    request_digest: string;
+    response_body: Record<string, unknown>;
+  }>(
+    `SELECT request_digest,response_body
+       FROM documentation_schema.documentation_command_receipt
+      WHERE organization_id=$1 AND project_id=$2
+        AND operation=$3 AND idempotency_key=$4`,
+    [
+      input.organization_id,
+      input.project_id,
+      input.operation,
+      input.idempotency_key,
+    ],
+  );
+  if (!receipt.rows[0]) return null;
+  if (receipt.rows[0].request_digest !== input.request_digest)
+    throw new DocumentationIdempotencyConflictError();
+  return { ...receipt.rows[0].response_body, idempotent_replay: true };
+};
+
+const write_command_receipt = async (
+  client: Queryable,
+  input: {
+    organization_id: string;
+    project_id: string;
+    actor_org_user_id: string;
+    operation: string;
+    idempotency_key: string;
+    request_digest: string;
+    response_status: number;
+    response_body: unknown;
+  },
+) =>
+  client.query(
+    `INSERT INTO documentation_schema.documentation_command_receipt
+      (id,organization_id,project_id,operation,idempotency_key,request_digest,
+       response_status,response_body,created_by_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9)`,
+    [
+      ulid(),
+      input.organization_id,
+      input.project_id,
+      input.operation,
+      input.idempotency_key,
+      input.request_digest,
+      input.response_status,
+      JSON.stringify(input.response_body),
+      input.actor_org_user_id,
+    ],
+  );
+
 type CreateSiteInput = {
   organization_id: string;
   project_id: string;
@@ -57,7 +126,7 @@ const to_documentation_block = (row: Record<string, unknown>) => {
       return {
         ...base,
         code: row.text_content,
-        language: row.operation_key,
+        language: row.code_language,
       };
     case "link":
       return {
@@ -72,8 +141,11 @@ const to_documentation_block = (row: Record<string, unknown>) => {
         ...base,
         asset_id: row.documentation_asset_id,
         alt_text: row.alt_text,
-        caption: row.text_content,
+        caption: row.image_caption,
       };
+    case "ordered_list":
+    case "unordered_list":
+      return { ...base, items: row.items };
     case "api_reference":
       return {
         ...base,
@@ -94,6 +166,7 @@ export const build_documentation_repository = (database: Database) => ({
     project_version_id: string;
     site_id: string;
     actor_org_user_id: string;
+    idempotency_key: string;
     data: {
       title: string;
       description: string | null;
@@ -101,6 +174,17 @@ export const build_documentation_repository = (database: Database) => ({
     };
   }) =>
     with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        project_version_id: input.project_version_id,
+        site_id: input.site_id,
+        data: input.data,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.page.create",
+        request_digest,
+      });
+      if (replay) return replay;
       const parent = await client.query<{
         edition_id: string;
         working_draft_id: string;
@@ -142,7 +226,7 @@ export const build_documentation_repository = (database: Database) => ({
           input.actor_org_user_id,
         ],
       );
-      return {
+      const result = {
         id,
         title: input.data.title,
         description: input.data.description,
@@ -150,6 +234,14 @@ export const build_documentation_repository = (database: Database) => ({
         version: 1,
         blocks: [],
       };
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.page.create",
+        request_digest,
+        response_status: 201,
+        response_body: result,
+      });
+      return { ...result, idempotent_replay: false };
     }),
 
   get_page: async (input: {
@@ -183,11 +275,22 @@ export const build_documentation_repository = (database: Database) => ({
     );
     if (!page.rows[0]) return null;
     const blocks = await database.query<Record<string, unknown>>(
-      `SELECT id,kind,position,heading_level,text_content,link_url,linked_page_id,
-              documentation_asset_id,openapi_source_id,operation_key,alt_text,version
-         FROM documentation_schema.documentation_page_block
-        WHERE organization_id=$1 AND project_id=$2
-          AND documentation_page_id=$3 ORDER BY position,id`,
+      `SELECT block.id,block.kind,block.position,block.heading_level,
+              block.text_content,block.code_language,block.link_url,
+              block.linked_page_id,block.documentation_asset_id,
+              block.openapi_source_id,block.operation_key,block.alt_text,
+              block.image_caption,block.version,
+              COALESCE((
+                SELECT jsonb_agg(jsonb_build_object(
+                  'id',item.id,'text',item.text_content,'position',item.position,
+                  'expected_version',item.version
+                ) ORDER BY item.position,item.id)
+                  FROM documentation_schema.documentation_list_item item
+                 WHERE item.documentation_page_block_id=block.id
+              ),'[]'::jsonb) items
+         FROM documentation_schema.documentation_page_block block
+        WHERE block.organization_id=$1 AND block.project_id=$2
+          AND block.documentation_page_id=$3 ORDER BY block.position,block.id`,
       [input.organization_id, input.project_id, input.page_id],
     );
     return {
@@ -241,6 +344,14 @@ export const build_documentation_repository = (database: Database) => ({
         });
       }
       await client.query(
+        `DELETE FROM documentation_schema.documentation_list_item item
+          USING documentation_schema.documentation_page_block block
+         WHERE item.documentation_page_block_id=block.id
+           AND block.organization_id=$1 AND block.project_id=$2
+           AND block.documentation_page_id=$3`,
+        [input.organization_id, input.project_id, input.page_id],
+      );
+      await client.query(
         `DELETE FROM documentation_schema.documentation_page_block
           WHERE organization_id=$1 AND project_id=$2 AND documentation_page_id=$3`,
         [input.organization_id, input.project_id, input.page_id],
@@ -250,9 +361,10 @@ export const build_documentation_repository = (database: Database) => ({
           `INSERT INTO documentation_schema.documentation_page_block
             (id,organization_id,project_id,site_edition_id,documentation_page_id,
              kind,position,heading_level,text_content,link_url,linked_page_id,
-             documentation_asset_id,openapi_source_id,operation_key,alt_text,
+             code_language,documentation_asset_id,openapi_source_id,operation_key,
+             alt_text,image_caption,
              created_by_id,updated_by_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$16)`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$18)`,
           [
             block.id,
             input.organization_id,
@@ -265,13 +377,39 @@ export const build_documentation_repository = (database: Database) => ({
             block.text ?? block.code ?? block.label ?? null,
             block.url ?? null,
             block.page_id ?? null,
+            block.language ?? null,
             block.asset_id ?? null,
             block.openapi_source_id ?? null,
             block.operation_key ?? null,
             block.alt_text ?? null,
+            block.caption ?? null,
             input.actor_org_user_id,
           ],
         );
+        if (
+          (block.kind === "ordered_list" || block.kind === "unordered_list") &&
+          Array.isArray(block.items)
+        ) {
+          for (const item of block.items as Array<Record<string, unknown>>) {
+            await client.query(
+              `INSERT INTO documentation_schema.documentation_list_item
+                (id,organization_id,project_id,site_edition_id,
+                 documentation_page_id,documentation_page_block_id,
+                 text_content,position)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+              [
+                item.id,
+                input.organization_id,
+                input.project_id,
+                page.site_edition_id,
+                input.page_id,
+                block.id,
+                item.text,
+                item.position,
+              ],
+            );
+          }
+        }
       }
       await client.query(
         `UPDATE documentation_schema.documentation_page
@@ -322,6 +460,19 @@ export const build_documentation_repository = (database: Database) => ({
   },
   create_site: async (input: CreateSiteInput) =>
     with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        project_version_id: input.project_version_id,
+        name: input.name,
+        description: input.description,
+        primary_language: input.primary_language,
+        initial_home_page: input.initial_home_page,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.site.create",
+        request_digest,
+      });
+      if (replay) return replay;
       const site_id = ulid();
       const edition_id = ulid();
       const working_draft_id = ulid();
@@ -432,7 +583,7 @@ export const build_documentation_repository = (database: Database) => ({
         );
       }
 
-      return {
+      const result = {
         site: {
           id: site_id,
           organization_id: input.organization_id,
@@ -465,5 +616,13 @@ export const build_documentation_repository = (database: Database) => ({
             }
           : null,
       };
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.site.create",
+        request_digest,
+        response_status: 201,
+        response_body: result,
+      });
+      return { ...result, idempotent_replay: false };
     }),
 });
