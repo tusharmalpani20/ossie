@@ -12,7 +12,7 @@ export function assert_documentation_lifecycle_transition(
     (current === "archived" && transition !== "restore")
   ) {
     throw new DocumentationDomainError(
-      "documentation_lifecycle_invalid",
+      "documentation_lifecycle_conflict",
       "The requested Documentation lifecycle transition is not valid",
     );
   }
@@ -65,13 +65,13 @@ export function assert_documentation_page_retirement(input: {
 }): void {
   if (input.was_published && input.retirement.mode === "none") {
     throw new DocumentationDomainError(
-      "documentation_lifecycle_invalid",
+      "documentation_lifecycle_conflict",
       "A previously published Page needs a redirect or gone outcome",
     );
   }
   if (!input.was_published && input.retirement.mode !== "none") {
     throw new DocumentationDomainError(
-      "documentation_lifecycle_invalid",
+      "documentation_lifecycle_conflict",
       "An unpublished Page does not need a public retirement outcome",
     );
   }
@@ -81,7 +81,7 @@ export function assert_documentation_page_retirement(input: {
       !input.active_page_ids.has(input.retirement.target_page_id)
     ) {
       throw new DocumentationDomainError(
-        "documentation_lifecycle_invalid",
+        "documentation_lifecycle_conflict",
         "The redirect target must be a different active Page",
       );
     }
@@ -93,7 +93,7 @@ export function assert_documentation_page_retirement(input: {
       !input.active_page_ids.has(input.replacement_home_page_id))
   ) {
     throw new DocumentationDomainError(
-      "documentation_lifecycle_invalid",
+      "documentation_lifecycle_conflict",
       "Archiving the Home Page requires a different active replacement",
     );
   }

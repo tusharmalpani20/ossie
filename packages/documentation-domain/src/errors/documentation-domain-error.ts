@@ -18,7 +18,7 @@ export type DocumentationDomainErrorCode =
   | "documentation_markdown_invalid"
   | "documentation_carry_forward_invalid"
   | "documentation_carry_forward_limit_exceeded"
-  | "documentation_lifecycle_invalid"
+  | "documentation_lifecycle_conflict"
   | "documentation_path_invalid"
   | "documentation_redirect_cycle"
   | "documentation_revision_invalid"

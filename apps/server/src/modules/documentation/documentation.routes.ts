@@ -844,14 +844,17 @@ export const build_documentation_routes = (
         return reply
           .status(400)
           .send(error_response(code, "Documentation request is invalid"));
+      if (code === "documentation_carry_forward_limit_exceeded")
+        return reply
+          .status(422)
+          .send(error_response(code, "Documentation limit exceeded"));
       if (
         code === "documentation_page_limit_exceeded" ||
         code === "documentation_comment_limit_exceeded" ||
         code === "documentation_snippet_limit_exceeded" ||
         code === "documentation_asset_limit_exceeded" ||
         code === "documentation_content_limit_exceeded" ||
-        code === "documentation_import_limit_exceeded" ||
-        code === "documentation_carry_forward_limit_exceeded"
+        code === "documentation_import_limit_exceeded"
       )
         return reply
           .status(413)

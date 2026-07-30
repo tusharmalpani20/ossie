@@ -107,6 +107,20 @@ ALTER TABLE documentation_schema.site_revision
   ADD CONSTRAINT uq_site_revision_edition_schema_content_digest
     UNIQUE (site_edition_id, snapshot_schema_version, content_digest);
 
+ALTER TABLE documentation_schema.site_revision_asset_reference
+  ADD COLUMN frozen_name VARCHAR(200) DEFAULT NULL;
+UPDATE documentation_schema.site_revision_asset_reference reference
+   SET frozen_name=asset.name
+  FROM documentation_schema.documentation_asset asset
+ WHERE reference.source_kind='documentation_asset'
+   AND asset.id=reference.source_asset_id
+   AND asset.site_edition_id=reference.site_edition_id
+   AND asset.organization_id=reference.organization_id;
+ALTER TABLE documentation_schema.site_revision_asset_reference
+  ADD CONSTRAINT chk_site_revision_asset_frozen_name CHECK (
+    source_kind<>'documentation_asset' OR frozen_name IS NOT NULL
+  );
+
 CREATE TABLE documentation_schema.documentation_carry_forward (
   id VARCHAR(26) PRIMARY KEY,
   organization_id VARCHAR(26) NOT NULL,
@@ -152,6 +166,7 @@ CREATE TABLE documentation_schema.documentation_carry_forward_item (
   target_project_version_id VARCHAR(26) NOT NULL,
   source_site_edition_id VARCHAR(26) NOT NULL,
   source_site_revision_id VARCHAR(26) NOT NULL,
+  source_revision_reused BOOLEAN NOT NULL,
   target_site_edition_id VARCHAR(26) NOT NULL,
   target_site_working_draft_id VARCHAR(26) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -669,6 +684,10 @@ DROP TRIGGER documentation_carry_forward_immutable
   ON documentation_schema.documentation_carry_forward;
 DROP TABLE documentation_schema.documentation_carry_forward_item;
 DROP TABLE documentation_schema.documentation_carry_forward;
+
+ALTER TABLE documentation_schema.site_revision_asset_reference
+  DROP CONSTRAINT chk_site_revision_asset_frozen_name,
+  DROP COLUMN frozen_name;
 
 ALTER TABLE documentation_schema.site_revision
   DROP CONSTRAINT uq_site_revision_edition_schema_content_digest,

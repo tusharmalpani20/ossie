@@ -966,6 +966,8 @@ const load_draft_snapshot = async (
     primary_language: string;
     edition_version: number;
     edition_status: "active" | "archived";
+    edition_effective_status: "active" | "read_only" | "archived";
+    edition_read_only_reason: string | null;
     working_draft_id: string;
     home_page_id: string | null;
     draft_version: number;
@@ -978,10 +980,32 @@ const load_draft_snapshot = async (
             edition.status edition_status,draft.id working_draft_id,
             draft.home_page_id,draft.version draft_version,
             navigation.version navigation_version,
-            routing.version routing_version
+            routing.version routing_version,
+            CASE
+              WHEN edition.status='archived' THEN 'archived'
+              WHEN project.status='archived' OR version.status='archived'
+                THEN 'read_only'
+              ELSE 'active'
+            END edition_effective_status,
+            CASE
+              WHEN edition.status='archived'
+                THEN 'This Documentation Site Edition is archived.'
+              WHEN version.status='archived'
+                THEN 'This Project Version is archived.'
+              WHEN project.status='archived'
+                THEN 'This Project is archived.'
+              ELSE NULL
+            END edition_read_only_reason
        FROM documentation_schema.documentation_site site
+       JOIN project_schema.project project
+         ON project.id=site.project_id
+        AND project.organization_id=site.organization_id
        JOIN documentation_schema.site_edition edition
          ON edition.documentation_site_id=site.id
+       JOIN project_schema.project_version version
+         ON version.id=edition.project_version_id
+        AND version.project_id=edition.project_id
+        AND version.organization_id=edition.organization_id
        JOIN documentation_schema.site_working_draft draft
          ON draft.site_edition_id=edition.id
        JOIN documentation_schema.navigation_tree navigation
@@ -1252,6 +1276,8 @@ const load_draft_snapshot = async (
       description: root.site_description,
       version: root.edition_version,
       status: root.edition_status,
+      effective_status: root.edition_effective_status,
+      read_only_reason: root.edition_read_only_reason,
     },
     working_draft: {
       id: root.working_draft_id,
@@ -1479,7 +1505,8 @@ const load_revision_snapshot = async (
     `SELECT reference.source_asset_id id,reference.source_kind,
             reference.file_id,reference.mime_type,
             reference.byte_size,reference.width,reference.height,
-            reference.digest,file.storage_provider,file.storage_key,
+            reference.digest,reference.frozen_name name,
+            file.storage_provider,file.storage_key,
             file.size_bytes,file.checksum_sha256
        FROM documentation_schema.site_revision_asset_reference reference
        JOIN file_schema.file file
@@ -1623,9 +1650,8 @@ const load_revision_snapshot = async (
     redirects: redirects.rows,
     openapi_operations: operations.rows,
     openapi_source: openapiSource.rows[0] ?? null,
-    assets: assets.rows.map((asset, index) => ({
+    assets: assets.rows.map((asset) => ({
       ...asset,
-      name: `Carried media ${index + 1}`,
       status: "active",
     })),
     snippets: snippets.rows.map((snippet) => ({
@@ -3746,6 +3772,7 @@ export const build_documentation_repository = (database: Database) => {
         let asset:
           | {
               id: string;
+              name?: string;
               file_id: string;
               mime_type: string;
               byte_size: number;
@@ -3793,8 +3820,8 @@ export const build_documentation_repository = (database: Database) => {
           `INSERT INTO documentation_schema.site_revision_asset_reference
             (id,organization_id,project_id,site_edition_id,site_revision_id,
              source_kind,source_asset_id,file_id,mime_type,digest,byte_size,
-             width,height,alt_text)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+             width,height,alt_text,frozen_name)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
            ON CONFLICT (site_revision_id,source_kind,source_asset_id)
            DO NOTHING`,
           [
@@ -3813,6 +3840,7 @@ export const build_documentation_repository = (database: Database) => {
             asset.width,
             asset.height,
             block.alt_text,
+            source.kind === "documentation_asset" ? asset.name : null,
           ],
         );
       }
@@ -6445,6 +6473,7 @@ export const build_documentation_repository = (database: Database) => {
           source_edition_id: string;
           source_revision_id: string;
           source_revision_number: number;
+          source_revision_reused: boolean;
           target_edition_id: string;
           target_draft_id: string;
         }>(
@@ -6452,6 +6481,7 @@ export const build_documentation_repository = (database: Database) => {
                   item.source_site_edition_id source_edition_id,
                   item.source_site_revision_id source_revision_id,
                   revision.revision_number source_revision_number,
+                  item.source_revision_reused,
                   item.target_site_edition_id target_edition_id,
                   item.target_site_working_draft_id target_draft_id
              FROM documentation_schema.documentation_carry_forward_item item
@@ -6461,10 +6491,7 @@ export const build_documentation_repository = (database: Database) => {
             ORDER BY item.position`,
           [operationId],
         );
-        return items.rows.map((item) => ({
-          ...item,
-          source_revision_reused: true,
-        }));
+        return items.rows;
       };
       if (replay.rows[0]) {
         if (replay.rows[0].request_digest !== requestDigest)
@@ -6637,7 +6664,7 @@ export const build_documentation_repository = (database: Database) => {
           throw Object.assign(new Error("Source Revision was not found"), {
             code: "documentation_carry_forward_invalid",
           });
-        const contentNodes = [
+        const contentBlocks = [
           ...snapshot.pages.flatMap(
             (page: Record<string, any>) => page.blocks ?? [],
           ),
@@ -6645,14 +6672,27 @@ export const build_documentation_repository = (database: Database) => {
             (snippet: Record<string, any>) => snippet.blocks ?? [],
           ),
         ];
+        const contentNodeCount = contentBlocks.reduce(
+          (total: number, block: Record<string, any>) =>
+            total +
+            1 +
+            (block.items?.length ?? 0) +
+            (block.rows?.length ?? 0) +
+            (block.rows ?? []).reduce(
+              (cells: number, row: Record<string, any>) =>
+                cells + (row.cells?.length ?? 0),
+              0,
+            ),
+          0,
+        );
         facts.push({
           site_id: source.selection.site_id,
           page_count: snapshot.pages.length,
           snippet_count: snapshot.snippets.length,
-          content_node_count: contentNodes.length,
+          content_node_count: contentNodeCount,
           protected_reference_count:
             snapshot.assets.length +
-            contentNodes.filter(
+            contentBlocks.filter(
               (block: Record<string, any>) =>
                 block.kind === "guide_publication" ||
                 block.kind === "interactive_demo_publication",
@@ -6802,9 +6842,9 @@ export const build_documentation_repository = (database: Database) => {
             (id,organization_id,project_id,operation_id,position,
              documentation_site_id,source_project_version_id,
              target_project_version_id,source_site_edition_id,
-             source_site_revision_id,target_site_edition_id,
-             target_site_working_draft_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+             source_site_revision_id,source_revision_reused,
+             target_site_edition_id,target_site_working_draft_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
           [
             itemId,
             input.organization_id,
@@ -6816,6 +6856,7 @@ export const build_documentation_repository = (database: Database) => {
             input.target_project_version_id,
             carried.source.edition_id,
             carried.revision.id,
+            carried.revision.idempotent_replay,
             targetEditionId,
             targetDraftId,
           ],
@@ -6994,10 +7035,14 @@ export const build_documentation_repository = (database: Database) => {
         );
       const nextStatus =
         input.transition === "archive" ? "archived" : "active";
-      const command = `documentation.edition.${input.transition}`;
-      const action = `documentation.edition.${
-        input.transition === "archive" ? "archived" : "restored"
-      }`;
+      const command =
+        input.transition === "archive"
+          ? "documentation.edition.archive"
+          : "documentation.edition.restore";
+      const action =
+        input.transition === "archive"
+          ? "documentation.edition.archived"
+          : "documentation.edition.restored";
       const audit = await begin_documentation_audit_context(client, {
         ...input,
         command,
@@ -7214,10 +7259,14 @@ export const build_documentation_repository = (database: Database) => {
           active_page_ids: new Set(activePages.rows.map(({ id }) => id)),
         });
       }
-      const command = `documentation.page.${input.data.transition}`;
-      const action = `documentation.page.${
-        input.data.transition === "archive" ? "archived" : "restored"
-      }`;
+      const command =
+        input.data.transition === "archive"
+          ? "documentation.page.archive"
+          : "documentation.page.restore";
+      const action =
+        input.data.transition === "archive"
+          ? "documentation.page.archived"
+          : "documentation.page.restored";
       const audit = await begin_documentation_audit_context(client, {
         ...input,
         command,
@@ -7504,10 +7553,14 @@ export const build_documentation_repository = (database: Database) => {
         );
       const nextStatus =
         input.transition === "archive" ? "archived" : "active";
-      const command = `documentation.openapi.${input.transition}`;
-      const action = `documentation.openapi.${
-        input.transition === "archive" ? "archived" : "restored"
-      }`;
+      const command =
+        input.transition === "archive"
+          ? "documentation.openapi.archive"
+          : "documentation.openapi.restore";
+      const action =
+        input.transition === "archive"
+          ? "documentation.openapi.archived"
+          : "documentation.openapi.restored";
       const audit = await begin_documentation_audit_context(client, {
         ...input,
         command,

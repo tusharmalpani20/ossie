@@ -62,6 +62,28 @@ describe("Access route coverage", () => {
     expect(
       access_route_registration(
         "GET",
+        "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/carry-forward-options",
+      ),
+    ).toMatchObject({
+      action: "documentation_carry_forward.options_viewed",
+      policy: "meaningful_read",
+      root_resource_type: "project",
+      authorization_type: "project_role",
+    });
+    expect(
+      access_route_registration(
+        "GET",
+        "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages",
+      ),
+    ).toMatchObject({
+      action: "documentation_page.list_viewed",
+      policy: "meaningful_read",
+      root_resource_type: "documentation_site",
+      authorization_type: "project_role",
+    });
+    expect(
+      access_route_registration(
+        "GET",
         "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id",
       ),
     ).toMatchObject({

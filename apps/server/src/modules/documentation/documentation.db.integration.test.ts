@@ -162,7 +162,7 @@ describe("DB-backed Documentation repository", () => {
       operation: {
         id: carried.operation.id,
         idempotent_replay: true,
-        items: [{ source_revision_reused: true }],
+        items: [{ source_revision_reused: false }],
       },
       idempotent_replay: true,
     });

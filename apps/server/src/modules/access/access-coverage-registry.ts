@@ -440,6 +440,12 @@ const reads: AccessRouteRegistration[] = [
     "project_id",
   ),
   read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/carry-forward-options",
+    "documentation_carry_forward.options_viewed",
+    "project",
+    "project_id",
+  ),
+  read(
     "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-import-inspections/:inspection_id",
     "documentation_import_inspection.viewed",
     "project_version",
@@ -521,6 +527,12 @@ const reads: AccessRouteRegistration[] = [
     "documentation_page.viewed",
     "documentation_page",
     "page_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages",
+    "documentation_page.list_viewed",
+    "documentation_site",
+    "site_id",
   ),
   read(
     "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/comments",

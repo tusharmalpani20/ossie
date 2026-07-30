@@ -165,6 +165,49 @@ describe("Documentation routes", () => {
     );
   });
 
+  it("returns the accepted 422 contract when a carry graph exceeds its ceiling", async () => {
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          carry_forward: vi.fn(async () => {
+            throw Object.assign(new Error("Carry limit exceeded"), {
+              code: "documentation_carry_forward_limit_exceeded",
+            });
+          }),
+        }),
+        resolve_project_version: vi.fn(async () => ({
+          id: "01J00000000000000000000002",
+        })),
+      }),
+    );
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/carry-forward",
+      cookies: { ossie_session: "session" },
+      headers: { "idempotency-key": "carry-limit" },
+      payload: {
+        source_project_version_id: "01J00000000000000000000001",
+        target_project_version_id: "01J00000000000000000000002",
+        selections: [
+          {
+            site_id: "01J00000000000000000000003",
+            expected_source_edition_version: 2,
+            expected_source_draft_version: 4,
+          },
+        ],
+      },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toMatchObject({
+      error: { type: "documentation_carry_forward_limit_exceeded" },
+    });
+  });
+
   it("validates resource-specific Edition and OpenAPI lifecycle bodies", async () => {
     const transition_edition = vi.fn(async () => ({
       status: "archived",
