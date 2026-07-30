@@ -2754,6 +2754,12 @@ follows the same close-predecessor rule.
   verification and headless Chrome public/Admin/Viewer/accessibility evidence;
   browser QA repaired Snippet-only public indexing and duplicate authenticated
   main landmarks. The active handoff moved to child `134`.
+- 2026-07-30: independently close-rechecked child `133` against its accepted
+  contracts and this master. The repair commits enforce server-authoritative
+  safe content/reference validation, scoped relational and immutable-history
+  constraints, hard aggregate limits, lifecycle-aware asset selection,
+  complete accessible authoring/rendering controls, and exact protected-byte
+  verification in Revision digests (`d775611`, `f0b7e9b`, `1d05d02`).
 
 ## 47. Master Planning Verification Record
 
@@ -2773,8 +2779,8 @@ Required final results:
   planning checkpoint; superseded by the child `132` runtime evidence above.
 - scoped diff assertion: passed; documentation/plan files only.
 - child file assertion: exactly one correctly named plan exists for each child
-  `132` through `140`; `132` is complete and `133`–`140` identify themselves as
-  reservations.
+  `132` through `140`; `132` and `133` are complete and `134`–`140` identify
+  themselves as reservations.
 
 Child `132` runtime evidence includes:
 
@@ -2801,8 +2807,8 @@ Child `133` runtime evidence includes:
 - additive migration `026`, complete relational Page/Snippet child graphs,
   Edition-owned Asset lifecycle, exact Guide/Demo Publication references, and
   immutable Site Revision projections;
-- Documentation domain 11 files / 21 tests, shared contracts 18 files / 78
-  tests, server unit 105 files / 443 tests, web unit 68 files / 385 tests,
+- Documentation domain 11 files / 22 tests, shared contracts 18 files / 78
+  tests, server unit 106 files / 448 tests, web unit 68 files / 390 tests,
   server DB 22 files / 72 tests, and V1 smoke 1 file / 2 tests;
 - clean `001`–`026` migration plus guarded `026` down/up, and workspace lint,
   type check, and build;
@@ -2810,6 +2816,10 @@ Child `133` runtime evidence includes:
   reflow, reduced motion, Admin Snippet lifecycle, Viewer read-only
   permissions, and zero-violation axe evidence in
   `docs/ui/133-documentation-content-snippets-and-asset-workflows-browser-evidence.md`.
+- close-previous browser proof additionally covered tabs keyboard behavior,
+  code-copy feedback, labelled Page/OpenAPI selectors, editable expanded block
+  controls, and Snippet/Asset rename; protected-byte focused tests,
+  Documentation DB, and V1 smoke all passed after the final integrity repair.
 
 ## 48. Planning Leftovers And Handoff
 
@@ -2835,6 +2845,7 @@ Child `133` runtime evidence includes:
   quotas/reporting, production observability, and capability-dependent
   Firefox/WebKit or production-p75 evidence remain child `138` work.
 - Child `134` must preserve the child `133` hard ceilings, exact immutable
-  references, source discriminants, and Edition path-namespace serialization.
+  references, source discriminants, protected-byte/digest checks, retained
+  archived-reference rules, and Edition path-namespace serialization.
   Child `138` must measure and, where needed, split public immutable snapshot
   loading by Page/search/metadata access shape.

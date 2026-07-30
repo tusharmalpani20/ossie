@@ -6,11 +6,12 @@ Date expanded: 2026-07-30
 
 Date rechecked: 2026-07-30
 
-Status: Complete — implemented and verified on 2026-07-30. Migration `026`,
-expanded relational content, Edition-owned Snippets, protected
-Documentation/Capture Asset workflows, exact artifact Publication references,
-immutable Revision/public projections, authoring/reader UI, search, audit,
-access, migration, smoke, and headless-browser evidence all pass.
+Status: Complete — implemented, independently close-rechecked, and verified on
+2026-07-30. Migration `026`, expanded relational content, Edition-owned
+Snippets, protected Documentation/Capture Asset workflows, exact artifact
+Publication references, immutable Revision/public projections,
+authoring/reader UI, search, audit, access, migration, smoke, and
+headless-browser evidence all pass.
 
 Parent plan:
 
@@ -1786,6 +1787,7 @@ Child `133` closes only when:
 - [x] Portal authoring and reader component tests pass.
 - [x] Fixture, DB smoke, broad regression, and build pass.
 - [x] Agent-browser and accessibility matrix passes.
+- [x] Close-previous behavior/schema/API/UI/security/compatibility audit passes.
 - [x] Current-truth docs, evidence, plan, and Master are current.
 - [x] Scoped logical commits complete.
 
@@ -1835,6 +1837,22 @@ Child `133` closes only when:
   smoke, type, component, role, and axe checks passed (`aac2fd6`).
 - 2026-07-30: Updated current-truth docs, browser evidence, this child, and
   Master `006` only for behavior actually verified by child `133`.
+- 2026-07-30: Independently close-rechecked the completed runtime against this
+  child and Master `006`. The audit found and repaired route/domain validation
+  bypasses, unsafe URL protocols, scoped relational constraints, immutable
+  snapshot `TRUNCATE` guards, asset picker/archive/purge semantics, Edition and
+  Revision ceilings, retained-reference Row Versions, labelled relational
+  selectors, remaining block editors, Snippet/Asset rename workflows,
+  controlled inline rendering, copy feedback, and tabs keyboard behavior
+  (`d775611`, `f0b7e9b`).
+- 2026-07-30: Closed the remaining protected-byte boundary: Page/Snippet saves
+  now inspect exact referenced raster bytes, checkpointing rejects missing or
+  changed bytes, and the deterministic Revision digest includes verified
+  Documentation/Capture Asset digests, including a computed non-mutating
+  digest for a legacy Capture File with a null checksum (`1d05d02`).
+- 2026-07-30: Repeated focused, broad, migration, smoke, workspace, and live
+  headless-browser verification; reconciled this child, Master `006`, and the
+  browser evidence to the close-rechecked result.
 
 ## 24. Verification Record
 
@@ -1853,10 +1871,10 @@ Implementation verification completed:
 - current first-slice limits, Page replacement semantics, Edition
   path-namespace serialization, immutable snapshot model, public URL model,
   and Ossie-native adapter fallback preserved;
-- Documentation domain: 11 files / 21 tests passed;
+- Documentation domain: 11 files / 22 tests passed;
 - shared contract packages: 18 files / 78 tests passed;
-- server unit: 105 files / 443 tests passed;
-- web unit: 68 files / 385 tests passed;
+- server unit: 106 files / 448 tests passed;
+- web unit: 68 files / 390 tests passed sequentially;
 - server DB: 22 files / 72 tests passed;
 - V1 smoke: 1 file / 2 tests passed, including Snippet-only public search;
 - migration: clean `001` through `026` and guarded `026` down/up passed;
@@ -1864,11 +1882,22 @@ Implementation verification completed:
   only the existing web chunk-size warning;
 - focused post-browser verification: web Documentation 15 files / 33 tests,
   web type check, and smoke 1 file / 2 tests passed;
+- close-previous focused verification: server Documentation 3 files / 21
+  tests, protected-byte policy 1 file / 2 tests, Documentation DB plus V1
+  smoke 2 files / 5 tests, and full server unit 106 files / 448 tests passed;
+- one parallel full-web run exposed shared `document.title` interference
+  between test files; the affected test passed alone and the complete web suite
+  passed with file parallelism disabled, so this was recorded as runner
+  isolation rather than a product defect;
 - `git diff --check` and scoped worktree review passed;
 - headless Chrome `151.0.0.0` through `agent-browser 0.33.1` passed the public
   expanded reader/search/media, 320 CSS-pixel reflow at 200% zoom,
   reduced-motion, keyboard skip-link, Admin Snippet lifecycle, Viewer
   read-only, console/error, and axe checks;
+- the close-previous browser pass additionally proved Arrow/Home/End tab
+  selection and focus, code-copy feedback, labelled same-Edition Page/OpenAPI
+  selectors without raw-ID authoring, editable callout content, and
+  Snippet/Asset rename controls;
 - axe reported zero violations for public, Admin, and Viewer surfaces. The
   Admin run retained one non-violation `incomplete` contrast sample caused by
   textarea overlap during automated sampling;
@@ -1886,6 +1915,8 @@ Child `134` must receive:
 - Snippet copy requirements and ID remapping rules;
 - Documentation/Capture Asset source discriminants and exact File manifest
   fields;
+- server-authoritative source eligibility, exact protected-byte inspection,
+  retained archived-reference semantics, and verified digest inputs;
 - the unsupported-until-implemented `derived_asset` boundary;
 - exact Guide/Demo Published Artifact reference semantics;
 - complete Revision snapshot/digest rules;

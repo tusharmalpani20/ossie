@@ -7,7 +7,7 @@ Scope: `docs/plan/133-documentation-content-snippets-and-asset-workflows.md`
 ## Environment
 
 - Repository: `/home/ubuntu/ossie`
-- Final runtime checkpoint inspected: `aac2fd6`
+- Final browser runtime checkpoints inspected: `d775611` and `f0b7e9b`
 - API: `http://127.0.0.1:3002`, `testing` runtime role
 - Portal: `http://127.0.0.1:3000`
 - Data: disposable synthetic Documentation browser fixture in `ossie_test`
@@ -34,6 +34,9 @@ browser artifact was committed.
   search omission; the repeated browser query and DB smoke assertion passed.
 - Confirmed safe reader output without authoring controls or private comments.
 - Confirmed the skip link is keyboard reachable.
+- Confirmed tabs support Arrow Left/Right and Home/End with selection and focus
+  moving together.
+- Confirmed code blocks expose keyboard-operable copy feedback.
 - At a 320 CSS-pixel viewport with browser zoom at 200%, the document reported
   no page-level horizontal overflow; intentionally wide table/code content
   remained locally bounded.
@@ -52,6 +55,9 @@ browser artifact was committed.
 - The Page editor exposed every accepted V1 block kind and used labelled
   selectors for Snippets, Assets, and exact Guide/Demo Publications rather than
   requiring raw identifiers.
+- The close-previous pass confirmed labelled same-Edition Page and OpenAPI
+  operation selectors, editable callout fields, and working Snippet and
+  Documentation Asset rename controls without exposing raw relational IDs.
 - Project Viewer opened the same Site and Page and could read Snippets, Assets,
   saved Page content, preview, and private comments without create, save,
   archive, restore, publication, upload, or comment mutation controls.
@@ -81,6 +87,10 @@ browser artifact was committed.
   assertion through UI controls.
 - Firefox and WebKit were not available in this run and remain
   capability-dependent child `138` evidence.
+- The later protected-byte integrity repair (`1d05d02`) changes server
+  validation rather than browser behavior; its exact-byte/digest, DB, smoke,
+  type, lint, and full server-unit proof is recorded in the child plan rather
+  than represented as another browser run.
 - The run used local synthetic one-pixel raster files. It validates protected
   routing and browser decoding, not production object-storage behavior or
   production latency.
