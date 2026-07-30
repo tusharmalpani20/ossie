@@ -44,8 +44,8 @@ describe("Documentation browser fixture database seed", () => {
     });
 
     expect(result).toEqual({
-      sites: 1,
-      pages: 2,
+      sites: 2,
+      pages: 3,
       comments: 1,
       operations: 1,
       snippets: 1,

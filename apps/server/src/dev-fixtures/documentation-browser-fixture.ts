@@ -567,7 +567,10 @@ export const seed_documentation_browser_fixture = async () => {
         cookies: cookie,
       }),
       "load saved preview",
-    ).preview as { working_draft: { version: number } };
+    ).preview as {
+      edition: { version: number };
+      working_draft: { version: number };
+    };
     const revision = require_success(
       await app.inject({
         method: "POST",
@@ -575,6 +578,7 @@ export const seed_documentation_browser_fixture = async () => {
         cookies: cookie,
         headers: { "idempotency-key": "plan132-revision-1" },
         payload: {
+          expected_edition_version: preview.edition.version,
           expected_draft_version: preview.working_draft.version,
         },
       }),
@@ -636,7 +640,10 @@ export const seed_documentation_browser_fixture = async () => {
         cookies: cookie,
       }),
       "load second saved preview",
-    ).preview as { working_draft: { version: number } };
+    ).preview as {
+      edition: { version: number };
+      working_draft: { version: number };
+    };
     const revisionTwo = require_success(
       await app.inject({
         method: "POST",
@@ -644,6 +651,7 @@ export const seed_documentation_browser_fixture = async () => {
         cookies: cookie,
         headers: { "idempotency-key": "plan132-revision-2" },
         payload: {
+          expected_edition_version: previewTwo.edition.version,
           expected_draft_version: previewTwo.working_draft.version,
         },
       }),
@@ -682,9 +690,30 @@ export const seed_documentation_browser_fixture = async () => {
       }),
       "roll link back to Publication 1",
     );
+    const secondary = require_success(
+      await app.inject({
+        method: "POST",
+        url: root,
+        cookies: cookie,
+        headers: { "idempotency-key": "plan135-secondary-site" },
+        payload: {
+          name: "Plan 135 Operations Documentation",
+          description:
+            "A second Site used to verify bounded multi-Site Carry-Forward.",
+          primary_language: "en-US",
+          initial_home_page: {
+            title: "Operations overview",
+            path: "operations",
+          },
+        },
+      }),
+      "create second Documentation Site",
+    );
+    const secondarySite = secondary.site as { id: string };
     return {
       ...base,
       site_id: site.id,
+      secondary_site_id: secondarySite.id,
       page_ids: { home: home.id, reference: reference.id },
       asset_id: image.id,
       capture_asset_id: base.capture_asset_id,
