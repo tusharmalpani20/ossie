@@ -60,12 +60,15 @@ for gates and exact child ordering.
 
 ## Documentation Next
 
-Product Documentation is the next artifact family to design. Child `131` will
-grill its
-identity, hierarchy, navigation, authoring, rendering, Project Version,
-Publication, access, and site-configuration semantics after the foundation
-closes. Implementation planning begins at `132+` only after that grill is
-accepted.
+Child `131` accepted Product Documentation's identity, hierarchy, navigation,
+authoring, rendering, Project Version, Publication, access, search, comments,
+security, and site-configuration semantics. The target model and ordered
+children `132` through `138` are recorded in
+`docs/documentation-domain-decisions.md`.
+
+The next activity is to expand and recheck child `132`, the end-to-end
+Documentation Site first vertical slice. Product Documentation runtime remains
+unimplemented until that plan passes its implementation gate.
 
 Product Documentation is not another name for Guides and is not `apps/docs`,
 which remains repository documentation for contributors and operators.

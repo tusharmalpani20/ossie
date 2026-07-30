@@ -66,12 +66,12 @@ describe("docs content", () => {
 
   it("separates the shipped foundation from the remaining platform direction", () => {
     expect(nextPlatformDirection.status).toContain(
-      "complete through the pre-Documentation closeout",
+      "Documentation domain grill are complete",
     );
     expect(nextPlatformDirection.items).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("domain grill"),
-        expect.stringContaining("132+"),
+        expect.stringContaining("accepted Product Documentation model"),
+        expect.stringContaining("child 132"),
         expect.stringContaining("Product Documentation"),
         expect.stringContaining("Video"),
       ]),

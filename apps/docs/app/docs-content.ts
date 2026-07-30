@@ -23,10 +23,10 @@ export const productCapabilities = [
 
 export const nextPlatformDirection = {
   status:
-    "Master Plan 005's version, governance, publication, design-system, workflow UI, accessibility, motion, performance, and browser foundation is complete through the pre-Documentation closeout.",
+    "Master Plan 005's foundation and Documentation domain grill are complete; Product Documentation runtime is not yet implemented.",
   items: [
-    "The Product Documentation domain grill is next; it must settle the content, source-of-truth, publication, access, URL, search, and rendering boundaries before implementation.",
-    "Product Documentation implementation planning begins at child 132+ only after the domain grill is accepted.",
+    "The accepted Product Documentation model settles its content, source-of-truth, publication, access, URL, search, comments, security, and rendering boundaries.",
+    "The next activity is to expand and recheck child 132, the end-to-end Documentation Site first vertical slice, before implementation.",
     "Loom-style Video later; its recording, storage, playback, and collaboration model remains deliberately unplanned.",
   ],
   docsAppBoundary:

@@ -2,161 +2,283 @@
 
 Date reserved: 2026-07-12
 
-Status: Not started. Reserved from Master Plan `005`; expansion and recheck are required before implementation.
+Date completed: 2026-07-30
+
+Status: Complete. All 32 grill answers are finally accepted against the
+completed child `129`/`130` codebase state. This child changed documentation and
+ADRs only; Product Documentation runtime remains unimplemented.
 
 Parent plan:
 
 - `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 
+Canonical decision record:
+
+- `docs/grill/2026-07-29-documentation-domain-grill.md`
+- `docs/documentation-domain-decisions.md`
+
 ## Sequence Gate
 
 Prerequisite:
 
-- Completed and accepted child `130` plus every Documentation Implementation Entry Gate in the master.
+- Child `130` complete and accepted.
+
+Result:
+
+- Passed. Child `130` completed on 2026-07-29 and established a clean
+  pre-Documentation runtime baseline.
+
+The former prerequisite also required every Documentation Implementation Entry
+Gate in Master Plan `005`. That was circular because the gate itself required
+child `131` acceptance. The corrected order is:
+
+1. child `130` closes the implemented foundation;
+2. child `131` accepts the Documentation model and satisfies the remaining
+   decision portions of the implementation gate;
+3. child `132` is expanded/rechecked as the first implementation plan;
+4. runtime implementation may begin only after child `132` proves every
+   implementation-entry condition against the then-current codebase.
 
 Next child:
 
-- A newly accepted implementation-ready sequence beginning at `132`; no `132` child may be invented before this grill resolves its required decisions.
+- `132 — Documentation Site First Vertical Slice`, as bounded in
+  `docs/documentation-domain-decisions.md`.
 
-## Planning Boundary
-
-This file reserves the accepted child boundary and sequence from Master Plan
-`005`. It is not yet an implementation-ready plan. Before runtime or product
-changes begin, the active agent must re-read `CONTEXT.md`, the relevant accepted
-ADRs, the parent master, preceding child closeouts, and current code/tests; then
-expand this file with exact affected files, contracts, tests, verification,
-ownership, migration/reset implications, browser evidence where applicable, and
-a stable handoff.
-
-Do not mark this child in progress or complete merely because this skeleton
-exists. Preserve the master's ordering and stop at any unmet predecessor gate or
-critical decision defined by `AGENTS.md`.
-
-## Master-Defined Goal And Boundary
+## Goal And Outcome
 
 Goal:
 
-- Produce an accepted, implementation-ready Documentation-domain model and phased scope without writing Documentation runtime code.
+- Produce an accepted, implementation-ready Documentation-domain model and
+  phased scope without writing Documentation runtime code.
 
-Method:
+Outcome:
 
-- Use `grill-with-docs` one question at a time.
-- Compare decisions against the actual Audit/Access, Project Membership, Project Version, Edition, Revision, Publication, permission, file, and portal models built in `112` through `130`.
-- Use Mintlify as a product/workflow benchmark and Fumadocs as a possible rendering/tooling boundary, not as an unquestioned product data model.
-- Verify the current Mintlify/Fumadocs behavior, licensing, extension points, and security assumptions from primary sources during this child plan rather than relying on stale research.
-- Update `CONTEXT.md` inline only as decisions settle.
-- Add ADRs only for accepted durable decisions.
-- End with an implementation-ready child-plan sequence beginning at `132`.
+- Accepted. The final model defines stable Documentation Sites, one Site
+  Edition per Project Version, relational Working Drafts and Pages, complete
+  immutable Site Revisions, exact Site Publications, private Page comments,
+  protected assets, OpenAPI Sources, stable Publish Links, and an end-to-end
+  first slice.
+- Fumadocs and Tiptap are preferred replaceable adapters after focused proof;
+  neither owns domain state, permissions, persistence, or publication.
+- The database plus protected File storage is authoritative. Git synchronization
+  and executable customer content are excluded.
+- The implementation sequence begins at child `132`; no runtime was added here.
 
-Questions that must be resolved:
+## Post-130 Facts Rechecked
 
-1. Is the primary artifact a Documentation Site, Knowledge Base, Manual, or another term?
-2. Is a Documentation Page independently versioned, or only versioned through its containing Site Edition?
-3. Can a Project Version have multiple Documentation Sites?
-4. What is the relationship among Site, Page, Navigation Tree, Edition, Revision, and Publication?
-5. Is a Publication an atomic snapshot of the entire Site, a set of page snapshots, or another manifest model?
-6. Can Pages or reusable snippets be shared across Sites/Project Versions without creating hidden live coupling?
-7. Is authoring Markdown, MDX, structured blocks, rich text, or a deliberately constrained combination?
-8. Is the source of truth database-first, Git-first, or bidirectional? What is deferred?
-9. If Git synchronization exists, how are repository credentials, webhooks, branches/PRs, conflicts, deletions, and force-pushes handled?
-10. If Fumadocs is used, which rendering/search/OpenAPI concerns may it own and which product-domain concerns must remain ours?
-11. How are unsafe MDX, embedded HTML, script execution, remote media, URL protocols, code samples, and user-authored components handled?
-12. How are navigation, ordering, folders/groups, cycles, slugs, aliases, redirects, and broken internal links modeled and validated?
-13. How does carry-forward work across Project Versions at Site, navigation, Page, and reusable-content granularity?
-14. What creates a Documentation Revision, and how are preview/review/publication snapshots produced?
-15. How do autosave, optimistic locking, concurrent edits, conflict recovery, and unsaved local changes work before real-time collaboration exists?
-16. Which access modes exist: organization-only, project members, selected groups, link-restricted, password, preview token, or public?
-17. How do stable latest URLs, project-version URLs, edition URLs, revision previews, and immutable publication URLs behave?
-18. What happens to redirects, search, links, previews, and Publications when a Project Version, Site, or Page is archived/deleted?
-19. Is search Site-scoped, Project-scoped, Organization-scoped, version-aware, or cross-artifact in the first release?
-20. How are title, description, headings, body, keywords, breadcrumbs, locale, and version labels indexed and permission-filtered?
-21. Can Documentation reuse Capture Assets and Derived/Redacted Assets directly, and how are deletion/retention/reference rules enforced?
-22. What import/export formats are in V1: Markdown folder, Git repository, ZIP, OpenAPI, or none?
-23. Are comments, review, approvals, feedback, analytics, page ownership, and change history required now or deferred?
-24. Are API reference, OpenAPI playground, generated SDK content, and interactive components in the first slice or later?
-25. Are localization and locale fallback part of the model now or explicitly deferred?
-26. What public-site SEO, canonical URL, sitemap, robots, social metadata, and custom-domain behavior is required or deferred?
-27. What caching, rendering, invalidation, publication-build, failure-recovery, and rollback model is viable for self-hosting?
-28. What operational limits are needed for page size, site size, build duration, asset size, and concurrent publication?
-29. How are audit history, soft deletion, retention, export, and organization/project deletion applied to Documentation content?
-30. What accessibility and performance targets apply to the authoring and published-reader surfaces?
-31. What are the strict MVP exclusions?
-32. Which vertical slice proves the model with the least irreversible complexity?
+- Child `129` and child `130` are complete, with no blocking S1/S2 regression.
+- The current product implements Capture, Guide, and Interactive Demo workflows,
+  Project Membership, Project Versions, relational Working Drafts, immutable
+  Revisions/Publications, multi-version Publish Links, protected Files,
+  append-only Audit/Access Evidence, and the modernized portal/browser surfaces.
+- Migrations end at `024`.
+- There are no Documentation tables, schemas, shared contracts, API routes,
+  portal routes, editor/reader dependencies, search indexes, public routes, or
+  operational navigation entries.
+- ADRs `0021` through `0026` are the valid implemented foundation. The grill's
+  original filenames for ADRs `0023` and `0026` were stale and are corrected.
+- The accepted Question `31` comments boundary is compatible with the current
+  Project Membership, relational persistence, audit privacy, and immutable
+  publication rules when implemented as private Page authoring state.
+- No code change after child `130` invalidated any of the 32 answers.
 
-Required outputs:
+## Final Decisions
 
-- accepted Documentation terms and relationships in `CONTEXT.md`;
-- a feature matrix split into first slice, V1, later, and rejected/non-goals;
-- data ownership and source-of-truth decision;
-- security/threat model for authored content, Git integration if any, previews, and public rendering;
-- Fumadocs adoption/boundary decision with version/license evidence;
-- URL, versioning, concurrency, access, search, publication, rollback, retention, and migration decisions;
-- authoring and public-reader accessibility/performance targets;
-- justified Documentation ADRs;
-- an ordered child-plan sequence beginning at `132` with the first vertical slice fully bounded.
+The authoritative detailed decisions are in
+`docs/documentation-domain-decisions.md`. In summary:
 
-Acceptance:
+- **Identity/versioning:** Project-owned Site; at most one Site Edition per
+  Project Version; resource Row Versions; complete immutable Site Revisions and
+  Site Publications.
+- **Source of truth:** explicit relational data plus protected File storage;
+  imports are mutations and exports are snapshots; no V1 Git authority.
+- **Content:** constrained typed blocks and safe Markdown interchange; no
+  customer-authored MDX, JavaScript, React, raw HTML, or arbitrary iframes.
+- **Tooling:** replaceable Tiptap authoring adapter and Fumadocs reader/search/
+  OpenAPI adapter, each gated by focused proof.
+- **Publication:** prepare complete exact-Revision material before atomic stable
+  link switch; failed preparation preserves live output; rollback repoints an
+  older immutable Publication.
+- **Access/search:** Project Membership protects internal state; Publish Link
+  policy protects outside access; search authorization precedes indexing and
+  return; public search is exact-Publication scoped.
+- **Comments:** private Project-member Page threads/replies/mentions/resolve/
+  reopen are in the first slice and excluded from Revisions/Publications.
+- **Lifecycle:** archive first, protect referenced files, retain immutable
+  history/evidence, and defer governed permanent deletion.
+- **First slice:** the Question `32` 15-step Site/OpenAPI/comment/publication/
+  search/immutability/rollback journey is child `132`.
 
-- No foundational Documentation question is hidden behind “decide during implementation.”
-- The model fits existing Project Version and publication semantics without forcing all artifact types into one content schema.
-- Publication atomicity, authoring concurrency, security, and failure recovery are explicit.
-- The first Documentation slice is small enough to implement and complete, but structurally valid for the accepted V1 direction.
-- No Documentation runtime code, tables, routes, packages, or navigation are added during the grill.
+## Durable Decisions
 
-## Expansion And Recheck Gate
+- ADR `0027`: Documentation Sites use edition-wide Revisions and Publications.
+- ADR `0028`: Documentation is database-authoritative constrained content.
+- ADR `0029`: the Documentation reader is an authorized Publication adapter.
+- ADR `0030`: Documentation comments are private authoring workspace.
 
-Before implementation:
+These ADRs build on:
 
-- [ ] Confirm every preceding child gate is complete and record the starting
-      commit and working-tree ownership.
-- [ ] Reinspect every current route, schema, migration, contract, package,
-      component, test, and operational surface named or implied by this child.
-- [ ] Replace plan-era assumptions with current runtime facts without changing
-      accepted product semantics.
-- [ ] List exact affected files and explicit out-of-scope files.
-- [ ] Define authorization, tenant isolation, lifecycle, data, API, UI, error,
-      concurrency, migration/reset/reseed, audit/access, compatibility, and
-      rollback contracts as applicable.
-- [ ] Apply the shared-package reuse gate before moving any app-local contract.
-- [ ] Define the TDD order, focused tests, broad regression checks, DB/smoke
-      coverage, and real-browser evidence required by this child.
-- [ ] Classify unresolved decisions under the repository decision policy and stop
-      only for a genuinely critical decision.
-- [ ] Record an attributable planning checkpoint before runtime implementation
-      when expansion materially changes durable plan content.
+- ADR `0021`: Project Versions are release contexts.
+- ADR `0022`: Artifacts use Editions, Revisions, and Publications.
+- ADR `0023`: comprehensive Audit and Access Evidence from day one.
+- ADR `0024`: Project Membership governs Project access.
+- ADR `0025`: core domain persistence is explicitly relational.
+- ADR `0026`: Publish Links are multi-version Artifact manifests.
 
-## Grill Checklist
+## Files Changed By This Child
 
-- [ ] Use `grill-with-docs` and resolve one consequential question at a time
-      against the implementation that actually shipped through child `130`.
-- [ ] For each question, record the recommendation, alternatives, evidence,
-      tradeoffs, reversibility, affected scope, and explicit accepted/rejected or
-      deferred outcome.
-- [ ] Verify time-sensitive Mintlify and Fumadocs behavior, versions, licenses,
-      extension points, and security assumptions from primary sources during the
-      grill.
-- [ ] Update `CONTEXT.md` only as terminology settles and add ADRs only for
-      accepted durable decisions.
-- [ ] Produce every required output, including the threat model, feature matrix,
-      ownership boundary, and ordered child sequence beginning at `132`.
-- [ ] Verify documentation formatting, links, terminology, decision coverage,
-      and the explicit absence of Documentation runtime changes.
-- [ ] Update this child status, grill record, evidence, leftovers, handoff, and
-      the parent checklist only after all 32 questions and acceptance criteria
-      are resolved.
+Canonical decision/docs:
+
+- `CONTEXT.md`
+- `docs/documentation-domain-decisions.md`
+- `docs/grill/2026-07-29-documentation-domain-grill.md`
+- `docs/adr/0027-documentation-sites-use-edition-wide-revisions-and-publications.md`
+- `docs/adr/0028-documentation-is-database-authoritative-constrained-content.md`
+- `docs/adr/0029-documentation-reader-is-an-authorized-publication-adapter.md`
+- `docs/adr/0030-documentation-comments-are-private-authoring-workspace.md`
+- `docs/plan/131-documentation-domain-grill.md`
+- `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
+
+Current-truth/handoff copy, if required by the final drift check:
+
+- `README.md`
+- `docs/roadmap.md`
+- `docs/project-zoomout-status.md`
+- `apps/docs/app/docs-content.ts`
+- `apps/docs/app/docs-content.test.ts`
+
+Explicit non-scope:
+
+- `apps/server/**`
+- `apps/web/**`
+- `apps/extension/**`
+- `packages/**`
+- `scripts/migrations/**`
+- package manifests and lockfiles
+- Product Documentation runtime routes, navigation, persistence, editor, reader,
+  search, OpenAPI runtime, comments runtime, or publication code
+- Video runtime or planning
+
+## Feature, Security, Ownership, And Compatibility Outputs
+
+The consolidated matrix and contracts are not repeated here in full:
+
+- first slice / remaining V1 / later / rejected matrix:
+  `docs/documentation-domain-decisions.md#7-feature-matrix`;
+- source-of-truth and ownership:
+  `docs/documentation-domain-decisions.md#2-source-of-truth-and-ownership`;
+- Tiptap/Fumadocs boundaries:
+  `docs/documentation-domain-decisions.md#3-authoring-and-reader-boundaries`;
+- URL/access/search/publication:
+  `docs/documentation-domain-decisions.md#4-url-access-search-and-publication-decisions`;
+- concurrency/retention/migration:
+  `docs/documentation-domain-decisions.md#5-concurrency-lifecycle-retention-and-migration`;
+- threat model:
+  `docs/documentation-domain-decisions.md#6-security-and-threat-model`;
+- accessibility/performance/limits:
+  `docs/documentation-domain-decisions.md#8-accessibility-performance-and-operational-targets`.
+
+Backward compatibility:
+
+- this child makes no runtime or persistence change;
+- Guide, Interactive Demo, existing Publication/Publish Link, extension, API,
+  portal, embed, and public routes remain unchanged;
+- accepted Documentation language is explicitly labeled target state;
+- child `132` must use additive migrations after `024`, preserve existing
+  behavior, and define clean-install/upgrade/reset/reseed evidence;
+- no legacy Documentation data migration exists because no Documentation
+  runtime exists.
+
+## Ordered Implementation Handoff
+
+1. `132 — Documentation Site First Vertical Slice`
+2. `133 — Documentation Portability, Snippets, And Assets`
+3. `134 — Documentation Version Carry-Forward And Lifecycle`
+4. `135 — Documentation Review Workflow`
+5. `136 — Documentation API Experience`
+6. `137 — Documentation V1 Hardening And Closeout`
+7. `138 — Post-V1 Documentation Decision Gate`
+
+Child `132` must be expanded and rechecked before implementation. It owns exact
+schemas, migrations, routes, API contracts, UI components, dependency pins,
+permissions, audit/access actions, errors, tests, rollback, and agent-browser
+journeys. It may refine implementation mechanics but cannot silently change the
+accepted domain semantics.
+
+## Completed Checklist
+
+- [x] Confirm child `130` completion and record the current runtime/migration
+      baseline.
+- [x] Recheck all 32 provisional answers against completed children `129`/`130`
+      and current code.
+- [x] Resolve the Question `31` comments boundary and apply it to Question `32`.
+- [x] Remove the circular child `131` sequence prerequisite.
+- [x] Correct invalid ADR `0023` and `0026` filenames.
+- [x] Separate historical provisional workshop wording from final acceptance.
+- [x] Add accepted Documentation terms and relationships to `CONTEXT.md` without
+      claiming runtime implementation.
+- [x] Record durable decisions in justified ADRs.
+- [x] Consolidate the feature matrix, source-of-truth/ownership model, threat
+      model, tooling boundaries, and URL/access/search/publication/concurrency/
+      retention/migration decisions.
+- [x] Define the complete first slice and ordered implementation sequence
+      beginning at `132`.
+- [x] Keep Documentation and Video runtime, routes, packages, schemas, and
+      navigation out of this child.
+- [x] Run focused formatting/link/terminology/decision/runtime-absence checks.
+- [x] Update the parent only for genuinely completed Master Plan `005` items.
 
 ## Grill Log
 
-Not started.
+- 2026-07-29: the 32-question one-at-a-time grill began from commit `5e78723`
+  while children `129`/`130` were still being completed elsewhere.
+- 2026-07-29: Questions `1` through `32` received attributable recommendation,
+  alternatives, tradeoffs, reversibility, affected scope, and provisional
+  outcome records.
+- 2026-07-30: the user accepted basic private Page comments in the first slice,
+  closing the reopened Questions `23`/`31` boundary and Question `32` step `8`.
+- 2026-07-30: all 32 answers were rechecked against the completed child
+  `129`/`130` repository state; no contradicting runtime change was found.
+- 2026-07-30: canonical target language, four ADRs, consolidated decisions,
+  threat/ownership/tooling boundaries, feature matrix, and children `132`–`138`
+  were finalized.
 
 ## Verification Record
 
-Not run. Verification commands and outcomes must be added during execution; this
-reservation does not claim test, database, browser, accessibility, performance,
-or extension evidence.
+Verification date: 2026-07-30
+
+Focused commands and final outcomes are recorded after the final clean pass:
+
+- `pnpm exec prettier --check` over all child-`131` Markdown and docs-app files:
+  passed.
+- repository-local Markdown link target validator over the scoped Markdown
+  files: passed, `23` local links checked.
+- invalid ADR filename, circular gate, and stale active-phase wording scans:
+  passed.
+- final acceptance ledger coverage: passed, exactly `32` accepted Question rows.
+- `git diff --check`: passed.
+- scoped diff path assertion: passed; no `apps/server`, `apps/web`,
+  `apps/extension`, `packages`, migration, package-manifest, or lockfile change.
+- `pnpm --filter docs test`: passed, `4` files / `12` tests.
+- `pnpm --filter docs lint`: passed.
+- `pnpm --filter docs check-types`: passed, including Next route type
+  generation and TypeScript.
+
+Browser validation is not required for child `131`: it intentionally changes no
+runtime UI. Child `132` must include agent-browser authoring, preview, comments,
+reader, search, publication, failure, and rollback evidence.
 
 ## Leftovers And Handoff
 
-- Grill expansion/recheck remains required.
-- Next executable child is determined by the parent sequence and verified
-  predecessor closeouts; this reservation does not advance that sequence.
+- Product Documentation runtime is not implemented.
+- Fumadocs/Tiptap versions recorded during the grill are research snapshots;
+  child `132` owns exact compatible pins, transitive review, and proofs.
+- Exact route shapes, schemas, API payloads/errors, quota defaults, and hard
+  safety ceilings are implementation mechanics owned by expanded child `132`
+  within the accepted semantics.
+- Git synchronization, translations, custom domains, public feedback/analytics,
+  permanent deletion, realtime collaboration, offline-first merge, arbitrary
+  executable content, server-side API proxying, and stored API credentials
+  remain deferred or rejected as recorded.
+- The next action is to rewrite/expand and recheck child `132`; do not implement
+  it from the sequence summary alone.

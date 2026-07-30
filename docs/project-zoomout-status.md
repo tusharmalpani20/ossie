@@ -1,14 +1,14 @@
 # Project Zoom-Out Status
 
-Last reviewed: 2026-07-29
+Last reviewed: 2026-07-30
 
 ## Product Intent
 
 Ossie is a self-hosted open-source product for capturing browser workflows and
 turning them into polished walkthrough artifacts. Its implemented foundation is
 a project-organized, Project Version-aware internal knowledge platform for the
-current Guide and Interactive Demo artifact families. Product Documentation is
-the next domain to design; Video remains later and unmodeled.
+current Guide and Interactive Demo artifact families. Product Documentation now
+has an accepted target model but no runtime; Video remains later and unmodeled.
 
 The current alpha has two authored output families:
 
@@ -141,20 +141,24 @@ a distinct evidence class.
 
 ## Recommended Next Direction
 
-Master Plan `005` has completed children `109` through `130`: repository
+Master Plan `005` has completed children `109` through `131`: repository
 workflow, naming/documentation truth, Audit and Access Evidence, Project
 Membership, Project Versions, Version-owned Captures, Guide/Demo
 Artifacts/Editions/Working Drafts/Revisions, Carry-Forward, protected Assets,
 revision-backed Publications, multi-version Publish Links, the design system,
-current workflow modernization, and cross-product browser closeout.
+current workflow modernization, cross-product browser closeout, and the
+Documentation domain grill.
 
-The next activity is the mandatory Product Documentation domain grill in child
-`131`. Runtime implementation may begin only in accepted plans starting at
-`132`.
+The next activity is to expand and recheck child `132`, the complete
+Documentation Site first vertical slice. Runtime implementation remains gated
+on that plan's exact migration, contract, permission, threat, verification, and
+agent-browser requirements.
 
 The accepted Project Version and Artifact Edition decisions are recorded in
-`CONTEXT.md`, ADRs `0021` through `0026`, the completed grill record, and
-`docs/plan/111-project-version-and-artifact-edition-grill.md`. The existing
+`CONTEXT.md`, ADRs `0021` through `0030`, the completed grill records,
+`docs/documentation-domain-decisions.md`, and their child plans. The existing
 foundation and modernized current product are implemented and verified.
 
-Product Documentation implementation begins only after child `131` and new `132+` plans. Loom-style Video remains a later direction with no accepted runtime model.
+Product Documentation runtime is not yet implemented. Its accepted plan sequence
+is `132` through `138`; Loom-style Video remains a later direction with no
+accepted runtime model.

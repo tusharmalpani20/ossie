@@ -2,8 +2,10 @@
 
 Date: 2026-07-10
 
-Status: In progress. Children `109` through `130` are complete. Child `131`,
-the Documentation Domain Grill, is next.
+Status: Complete on 2026-07-30. Children `109` through `131`, including the
+accepted Documentation Domain Grill and the implementation-ready sequence
+beginning at `132`, are complete. Product Documentation runtime remains outside
+this master plan and is not implemented.
 
 Master plan number: 005.
 
@@ -658,7 +660,9 @@ Decision-session policy:
 - Child `109` requires a provenance/install diff review, not a product-domain grill.
 - Child `110` requires an explicit naming decision and user acceptance, not a broad architecture grill.
 - Child `121` requires a focused design-context workshop and explicit acceptance of `PRODUCT.md`, `DESIGN.md`, and representative library/workbench/viewer directions before broad UI work; this is a design gate, not a Documentation-domain grill.
-- Child `131` is the next mandatory full domain grill. It must happen after the pre-Documentation closeout and before Documentation runtime planning or implementation.
+- Child `131` was the mandatory full Documentation domain grill after the
+  pre-Documentation closeout. It is complete; accepted semantics stay closed
+  unless implementation discovers a genuinely new irreversible decision.
 - Every child still begins with implementation-ready expansion and code reinspection. If that work uncovers a material contradiction or a new irreversible product choice not settled by child `111`, pause only that topic for a focused mini-grill and update the canonical docs; do not reopen accepted decisions by default.
 
 ## 13. Child Plan Index
@@ -1903,7 +1907,7 @@ Completed result:
 
 ### 131: Documentation Domain Grill
 
-Status: Not started.
+Status: Complete on 2026-07-30.
 
 Planned file:
 
@@ -1977,6 +1981,22 @@ Acceptance:
 - Publication atomicity, authoring concurrency, security, and failure recovery are explicit.
 - The first Documentation slice is small enough to implement and complete, but structurally valid for the accepted V1 direction.
 - No Documentation runtime code, tables, routes, packages, or navigation are added during the grill.
+
+Completed result:
+
+- All 32 answers were finally accepted after recheck against completed children
+  `129`/`130` and the current codebase.
+- `CONTEXT.md` now contains accepted target terms and relationships without
+  claiming runtime implementation.
+- `docs/documentation-domain-decisions.md` consolidates the feature matrix,
+  source-of-truth/ownership model, threat model, Fumadocs/Tiptap boundaries,
+  URL/access/search/publication/concurrency/retention/migration decisions, and
+  sequence `132` through `138`.
+- ADRs `0027` through `0030` record the durable Site publication, constrained
+  content, authorized reader adapter, and private-comments decisions.
+- The first implementation child is the complete end-to-end Documentation Site
+  vertical slice in `132`, including the accepted Question `31` comments proof.
+- No Documentation runtime code, table, route, package, or navigation was added.
 
 ## 14. Cross-Cutting Requirements
 
@@ -2146,9 +2166,9 @@ Mitigation: document Video as deferred and do not create Video nav, tables, pack
 - [x] Create, expand, recheck, implement, and close child plan `128`.
 - [x] Create, expand, recheck, implement, and close child plan `129`.
 - [x] Create, expand, recheck, implement, and close child plan `130`.
-- [ ] Create, conduct, document, and accept the Documentation grill in child plan `131`.
-- [ ] Produce an implementation-ready Documentation child-plan sequence beginning at `132`.
-- [ ] Run final closure against this master plan.
+- [x] Create, conduct, document, and accept the Documentation grill in child plan `131`.
+- [x] Produce an implementation-ready Documentation child-plan sequence beginning at `132`.
+- [x] Run final closure against this master plan.
 
 ## 17. Documentation Implementation Entry Gate
 
@@ -2163,6 +2183,14 @@ Documentation implementation may start only when all of the following are true:
 - Design primitives and accessibility/motion requirements are reusable by the Documentation editor and reader.
 - The Documentation source of truth, content format, renderer boundary, security model, access model, URL model, search scope, and MVP exclusions are decided.
 - The first implementation child plan starts with a vertical slice and explicit test/migration/browser criteria.
+
+Gate result on 2026-07-30:
+
+- The foundation and domain-decision portions are passed.
+- Runtime remains gated on expanding and rechecking child `132` with exact
+  migration, schema, API, UI, permission, audit/access, test, rollback,
+  dependency-proof, and agent-browser contracts against the then-current
+  codebase. The sequence summary alone does not authorize implementation.
 
 ## 18. Completion Criteria
 
@@ -2184,20 +2212,18 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-The next executable activity is child `131`, Documentation Domain Grill. Child
-`130` completed the pre-Documentation closeout on 2026-07-29: children `109`
-through `129`, current-state documentation, terminology, routes/contracts,
-schemas/packages, permissions, migrations, browser behavior, committed
-evidence, and absence of premature Documentation/Video runtime were rechecked;
-four documentation-only drift groups were corrected; the clean database,
-DB/smoke/workspace/build matrix and Chromium/direct-extension/installed-toolbar
-dogfood passed; and no S1/S2 regression remains. Child `131` must use the dated
-closeout report as its factual baseline, remain a planning/grill phase, and add
-no Product Documentation runtime code, tables, routes, packages, or navigation.
-The separate overnight-runner tooling
-checkpoint was deferred by user decision on 2026-07-19 because it was taking
-disproportionate time to build; it is optional future workflow tooling and no
-longer blocks this master-plan sequence.
+Master Plan `005` is closed. The next executable activity is to rewrite/expand
+and recheck child `132`, Documentation Site First Vertical Slice, against the
+current codebase and `docs/documentation-domain-decisions.md`. Child `132` must
+bound the complete Question `32` end-to-end flow—including the accepted private
+Page comment proof—and name exact migrations, schemas, routes, contracts,
+permissions, audit/access actions, errors, dependency pins/proofs, focused and
+broad tests, reset/reseed/rollback handling, and agent-browser journeys before
+runtime work begins.
+
+The separate overnight-runner tooling checkpoint was deferred by user decision
+on 2026-07-19 because it was taking disproportionate time to build; it is
+optional future workflow tooling and does not block the Documentation sequence.
 
 Children `109`, `110`, the deliberately early `111` grill, Audit Evidence Core
 child `112`, comprehensive existing-mutation coverage child `113`, Access
@@ -2226,7 +2252,9 @@ implementation and Interactive Demo handoff, and child `128` records its Demo
 implementation, DB/smoke/workspace/build verification, synthetic browser
 evidence, leftovers, and cross-product handoff.
 Child `129` records the final accessibility/motion/performance/browser dogfood,
-and child `130` records the complete foundation closeout and child `131`
-grill-entry result. Reserved child-plan skeletons for `112` through `131` were
-created on 2026-07-12; their existence does not advance any implementation
-gate. Sequential execution continues with child `131`.
+child `130` records the complete foundation closeout and child `131` grill-entry
+result, and child `131` records all finally accepted Documentation decisions,
+canonical outputs, and the sequence through `138`. The reserved skeletons did
+not advance gates by their existence; their completed records do. Sequential
+planning continues with child `132`, while Product Documentation runtime remains
+unimplemented.
