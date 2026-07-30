@@ -489,6 +489,19 @@ _Avoid_: Publish Link, Site Publication
 - Every **Site Publication** belongs to exactly one Site Edition and references exactly one Site Revision from that Edition
 - A Documentation **Publish Link** belongs to one Documentation Site and exposes explicitly selected immutable Site Publications using one link-wide access policy
 - A **Documentation Comment Thread** belongs to one Documentation Page, remains private authoring state, and is never included in a Site Revision or Site Publication
+- A **Documentation Package** is a versioned deterministic snapshot of one
+  Working Draft, Site Revision, or Site Publication; it is portability input,
+  not database authority or publication lineage
+- An **Import Inspection** belongs to its creating Organization Member and
+  Project Version, retains one bounded untrusted source temporarily, and never
+  mutates a Site Working Draft
+- An **Import Application** permanently records one successful atomic import
+  into one Documentation Site after the exact inspection source, fingerprint,
+  target versions, permissions, and external bindings are revalidated
+- A **package-local handle** identifies relationships only inside one
+  Documentation Package; import always allocates fresh database identities
+- Standalone Documentation Markdown is readable, create-only Page interchange;
+  it does not overwrite a Page or preserve the complete typed Site graph
 - Accepted V1 Documentation Carry-Forward will copy one selected whole
   Documentation Site from an exact Site Revision into an independent missing
   target Site Edition; it does not live-link later edits and is not shipped by

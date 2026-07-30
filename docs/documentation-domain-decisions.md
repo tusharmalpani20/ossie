@@ -2,7 +2,7 @@
 
 Date accepted: 2026-07-30
 
-Status: Accepted target model. Product Documentation runtime is not implemented.
+Status: Accepted target model, implemented through child `134` portability.
 
 Sources:
 
@@ -11,12 +11,12 @@ Sources:
 - `docs/plan/131-documentation-domain-grill.md`
 - `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 - `CONTEXT.md`
-- ADRs `0021` through `0030`
+- ADRs `0021` through `0031`
 
 This document consolidates the final answers from the 32-question Documentation
-domain grill. It is the implementation handoff for child plans beginning at
-`132`; it does not claim that any Documentation table, route, package, editor,
-reader, or navigation entry exists.
+domain grill. It remains the decision authority for the Documentation runtime
+implemented through child `134`; later child plans must preserve or explicitly
+supersede these accepted boundaries.
 
 ## 1. Accepted Domain Model
 
@@ -270,6 +270,26 @@ raw search queries.
 
 The primary language uses a standard language tag in V1. Translation state and
 fallback are deliberately later.
+
+## Shipped portability boundary
+
+Child `134` ships deterministic Documentation Package V1 and standalone
+Markdown Page interchange under ADR `0031`.
+
+- Relational Documentation and protected Files remain authoritative.
+- Import is actor-bound Inspect then atomic Apply; inspection alone cannot
+  mutate a Working Draft.
+- Whole-Site Apply creates a Site or targets an explicitly empty Site. It does
+  not merge, overwrite, checkpoint, publish, or claim source lineage.
+- Package-local handles replace database identities and resolve to fresh IDs.
+- Exact protected image and self-contained OpenAPI bytes are included and
+  revalidated; comments, access policy, Audit evidence, and private storage
+  facts are excluded.
+- Guide/Demo Publication relationships require explicit authorized rebinding.
+- Standalone Markdown is intentionally lossy and create-only. Typed JSON is
+  authoritative inside a round-trip package.
+- Git, remote URL import, live synchronization, signatures, encryption, and
+  package patches remain outside V1.
 
 ## 8. Accessibility, Performance, And Operational Targets
 

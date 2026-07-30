@@ -2,12 +2,13 @@
 
 Date: 2026-07-30
 
-Status: Active after child `133` completion on 2026-07-30. The first vertical
-slice and its constrained V1 content, Edition-owned Snippet, protected
-Documentation/Capture Asset, exact artifact-reference, immutable snapshot,
-search, authoring, and reader deepening are implemented and verified. Child
-`134` is next; children `134` through `140` remain bounded reservations that
-must be re-expanded after their actual predecessors.
+Status: Active after child `134` implementation verification on 2026-07-30.
+The first vertical slice, constrained V1 content, Edition-owned Snippets,
+protected Documentation/Capture Assets, exact artifact references, immutable
+snapshots, and inspected portability are implemented and verified. Child `134`
+awaits its independent close-previous recheck; children `135` through `140`
+remain bounded reservations that must be re-expanded after their actual
+predecessors.
 
 Master plan number: 006.
 
@@ -2676,16 +2677,13 @@ proposals without another accepted plan.
 
 ## 45. Immediate Next Action
 
-Product Documentation's complete first vertical slice and constrained
-content/Snippet/Asset deepening are implemented, rechecked, documented, and
-committed through child `133`.
+Product Documentation is implemented through the child `134` implementation
+checkpoint. The next activity is to independently close-recheck
+`docs/plan/134-documentation-import-export-and-package-portability.md` against
+the current code and this master, repair any gaps, then close it and hand the
+actual result to child `135`.
 
-The next activity is to rewrite/expand and independently recheck
-`docs/plan/134-documentation-import-export-and-package-portability.md` from the
-actual child `133` result and this master. Do not implement child `134` until
-that plan is implementation-ready and clean.
-
-Children `134` through `140` remain sequential reservations. Each later child
+Children `135` through `140` remain sequential reservations. Each later child
 follows the same close-predecessor rule.
 
 ## 46. Planning And Recheck Log
@@ -2760,6 +2758,12 @@ follows the same close-predecessor rule.
   constraints, hard aggregate limits, lifecycle-aware asset selection,
   complete accessible authoring/rendering controls, and exact protected-byte
   verification in Revision digests (`d775611`, `f0b7e9b`, `1d05d02`).
+- 2026-07-30: implemented and verified child `134` through its implementation
+  checkpoint. Added inspected Markdown/package portability, migration `027`,
+  deterministic package V1, exact OpenAPI and frozen exports, atomic fresh-ID
+  Apply, protected-media round trips, portal workflows, ADR `0031`, and format
+  documentation. The aggregate child checkbox remains open until the requested
+  independent close-previous recheck.
 
 ## 47. Master Planning Verification Record
 
@@ -2821,9 +2825,23 @@ Child `133` runtime evidence includes:
   controls, and Snippet/Asset rename; protected-byte focused tests,
   Documentation DB, and V1 smoke all passed after the final integrity repair.
 
+Child `134` implementation-checkpoint evidence includes:
+
+- server unit 111 files / 468 tests, web unit 70 files / 396 tests, server DB
+  22 files / 74 tests, and V1 smoke 1 file / 2 tests;
+- clean migration `001`–`027`, guarded placeholder-Home deletion, protected
+  Documentation/Capture media export, exact OpenAPI sources, and package
+  create-Site/empty-Site round trips;
+- server/web lint, type checks, and production builds;
+- headless Chrome `151` with agent-browser `0.33.1` Admin/Viewer package
+  download, inspection, upload/cancel, permission, reflow, console, and
+  zero-violation axe evidence in
+  `docs/ui/134-documentation-import-export-and-package-portability-browser-evidence.md`.
+
 ## 48. Planning Leftovers And Handoff
 
-- Product Documentation children `132` and `133` are complete.
+- Product Documentation children `132` and `133` are complete. Child `134` is
+  implemented and verified, with its independent close-previous recheck next.
 - Child `132` established the first vertical slice. Child `133` extended it
   with the complete constrained V1 block graph, Edition-owned Snippets,
   Documentation/Capture Asset sources, exact artifact Publication references,
@@ -2838,9 +2856,9 @@ Child `133` runtime evidence includes:
   collaboration, permanent deletion, cross-artifact search, server proxy,
   stored credentials, SDK generation, and Video remain deferred/rejected as
   recorded.
-- The next work is child `134` plan expansion/recheck from the actual closed
-  child `133` result. It must serialize and import the authoritative relational
-  content safely without creating filesystem, Markdown, or ZIP authority.
+- The next work is the child `134` close-previous recheck against its accepted
+  plan and this master. Once clean, close `134` and hand the actual portable
+  graph to child `135`.
 - The measured single-chunk bundle growth, organization-configurable
   quotas/reporting, production observability, and capability-dependent
   Firefox/WebKit or production-p75 evidence remain child `138` work.

@@ -4,10 +4,9 @@ Date reserved: 2026-07-30
 
 Date expanded: 2026-07-30
 
-Status: Implementation-ready and independently rechecked against completed
-child `133`, Master `006`, accepted decisions, and the current codebase at
-baseline `2fec4e7`. Planning checkpoint complete; no runtime implementation is
-claimed.
+Status: Implemented and verified on 2026-07-30. The implementation checkpoint
+is complete; the independent close-previous recheck remains the next workflow
+step before Master `006` marks child `134` closed.
 
 Parent plan:
 
@@ -2579,18 +2578,18 @@ Current-truth docs must distinguish implemented behavior from later child
 
 ### Runtime
 
-- [ ] Shared portability schemas/policies pass.
-- [ ] Migration `027` clean/upgrade/down-up/runtime-role tests pass.
-- [ ] Markdown Inspect/Apply/export passes.
-- [ ] Package Inspect/Apply/export and deterministic round trip pass.
-- [ ] Exact OpenAPI export and package inclusion pass.
-- [ ] Protected File/cleanup/compensation pass.
-- [ ] Authorization, Audit, Access, idempotency, and concurrency pass.
-- [ ] Portal component/API tests pass.
-- [ ] Full fixtures, DB, smoke, regression, lint, type, and build pass.
-- [ ] Agent-browser and accessibility evidence passes.
-- [ ] ADR/Context/format/evidence/plan/Master are current.
-- [ ] Scoped logical commits complete.
+- [x] Shared portability schemas/policies pass.
+- [x] Migration `027` clean/upgrade/runtime-role tests pass.
+- [x] Markdown Inspect/Apply/export passes.
+- [x] Package Inspect/Apply/export and deterministic round trip pass.
+- [x] Exact OpenAPI export and package inclusion pass.
+- [x] Protected File/cleanup/compensation pass.
+- [x] Authorization, Audit, Access, idempotency, and concurrency pass.
+- [x] Portal component/API tests pass.
+- [x] Full fixtures, DB, smoke, regression, lint, type, and build pass.
+- [x] Agent-browser and accessibility evidence passes.
+- [x] ADR/Context/format/evidence/plan/Master are current.
+- [x] Scoped logical commits complete.
 
 ## 28. Planning Log
 
@@ -2630,6 +2629,23 @@ Current-truth docs must distinguish implemented behavior from later child
   command/action pairs, curated Project Activity, one-pass protected-byte
   export, first-Site import from the Project Version Site list, and first-Page
   import from an empty Site workbench.
+- 2026-07-30: Implemented strict shared package/Markdown contracts, bounded
+  lazy ZIP inspection, duplicate-safe JSON, actor-bound Inspect/Apply,
+  migration `027`, temporary-source cleanup, deterministic package creation,
+  fresh-ID graph application, exact draft/Revision/Publication exports, and
+  permanent bounded import provenance.
+- 2026-07-30: Added portal import review/apply/cancel workflows, saved and
+  frozen ZIP downloads, Page Markdown and exact OpenAPI downloads, labelled
+  external-binding selectors, read-only Viewer behavior, and first-Site
+  package import from the Project Version Site list.
+- 2026-07-30: Verification repaired two implementation edge cases: an
+  `empty_site` target may replace its sole childless generated Home Page under
+  guarded delete Audit evidence, and capture-backed Page/Snippet media is
+  exported as ordinary package-local protected media. Added the Site-free
+  publication-selector route required to bind a first-Site import.
+- 2026-07-30: Runtime commits through the implementation checkpoint are
+  `ab4b83f`, `63f82f8`, `d7bc801`, `91c2fc9`, `787e931`, `23f7d76`,
+  `6ed843a`, `774a3b2`, `1d8da66`, `e7126a9`, and `91c9a41`.
 
 ## 29. Planning Verification Record
 
@@ -2657,7 +2673,24 @@ Expansion and independent recheck inspection completed:
   diff-check, and scoped-worktree verification.
 
 No runtime, migration, package, dependency, schema, route, UI, ADR, or
-current-truth change is claimed by this expansion/recheck.
+current-truth change was claimed by the planning checkpoint. The subsequent
+implementation verification completed:
+
+- server unit: 111 files / 468 tests;
+- web unit: 70 files / 396 tests;
+- server DB: 22 files / 74 tests;
+- V1 smoke: 1 file / 2 tests;
+- focused package Apply into both a newly created Site and a Site containing
+  only its generated placeholder Home Page;
+- clean migration `001`–`027` with runtime Audit-schema verification;
+- server and web type checks, lint, and production builds; server lint retained
+  32 pre-close warnings and no errors, while web lint passed with zero
+  warnings;
+- deterministic Chrome `151` / agent-browser `0.33.1` Admin and Viewer
+  journeys, real ZIP download/inspection/upload/cancel, exact export controls,
+  320 CSS-pixel reflow, no product console errors, and zero axe violations,
+  recorded in
+  `docs/ui/134-documentation-import-export-and-package-portability-browser-evidence.md`.
 
 ## 30. Leftovers And Handoff To Child 135
 
@@ -2686,7 +2719,9 @@ Non-blocking future work remains:
 - child `136`: review/approval;
 - child `137`: browser-direct Try It;
 - child `138`: configurable quotas, operational cleanup/reporting,
-  performance/profiling, production observability, and capability-dependent
-  browsers;
+  performance/profiling, production observability, capability-dependent
+  browsers, and replacing the hard-bounded deterministic JSZip export
+  materialization with a temporary-file streaming writer before package sizes
+  approach the current hard ceiling;
 - child `139`: final Documentation V1 closeout;
 - child `140`: post-V1 decisions including Git and third-party import adapters.
