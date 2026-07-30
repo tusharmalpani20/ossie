@@ -32,6 +32,8 @@ import { ProjectCarryForwardPage } from "./features/artifact-carry-forward/Proje
 import { DesignSystemReviewPage } from "./features/design-system/DesignSystemReviewPage";
 import { ProjectDocumentationSiteListPage } from "./features/documentation/ProjectDocumentationSiteListPage";
 import { DocumentationPageEditor } from "./features/documentation/DocumentationPageEditor";
+import { DocumentationSiteEditorPage } from "./features/documentation/DocumentationSiteEditorPage";
+import { PublicDocumentationReaderPage } from "./features/documentation/PublicDocumentationReaderPage";
 import { shouldRenderDesignSystemReview } from "./appRouteGuards";
 import {
   getProject,
@@ -231,6 +233,16 @@ export default function App() {
         slug={route.slug}
         versionSlug={route.versionSlug}
         mode="embed"
+      />
+    );
+  }
+
+  if (route.type === "public_documentation_reader") {
+    return (
+      <PublicDocumentationReaderPage
+        slug={route.slug}
+        versionSlug={route.versionSlug}
+        pagePath={route.pagePath}
       />
     );
   }
@@ -575,6 +587,36 @@ export default function App() {
               project.status === "active" &&
               selected.status === "active" &&
               project.access.role !== "viewer"
+            }
+          />
+        )}
+      </ProjectVersionRouteBoundary>
+    );
+  }
+
+  if (route.type === "documentation_site_editor") {
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+        activeSection="documentation"
+        currentLabel="Documentation Site"
+      >
+        {({ project, selected }) => (
+          <DocumentationSiteEditorPage
+            projectId={route.projectId}
+            versionSlug={route.versionSlug}
+            siteId={route.siteId}
+            canWrite={
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role !== "viewer"
+            }
+            canPublish={
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role === "project_admin"
             }
           />
         )}

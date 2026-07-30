@@ -81,4 +81,42 @@ describe("DocumentationPageEditor", () => {
       screen.queryByRole("button", { name: "Save Page" }),
     ).not.toBeInTheDocument();
   });
+
+  it("autosaves and preserves local work when the server reports a conflict", async () => {
+    const savePage = vi.fn(async () => {
+      throw new Error("conflict");
+    });
+    render(
+      <DocumentationPageEditor
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        pageId="page"
+        canWrite
+        autosaveDelayMs={10}
+        loadPage={async () => ({
+          page: {
+            id: "page",
+            title: "Home",
+            canonical_path: "home",
+            version: 1,
+            blocks: [
+              {
+                id: "block",
+                kind: "paragraph",
+                position: 1,
+                expected_version: 1,
+                text: "Initial copy",
+              },
+            ],
+          },
+        })}
+        savePage={savePage}
+      />,
+    );
+    const text = await screen.findByLabelText("Paragraph text");
+    fireEvent.change(text, { target: { value: "Unsaved local copy" } });
+    expect(await screen.findByText("Conflict — local work is preserved")).toBeInTheDocument();
+    expect(text).toHaveValue("Unsaved local copy");
+  });
 });

@@ -62,6 +62,36 @@ const jsonResponse = (body: unknown) =>
   });
 
 describe("App public routes", () => {
+  it("renders public Documentation routes without portal navigation", async () => {
+    window.history.pushState({}, "", "/docs/product-docs/install");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse({
+          site: { name: "Product docs", description: null },
+          revision: { primary_language: "en-US", home_page_id: "page" },
+          pages: [{ id: "page", title: "Install", canonical_path: "install" }],
+          navigation: [],
+          openapi_operations: [],
+          page: {
+            id: "page",
+            title: "Install",
+            description: null,
+            canonical_path: "install",
+            blocks: [],
+          },
+        }),
+      ),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Install" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Ossie portal")).not.toBeInTheDocument();
+  });
+
   it("renders public guide reader routes without portal navigation", async () => {
     window.history.pushState({}, "", "/p/abc123");
     const fetch = vi.fn(async () => jsonResponse(publicGuideResponse));

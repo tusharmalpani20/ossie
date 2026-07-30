@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
 import { Textarea } from "@repo/ui/textarea";
 import { Label } from "@repo/ui/label";
@@ -17,6 +17,7 @@ type Props = {
   canWrite: boolean;
   loadPage?: typeof getDocumentationPage;
   savePage?: typeof saveDocumentationPage;
+  autosaveDelayMs?: number;
 };
 
 export const DocumentationPageEditor = ({
@@ -27,6 +28,7 @@ export const DocumentationPageEditor = ({
   canWrite,
   loadPage = getDocumentationPage,
   savePage = saveDocumentationPage,
+  autosaveDelayMs = 800,
 }: Props) => {
   const [page, setPage] = useState<DocumentationPage | null>(null);
   const [blocks, setBlocks] = useState<DocumentationBlock[]>([]);
@@ -51,22 +53,8 @@ export const DocumentationPageEditor = ({
     };
   }, [loadPage, pageId, projectId, siteId, versionSlug]);
 
-  if (!page) return <p role="status">Loading Documentation Page…</p>;
-  const paragraph = blocks.find(
-    (block): block is Extract<DocumentationBlock, { kind: "paragraph" }> =>
-      block.kind === "paragraph",
-  );
-
-  const updateParagraph = (text: string) => {
-    setBlocks((current) =>
-      current.map((block) =>
-        block.kind === "paragraph" ? { ...block, text } : block,
-      ),
-    );
-    setSaveState("unsaved");
-  };
-
-  const save = async () => {
+  const save = useCallback(async () => {
+    if (!page) return;
     setSaveState("saving");
     try {
       const result = await savePage(
@@ -82,6 +70,29 @@ export const DocumentationPageEditor = ({
     } catch {
       setSaveState("conflict");
     }
+  }, [blocks, page, pageId, projectId, savePage, siteId, versionSlug]);
+
+  useEffect(() => {
+    if (!canWrite || saveState !== "unsaved") return;
+    const timeout = window.setTimeout(() => {
+      void save();
+    }, autosaveDelayMs);
+    return () => window.clearTimeout(timeout);
+  }, [autosaveDelayMs, canWrite, save, saveState]);
+
+  if (!page) return <p role="status">Loading Documentation Page…</p>;
+  const paragraph = blocks.find(
+    (block): block is Extract<DocumentationBlock, { kind: "paragraph" }> =>
+      block.kind === "paragraph",
+  );
+
+  const updateParagraph = (text: string) => {
+    setBlocks((current) =>
+      current.map((block) =>
+        block.kind === "paragraph" ? { ...block, text } : block,
+      ),
+    );
+    setSaveState("unsaved");
   };
 
   return (
@@ -109,7 +120,7 @@ export const DocumentationPageEditor = ({
                 ? "Page could not be loaded"
                 : "Saved"}
       </p>
-      {canWrite ? <Button onClick={save}>Save Page</Button> : null}
+      {canWrite ? <Button onClick={() => void save()}>Save Page</Button> : null}
     </main>
   );
 };
