@@ -9,3 +9,6 @@ export * from "./policies/documentation-revision-policy";
 export * from "./policies/documentation-routing-policy";
 export * from "./policies/documentation-search-policy";
 export * from "./policies/documentation-site-policy";
+export * from "./policies/documentation-snippet-policy";
+export * from "./policies/documentation-asset-policy";
+export * from "./policies/documentation-artifact-reference-policy";

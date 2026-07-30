@@ -13,6 +13,11 @@ import {
   DocumentationCreatePublicationRequestSchema,
   DocumentationRollbackPublicationRequestSchema,
   DocumentationApplyOpenApiRequestSchema,
+  DocumentationSnippetBlockSchema,
+  DocumentationSnippetContentRequestSchema,
+  DocumentationCreateSnippetRequestSchema,
+  DocumentationAssetSourceSchema,
+  DocumentationAssetLifecycleRequestSchema,
 } from "./documentation";
 
 describe("Documentation shared contracts", () => {
@@ -248,5 +253,113 @@ describe("Documentation shared contracts", () => {
         ],
       }),
     ).toThrow();
+  });
+
+  it("parses every remaining typed V1 content family strictly", () => {
+    const blocks = [
+      {
+        id: "01J00000000000000000000001",
+        kind: "quote",
+        text: "**Important**",
+        attribution: "Ossie",
+        position: 1,
+        expected_version: null,
+      },
+      {
+        id: "01J00000000000000000000002",
+        kind: "callout",
+        tone: "warning",
+        title: "Before you continue",
+        text: "Save your work.",
+        position: 2,
+        expected_version: null,
+      },
+      {
+        id: "01J00000000000000000000003",
+        kind: "snippet_reference",
+        snippet_id: "01J00000000000000000000004",
+        position: 3,
+        expected_version: null,
+      },
+      {
+        id: "01J00000000000000000000005",
+        kind: "image",
+        source: {
+          kind: "capture_asset",
+          id: "01J00000000000000000000006",
+        },
+        alt_text: "Settings page",
+        caption: null,
+        position: 4,
+        expected_version: null,
+      },
+    ];
+    for (const block of blocks)
+      expect(DocumentationBlockSchema.safeParse(block).success).toBe(true);
+    expect(
+      DocumentationBlockSchema.safeParse({ ...blocks[1], unexpected: true })
+        .success,
+    ).toBe(false);
+  });
+
+  it("forbids snippet nesting in the shared Snippet block union", () => {
+    expect(
+      DocumentationSnippetBlockSchema.safeParse({
+        id: "01J00000000000000000000001",
+        kind: "snippet_reference",
+        snippet_id: "01J00000000000000000000002",
+        position: 1,
+        expected_version: null,
+      }).success,
+    ).toBe(false);
+    expect(
+      DocumentationSnippetContentRequestSchema.safeParse({
+        expected_snippet_version: 2,
+        blocks: [
+          {
+            id: "01J00000000000000000000003",
+            kind: "paragraph",
+            text: "Shared warning",
+            position: 1,
+            expected_version: null,
+          },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("uses strict versioned Snippet and Asset commands", () => {
+    expect(
+      DocumentationCreateSnippetRequestSchema.safeParse({
+        name: "Authentication warning",
+      }).success,
+    ).toBe(true);
+    expect(
+      DocumentationAssetLifecycleRequestSchema.safeParse({
+        expected_version: 2,
+        transition: "archive",
+      }).success,
+    ).toBe(true);
+    expect(
+      DocumentationAssetLifecycleRequestSchema.safeParse({
+        expected_version: 2,
+        transition: "delete",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects the unimplemented derived asset source", () => {
+    expect(
+      DocumentationAssetSourceSchema.safeParse({
+        kind: "documentation_asset",
+        id: "01J00000000000000000000001",
+      }).success,
+    ).toBe(true);
+    expect(
+      DocumentationAssetSourceSchema.safeParse({
+        kind: "derived_asset",
+        id: "01J00000000000000000000001",
+      }).success,
+    ).toBe(false);
   });
 });
