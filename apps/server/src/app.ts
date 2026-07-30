@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Readable } from "node:stream";
 import { ulid } from "ulid";
 import sharp from "sharp";
@@ -151,15 +152,23 @@ import {
 import { build_documentation_repository } from "./modules/documentation/documentation.repository.js";
 import { build_documentation_service } from "./modules/documentation/documentation.service.js";
 import { parse_documentation_openapi } from "./modules/documentation/documentation-openapi.js";
+import { inspect_documentation_markdown } from "./modules/documentation/documentation-markdown.js";
+import { inspect_documentation_site_package } from "./modules/documentation/documentation-package.js";
 import {
   assert_documentation_image_dimensions,
   assert_documentation_image_format,
 } from "./modules/documentation/documentation-asset.js";
 import { validate_documentation_asset_bytes } from "./modules/documentation/documentation-asset-integrity.js";
 import {
+  canonicalize_documentation_package_json,
   normalize_documentation_blocks,
   validate_documentation_snippet_blocks,
 } from "@repo/documentation-domain";
+import {
+  DOCUMENTATION_IMPORT_LIFETIME_MS,
+  DOCUMENTATION_MARKDOWN_UPLOAD_MAX_BYTES,
+  DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
+} from "@repo/constants";
 
 type BuildOptions = FastifyServerOptions & {
   public_instance_service?: PublicInstanceRouteService;
@@ -1352,6 +1361,312 @@ export const build = (opts: BuildOptions = {}) => {
                 size_bytes: stored.size_bytes,
                 mime_type: file.mime_type,
               };
+            },
+            authorize_portability: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: input.capability,
+              });
+            },
+            inspect_import: async (input) => {
+              const inspection_id = ulid();
+              const file_id = ulid();
+              const stored = await default_capture_file_storage.put({
+                organization_id: input.organization_id,
+                project_id: input.project_id,
+                documentation_import_inspection_id: inspection_id,
+                file_id,
+                mime_type: input.mime_type,
+                stream: input.stream,
+                max_size_bytes:
+                  input.kind === "page_markdown"
+                    ? DOCUMENTATION_MARKDOWN_UPLOAD_MAX_BYTES
+                    : DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
+              });
+              try {
+                let content_fingerprint: string;
+                let safe_report: Record<string, unknown>;
+                if (input.kind === "page_markdown") {
+                  const source = await default_capture_file_storage.get(stored);
+                  const chunks: Buffer[] = [];
+                  for await (const chunk of source.stream as AsyncIterable<
+                    Buffer | string
+                  >)
+                    chunks.push(
+                      Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+                    );
+                  const parsed = inspect_documentation_markdown(
+                    Buffer.concat(chunks),
+                    {
+                      filename_stem: input.original_name.replace(/\.md$/iu, ""),
+                    },
+                  );
+                  content_fingerprint = createHash("sha256")
+                    .update(
+                      canonicalize_documentation_package_json(parsed.blocks),
+                    )
+                    .digest("hex");
+                  safe_report = {
+                    summary: {
+                      pages: 1,
+                      snippets: 0,
+                      assets: 0,
+                      openapi_sources: 0,
+                      external_bindings: 0,
+                      expanded_bytes: stored.size_bytes,
+                    },
+                    proposal: {
+                      package_profile: null,
+                      claimed_source_kind: null,
+                      title: parsed.title,
+                      canonical_path: parsed.canonical_path,
+                      site_name: null,
+                      site_description: null,
+                      primary_language: null,
+                      home_page_handle: null,
+                      pages: [],
+                      required_bindings: [],
+                    },
+                    issues: [],
+                    issue_counts: { blocking: 0, warnings: 0 },
+                    has_blocking_issues: false,
+                    issues_truncated: false,
+                  };
+                } else {
+                  const parsed = await inspect_documentation_site_package(
+                    default_capture_file_storage.resolve_internal_path(stored),
+                  );
+                  content_fingerprint = parsed.manifest.content_fingerprint;
+                  safe_report = {
+                    summary: {
+                      pages: parsed.counts.pages,
+                      snippets: parsed.counts.snippets,
+                      assets: parsed.counts.assets,
+                      openapi_sources: parsed.counts.openapi_sources,
+                      external_bindings: parsed.counts.external_bindings,
+                      expanded_bytes: parsed.archive.expanded_bytes,
+                    },
+                    proposal: {
+                      package_profile: parsed.manifest.profile,
+                      claimed_source_kind: parsed.manifest.source.kind,
+                      title: null,
+                      canonical_path: null,
+                      site_name: parsed.site.site.name,
+                      site_description: parsed.site.site.description,
+                      primary_language: parsed.site.site.primary_language,
+                      home_page_handle: parsed.site.home_page_handle,
+                      pages: parsed.site.pages.map(
+                        ({ handle, title, canonical_path }) => ({
+                          handle,
+                          title,
+                          canonical_path,
+                        }),
+                      ),
+                      required_bindings: parsed.site.external_bindings,
+                    },
+                    issues: [],
+                    issue_counts: { blocking: 0, warnings: 0 },
+                    has_blocking_issues: false,
+                    issues_truncated: false,
+                  };
+                }
+                const persisted =
+                  (await repository.create_import_inspection({
+                    ...input,
+                    inspection_id,
+                    file_id,
+                    source_file: {
+                      ...stored,
+                      mime_type: input.mime_type,
+                    },
+                    content_fingerprint,
+                    safe_report,
+                    expires_at: new Date(
+                      Date.now() + DOCUMENTATION_IMPORT_LIFETIME_MS,
+                    ),
+                  })) as unknown as Record<string, unknown> & {
+                    id: string;
+                    safe_report?: Record<string, unknown>;
+                  };
+                if (persisted.id !== inspection_id)
+                  await default_capture_file_storage.delete_best_effort(stored);
+                const { safe_report: report = safe_report, ...inspection } =
+                  persisted;
+                return {
+                  ...inspection,
+                  format_version: input.kind === "site_package" ? 1 : null,
+                  ...report,
+                };
+              } catch (error) {
+                await default_capture_file_storage.delete_best_effort(stored);
+                throw error;
+              }
+            },
+            get_import_inspection: async (input) => {
+              const inspection = (await repository.get_import_inspection(
+                input,
+              )) as
+                | (Record<string, unknown> & {
+                    safe_report: Record<string, unknown> | null;
+                  })
+                | null;
+              if (!inspection) return null;
+              const {
+                safe_report,
+                source_file_id: _sourceFileId,
+                storage_provider: _storageProvider,
+                storage_key: _storageKey,
+                ...safe
+              } = inspection;
+              return safe_report ? { ...safe, ...safe_report } : safe;
+            },
+            cancel_import_inspection: async (input) => {
+              const inspection = (await repository.get_import_inspection(
+                input,
+              )) as
+                | {
+                    storage_provider?: string;
+                    storage_key?: string;
+                  }
+                | null;
+              const result =
+                await repository.cancel_import_inspection(input);
+              if (
+                inspection?.storage_provider === "local" &&
+                inspection.storage_key
+              )
+                await default_capture_file_storage.delete_best_effort({
+                  storage_key: inspection.storage_key,
+                });
+              return result;
+            },
+            apply_import: async (input) => {
+              const inspection = (await repository.get_import_inspection(
+                input,
+              )) as
+                | {
+                    kind: "page_markdown" | "site_package";
+                    status: string;
+                    source_digest: string;
+                    content_fingerprint: string;
+                    storage_provider: string;
+                    storage_key: string;
+                  }
+                | null;
+              if (
+                !inspection ||
+                inspection.storage_provider !== "local" ||
+                inspection.status !== "ready"
+              ) {
+                const error = new Error(
+                  "Documentation import inspection is unavailable",
+                );
+                Object.assign(error, {
+                  code: inspection
+                    ? "documentation_import_not_ready"
+                    : "documentation_import_not_found",
+                });
+                throw error;
+              }
+              if (
+                input.data.content_fingerprint !==
+                inspection.content_fingerprint
+              ) {
+                const error = new Error(
+                  "Documentation import fingerprint changed",
+                );
+                Object.assign(error, {
+                  code: "documentation_import_conflict",
+                });
+                throw error;
+              }
+              if (
+                inspection.kind !== "page_markdown" ||
+                input.data.target.mode !== "page" ||
+                input.data.external_bindings.length !== 0
+              ) {
+                const error = new Error(
+                  "Documentation import target does not match its source",
+                );
+                Object.assign(error, {
+                  code: "documentation_import_conflict",
+                });
+                throw error;
+              }
+              const source =
+                await default_capture_file_storage.get(inspection);
+              const chunks: Buffer[] = [];
+              for await (const chunk of source.stream as AsyncIterable<
+                Buffer | string
+              >)
+                chunks.push(
+                  Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+                );
+              const bytes = Buffer.concat(chunks);
+              if (
+                createHash("sha256").update(bytes).digest("hex") !==
+                inspection.source_digest
+              ) {
+                const error = new Error(
+                  "Documentation import source bytes changed",
+                );
+                Object.assign(error, {
+                  code: "documentation_import_conflict",
+                });
+                throw error;
+              }
+              const parsed = inspect_documentation_markdown(bytes, {
+                filename_stem: "imported-page",
+              });
+              const fingerprint = createHash("sha256")
+                .update(canonicalize_documentation_package_json(parsed.blocks))
+                .digest("hex");
+              if (fingerprint !== inspection.content_fingerprint) {
+                const error = new Error(
+                  "Documentation import content changed",
+                );
+                Object.assign(error, {
+                  code: "documentation_import_conflict",
+                });
+                throw error;
+              }
+              const blocks = parsed.blocks.map((block) => ({
+                ...block,
+                id: ulid(),
+                target_block_id: null,
+                ...("items" in block && Array.isArray(block.items)
+                  ? {
+                      items: block.items.map((item) => ({
+                        ...item,
+                        id: ulid(),
+                      })),
+                    }
+                  : {}),
+              }));
+              const result = await repository.apply_markdown_import({
+                organization_id: input.organization_id,
+                project_id: input.project_id,
+                project_version_id: input.project_version_id,
+                actor_org_user_id: input.actor_org_user_id,
+                idempotency_key: input.idempotency_key,
+                inspection_id: input.inspection_id,
+                content_fingerprint: input.data.content_fingerprint,
+                site_id: input.data.target.site_id,
+                expected_draft_version:
+                  input.data.target.expected_draft_version,
+                title: input.data.target.title,
+                canonical_path: input.data.target.canonical_path,
+                set_as_home: input.data.target.set_as_home,
+                blocks,
+              });
+              await default_capture_file_storage.delete_best_effort(
+                inspection,
+              );
+              return result;
             },
             inspect_openapi: async (input) => {
               await project_access_service.authorize({

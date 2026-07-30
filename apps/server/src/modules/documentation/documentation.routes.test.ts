@@ -46,6 +46,11 @@ const documentation_service_stubs = (
   create_publication: vi.fn(),
   rollback_publication: vi.fn(),
   resolve_public_site: vi.fn(),
+  authorize_portability: vi.fn(),
+  inspect_import: vi.fn(),
+  get_import_inspection: vi.fn(),
+  cancel_import_inspection: vi.fn(),
+  apply_import: vi.fn(),
   inspect_openapi: vi.fn(),
   apply_openapi_source: vi.fn(),
   get_openapi_source: vi.fn(),
@@ -98,6 +103,115 @@ const build_test_app = async (overrides?: {
 };
 
 describe("Documentation routes", () => {
+  it("authorizes before streaming one portable Markdown inspection", async () => {
+    const order: string[] = [];
+    const authorize_portability = vi.fn(async () => {
+      order.push("authorize");
+    });
+    const inspect_import = vi.fn(async (input) => {
+      order.push("inspect");
+      const chunks: Buffer[] = [];
+      for await (const chunk of input.stream)
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      expect(Buffer.concat(chunks).toString("utf8")).toContain("# Start");
+      return { id: "inspection", status: "ready" };
+    });
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(multipart);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          authorize_portability,
+          inspect_import,
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const boundary = "documentation-import-test";
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project/versions/main/documentation-import-inspections?kind=page_markdown",
+      cookies: { ossie_session: "session" },
+      headers: {
+        "idempotency-key": "inspect-1",
+        "content-type": `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="start.md"\r\nContent-Type: text/markdown\r\n\r\n# Start\r\n\r\nHello\r\n--${boundary}--\r\n`,
+      ),
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({
+      inspection: { id: "inspection", status: "ready" },
+    });
+    expect(order).toEqual(["authorize", "inspect"]);
+    expect(inspect_import).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "page_markdown",
+        mime_type: "text/markdown",
+        original_name: "start.md",
+      }),
+    );
+  });
+
+  it("applies an inspected import through the strict target contract", async () => {
+    const apply_import = vi.fn(async () => ({
+      id: "application",
+      inspection_id: "inspection",
+      target_site_id: "site",
+      target_edition_id: "edition",
+      created_page_id: "page",
+      counts: { pages: 1 },
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({ apply_import }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project/versions/main/documentation-import-inspections/inspection/apply",
+      cookies: { ossie_session: "session" },
+      headers: { "idempotency-key": "apply-1" },
+      payload: {
+        content_fingerprint: "b".repeat(64),
+        target: {
+          mode: "page",
+          site_id: "site",
+          expected_draft_version: 3,
+          title: "Start",
+          canonical_path: "start",
+          set_as_home: false,
+        },
+        external_bindings: [],
+        confirm: true,
+      },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({
+      application: { id: "application", inspection_id: "inspection" },
+    });
+    expect(apply_import).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inspection_id: "inspection",
+        idempotency_key: "apply-1",
+        data: expect.objectContaining({
+          target: expect.objectContaining({ mode: "page" }),
+        }),
+      }),
+    );
+  });
+
   it("creates one version-scoped Site from a strict request", async () => {
     const create_site = vi.fn(async () => ({
       site: { id: "site", name: "Product docs" },

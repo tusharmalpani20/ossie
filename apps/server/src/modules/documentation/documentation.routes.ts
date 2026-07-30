@@ -17,6 +17,7 @@ import {
   DocumentationCreateRevisionRequestSchema,
   DocumentationRollbackPublicationRequestSchema,
   DocumentationApplyOpenApiRequestSchema,
+  DocumentationImportApplyRequestSchema,
   DocumentationAssetLifecycleRequestSchema,
   DocumentationAssetUpdateRequestSchema,
   DocumentationCreateSnippetRequestSchema,
@@ -25,6 +26,10 @@ import {
   DocumentationUpdateSnippetRequestSchema,
   RevokePublishLinkRequestSchema,
 } from "@repo/types";
+import {
+  DOCUMENTATION_MARKDOWN_UPLOAD_MAX_BYTES,
+  DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
+} from "@repo/constants";
 import {
   normalize_documentation_blocks,
   normalize_documentation_path,
@@ -55,6 +60,12 @@ const IdempotencyKeySchema = z
 const SiteParamsSchema = ParamsSchema.extend({
   site_id: z.string().trim().min(1),
 }).strict();
+const ImportInspectionParamsSchema = ParamsSchema.extend({
+  inspection_id: z.string().trim().min(1),
+}).strict();
+const ImportInspectionQuerySchema = z
+  .object({ kind: z.enum(["page_markdown", "site_package"]) })
+  .strict();
 const PageParamsSchema = SiteParamsSchema.extend({
   page_id: z.string().trim().min(1),
 }).strict();
@@ -334,6 +345,51 @@ export type DocumentationRouteDependencies = {
       version_slug: string | null;
       viewer_token?: string;
     }) => Promise<unknown>;
+    authorize_portability: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      capability:
+        | "documentation.read"
+        | "documentation.write"
+        | "documentation.site.manage";
+    }) => Promise<void>;
+    inspect_import: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      idempotency_key: string;
+      kind: "page_markdown" | "site_package";
+      stream: NodeJS.ReadableStream;
+      mime_type: "text/markdown" | "text/plain" | "application/zip";
+      original_name: string;
+    }) => Promise<unknown>;
+    get_import_inspection: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      inspection_id: string;
+    }) => Promise<unknown>;
+    cancel_import_inspection: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      inspection_id: string;
+      idempotency_key: string;
+    }) => Promise<unknown>;
+    apply_import: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      inspection_id: string;
+      idempotency_key: string;
+      data: z.infer<typeof DocumentationImportApplyRequestSchema>;
+    }) => Promise<unknown>;
     inspect_openapi: (input: {
       organization_id: string;
       project_id: string;
@@ -575,7 +631,10 @@ export const build_documentation_routes = (
         code === "documentation_asset_name_conflict" ||
         code === "documentation_asset_archived" ||
         code === "documentation_asset_source_unavailable" ||
-        code === "documentation_reference_protected"
+        code === "documentation_reference_protected" ||
+        code === "documentation_import_conflict" ||
+        code === "documentation_import_consumed" ||
+        code === "documentation_import_not_ready"
       )
         return reply
           .status(409)
@@ -596,7 +655,9 @@ export const build_documentation_routes = (
         code === "documentation_asset_source_unsupported" ||
         code === "documentation_artifact_publication_type_mismatch" ||
         code === "documentation_content_unsafe" ||
-        code === "documentation_snippet_nested"
+        code === "documentation_snippet_nested" ||
+        code === "documentation_import_invalid" ||
+        code === "documentation_import_unsupported_version"
       )
         return reply
           .status(400)
@@ -623,13 +684,18 @@ export const build_documentation_routes = (
         return reply
           .status(410)
           .send(error_response(code, "Publish Link has expired"));
+      if (code === "documentation_import_expired")
+        return reply
+          .status(410)
+          .send(error_response(code, "Documentation import has expired"));
       if (code === "publish_link_not_found")
         return reply
           .status(404)
           .send(error_response(code, "Publish Link was not found"));
       if (
         code === "documentation_snippet_not_found" ||
-        code === "documentation_artifact_publication_not_found"
+        code === "documentation_artifact_publication_not_found" ||
+        code === "documentation_import_not_found"
       )
         return reply
           .status(404)
@@ -1027,6 +1093,213 @@ export const build_documentation_routes = (
           return reply
             .status(401)
             .send(error_response("unauthenticated", "Authentication required"));
+        }
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-import-inspections",
+      async (request, reply) => {
+        const params = ParamsSchema.safeParse(request.params);
+        const query = ImportInspectionQuerySchema.safeParse(request.query);
+        const key = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (
+          !params.success ||
+          !query.success ||
+          !key.success ||
+          !request.isMultipart()
+        )
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation import request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          await dependencies.documentation_service.authorize_portability({
+            ...scope,
+            capability: "documentation.write",
+          });
+          let inspection: unknown;
+          let fileSeen = false;
+          for await (const part of request.parts({
+            limits: {
+              files: 1,
+              fields: 0,
+              fileSize:
+                query.data.kind === "page_markdown"
+                  ? DOCUMENTATION_MARKDOWN_UPLOAD_MAX_BYTES
+                  : DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
+            },
+          })) {
+            if (part.type !== "file" || fileSeen) {
+              part.type === "file" && part.file.resume();
+              throw Object.assign(
+                new Error("Exactly one import File is required"),
+                { code: "documentation_import_invalid" },
+              );
+            }
+            fileSeen = true;
+            const mime =
+              query.data.kind === "page_markdown" &&
+              (part.mimetype === "text/markdown" ||
+                part.mimetype === "text/plain") &&
+              /\.md$/iu.test(part.filename)
+                ? part.mimetype
+                : query.data.kind === "site_package" &&
+                    part.mimetype === "application/zip" &&
+                    /\.zip$/iu.test(part.filename)
+                  ? part.mimetype
+                  : null;
+            if (!mime) {
+              part.file.resume();
+              throw Object.assign(
+                new Error("Documentation import media is unsupported"),
+                { code: "documentation_import_invalid" },
+              );
+            }
+            inspection =
+              await dependencies.documentation_service.inspect_import({
+                ...scope,
+                idempotency_key: key.data,
+                kind: query.data.kind,
+                stream: part.file,
+                mime_type: mime,
+                original_name: part.filename,
+              });
+          }
+          if (!fileSeen || !inspection)
+            throw Object.assign(
+              new Error("Exactly one import File is required"),
+              { code: "documentation_import_invalid" },
+            );
+          return reply.status(201).send({ inspection });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-import-inspections/:inspection_id",
+      async (request, reply) => {
+        const params = ImportInspectionParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation import request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          await dependencies.documentation_service.authorize_portability({
+            ...scope,
+            capability: "documentation.read",
+          });
+          const inspection =
+            await dependencies.documentation_service.get_import_inspection({
+              ...scope,
+              inspection_id: params.data.inspection_id,
+            });
+          if (!inspection)
+            return reply
+              .status(404)
+              .send(
+                error_response(
+                  "documentation_import_not_found",
+                  "Documentation import inspection was not found",
+                ),
+              );
+          return reply.send({ inspection });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.delete(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-import-inspections/:inspection_id",
+      async (request, reply) => {
+        const params = ImportInspectionParamsSchema.safeParse(request.params);
+        const key = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (!params.success || !key.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation import request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          await dependencies.documentation_service.authorize_portability({
+            ...scope,
+            capability: "documentation.write",
+          });
+          await dependencies.documentation_service.cancel_import_inspection({
+            ...scope,
+            inspection_id: params.data.inspection_id,
+            idempotency_key: key.data,
+          });
+          return reply.status(204).send();
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-import-inspections/:inspection_id/apply",
+      async (request, reply) => {
+        const params = ImportInspectionParamsSchema.safeParse(request.params);
+        const body = DocumentationImportApplyRequestSchema.safeParse(
+          request.body,
+        );
+        const key = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (!params.success || !body.success || !key.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation import request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          await dependencies.documentation_service.authorize_portability({
+            ...scope,
+            capability:
+              body.data.target.mode === "create_site"
+                ? "documentation.site.manage"
+                : "documentation.write",
+          });
+          const application =
+            await dependencies.documentation_service.apply_import({
+              ...scope,
+              inspection_id: params.data.inspection_id,
+              idempotency_key: key.data,
+              data: body.data,
+            });
+          const command = unwrap_idempotent_result(application);
+          return reply
+            .status(command.replayed ? 200 : 201)
+            .send({ application: command.body });
+        } catch (error) {
+          return documentation_error(error, reply);
         }
       },
     );

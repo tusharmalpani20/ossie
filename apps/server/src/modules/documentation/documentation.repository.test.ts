@@ -280,6 +280,7 @@ describe("Documentation repository", () => {
       project_id: "project",
       project_version_id: "version",
       actor_org_user_id: "actor",
+      idempotency_key: "inspect-1",
       inspection_id: "inspection",
       file_id: "file",
       kind: "page_markdown",
@@ -371,6 +372,7 @@ describe("Documentation repository", () => {
         project_id: "project",
         project_version_id: "version",
         actor_org_user_id: "actor",
+        idempotency_key: "cancel-1",
         inspection_id: "inspection",
       }),
     ).resolves.toMatchObject({ status: "cancelled" });
@@ -385,6 +387,95 @@ describe("Documentation repository", () => {
       statements.some((sql) =>
         sql.includes("SET status='cancelled',cancelled_at=CURRENT_TIMESTAMP"),
       ),
+    ).toBe(true);
+    expect(statements.at(-1)).toBe("COMMIT");
+  });
+
+  it("applies inspected Markdown as one Page and consumes the source atomically", async () => {
+    const statements: string[] = [];
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        statements.push(sql);
+        if (sql.includes("FROM organization_schema.org_user"))
+          return { rows: [{ actor_label: "Editor", source_type: "web" }] };
+        if (sql.includes("FROM documentation_schema.site_edition edition"))
+          return {
+            rows: [
+              {
+                edition_id: "edition",
+                working_draft_id: "draft",
+                draft_version: 3,
+                home_page_id: null,
+              },
+            ],
+          };
+        if (sql.includes("FOR UPDATE OF inspection"))
+          return {
+            rows: [
+              {
+                id: "inspection",
+                kind: "page_markdown",
+                status: "ready",
+                version: 1,
+                source_file_id: "source-file",
+                source_file_version: 1,
+                source_digest: "a".repeat(64),
+                content_fingerprint: "b".repeat(64),
+                expires_at: new Date("2099-01-01T00:00:00.000Z"),
+              },
+            ],
+          };
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    };
+    const repository = build_documentation_repository({
+      connect: vi.fn(async () => client),
+      query: client.query,
+    } as never);
+
+    await expect(
+      repository.apply_markdown_import({
+        organization_id: "org",
+        project_id: "project",
+        project_version_id: "version",
+        actor_org_user_id: "actor",
+        idempotency_key: "apply-1",
+        inspection_id: "inspection",
+        content_fingerprint: "b".repeat(64),
+        site_id: "site",
+        expected_draft_version: 3,
+        title: "Start",
+        canonical_path: "start",
+        set_as_home: true,
+        blocks: [
+          {
+            id: "01K00000000000000000000100",
+            kind: "paragraph",
+            position: 1,
+            text: "Hello",
+          },
+        ],
+      }),
+    ).resolves.toMatchObject({
+      inspection_id: "inspection",
+      target_site_id: "site",
+      created_page_id: expect.any(String),
+    });
+    expect(
+      statements.some((sql) =>
+        sql.includes("INSERT INTO documentation_schema.documentation_page"),
+      ),
+    ).toBe(true);
+    expect(
+      statements.some((sql) =>
+        sql.includes(
+          "INSERT INTO documentation_schema.documentation_import_application",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      statements.some((sql) => sql.includes("SET status='consumed'")),
     ).toBe(true);
     expect(statements.at(-1)).toBe("COMMIT");
   });

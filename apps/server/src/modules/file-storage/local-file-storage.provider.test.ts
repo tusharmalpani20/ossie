@@ -152,6 +152,10 @@ describe("local file storage provider", () => {
       "organizations/org_1/projects/project_1/documentation-import-inspections/inspection_1/source.zip",
     );
     const storage_path = path.join(root, stored.storage_key);
+    expect(provider.resolve_internal_path(stored)).toBe(storage_path);
+    expect(() =>
+      provider.resolve_internal_path({ storage_key: "../outside.zip" }),
+    ).toThrow(UnsafeStorageKeyError);
     await utimes(storage_path, new Date(0), new Date(0));
 
     await expect(

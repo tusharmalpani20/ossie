@@ -1607,7 +1607,7 @@ export const build_documentation_repository = (database: Database) => ({
         ],
       });
       if (audit_event) await write_audit_event(client, audit_event);
-      return {
+      const result = {
         id: input.inspection_id,
         digest: input.file.checksum_sha256,
         openapi_version: input.summary.openapi_version,
@@ -1616,6 +1616,7 @@ export const build_documentation_repository = (database: Database) => ({
         warnings: [],
         expires_at: expires_at.toISOString(),
       };
+      return result;
     }),
 
   apply_openapi_source: async (input: {
@@ -6307,6 +6308,7 @@ export const build_documentation_repository = (database: Database) => ({
     project_id: string;
     project_version_id: string;
     actor_org_user_id: string;
+    idempotency_key: string;
     inspection_id: string;
     file_id: string;
     kind: "page_markdown" | "site_package";
@@ -6322,6 +6324,17 @@ export const build_documentation_repository = (database: Database) => ({
     expires_at: Date;
   }) =>
     with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        project_version_id: input.project_version_id,
+        kind: input.kind,
+        source_digest: input.source_file.checksum_sha256,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.import.inspect",
+        request_digest,
+      });
+      if (replay) return replay;
       const audit = await begin_documentation_audit_context(client, {
         ...input,
         command: "documentation.import.inspect",
@@ -6413,7 +6426,7 @@ export const build_documentation_repository = (database: Database) => ({
         ],
       });
       if (auditEvent) await write_audit_event(client, auditEvent);
-      return {
+      const result = {
         id: input.inspection_id,
         status: "ready" as const,
         kind: input.kind,
@@ -6423,6 +6436,14 @@ export const build_documentation_repository = (database: Database) => ({
         expires_at: input.expires_at.toISOString(),
         safe_report: input.safe_report,
       };
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.import.inspect",
+        request_digest,
+        response_status: 201,
+        response_body: result,
+      });
+      return { ...result, idempotent_replay: false };
     }),
 
   get_import_inspection: async (input: {
@@ -6446,14 +6467,20 @@ export const build_documentation_repository = (database: Database) => ({
       consumed_at: Date | null;
       cancelled_at: Date | null;
       version: number;
+      storage_provider: string;
+      storage_key: string;
     }>(
       `SELECT inspection.id,inspection.kind,inspection.status,
               inspection.source_file_id,inspection.source_digest,
               inspection.source_size_bytes,inspection.format_version,
               inspection.content_fingerprint,inspection.safe_report,
               inspection.expires_at,inspection.consumed_at,
-              inspection.cancelled_at,inspection.version
+              inspection.cancelled_at,inspection.version,
+              file.storage_provider,file.storage_key
          FROM documentation_schema.documentation_import_inspection inspection
+         JOIN file_schema.file file
+           ON file.id=inspection.source_file_id
+          AND file.organization_id=inspection.organization_id
         WHERE inspection.id=$1 AND inspection.organization_id=$2
           AND inspection.project_id=$3 AND inspection.project_version_id=$4
           AND inspection.created_by_id=$5`,
@@ -6482,8 +6509,19 @@ export const build_documentation_repository = (database: Database) => ({
     project_version_id: string;
     actor_org_user_id: string;
     inspection_id: string;
+    idempotency_key: string;
   }) =>
     with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        project_version_id: input.project_version_id,
+        inspection_id: input.inspection_id,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.import.cancel",
+        request_digest,
+      });
+      if (replay) return replay;
       const selected = await client.query<{
         id: string;
         status: "ready" | "consumed" | "cancelled" | "expired";
@@ -6581,7 +6619,378 @@ export const build_documentation_repository = (database: Database) => ({
         ],
       });
       if (auditEvent) await write_audit_event(client, auditEvent);
-      return result;
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.import.cancel",
+        request_digest,
+        response_status: 204,
+        response_body: result,
+      });
+      return { ...result, idempotent_replay: false };
+    }),
+
+  apply_markdown_import: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    actor_org_user_id: string;
+    idempotency_key: string;
+    inspection_id: string;
+    content_fingerprint: string;
+    site_id: string;
+    expected_draft_version: number;
+    title: string;
+    canonical_path: string;
+    set_as_home: boolean;
+    blocks: Array<Record<string, unknown>>;
+  }) =>
+    with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        inspection_id: input.inspection_id,
+        content_fingerprint: input.content_fingerprint,
+        site_id: input.site_id,
+        expected_draft_version: input.expected_draft_version,
+        title: input.title,
+        canonical_path: input.canonical_path,
+        set_as_home: input.set_as_home,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.page_markdown_import.apply",
+        request_digest,
+      });
+      if (replay) return replay;
+      const parent = await client.query<{
+        edition_id: string;
+        working_draft_id: string;
+        draft_version: number;
+        home_page_id: string | null;
+      }>(
+        `SELECT edition.id edition_id,draft.id working_draft_id,
+                draft.version draft_version,draft.home_page_id
+           FROM documentation_schema.site_edition edition
+           JOIN documentation_schema.site_working_draft draft
+             ON draft.site_edition_id=edition.id
+           JOIN documentation_schema.documentation_site site
+             ON site.id=edition.documentation_site_id
+          WHERE edition.organization_id=$1 AND edition.project_id=$2
+            AND edition.project_version_id=$3
+            AND edition.documentation_site_id=$4
+          FOR UPDATE OF edition,draft,site`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+        ],
+      );
+      const target = parent.rows[0];
+      if (!target) {
+        const error = new Error("Documentation Site was not found");
+        Object.assign(error, { code: "documentation_import_conflict" });
+        throw error;
+      }
+      if (target.draft_version !== input.expected_draft_version) {
+        const error = new Error("Working Draft changed");
+        Object.assign(error, { code: "documentation_row_version_conflict" });
+        throw error;
+      }
+      if (input.set_as_home && target.home_page_id !== null) {
+        const error = new Error("Documentation Site already has a Home Page");
+        Object.assign(error, { code: "documentation_import_conflict" });
+        throw error;
+      }
+      await lock_documentation_path_namespace(client, target.edition_id);
+      const inspectionResult = await client.query<{
+        id: string;
+        kind: "page_markdown" | "site_package";
+        status: "ready" | "consumed" | "cancelled" | "expired";
+        version: number;
+        source_file_id: string;
+        source_file_version: number;
+        source_digest: string;
+        content_fingerprint: string;
+        expires_at: Date;
+      }>(
+        `SELECT inspection.id,inspection.kind,inspection.status,
+                inspection.version,inspection.source_file_id,
+                file.version source_file_version,inspection.source_digest,
+                inspection.content_fingerprint,inspection.expires_at
+           FROM documentation_schema.documentation_import_inspection inspection
+           JOIN file_schema.file file
+             ON file.id=inspection.source_file_id
+            AND file.organization_id=inspection.organization_id
+          WHERE inspection.id=$1 AND inspection.organization_id=$2
+            AND inspection.project_id=$3
+            AND inspection.project_version_id=$4
+            AND inspection.created_by_id=$5
+          FOR UPDATE OF inspection`,
+        [
+          input.inspection_id,
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.actor_org_user_id,
+        ],
+      );
+      const inspection = inspectionResult.rows[0];
+      if (!inspection) {
+        const error = new Error("Documentation import inspection was not found");
+        Object.assign(error, { code: "documentation_import_not_found" });
+        throw error;
+      }
+      if (inspection.status === "consumed") {
+        const error = new Error("Documentation import was already consumed");
+        Object.assign(error, { code: "documentation_import_consumed" });
+        throw error;
+      }
+      if (
+        inspection.status !== "ready" ||
+        inspection.expires_at.getTime() <= Date.now()
+      ) {
+        const error = new Error("Documentation import has expired");
+        Object.assign(error, { code: "documentation_import_expired" });
+        throw error;
+      }
+      if (
+        inspection.kind !== "page_markdown" ||
+        inspection.content_fingerprint !== input.content_fingerprint
+      ) {
+        const error = new Error("Documentation import fingerprint changed");
+        Object.assign(error, { code: "documentation_import_conflict" });
+        throw error;
+      }
+      const conflict = await client.query<{ id: string }>(
+        `SELECT id FROM documentation_schema.documentation_page
+          WHERE organization_id=$1 AND project_id=$2 AND site_edition_id=$3
+            AND canonical_path=$4
+          FOR SHARE`,
+        [
+          input.organization_id,
+          input.project_id,
+          target.edition_id,
+          input.canonical_path,
+        ],
+      );
+      if (conflict.rows[0]) {
+        const error = new Error("Documentation path already exists");
+        Object.assign(error, { code: "documentation_path_conflict" });
+        throw error;
+      }
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.page_markdown_import.apply",
+        action: "documentation.page_markdown_import_applied",
+      });
+      const page_id = ulid();
+      const application_id = ulid();
+      await client.query(
+        `INSERT INTO documentation_schema.documentation_page
+          (id,organization_id,project_id,documentation_site_id,site_edition_id,
+           site_working_draft_id,title,description,canonical_path,
+           created_by_id,updated_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,NULL,$8,$9,$9)`,
+        [
+          page_id,
+          input.organization_id,
+          input.project_id,
+          input.site_id,
+          target.edition_id,
+          target.working_draft_id,
+          input.title,
+          input.canonical_path,
+          input.actor_org_user_id,
+        ],
+      );
+      for (const block of input.blocks) {
+        await client.query(
+          `INSERT INTO documentation_schema.documentation_page_block
+            (id,organization_id,project_id,site_edition_id,documentation_page_id,
+             kind,position,heading_level,text_content,link_url,linked_page_id,
+             linked_block_id,code_language,quote_attribution,
+             created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15)`,
+          [
+            block.id,
+            input.organization_id,
+            input.project_id,
+            target.edition_id,
+            page_id,
+            block.kind,
+            block.position,
+            block.level ?? null,
+            block.text ?? block.code ?? block.label ?? null,
+            block.url ?? null,
+            block.page_id ?? null,
+            block.target_block_id ?? null,
+            block.language ?? null,
+            block.attribution ?? null,
+            input.actor_org_user_id,
+          ],
+        );
+        if (
+          (block.kind === "ordered_list" || block.kind === "unordered_list") &&
+          Array.isArray(block.items)
+        )
+          for (const item of block.items as Array<Record<string, unknown>>)
+            await client.query(
+              `INSERT INTO documentation_schema.documentation_list_item
+                (id,organization_id,project_id,site_edition_id,
+                 documentation_page_id,documentation_page_block_id,
+                 text_content,position)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+              [
+                item.id,
+                input.organization_id,
+                input.project_id,
+                target.edition_id,
+                page_id,
+                block.id,
+                item.text,
+                item.position,
+              ],
+            );
+      }
+      await insert_draft_search_document(client, {
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        project_version_id: input.project_version_id,
+        site_id: input.site_id,
+        site_edition_id: target.edition_id,
+        page_id,
+        title: input.title,
+        description: null,
+        canonical_path: input.canonical_path,
+        search_text: search_text_for_blocks(input.title, null, input.blocks),
+      });
+      await client.query(
+        `UPDATE documentation_schema.site_working_draft
+            SET home_page_id=CASE WHEN $1 THEN $2 ELSE home_page_id END,
+                version=version+1,updated_by_id=$3,
+                updated_at=CURRENT_TIMESTAMP
+          WHERE id=$4`,
+        [
+          input.set_as_home,
+          page_id,
+          input.actor_org_user_id,
+          target.working_draft_id,
+        ],
+      );
+      const counts = {
+        pages: 1,
+        snippets: 0,
+        assets: 0,
+        openapi_sources: 0,
+        external_bindings: 0,
+        navigation_nodes: 0,
+        aliases: 0,
+        routes: 0,
+        blocks: input.blocks.length,
+      };
+      await client.query(
+        `INSERT INTO documentation_schema.documentation_import_application
+          (id,organization_id,project_id,project_version_id,
+           documentation_site_id,site_edition_id,inspection_id,kind,
+           format_version,source_digest,content_fingerprint,pages_count,
+           snippets_count,assets_count,openapi_sources_count,
+           external_bindings_count,navigation_nodes_count,aliases_count,
+           routes_count,blocks_count,created_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'page_markdown',NULL,$8,$9,
+                 $10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+        [
+          application_id,
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+          target.edition_id,
+          inspection.id,
+          inspection.source_digest,
+          inspection.content_fingerprint,
+          counts.pages,
+          counts.snippets,
+          counts.assets,
+          counts.openapi_sources,
+          counts.external_bindings,
+          counts.navigation_nodes,
+          counts.aliases,
+          counts.routes,
+          counts.blocks,
+          input.actor_org_user_id,
+        ],
+      );
+      await client.query(
+        `UPDATE documentation_schema.documentation_import_inspection
+            SET status='consumed',consumed_at=CURRENT_TIMESTAMP
+          WHERE id=$1`,
+        [inspection.id],
+      );
+      const result = {
+        id: application_id,
+        inspection_id: inspection.id,
+        target_site_id: input.site_id,
+        target_edition_id: target.edition_id,
+        created_page_id: page_id,
+        counts,
+      };
+      const auditEvent = build_entity_audit_event({
+        id: audit.event_id,
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        root_resource_type: "documentation_site",
+        root_resource_id: input.site_id,
+        action: "documentation.page_markdown_import_applied",
+        actor_org_user_id: input.actor_org_user_id,
+        actor_label: audit.actor_label,
+        source_type: audit.source_type,
+        occurred_at: audit.occurred_at,
+        before_row_version: target.draft_version,
+        after_row_version: target.draft_version + 1,
+        changes: [
+          {
+            entity_type: "documentation_page",
+            entity_id: page_id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: input.site_id,
+            before: null,
+            after: { version: 1 },
+          },
+          {
+            entity_type: "documentation_import_application",
+            entity_id: application_id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: input.site_id,
+            before: null,
+            after: { id: application_id },
+          },
+          {
+            entity_type: "documentation_import_inspection",
+            entity_id: inspection.id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: input.site_id,
+            before: { version: inspection.version },
+            after: { version: inspection.version + 1 },
+            safe_fields: { version: "integer" },
+          },
+          {
+            entity_type: "file",
+            entity_id: inspection.source_file_id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: input.site_id,
+            before: { version: inspection.source_file_version },
+            after: null,
+          },
+        ],
+      });
+      if (auditEvent) await write_audit_event(client, auditEvent);
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.page_markdown_import.apply",
+        request_digest,
+        response_status: 201,
+        response_body: result,
+      });
+      return { ...result, idempotent_replay: false };
     }),
 
   list_artifact_publications: async (input: {

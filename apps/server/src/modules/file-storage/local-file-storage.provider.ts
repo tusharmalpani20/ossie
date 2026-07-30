@@ -273,6 +273,8 @@ export const build_local_file_storage_provider = (input: { root: string }) => {
   return {
     put,
     get,
+    resolve_internal_path: (file: { storage_key: string }) =>
+      resolve_storage_path(root, file.storage_key),
     delete_best_effort,
     purge_exact,
     list_documentation_transients,

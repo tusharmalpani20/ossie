@@ -112,6 +112,7 @@ describe("DB-backed Documentation repository", () => {
     const repository = build_documentation_repository(pool);
     await repository.create_import_inspection({
       ...scope,
+      idempotency_key: "inspect-1",
       inspection_id: "01K00000000000000000000010",
       file_id: "01K00000000000000000000011",
       kind: "page_markdown",
@@ -144,6 +145,7 @@ describe("DB-backed Documentation repository", () => {
 
     await repository.cancel_import_inspection({
       ...scope,
+      idempotency_key: "cancel-1",
       inspection_id: "01K00000000000000000000010",
     });
     const persisted = await pool.query<{
@@ -173,6 +175,90 @@ describe("DB-backed Documentation repository", () => {
       "documentation.import.inspected",
       "documentation.import.cancelled",
     ]);
+  });
+
+  it("applies one inspected Markdown Page with permanent provenance and one Draft bump", async () => {
+    const scope = await establish_project();
+    const repository = build_documentation_repository(pool);
+    const site = (await repository.create_site({
+      ...scope,
+      idempotency_key: "site-for-import",
+      name: "Imported docs",
+      description: null,
+      primary_language: "en-US",
+    })) as { site: { id: string }; working_draft: { version: number } };
+    await repository.create_import_inspection({
+      ...scope,
+      idempotency_key: "inspect-for-apply",
+      inspection_id: "01K00000000000000000000020",
+      file_id: "01K00000000000000000000021",
+      kind: "page_markdown",
+      source_file: {
+        storage_provider: "local",
+        storage_key:
+          "organizations/test/projects/test/documentation-import-inspections/apply/source.md",
+        mime_type: "text/markdown",
+        size_bytes: 8,
+        checksum_sha256: "c".repeat(64),
+      },
+      content_fingerprint: "d".repeat(64),
+      safe_report: { proposal: { title: "Imported page" } },
+      expires_at: new Date("2099-01-01T00:00:00.000Z"),
+    });
+
+    const applied = await repository.apply_markdown_import({
+      ...scope,
+      idempotency_key: "apply-markdown-1",
+      inspection_id: "01K00000000000000000000020",
+      content_fingerprint: "d".repeat(64),
+      site_id: site.site.id,
+      expected_draft_version: site.working_draft.version,
+      title: "Imported page",
+      canonical_path: "imported-page",
+      set_as_home: true,
+      blocks: [
+        {
+          id: "01K00000000000000000000022",
+          kind: "paragraph",
+          position: 1,
+          text: "Portable content",
+        },
+      ],
+    });
+    expect(applied).toMatchObject({
+      inspection_id: "01K00000000000000000000020",
+      target_site_id: site.site.id,
+      counts: { pages: 1, blocks: 1 },
+    });
+    const state = await pool.query<{
+      applications: string;
+      pages: string;
+      draft_version: number;
+      home_page_id: string;
+      inspection_status: string;
+      file_deleted: boolean;
+    }>(
+      `SELECT
+        (SELECT count(*) FROM documentation_schema.documentation_import_application)
+          applications,
+        (SELECT count(*) FROM documentation_schema.documentation_page
+          WHERE documentation_site_id=$1) pages,
+        draft.version draft_version,draft.home_page_id,
+        inspection.status inspection_status,file.is_deleted file_deleted
+       FROM documentation_schema.site_working_draft draft
+       CROSS JOIN documentation_schema.documentation_import_inspection inspection
+       JOIN file_schema.file file ON file.id=inspection.source_file_id
+       WHERE draft.documentation_site_id=$1 AND inspection.id=$2`,
+      [site.site.id, "01K00000000000000000000020"],
+    );
+    expect(state.rows[0]).toMatchObject({
+      applications: "1",
+      pages: "1",
+      draft_version: site.working_draft.version + 1,
+      home_page_id: applied.created_page_id,
+      inspection_status: "consumed",
+      file_deleted: true,
+    });
   });
 
   it("persists Edition-owned Snippets and expanded Page blocks with independent conflicts", async () => {
