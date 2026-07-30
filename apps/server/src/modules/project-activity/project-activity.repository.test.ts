@@ -28,6 +28,8 @@ describe("Project Activity repository", () => {
         "capture_asset.archived",
         "capture_asset.restored",
         "capture_asset.purged",
+        "documentation.page_markdown_import_applied",
+        "documentation.site_package_import_applied",
       ]),
     );
     expect(PROJECT_ACTIVITY_ACTIONS).not.toContain(

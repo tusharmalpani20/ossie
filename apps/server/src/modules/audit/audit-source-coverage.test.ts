@@ -69,6 +69,7 @@ const excluded = new Set([
   "documentation_schema.documentation_snippet_table_cell:INSERT",
   "documentation_schema.documentation_snippet_table_cell:DELETE",
   "documentation_schema.site_edition:INSERT",
+  "documentation_schema.site_edition:UPDATE",
   "documentation_schema.site_working_draft:INSERT",
   "documentation_schema.site_working_draft:UPDATE",
   "documentation_schema.navigation_tree:INSERT",

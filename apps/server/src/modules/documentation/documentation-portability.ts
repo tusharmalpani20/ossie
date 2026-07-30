@@ -1,4 +1,5 @@
 import path from "node:path";
+import { ulid } from "ulid";
 import {
   DocumentationPortablePageV1Schema,
   DocumentationPortableSiteV1Schema,
@@ -312,3 +313,124 @@ export const create_portable_documentation_snapshot = (snapshot: Snapshot) => {
 
 export const portable_asset_filename = (portablePath: string) =>
   path.posix.basename(portablePath);
+
+export const prepare_portable_documentation_import = (input: {
+  site: Record<string, any>;
+  pages: Array<Record<string, any>>;
+  snippets: Array<Record<string, any>>;
+  assets?: Array<
+    Record<string, any> & { handle: string; id: string; file_id: string }
+  >;
+  openapi_source_id?: string | null;
+  external_bindings: Array<{
+    handle: string;
+    published_artifact_id: string;
+  }>;
+}) => {
+  const pageIds = new Map<string, string>(
+    input.site.pages.map((page: Record<string, any>) => [page.handle, ulid()]),
+  );
+  const snippetIds = new Map<string, string>(
+    input.site.snippets.map((snippet: Record<string, any>) => [
+      snippet.handle,
+      ulid(),
+    ]),
+  );
+  const assetIds = new Map<string, string>(
+    (input.assets ?? []).map((asset) => [asset.handle, asset.id]),
+  );
+  const bindingIds = new Map<string, string>(
+    input.external_bindings.map((binding) => [
+      binding.handle,
+      binding.published_artifact_id,
+    ]),
+  );
+  const allBlocks = [...input.pages, ...input.snippets].flatMap(
+    (owner) => owner.blocks ?? [],
+  );
+  const blockIds = new Map<string, string>(
+    allBlocks.map((block: Record<string, any>) => [block.handle, ulid()]),
+  );
+  const childIds = (items: Array<Record<string, any>> | undefined) =>
+    (items ?? []).map((item) => ({
+      ...item,
+      id: ulid(),
+      ...("cells" in item
+        ? {
+            cells: (item.cells as Array<Record<string, any>>).map((cell) => ({
+              ...cell,
+              id: ulid(),
+            })),
+          }
+        : {}),
+    }));
+  const convertBlock = (block: Record<string, any>) => ({
+    ...block,
+    id: blockIds.get(block.handle),
+    page_id: block.page_handle ? pageIds.get(block.page_handle) : null,
+    target_block_id: block.target_block_handle
+      ? blockIds.get(block.target_block_handle)
+      : null,
+    snippet_id: block.snippet_handle
+      ? snippetIds.get(block.snippet_handle)
+      : null,
+    source: block.asset_handle
+      ? {
+          kind: "documentation_asset",
+          id: assetIds.get(block.asset_handle),
+        }
+      : null,
+    openapi_source_id:
+      block.kind === "api_reference" ? input.openapi_source_id : null,
+    operation_key: block.operation_destination_key ?? null,
+    published_artifact_id: block.external_binding_handle
+      ? bindingIds.get(block.external_binding_handle)
+      : null,
+    items: childIds(block.items),
+    rows: childIds(block.rows),
+  });
+  const pages = input.pages.map((page) => ({
+    ...page,
+    id: pageIds.get(page.handle),
+    blocks: (page.blocks ?? []).map(convertBlock),
+  }));
+  const snippets = input.snippets.map((snippet) => ({
+    ...snippet,
+    id: snippetIds.get(snippet.handle),
+    blocks: (snippet.blocks ?? []).map(convertBlock),
+  }));
+  const navigationIds = new Map<string, string>(
+    input.site.navigation.map((node: Record<string, any>) => [
+      node.handle,
+      ulid(),
+    ]),
+  );
+  return {
+    home_page_id: input.site.home_page_handle
+      ? pageIds.get(input.site.home_page_handle)
+      : null,
+    pages,
+    snippets,
+    assets: input.assets ?? [],
+    navigation: input.site.navigation.map((node: Record<string, any>) => ({
+      ...node,
+      id: navigationIds.get(node.handle),
+      parent_id: node.parent_handle
+        ? navigationIds.get(node.parent_handle)
+        : null,
+      page_id: node.page_handle ? pageIds.get(node.page_handle) : null,
+    })),
+    aliases: input.site.aliases.map((alias: Record<string, any>) => ({
+      ...alias,
+      id: ulid(),
+      page_id: pageIds.get(alias.page_handle),
+    })),
+    routes: input.site.routes.map((route: Record<string, any>) => ({
+      ...route,
+      id: ulid(),
+      target_page_id: route.target_page_handle
+        ? pageIds.get(route.target_page_handle)
+        : null,
+    })),
+  };
+};

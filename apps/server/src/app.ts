@@ -157,7 +157,11 @@ import {
   create_documentation_site_package,
   inspect_documentation_site_package,
 } from "./modules/documentation/documentation-package.js";
-import { create_portable_documentation_snapshot } from "./modules/documentation/documentation-portability.js";
+import { inspect_documentation_archive } from "./modules/documentation/documentation-archive.js";
+import {
+  create_portable_documentation_snapshot,
+  prepare_portable_documentation_import,
+} from "./modules/documentation/documentation-portability.js";
 import { build_documentation_import_cleanup } from "./modules/documentation/documentation-import-cleanup.js";
 import {
   assert_documentation_image_dimensions,
@@ -1849,19 +1853,6 @@ export const build = (opts: BuildOptions = {}) => {
                 });
                 throw error;
               }
-              if (
-                inspection.kind !== "page_markdown" ||
-                input.data.target.mode !== "page" ||
-                input.data.external_bindings.length !== 0
-              ) {
-                const error = new Error(
-                  "Documentation import target does not match its source",
-                );
-                Object.assign(error, {
-                  code: "documentation_import_conflict",
-                });
-                throw error;
-              }
               const source =
                 await default_capture_file_storage.get(inspection);
               const chunks: Buffer[] = [];
@@ -1878,6 +1869,274 @@ export const build = (opts: BuildOptions = {}) => {
               ) {
                 const error = new Error(
                   "Documentation import source bytes changed",
+                );
+                Object.assign(error, {
+                  code: "documentation_import_conflict",
+                });
+                throw error;
+              }
+              if (inspection.kind === "site_package") {
+                if (input.data.target.mode === "page") {
+                  const error = new Error(
+                    "Documentation import target does not match its source",
+                  );
+                  Object.assign(error, {
+                    code: "documentation_import_conflict",
+                  });
+                  throw error;
+                }
+                const parsed = await inspect_documentation_site_package(
+                  default_capture_file_storage.resolve_internal_path(
+                    inspection,
+                  ),
+                );
+                if (
+                  parsed.manifest.content_fingerprint !==
+                  inspection.content_fingerprint
+                ) {
+                  const error = new Error(
+                    "Documentation import content changed",
+                  );
+                  Object.assign(error, {
+                    code: "documentation_import_conflict",
+                  });
+                  throw error;
+                }
+                const requiredBindings = new Map(
+                  parsed.site.external_bindings.map((binding) => [
+                    binding.handle,
+                    binding,
+                  ]),
+                );
+                if (
+                  input.data.external_bindings.length !==
+                    requiredBindings.size ||
+                  input.data.external_bindings.some(
+                    (binding) => !requiredBindings.has(binding.handle),
+                  ) ||
+                  new Set(
+                    input.data.external_bindings.map(
+                      (binding) => binding.handle,
+                    ),
+                  ).size !== input.data.external_bindings.length
+                ) {
+                  const error = new Error(
+                    "Documentation import bindings are incomplete",
+                  );
+                  Object.assign(error, {
+                    code: "documentation_import_conflict",
+                  });
+                  throw error;
+                }
+                const selectedPaths = new Set([
+                  ...parsed.site.assets.map((asset) => asset.path),
+                  ...(parsed.site.openapi ? [parsed.site.openapi.path] : []),
+                ]);
+                const entryBytes = new Map<string, Buffer>();
+                await inspect_documentation_archive({
+                  file_path:
+                    default_capture_file_storage.resolve_internal_path(
+                      inspection,
+                    ),
+                  on_entry: async (entry) => {
+                    if (selectedPaths.has(entry.path))
+                      entryBytes.set(entry.path, entry.bytes);
+                  },
+                });
+                const targetSiteId =
+                  input.data.target.mode === "create_site"
+                    ? ulid()
+                    : input.data.target.site_id;
+                const staged: Array<{
+                  storage_provider: string;
+                  storage_key: string;
+                }> = [];
+                try {
+                  const assets = [];
+                  for (const asset of parsed.site.assets) {
+                    const assetBytes = entryBytes.get(asset.path);
+                    if (
+                      !assetBytes ||
+                      createHash("sha256")
+                        .update(assetBytes)
+                        .digest("hex") !== asset.sha256
+                    ) {
+                      const error = new Error(
+                        "Documentation package Asset changed",
+                      );
+                      Object.assign(error, {
+                        code: "documentation_import_conflict",
+                      });
+                      throw error;
+                    }
+                    const metadata = await sharp(assetBytes, {
+                      limitInputPixels: 100_000_000,
+                    }).metadata();
+                    assert_documentation_image_format(
+                      metadata.format,
+                      asset.mime_type,
+                    );
+                    if (!metadata.width || !metadata.height)
+                      throw new Error(
+                        "Documentation package Asset dimensions are unavailable",
+                      );
+                    assert_documentation_image_dimensions(
+                      metadata.width,
+                      metadata.height,
+                    );
+                    if (
+                      metadata.width !== asset.width ||
+                      metadata.height !== asset.height ||
+                      assetBytes.byteLength !== asset.size_bytes
+                    )
+                      throw new Error(
+                        "Documentation package Asset metadata changed",
+                      );
+                    const file_id = ulid();
+                    const stored =
+                      await default_capture_file_storage.put({
+                        organization_id: input.organization_id,
+                        project_id: input.project_id,
+                        documentation_site_id: targetSiteId,
+                        file_id,
+                        mime_type: asset.mime_type,
+                        stream: Readable.from([assetBytes]),
+                        max_size_bytes:
+                          DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
+                      });
+                    staged.push(stored);
+                    assets.push({
+                      handle: asset.handle,
+                      id: ulid(),
+                      file_id,
+                      file: { ...stored, original_name: asset.name },
+                      name: asset.name,
+                      status: asset.status,
+                      width: metadata.width,
+                      height: metadata.height,
+                    });
+                  }
+                  let openapi: null | {
+                    source_id: string;
+                    file_id: string;
+                    file: Record<string, unknown>;
+                    digest: string;
+                    openapi_version: string;
+                    title: string;
+                    operations: Array<Record<string, unknown>>;
+                  } = null;
+                  if (parsed.site.openapi) {
+                    const openapiBytes = entryBytes.get(
+                      parsed.site.openapi.path,
+                    );
+                    if (
+                      !openapiBytes ||
+                      createHash("sha256")
+                        .update(openapiBytes)
+                        .digest("hex") !== parsed.site.openapi.sha256
+                    )
+                      throw new Error(
+                        "Documentation package OpenAPI source changed",
+                      );
+                    const mime_type =
+                      parsed.site.openapi.original_format === "json"
+                        ? "application/json"
+                        : "application/yaml";
+                    const inspected = parse_documentation_openapi(
+                      openapiBytes,
+                      mime_type,
+                    );
+                    const file_id = ulid();
+                    const stored =
+                      await default_capture_file_storage.put({
+                        organization_id: input.organization_id,
+                        project_id: input.project_id,
+                        documentation_site_id: targetSiteId,
+                        file_id,
+                        mime_type,
+                        stream: Readable.from([openapiBytes]),
+                        max_size_bytes: 10 * 1024 * 1024,
+                      });
+                    staged.push(stored);
+                    openapi = {
+                      source_id: ulid(),
+                      file_id,
+                      file: {
+                        ...stored,
+                        original_name: `openapi-source.${parsed.site.openapi.original_format}`,
+                      },
+                      digest: parsed.site.openapi.sha256,
+                      openapi_version: inspected.summary.openapi_version,
+                      title: inspected.summary.title,
+                      operations: inspected.summary.operations.map(
+                        (operation) => ({ id: ulid(), ...operation }),
+                      ),
+                    };
+                  }
+                  const mappedBindings = input.data.external_bindings.map(
+                    (binding) => ({
+                      ...binding,
+                      kind: requiredBindings.get(binding.handle)!.kind,
+                    }),
+                  );
+                  const graph = prepare_portable_documentation_import({
+                    site: parsed.site,
+                    pages: parsed.pages,
+                    snippets: parsed.snippets,
+                    assets,
+                    openapi_source_id: openapi?.source_id ?? null,
+                    external_bindings: input.data.external_bindings,
+                  });
+                  const target =
+                    input.data.target.mode === "create_site"
+                      ? {
+                          mode: "create_site" as const,
+                          site_id: targetSiteId,
+                          edition_id: ulid(),
+                          working_draft_id: ulid(),
+                          navigation_tree_id: ulid(),
+                          routing_set_id: ulid(),
+                          name:
+                            input.data.target.name ??
+                            parsed.site.site.name,
+                        }
+                      : input.data.target;
+                  const result =
+                    await repository.apply_site_package_import({
+                      organization_id: input.organization_id,
+                      project_id: input.project_id,
+                      project_version_id: input.project_version_id,
+                      actor_org_user_id: input.actor_org_user_id,
+                      idempotency_key: input.idempotency_key,
+                      inspection_id: input.inspection_id,
+                      content_fingerprint:
+                        input.data.content_fingerprint,
+                      target,
+                      site: parsed.site.site,
+                      graph: { ...graph, assets },
+                      openapi,
+                      external_bindings: mappedBindings,
+                      counts: parsed.counts,
+                    });
+                  await default_capture_file_storage.delete_best_effort(
+                    inspection,
+                  );
+                  return result;
+                } catch (error) {
+                  await Promise.all(
+                    staged.map((file) =>
+                      default_capture_file_storage.delete_best_effort(file),
+                    ),
+                  );
+                  throw error;
+                }
+              }
+              if (
+                input.data.target.mode !== "page" ||
+                input.data.external_bindings.length !== 0
+              ) {
+                const error = new Error(
+                  "Documentation import target does not match its source",
                 );
                 Object.assign(error, {
                   code: "documentation_import_conflict",

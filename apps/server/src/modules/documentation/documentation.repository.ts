@@ -550,6 +550,180 @@ const search_text_for_blocks = (
   }).text;
 };
 
+const insert_portable_blocks = async (
+  client: Queryable,
+  input: {
+    organization_id: string;
+    project_id: string;
+    site_edition_id: string;
+    owner_kind: "page" | "snippet";
+    owner_id: string;
+    actor_org_user_id: string;
+    blocks: Array<Record<string, unknown>>;
+  },
+) => {
+  const isPage = input.owner_kind === "page";
+  const blockTable = isPage
+    ? "documentation_page_block"
+    : "documentation_snippet_block";
+  const ownerColumn = isPage
+    ? "documentation_page_id"
+    : "documentation_snippet_id";
+  for (const block of input.blocks) {
+    const source =
+      block.source && typeof block.source === "object"
+        ? (block.source as { kind?: string; id?: string })
+        : null;
+    const publicationType =
+      block.kind === "guide_publication"
+        ? "guide"
+        : block.kind === "interactive_demo_publication"
+          ? "interactive_demo"
+          : null;
+    await client.query(
+      `INSERT INTO documentation_schema.${blockTable}
+        (id,organization_id,project_id,site_edition_id,${ownerColumn},
+         kind,position,heading_level,text_content,link_url,linked_page_id,
+         linked_block_id,code_language,documentation_asset_id,
+         capture_asset_id,openapi_source_id,operation_key,
+         ${isPage ? "snippet_id," : ""}
+         published_artifact_id,published_artifact_type,callout_tone,
+         display_title,quote_attribution,table_caption,alt_text,image_caption,
+         created_by_id,updated_by_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
+               $17,${isPage ? "$18," : ""}${isPage ? "$19" : "$18"},
+               ${isPage ? "$20" : "$19"},${isPage ? "$21" : "$20"},
+               ${isPage ? "$22" : "$21"},${isPage ? "$23" : "$22"},
+               ${isPage ? "$24" : "$23"},${isPage ? "$25" : "$24"},
+               ${isPage ? "$26" : "$25"},${isPage ? "$27" : "$26"},
+               ${isPage ? "$27" : "$26"})`,
+      [
+        block.id,
+        input.organization_id,
+        input.project_id,
+        input.site_edition_id,
+        input.owner_id,
+        block.kind,
+        block.position,
+        block.level ?? null,
+        block.text ?? block.code ?? block.label ?? null,
+        block.url ?? null,
+        block.page_id ?? null,
+        block.target_block_id ?? null,
+        block.language ?? null,
+        source?.kind === "documentation_asset" ? source.id : null,
+        source?.kind === "capture_asset" ? source.id : null,
+        block.openapi_source_id ?? null,
+        block.operation_key ?? null,
+        ...(isPage ? [block.snippet_id ?? null] : []),
+        block.published_artifact_id ?? null,
+        publicationType,
+        block.tone ?? null,
+        block.title ?? null,
+        block.attribution ?? null,
+        block.caption ?? null,
+        block.alt_text ?? null,
+        block.caption ?? null,
+        input.actor_org_user_id,
+      ],
+    );
+    const childPrefix = isPage ? "documentation" : "documentation_snippet";
+    const childOwnerColumn = isPage
+      ? "documentation_page_id"
+      : "documentation_snippet_id";
+    const childBlockColumn = isPage
+      ? "documentation_page_block_id"
+      : "documentation_snippet_block_id";
+    if (
+      (block.kind === "ordered_list" || block.kind === "unordered_list") &&
+      Array.isArray(block.items)
+    )
+      for (const item of block.items as Array<Record<string, unknown>>)
+        await client.query(
+          `INSERT INTO documentation_schema.${childPrefix}_list_item
+            (id,organization_id,project_id,site_edition_id,${childOwnerColumn},
+             ${childBlockColumn},text_content,position)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [
+            item.id,
+            input.organization_id,
+            input.project_id,
+            input.site_edition_id,
+            input.owner_id,
+            block.id,
+            item.text,
+            item.position,
+          ],
+        );
+    if (block.kind === "tabs" && Array.isArray(block.items))
+      for (const item of block.items as Array<Record<string, unknown>>)
+        await client.query(
+          `INSERT INTO documentation_schema.${childPrefix}_tab_item
+            (id,organization_id,project_id,site_edition_id,${childOwnerColumn},
+             ${childBlockColumn},label,body,position)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          [
+            item.id,
+            input.organization_id,
+            input.project_id,
+            input.site_edition_id,
+            input.owner_id,
+            block.id,
+            item.label,
+            item.body,
+            item.position,
+          ],
+        );
+    if (block.kind === "table" && Array.isArray(block.rows))
+      for (const row of block.rows as Array<Record<string, unknown>>) {
+        const rowTable = isPage
+          ? "documentation_table_row"
+          : "documentation_snippet_table_row";
+        const cellTable = isPage
+          ? "documentation_table_cell"
+          : "documentation_snippet_table_cell";
+        const rowIdColumn = isPage
+          ? "documentation_table_row_id"
+          : "documentation_snippet_table_row_id";
+        await client.query(
+          `INSERT INTO documentation_schema.${rowTable}
+            (id,organization_id,project_id,site_edition_id,${childOwnerColumn},
+             ${childBlockColumn},position)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [
+            row.id,
+            input.organization_id,
+            input.project_id,
+            input.site_edition_id,
+            input.owner_id,
+            block.id,
+            row.position,
+          ],
+        );
+        for (const cell of row.cells as Array<Record<string, unknown>>)
+          await client.query(
+            `INSERT INTO documentation_schema.${cellTable}
+              (id,organization_id,project_id,site_edition_id,${childOwnerColumn},
+               ${childBlockColumn},${rowIdColumn},column_position,is_header,
+               text_content)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+            [
+              cell.id,
+              input.organization_id,
+              input.project_id,
+              input.site_edition_id,
+              input.owner_id,
+              block.id,
+              row.id,
+              cell.column_position,
+              cell.is_header,
+              cell.text,
+            ],
+          );
+      }
+  }
+};
+
 const insert_draft_search_document = (
   client: Queryable,
   input: {
@@ -7333,6 +7507,834 @@ export const build_documentation_repository = (database: Database) => ({
       await write_command_receipt(client, {
         ...input,
         operation: "documentation.page_markdown_import.apply",
+        request_digest,
+        response_status: 201,
+        response_body: result,
+      });
+      return { ...result, idempotent_replay: false };
+    }),
+
+  apply_site_package_import: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    actor_org_user_id: string;
+    idempotency_key: string;
+    inspection_id: string;
+    content_fingerprint: string;
+    target:
+      | {
+          mode: "create_site";
+          site_id: string;
+          edition_id: string;
+          working_draft_id: string;
+          navigation_tree_id: string;
+          routing_set_id: string;
+          name: string;
+        }
+      | {
+          mode: "empty_site";
+          site_id: string;
+          expected_site_version: number;
+          expected_draft_version: number;
+          apply_primary_language: boolean;
+        };
+    site: {
+      name: string;
+      description: string | null;
+      primary_language: string;
+    };
+    graph: {
+      home_page_id?: string | null;
+      pages: Array<Record<string, unknown>>;
+      snippets: Array<Record<string, unknown>>;
+      assets: Array<
+        Record<string, unknown> & {
+          id: string;
+          file_id: string;
+          file: Record<string, unknown>;
+        }
+      >;
+      navigation: Array<Record<string, unknown>>;
+      aliases: Array<Record<string, unknown>>;
+      routes: Array<Record<string, unknown>>;
+    };
+    openapi: null | {
+      source_id: string;
+      file_id: string;
+      file: Record<string, unknown>;
+      digest: string;
+      openapi_version: string;
+      title: string;
+      operations: Array<Record<string, unknown>>;
+    };
+    external_bindings: Array<{
+      kind: "guide_publication" | "interactive_demo_publication";
+      published_artifact_id: string;
+    }>;
+    counts: Record<string, number>;
+  }) =>
+    with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        inspection_id: input.inspection_id,
+        content_fingerprint: input.content_fingerprint,
+        target: input.target,
+        external_bindings: input.external_bindings,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.site_package_import.apply",
+        request_digest,
+      });
+      if (replay) return replay;
+      const inspectionResult = await client.query<{
+        id: string;
+        status: string;
+        version: number;
+        source_file_id: string;
+        source_file_version: number;
+        source_digest: string;
+        content_fingerprint: string;
+        expires_at: Date;
+      }>(
+        `SELECT inspection.id,inspection.status,inspection.version,
+                inspection.source_file_id,file.version source_file_version,
+                inspection.source_digest,inspection.content_fingerprint,
+                inspection.expires_at
+           FROM documentation_schema.documentation_import_inspection inspection
+           JOIN file_schema.file file
+             ON file.id=inspection.source_file_id
+            AND file.organization_id=inspection.organization_id
+          WHERE inspection.id=$1 AND inspection.organization_id=$2
+            AND inspection.project_id=$3
+            AND inspection.project_version_id=$4
+            AND inspection.created_by_id=$5
+            AND inspection.kind='site_package'
+          FOR UPDATE OF inspection`,
+        [
+          input.inspection_id,
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.actor_org_user_id,
+        ],
+      );
+      const inspection = inspectionResult.rows[0];
+      if (!inspection) {
+        const error = new Error("Documentation import inspection was not found");
+        Object.assign(error, { code: "documentation_import_not_found" });
+        throw error;
+      }
+      if (inspection.status === "consumed") {
+        const error = new Error("Documentation import was already consumed");
+        Object.assign(error, { code: "documentation_import_consumed" });
+        throw error;
+      }
+      if (
+        inspection.status !== "ready" ||
+        inspection.expires_at.getTime() <= Date.now()
+      ) {
+        const error = new Error("Documentation import has expired");
+        Object.assign(error, { code: "documentation_import_expired" });
+        throw error;
+      }
+      if (inspection.content_fingerprint !== input.content_fingerprint) {
+        const error = new Error("Documentation import fingerprint changed");
+        Object.assign(error, { code: "documentation_import_conflict" });
+        throw error;
+      }
+      if (input.external_bindings.length) {
+        const publications = await client.query<{
+          id: string;
+          artifact_type: string;
+        }>(
+          `SELECT id,artifact_type
+             FROM publish_schema.published_artifact
+            WHERE organization_id=$1 AND project_id=$2
+              AND id=ANY($3::varchar[])
+            ORDER BY id FOR SHARE`,
+          [
+            input.organization_id,
+            input.project_id,
+            input.external_bindings.map(
+              (binding) => binding.published_artifact_id,
+            ),
+          ],
+        );
+        const types = new Map(
+          publications.rows.map((publication) => [
+            publication.id,
+            publication.artifact_type,
+          ]),
+        );
+        if (
+          input.external_bindings.some(
+            (binding) =>
+              types.get(binding.published_artifact_id) !==
+              (binding.kind === "guide_publication"
+                ? "guide"
+                : "interactive_demo"),
+          )
+        ) {
+          const error = new Error(
+            "Documentation import binding is unavailable",
+          );
+          Object.assign(error, { code: "documentation_import_conflict" });
+          throw error;
+        }
+      }
+
+      let site_id: string;
+      let edition_id: string;
+      let working_draft_id: string;
+      let navigation_tree_id: string;
+      let routing_set_id: string;
+      let beforeVersion: number | null = null;
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.site_package_import.apply",
+        action: "documentation.site_package_import_applied",
+      });
+      if (input.target.mode === "create_site") {
+        site_id = input.target.site_id;
+        edition_id = input.target.edition_id;
+        working_draft_id = input.target.working_draft_id;
+        navigation_tree_id = input.target.navigation_tree_id;
+        routing_set_id = input.target.routing_set_id;
+        await client.query(
+          `INSERT INTO documentation_schema.documentation_site
+            (id,organization_id,project_id,name,description,
+             created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$6)`,
+          [
+            site_id,
+            input.organization_id,
+            input.project_id,
+            input.target.name,
+            input.site.description,
+            input.actor_org_user_id,
+          ],
+        );
+        await client.query(
+          `INSERT INTO documentation_schema.site_edition
+            (id,organization_id,project_id,documentation_site_id,
+             project_version_id,primary_language,created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$7)`,
+          [
+            edition_id,
+            input.organization_id,
+            input.project_id,
+            site_id,
+            input.project_version_id,
+            input.site.primary_language,
+            input.actor_org_user_id,
+          ],
+        );
+        await client.query(
+          `INSERT INTO documentation_schema.site_working_draft
+            (id,organization_id,project_id,documentation_site_id,
+             site_edition_id,created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$6)`,
+          [
+            working_draft_id,
+            input.organization_id,
+            input.project_id,
+            site_id,
+            edition_id,
+            input.actor_org_user_id,
+          ],
+        );
+        await client.query(
+          `INSERT INTO documentation_schema.navigation_tree
+            (id,organization_id,project_id,documentation_site_id,
+             site_edition_id,created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$6)`,
+          [
+            navigation_tree_id,
+            input.organization_id,
+            input.project_id,
+            site_id,
+            edition_id,
+            input.actor_org_user_id,
+          ],
+        );
+        await client.query(
+          `INSERT INTO documentation_schema.routing_set
+            (id,organization_id,project_id,documentation_site_id,
+             site_edition_id,created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$6)`,
+          [
+            routing_set_id,
+            input.organization_id,
+            input.project_id,
+            site_id,
+            edition_id,
+            input.actor_org_user_id,
+          ],
+        );
+      } else {
+        const targetResult = await client.query<{
+          site_id: string;
+          site_version: number;
+          edition_id: string;
+          working_draft_id: string;
+          draft_version: number;
+          navigation_tree_id: string;
+          routing_set_id: string;
+          child_count: string;
+        }>(
+          `SELECT site.id site_id,site.version site_version,
+                  edition.id edition_id,draft.id working_draft_id,
+                  draft.version draft_version,navigation.id navigation_tree_id,
+                  routing.id routing_set_id,
+                  ((SELECT count(*) FROM documentation_schema.documentation_page
+                      WHERE site_edition_id=edition.id)
+                   +(SELECT count(*) FROM documentation_schema.documentation_snippet
+                      WHERE site_edition_id=edition.id)
+                   +(SELECT count(*) FROM documentation_schema.documentation_asset
+                      WHERE site_edition_id=edition.id)
+                   +(SELECT count(*) FROM documentation_schema.openapi_source
+                      WHERE site_edition_id=edition.id)
+                   +(SELECT count(*) FROM documentation_schema.navigation_node
+                      WHERE site_edition_id=edition.id)
+                   +(SELECT count(*) FROM documentation_schema.page_slug_alias
+                      WHERE site_edition_id=edition.id)
+                   +(SELECT count(*) FROM documentation_schema.documentation_redirect_rule
+                      WHERE site_edition_id=edition.id))::text child_count
+             FROM documentation_schema.documentation_site site
+             JOIN documentation_schema.site_edition edition
+               ON edition.documentation_site_id=site.id
+             JOIN documentation_schema.site_working_draft draft
+               ON draft.site_edition_id=edition.id
+             JOIN documentation_schema.navigation_tree navigation
+               ON navigation.site_edition_id=edition.id
+             JOIN documentation_schema.routing_set routing
+               ON routing.site_edition_id=edition.id
+            WHERE site.organization_id=$1 AND site.project_id=$2
+              AND site.id=$3 AND edition.project_version_id=$4
+            FOR UPDATE OF site,edition,draft,navigation,routing`,
+          [
+            input.organization_id,
+            input.project_id,
+            input.target.site_id,
+            input.project_version_id,
+          ],
+        );
+        const target = targetResult.rows[0];
+        if (
+          !target ||
+          target.site_version !== input.target.expected_site_version ||
+          target.draft_version !== input.target.expected_draft_version
+        ) {
+          const error = new Error("Documentation import target changed");
+          Object.assign(error, {
+            code: target
+              ? "documentation_row_version_conflict"
+              : "documentation_import_conflict",
+          });
+          throw error;
+        }
+        if (Number(target.child_count) !== 0) {
+          const error = new Error("Documentation import target is not empty");
+          Object.assign(error, {
+            code: "documentation_import_target_not_empty",
+          });
+          throw error;
+        }
+        ({
+          site_id,
+          edition_id,
+          working_draft_id,
+          navigation_tree_id,
+          routing_set_id,
+        } = target);
+        beforeVersion = target.draft_version;
+        if (input.target.apply_primary_language)
+          await client.query(
+            `UPDATE documentation_schema.site_edition
+                SET primary_language=$1,version=version+1,updated_by_id=$2,
+                    updated_at=CURRENT_TIMESTAMP
+              WHERE id=$3`,
+            [
+              input.site.primary_language,
+              input.actor_org_user_id,
+              edition_id,
+            ],
+          );
+      }
+      await lock_documentation_path_namespace(client, edition_id);
+
+      for (const asset of input.graph.assets) {
+        await client.query(
+          `INSERT INTO file_schema.file
+            (id,organization_id,storage_provider,storage_key,mime_type,
+             size_bytes,original_name,checksum_sha256,metadata,
+             created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$10)`,
+          [
+            asset.file_id,
+            input.organization_id,
+            asset.file.storage_provider,
+            asset.file.storage_key,
+            asset.file.mime_type,
+            asset.file.size_bytes,
+            asset.file.original_name,
+            asset.file.checksum_sha256,
+            JSON.stringify({ purpose: "documentation_asset" }),
+            input.actor_org_user_id,
+          ],
+        );
+        await client.query(
+          `INSERT INTO documentation_schema.documentation_asset
+            (id,organization_id,project_id,documentation_site_id,
+             site_edition_id,file_id,mime_type,byte_size,width,height,digest,
+             name,status,created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$14)`,
+          [
+            asset.id,
+            input.organization_id,
+            input.project_id,
+            site_id,
+            edition_id,
+            asset.file_id,
+            asset.file.mime_type,
+            asset.file.size_bytes,
+            asset.width,
+            asset.height,
+            asset.file.checksum_sha256,
+            asset.name,
+            asset.status,
+            input.actor_org_user_id,
+          ],
+        );
+      }
+      if (input.openapi) {
+        await client.query(
+          `INSERT INTO file_schema.file
+            (id,organization_id,storage_provider,storage_key,mime_type,
+             size_bytes,original_name,checksum_sha256,metadata,
+             created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$10)`,
+          [
+            input.openapi.file_id,
+            input.organization_id,
+            input.openapi.file.storage_provider,
+            input.openapi.file.storage_key,
+            input.openapi.file.mime_type,
+            input.openapi.file.size_bytes,
+            input.openapi.file.original_name,
+            input.openapi.file.checksum_sha256,
+            JSON.stringify({ purpose: "documentation_openapi_source" }),
+            input.actor_org_user_id,
+          ],
+        );
+        await client.query(
+          `INSERT INTO documentation_schema.openapi_source
+            (id,organization_id,project_id,site_edition_id,file_id,digest,
+             openapi_version,title,created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)`,
+          [
+            input.openapi.source_id,
+            input.organization_id,
+            input.project_id,
+            edition_id,
+            input.openapi.file_id,
+            input.openapi.digest,
+            input.openapi.openapi_version,
+            input.openapi.title,
+            input.actor_org_user_id,
+          ],
+        );
+        for (const operation of input.openapi.operations)
+          await client.query(
+            `INSERT INTO documentation_schema.openapi_operation
+              (id,organization_id,project_id,site_edition_id,openapi_source_id,
+               method,path,operation_id,destination_key,summary)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+            [
+              operation.id,
+              input.organization_id,
+              input.project_id,
+              edition_id,
+              input.openapi.source_id,
+              operation.method,
+              operation.path,
+              operation.operation_id ?? null,
+              operation.destination_key,
+              operation.summary ?? null,
+            ],
+          );
+      }
+      for (const snippet of input.graph.snippets) {
+        await client.query(
+          `INSERT INTO documentation_schema.documentation_snippet
+            (id,organization_id,project_id,documentation_site_id,
+             site_edition_id,site_working_draft_id,name,status,
+             created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)`,
+          [
+            snippet.id,
+            input.organization_id,
+            input.project_id,
+            site_id,
+            edition_id,
+            working_draft_id,
+            snippet.name,
+            snippet.status,
+            input.actor_org_user_id,
+          ],
+        );
+      }
+      for (const page of input.graph.pages)
+        await client.query(
+          `INSERT INTO documentation_schema.documentation_page
+            (id,organization_id,project_id,documentation_site_id,
+             site_edition_id,site_working_draft_id,title,description,
+             canonical_path,created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10)`,
+          [
+            page.id,
+            input.organization_id,
+            input.project_id,
+            site_id,
+            edition_id,
+            working_draft_id,
+            page.title,
+            page.description ?? null,
+            page.canonical_path,
+            input.actor_org_user_id,
+          ],
+        );
+      for (const page of input.graph.pages) {
+        for (const [index, keyword] of (
+          page.keywords as string[]
+        ).entries())
+          await client.query(
+            `INSERT INTO documentation_schema.documentation_page_keyword
+              (id,organization_id,project_id,site_edition_id,
+               documentation_page_id,keyword,position)
+             VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+            [
+              ulid(),
+              input.organization_id,
+              input.project_id,
+              edition_id,
+              page.id,
+              keyword,
+              index + 1,
+            ],
+          );
+        await insert_portable_blocks(client, {
+          ...input,
+          site_edition_id: edition_id,
+          owner_kind: "page",
+          owner_id: String(page.id),
+          blocks: page.blocks as Array<Record<string, unknown>>,
+        });
+        await insert_draft_search_document(client, {
+          organization_id: input.organization_id,
+          project_id: input.project_id,
+          project_version_id: input.project_version_id,
+          site_id,
+          site_edition_id: edition_id,
+          page_id: String(page.id),
+          title: String(page.title),
+          description:
+            typeof page.description === "string" ? page.description : null,
+          canonical_path: String(page.canonical_path),
+          search_text: search_text_for_blocks(
+            String(page.title),
+            typeof page.description === "string" ? page.description : null,
+            page.blocks as Array<Record<string, unknown>>,
+          ),
+        });
+      }
+      for (const snippet of input.graph.snippets)
+        await insert_portable_blocks(client, {
+          ...input,
+          site_edition_id: edition_id,
+          owner_kind: "snippet",
+          owner_id: String(snippet.id),
+          blocks: snippet.blocks as Array<Record<string, unknown>>,
+        });
+      const remainingNavigation = new Map(
+        input.graph.navigation.map((node) => [String(node.id), node]),
+      );
+      while (remainingNavigation.size) {
+        const ready = [...remainingNavigation.values()].filter(
+          (node) =>
+            !node.parent_id ||
+            !remainingNavigation.has(String(node.parent_id)),
+        );
+        if (!ready.length) throw new Error("Portable navigation is cyclic");
+        for (const node of ready) {
+          await client.query(
+            `INSERT INTO documentation_schema.navigation_node
+              (id,organization_id,project_id,site_edition_id,navigation_tree_id,
+               parent_id,kind,label,documentation_page_id,position,
+               created_by_id,updated_by_id)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11)`,
+            [
+              node.id,
+              input.organization_id,
+              input.project_id,
+              edition_id,
+              navigation_tree_id,
+              node.parent_id ?? null,
+              node.kind,
+              node.label ?? null,
+              node.page_id ?? null,
+              node.position,
+              input.actor_org_user_id,
+            ],
+          );
+          remainingNavigation.delete(String(node.id));
+        }
+      }
+      for (const alias of input.graph.aliases)
+        await client.query(
+          `INSERT INTO documentation_schema.page_slug_alias
+            (id,organization_id,project_id,site_edition_id,routing_set_id,
+             documentation_page_id,former_path,created_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [
+            alias.id,
+            input.organization_id,
+            input.project_id,
+            edition_id,
+            routing_set_id,
+            alias.page_id,
+            alias.former_path,
+            input.actor_org_user_id,
+          ],
+        );
+      for (const route of input.graph.routes)
+        await client.query(
+          `INSERT INTO documentation_schema.documentation_redirect_rule
+            (id,organization_id,project_id,site_edition_id,routing_set_id,
+             source_path,outcome,target_page_id,created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)`,
+          [
+            route.id,
+            input.organization_id,
+            input.project_id,
+            edition_id,
+            routing_set_id,
+            route.source_path,
+            route.outcome,
+            route.target_page_id ?? null,
+            input.actor_org_user_id,
+          ],
+        );
+      await client.query(
+        `UPDATE documentation_schema.site_working_draft
+            SET home_page_id=$1,version=version+1,updated_by_id=$2,
+                updated_at=CURRENT_TIMESTAMP
+          WHERE id=$3`,
+        [
+          input.graph.home_page_id ?? null,
+          input.actor_org_user_id,
+          working_draft_id,
+        ],
+      );
+      if (input.graph.navigation.length)
+        await client.query(
+          `UPDATE documentation_schema.navigation_tree
+              SET version=version+1,updated_by_id=$1,
+                  updated_at=CURRENT_TIMESTAMP WHERE id=$2`,
+          [input.actor_org_user_id, navigation_tree_id],
+        );
+      if (input.graph.aliases.length || input.graph.routes.length)
+        await client.query(
+          `UPDATE documentation_schema.routing_set
+              SET version=version+1,updated_by_id=$1,
+                  updated_at=CURRENT_TIMESTAMP WHERE id=$2`,
+          [input.actor_org_user_id, routing_set_id],
+        );
+      const application_id = ulid();
+      await client.query(
+        `INSERT INTO documentation_schema.documentation_import_application
+          (id,organization_id,project_id,project_version_id,
+           documentation_site_id,site_edition_id,inspection_id,kind,
+           format_version,source_digest,content_fingerprint,pages_count,
+           snippets_count,assets_count,openapi_sources_count,
+           external_bindings_count,navigation_nodes_count,aliases_count,
+           routes_count,blocks_count,created_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'site_package',1,$8,$9,$10,$11,$12,
+                 $13,$14,$15,$16,$17,$18,$19)`,
+        [
+          application_id,
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          site_id,
+          edition_id,
+          inspection.id,
+          inspection.source_digest,
+          inspection.content_fingerprint,
+          input.counts.pages,
+          input.counts.snippets,
+          input.counts.assets,
+          input.counts.openapi_sources,
+          input.counts.external_bindings,
+          input.counts.navigation_nodes,
+          input.counts.aliases,
+          input.counts.routes,
+          input.counts.blocks,
+          input.actor_org_user_id,
+        ],
+      );
+      await client.query(
+        `UPDATE documentation_schema.documentation_import_inspection
+            SET status='consumed',consumed_at=CURRENT_TIMESTAMP
+          WHERE id=$1`,
+        [inspection.id],
+      );
+      const result = {
+        id: application_id,
+        inspection_id: inspection.id,
+        target_site_id: site_id,
+        target_edition_id: edition_id,
+        created_page_id: null,
+        counts: input.counts,
+      };
+      const auditEvent = build_entity_audit_event({
+        id: audit.event_id,
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        root_resource_type: "documentation_site",
+        root_resource_id: site_id,
+        action: "documentation.site_package_import_applied",
+        actor_org_user_id: input.actor_org_user_id,
+        actor_label: audit.actor_label,
+        source_type: audit.source_type,
+        occurred_at: audit.occurred_at,
+        before_row_version: beforeVersion,
+        after_row_version: (beforeVersion ?? 0) + 1,
+        changes: [
+          ...(input.target.mode === "create_site"
+            ? [
+                {
+                  entity_type: "documentation_site",
+                  entity_id: site_id,
+                  parent_entity_type: "project_version",
+                  parent_entity_id: input.project_version_id,
+                  before: null,
+                  after: { version: 1 },
+                },
+              ]
+            : []),
+          ...input.graph.pages.map((page) => ({
+            entity_type: "documentation_page",
+            entity_id: String(page.id),
+            parent_entity_type: "documentation_site",
+            parent_entity_id: site_id,
+            before: null,
+            after: { version: 1 },
+          })),
+          ...input.graph.snippets.map((snippet) => ({
+            entity_type: "documentation_snippet",
+            entity_id: String(snippet.id),
+            parent_entity_type: "documentation_site",
+            parent_entity_id: site_id,
+            before: null,
+            after: { version: 1 },
+          })),
+          ...input.graph.assets.flatMap((asset) => [
+            {
+              entity_type: "file",
+              entity_id: asset.file_id,
+              parent_entity_type: "documentation_site",
+              parent_entity_id: site_id,
+              before: null,
+              after: { version: 1 },
+            },
+            {
+              entity_type: "documentation_asset",
+              entity_id: asset.id,
+              parent_entity_type: "documentation_site",
+              parent_entity_id: site_id,
+              before: null,
+              after: { version: 1 },
+            },
+          ]),
+          ...(input.openapi
+            ? [
+                {
+                  entity_type: "file",
+                  entity_id: input.openapi.file_id,
+                  parent_entity_type: "documentation_site",
+                  parent_entity_id: site_id,
+                  before: null,
+                  after: { version: 1 },
+                },
+                {
+                  entity_type: "openapi_source",
+                  entity_id: input.openapi.source_id,
+                  parent_entity_type: "documentation_site",
+                  parent_entity_id: site_id,
+                  before: null,
+                  after: { version: 1 },
+                },
+              ]
+            : []),
+          ...(input.graph.navigation.length
+            ? [
+                {
+                  entity_type: "navigation_tree",
+                  entity_id: navigation_tree_id,
+                  parent_entity_type: "documentation_site",
+                  parent_entity_id: site_id,
+                  before: { version: 1 },
+                  after: { version: 2 },
+                  safe_fields: { version: "integer" as const },
+                },
+              ]
+            : []),
+          ...(input.graph.aliases.length || input.graph.routes.length
+            ? [
+                {
+                  entity_type: "routing_set",
+                  entity_id: routing_set_id,
+                  parent_entity_type: "documentation_site",
+                  parent_entity_id: site_id,
+                  before: { version: 1 },
+                  after: { version: 2 },
+                  safe_fields: { version: "integer" as const },
+                },
+              ]
+            : []),
+          {
+            entity_type: "documentation_import_application",
+            entity_id: application_id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: site_id,
+            before: null,
+            after: { id: application_id },
+          },
+          {
+            entity_type: "documentation_import_inspection",
+            entity_id: inspection.id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: site_id,
+            before: { version: inspection.version },
+            after: { version: inspection.version + 1 },
+            safe_fields: { version: "integer" },
+          },
+          {
+            entity_type: "file",
+            entity_id: inspection.source_file_id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: site_id,
+            before: { version: inspection.source_file_version },
+            after: null,
+          },
+        ],
+      });
+      if (auditEvent) await write_audit_event(client, auditEvent);
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.site_package_import.apply",
         request_digest,
         response_status: 201,
         response_body: result,

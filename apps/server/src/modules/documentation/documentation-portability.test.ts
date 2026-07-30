@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { create_portable_documentation_snapshot } from "./documentation-portability";
+import {
+  create_portable_documentation_snapshot,
+  prepare_portable_documentation_import,
+} from "./documentation-portability";
 
 describe("Documentation portability adapter", () => {
   it("replaces database identities with deterministic package handles", () => {
@@ -58,5 +61,92 @@ describe("Documentation portability adapter", () => {
     });
     expect(JSON.stringify(portable)).not.toContain("page-b");
     expect(JSON.stringify(portable)).not.toContain("block-db");
+  });
+});
+
+describe("prepare_portable_documentation_import", () => {
+  it("allocates fresh identities and resolves package-local relationships", () => {
+    const prepared = prepare_portable_documentation_import({
+      site: {
+        schema_version: 1,
+        site: {
+          name: "Imported",
+          description: null,
+          primary_language: "en",
+        },
+        home_page_handle: "page-home",
+        pages: [
+          {
+            handle: "page-home",
+            title: "Home",
+            description: null,
+            canonical_path: "/",
+            keywords: [],
+            typed_path: "pages/page-home.json",
+            markdown_path: "pages/page-home.md",
+          },
+        ],
+        snippets: [
+          { handle: "snippet-note", path: "snippets/snippet-note.json" },
+        ],
+        assets: [],
+        navigation: [
+          {
+            handle: "navigation-home",
+            parent_handle: null,
+            kind: "page",
+            label: null,
+            page_handle: "page-home",
+            position: 1,
+          },
+        ],
+        aliases: [],
+        routes: [],
+        openapi: null,
+        external_bindings: [],
+      },
+      pages: [
+        {
+          schema_version: 1,
+          handle: "page-home",
+          title: "Home",
+          description: null,
+          canonical_path: "/",
+          keywords: [],
+          blocks: [
+            {
+              handle: "block-note",
+              kind: "snippet_reference",
+              position: 1,
+              snippet_handle: "snippet-note",
+            },
+          ],
+        },
+      ],
+      snippets: [
+        {
+          schema_version: 1,
+          handle: "snippet-note",
+          name: "Note",
+          status: "active",
+          blocks: [
+            {
+              handle: "snippet-paragraph",
+              kind: "paragraph",
+              position: 1,
+              text: "Portable",
+            },
+          ],
+        },
+      ],
+      external_bindings: [],
+    });
+
+    expect(prepared.home_page_id).toBe(prepared.pages[0]?.id);
+    expect(prepared.pages[0]?.blocks[0]?.snippet_id).toBe(
+      prepared.snippets[0]?.id,
+    );
+    expect(prepared.navigation[0]?.page_id).toBe(prepared.pages[0]?.id);
+    expect(prepared.pages[0]?.id).not.toBe("page-home");
   });
 });

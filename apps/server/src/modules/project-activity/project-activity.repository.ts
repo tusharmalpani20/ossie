@@ -75,6 +75,8 @@ add("content", [
   "interactive_demo.revision.created",
   "interactive_demo.revision.restored",
   "artifact.editions.carried_forward",
+  "documentation.page_markdown_import_applied",
+  "documentation.site_package_import_applied",
 ]);
 add("publication", [
   "guide.published",

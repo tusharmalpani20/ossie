@@ -1169,6 +1169,42 @@ describe("DB-backed Documentation repository", () => {
     expect(packageExport.rawPayload.subarray(0, 2).toString("ascii")).toBe(
       "PK",
     );
+    const packageUpload = multipart_file(
+      "portable-site.zip",
+      "application/zip",
+      packageExport.rawPayload,
+    );
+    const packageInspection = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-import-inspections?kind=site_package`,
+      cookies: { ossie_session: scope.session_token },
+      headers: {
+        ...packageUpload.headers,
+        "idempotency-key": "inspect-exported-package",
+      },
+      payload: packageUpload.payload,
+    });
+    expect(packageInspection.statusCode).toBe(201);
+    const inspectedPackage = packageInspection.json().inspection;
+    const packageApplication = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-import-inspections/${inspectedPackage.id}/apply`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "apply-exported-package" },
+      payload: {
+        content_fingerprint: inspectedPackage.content_fingerprint,
+        target: { mode: "create_site", name: "Imported copy" },
+        external_bindings: [],
+        confirm: true,
+      },
+    });
+    expect(
+      packageApplication.statusCode,
+      packageApplication.body,
+    ).toBe(201);
+    expect(packageApplication.json().application).toMatchObject({
+      counts: { pages: inspectedPackage.summary.pages },
+    });
     const auditActions = await pool.query<{ action: string }>(
       `SELECT action FROM audit_schema.audit_event
         WHERE root_resource_type='documentation_site'
