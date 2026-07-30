@@ -495,3 +495,61 @@ export const applyDocumentationOpenApi = (
       operations: DocumentationOpenApiOperation[];
     }>(response),
   );
+
+export type DocumentationRevisionSummary = {
+  id: string;
+  revision_number: number;
+  created_at: string;
+};
+
+export const listDocumentationRevisions = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+) =>
+  fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/revisions`, {
+    credentials: "include",
+  }).then((response) =>
+    json<{ revisions: DocumentationRevisionSummary[] }>(response),
+  );
+
+type DocumentationPublicationLinkSelection =
+  | {
+      mode: "create";
+      name: string;
+      slug: string;
+      visibility: "public" | "restricted";
+    }
+  | {
+      mode: "existing";
+      link_id: string;
+      entry_id: string;
+      expected_entry_version: number;
+    };
+
+export const createDocumentationPublication = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  revisionId: string,
+  link: DocumentationPublicationLinkSelection,
+) =>
+  fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publications`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
+      "idempotency-key": crypto.randomUUID(),
+    },
+    body: JSON.stringify({ revision_id: revisionId, link }),
+  }).then((response) =>
+    json<{
+      publication: { id: string; publication_sequence: number };
+      link: {
+        id: string;
+        slug: string;
+        resource_family: "documentation_site";
+      };
+      entry: { id: string; version: number };
+    }>(response),
+  );

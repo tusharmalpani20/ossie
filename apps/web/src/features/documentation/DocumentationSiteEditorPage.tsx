@@ -6,6 +6,7 @@ import {
   type DocumentationDraftPreview,
 } from "../../lib/documentationApi";
 import { DocumentationOpenApiPanel } from "./DocumentationOpenApiPanel";
+import { DocumentationPublishingPanel } from "./DocumentationPublishingPanel";
 
 type Props = {
   projectId: string;
@@ -28,6 +29,7 @@ export const DocumentationSiteEditorPage = ({
 }: Props) => {
   const [preview, setPreview] = useState<DocumentationDraftPreview | null>(null);
   const [status, setStatus] = useState("Loading saved draft…");
+  const [checkpointCount, setCheckpointCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -55,6 +57,7 @@ export const DocumentationSiteEditorPage = ({
         siteId,
         preview.working_draft.version,
       );
+      setCheckpointCount((current) => current + 1);
       setStatus(`Revision ${revision.revision_number} is ready.`);
     } catch {
       setStatus("Revision could not be created. The live publication was not changed.");
@@ -104,6 +107,13 @@ export const DocumentationSiteEditorPage = ({
         versionSlug={versionSlug}
         siteId={siteId}
         canWrite={canWrite}
+      />
+      <DocumentationPublishingPanel
+        key={checkpointCount}
+        projectId={projectId}
+        versionSlug={versionSlug}
+        siteId={siteId}
+        canPublish={canPublish}
       />
       <p role="status">{status}</p>
     </main>
