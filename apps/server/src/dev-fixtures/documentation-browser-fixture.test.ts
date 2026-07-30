@@ -1,0 +1,29 @@
+import { describe, expect, it } from "vitest";
+import {
+  build_documentation_browser_fixture,
+  documentation_browser_fixture_cli_summary,
+} from "./documentation-browser-fixture";
+
+describe("Documentation browser fixture", () => {
+  it("describes the bounded users, routes, and exact-publication cases without seeding", () => {
+    const fixture = build_documentation_browser_fixture();
+    expect(fixture.users.map((user) => user.project_role)).toEqual([
+      "project_admin",
+      "viewer",
+    ]);
+    expect(fixture.routes.list).toContain("/versions/summer-release/documentation");
+    expect(fixture.routes.public_reader).toBe("/docs/plan132-public/install-guide");
+    expect(fixture.cases).toEqual(
+      expect.arrayContaining([
+        "page_conflict",
+        "private_comment",
+        "openapi_reference",
+        "publication_immutability",
+        "rollback",
+      ]),
+    );
+    expect(documentation_browser_fixture_cli_summary(fixture)).not.toHaveProperty(
+      "session_token",
+    );
+  });
+});
