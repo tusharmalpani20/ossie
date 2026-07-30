@@ -10,7 +10,7 @@ describe("ProjectDocumentationSiteListPage", () => {
       working_draft: { id: "draft", version: 2 },
       home_page: { id: "page", canonical_path: "home" },
     }));
-    render(
+    const { container } = render(
       <ProjectDocumentationSiteListPage
         projectId="project"
         versionSlug="main"
@@ -22,6 +22,13 @@ describe("ProjectDocumentationSiteListPage", () => {
 
     expect(
       await screen.findByText("No Documentation Sites yet"),
+    ).toBeInTheDocument();
+    expect(container.querySelector("main")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        level: 2,
+        name: "Import Site package",
+      }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Create Site" }));
     fireEvent.change(screen.getByLabelText("Site name"), {

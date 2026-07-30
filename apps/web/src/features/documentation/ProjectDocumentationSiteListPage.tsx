@@ -79,7 +79,7 @@ export const ProjectDocumentationSiteListPage = ({
     return <p role="alert">Documentation Sites could not be loaded.</p>;
 
   return (
-    <main className={styles.page} id="main-content">
+    <div className={styles.page}>
       <header className={styles.header}>
         <div>
           <p className={styles.eyebrow}>Project Version Documentation</p>
@@ -136,12 +136,13 @@ export const ProjectDocumentationSiteListPage = ({
         kind="site_package"
         mode="create_site"
         canImport={canManage}
+        headingLevel={2}
         onApplied={(siteId) => {
           window.location.assign(
             `/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/${encodeURIComponent(siteId)}`,
           );
         }}
       />
-    </main>
+    </div>
   );
 };

@@ -20,6 +20,7 @@ type Props = {
   siteVersion?: number;
   draftVersion?: number;
   canImport: boolean;
+  headingLevel?: 2 | 3;
   onApplied?: (siteId: string) => void;
 };
 
@@ -32,6 +33,7 @@ export const DocumentationPortabilityPanel = ({
   siteVersion,
   draftVersion,
   canImport,
+  headingLevel = 3,
   onApplied,
 }: Props) => {
   const [file, setFile] = useState<File | null>(null);
@@ -172,14 +174,15 @@ export const DocumentationPortabilityPanel = ({
     inspection.has_blocking_issues ||
     !allBindingsSelected ||
     (mode === "page" && (!title.trim() || !canonicalPath.trim()));
+  const Heading = headingLevel === 2 ? "h2" : "h3";
 
   return (
     <section aria-labelledby={`documentation-${kind}-${mode}-heading`}>
-      <h3 id={`documentation-${kind}-${mode}-heading`}>
+      <Heading id={`documentation-${kind}-${mode}-heading`}>
         {kind === "site_package"
           ? "Import Site package"
           : "Import Markdown as a new Page"}
-      </h3>
+      </Heading>
       <Label htmlFor={`documentation-import-${kind}-${mode}`}>
         {kind === "site_package" ? "Ossie Site ZIP" : "Markdown file"}
       </Label>
