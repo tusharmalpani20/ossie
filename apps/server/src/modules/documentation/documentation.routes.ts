@@ -650,7 +650,7 @@ export type DocumentationRouteDependencies = {
       project_id: string;
       project_version_id: string;
       actor_org_user_id: string;
-      site_id: string;
+      site_id?: string;
       artifact_type: "guide" | "interactive_demo";
       cursor?: string;
     }) => Promise<unknown[]>;
@@ -1059,6 +1059,29 @@ export const build_documentation_routes = (
         } catch (error) {
           return documentation_error(error, reply);
         }
+      },
+    );
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-artifact-publications",
+      async (request, reply) => {
+        const params = ParamsSchema.safeParse(request.params);
+        const query = ArtifactPublicationQuerySchema.safeParse(request.query);
+        if (!params.success || !query.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        const scope = await authorized_scope(request, params.data);
+        const publications =
+          await dependencies.documentation_service.list_artifact_publications({
+            ...scope,
+            ...query.data,
+          });
+        return reply.send({ publications });
       },
     );
     fastify.get(

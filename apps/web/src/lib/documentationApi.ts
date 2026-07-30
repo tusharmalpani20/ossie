@@ -13,8 +13,10 @@ export type DocumentationSiteSummary = {
 };
 
 const baseUrl = () => import.meta.env.VITE_OSSIE_API_URL ?? "";
+const versionPath = (projectId: string, versionSlug: string) =>
+  `/api/v1/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}`;
 const sitesPath = (projectId: string, versionSlug: string) =>
-  `/api/v1/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation-sites`;
+  `${versionPath(projectId, versionSlug)}/documentation-sites`;
 
 export class DocumentationApiError extends Error {
   constructor(
@@ -199,6 +201,21 @@ export const documentationOpenApiExportUrl = (
   expectedSourceVersion: number,
 ) =>
   `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/openapi/export?source=draft&expected_source_version=${expectedSourceVersion}`;
+
+export const documentationFrozenOpenApiExportUrl = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  selection:
+    | { source: "revision"; revision_number: number }
+    | { source: "publication"; site_publication_id: string },
+) => {
+  const query =
+    selection.source === "revision"
+      ? `source=revision&revision_number=${selection.revision_number}`
+      : `source=publication&site_publication_id=${encodeURIComponent(selection.site_publication_id)}`;
+  return `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/openapi/export?${query}`;
+};
 
 const json = async <Result>(response: Response): Promise<Result> => {
   const body = (await response.json().catch(() => null)) as {
@@ -548,7 +565,9 @@ export const listDocumentationArtifactPublications = (
   artifactType: "guide" | "interactive_demo",
 ) =>
   fetch(
-    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/artifact-publications?artifact_type=${artifactType}`,
+    siteId
+      ? `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/artifact-publications?artifact_type=${artifactType}`
+      : `${baseUrl()}${versionPath(projectId, versionSlug)}/documentation-artifact-publications?artifact_type=${artifactType}`,
     { credentials: "include" },
   ).then((response) =>
     json<{ publications: DocumentationArtifactPublication[] }>(response),

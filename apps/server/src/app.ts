@@ -1597,7 +1597,7 @@ export const build = (opts: BuildOptions = {}) => {
               ).entries()) {
                   const portableAsset = portable.site.assets[index];
                   const file =
-                    exported.source === "draft"
+                    exported.source === "draft" && !asset.storage_key
                       ? await repository.get_asset_file_record({
                           ...input,
                           asset_id: asset.id,

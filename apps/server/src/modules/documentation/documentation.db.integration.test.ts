@@ -1205,6 +1205,55 @@ describe("DB-backed Documentation repository", () => {
     expect(packageApplication.json().application).toMatchObject({
       counts: { pages: inspectedPackage.summary.pages },
     });
+    const placeholderSite = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "placeholder-import-target" },
+      payload: {
+        name: "Placeholder target",
+        primary_language: "en-US",
+        initial_home_page: { title: "Home", path: "home" },
+      },
+    });
+    expect(placeholderSite.statusCode).toBe(201);
+    const secondPackageUpload = multipart_file(
+      "portable-site.zip",
+      "application/zip",
+      packageExport.rawPayload,
+    );
+    const secondInspection = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-import-inspections?kind=site_package`,
+      cookies: { ossie_session: scope.session_token },
+      headers: {
+        ...secondPackageUpload.headers,
+        "idempotency-key": "inspect-package-for-placeholder",
+      },
+      payload: secondPackageUpload.payload,
+    });
+    expect(secondInspection.statusCode).toBe(201);
+    const replacePlaceholder = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-import-inspections/${secondInspection.json().inspection.id}/apply`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "apply-package-to-placeholder" },
+      payload: {
+        content_fingerprint:
+          secondInspection.json().inspection.content_fingerprint,
+        target: {
+          mode: "empty_site",
+          site_id: placeholderSite.json().site.id,
+          expected_site_version: placeholderSite.json().site.version,
+          expected_draft_version:
+            placeholderSite.json().working_draft.version,
+          apply_primary_language: false,
+        },
+        external_bindings: [],
+        confirm: true,
+      },
+    });
+    expect(replacePlaceholder.statusCode, replacePlaceholder.body).toBe(201);
     const auditActions = await pool.query<{ action: string }>(
       `SELECT action FROM audit_schema.audit_event
         WHERE root_resource_type='documentation_site'

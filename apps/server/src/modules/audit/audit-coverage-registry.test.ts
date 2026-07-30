@@ -42,13 +42,14 @@ describe("audit coverage registry", () => {
     expect(
       new Set(
         writes.map(({ table, sql_operation }) => `${table}:${sql_operation}`),
-      ).size,
-    ).toBe(84);
+    ).size,
+    ).toBe(85);
     expect(
       writes
         .filter(({ sql_operation }) => sql_operation === "DELETE")
         .map(({ table }) => table),
     ).toEqual([
+      "documentation_schema.documentation_page",
       "publish_schema.publish_link_entry",
       "publish_schema.publish_link_entry",
     ]);
@@ -492,6 +493,12 @@ describe("audit coverage registry", () => {
         "documentation_page",
         "INSERT",
         "documentation_page_i_audit_ctx",
+      ],
+      [
+        "documentation_schema",
+        "documentation_page",
+        "DELETE",
+        "documentation_page_d_audit_ctx",
       ],
       [
         "documentation_schema",

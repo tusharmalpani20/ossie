@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DocumentationCanonicalRedirect,
+  documentationFrozenOpenApiExportUrl,
   getPublicDocumentationPage,
   inspectDocumentationImport,
+  listDocumentationArtifactPublications,
   listDocumentationAssets,
   saveDocumentationSnippet,
 } from "./documentationApi";
@@ -184,6 +186,40 @@ describe("Documentation authoring API adapter", () => {
         }),
         body: expect.any(FormData),
       }),
+    );
+  });
+
+  it("lists external binding candidates without requiring an existing Site", async () => {
+    const fetch = vi.fn(async () => json({ publications: [] }));
+    vi.stubGlobal("fetch", fetch);
+    await listDocumentationArtifactPublications(
+      "project",
+      "main",
+      "",
+      "guide",
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "/versions/main/documentation-artifact-publications?artifact_type=guide",
+      ),
+      { credentials: "include" },
+    );
+  });
+
+  it("builds immutable OpenAPI source links for Revisions and Publications", () => {
+    expect(
+      documentationFrozenOpenApiExportUrl("project", "main", "site", {
+        source: "revision",
+        revision_number: 3,
+      }),
+    ).toContain("/openapi/export?source=revision&revision_number=3");
+    expect(
+      documentationFrozenOpenApiExportUrl("project", "main", "site", {
+        source: "publication",
+        site_publication_id: "publication/id",
+      }),
+    ).toContain(
+      "/openapi/export?source=publication&site_publication_id=publication%2Fid",
     );
   });
 });

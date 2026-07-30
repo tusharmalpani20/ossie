@@ -1115,9 +1115,58 @@ const load_draft_snapshot = async (
     [input.organization_id, input.project_id, root.site_edition_id],
   );
   const assets = await db.query<Record<string, unknown>>(
-    `SELECT id,file_id,mime_type,byte_size,width,height,digest,name,status,version
-       FROM documentation_schema.documentation_asset
-      WHERE organization_id=$1 AND project_id=$2 AND site_edition_id=$3
+    `SELECT *
+       FROM (
+         SELECT asset.id,asset.file_id,asset.mime_type,
+                asset.byte_size::integer byte_size,
+                asset.width,asset.height,asset.digest,asset.name,
+                asset.status,asset.version,
+                'documentation_asset'::text source_kind,
+                file.storage_provider,file.storage_key,file.size_bytes,
+                file.checksum_sha256
+           FROM documentation_schema.documentation_asset asset
+           JOIN file_schema.file file
+             ON file.id=asset.file_id
+            AND file.organization_id=asset.organization_id
+          WHERE asset.organization_id=$1 AND asset.project_id=$2
+            AND asset.site_edition_id=$3 AND file.is_deleted=FALSE
+         UNION ALL
+         SELECT DISTINCT asset.id,asset.file_id,file.mime_type,
+                file.size_bytes::integer byte_size,asset.width,asset.height,
+                file.checksum_sha256 digest,
+                COALESCE(NULLIF(file.original_name,''),'Captured media') name,
+                asset.status,asset.version,
+                'capture_asset'::text source_kind,
+                file.storage_provider,file.storage_key,file.size_bytes,
+                file.checksum_sha256
+           FROM capture_schema.capture_asset asset
+           JOIN file_schema.file file
+             ON file.id=asset.file_id
+            AND file.organization_id=asset.organization_id
+          WHERE asset.organization_id=$1 AND asset.project_id=$2
+            AND asset.is_deleted=FALSE AND file.is_deleted=FALSE
+            AND asset.asset_type IN ('screenshot','redacted_screenshot')
+            AND file.mime_type IN ('image/png','image/jpeg','image/webp')
+            AND NOT EXISTS (
+              SELECT 1
+                FROM capture_schema.capture_asset_purge_operation purge
+               WHERE purge.capture_asset_id=asset.id
+            )
+            AND (
+              EXISTS (
+                SELECT 1
+                  FROM documentation_schema.documentation_page_block block
+                 WHERE block.site_edition_id=$3
+                   AND block.capture_asset_id=asset.id
+              )
+              OR EXISTS (
+                SELECT 1
+                  FROM documentation_schema.documentation_snippet_block block
+                 WHERE block.site_edition_id=$3
+                   AND block.capture_asset_id=asset.id
+              )
+            )
+       ) portable_asset
       ORDER BY id`,
     [input.organization_id, input.project_id, root.site_edition_id],
   );
@@ -7757,6 +7806,7 @@ export const build_documentation_repository = (database: Database) => ({
       let navigation_tree_id: string;
       let routing_set_id: string;
       let beforeVersion: number | null = null;
+      let removedPlaceholderId: string | null = null;
       const audit = await begin_documentation_audit_context(client, {
         ...input,
         command: "documentation.site_package_import.apply",
@@ -7848,15 +7898,35 @@ export const build_documentation_repository = (database: Database) => ({
           draft_version: number;
           navigation_tree_id: string;
           routing_set_id: string;
-          child_count: string;
+          page_count: string;
+          placeholder_page_id: string | null;
+          other_count: string;
         }>(
           `SELECT site.id site_id,site.version site_version,
                   edition.id edition_id,draft.id working_draft_id,
                   draft.version draft_version,navigation.id navigation_tree_id,
                   routing.id routing_set_id,
-                  ((SELECT count(*) FROM documentation_schema.documentation_page
-                      WHERE site_edition_id=edition.id)
-                   +(SELECT count(*) FROM documentation_schema.documentation_snippet
+                  (SELECT count(*)::text
+                     FROM documentation_schema.documentation_page
+                    WHERE site_edition_id=edition.id) page_count,
+                  (SELECT page.id
+                     FROM documentation_schema.documentation_page page
+                    WHERE page.site_edition_id=edition.id
+                      AND page.id=draft.home_page_id
+                      AND NOT EXISTS (
+                        SELECT 1 FROM documentation_schema.documentation_page_keyword
+                         WHERE documentation_page_id=page.id
+                      )
+                      AND NOT EXISTS (
+                        SELECT 1 FROM documentation_schema.documentation_page_block
+                         WHERE documentation_page_id=page.id
+                      )
+                      AND NOT EXISTS (
+                        SELECT 1 FROM documentation_schema.page_slug_alias
+                         WHERE documentation_page_id=page.id
+                      )
+                    LIMIT 1) placeholder_page_id,
+                  ((SELECT count(*) FROM documentation_schema.documentation_snippet
                       WHERE site_edition_id=edition.id)
                    +(SELECT count(*) FROM documentation_schema.documentation_asset
                       WHERE site_edition_id=edition.id)
@@ -7867,7 +7937,17 @@ export const build_documentation_repository = (database: Database) => ({
                    +(SELECT count(*) FROM documentation_schema.page_slug_alias
                       WHERE site_edition_id=edition.id)
                    +(SELECT count(*) FROM documentation_schema.documentation_redirect_rule
-                      WHERE site_edition_id=edition.id))::text child_count
+                      WHERE site_edition_id=edition.id)
+                   +(SELECT count(*) FROM documentation_schema.site_revision
+                      WHERE site_edition_id=edition.id)
+                   +(SELECT count(*) FROM publish_schema.site_publication
+                      WHERE site_edition_id=edition.id)
+                   +(SELECT count(*) FROM publish_schema.publish_link
+                      WHERE documentation_site_id=site.id)
+                   +(SELECT count(*) FROM documentation_schema.comment_thread
+                      WHERE site_edition_id=edition.id)
+                   +(SELECT count(*) FROM documentation_schema.documentation_import_application
+                      WHERE site_edition_id=edition.id))::text other_count
              FROM documentation_schema.documentation_site site
              JOIN documentation_schema.site_edition edition
                ON edition.documentation_site_id=site.id
@@ -7901,7 +7981,12 @@ export const build_documentation_repository = (database: Database) => ({
           });
           throw error;
         }
-        if (Number(target.child_count) !== 0) {
+        const pageCount = Number(target.page_count);
+        if (
+          Number(target.other_count) !== 0 ||
+          pageCount > 1 ||
+          (pageCount === 1 && !target.placeholder_page_id)
+        ) {
           const error = new Error("Documentation import target is not empty");
           Object.assign(error, {
             code: "documentation_import_target_not_empty",
@@ -7916,6 +8001,18 @@ export const build_documentation_repository = (database: Database) => ({
           routing_set_id,
         } = target);
         beforeVersion = target.draft_version;
+        if (target.placeholder_page_id) {
+          removedPlaceholderId = target.placeholder_page_id;
+          await client.query(
+            `DELETE FROM documentation_schema.documentation_draft_search_document
+              WHERE documentation_page_id=$1`,
+            [target.placeholder_page_id],
+          );
+          await client.query(
+            `DELETE FROM documentation_schema.documentation_page WHERE id=$1`,
+            [target.placeholder_page_id],
+          );
+        }
         if (input.target.apply_primary_language)
           await client.query(
             `UPDATE documentation_schema.site_edition
@@ -8291,6 +8388,18 @@ export const build_documentation_repository = (database: Database) => ({
                 },
               ]
             : []),
+          ...(removedPlaceholderId
+            ? [
+                {
+                  entity_type: "documentation_page",
+                  entity_id: removedPlaceholderId,
+                  parent_entity_type: "documentation_site",
+                  parent_entity_id: site_id,
+                  before: { version: 1 },
+                  after: null,
+                },
+              ]
+            : []),
           ...input.graph.pages.map((page) => ({
             entity_type: "documentation_page",
             entity_id: String(page.id),
@@ -8412,7 +8521,7 @@ export const build_documentation_repository = (database: Database) => ({
   list_artifact_publications: async (input: {
     organization_id: string;
     project_id: string;
-    site_id: string;
+    site_id?: string;
     artifact_type: "guide" | "interactive_demo";
   }) => {
     const result = await database.query<{

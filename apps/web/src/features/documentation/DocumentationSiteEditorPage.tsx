@@ -6,6 +6,7 @@ import {
   type DocumentationDraftPreview,
   documentationPackageExportUrl,
   documentationFrozenPackageExportUrl,
+  documentationFrozenOpenApiExportUrl,
   listDocumentationPublications,
   listDocumentationRevisions,
   type DocumentationPublicationSummary,
@@ -179,6 +180,21 @@ export const DocumentationSiteEditorPage = ({
                 >
                   Export Revision {revision.revision_number} ZIP
                 </a>
+                {" · "}
+                <a
+                  href={documentationFrozenOpenApiExportUrl(
+                    projectId,
+                    versionSlug,
+                    siteId,
+                    {
+                      source: "revision",
+                      revision_number: revision.revision_number,
+                    },
+                  )}
+                  download
+                >
+                  Export exact OpenAPI source when available
+                </a>
               </li>
             ))}
           </ul>
@@ -200,6 +216,21 @@ export const DocumentationSiteEditorPage = ({
                   download
                 >
                   Export Publication {publication.publication_sequence} ZIP
+                </a>
+                {" · "}
+                <a
+                  href={documentationFrozenOpenApiExportUrl(
+                    projectId,
+                    versionSlug,
+                    siteId,
+                    {
+                      source: "publication",
+                      site_publication_id: publication.id,
+                    },
+                  )}
+                  download
+                >
+                  Export exact OpenAPI source when available
                 </a>
               </li>
             ))}

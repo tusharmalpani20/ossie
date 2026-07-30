@@ -18,6 +18,7 @@ const excluded = new Set([
   "documentation_schema.comment_mention:INSERT",
   "documentation_schema.documentation_draft_search_document:INSERT",
   "documentation_schema.documentation_draft_search_document:UPDATE",
+  "documentation_schema.documentation_draft_search_document:DELETE",
   "documentation_schema.openapi_inspection:INSERT",
   "documentation_schema.openapi_inspection:UPDATE",
   "documentation_schema.openapi_operation:INSERT",

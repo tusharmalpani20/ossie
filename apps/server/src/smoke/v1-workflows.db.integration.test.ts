@@ -2,6 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
+import JSZip from "jszip";
 import { build } from "../app";
 import { pool } from "../config/database.config";
 import { reset_test_database } from "../test-support/database";
@@ -723,6 +724,83 @@ describe("v1 dogfood smoke workflow", () => {
     const fixture = await seed_documentation_browser_fixture();
     const app = build({ logger: false });
     try {
+      const admin = fixture.users.find(
+        ({ project_role }) => project_role === "project_admin",
+      )!;
+      const currentPage = await app.inject({
+        method: "GET",
+        url:
+          `/api/v1/projects/${fixture.project_id}/versions/${fixture.version_slug}` +
+          `/documentation-sites/${fixture.site_id}/pages/${fixture.page_ids.home}`,
+        cookies: { ossie_session: admin.session_token },
+      });
+      expect(currentPage.statusCode, currentPage.body).toBe(200);
+      const captureDraft = await app.inject({
+        method: "PUT",
+        url:
+          `/api/v1/projects/${fixture.project_id}/versions/${fixture.version_slug}` +
+          `/documentation-sites/${fixture.site_id}/pages/${fixture.page_ids.home}/content`,
+        cookies: { ossie_session: admin.session_token },
+        payload: {
+          expected_page_version: currentPage.json().page.version,
+          blocks: [
+            {
+              id: "01K13400000000000000000001",
+              kind: "image",
+              position: 1,
+              expected_version: null,
+              source: {
+                kind: "capture_asset",
+                id: fixture.capture_asset_id,
+              },
+              alt_text: "Portable captured dashboard",
+              caption: "Capture-backed media remains portable.",
+            },
+          ],
+        },
+      });
+      expect(captureDraft.statusCode, captureDraft.body).toBe(200);
+      const exportVersions = await pool.query<{
+        site_version: number;
+        draft_version: number;
+      }>(
+        `SELECT site.version site_version,draft.version draft_version
+           FROM documentation_schema.documentation_site site
+           JOIN documentation_schema.site_edition edition
+             ON edition.documentation_site_id=site.id
+           JOIN documentation_schema.site_working_draft draft
+             ON draft.site_edition_id=edition.id
+          WHERE site.id=$1`,
+        [fixture.site_id],
+      );
+      const portableDraft = await app.inject({
+        method: "GET",
+        url:
+          `/api/v1/projects/${fixture.project_id}/versions/${fixture.version_slug}` +
+          `/documentation-sites/${fixture.site_id}/export/package.zip?source=draft` +
+          `&expected_site_version=${exportVersions.rows[0]!.site_version}` +
+          `&expected_draft_version=${exportVersions.rows[0]!.draft_version}`,
+        cookies: { ossie_session: admin.session_token },
+      });
+      expect(portableDraft.statusCode, portableDraft.body).toBe(200);
+      const portableArchive = await JSZip.loadAsync(portableDraft.rawPayload);
+      const portableManifest = JSON.parse(
+        await portableArchive.file("site.json")!.async("string"),
+      );
+      expect(portableManifest.assets).toHaveLength(2);
+      expect(portableManifest.assets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            sha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+          }),
+        ]),
+      );
+      expect(
+        Object.keys(portableArchive.files).filter((name) =>
+          name.startsWith("assets/"),
+        ),
+      ).toHaveLength(2);
+
       const public_page = await app.inject({
         method: "GET",
         url: "/api/v1/public/publish-links/plan132-public/documentation/pages/install-guide",

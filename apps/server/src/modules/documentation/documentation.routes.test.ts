@@ -795,6 +795,11 @@ describe("Documentation routes", () => {
       url: `${root}/artifact-publications?artifact_type=guide`,
       cookies: { ossie_session: "session" },
     });
+    const projectOptions = await app.inject({
+      method: "GET",
+      url: "/api/v1/projects/project/versions/main/documentation-artifact-publications?artifact_type=guide",
+      cookies: { ossie_session: "session" },
+    });
     const nested = await app.inject({
       method: "PUT",
       url: `${root}/snippets/snippet/content`,
@@ -837,6 +842,7 @@ describe("Documentation routes", () => {
     expect(saved.statusCode).toBe(200);
     expect(archived.statusCode).toBe(200);
     expect(options.statusCode).toBe(200);
+    expect(projectOptions.statusCode).toBe(200);
     expect(options.json().publications[0].published_artifact_id).toBe(
       "publication",
     );
@@ -863,8 +869,12 @@ describe("Documentation routes", () => {
         transition: "archive",
       }),
     );
-    expect(list_artifact_publications).toHaveBeenCalledWith(
-      expect.objectContaining({ artifact_type: "guide" }),
+    expect(list_artifact_publications).toHaveBeenCalledTimes(2);
+    expect(list_artifact_publications).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        artifact_type: "guide",
+        project_version_id: "version",
+      }),
     );
   });
 });

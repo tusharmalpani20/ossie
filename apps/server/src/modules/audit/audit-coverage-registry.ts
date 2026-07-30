@@ -120,6 +120,13 @@ const U = {
       "INSERT",
       "documentation_page",
     ),
+  documentation_page_delete: () =>
+    write(
+      "documentation_schema.documentation_page",
+      "DELETE",
+      "documentation_page",
+      ["delete"],
+    ),
   documentation_page_update: () =>
     write(
       "documentation_schema.documentation_page",
@@ -1023,6 +1030,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
       U.file_insert(),
       U.documentation_site_insert(),
       U.documentation_page_insert(),
+      U.documentation_page_delete(),
       U.documentation_snippet_insert(),
       U.documentation_asset_insert(),
       U.documentation_openapi_insert(),

@@ -373,6 +373,17 @@ EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
   'documentation_page','direct',
   'documentation.page_markdown_import.apply,documentation.site_package_import.apply,documentation.site.create,documentation.page.create'
 );
+CREATE TRIGGER documentation_page_d_audit_ctx
+BEFORE DELETE ON documentation_schema.documentation_page
+FOR EACH ROW EXECUTE FUNCTION audit_schema.require_delete_mutation_context(
+  'documentation_page','documentation.site_package_import.apply'
+);
+CREATE CONSTRAINT TRIGGER documentation_page_d_audit_evd
+AFTER DELETE ON documentation_schema.documentation_page
+DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+EXECUTE FUNCTION audit_schema.verify_delete_mutation_evidence(
+  'documentation_page'
+);
 
 DROP TRIGGER documentation_snippet_i_audit_ctx
   ON documentation_schema.documentation_snippet;
@@ -491,8 +502,17 @@ GRANT SELECT,INSERT ON
   documentation_schema.documentation_import_application,
   documentation_schema.site_revision_openapi_source
 TO __OSSIE_RUNTIME_DB_ROLE__;
+GRANT DELETE ON documentation_schema.documentation_page
+TO __OSSIE_RUNTIME_DB_ROLE__;
 
 -- DOWN:
+
+REVOKE DELETE ON documentation_schema.documentation_page
+FROM __OSSIE_RUNTIME_DB_ROLE__;
+DROP TRIGGER IF EXISTS documentation_page_d_audit_evd
+  ON documentation_schema.documentation_page;
+DROP TRIGGER IF EXISTS documentation_page_d_audit_ctx
+  ON documentation_schema.documentation_page;
 
 DO $$
 BEGIN
