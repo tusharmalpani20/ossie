@@ -10,6 +10,7 @@ import { z } from "zod";
 import { web_session_cookie_name } from "../authentication/session-cookie";
 import type { AuthContext } from "../authentication/session.service";
 import { error_response } from "../shared/http-errors";
+import { set_access_resolved_resource } from "../access/access-request-context";
 
 const Params = z
   .object({
@@ -296,12 +297,20 @@ export const build_documentation_review_routes =
     );
     app.get(
       "/:project_id/versions/:version_slug/documentation-review-inbox",
-      handler(Params, (request, _params, resolved) =>
-        dependencies.documentation_review_service.list_inbox({
-          ...resolved,
-          ...InboxQuery.parse(request.query),
-        }),
-      ),
+      handler(Params, async (request, _params, resolved) => {
+        const result =
+          await dependencies.documentation_review_service.list_inbox({
+            ...resolved,
+            ...InboxQuery.parse(request.query),
+          });
+        set_access_resolved_resource({
+          organization_id: resolved.organization_id!,
+          project_id: resolved.project_id!,
+          root_resource_type: "project_version",
+          root_resource_id: resolved.project_version_id!,
+        });
+        return result;
+      }),
     );
     app.patch(
       "/:project_id/versions/:version_slug/documentation-review-inbox/:notification_id/read",

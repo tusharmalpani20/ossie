@@ -369,6 +369,14 @@ export const build_documentation_review_repository = (database: Database) => {
         ...to_review_request(request, effective_status, counts),
       },
       assignments: assignments.rows,
+      actor_can_decide:
+        request.status === "open" &&
+        assignments.rows.some(
+          (assignment) =>
+            assignment.reviewer_org_user_id === input.actor_org_user_id &&
+            assignment.current_access_status === "active" &&
+            assignment.decision === null,
+        ),
       change_summary: {
         pages_added: 0,
         pages_changed: 0,
@@ -869,6 +877,7 @@ export const build_documentation_review_repository = (database: Database) => {
           WHERE request.organization_id=$1 AND request.project_id=$2
             AND request.project_version_id=$3
             AND request.documentation_site_id=$4
+            AND $5::varchar IS NOT NULL
             ${participation} ${status}
           ORDER BY request.created_at DESC,request.id DESC LIMIT $6`,
         values,
@@ -1008,8 +1017,8 @@ export const build_documentation_review_repository = (database: Database) => {
         }
         const updated = await client.query<Record<string, any>>(
           `UPDATE documentation_schema.documentation_review_request
-              SET status=$2,version=version+1,updated_at=CURRENT_TIMESTAMP,
-                  closed_at=CASE WHEN $2='open' THEN NULL
+              SET status=$2::varchar,version=version+1,updated_at=CURRENT_TIMESTAMP,
+                  closed_at=CASE WHEN $2::varchar='open' THEN NULL
                                  ELSE CURRENT_TIMESTAMP END
             WHERE id=$1 RETURNING *`,
           [input.review_request_id, status],
