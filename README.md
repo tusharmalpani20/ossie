@@ -79,7 +79,7 @@ Organization
       -> Video (later and not yet modeled)
 ```
 
-This diagram is navigation context, while the Capture, Guide, Interactive Demo, Revision, and Publication relationships shown are now implemented relationally. Project Version identity, lifecycle, aliases, ordering, permissions, Audit/Access Evidence, Carry-Forward, protected shared Assets, and independently managed Publish Links are available today. See [the canonical glossary](CONTEXT.md) and [Master Plan 005](docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md).
+This diagram is navigation context, while the Capture, Guide, Interactive Demo, Revision, and Publication relationships shown are now implemented relationally. Project Version identity, lifecycle, aliases, ordering, permissions, Audit/Access Evidence, Carry-Forward, protected shared Assets, and independently managed Publish Links are available today. See [the canonical glossary](CONTEXT.md), [the completed foundation plan](docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md), and [Documentation V1 Master Plan 006](docs/plan/master/006-documentation-platform-v1-master-plan.md).
 
 Product Documentation means future customer-authored documentation sites and knowledge bases. It is different from `apps/docs`, which is this repository's contributor/operator documentation hub. Child `131` accepted the model and the ordered handoff in [the Documentation domain decisions](docs/documentation-domain-decisions.md); child `132` must still be expanded and rechecked before runtime implementation.
 

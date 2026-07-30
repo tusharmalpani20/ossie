@@ -292,6 +292,11 @@ fallback are deliberately later.
 The first-slice boundary is intentionally end to end. Do not split child `132`
 into disconnected schema/editor/reader horizontal phases.
 
+Master Plan `006` rechecked and refined the original seven-item child `131`
+handoff into nine safer delivery units without changing accepted product scope.
+It separates untrusted import/export from content/assets and separates
+operational hardening from final certification.
+
 1. **132 — Documentation Site First Vertical Slice.** Implement the complete
    Question 32 flow: Site/Edition, two Pages and navigation, constrained
    authoring, private Page comments, self-contained OpenAPI read-only reference,
@@ -300,22 +305,31 @@ into disconnected schema/editor/reader horizontal phases.
    search, second publication, immutability proof, and rollback. Include additive
    migrations, API contracts, permissions, audit/access, threat controls,
    accessibility/performance tests, and agent-browser evidence.
-2. **133 — Documentation Portability, Snippets, And Assets.** Add safe Markdown
-   Page and validated ZIP Site import/export, edition-owned reusable snippets,
-   asset lifecycle/ref protection, quotas, and atomic inspect/apply behavior.
-3. **134 — Documentation Version Carry-Forward And Lifecycle.** Add whole-Site
+2. **133 — Documentation Content, Snippets, And Asset Workflows.** Complete the
+   constrained content set, edition-owned reusable snippets, Documentation and
+   authorized shared Asset workflows, reference protection, authoring limits,
+   and snapshot coverage.
+3. **134 — Documentation Import, Export, And Package Portability.** Add safe
+   Markdown Page and validated versioned ZIP Site import/export, self-contained
+   OpenAPI portability, atomic inspect/apply, package compatibility, and
+   archive/parser threat controls.
+4. **135 — Documentation Carry-Forward, Multi-Site, And Lifecycle.** Add whole-Site
    Carry-Forward from an exact Revision, multi-Site/Project-Version management,
    archive/restore, redirects/gone behavior, and retained Publication proofs.
-4. **135 — Documentation Review Workflow.** Add review requests, approvals,
+5. **136 — Documentation Review And Approval Workflow.** Add review requests, approvals,
    maintainers, notifications, optional publication gate, audited authorized
    override, and richer change/history UI while preserving first-slice comments.
-5. **136 — Documentation API Experience.** Add browser-direct OpenAPI Try It
+6. **137 — Documentation API Try-It And Example Experience.** Add browser-direct OpenAPI Try It
    only after CORS/auth/threat proof, plus expanded safe examples. Do not add an
    Ossie API proxy, credential vault, or SDK generator.
-6. **137 — Documentation V1 Hardening And Closeout.** Close V1 search, SEO,
+7. **138 — Documentation V1 Operational Hardening.** Close V1 search, SEO,
    access, quotas, accessibility, performance, migration, compatibility,
-   self-hosting, browser dogfood, and active-documentation truth.
-7. **138 — Post-V1 Documentation Decision Gate.** Reassess Git/GitHub,
+   self-hosting, dependency, browser dogfood, and operator behavior.
+8. **139 — Documentation V1 Final Closeout.** Audit the completed V1 against
+   child `131`, Master Plan `006`, current code/schema/contracts/docs, the full
+   verification matrix, and existing product compatibility; fix scoped gaps
+   without adding features.
+9. **140 — Post-V1 Documentation Decision Gate.** Reassess Git/GitHub,
    localization, custom domains, public feedback/analytics, permanent deletion,
    and collaboration as separate evidence-backed proposals; do not inherit them
    automatically into V1.
@@ -328,6 +342,8 @@ reseed behavior, dependency pins, and rollback/compatibility handling.
 ## 10. Handoff Invariants
 
 - Child `131` closes decisions only; no runtime or package change belongs to it.
+- Master Plan `006` owns the refined implementation sequence `132` through
+  `140`.
 - Child `132` may refine implementation mechanics but may not reopen these
   semantics without a new ADR and explicit user decision.
 - The Question 31 private Page comments boundary is part of child `132`.

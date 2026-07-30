@@ -192,12 +192,19 @@ Backward compatibility:
 ## Ordered Implementation Handoff
 
 1. `132 — Documentation Site First Vertical Slice`
-2. `133 — Documentation Portability, Snippets, And Assets`
-3. `134 — Documentation Version Carry-Forward And Lifecycle`
-4. `135 — Documentation Review Workflow`
-5. `136 — Documentation API Experience`
-6. `137 — Documentation V1 Hardening And Closeout`
-7. `138 — Post-V1 Documentation Decision Gate`
+2. `133 — Documentation Content, Snippets, And Asset Workflows`
+3. `134 — Documentation Import, Export, And Package Portability`
+4. `135 — Documentation Carry-Forward, Multi-Site, And Lifecycle`
+5. `136 — Documentation Review And Approval Workflow`
+6. `137 — Documentation API Try-It And Example Experience`
+7. `138 — Documentation V1 Operational Hardening`
+8. `139 — Documentation V1 Final Closeout`
+9. `140 — Post-V1 Documentation Decision Gate`
+
+Master Plan `006` refined the original seven-item handoff during its 2026-07-30
+recheck. Portability became a dedicated untrusted-input child, and operational
+hardening was separated from final certification. Accepted child `131` product
+semantics and the complete child `132` vertical-slice boundary are unchanged.
 
 Child `132` must be expanded and rechecked before implementation. It owns exact
 schemas, migrations, routes, API contracts, UI components, dependency pins,
@@ -240,8 +247,10 @@ accepted domain semantics.
 - 2026-07-30: all 32 answers were rechecked against the completed child
   `129`/`130` repository state; no contradicting runtime change was found.
 - 2026-07-30: canonical target language, four ADRs, consolidated decisions,
-  threat/ownership/tooling boundaries, feature matrix, and children `132`–`138`
-  were finalized.
+  threat/ownership/tooling boundaries, feature matrix, and the initial
+  implementation handoff were finalized.
+- 2026-07-30: Master Plan `006` recheck refined implementation delivery to
+  children `132`–`140` without changing accepted Documentation semantics.
 
 ## Verification Record
 

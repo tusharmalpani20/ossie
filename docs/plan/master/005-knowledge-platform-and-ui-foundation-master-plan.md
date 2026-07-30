@@ -1991,7 +1991,8 @@ Completed result:
 - `docs/documentation-domain-decisions.md` consolidates the feature matrix,
   source-of-truth/ownership model, threat model, Fumadocs/Tiptap boundaries,
   URL/access/search/publication/concurrency/retention/migration decisions, and
-  sequence `132` through `138`.
+  the implementation handoff subsequently refined by Master Plan `006` to
+  children `132` through `140`.
 - ADRs `0027` through `0030` record the durable Site publication, constrained
   content, authorized reader adapter, and private-comments decisions.
 - The first implementation child is the complete end-to-end Documentation Site
@@ -2214,12 +2215,12 @@ This master plan is complete when:
 
 Master Plan `005` is closed. The next executable activity is to rewrite/expand
 and recheck child `132`, Documentation Site First Vertical Slice, against the
-current codebase and `docs/documentation-domain-decisions.md`. Child `132` must
-bound the complete Question `32` end-to-end flow—including the accepted private
-Page comment proof—and name exact migrations, schemas, routes, contracts,
-permissions, audit/access actions, errors, dependency pins/proofs, focused and
-broad tests, reset/reseed/rollback handling, and agent-browser journeys before
-runtime work begins.
+current codebase, `docs/documentation-domain-decisions.md`, and accepted Master
+Plan `006`. Child `132` must bound the complete Question `32` end-to-end
+flow—including the accepted private Page comment proof—and name exact
+migrations, schemas, routes, contracts, permissions, audit/access actions,
+errors, dependency pins/proofs, focused and broad tests, reset/reseed/rollback
+handling, and agent-browser journeys before runtime work begins.
 
 The separate overnight-runner tooling checkpoint was deferred by user decision
 on 2026-07-19 because it was taking disproportionate time to build; it is
@@ -2254,7 +2255,8 @@ evidence, leftovers, and cross-product handoff.
 Child `129` records the final accessibility/motion/performance/browser dogfood,
 child `130` records the complete foundation closeout and child `131` grill-entry
 result, and child `131` records all finally accepted Documentation decisions,
-canonical outputs, and the sequence through `138`. The reserved skeletons did
-not advance gates by their existence; their completed records do. Sequential
-planning continues with child `132`, while Product Documentation runtime remains
-unimplemented.
+canonical outputs, and the implementation handoff. Master Plan `006` subsequently
+refined that handoff to children `132` through `140` without changing the
+accepted semantics. The reserved skeletons did not advance gates by their
+existence; their completed records do. Sequential planning continues with child
+`132`, while Product Documentation runtime remains unimplemented.

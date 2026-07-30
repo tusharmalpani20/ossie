@@ -160,5 +160,5 @@ The accepted Project Version and Artifact Edition decisions are recorded in
 foundation and modernized current product are implemented and verified.
 
 Product Documentation runtime is not yet implemented. Its accepted plan sequence
-is `132` through `138`; Loom-style Video remains a later direction with no
+is `132` through `140`; Loom-style Video remains a later direction with no
 accepted runtime model.

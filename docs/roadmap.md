@@ -63,8 +63,8 @@ for gates and exact child ordering.
 Child `131` accepted Product Documentation's identity, hierarchy, navigation,
 authoring, rendering, Project Version, Publication, access, search, comments,
 security, and site-configuration semantics. The target model and ordered
-children `132` through `138` are recorded in
-`docs/documentation-domain-decisions.md`.
+children `132` through `140` are recorded in
+`docs/documentation-domain-decisions.md` and Master Plan `006`.
 
 The next activity is to expand and recheck child `132`, the end-to-end
 Documentation Site first vertical slice. Product Documentation runtime remains
