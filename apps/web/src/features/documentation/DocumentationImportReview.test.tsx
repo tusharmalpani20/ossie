@@ -44,6 +44,7 @@ describe("DocumentationImportReview", () => {
       />,
     );
     expect(screen.getByRole("alert")).toHaveTextContent("Blocking issues");
+    expect(screen.getByRole("alert")).toHaveFocus();
     expect(screen.getByText(/A relationship is unresolved/)).toBeInTheDocument();
   });
 });

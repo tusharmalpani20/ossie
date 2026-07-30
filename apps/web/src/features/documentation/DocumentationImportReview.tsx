@@ -1,11 +1,19 @@
+import { useEffect, useRef } from "react";
 import type { DocumentationImportInspection } from "../../lib/documentationApi";
 
 type Props = {
   inspection: DocumentationImportInspection;
 };
 
-export const DocumentationImportReview = ({ inspection }: Props) => (
-  <section aria-labelledby="documentation-import-review-heading">
+export const DocumentationImportReview = ({ inspection }: Props) => {
+  const blockingSummary = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (inspection.issue_counts.blocking)
+      blockingSummary.current?.focus();
+  }, [inspection.id, inspection.issue_counts.blocking]);
+
+  return (
+    <section aria-labelledby="documentation-import-review-heading">
     <h3 id="documentation-import-review-heading">Import review</h3>
     <p>
       {inspection.summary.pages} Pages, {inspection.summary.snippets} Snippets,{" "}
@@ -13,7 +21,7 @@ export const DocumentationImportReview = ({ inspection }: Props) => (
       {inspection.summary.openapi_sources} OpenAPI sources.
     </p>
     {inspection.issue_counts.blocking ? (
-      <div role="alert" tabIndex={-1}>
+      <div ref={blockingSummary} role="alert" tabIndex={-1}>
         <h4>Blocking issues</h4>
         <p>
           Correct the source file and inspect it again before applying this
@@ -40,5 +48,6 @@ export const DocumentationImportReview = ({ inspection }: Props) => (
         complete server-side result.
       </p>
     ) : null}
-  </section>
-);
+    </section>
+  );
+};

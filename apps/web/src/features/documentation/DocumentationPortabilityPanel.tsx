@@ -145,6 +145,9 @@ export const DocumentationPortabilityPanel = ({
         },
       );
       setStatus("Import applied.");
+      setInspection(null);
+      setFile(null);
+      setBindings({});
       onApplied?.(result.application.target_site_id);
     } catch {
       setStatus(

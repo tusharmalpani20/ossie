@@ -564,6 +564,15 @@ export default function App() {
               selected.status === "active" &&
               project.access.role === "project_admin"
             }
+            importUnavailableReason={
+              selected.status !== "active"
+                ? "This Project Version is archived. Documentation import and Site creation are unavailable."
+                : project.status !== "active"
+                  ? "This Project is archived. Documentation import and Site creation are unavailable."
+                  : project.access.role !== "project_admin"
+                    ? "Your Project role is read-only. Documentation import and Site creation require Project Admin access."
+                    : undefined
+            }
           />
         )}
       </ProjectVersionRouteBoundary>

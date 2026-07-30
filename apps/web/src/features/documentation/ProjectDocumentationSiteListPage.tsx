@@ -14,6 +14,7 @@ type Props = {
   projectId: string;
   versionSlug: string;
   canManage: boolean;
+  importUnavailableReason?: string;
   loadSites?: typeof listDocumentationSites;
   createSite?: typeof createDocumentationSite;
 };
@@ -22,6 +23,7 @@ export const ProjectDocumentationSiteListPage = ({
   projectId,
   versionSlug,
   canManage,
+  importUnavailableReason,
   loadSites = listDocumentationSites,
   createSite = createDocumentationSite,
 }: Props) => {
@@ -102,10 +104,17 @@ export const ProjectDocumentationSiteListPage = ({
           <Button type="submit">Create Documentation Site</Button>
         </form>
       ) : null}
+      {!canManage && importUnavailableReason ? (
+        <p role="note">{importUnavailableReason}</p>
+      ) : null}
       {sites.length === 0 ? (
         <section className={styles.empty}>
           <h2>No Documentation Sites yet</h2>
-          <p>Create a version-aware Site for product and API knowledge.</p>
+          <p>
+            {canManage
+              ? "Create a version-aware Site for product and API knowledge."
+              : "No writable Documentation Site is available in this Project Version."}
+          </p>
         </section>
       ) : (
         <ul className={styles.list}>

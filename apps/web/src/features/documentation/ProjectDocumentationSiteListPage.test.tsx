@@ -61,4 +61,23 @@ describe("ProjectDocumentationSiteListPage", () => {
       screen.queryByRole("button", { name: "Create Site" }),
     ).not.toBeInTheDocument();
   });
+
+  it("explains why an archived Project Version cannot import", async () => {
+    render(
+      <ProjectDocumentationSiteListPage
+        projectId="project"
+        versionSlug="archived"
+        canManage={false}
+        importUnavailableReason="This Project Version is archived. Documentation import and Site creation are unavailable."
+        loadSites={async () => ({ documentation_sites: [] })}
+        createSite={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        "This Project Version is archived. Documentation import and Site creation are unavailable.",
+      ),
+    ).toBeInTheDocument();
+  });
 });

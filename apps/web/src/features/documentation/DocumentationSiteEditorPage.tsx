@@ -43,6 +43,7 @@ export const DocumentationSiteEditorPage = ({
   );
   const [status, setStatus] = useState("Loading saved draft…");
   const [checkpointCount, setCheckpointCount] = useState(0);
+  const [previewRefreshCount, setPreviewRefreshCount] = useState(0);
   const [revisions, setRevisions] = useState<DocumentationRevisionSummary[]>([]);
   const [publications, setPublications] = useState<
     DocumentationPublicationSummary[]
@@ -62,7 +63,13 @@ export const DocumentationSiteEditorPage = ({
     return () => {
       active = false;
     };
-  }, [loadPreview, projectId, siteId, versionSlug]);
+  }, [
+    loadPreview,
+    previewRefreshCount,
+    projectId,
+    siteId,
+    versionSlug,
+  ]);
 
   useEffect(() => {
     let active = true;
@@ -245,6 +252,7 @@ export const DocumentationSiteEditorPage = ({
           siteVersion={preview.site.version ?? 1}
           draftVersion={preview.working_draft.version}
           canImport={canWrite}
+          onApplied={() => setPreviewRefreshCount((current) => current + 1)}
         />
         <DocumentationPortabilityPanel
           projectId={projectId}
@@ -254,6 +262,7 @@ export const DocumentationSiteEditorPage = ({
           siteId={siteId}
           draftVersion={preview.working_draft.version}
           canImport={canWrite}
+          onApplied={() => setPreviewRefreshCount((current) => current + 1)}
         />
       </section>
       <section aria-labelledby="checkpoint-heading">
