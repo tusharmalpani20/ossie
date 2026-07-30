@@ -111,6 +111,11 @@ describe("Documentation repository", () => {
         },
       }),
     ).rejects.toMatchObject({ code: "documentation_page_limit_exceeded" });
+    expect(
+      client.query.mock.calls.some(([sql]) =>
+        sql.includes("pg_advisory_xact_lock"),
+      ),
+    ).toBe(true);
     expect(client.query).toHaveBeenCalledWith("ROLLBACK");
   });
 

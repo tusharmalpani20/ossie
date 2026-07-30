@@ -50,6 +50,15 @@ const with_transaction = async <T>(
   }
 };
 
+const lock_documentation_path_namespace = (
+  client: Queryable,
+  site_edition_id: string,
+) =>
+  client.query(
+    "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))",
+    [site_edition_id],
+  );
+
 const command_digest = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
@@ -2607,6 +2616,7 @@ export const build_documentation_repository = (database: Database) => ({
       );
       const page = current.rows[0];
       if (!page) throw new Error("Documentation Page was not found");
+      await lock_documentation_path_namespace(client, page.site_edition_id);
       if (page.version !== input.data.expected_version)
         throw new DocumentationRowVersionConflictError({
           ...page,
@@ -2927,6 +2937,7 @@ export const build_documentation_repository = (database: Database) => ({
       );
       const routing = setResult.rows[0];
       if (!routing) throw new Error("Documentation Site was not found");
+      await lock_documentation_path_namespace(client, routing.site_edition_id);
       if (routing.version !== input.expected_version) {
         const error = new Error("Routing changed; reload and retry");
         Object.assign(error, { code: "documentation_row_version_conflict" });
@@ -3414,6 +3425,7 @@ export const build_documentation_repository = (database: Database) => ({
       );
       const scope = parent.rows[0];
       if (!scope) throw new Error("Documentation Site was not found");
+      await lock_documentation_path_namespace(client, scope.edition_id);
       const page_count = await client.query<{ page_count: number }>(
         `SELECT COUNT(*)::integer page_count
            FROM documentation_schema.documentation_page
