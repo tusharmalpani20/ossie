@@ -251,4 +251,141 @@ describe("Documentation repository", () => {
       ),
     ).toBe(false);
   });
+
+  it("persists a protected actor-bound import inspection atomically", async () => {
+    const statements: string[] = [];
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        statements.push(sql);
+        if (sql.includes("FROM organization_schema.org_user"))
+          return {
+            rows: [
+              {
+                actor_label: "Editor",
+                source_type: "web",
+              },
+            ],
+          };
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    };
+    const repository = build_documentation_repository({
+      connect: vi.fn(async () => client),
+      query: client.query,
+    } as never);
+
+    const result = await repository.create_import_inspection({
+      organization_id: "org",
+      project_id: "project",
+      project_version_id: "version",
+      actor_org_user_id: "actor",
+      inspection_id: "inspection",
+      file_id: "file",
+      kind: "page_markdown",
+      source_file: {
+        storage_provider: "local",
+        storage_key:
+          "organizations/org/projects/project/documentation-import-inspections/inspection/source.md",
+        mime_type: "text/markdown",
+        size_bytes: 8,
+        checksum_sha256: "a".repeat(64),
+      },
+      content_fingerprint: "b".repeat(64),
+      safe_report: { proposal: { title: "Start" } },
+      expires_at: new Date("2026-07-30T18:00:00.000Z"),
+    });
+
+    expect(statements[0]).toBe("BEGIN");
+    expect(
+      statements.some((sql) => sql.includes("INSERT INTO file_schema.file")),
+    ).toBe(true);
+    expect(
+      statements.some((sql) =>
+        sql.includes(
+          "INSERT INTO documentation_schema.documentation_import_inspection",
+        ),
+      ),
+    ).toBe(true);
+    expect(statements.at(-1)).toBe("COMMIT");
+    expect(result).toMatchObject({
+      id: "inspection",
+      status: "ready",
+      created_by_id: "actor",
+    });
+  });
+
+  it("never returns an import inspection created by another actor", async () => {
+    const query = vi.fn(async (sql: string) => {
+      expect(sql).toContain("inspection.created_by_id=$5");
+      return { rows: [] };
+    });
+    const repository = build_documentation_repository({
+      connect: vi.fn(),
+      query,
+    } as never);
+    await expect(
+      repository.get_import_inspection({
+        organization_id: "org",
+        project_id: "project",
+        project_version_id: "version",
+        actor_org_user_id: "actor",
+        inspection_id: "inspection",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it("cancels only the creator's ready inspection in one audited transaction", async () => {
+    const statements: string[] = [];
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        statements.push(sql);
+        if (sql.includes("FROM organization_schema.org_user"))
+          return {
+            rows: [{ actor_label: "Editor", source_type: "web" }],
+          };
+        if (sql.includes("FOR UPDATE OF inspection"))
+          return {
+            rows: [
+              {
+                id: "inspection",
+                status: "ready",
+                version: 1,
+                created_by_id: "actor",
+                source_file_id: "file",
+                source_file_version: 1,
+              },
+            ],
+          };
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    };
+    const repository = build_documentation_repository({
+      connect: vi.fn(async () => client),
+      query: client.query,
+    } as never);
+    await expect(
+      repository.cancel_import_inspection({
+        organization_id: "org",
+        project_id: "project",
+        project_version_id: "version",
+        actor_org_user_id: "actor",
+        inspection_id: "inspection",
+      }),
+    ).resolves.toMatchObject({ status: "cancelled" });
+    expect(
+      statements.some(
+        (sql) =>
+          sql.includes("created_by_id=$5") &&
+          sql.includes("FOR UPDATE OF inspection"),
+      ),
+    ).toBe(true);
+    expect(
+      statements.some((sql) =>
+        sql.includes("SET status='cancelled',cancelled_at=CURRENT_TIMESTAMP"),
+      ),
+    ).toBe(true);
+    expect(statements.at(-1)).toBe("COMMIT");
+  });
 });

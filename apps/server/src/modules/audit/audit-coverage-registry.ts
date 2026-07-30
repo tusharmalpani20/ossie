@@ -142,6 +142,24 @@ const U = {
     write("documentation_schema.openapi_source", "UPDATE", "openapi_source"),
   documentation_revision_insert: () =>
     write("documentation_schema.site_revision", "INSERT", "site_revision"),
+  documentation_import_inspection_insert: () =>
+    write(
+      "documentation_schema.documentation_import_inspection",
+      "INSERT",
+      "documentation_import_inspection",
+    ),
+  documentation_import_inspection_update: () =>
+    write(
+      "documentation_schema.documentation_import_inspection",
+      "UPDATE",
+      "documentation_import_inspection",
+    ),
+  documentation_import_application_insert: () =>
+    write(
+      "documentation_schema.documentation_import_application",
+      "INSERT",
+      "documentation_import_application",
+    ),
   asset_insert: () =>
     write("capture_schema.capture_asset", "INSERT", "capture_asset"),
   asset_update: (operation: AuditOperation = "update") =>
@@ -971,6 +989,64 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
       "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets/:asset_id/lifecycle",
     ],
     [U.documentation_asset_update()],
+  ),
+  command(
+    "documentation.import.inspect",
+    "documentation.import.inspected",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-imports/inspections",
+    ],
+    [U.file_insert(), U.documentation_import_inspection_insert()],
+  ),
+  command(
+    "documentation.page_markdown_import.apply",
+    "documentation.page_markdown_import_applied",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-imports/inspections/:inspection_id/apply",
+    ],
+    [
+      U.documentation_page_insert(),
+      U.documentation_navigation_update(),
+      U.documentation_routing_update(),
+      U.documentation_import_inspection_update(),
+      U.documentation_import_application_insert(),
+      U.file_update("delete"),
+    ],
+  ),
+  command(
+    "documentation.site_package_import.apply",
+    "documentation.site_package_import_applied",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-imports/inspections/:inspection_id/apply",
+    ],
+    [
+      U.file_insert(),
+      U.documentation_site_insert(),
+      U.documentation_page_insert(),
+      U.documentation_snippet_insert(),
+      U.documentation_asset_insert(),
+      U.documentation_openapi_insert(),
+      U.documentation_navigation_update(),
+      U.documentation_routing_update(),
+      U.documentation_import_inspection_update(),
+      U.documentation_import_application_insert(),
+      U.file_update("delete"),
+    ],
+  ),
+  command(
+    "documentation.import.cancel",
+    "documentation.import.cancelled",
+    [
+      "DELETE /api/v1/projects/:project_id/versions/:version_slug/documentation-imports/inspections/:inspection_id",
+    ],
+    [U.documentation_import_inspection_update(), U.file_update("delete")],
+  ),
+  command(
+    "documentation.import.expire",
+    "documentation.import.expired",
+    [],
+    [U.documentation_import_inspection_update(), U.file_update("delete")],
+    { source_types: ["system"], actor_types: ["system"] },
   ),
   command(
     "documentation.snippet.create",

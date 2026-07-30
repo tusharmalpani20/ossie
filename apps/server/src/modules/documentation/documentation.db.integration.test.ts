@@ -107,6 +107,74 @@ describe("DB-backed Documentation repository", () => {
     });
   });
 
+  it("binds import inspections to their creator and clears protected source state on cancellation", async () => {
+    const scope = await establish_project();
+    const repository = build_documentation_repository(pool);
+    await repository.create_import_inspection({
+      ...scope,
+      inspection_id: "01K00000000000000000000010",
+      file_id: "01K00000000000000000000011",
+      kind: "page_markdown",
+      source_file: {
+        storage_provider: "local",
+        storage_key:
+          "organizations/test/projects/test/documentation-import-inspections/inspection/source.md",
+        mime_type: "text/markdown",
+        size_bytes: 8,
+        checksum_sha256: "a".repeat(64),
+      },
+      content_fingerprint: "b".repeat(64),
+      safe_report: { proposal: { title: "Imported page" } },
+      expires_at: new Date("2026-08-01T00:00:00.000Z"),
+    });
+
+    expect(
+      await repository.get_import_inspection({
+        ...scope,
+        inspection_id: "01K00000000000000000000010",
+      }),
+    ).toMatchObject({ status: "ready", safe_report: { proposal: {} } });
+    expect(
+      await repository.get_import_inspection({
+        ...scope,
+        actor_org_user_id: "01K00000000000000000000999",
+        inspection_id: "01K00000000000000000000010",
+      }),
+    ).toBeNull();
+
+    await repository.cancel_import_inspection({
+      ...scope,
+      inspection_id: "01K00000000000000000000010",
+    });
+    const persisted = await pool.query<{
+      status: string;
+      safe_report: unknown;
+      version: number;
+      is_deleted: boolean;
+    }>(
+      `SELECT inspection.status,inspection.safe_report,inspection.version,
+              file.is_deleted
+         FROM documentation_schema.documentation_import_inspection inspection
+         JOIN file_schema.file file ON file.id=inspection.source_file_id
+        WHERE inspection.id=$1`,
+      ["01K00000000000000000000010"],
+    );
+    expect(persisted.rows[0]).toEqual({
+      status: "cancelled",
+      safe_report: null,
+      version: 2,
+      is_deleted: true,
+    });
+    const audit = await pool.query<{ action: string }>(
+      `SELECT action FROM audit_schema.audit_event
+        WHERE action LIKE 'documentation.import.%' ORDER BY occurred_at,id`,
+    );
+    expect(audit.rows.map(({ action }) => action)).toEqual([
+      "documentation.import.inspected",
+      "documentation.import.cancelled",
+    ]);
+  });
+
   it("persists Edition-owned Snippets and expanded Page blocks with independent conflicts", async () => {
     const scope = await establish_project();
     const app = build({ logger: false });

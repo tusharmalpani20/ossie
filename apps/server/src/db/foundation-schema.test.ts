@@ -632,4 +632,51 @@ describe("foundation schema migrations", () => {
       "Refusing to roll back populated Documentation content workflows",
     );
   });
+
+  it("adds actor-bound import provenance and exact immutable OpenAPI source snapshots", () => {
+    const migration = readFileSync(
+      new URL(
+        "./migrations/027_documentation_import_export_portability.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const up = migration.split("-- DOWN:")[0] ?? migration;
+    const down = migration.split("-- DOWN:")[1] ?? "";
+    const inspection = table_definition(
+      up,
+      "documentation_schema.documentation_import_inspection",
+    );
+    const application = table_definition(
+      up,
+      "documentation_schema.documentation_import_application",
+    );
+    const revision_source = table_definition(
+      up,
+      "documentation_schema.site_revision_openapi_source",
+    );
+
+    expect(inspection).toContain("created_by_id VARCHAR(26) NOT NULL");
+    expect(inspection).toContain(
+      "status VARCHAR(20) NOT NULL DEFAULT 'ready'",
+    );
+    expect(inspection).toContain("safe_report JSONB DEFAULT NULL");
+    expect(inspection).toContain("octet_length(safe_report::TEXT)");
+    expect(application).toContain("inspection_id VARCHAR(26) NOT NULL");
+    expect(application).toContain("pages_count INTEGER NOT NULL");
+    expect(application.toLowerCase()).not.toContain("json");
+    expect(revision_source).toContain("file_id VARCHAR(26) NOT NULL");
+    expect(revision_source).toContain("digest VARCHAR(64) NOT NULL");
+    expect(up).toContain("ALTER COLUMN parsed_document DROP NOT NULL");
+    expect(up).toContain("documentation_import_inspection_transition_guard");
+    expect(up).toContain("site_revision_openapi_source_immutable");
+    expect(up).toContain("site_revision_openapi_source_no_truncate");
+    expect(up).toContain("documentation_import_application_immutable");
+    expect(up).toContain("documentation_import_application_no_truncate");
+    expect(up).toContain("documentation.import.inspect");
+    expect(up).toContain("documentation.site_package_import.apply");
+    expect(down).toContain(
+      "Refusing to roll back populated Documentation portability",
+    );
+  });
 });

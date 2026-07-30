@@ -6302,6 +6302,288 @@ export const build_documentation_repository = (database: Database) => ({
       };
     }),
 
+  create_import_inspection: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    actor_org_user_id: string;
+    inspection_id: string;
+    file_id: string;
+    kind: "page_markdown" | "site_package";
+    source_file: {
+      storage_provider: string;
+      storage_key: string;
+      mime_type: string;
+      size_bytes: number;
+      checksum_sha256: string;
+    };
+    content_fingerprint: string;
+    safe_report: unknown;
+    expires_at: Date;
+  }) =>
+    with_transaction(database, async (client) => {
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.import.inspect",
+        action: "documentation.import.inspected",
+      });
+      await client.query(
+        `SELECT id
+           FROM project_schema.project_version
+          WHERE id=$1 AND project_id=$2 AND organization_id=$3
+          FOR SHARE`,
+        [
+          input.project_version_id,
+          input.project_id,
+          input.organization_id,
+        ],
+      );
+      await client.query(
+        `INSERT INTO file_schema.file
+          (id,organization_id,storage_provider,storage_key,mime_type,size_bytes,
+           original_name,checksum_sha256,metadata,created_by_id,updated_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$10)`,
+        [
+          input.file_id,
+          input.organization_id,
+          input.source_file.storage_provider,
+          input.source_file.storage_key,
+          input.source_file.mime_type,
+          input.source_file.size_bytes,
+          input.kind === "page_markdown"
+            ? "page-import.md"
+            : "site-package.zip",
+          input.source_file.checksum_sha256,
+          JSON.stringify({ purpose: "documentation_import_inspection" }),
+          input.actor_org_user_id,
+        ],
+      );
+      await client.query(
+        `INSERT INTO documentation_schema.documentation_import_inspection
+          (id,organization_id,project_id,project_version_id,created_by_id,kind,
+           source_file_id,source_digest,source_size_bytes,format_version,
+           content_fingerprint,safe_report,expires_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13)`,
+        [
+          input.inspection_id,
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.actor_org_user_id,
+          input.kind,
+          input.file_id,
+          input.source_file.checksum_sha256,
+          input.source_file.size_bytes,
+          input.kind === "site_package" ? 1 : null,
+          input.content_fingerprint,
+          JSON.stringify(input.safe_report),
+          input.expires_at,
+        ],
+      );
+      const auditEvent = build_entity_audit_event({
+        id: audit.event_id,
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        root_resource_type: "project_version",
+        root_resource_id: input.project_version_id,
+        action: "documentation.import.inspected",
+        actor_org_user_id: input.actor_org_user_id,
+        actor_label: audit.actor_label,
+        source_type: audit.source_type,
+        occurred_at: audit.occurred_at,
+        before_row_version: null,
+        after_row_version: 1,
+        changes: [
+          {
+            entity_type: "file",
+            entity_id: input.file_id,
+            parent_entity_type: "project_version",
+            parent_entity_id: input.project_version_id,
+            before: null,
+            after: { version: 1 },
+          },
+          {
+            entity_type: "documentation_import_inspection",
+            entity_id: input.inspection_id,
+            parent_entity_type: "project_version",
+            parent_entity_id: input.project_version_id,
+            before: null,
+            after: { status: "ready", version: 1 },
+          },
+        ],
+      });
+      if (auditEvent) await write_audit_event(client, auditEvent);
+      return {
+        id: input.inspection_id,
+        status: "ready" as const,
+        kind: input.kind,
+        created_by_id: input.actor_org_user_id,
+        source_digest: input.source_file.checksum_sha256,
+        content_fingerprint: input.content_fingerprint,
+        expires_at: input.expires_at.toISOString(),
+        safe_report: input.safe_report,
+      };
+    }),
+
+  get_import_inspection: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    actor_org_user_id: string;
+    inspection_id: string;
+  }) => {
+    const result = await database.query<{
+      id: string;
+      kind: "page_markdown" | "site_package";
+      status: "ready" | "consumed" | "cancelled" | "expired";
+      source_file_id: string;
+      source_digest: string;
+      source_size_bytes: number;
+      format_version: number | null;
+      content_fingerprint: string;
+      safe_report: unknown | null;
+      expires_at: Date;
+      consumed_at: Date | null;
+      cancelled_at: Date | null;
+      version: number;
+    }>(
+      `SELECT inspection.id,inspection.kind,inspection.status,
+              inspection.source_file_id,inspection.source_digest,
+              inspection.source_size_bytes,inspection.format_version,
+              inspection.content_fingerprint,inspection.safe_report,
+              inspection.expires_at,inspection.consumed_at,
+              inspection.cancelled_at,inspection.version
+         FROM documentation_schema.documentation_import_inspection inspection
+        WHERE inspection.id=$1 AND inspection.organization_id=$2
+          AND inspection.project_id=$3 AND inspection.project_version_id=$4
+          AND inspection.created_by_id=$5`,
+      [
+        input.inspection_id,
+        input.organization_id,
+        input.project_id,
+        input.project_version_id,
+        input.actor_org_user_id,
+      ],
+    );
+    const row = result.rows[0];
+    return row
+      ? {
+          ...row,
+          expires_at: row.expires_at.toISOString(),
+          consumed_at: row.consumed_at?.toISOString() ?? null,
+          cancelled_at: row.cancelled_at?.toISOString() ?? null,
+        }
+      : null;
+  },
+
+  cancel_import_inspection: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    actor_org_user_id: string;
+    inspection_id: string;
+  }) =>
+    with_transaction(database, async (client) => {
+      const selected = await client.query<{
+        id: string;
+        status: "ready" | "consumed" | "cancelled" | "expired";
+        version: number;
+        created_by_id: string;
+        source_file_id: string;
+        source_file_version: number;
+      }>(
+        `SELECT inspection.id,inspection.status,inspection.version,
+                inspection.created_by_id,inspection.source_file_id,
+                file.version source_file_version
+           FROM documentation_schema.documentation_import_inspection inspection
+           JOIN file_schema.file file
+             ON file.id=inspection.source_file_id
+            AND file.organization_id=inspection.organization_id
+          WHERE inspection.id=$1 AND inspection.organization_id=$2
+            AND inspection.project_id=$3
+            AND inspection.project_version_id=$4
+            AND inspection.created_by_id=$5
+          FOR UPDATE OF inspection`,
+        [
+          input.inspection_id,
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.actor_org_user_id,
+        ],
+      );
+      const inspection = selected.rows[0];
+      if (!inspection) {
+        const error = new Error("Documentation import inspection was not found");
+        Object.assign(error, { code: "documentation_import_not_found" });
+        throw error;
+      }
+      if (inspection.status === "cancelled")
+        return {
+          id: inspection.id,
+          status: "cancelled" as const,
+          version: inspection.version,
+        };
+      if (inspection.status !== "ready") {
+        const error = new Error(
+          "Documentation import inspection is no longer ready",
+        );
+        Object.assign(error, { code: "documentation_import_not_ready" });
+        throw error;
+      }
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.import.cancel",
+        action: "documentation.import.cancelled",
+      });
+      await client.query(
+        `UPDATE documentation_schema.documentation_import_inspection
+            SET status='cancelled',cancelled_at=CURRENT_TIMESTAMP
+          WHERE id=$1`,
+        [inspection.id],
+      );
+      const result = {
+        id: inspection.id,
+        status: "cancelled" as const,
+        version: inspection.version + 1,
+      };
+      const auditEvent = build_entity_audit_event({
+        id: audit.event_id,
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        root_resource_type: "project_version",
+        root_resource_id: input.project_version_id,
+        action: "documentation.import.cancelled",
+        actor_org_user_id: input.actor_org_user_id,
+        actor_label: audit.actor_label,
+        source_type: audit.source_type,
+        occurred_at: audit.occurred_at,
+        before_row_version: inspection.version,
+        after_row_version: result.version,
+        changes: [
+          {
+            entity_type: "documentation_import_inspection",
+            entity_id: inspection.id,
+            parent_entity_type: "project_version",
+            parent_entity_id: input.project_version_id,
+            before: { status: "ready", version: inspection.version },
+            after: { status: result.status, version: result.version },
+            safe_fields: { version: "integer" },
+          },
+          {
+            entity_type: "file",
+            entity_id: inspection.source_file_id,
+            parent_entity_type: "project_version",
+            parent_entity_id: input.project_version_id,
+            before: { version: inspection.source_file_version },
+            after: null,
+          },
+        ],
+      });
+      if (auditEvent) await write_audit_event(client, auditEvent);
+      return result;
+    }),
+
   list_artifact_publications: async (input: {
     organization_id: string;
     project_id: string;
