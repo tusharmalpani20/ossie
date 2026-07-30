@@ -56,4 +56,15 @@ copy: *info
       ),
     ).toThrow(DocumentationOpenApiError);
   });
+
+  it("rejects duplicate JSON keys at any depth before object construction", () => {
+    expect(() =>
+      parse_documentation_openapi(
+        Buffer.from(
+          '{"openapi":"3.1.0","info":{"title":"Pets","title":"Changed","version":"1"},"paths":{}}',
+        ),
+        "application/json",
+      ),
+    ).toThrow(/duplicate JSON key/iu);
+  });
 });

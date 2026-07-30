@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, stat, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -131,5 +131,39 @@ describe("local file storage provider", () => {
           "organizations/org_1/projects/project_1/capture-sessions/session_1/file_1.png",
       }),
     ).rejects.toBeInstanceOf(FileBytesNotFoundError);
+    expect(
+      (await readdir(root, { recursive: true })).some((entry) =>
+        entry.endsWith(".part"),
+      ),
+    ).toBe(false);
+  });
+
+  it("streams generated Documentation import sources and enumerates only old transient keys", async () => {
+    const provider = build_local_file_storage_provider({ root });
+    const stored = await provider.put({
+      organization_id: "org_1",
+      project_id: "project_1",
+      documentation_import_inspection_id: "inspection_1",
+      file_id: "file_1",
+      mime_type: "application/zip",
+      stream: Readable.from(Buffer.from("package bytes")),
+    });
+    expect(stored.storage_key).toBe(
+      "organizations/org_1/projects/project_1/documentation-import-inspections/inspection_1/source.zip",
+    );
+    const storage_path = path.join(root, stored.storage_key);
+    await utimes(storage_path, new Date(0), new Date(0));
+
+    await expect(
+      provider.list_documentation_transients({
+        older_than: new Date(1),
+        limit: 10,
+      }),
+    ).resolves.toEqual([
+      {
+        storage_key: stored.storage_key,
+        modified_at: (await stat(storage_path)).mtime,
+      },
+    ]);
   });
 });

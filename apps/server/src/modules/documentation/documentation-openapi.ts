@@ -1,5 +1,6 @@
 import { inspect_openapi_document } from "@repo/documentation-domain";
 import { isAlias, parseDocument, visit } from "yaml";
+import { parse_duplicate_safe_json } from "./documentation-json";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_NODES = 250_000;
@@ -47,7 +48,7 @@ export const parse_documentation_openapi = (
   let value: unknown;
   try {
     if (mime_type === "application/json") {
-      value = JSON.parse(bytes.toString("utf8"));
+      value = parse_duplicate_safe_json(bytes);
     } else {
       const document = parseDocument(bytes.toString("utf8"), {
         prettyErrors: false,
