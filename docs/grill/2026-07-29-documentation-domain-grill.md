@@ -2,19 +2,20 @@
 
 Date started: 2026-07-29
 
-Status: All 32 workshop answers are provisionally accepted. On 2026-07-30 the
-user accepted basic private comments in the first slice, resolving the reopened
-Questions `23`/`31` boundary and the conditional comment proof in Question
-`32`. Child `130` is complete; child `131` remains Not started until every
-provisional answer is rechecked against that merged result and the required
-canonical outputs are completed.
+Status: Complete. All 32 answers were finally accepted on 2026-07-30 after the
+post-child-`130` recheck. The accepted Question `31` boundary puts basic private
+Page comments in the first slice; the final ledger and canonical output links
+at the end of this record supersede the provisional status paragraphs retained
+below as workshop chronology.
 
 ## Sequence Boundary
 
-This record captures Documentation-domain discussion while children `129` and
-`130` are being completed in another environment.
+This record began while children `129` and `130` were being completed in
+another environment. Child `130` subsequently passed, and child `131` rechecked
+the complete record against that merged result.
 
-Until child `130` passes its closeout gate:
+The following rules governed the provisional workshop before child `130`
+passed:
 
 - answers in this record are provisional;
 - child `131` is not marked In progress;
@@ -46,10 +47,10 @@ The workshop covers the 32 questions reserved by
 - `DESIGN.md`
 - `docs/adr/0021-project-versions-are-release-contexts.md`
 - `docs/adr/0022-artifacts-use-editions-revisions-and-publications.md`
-- `docs/adr/0023-carry-forward-copies-working-content-and-reuses-protected-assets.md`
+- `docs/adr/0023-comprehensive-audit-and-access-evidence-from-day-one.md`
 - `docs/adr/0024-project-membership-governs-project-access.md`
 - `docs/adr/0025-core-domain-persistence-is-explicitly-relational.md`
-- `docs/adr/0026-audit-and-access-evidence-is-append-only.md`
+- `docs/adr/0026-publish-links-are-multi-version-artifact-manifests.md`
 - `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 - child plans `109` through `131`
 - current Guide, Interactive Demo, Publication, Publish Link, portal, docs-app,
@@ -349,6 +350,7 @@ Decision records after the sequence gate:
 - this grill record
 
 ### Q4. How do Site, Site Edition, Working Draft, Page, Navigation Tree,
+
 Revision, and Publication relate?
 
 Recommended answer:
@@ -564,6 +566,7 @@ Decision records after the sequence gate:
 - this grill record
 
 ### Q6. Can Pages or reusable text be shared live across Sites or Project
+
 Versions?
 
 Recommended answer:
@@ -805,17 +808,17 @@ server use, and collaboration direction were checked on 2026-07-29.
 
 Current shortlist:
 
-| Editor | Checked version | License | Ossie fit |
-| --- | ---: | --- | --- |
-| Tiptap | `3.29.2` | MIT core | Best overall fit |
-| Lexical | `0.48.0` | MIT | Strong low-level alternative |
-| Plate | `53.2.4` | MIT | Strong but broad and fast-moving |
-| MDXEditor | `4.1.1` | MIT | Best Markdown-first alternative |
-| Milkdown | `7.21.3` | MIT | Good Markdown editor, more integration work |
-| BlockNote | `0.52.1` | MPL-2.0 core | Polished, but its storage model conflicts |
-| CKEditor | `48.3.1` | GPL/commercial terms | Poor licensing/product fit |
-| TinyMCE | `8.8.2` | GPL/commercial terms | HTML-first and poor product fit |
-| Quill | `2.0.3` | BSD-3-Clause | Too limited for Ossie's typed blocks |
+| Editor    | Checked version | License              | Ossie fit                                   |
+| --------- | --------------: | -------------------- | ------------------------------------------- |
+| Tiptap    |        `3.29.2` | MIT core             | Best overall fit                            |
+| Lexical   |        `0.48.0` | MIT                  | Strong low-level alternative                |
+| Plate     |        `53.2.4` | MIT                  | Strong but broad and fast-moving            |
+| MDXEditor |         `4.1.1` | MIT                  | Best Markdown-first alternative             |
+| Milkdown  |        `7.21.3` | MIT                  | Good Markdown editor, more integration work |
+| BlockNote |        `0.52.1` | MPL-2.0 core         | Polished, but its storage model conflicts   |
+| CKEditor  |        `48.3.1` | GPL/commercial terms | Poor licensing/product fit                  |
+| TinyMCE   |         `8.8.2` | GPL/commercial terms | HTML-first and poor product fit             |
+| Quill     |         `2.0.3` | BSD-3-Clause         | Too limited for Ossie's typed blocks        |
 
 Evidence and findings:
 
@@ -1267,12 +1270,12 @@ dialog, code presentation, responsive layout, and reader states. Those are not
 Ossie's special value. Fumadocs UI already solves that class of work and is
 designed to be customized.
 
-| Choice | Main benefit | Main cost | Decision |
-| --- | --- | --- | --- |
-| Full file-based Fumadocs product | Fastest standard docs site | Conflicts with Ossie's database, permissions, Revisions, Publications, and product identity | Reject |
-| Fumadocs Core only | Small dependency and full visual control | Ossie still rebuilds most of a mature docs reader | Reject as the default |
-| Core plus selected UI reader pieces | Mature reader behavior while Ossie keeps its product model | Theme work, dependency review, and a clear adapter are required | Recommend after proof |
-| Entirely Ossie-built reader | Complete control | Repeats years of docs-reader work and creates permanent maintenance | Reject unless the proof fails |
+| Choice                              | Main benefit                                               | Main cost                                                                                   | Decision                      |
+| ----------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------- |
+| Full file-based Fumadocs product    | Fastest standard docs site                                 | Conflicts with Ossie's database, permissions, Revisions, Publications, and product identity | Reject                        |
+| Fumadocs Core only                  | Small dependency and full visual control                   | Ossie still rebuilds most of a mature docs reader                                           | Reject as the default         |
+| Core plus selected UI reader pieces | Mature reader behavior while Ossie keeps its product model | Theme work, dependency review, and a clear adapter are required                             | Recommend after proof         |
+| Entirely Ossie-built reader         | Complete control                                           | Repeats years of docs-reader work and creates permanent maintenance                         | Reject unless the proof fails |
 
 Fumadocs may own inside the **published reader layer**:
 
@@ -2045,6 +2048,7 @@ Decision records after the sequence gate:
 - this grill record.
 
 ### Q14. What creates a Site Revision, and how do preview, review, and
+
 Publication snapshots work?
 
 Recommended answer:
@@ -2255,6 +2259,7 @@ Decision records after the sequence gate:
 - this grill record.
 
 ### Q15. How should autosave, concurrent editing, conflicts, and unsaved
+
 recovery work before real-time collaboration?
 
 Recommended answer:
@@ -2733,6 +2738,7 @@ Decision records after the sequence gate:
 - this grill record.
 
 ### Q17. How should stable, Project Version, Revision, and Publication URLs
+
 work?
 
 Recommended answer:
@@ -3023,6 +3029,7 @@ Decision records after the sequence gate:
 - this grill record.
 
 ### Q18. What happens to redirects, search, links, previews, and Publications
+
 when a Project Version, Site, or Page is archived or removed?
 
 Recommended answer:
@@ -3815,6 +3822,7 @@ Decision records after the sequence gate:
 - this grill record.
 
 ### Q21. Can Documentation reuse Capture, Derived, Redacted, and uploaded
+
 Assets, and how are they protected?
 
 Recommended answer:
@@ -4132,18 +4140,18 @@ direct server-folder access out of V1.
 
 Format matrix:
 
-| Format | Import | Export | V1 decision |
-| --- | --- | --- | --- |
-| Single `.md` Page | Yes | Yes | Accept |
-| Markdown folder through validated ZIP | Yes | Yes | Accept |
-| Browser folder picker | Optional convenience over the same ZIP/package rules | Not a separate format | Accept only if reliable |
-| Ossie Site ZIP | Yes | Yes | Canonical full-Site portable format |
-| OpenAPI `.json` / `.yaml` | Yes | Yes | Accept after parser/renderer proof |
-| Git repository | No | No automatic sync | Deferred by Question `9` |
-| Remote OpenAPI URL | No | No | Deferred; no live network authority |
-| MDX / JSX / JavaScript | No | No | Reject |
-| Raw HTML site | No | No | Reject |
-| Word, PDF, Notion, Confluence | No | No | Later import adapters |
+| Format                                | Import                                               | Export                | V1 decision                         |
+| ------------------------------------- | ---------------------------------------------------- | --------------------- | ----------------------------------- |
+| Single `.md` Page                     | Yes                                                  | Yes                   | Accept                              |
+| Markdown folder through validated ZIP | Yes                                                  | Yes                   | Accept                              |
+| Browser folder picker                 | Optional convenience over the same ZIP/package rules | Not a separate format | Accept only if reliable             |
+| Ossie Site ZIP                        | Yes                                                  | Yes                   | Canonical full-Site portable format |
+| OpenAPI `.json` / `.yaml`             | Yes                                                  | Yes                   | Accept after parser/renderer proof  |
+| Git repository                        | No                                                   | No automatic sync     | Deferred by Question `9`            |
+| Remote OpenAPI URL                    | No                                                   | No                    | Deferred; no live network authority |
+| MDX / JSX / JavaScript                | No                                                   | No                    | Reject                              |
+| Raw HTML site                         | No                                                   | No                    | Reject                              |
+| Word, PDF, Notion, Confluence         | No                                                   | No                    | Later import adapters               |
 
 Source-of-truth rule:
 
@@ -4479,6 +4487,7 @@ Decision records after the sequence gate:
 - this grill record.
 
 ### Q23. Which comments, review, approval, feedback, analytics, ownership, and
+
 history features are required now?
 
 Recommended answer:
@@ -4491,23 +4500,23 @@ product analytics, and Page ownership.
 
 Feature matrix:
 
-| Capability | First release | Reason |
-| --- | --- | --- |
-| Site Revision history | Yes | Required immutable authoring history |
-| Exact Revision preview | Yes | Gives teammates one stable review target |
-| Optional checkpoint reason | Yes | Explains deliberate checkpoints |
-| Site Publication history | Yes | Required rollout and rollback truth |
-| Safe Project Activity summaries | Yes | Shows important team actions |
-| Full accepted Audit/Access Evidence | Yes | Security and accountability invariant |
-| Basic Revision change summary | Yes | Makes history understandable |
-| Formal review request/status | No | Later workflow layer |
-| Inline or Page comments | No | Requires threading, permissions, retention, notifications |
-| Required approvers | No | Would block publishing before governance need is proven |
-| Public “helpful” feedback | No | Requires abuse and privacy design |
-| Page views/search analytics | No | Requires consent, retention, privacy, and operations design |
-| Page owner/maintainer | No | Project roles already own responsibility in V1 |
-| External Revision review token | No | Deferred with formal review |
-| Notifications/email/mentions | No | Depends on accepted review and delivery model |
+| Capability                          | First release | Reason                                                      |
+| ----------------------------------- | ------------- | ----------------------------------------------------------- |
+| Site Revision history               | Yes           | Required immutable authoring history                        |
+| Exact Revision preview              | Yes           | Gives teammates one stable review target                    |
+| Optional checkpoint reason          | Yes           | Explains deliberate checkpoints                             |
+| Site Publication history            | Yes           | Required rollout and rollback truth                         |
+| Safe Project Activity summaries     | Yes           | Shows important team actions                                |
+| Full accepted Audit/Access Evidence | Yes           | Security and accountability invariant                       |
+| Basic Revision change summary       | Yes           | Makes history understandable                                |
+| Formal review request/status        | No            | Later workflow layer                                        |
+| Inline or Page comments             | No            | Requires threading, permissions, retention, notifications   |
+| Required approvers                  | No            | Would block publishing before governance need is proven     |
+| Public “helpful” feedback           | No            | Requires abuse and privacy design                           |
+| Page views/search analytics         | No            | Requires consent, retention, privacy, and operations design |
+| Page owner/maintainer               | No            | Project roles already own responsibility in V1              |
+| External Revision review token      | No            | Deferred with formal review                                 |
+| Notifications/email/mentions        | No            | Depends on accepted review and delivery model               |
 
 Required Site Revision history:
 
@@ -4780,6 +4789,7 @@ Decision records after the sequence gate:
 - this grill record.
 
 ### Q24. Which API reference, playground, SDK, and interactive features belong
+
 in the first slice, V1, or later?
 
 Recommended answer:
@@ -4796,26 +4806,26 @@ OAuth login flows, mocks, and arbitrary interactive components.
 
 Feature matrix:
 
-| Capability | First slice | V1 after proof | Later/rejected |
-| --- | --- | --- | --- |
-| Upload self-contained OpenAPI File | Yes | Yes | — |
-| Validate and show import issues | Yes | Yes | — |
-| Read-only API reference | Yes | Yes | — |
-| Operation search and deep links | Yes | Yes | — |
-| Safe code examples | Basic | Expanded languages | — |
-| Manual Page with one API Operation block | Yes | Yes | — |
-| Exact Guide/Demo Publication blocks | Yes when available in the slice | Yes | — |
-| Browser-direct “Try it” | No | Yes, disabled by default | — |
-| Ossie server request proxy | No | No | Later only after separate threat model |
-| Stored bearer/API credentials | No | No | Reject for V1 |
-| OAuth/OpenID browser login flow | No | No | Later |
-| Query/cookie API-key injection | No | No | Later only if safely proven |
-| File upload/streaming playground | No | No | Later |
-| Mock server | No | No | Later |
-| Generated copyable request snippets | Basic | Yes | — |
-| Full generated downloadable SDKs | No | No | Later |
-| Arbitrary React/MDX widgets | No | No | Reject |
-| Ossie-owned typed interactive blocks | Yes | Yes | Reviewed registry only |
+| Capability                               | First slice                     | V1 after proof           | Later/rejected                         |
+| ---------------------------------------- | ------------------------------- | ------------------------ | -------------------------------------- |
+| Upload self-contained OpenAPI File       | Yes                             | Yes                      | —                                      |
+| Validate and show import issues          | Yes                             | Yes                      | —                                      |
+| Read-only API reference                  | Yes                             | Yes                      | —                                      |
+| Operation search and deep links          | Yes                             | Yes                      | —                                      |
+| Safe code examples                       | Basic                           | Expanded languages       | —                                      |
+| Manual Page with one API Operation block | Yes                             | Yes                      | —                                      |
+| Exact Guide/Demo Publication blocks      | Yes when available in the slice | Yes                      | —                                      |
+| Browser-direct “Try it”                  | No                              | Yes, disabled by default | —                                      |
+| Ossie server request proxy               | No                              | No                       | Later only after separate threat model |
+| Stored bearer/API credentials            | No                              | No                       | Reject for V1                          |
+| OAuth/OpenID browser login flow          | No                              | No                       | Later                                  |
+| Query/cookie API-key injection           | No                              | No                       | Later only if safely proven            |
+| File upload/streaming playground         | No                              | No                       | Later                                  |
+| Mock server                              | No                              | No                       | Later                                  |
+| Generated copyable request snippets      | Basic                           | Yes                      | —                                      |
+| Full generated downloadable SDKs         | No                              | No                       | Later                                  |
+| Arbitrary React/MDX widgets              | No                              | No                       | Reject                                 |
+| Ossie-owned typed interactive blocks     | Yes                             | Yes                      | Reviewed registry only                 |
 
 First-slice OpenAPI goal:
 
@@ -5233,6 +5243,7 @@ Resolved on 2026-07-30:
   Publication in the first slice.
 
 ### Q25. Are localization and locale fallback part of the model now or
+
 explicitly deferred?
 
 Recommended answer:
@@ -5320,6 +5331,7 @@ Decision records after the sequence gate:
 - this grill record
 
 ### Q26. What public-site search discovery, canonical URL, sitemap, robots,
+
 social metadata, and custom-domain behavior is required or deferred?
 
 Recommended answer:
@@ -5415,6 +5427,7 @@ Decision records after the sequence gate:
 - this grill record
 
 ### Q27. What caching, rendering, invalidation, Publication preparation,
+
 failure-recovery, and rollback model is viable for self-hosting?
 
 Recommended answer:
@@ -5531,6 +5544,7 @@ Decision records after the sequence gate:
 - this grill record
 
 ### Q28. What operational limits are needed for Page size, Site size, build
+
 duration, asset size, and concurrent Publication?
 
 Recommended answer:
@@ -5676,6 +5690,7 @@ Decision records after the sequence gate:
 - this grill record
 
 ### Q29. How are Audit history, soft deletion, retention, export, and
+
 Organization/Project deletion applied to Documentation content?
 
 Recommended answer:
@@ -5782,6 +5797,7 @@ Decision records after the sequence gate:
 - this grill record
 
 ### Q30. What accessibility and performance targets apply to authoring and the
+
 published reader?
 
 Recommended answer:
@@ -6003,6 +6019,7 @@ Decision records after the sequence gate:
 - this grill record
 
 ### Q32. Which vertical slice proves the Documentation model with the least
+
 irreversible complexity?
 
 Recommended answer:
@@ -6103,3 +6120,79 @@ Decision records after the sequence gate:
 - the expanded child `131` feature matrix and threat model
 - the ordered implementation children beginning at `132`
 - this grill record
+
+## Post-130 Recheck And Final Acceptance
+
+Recheck date: 2026-07-30
+
+Baseline:
+
+- child `129` accessibility/motion/performance/browser dogfood: complete;
+- child `130` pre-Documentation closure: complete with no blocking S1/S2 issue;
+- current migrations end at `024`, and no Documentation runtime schema, route,
+  package, editor, reader, or navigation exists;
+- current Project Membership, Project Version, relational persistence,
+  Revision/Publication, Publish Link, protected File, Audit Event, and Access
+  Event contracts remain the required foundation;
+- Question `31` was explicitly resolved by accepting basic private Page
+  comments in the first slice.
+
+The recheck found no runtime fact that invalidates a workshop answer. It fixed
+the two stale ADR filenames in the starting evidence, removed the child `131`
+circular entry gate, separated the Fumadocs/Tiptap research snapshot from future
+dependency pins, and made private comments explicitly separate from immutable
+Revision/Publication content. The detailed accepted model, threat controls,
+feature matrix, tooling boundaries, and child sequence are consolidated in
+`docs/documentation-domain-decisions.md`.
+
+The provisional wording inside each question is retained as an attributable
+record of the live workshop. This ledger is authoritative for final status:
+
+| Question | Final status | Accepted outcome                                                                                                      |
+| -------- | ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| 1        | Accepted     | Canonical artifact term is Documentation Site.                                                                        |
+| 2        | Accepted     | Pages save independently with Row Versions; immutable history is whole-Site.                                          |
+| 3        | Accepted     | A Project may own multiple Sites; one Site Edition per Project Version.                                               |
+| 4        | Accepted     | Site → Site Edition → Working Draft/Pages/navigation → Site Revision → Site Publication.                              |
+| 5        | Accepted     | A Publication references one complete immutable Site Revision.                                                        |
+| 6        | Accepted     | Reusable snippets are edition-owned; no live cross-Site/Edition sharing.                                              |
+| 7        | Accepted     | Constrained structured content, safe Markdown interchange, and a replaceable Tiptap adapter after proof.              |
+| 8        | Accepted     | Relational database and protected File storage are authoritative.                                                     |
+| 9        | Accepted     | Git/GitHub synchronization is deferred and cannot become a second V1 authority.                                       |
+| 10       | Accepted     | Fumadocs is a replaceable authorized reader/search/OpenAPI adapter, not the domain.                                   |
+| 11       | Accepted     | No customer MDX/JS/React/raw HTML/iframe execution; typed blocks and sanitization only.                               |
+| 12       | Accepted     | Relational acyclic navigation, stable Page IDs, permanent aliases, explicit redirect/gone rules.                      |
+| 13       | Accepted     | Carry-Forward copies whole Sites from an exact Revision atomically into independent Editions.                         |
+| 14       | Accepted     | Manual checkpoint, Publication, and Carry-Forward create/reuse complete Site Revisions.                               |
+| 15       | Accepted     | Resource Row Versions, truthful autosave, preserved conflicts; no silent merge/realtime/offline-first.                |
+| 16       | Accepted     | Internal access inherits Project Membership; outside access uses link-wide Publish Link policy.                       |
+| 17       | Accepted     | Explicit draft/revision/publication/version routes; canonical aliases; no moving `/latest`.                           |
+| 18       | Accepted     | Archive first; immutable Publications remain; redirects/search honor lifecycle.                                       |
+| 19       | Accepted     | Portal search is Project/Version scoped; public search is exact-Publication scoped.                                   |
+| 20       | Accepted     | Safe Page-centered search fields with permission filtering before index and return.                                   |
+| 21       | Accepted     | Same-Project protected Capture/Derived and edition-owned assets may be referenced safely.                             |
+| 22       | Accepted     | V1 safe Markdown Page, validated ZIP Site, and self-contained OpenAPI import/export.                                  |
+| 23       | Accepted     | Immutable history plus basic private comments now; formal review later in V1; public feedback/analytics later.        |
+| 24       | Accepted     | First slice has read-only OpenAPI reference; browser-direct Try It requires a later V1 proof.                         |
+| 25       | Accepted     | One primary language with a standard tag; translation/fallback later.                                                 |
+| 26       | Accepted     | Canonical metadata, sitemap, robots, and social metadata now; custom domains later.                                   |
+| 27       | Accepted     | Prepare before atomic link switch; failure preserves live output; rollback repoints immutable Publication.            |
+| 28       | Accepted     | Organization-owned nullable quotas plus hard safety ceilings; publication serialized/idempotent.                      |
+| 29       | Accepted     | Archive-first retention, reference protection, separate export, retained evidence; permanent deletion deferred.       |
+| 30       | Accepted     | WCAG 2.2 AA, good public-reader Core Web Vitals, and bounded responsive authoring.                                    |
+| 31       | Accepted     | Basic private Page comment threads/replies/mentions/resolve/reopen are in the first slice; fuller review is later V1. |
+| 32       | Accepted     | The 15-step end-to-end Site/OpenAPI/comment/publication/search/immutability/rollback slice begins at child `132`.     |
+
+Canonical outputs:
+
+- terminology and relationships: `CONTEXT.md`;
+- consolidated decisions and handoff:
+  `docs/documentation-domain-decisions.md`;
+- durable decisions: ADRs `0027`, `0028`, `0029`, and `0030`;
+- closed child and verification record:
+  `docs/plan/131-documentation-domain-grill.md`;
+- parent completion state:
+  `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`.
+
+Final outcome: all 32 answers are accepted. No Documentation runtime code was
+implemented during the grill.

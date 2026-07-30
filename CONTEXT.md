@@ -243,8 +243,109 @@ The user-visible sequence of immutable Published Artifacts within one Artifact E
 _Avoid_: Artifact revision number, row version, project version
 
 **Publish Link**:
-A stable shareable access route for one Artifact. It exposes one or more explicitly selected Artifact Editions through immutable Published Artifact entries, has one explicit default version, and applies one link-wide access policy.
+A stable shareable access route for one authored output. The implemented Guide/Interactive Demo form belongs to one Artifact and exposes explicitly selected Artifact Editions through immutable Published Artifact entries. The accepted Documentation form belongs to one Documentation Site and exposes explicitly selected Site Editions through immutable Site Publication entries. Each link has one explicit default version and one link-wide access policy.
 _Avoid_: Draft link
+
+## Accepted Documentation Target Language
+
+The terms below are accepted by child `131` for implementation beginning at
+`132`. They describe the target domain and do not claim shipped tables, routes,
+packages, editor, reader, search, or navigation.
+
+**Documentation Site**:
+The stable Project-owned identity of one customer-authored documentation site or
+knowledge base across Project Versions. A Project may own multiple Documentation
+Sites.
+_Avoid_: `apps/docs`, guide, folder, Site Edition
+
+**Site Edition**:
+The one authored representation of a Documentation Site for one Project Version.
+A Site has at most one Site Edition for each Project Version.
+_Avoid_: Translation, audience variant, Site Revision
+
+**Site Working Draft**:
+The one mutable aggregate inside a Site Edition. It contains the edition-owned
+Pages, Navigation Tree, reusable snippets, settings, redirects, OpenAPI Sources,
+and Documentation Asset references, with resource-level Row Version protection.
+_Avoid_: Site Revision, Site Publication, Tiptap document
+
+**Documentation Page**:
+A stable edition-owned authoring identity for one page. Its mutable content and
+metadata are saved with Row Version protection and become public only through a
+whole-Site Revision and Publication.
+_Avoid_: Independently published artifact, Guide block
+
+**Navigation Tree**:
+The authoritative ordered, acyclic, edition-owned structure of Documentation
+Pages and Navigation Groups.
+_Avoid_: Derived Fumadocs tree, folder filesystem
+
+**Navigation Group**:
+A stable non-Page grouping node in a Navigation Tree.
+_Avoid_: Documentation Page, Project
+
+**Reusable Documentation Snippet**:
+Edition-owned constrained content reusable by Pages in one Site Edition Working
+Draft. It is copied, not live-linked, by Carry-Forward and is not shared live
+across Sites or Editions.
+_Avoid_: Cross-site component, executable MDX
+
+**Documentation Asset**:
+A protected File referenced by Documentation working state, Revisions, or
+Publications. It may be edition-owned or reuse an authorized Capture/Derived
+Asset without copying the binary.
+_Avoid_: Public URL, safely purgeable archived file
+
+**OpenAPI Source**:
+An uploaded, bounded, self-contained OpenAPI JSON or YAML File plus relational
+validation metadata. It is never a live remote authority.
+_Avoid_: Remote specification URL, API credential, executable API client
+
+**API Reference Block**:
+An Ossie-owned typed Page block that renders an authorized OpenAPI Source. It is
+read-only in the first slice.
+_Avoid_: Arbitrary widget, server-side API proxy
+
+**Page Slug Alias**:
+A permanent former Page slug within one Site Edition. It redirects to the Page's
+current canonical slug and cannot be reassigned.
+_Avoid_: Moving latest alias, reusable slug
+
+**Documentation Redirect Rule**:
+An explicit edition-owned redirect or intentional `gone` outcome included in a
+Site Revision and validated against cycles and canonical Page routes.
+_Avoid_: Implicit broken-link fallback
+
+**Site Revision**:
+A complete immutable checkpoint of one Site Edition. It freezes included Pages
+and content, navigation, aliases, redirects, snippets, OpenAPI Sources,
+Documentation Asset references, Site settings, and search-relevant state.
+_Avoid_: Page Row Version, mutable draft, Publication
+
+**Site Revision Number**:
+The user-visible sequence of immutable Site Revisions within one Site Edition.
+_Avoid_: Row Version, publication sequence, Project Version
+
+**Site Publication**:
+An immutable publication record for one exact Site Revision. A stable Publish
+Link may expose it only after all reader, search, and metadata material is ready.
+_Avoid_: Mutable deployment, draft preview
+
+**Site Publication Sequence**:
+The user-visible sequence of immutable Site Publications within one Site
+Edition.
+_Avoid_: Site Revision number, Row Version, Project Version
+
+**Documentation Comment Thread**:
+A private Project-member authoring discussion attached to one Documentation Page
+and, when possible, a stable block anchor. Threads, replies, mentions, resolve,
+and reopen state are excluded from Site Revisions and Site Publications.
+_Avoid_: Public feedback, published annotation, approval gate
+
+**Documentation Draft Preview**:
+An authenticated view of current mutable Site Working Draft state. It is not an
+immutable Revision or a public Publication.
+_Avoid_: Publish Link, Site Publication
 
 ## Relationships
 
@@ -258,6 +359,7 @@ _Avoid_: Draft link
 - Creating another **Project Version** does not freeze existing Project Versions; every non-archived Project Version remains editable according to permissions
 - An **Archived Project** makes its child content effectively read-only without changing the children's stored lifecycle states
 - Restoring an **Archived Project** restores its prior child behavior, while its existing Published Artifacts and Publish Links remain accessible throughout
+
 - A **Capture Session** contains many **Capture Events**
 - A **Capture Session** contains many **Capture Assets**
 - A **Capture Asset** can have many **Derived Assets**
@@ -350,6 +452,22 @@ _Avoid_: Draft link
 - An **Extension Session** authenticates a **User** for capture APIs on that **Instance**
 - A **Capture Session** is started inside exactly one **Project**
 
+### Accepted Documentation Target Relationships
+
+- A **Project** may own many **Documentation Sites**
+- Every **Documentation Site** belongs to exactly one Project
+- A **Documentation Site** has at most one **Site Edition** for each Project Version
+- Every **Site Edition** belongs to exactly one Documentation Site and one Project Version in the same Project
+- Every **Site Edition** owns exactly one **Site Working Draft**
+- A **Site Working Draft** owns many Documentation Pages, Navigation Groups, reusable snippets, redirect rules, OpenAPI Sources, and Documentation Asset references
+- Every **Documentation Page** belongs to exactly one Site Edition and appears at most once in its authoritative Navigation Tree; unlisted Pages are allowed
+- Page slugs and **Page Slug Aliases** are unique within one Site Edition, and aliases cannot be reassigned
+- Every **Site Revision** belongs to exactly one Site Edition and freezes the complete reader-visible Site state
+- Every **Site Publication** belongs to exactly one Site Edition and references exactly one Site Revision from that Edition
+- A Documentation **Publish Link** belongs to one Documentation Site and exposes explicitly selected immutable Site Publications using one link-wide access policy
+- A **Documentation Comment Thread** belongs to one Documentation Page, remains private authoring state, and is never included in a Site Revision or Site Publication
+- Documentation Carry-Forward copies one selected whole Documentation Site from an exact Site Revision into an independent missing target Site Edition; it does not live-link later edits
+
 ## Example Dialogue
 
 > **Dev:** "When the Chrome extension records a workflow, do we immediately create a demo?"
@@ -390,6 +508,9 @@ _Avoid_: Draft link
 - "published Edition" should not be an Edition lifecycle state. Resolution: an **Artifact Edition** remains `draft` or `archived`; immutable publication state belongs to **Published Artifact** records.
 - "archived version" should not mean inaccessible or deleted. Resolution: an archived **Project Version** is read-only history available through direct links and explicit archived filters while existing Publications remain accessible.
 - "artifact title" is convenient UI language but not identity ownership. Resolution: title and description belong to the selected **Artifact Edition**, may differ across Project Versions, and may duplicate another Edition's title.
+- "Documentation" should not mean this repository's contributor/operator docs. Resolution: use **Documentation Site** for the accepted customer-authored product artifact and `apps/docs` or repository docs for contributor/operator material.
+- "page version" is ambiguous. Resolution: mutable **Documentation Pages** use **Row Versions**, while complete immutable history uses **Site Revisions**.
+- "published Page" should not imply independent Page publication. Resolution: a **Site Publication** freezes one complete Site Revision, including every selected Page and its navigation/search context.
 - "archive artifact" should identify the affected Edition. Resolution: stable **Artifact** identity has no archive state; archive applies to one or more explicitly selected **Artifact Editions**.
 - "carry forward versions" should not mean merging multiple source versions. Resolution: one **Carry-Forward** operation uses one source Project Version, one target Project Version, and any number of selected Artifacts without overwriting existing target Editions.
 - "copy everything" should not describe **Carry-Forward**. Resolution: copy Edition-owned editable structures into independent draft records, reuse Protected Shared Assets, and do not copy Publications, access state, Capture Sessions, or Capture Events.
