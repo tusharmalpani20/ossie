@@ -242,7 +242,10 @@ export const inspect_documentation_site_package = async (filePath: string) => {
     );
   const blockingIssues: Array<{
     severity: "blocking";
-    code: "relationship_unresolved";
+    code:
+      | "content_unsupported"
+      | "identity_duplicate"
+      | "relationship_unresolved";
     location: "site.json";
     message: string;
   }> = [];
@@ -258,14 +261,19 @@ export const inspect_documentation_site_package = async (filePath: string) => {
       error.code !== "documentation_package_invalid"
     )
       throw error;
+    const message =
+      error instanceof Error
+        ? error.message
+        : "The package graph contains unsupported content.";
     blockingIssues.push({
       severity: "blocking",
-      code: "relationship_unresolved",
+      code: /duplicate/iu.test(message)
+        ? "identity_duplicate"
+        : /(?:resolve|home page)/iu.test(message)
+          ? "relationship_unresolved"
+          : "content_unsupported",
       location: "site.json",
-      message:
-        error instanceof Error
-          ? error.message
-          : "The package graph contains an unresolved relationship.",
+      message,
     });
   }
   const describedPaths = new Set<string>();
