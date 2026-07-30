@@ -66,9 +66,10 @@ security, and site-configuration semantics. The target model and ordered
 children `132` through `140` are recorded in
 `docs/documentation-domain-decisions.md` and Master Plan `006`.
 
-The next activity is to expand and recheck child `132`, the end-to-end
-Documentation Site first vertical slice. Product Documentation runtime remains
-unimplemented until that plan passes its implementation gate.
+Child `132`, the end-to-end Documentation Site first vertical slice, is
+expanded and rechecked. Product Documentation runtime remains unimplemented;
+the next activity after the scoped plan checkpoint is to implement child `132`
+under its recorded gate.
 
 Product Documentation is not another name for Guides and is not `apps/docs`,
 which remains repository documentation for contributors and operators.

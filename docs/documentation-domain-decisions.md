@@ -334,10 +334,12 @@ operational hardening from final certification.
    and collaboration as separate evidence-backed proposals; do not inherit them
    automatically into V1.
 
-Before runtime work, child `132` must be expanded and rechecked against the
-current codebase. Its plan must name exact migrations, schemas, API routes,
-frontend routes/components, permissions, audits, tests, browser journeys, reset/
-reseed behavior, dependency pins, and rollback/compatibility handling.
+Child `132` was expanded and rechecked on 2026-07-30 against the current
+codebase. It now names exact planned migrations, schemas, API routes, frontend
+routes/components, permissions, audits, tests, browser journeys, reset/reseed
+behavior, a mandatory dependency-pin proof, and rollback/compatibility
+handling. Runtime remains gated on committing that plan checkpoint and then
+following its test-first implementation stages.
 
 ## 10. Handoff Invariants
 

@@ -149,10 +149,10 @@ revision-backed Publications, multi-version Publish Links, the design system,
 current workflow modernization, cross-product browser closeout, and the
 Documentation domain grill.
 
-The next activity is to expand and recheck child `132`, the complete
-Documentation Site first vertical slice. Runtime implementation remains gated
-on that plan's exact migration, contract, permission, threat, verification, and
-agent-browser requirements.
+Child `132`, the complete Documentation Site first vertical slice, is expanded
+and rechecked. The next activity after its scoped plan checkpoint is runtime
+implementation under that plan's exact migration, contract, permission,
+threat, verification, and agent-browser requirements.
 
 The accepted Project Version and Artifact Edition decisions are recorded in
 `CONTEXT.md`, ADRs `0021` through `0030`, the completed grill records,

@@ -2188,10 +2188,11 @@ Documentation implementation may start only when all of the following are true:
 Gate result on 2026-07-30:
 
 - The foundation and domain-decision portions are passed.
-- Runtime remains gated on expanding and rechecking child `132` with exact
-  migration, schema, API, UI, permission, audit/access, test, rollback,
-  dependency-proof, and agent-browser contracts against the then-current
-  codebase. The sequence summary alone does not authorize implementation.
+- Child `132` is now expanded and rechecked with exact migration, schema, API,
+  UI, permission, audit/access, test, rollback, dependency-proof, and
+  agent-browser contracts against the current codebase. Product Documentation
+  runtime remains unimplemented and begins only from the committed child `132`
+  plan checkpoint.
 
 ## 18. Completion Criteria
 
@@ -2213,14 +2214,13 @@ This master plan is complete when:
 
 ## 19. Immediate Next Action
 
-Master Plan `005` is closed. The next executable activity is to rewrite/expand
-and recheck child `132`, Documentation Site First Vertical Slice, against the
-current codebase, `docs/documentation-domain-decisions.md`, and accepted Master
-Plan `006`. Child `132` must bound the complete Question `32` end-to-end
-flow—including the accepted private Page comment proof—and name exact
-migrations, schemas, routes, contracts, permissions, audit/access actions,
-errors, dependency pins/proofs, focused and broad tests, reset/reseed/rollback
-handling, and agent-browser journeys before runtime work begins.
+Master Plan `005` is closed. Child `132`, Documentation Site First Vertical
+Slice, is expanded and rechecked against the current codebase,
+`docs/documentation-domain-decisions.md`, and accepted Master Plan `006`. The
+next executable activity after its scoped plan checkpoint is runtime
+implementation of that complete Question `32` flow—including the private Page
+comment proof—under its migration, contract, permission, audit/access,
+dependency-proof, rollback, verification, and agent-browser gates.
 
 The separate overnight-runner tooling checkpoint was deferred by user decision
 on 2026-07-19 because it was taking disproportionate time to build; it is

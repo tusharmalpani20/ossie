@@ -2,10 +2,10 @@
 
 Date: 2026-07-30
 
-Status: Ready for child `132` planning after recheck on 2026-07-30. This master
-translates the accepted child `131` Documentation-domain decisions into an
-implementation sequence. No child `132` file or Product Documentation runtime
-is created by this plan.
+Status: Active at the child `132` plan checkpoint. Child `132` is expanded and
+rechecked; children `133` through `140` are bounded reservations that must be
+re-expanded after their actual predecessors. Product Documentation runtime
+remains unimplemented.
 
 Master plan number: 006.
 
@@ -22,7 +22,7 @@ Canonical decision baseline:
 - `docs/plan/131-documentation-domain-grill.md`
 - ADRs `0021` through `0030`
 
-Planned children:
+Child sequence:
 
 - `docs/plan/132-documentation-site-first-vertical-slice.md`
 - `docs/plan/133-documentation-content-snippets-and-asset-workflows.md`
@@ -2666,26 +2666,18 @@ proposals without another accepted plan.
 
 ## 45. Immediate Next Action
 
-Do not implement Product Documentation yet.
+Product Documentation runtime remains unimplemented.
 
-The next activity is to create and expand
-`docs/plan/132-documentation-site-first-vertical-slice.md` from this accepted
-master and the complete Question `32` boundary.
+The next activity is to commit the scoped child-plan checkpoint and then
+implement
+`docs/plan/132-documentation-site-first-vertical-slice.md` test-first. Its
+mandatory first stage must select exact dependency pins or the documented
+contract-preserving fallback before broad runtime work.
 
-Child `132` must:
-
-1. reread child `131`, the final grill ledger, Context, ADRs `0021`–`0030`, this
-   master, and current code;
-2. inspect any changes since this master recheck;
-3. name exact files, migrations, contracts, routes, permissions, audit/access
-   actions, dependency pins/fallbacks, tests, browser journeys, rollback, and
-   compatibility;
-4. include the Node/router/MDX/OpenAPI-client compatibility gates found by this
-   recheck;
-5. receive a separate close-plan recheck before runtime implementation.
-
-No child file, migration, package, route, UI, navigation, dependency, or runtime
-change belongs to this master-creation step.
+Children `133` through `140` are reservations, not implementation-ready plans.
+Do not implement or fully expand child `133` until child `132` is implemented,
+rechecked, documented, and committed. Each later child follows the same
+close-predecessor rule.
 
 ## 46. Planning And Recheck Log
 
@@ -2712,6 +2704,13 @@ change belongs to this master-creation step.
   Guide/Demo Published Artifact rows.
 - 2026-07-30: reconciled the canonical implementation handoff and active
   direction docs to children `132` through `140`.
+- 2026-07-30: created bounded child reservations `133` through `140` so the
+  accepted sequence and ownership are durable without prematurely fixing
+  predecessor-dependent implementation details.
+- 2026-07-30: expanded and rechecked child `132` against current migration,
+  package, server-module, Publish Link, access/audit, Vite route, fixture, and
+  smoke architecture. The plan now fixes the first-slice schema/API/UI/security/
+  verification contracts while leaving runtime unimplemented.
 
 ## 47. Master Planning Verification Record
 
@@ -2730,7 +2729,9 @@ Required final results:
 - current code/package/migration absence assertion: passed; no Product
   Documentation runtime exists.
 - scoped diff assertion: passed; documentation/plan files only.
-- no child `132` file assertion: passed.
+- child file assertion: exactly one correctly named plan exists for each child
+  `132` through `140`; `132` is implementation-ready and `133`–`140` identify
+  themselves as reservations.
 
 No browser, database, application test, build, or runtime verification is
 required for this planning-only change because it adds no runtime behavior.
@@ -2739,17 +2740,18 @@ Child `132` owns the first runtime evidence.
 ## 48. Planning Leftovers And Handoff
 
 - Product Documentation runtime remains unimplemented.
-- Exact child `132` migration/table/route/file names remain intentionally owned
-  by the expanded child within the fixed master boundaries.
+- Child `132` now owns exact planned migration/table/route/file names within the
+  fixed master boundaries. Reconcile them again if the codebase changes before
+  implementation.
 - Exact Tiptap/Fumadocs pins are not chosen. Child `132` must resolve the
   Node/router/Vite/read-only OpenAPI compatibility gates or select the documented
   replaceable fallback without changing the domain model.
-- Exact first-slice safety ceilings and Organization quota defaults remain child
-  implementation mechanics; the nullable/unlimited product meaning and hard
-  safety ceiling requirement are fixed.
+- Child `132` now fixes first-slice hard safety ceilings. Organization-owned
+  configurable quota defaults and operational reporting remain child `138`
+  scope; nullable still means unlimited product quota below hard ceilings.
 - Git/GitHub, translation, custom domains, public feedback/analytics, realtime
   collaboration, permanent deletion, cross-artifact search, server proxy,
   stored credentials, SDK generation, and Video remain deferred/rejected as
   recorded.
-- The next file to create is child `132`; no other child skeleton should be
-  created first.
+- The next runtime child is `132`. Child `133` may be re-expanded only from the
+  actual closed child `132` result.

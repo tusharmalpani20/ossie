@@ -66,7 +66,9 @@ The product intentionally keeps guides and interactive demos separate. A capture
 
 Master Plan `005` has closed its version/governance foundation, current-product
 UI modernization, and Documentation domain grill. Product Documentation has an
-accepted target model; implementation planning now begins with child `132`:
+accepted target model; child `132` now contains the rechecked first-slice
+implementation plan, while children `133` through `140` reserve the remaining
+ordered sequence:
 
 ```text
 Organization
@@ -81,7 +83,7 @@ Organization
 
 This diagram is navigation context, while the Capture, Guide, Interactive Demo, Revision, and Publication relationships shown are now implemented relationally. Project Version identity, lifecycle, aliases, ordering, permissions, Audit/Access Evidence, Carry-Forward, protected shared Assets, and independently managed Publish Links are available today. See [the canonical glossary](CONTEXT.md), [the completed foundation plan](docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md), and [Documentation V1 Master Plan 006](docs/plan/master/006-documentation-platform-v1-master-plan.md).
 
-Product Documentation means future customer-authored documentation sites and knowledge bases. It is different from `apps/docs`, which is this repository's contributor/operator documentation hub. Child `131` accepted the model and the ordered handoff in [the Documentation domain decisions](docs/documentation-domain-decisions.md); child `132` must still be expanded and rechecked before runtime implementation.
+Product Documentation means future customer-authored documentation sites and knowledge bases. It is different from `apps/docs`, which is this repository's contributor/operator documentation hub. Child `131` accepted the model and the ordered handoff in [the Documentation domain decisions](docs/documentation-domain-decisions.md); child `132` is expanded and rechecked but Product Documentation runtime remains unimplemented.
 
 ## Intentionally Deferred
 
@@ -97,7 +99,8 @@ Product Documentation means future customer-authored documentation sites and kno
 - Chrome Web Store packaging remains pending. Current extension evidence uses a
   real unpacked Manifest V3 toolbar action with synthetic data; direct-page
   automation remains a separate evidence class.
-- Product Documentation authoring is not implemented; its accepted first vertical slice begins with planning child `132`.
+- Product Documentation authoring is not implemented; its accepted first
+  vertical slice is specified in child `132` and awaits runtime implementation.
 - Loom-style Video recording, storage, playback, transcription, and collaboration are later work and have no accepted runtime model yet.
 
 ## Quick Local Path
