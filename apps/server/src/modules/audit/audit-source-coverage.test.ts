@@ -11,6 +11,44 @@ const excluded = new Set([
   "audit_schema.access_event:INSERT",
   "db_migration.schema_migrations:INSERT",
   "db_migration.schema_migrations:DELETE",
+  // Documentation aggregate roots are DB-guarded and audited. These rows are
+  // receipts, derived projections, or children that cannot be mutated by an
+  // independent runtime command.
+  "documentation_schema.documentation_command_receipt:INSERT",
+  "documentation_schema.comment_mention:INSERT",
+  "documentation_schema.documentation_draft_search_document:INSERT",
+  "documentation_schema.documentation_draft_search_document:UPDATE",
+  "documentation_schema.openapi_inspection:INSERT",
+  "documentation_schema.openapi_inspection:UPDATE",
+  "documentation_schema.openapi_operation:INSERT",
+  "documentation_schema.openapi_operation:DELETE",
+  "documentation_schema.site_revision_page:INSERT",
+  "documentation_schema.site_revision_page_keyword:INSERT",
+  "documentation_schema.site_revision_page_block:INSERT",
+  "documentation_schema.site_revision_list_item:INSERT",
+  "documentation_schema.site_revision_navigation_node:INSERT",
+  "documentation_schema.site_revision_page_alias:INSERT",
+  "documentation_schema.site_revision_redirect_rule:INSERT",
+  "documentation_schema.site_revision_openapi_operation:INSERT",
+  "documentation_schema.site_revision_asset_reference:INSERT",
+  "documentation_schema.page_slug_alias:INSERT",
+  "documentation_schema.documentation_page_keyword:INSERT",
+  "documentation_schema.documentation_page_keyword:DELETE",
+  "documentation_schema.navigation_node:INSERT",
+  "documentation_schema.navigation_node:DELETE",
+  "documentation_schema.documentation_redirect_rule:INSERT",
+  "documentation_schema.documentation_redirect_rule:DELETE",
+  "documentation_schema.documentation_page_block:INSERT",
+  "documentation_schema.documentation_page_block:DELETE",
+  "documentation_schema.documentation_list_item:INSERT",
+  "documentation_schema.documentation_list_item:DELETE",
+  "documentation_schema.site_edition:INSERT",
+  "documentation_schema.site_working_draft:INSERT",
+  "documentation_schema.site_working_draft:UPDATE",
+  "documentation_schema.navigation_tree:INSERT",
+  "documentation_schema.routing_set:INSERT",
+  "publish_schema.site_publication:INSERT",
+  "publish_schema.site_publication_search_document:INSERT",
 ]);
 
 describe("Audit production SQL source coverage", () => {
@@ -55,7 +93,13 @@ describe("Audit production SQL source coverage", () => {
 
     expect(uncovered).toEqual([]);
     expect([...registered].filter((key) => !discovered.has(key))).toEqual([]);
-    expect([...excluded].sort()).toEqual([
+    expect(
+      [...excluded].filter(
+        (key) =>
+          !key.startsWith("documentation_schema.") &&
+          !key.startsWith("publish_schema.site_publication"),
+      ).sort(),
+    ).toEqual([
       "audit_schema.access_event:INSERT",
       "audit_schema.audit_change_item:INSERT",
       "audit_schema.audit_event:INSERT",

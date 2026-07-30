@@ -90,6 +90,68 @@ const U = {
       "INSERT",
       "documentation_asset",
     ),
+  documentation_site_insert: () =>
+    write(
+      "documentation_schema.documentation_site",
+      "INSERT",
+      "documentation_site",
+    ),
+  documentation_page_insert: () =>
+    write(
+      "documentation_schema.documentation_page",
+      "INSERT",
+      "documentation_page",
+    ),
+  documentation_page_update: () =>
+    write(
+      "documentation_schema.documentation_page",
+      "UPDATE",
+      "documentation_page",
+    ),
+  documentation_navigation_update: () =>
+    write(
+      "documentation_schema.navigation_tree",
+      "UPDATE",
+      "navigation_tree",
+    ),
+  documentation_routing_update: () =>
+    write("documentation_schema.routing_set", "UPDATE", "routing_set"),
+  documentation_comment_insert: () =>
+    write(
+      "documentation_schema.comment_thread",
+      "INSERT",
+      "comment_thread",
+    ),
+  documentation_comment_update: () =>
+    write(
+      "documentation_schema.comment_thread",
+      "UPDATE",
+      "comment_thread",
+    ),
+  documentation_reply_insert: () =>
+    write(
+      "documentation_schema.comment_reply",
+      "INSERT",
+      "comment_reply",
+    ),
+  documentation_openapi_insert: () =>
+    write(
+      "documentation_schema.openapi_source",
+      "INSERT",
+      "openapi_source",
+    ),
+  documentation_openapi_update: () =>
+    write(
+      "documentation_schema.openapi_source",
+      "UPDATE",
+      "openapi_source",
+    ),
+  documentation_revision_insert: () =>
+    write(
+      "documentation_schema.site_revision",
+      "INSERT",
+      "site_revision",
+    ),
   asset_insert: () =>
     write("capture_schema.capture_asset", "INSERT", "capture_asset"),
   asset_update: (operation: AuditOperation = "update") =>
@@ -895,6 +957,110 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
       "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets",
     ],
     [U.file_insert(), U.documentation_asset_insert()],
+  ),
+  command(
+    "documentation.site.create",
+    "documentation.site_created",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites",
+    ],
+    [U.documentation_site_insert(), U.documentation_page_insert()],
+  ),
+  command(
+    "documentation.page.create",
+    "documentation.page_created",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages",
+    ],
+    [U.documentation_page_insert()],
+  ),
+  command(
+    "documentation.page.update",
+    "documentation.page_updated",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id",
+    ],
+    [U.documentation_page_update()],
+  ),
+  command(
+    "documentation.page.path_change",
+    "documentation.page_path_changed",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id",
+    ],
+    [U.documentation_page_update()],
+  ),
+  command(
+    "documentation.page.content_replace",
+    "documentation.page_content_replaced",
+    [
+      "PUT /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/content",
+    ],
+    [U.documentation_page_update()],
+  ),
+  command(
+    "documentation.navigation.replace",
+    "documentation.navigation_replaced",
+    [
+      "PUT /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/navigation",
+    ],
+    [U.documentation_navigation_update()],
+  ),
+  command(
+    "documentation.routing.replace",
+    "documentation.routing_replaced",
+    [
+      "PUT /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/routing",
+    ],
+    [U.documentation_routing_update()],
+  ),
+  command(
+    "documentation.comment.thread_create",
+    "documentation.comment_thread_created",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/comments",
+    ],
+    [U.documentation_comment_insert()],
+  ),
+  command(
+    "documentation.comment.reply_create",
+    "documentation.comment_reply_created",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/comments/:thread_id/replies",
+    ],
+    [U.documentation_reply_insert()],
+  ),
+  command(
+    "documentation.comment.resolve",
+    "documentation.comment_resolved",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/comments/:thread_id",
+    ],
+    [U.documentation_comment_update()],
+  ),
+  command(
+    "documentation.comment.reopen",
+    "documentation.comment_reopened",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/comments/:thread_id",
+    ],
+    [U.documentation_comment_update()],
+  ),
+  command(
+    "documentation.openapi.apply",
+    "documentation.openapi_inspection_applied",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/sources",
+    ],
+    [U.documentation_openapi_insert(), U.documentation_openapi_update()],
+  ),
+  command(
+    "documentation.revision.create",
+    "documentation.revision_created",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions",
+    ],
+    [U.documentation_revision_insert()],
   ),
   command(
     "publish.interactive_demo",

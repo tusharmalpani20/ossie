@@ -284,6 +284,54 @@ const begin_documentation_audit_context = async (
   };
 };
 
+const write_documentation_audit_event = async (
+  client: Queryable,
+  input: {
+    audit: Awaited<ReturnType<typeof begin_documentation_audit_context>>;
+    organization_id: string;
+    project_id: string;
+    site_id: string;
+    actor_org_user_id: string;
+    action: string;
+    entity_type: string;
+    entity_id: string;
+    before_version: number | null;
+    after_version: number | null;
+  },
+) => {
+  const before =
+    input.before_version === null ? null : { version: input.before_version };
+  const after =
+    input.after_version === null ? null : { version: input.after_version };
+  const audit_event = build_entity_audit_event({
+    id: input.audit.event_id,
+    organization_id: input.organization_id,
+    project_id: input.project_id,
+    root_resource_type: "documentation_site",
+    root_resource_id: input.site_id,
+    action: input.action,
+    actor_org_user_id: input.actor_org_user_id,
+    actor_label: input.audit.actor_label,
+    source_type: input.audit.source_type,
+    occurred_at: input.audit.occurred_at,
+    before_row_version: input.before_version,
+    after_row_version: input.after_version,
+    changes: [
+      {
+        entity_type: input.entity_type,
+        entity_id: input.entity_id,
+        parent_entity_type: "documentation_site",
+        parent_entity_id: input.site_id,
+        before,
+        after,
+        safe_fields:
+          before && after ? { version: "integer" as const } : undefined,
+      },
+    ],
+  });
+  if (audit_event) await write_audit_event(client, audit_event);
+};
+
 type CreateSiteInput = {
   organization_id: string;
   project_id: string;
@@ -926,6 +974,11 @@ export const build_documentation_repository = (database: Database) => ({
         request_digest,
       });
       if (replay) return replay;
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.openapi.apply",
+        action: "documentation.openapi_inspection_applied",
+      });
       const inspection = await client.query<{
         id: string;
         site_edition_id: string;
@@ -1063,6 +1116,15 @@ export const build_documentation_repository = (database: Database) => ({
         },
         operations,
       };
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.openapi_inspection_applied",
+        entity_type: "openapi_source",
+        entity_id: source_id,
+        before_version: current.rows[0]?.version ?? null,
+        after_version: (current.rows[0]?.version ?? 0) + 1,
+      });
       await write_command_receipt(client, {
         ...input,
         operation: "documentation.openapi.apply",
@@ -1168,6 +1230,11 @@ export const build_documentation_repository = (database: Database) => ({
         request_digest,
       });
       if (replay) return replay;
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.revision.create",
+        action: "documentation.revision_created",
+      });
       const locked = await client.query<{ version: number }>(
         `SELECT draft.version
            FROM documentation_schema.site_working_draft draft
@@ -1494,6 +1561,15 @@ export const build_documentation_repository = (database: Database) => ({
         }
       }
       const result = { ...revision, created_at: new Date().toISOString() };
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.revision_created",
+        entity_type: "site_revision",
+        entity_id: revision.id,
+        before_version: null,
+        after_version: revision.revision_number,
+      });
       await write_command_receipt(client, {
         ...input,
         operation: "documentation.revision.create",
@@ -2378,8 +2454,22 @@ export const build_documentation_repository = (database: Database) => ({
           ...page,
           blocks: [],
         });
-
       const canonical_path = input.data.canonical_path ?? page.canonical_path;
+      const page_audit =
+        canonical_path === page.canonical_path
+          ? {
+              command: "documentation.page.update",
+              action: "documentation.page_updated",
+            }
+          : {
+              command: "documentation.page.path_change",
+              action: "documentation.page_path_changed",
+            };
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        ...page_audit,
+      });
+
       if (canonical_path !== page.canonical_path) {
         const reserved = await client.query(
           `SELECT 1
@@ -2483,7 +2573,7 @@ export const build_documentation_repository = (database: Database) => ({
           input.project_id,
         ],
       );
-      return {
+      const result = {
         ...page,
         title,
         description,
@@ -2491,6 +2581,16 @@ export const build_documentation_repository = (database: Database) => ({
         version: page.version + 1,
         keywords: input.data.keywords ?? [],
       };
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: page_audit.action,
+        entity_type: "documentation_page",
+        entity_id: input.page_id,
+        before_version: page.version,
+        after_version: page.version + 1,
+      });
+      return result;
     }),
 
   replace_navigation: async (input: {
@@ -2545,6 +2645,11 @@ export const build_documentation_repository = (database: Database) => ({
         Object.assign(error, { code: "documentation_row_version_conflict" });
         throw error;
       }
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.navigation.replace",
+        action: "documentation.navigation_replaced",
+      });
       const pageIds = input.nodes
         .map((node) => node.page_id)
         .filter((id): id is string => Boolean(id));
@@ -2614,6 +2719,15 @@ export const build_documentation_repository = (database: Database) => ({
       await bump_working_draft(client, {
         ...input,
         site_edition_id: tree.site_edition_id,
+      });
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.navigation_replaced",
+        entity_type: "navigation_tree",
+        entity_id: tree.id,
+        before_version: tree.version,
+        after_version: tree.version + 1,
       });
       return { id: tree.id, version: tree.version + 1, nodes: input.nodes };
     }),
@@ -2714,6 +2828,11 @@ export const build_documentation_repository = (database: Database) => ({
         Object.assign(error, { code: "documentation_path_retired" });
         throw error;
       }
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.routing.replace",
+        action: "documentation.routing_replaced",
+      });
       await client.query(
         `DELETE FROM documentation_schema.documentation_redirect_rule
           WHERE routing_set_id=$1 AND organization_id=$2 AND project_id=$3`,
@@ -2747,6 +2866,15 @@ export const build_documentation_repository = (database: Database) => ({
       await bump_working_draft(client, {
         ...input,
         site_edition_id: routing.site_edition_id,
+      });
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.routing_replaced",
+        entity_type: "routing_set",
+        entity_id: routing.id,
+        before_version: routing.version,
+        after_version: routing.version + 1,
       });
       return {
         id: routing.id,
@@ -2821,6 +2949,11 @@ export const build_documentation_repository = (database: Database) => ({
           throw error;
         }
       }
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.comment.thread_create",
+        action: "documentation.comment_thread_created",
+      });
       const thread = {
         id: ulid(),
         documentation_page_id: input.page_id,
@@ -2853,6 +2986,15 @@ export const build_documentation_repository = (database: Database) => ({
         reply_id: null,
         actor_org_user_id: input.actor_org_user_id,
         project_membership_ids: input.mentioned_project_membership_ids,
+      });
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.comment_thread_created",
+        entity_type: "comment_thread",
+        entity_id: thread.id,
+        before_version: null,
+        after_version: 1,
       });
       await write_command_receipt(client, {
         ...input,
@@ -2906,6 +3048,11 @@ export const build_documentation_repository = (database: Database) => ({
         ],
       );
       if (!thread.rows[0]) throw new Error("Comment thread was not found");
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.comment.reply_create",
+        action: "documentation.comment_reply_created",
+      });
       const reply = {
         id: ulid(),
         comment_thread_id: input.thread_id,
@@ -2935,6 +3082,15 @@ export const build_documentation_repository = (database: Database) => ({
         reply_id: reply.id,
         actor_org_user_id: input.actor_org_user_id,
         project_membership_ids: input.mentioned_project_membership_ids,
+      });
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.comment_reply_created",
+        entity_type: "comment_reply",
+        entity_id: reply.id,
+        before_version: null,
+        after_version: 1,
       });
       await write_command_receipt(client, {
         ...input,
@@ -2989,6 +3145,20 @@ export const build_documentation_repository = (database: Database) => ({
         thread.state,
         input.transition,
       );
+      const transition_audit =
+        input.transition === "resolve"
+          ? {
+              command: "documentation.comment.resolve",
+              action: "documentation.comment_resolved",
+            }
+          : {
+              command: "documentation.comment.reopen",
+              action: "documentation.comment_reopened",
+            };
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        ...transition_audit,
+      });
       await client.query(
         `UPDATE documentation_schema.comment_thread
             SET state=$1,version=version+1,updated_by_id=$2,
@@ -2996,6 +3166,15 @@ export const build_documentation_repository = (database: Database) => ({
           WHERE id=$3`,
         [state, input.actor_org_user_id, input.thread_id],
       );
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: transition_audit.action,
+        entity_type: "comment_thread",
+        entity_id: input.thread_id,
+        before_version: thread.version,
+        after_version: thread.version + 1,
+      });
       return { ...thread, state, version: thread.version + 1 };
     }),
 
@@ -3045,6 +3224,11 @@ export const build_documentation_repository = (database: Database) => ({
       );
       const scope = parent.rows[0];
       if (!scope) throw new Error("Documentation Site was not found");
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.page.create",
+        action: "documentation.page_created",
+      });
       const id = ulid();
       await client.query(
         `INSERT INTO documentation_schema.documentation_page
@@ -3089,6 +3273,15 @@ export const build_documentation_repository = (database: Database) => ({
         version: 1,
         blocks: [],
       };
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.page_created",
+        entity_type: "documentation_page",
+        entity_id: id,
+        before_version: null,
+        after_version: 1,
+      });
       await write_command_receipt(client, {
         ...input,
         operation: "documentation.page.create",
@@ -3202,6 +3395,11 @@ export const build_documentation_repository = (database: Database) => ({
           blocks: [],
         });
       }
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.page.content_replace",
+        action: "documentation.page_content_replaced",
+      });
       await client.query(
         `DELETE FROM documentation_schema.documentation_list_item item
           USING documentation_schema.documentation_page_block block
@@ -3301,6 +3499,15 @@ export const build_documentation_repository = (database: Database) => ({
           input.blocks,
         ),
       });
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.page_content_replaced",
+        entity_type: "documentation_page",
+        entity_id: input.page_id,
+        before_version: page.version,
+        after_version: page.version + 1,
+      });
       return { ...page, version: page.version + 1, blocks: input.blocks };
     }),
 
@@ -3352,6 +3559,11 @@ export const build_documentation_repository = (database: Database) => ({
         request_digest,
       });
       if (replay) return replay;
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.site.create",
+        action: "documentation.site_created",
+      });
       const site_id = ulid();
       const edition_id = ulid();
       const working_draft_id = ulid();
@@ -3511,6 +3723,43 @@ export const build_documentation_repository = (database: Database) => ({
             }
           : null,
       };
+      const site_audit_event = build_entity_audit_event({
+        id: audit.event_id,
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        root_resource_type: "documentation_site",
+        root_resource_id: site_id,
+        action: "documentation.site_created",
+        actor_org_user_id: input.actor_org_user_id,
+        actor_label: audit.actor_label,
+        source_type: audit.source_type,
+        occurred_at: audit.occurred_at,
+        before_row_version: null,
+        after_row_version: 1,
+        changes: [
+          {
+            entity_type: "documentation_site",
+            entity_id: site_id,
+            parent_entity_type: null,
+            parent_entity_id: null,
+            before: null,
+            after: { version: 1 },
+          },
+          ...(home_page_id
+            ? [
+                {
+                  entity_type: "documentation_page",
+                  entity_id: home_page_id,
+                  parent_entity_type: "documentation_site",
+                  parent_entity_id: site_id,
+                  before: null,
+                  after: { version: 1 },
+                },
+              ]
+            : []),
+        ],
+      });
+      if (site_audit_event) await write_audit_event(client, site_audit_event);
       await write_command_receipt(client, {
         ...input,
         operation: "documentation.site.create",

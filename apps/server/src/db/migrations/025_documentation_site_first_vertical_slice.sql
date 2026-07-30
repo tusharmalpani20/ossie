@@ -759,7 +759,20 @@ RETURNS BOOLEAN AS $$
       ('publish.documentation_link.manifest_update','documentation.publish_link.manifest_updated'),
       ('publish.documentation_link.entry_rollback','documentation.publish_link.entry_rolled_back'),
       ('documentation.openapi.inspect','documentation.openapi.inspected'),
-      ('documentation.asset.upload','documentation.asset.uploaded')
+      ('documentation.asset.upload','documentation.asset.uploaded'),
+      ('documentation.site.create','documentation.site_created'),
+      ('documentation.page.create','documentation.page_created'),
+      ('documentation.page.update','documentation.page_updated'),
+      ('documentation.page.path_change','documentation.page_path_changed'),
+      ('documentation.page.content_replace','documentation.page_content_replaced'),
+      ('documentation.navigation.replace','documentation.navigation_replaced'),
+      ('documentation.routing.replace','documentation.routing_replaced'),
+      ('documentation.comment.thread_create','documentation.comment_thread_created'),
+      ('documentation.comment.reply_create','documentation.comment_reply_created'),
+      ('documentation.comment.resolve','documentation.comment_resolved'),
+      ('documentation.comment.reopen','documentation.comment_reopened'),
+      ('documentation.openapi.apply','documentation.openapi_inspection_applied'),
+      ('documentation.revision.create','documentation.revision_created')
     )
     AND selected_actor_type='org_user'
     AND selected_source_type IN ('web','api','extension')
@@ -841,6 +854,135 @@ CREATE CONSTRAINT TRIGGER documentation_asset_i_audit_evd
   DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
   EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
     'documentation_asset','direct','documentation.asset.upload'
+  );
+
+CREATE TRIGGER documentation_site_i_audit_ctx
+  BEFORE INSERT ON documentation_schema.documentation_site
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'documentation_site','direct','documentation.site.create'
+  );
+CREATE CONSTRAINT TRIGGER documentation_site_i_audit_evd
+  AFTER INSERT ON documentation_schema.documentation_site
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'documentation_site','direct','documentation.site.create'
+  );
+
+CREATE TRIGGER documentation_page_i_audit_ctx
+  BEFORE INSERT ON documentation_schema.documentation_page
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'documentation_page','direct','documentation.site.create,documentation.page.create'
+  );
+CREATE CONSTRAINT TRIGGER documentation_page_i_audit_evd
+  AFTER INSERT ON documentation_schema.documentation_page
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'documentation_page','direct','documentation.site.create,documentation.page.create'
+  );
+CREATE TRIGGER documentation_page_u_audit_ctx
+  BEFORE UPDATE ON documentation_schema.documentation_page
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'documentation_page','direct','documentation.page.update,documentation.page.path_change,documentation.page.content_replace'
+  );
+CREATE CONSTRAINT TRIGGER documentation_page_u_audit_evd
+  AFTER UPDATE ON documentation_schema.documentation_page
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'documentation_page','direct','documentation.page.update,documentation.page.path_change,documentation.page.content_replace'
+  );
+
+CREATE TRIGGER navigation_tree_u_audit_ctx
+  BEFORE UPDATE ON documentation_schema.navigation_tree
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'navigation_tree','direct','documentation.navigation.replace'
+  );
+CREATE CONSTRAINT TRIGGER navigation_tree_u_audit_evd
+  AFTER UPDATE ON documentation_schema.navigation_tree
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'navigation_tree','direct','documentation.navigation.replace'
+  );
+
+CREATE TRIGGER routing_set_u_audit_ctx
+  BEFORE UPDATE ON documentation_schema.routing_set
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'routing_set','direct','documentation.routing.replace'
+  );
+CREATE CONSTRAINT TRIGGER routing_set_u_audit_evd
+  AFTER UPDATE ON documentation_schema.routing_set
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'routing_set','direct','documentation.routing.replace'
+  );
+
+CREATE TRIGGER comment_thread_i_audit_ctx
+  BEFORE INSERT ON documentation_schema.comment_thread
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'comment_thread','direct','documentation.comment.thread_create'
+  );
+CREATE CONSTRAINT TRIGGER comment_thread_i_audit_evd
+  AFTER INSERT ON documentation_schema.comment_thread
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'comment_thread','direct','documentation.comment.thread_create'
+  );
+CREATE TRIGGER comment_thread_u_audit_ctx
+  BEFORE UPDATE ON documentation_schema.comment_thread
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'comment_thread','direct','documentation.comment.resolve,documentation.comment.reopen'
+  );
+CREATE CONSTRAINT TRIGGER comment_thread_u_audit_evd
+  AFTER UPDATE ON documentation_schema.comment_thread
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'comment_thread','direct','documentation.comment.resolve,documentation.comment.reopen'
+  );
+
+CREATE TRIGGER comment_reply_i_audit_ctx
+  BEFORE INSERT ON documentation_schema.comment_reply
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'comment_reply','direct','documentation.comment.reply_create'
+  );
+CREATE CONSTRAINT TRIGGER comment_reply_i_audit_evd
+  AFTER INSERT ON documentation_schema.comment_reply
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'comment_reply','direct','documentation.comment.reply_create'
+  );
+
+CREATE TRIGGER openapi_source_i_audit_ctx
+  BEFORE INSERT ON documentation_schema.openapi_source
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'openapi_source','direct','documentation.openapi.apply'
+  );
+CREATE CONSTRAINT TRIGGER openapi_source_i_audit_evd
+  AFTER INSERT ON documentation_schema.openapi_source
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'openapi_source','direct','documentation.openapi.apply'
+  );
+CREATE TRIGGER openapi_source_u_audit_ctx
+  BEFORE UPDATE ON documentation_schema.openapi_source
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'openapi_source','direct','documentation.openapi.apply'
+  );
+CREATE CONSTRAINT TRIGGER openapi_source_u_audit_evd
+  AFTER UPDATE ON documentation_schema.openapi_source
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'openapi_source','direct','documentation.openapi.apply'
+  );
+
+CREATE TRIGGER site_revision_i_audit_ctx
+  BEFORE INSERT ON documentation_schema.site_revision
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'site_revision','direct','documentation.revision.create'
+  );
+CREATE CONSTRAINT TRIGGER site_revision_i_audit_evd
+  AFTER INSERT ON documentation_schema.site_revision
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'site_revision','direct','documentation.revision.create'
   );
 
 CREATE FUNCTION documentation_schema.prevent_immutable_documentation_mutation()

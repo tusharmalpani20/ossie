@@ -8,10 +8,10 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(84);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(97);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(84);
+    ).toBe(97);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
@@ -21,16 +21,18 @@ describe("audit coverage registry", () => {
     expect(AUDIT_COMMANDS).toContain("guide.revision.checkpoint");
     expect(AUDIT_COMMANDS).toContain("artifact.carry_forward");
     expect(AUDIT_COMMANDS).toContain("capture_asset.purge.complete");
+    expect(AUDIT_COMMANDS).toContain("documentation.site.create");
+    expect(AUDIT_COMMANDS).toContain("documentation.revision.create");
   });
 
   it("covers all product tables and the relational Publish Link DELETE boundary", () => {
     const writes = AUDIT_COVERAGE_REGISTRY.flatMap(({ writes }) => writes);
-    expect(new Set(writes.map(({ table }) => table)).size).toBe(43);
+    expect(new Set(writes.map(({ table }) => table)).size).toBe(51);
     expect(
       new Set(
         writes.map(({ table, sql_operation }) => `${table}:${sql_operation}`),
       ).size,
-    ).toBe(67);
+    ).toBe(78);
     expect(
       writes
         .filter(({ sql_operation }) => sql_operation === "DELETE")
@@ -386,6 +388,17 @@ describe("audit coverage registry", () => {
         "INSERT",
         "documentation_asset_i_audit_ctx",
       ],
+      ["documentation_site", "INSERT", "documentation_site_i_audit_ctx"],
+      ["documentation_page", "INSERT", "documentation_page_i_audit_ctx"],
+      ["documentation_page", "UPDATE", "documentation_page_u_audit_ctx"],
+      ["navigation_tree", "UPDATE", "navigation_tree_u_audit_ctx"],
+      ["routing_set", "UPDATE", "routing_set_u_audit_ctx"],
+      ["comment_thread", "INSERT", "comment_thread_i_audit_ctx"],
+      ["comment_thread", "UPDATE", "comment_thread_u_audit_ctx"],
+      ["comment_reply", "INSERT", "comment_reply_i_audit_ctx"],
+      ["openapi_source", "INSERT", "openapi_source_i_audit_ctx"],
+      ["openapi_source", "UPDATE", "openapi_source_u_audit_ctx"],
+      ["site_revision", "INSERT", "site_revision_i_audit_ctx"],
     ] as const) {
       const triggerStart = migration_025_up.indexOf(
         `CREATE TRIGGER ${triggerName}`,
@@ -402,7 +415,15 @@ describe("audit coverage registry", () => {
         `${
           table === "file"
             ? "file_schema"
-            : table === "documentation_asset"
+            : table === "documentation_asset" ||
+                table === "documentation_site" ||
+                table === "documentation_page" ||
+                table === "navigation_tree" ||
+                table === "routing_set" ||
+                table === "comment_thread" ||
+                table === "comment_reply" ||
+                table === "openapi_source" ||
+                table === "site_revision"
               ? "documentation_schema"
               : "publish_schema"
         }.${table}:${operation}`,

@@ -701,6 +701,52 @@ describe("DB-backed Documentation repository", () => {
       payload: { expected_page_version: 1, blocks: [] },
     });
     expect(independent.statusCode).toBe(200);
+    const auditActions = await pool.query<{ action: string }>(
+      `SELECT action FROM audit_schema.audit_event
+        WHERE root_resource_type='documentation_site'
+        ORDER BY occurred_at,id`,
+    );
+    expect(auditActions.rows.map(({ action }) => action)).toEqual(
+      expect.arrayContaining([
+        "documentation.site_created",
+        "documentation.page_created",
+        "documentation.page_path_changed",
+        "documentation.page_content_replaced",
+        "documentation.navigation_replaced",
+        "documentation.routing_replaced",
+        "documentation.openapi.inspected",
+        "documentation.openapi_inspection_applied",
+        "documentation.comment_thread_created",
+        "documentation.comment_reply_created",
+        "documentation.comment_resolved",
+        "documentation.comment_reopened",
+        "documentation.revision_created",
+        "documentation.publish_link.created",
+        "documentation.publish_link.manifest_updated",
+        "documentation.publish_link.entry_rolled_back",
+      ]),
+    );
+    const auditPayload = await pool.query<{ payload: string }>(
+      `SELECT
+         COALESCE((SELECT string_agg(to_jsonb(event)::text,' ')
+                     FROM audit_schema.audit_event event),'')
+         || ' ' ||
+         COALESCE((SELECT string_agg(to_jsonb(item)::text,' ')
+                     FROM audit_schema.audit_change_item item),'') payload`,
+    );
+    expect(auditPayload.rows[0]?.payload).not.toContain(
+      "Please clarify this installation step.",
+    );
+    expect(auditPayload.rows[0]?.payload).not.toContain(
+      "This belongs only to Publication 2.",
+    );
+    await expect(
+      pool.query(
+        `UPDATE documentation_schema.documentation_page
+            SET title=title WHERE id=$1`,
+        [page.json().page.id],
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
     await app.close();
   });
 });

@@ -14,17 +14,31 @@ const read_migrations = () => {
     .join("\n");
 };
 
-const without_publish_link_entry_delete_grant = (sql: string) =>
-  sql.replace(
-    "GRANT SELECT,INSERT,UPDATE,DELETE ON publish_schema.publish_link_entry TO __OSSIE_RUNTIME_DB_ROLE__;",
-    "",
+const approved_runtime_delete_grants = [
+  "GRANT SELECT,INSERT,UPDATE,DELETE ON publish_schema.publish_link_entry TO __OSSIE_RUNTIME_DB_ROLE__;",
+  `GRANT DELETE ON
+  documentation_schema.documentation_page_keyword,
+  documentation_schema.documentation_page_block,
+  documentation_schema.documentation_list_item,
+  documentation_schema.navigation_node,
+  documentation_schema.documentation_redirect_rule,
+  documentation_schema.openapi_operation,
+  documentation_schema.documentation_draft_search_document
+TO __OSSIE_RUNTIME_DB_ROLE__;`,
+] as const;
+
+const without_approved_runtime_delete_grants = (sql: string) =>
+  approved_runtime_delete_grants.reduce(
+    (remaining_sql, approved_grant) =>
+      remaining_sql.replace(approved_grant, ""),
+    sql,
   );
 
 const table_definition = (sql: string, table_name: string) => {
   const escaped_table_name = table_name.replaceAll(".", "\\.");
   const match = sql.match(
     new RegExp(
-      `CREATE TABLE IF NOT EXISTS ${escaped_table_name} \\(([\\s\\S]*?)\\n\\);`,
+      `CREATE TABLE (?:IF NOT EXISTS )?${escaped_table_name} \\(([\\s\\S]*?)\\n\\);`,
       "i",
     ),
   );
@@ -60,7 +74,8 @@ describe("foundation schema migrations", () => {
     expect(sql).toContain(
       "GRANT SELECT,INSERT,UPDATE,DELETE ON publish_schema.publish_link_entry TO __OSSIE_RUNTIME_DB_ROLE__;",
     );
-    expect(without_publish_link_entry_delete_grant(sql)).not.toMatch(
+    expect(sql).toContain(approved_runtime_delete_grants[1]);
+    expect(without_approved_runtime_delete_grants(sql)).not.toMatch(
       /GRANT[^;]*\bDELETE\b/iu,
     );
   });
@@ -93,7 +108,7 @@ describe("foundation schema migrations", () => {
     expect(migration).toContain(
       "DROP TRIGGER IF EXISTS project_insert_audit_context_guard",
     );
-    expect(without_publish_link_entry_delete_grant(sql)).not.toMatch(
+    expect(without_approved_runtime_delete_grants(sql)).not.toMatch(
       /GRANT[^;]*\bDELETE\b/iu,
     );
   });
@@ -499,7 +514,41 @@ describe("foundation schema migrations", () => {
     expect(up).toContain("site_publication_id VARCHAR(26) DEFAULT NULL");
     expect(up).toContain("prevent_immutable_documentation_mutation");
     expect(up).toContain("comments are intentionally excluded");
-    expect(up.toLowerCase()).not.toContain("jsonb");
+    for (const authoritative_table of [
+      "documentation_schema.documentation_site",
+      "documentation_schema.site_edition",
+      "documentation_schema.site_working_draft",
+      "documentation_schema.documentation_page",
+      "documentation_schema.documentation_page_block",
+      "documentation_schema.navigation_node",
+      "documentation_schema.page_slug_alias",
+      "documentation_schema.documentation_redirect_rule",
+      "documentation_schema.openapi_source",
+      "documentation_schema.openapi_operation",
+      "documentation_schema.comment_thread",
+      "documentation_schema.comment_reply",
+      "documentation_schema.comment_mention",
+      "documentation_schema.site_revision",
+      "documentation_schema.site_revision_page",
+      "publish_schema.site_publication",
+      "publish_schema.site_publication_search_document",
+    ]) {
+      expect(table_definition(up, authoritative_table).toLowerCase()).not.toContain(
+        "jsonb",
+      );
+    }
+    expect(
+      table_definition(
+        up,
+        "documentation_schema.openapi_inspection",
+      ),
+    ).toContain("parsed_document JSONB NOT NULL");
+    expect(
+      table_definition(
+        up,
+        "documentation_schema.documentation_command_receipt",
+      ),
+    ).toContain("response_body JSONB NOT NULL");
     expect(down).toContain(
       "Refusing to roll back populated Documentation first vertical slice",
     );
