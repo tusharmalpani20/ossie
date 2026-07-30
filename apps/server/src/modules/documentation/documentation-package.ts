@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { Readable } from "node:stream";
 import { deflateRawSync } from "node:zlib";
 import {
   DOCUMENTATION_PACKAGE_COMPRESSION_RATIO_MAX,
@@ -52,12 +53,16 @@ const compression_for = (bytes: Buffer) => {
     : ("DEFLATE" as const);
 };
 
-export const create_documentation_site_package = async (input: {
+type DocumentationSitePackageInput = {
   source: DocumentationPackageManifestV1["source"];
   site: DocumentationPortableSiteV1;
   profile?: DocumentationPackageManifestV1["profile"];
   entries: PackageEntryInput[];
-}) => {
+};
+
+const prepare_documentation_site_package = (
+  input: DocumentationSitePackageInput,
+) => {
   const profile = input.profile ?? "roundtrip";
   const site = validate_documentation_package_graph(input.site, { profile });
   const contentEntries: PackageEntryInput[] = [
@@ -125,15 +130,36 @@ export const create_documentation_site_package = async (input: {
       compressionOptions: { level: 9 },
       createFolders: false,
     });
-  const bytes = await zip.generateAsync({
-    type: "nodebuffer",
-    compression: "DEFLATE",
-    compressionOptions: { level: 9 },
-    platform: "UNIX",
-    streamFiles: false,
-    comment: "",
-  });
-  return { bytes, sha256: sha256(bytes), manifest };
+  return { zip, manifest };
+};
+
+export const stream_documentation_site_package = async (
+  input: DocumentationSitePackageInput,
+) => {
+  const { zip, manifest } = prepare_documentation_site_package(input);
+  return {
+    stream: new Readable().wrap(
+      zip.generateNodeStream({
+        compression: "DEFLATE",
+        compressionOptions: { level: 9 },
+        platform: "UNIX",
+        streamFiles: false,
+        comment: "",
+      }),
+    ),
+    manifest,
+  };
+};
+
+export const create_documentation_site_package = async (
+  input: DocumentationSitePackageInput,
+) => {
+  const generated = await stream_documentation_site_package(input);
+  const chunks: Buffer[] = [];
+  for await (const chunk of generated.stream)
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  const bytes = Buffer.concat(chunks);
+  return { bytes, sha256: sha256(bytes), manifest: generated.manifest };
 };
 
 export const inspect_documentation_site_package = async (filePath: string) => {

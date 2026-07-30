@@ -170,4 +170,30 @@ describe("local file storage provider", () => {
       },
     ]);
   });
+
+  it("stages generated Documentation exports under a dedicated transient key", async () => {
+    const provider = build_local_file_storage_provider({ root });
+    const stored = await provider.put_documentation_export({
+      organization_id: "org_1",
+      project_id: "project_1",
+      documentation_export_id: "export_1",
+      stream: Readable.from(Buffer.from("zip bytes")),
+      max_size_bytes: 100,
+    });
+
+    expect(stored).toMatchObject({
+      storage_key:
+        "organizations/org_1/projects/project_1/documentation-exports/export_1/package.zip",
+      size_bytes: 9,
+    });
+    const reopened = await provider.get(stored);
+    expect(reopened.size_bytes).toBe(9);
+    for await (const _chunk of reopened.stream) {
+      // Consume the staged export before deleting it.
+    }
+    await provider.purge_exact(stored);
+    await expect(provider.get(stored)).rejects.toBeInstanceOf(
+      FileBytesNotFoundError,
+    );
+  });
 });

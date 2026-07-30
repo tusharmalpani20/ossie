@@ -247,6 +247,38 @@ describe("Documentation routes", () => {
     });
   });
 
+  it("streams a prepared package and cleans its transient file after delivery", async () => {
+    const cleanup = vi.fn(async () => undefined);
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          export_site_package: vi.fn(async () => ({
+            stream: Readable.from(Buffer.from("zip bytes")),
+            size_bytes: 9,
+            filename: "docs-main-documentation-v1.zip",
+            mime_type: "application/zip",
+            cleanup,
+          })),
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/export/package.zip?source=draft&expected_site_version=1&expected_draft_version=2",
+      cookies: { ossie_session: "session" },
+    });
+    expect(response.statusCode).toBe(200);
+    await vi.waitFor(() => expect(cleanup).toHaveBeenCalledTimes(1));
+    await app.close();
+
+    expect(response.headers["content-length"]).toBe("9");
+    expect(response.body).toBe("zip bytes");
+  });
+
   it("applies an inspected import through the strict target contract", async () => {
     const apply_import = vi.fn(async () => ({
       id: "application",

@@ -444,9 +444,11 @@ export type DocumentationRouteDependencies = {
         version_slug: string;
       } & z.infer<typeof PackageExportQuerySchema>,
     ) => Promise<{
-      bytes: Buffer;
+      stream: NodeJS.ReadableStream;
+      size_bytes: number;
       filename: string;
       mime_type: string;
+      cleanup: () => Promise<void>;
     } | null>;
     export_page_markdown: (
       input: {
@@ -1321,18 +1323,48 @@ export const build_documentation_routes = (
 
     const send_private_download = (
       reply: FastifyReply,
-      download: { bytes: Buffer; filename: string; mime_type: string },
-    ) =>
-      reply
+      download:
+        | { bytes: Buffer; filename: string; mime_type: string }
+        | {
+            stream: NodeJS.ReadableStream;
+            size_bytes: number;
+            filename: string;
+            mime_type: string;
+            cleanup: () => Promise<void>;
+          },
+    ) => {
+      const bytes = "bytes" in download ? download.bytes : null;
+      const sizeBytes =
+        "bytes" in download ? download.bytes.length : download.size_bytes;
+      if ("cleanup" in download) {
+        let cleanupStarted = false;
+        const cleanup = () => {
+          if (cleanupStarted) return;
+          cleanupStarted = true;
+          void download.cleanup().catch(() => undefined);
+        };
+        reply.raw.once("finish", cleanup);
+        reply.raw.once("close", cleanup);
+        if ("stream" in download) {
+          download.stream.once("end", cleanup);
+          download.stream.once("close", cleanup);
+          download.stream.once("error", cleanup);
+        }
+      }
+      return reply
         .header("Content-Type", download.mime_type)
-        .header("Content-Length", String(download.bytes.length))
+        .header(
+          "Content-Length",
+          String(sizeBytes),
+        )
         .header(
           "Content-Disposition",
           `attachment; filename="${download.filename.replace(/["\\\r\n]/gu, "-")}"`,
         )
         .header("Cache-Control", "private, no-store")
         .header("X-Content-Type-Options", "nosniff")
-        .send(download.bytes);
+        .send(bytes ?? ("stream" in download ? download.stream : undefined));
+    };
 
     fastify.get(
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/export/package.zip",

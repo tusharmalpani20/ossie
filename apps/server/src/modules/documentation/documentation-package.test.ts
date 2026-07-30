@@ -9,6 +9,7 @@ import {
 } from "vitest";
 import {
   create_documentation_site_package,
+  stream_documentation_site_package,
   inspect_documentation_site_package,
 } from "./documentation-package";
 
@@ -121,6 +122,40 @@ describe("Documentation Site package", () => {
       pages: [page],
       counts: { pages: 1, blocks: 1 },
     });
+  });
+
+  it("streams the same deterministic V1 ZIP without materializing its output", async () => {
+    const input = {
+      source: {
+        kind: "working_draft" as const,
+        project_version_label: "v1",
+        revision_number: null,
+        publication_sequence: null,
+      },
+      site,
+      entries: [
+        {
+          path: "pages/page-0001.json",
+          role: "page_typed" as const,
+          mime_type: "application/json",
+          bytes: page,
+        },
+        {
+          path: "pages/page-0001.md",
+          role: "page_markdown" as const,
+          mime_type: "text/markdown",
+          bytes: "# Start\n\nWelcome\n",
+        },
+      ],
+    };
+    const materialized = await create_documentation_site_package(input);
+    const streamed = await stream_documentation_site_package(input);
+    const chunks: Buffer[] = [];
+    for await (const chunk of streamed.stream)
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+
+    expect(Buffer.concat(chunks).equals(materialized.bytes)).toBe(true);
+    expect(streamed.manifest).toEqual(materialized.manifest);
   });
 
   it("rejects a package whose declared entry digest does not match bytes", async () => {

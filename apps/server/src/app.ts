@@ -154,8 +154,8 @@ import { build_documentation_service } from "./modules/documentation/documentati
 import { parse_documentation_openapi } from "./modules/documentation/documentation-openapi.js";
 import { inspect_documentation_markdown } from "./modules/documentation/documentation-markdown.js";
 import {
-  create_documentation_site_package,
   inspect_documentation_site_package,
+  stream_documentation_site_package,
 } from "./modules/documentation/documentation-package.js";
 import { inspect_documentation_archive } from "./modules/documentation/documentation-archive.js";
 import {
@@ -1682,7 +1682,7 @@ export const build = (opts: BuildOptions = {}) => {
                   bytes,
                 });
               }
-              const result = await create_documentation_site_package({
+              const result = await stream_documentation_site_package({
                 source: {
                   kind:
                     exported.source === "draft"
@@ -1702,6 +1702,21 @@ export const build = (opts: BuildOptions = {}) => {
                 site: portable.site,
                 entries,
               });
+              const staged =
+                await default_capture_file_storage.put_documentation_export({
+                  organization_id: input.organization_id,
+                  project_id: input.project_id,
+                  documentation_export_id: ulid(),
+                  stream: result.stream,
+                  max_size_bytes: DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
+                });
+              let reopened;
+              try {
+                reopened = await default_capture_file_storage.get(staged);
+              } catch (error) {
+                await default_capture_file_storage.delete_best_effort(staged);
+                throw error;
+              }
               const safeName =
                 String(snapshot.site.name)
                   .normalize("NFKD")
@@ -1709,9 +1724,12 @@ export const build = (opts: BuildOptions = {}) => {
                   .replace(/^-+|-+$/gu, "")
                   .slice(0, 80) || "documentation";
               return {
-                bytes: result.bytes,
+                stream: reopened.stream,
+                size_bytes: reopened.size_bytes,
                 filename: `${safeName}-${input.version_slug}-documentation-v1.zip`,
                 mime_type: "application/zip",
+                cleanup: () =>
+                  default_capture_file_storage.purge_exact(staged),
               };
             },
             export_openapi_source: async (input) => {

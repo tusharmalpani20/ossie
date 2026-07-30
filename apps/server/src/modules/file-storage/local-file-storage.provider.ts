@@ -94,6 +94,57 @@ const resolve_storage_path = (root: string, storage_key: string) => {
 export const build_local_file_storage_provider = (input: { root: string }) => {
   const root = path.resolve(input.root);
 
+  const write_generated = async (input: {
+    storage_key: string;
+    stream: NodeJS.ReadableStream;
+    max_size_bytes?: number;
+  }): Promise<StoredFile> => {
+    const storage_path = resolve_storage_path(root, input.storage_key);
+    const partial_path = `${storage_path}.${randomUUID()}.part`;
+    const hash = createHash("sha256");
+    let size_bytes = 0;
+
+    try {
+      await mkdir(path.dirname(storage_path), { recursive: true });
+      const meter = new Transform({
+        transform(chunk: Buffer | string, _encoding, callback) {
+          const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+          hash.update(buffer);
+          size_bytes += buffer.length;
+          if (
+            input.max_size_bytes !== undefined &&
+            size_bytes > input.max_size_bytes
+          ) {
+            callback(new FileStorageUploadTooLargeError());
+            return;
+          }
+          callback(null, buffer);
+        },
+      });
+      await pipeline(
+        input.stream,
+        meter,
+        createWriteStream(partial_path, { flags: "wx", mode: 0o600 }),
+      );
+      await rename(partial_path, storage_path);
+      return {
+        storage_provider: "local",
+        storage_key: input.storage_key,
+        size_bytes,
+        checksum_sha256: hash.digest("hex"),
+      };
+    } catch (error) {
+      await unlink(partial_path).catch(() => undefined);
+      await unlink(storage_path).catch(() => undefined);
+      if (
+        error instanceof UnsafeStorageKeyError ||
+        error instanceof FileStorageUploadTooLargeError
+      )
+        throw error;
+      throw new FileStorageWriteFailedError();
+    }
+  };
+
   const put = async (
     file: {
       organization_id: string;
@@ -141,56 +192,33 @@ export const build_local_file_storage_provider = (input: { root: string }) => {
               : file.capture_session_id,
             `${file.file_id}.${extension}`,
           ].join("/");
-    const storage_path = resolve_storage_path(root, storage_key);
-    const partial_path = `${storage_path}.${randomUUID()}.part`;
-    const hash = createHash("sha256");
-    let size_bytes = 0;
-
-    try {
-      await mkdir(path.dirname(storage_path), { recursive: true });
-      const meter = new Transform({
-        transform(chunk: Buffer | string, _encoding, callback) {
-          const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-          hash.update(buffer);
-          size_bytes += buffer.length;
-          if (
-            file.max_size_bytes !== undefined &&
-            size_bytes > file.max_size_bytes
-          ) {
-            callback(new FileStorageUploadTooLargeError());
-            return;
-          }
-          callback(null, buffer);
-        },
-      });
-      await pipeline(
-        file.stream,
-        meter,
-        createWriteStream(partial_path, { flags: "wx", mode: 0o600 }),
-      );
-      await rename(partial_path, storage_path);
-
-      return {
-        storage_provider: "local",
-        storage_key,
-        size_bytes,
-        checksum_sha256: hash.digest("hex"),
-      };
-    } catch (error) {
-      await unlink(partial_path).catch(() => undefined);
-      await unlink(storage_path).catch(() => undefined);
-
-      if (error instanceof UnsafeStorageKeyError) {
-        throw error;
-      }
-
-      if (error instanceof FileStorageUploadTooLargeError) {
-        throw error;
-      }
-
-      throw new FileStorageWriteFailedError();
-    }
+    return write_generated({
+      storage_key,
+      stream: file.stream,
+      max_size_bytes: file.max_size_bytes,
+    });
   };
+
+  const put_documentation_export = (file: {
+    organization_id: string;
+    project_id: string;
+    documentation_export_id: string;
+    stream: NodeJS.ReadableStream;
+    max_size_bytes?: number;
+  }) =>
+    write_generated({
+      storage_key: [
+        "organizations",
+        file.organization_id,
+        "projects",
+        file.project_id,
+        "documentation-exports",
+        file.documentation_export_id,
+        "package.zip",
+      ].join("/"),
+      stream: file.stream,
+      max_size_bytes: file.max_size_bytes,
+    });
 
   const get = async (file: {
     storage_key: string;
@@ -272,6 +300,7 @@ export const build_local_file_storage_provider = (input: { root: string }) => {
 
   return {
     put,
+    put_documentation_export,
     get,
     resolve_internal_path: (file: { storage_key: string }) =>
       resolve_storage_path(root, file.storage_key),
