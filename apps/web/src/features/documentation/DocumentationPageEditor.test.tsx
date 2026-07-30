@@ -70,7 +70,15 @@ describe("DocumentationPageEditor", () => {
             title: "Home",
             canonical_path: "home",
             version: 1,
-            blocks: [],
+            blocks: [
+              {
+                id: "block",
+                kind: "paragraph",
+                position: 1,
+                expected_version: 1,
+                text: "Saved Viewer copy",
+              },
+            ],
           },
         })}
         savePage={vi.fn()}
@@ -80,6 +88,7 @@ describe("DocumentationPageEditor", () => {
     expect(
       screen.queryByRole("button", { name: "Save Page" }),
     ).not.toBeInTheDocument();
+    expect(screen.getByText("Saved Viewer copy")).toBeInTheDocument();
   });
 
   it("autosaves and preserves local work when the server reports a conflict", async () => {

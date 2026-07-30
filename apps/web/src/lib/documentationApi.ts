@@ -181,10 +181,55 @@ export type PublicDocumentationSnapshot = {
   };
 };
 
+type RawPublicDocumentationSnapshot = Omit<
+  PublicDocumentationSnapshot,
+  "site" | "revision" | "page"
+> & {
+  revision: {
+    site_name: string;
+    site_description: string | null;
+    primary_language: string;
+    home_page_id: string;
+  };
+  page?: PublicDocumentationSnapshot["page"];
+  aliases?: Array<{
+    former_path: string;
+    documentation_page_id: string;
+  }>;
+  redirects?: Array<{
+    source_path: string;
+    outcome: "redirect" | "gone";
+    target_page_id: string | null;
+  }>;
+};
+
+const normalizePublicDocumentationSnapshot = (
+  raw: RawPublicDocumentationSnapshot,
+  page: PublicDocumentationSnapshot["page"],
+): PublicDocumentationSnapshot => ({
+  ...raw,
+  site: {
+    name: raw.revision.site_name,
+    description: raw.revision.site_description,
+  },
+  revision: {
+    primary_language: raw.revision.primary_language,
+    home_page_id: raw.revision.home_page_id,
+  },
+  page,
+});
+
 const publicDocumentationPath = (slug: string, versionSlug?: string) =>
   versionSlug
     ? `/api/v1/public/publish-links/${encodeURIComponent(slug)}/versions/${encodeURIComponent(versionSlug)}/documentation`
     : `/api/v1/public/publish-links/${encodeURIComponent(slug)}/documentation`;
+
+export class DocumentationCanonicalRedirect extends Error {
+  constructor(readonly location: string) {
+    super("Documentation Page moved permanently");
+    this.name = "DocumentationCanonicalRedirect";
+  }
+}
 
 export const getPublicDocumentationPage = async (
   slug: string,
@@ -192,31 +237,84 @@ export const getPublicDocumentationPage = async (
   pagePath?: string,
 ): Promise<PublicDocumentationSnapshot> => {
   const root = publicDocumentationPath(slug, versionSlug);
+  if (pagePath?.startsWith("operations/")) {
+    const operationKey = pagePath.slice("operations/".length);
+    const raw = await fetch(`${baseUrl()}${root}`).then((response) =>
+      json<RawPublicDocumentationSnapshot>(response),
+    );
+    const { operation } = await fetch(
+      `${baseUrl()}${root}/operations/${encodeURIComponent(operationKey)}`,
+    ).then((response) =>
+      json<{
+        operation: {
+          destination_key: string;
+          method: string;
+          path: string;
+          summary: string | null;
+        };
+      }>(response),
+    );
+    return normalizePublicDocumentationSnapshot(raw, {
+      id: `operation:${operation.destination_key}`,
+      title: operation.summary ?? `${operation.method.toUpperCase()} ${operation.path}`,
+      description: `${operation.method.toUpperCase()} ${operation.path}`,
+      canonical_path: pagePath,
+      blocks: [
+        {
+          id: `operation:${operation.destination_key}:path`,
+          kind: "code",
+          position: 1,
+          expected_version: 1,
+          code: `${operation.method.toUpperCase()} ${operation.path}`,
+          language: "http",
+        },
+      ],
+    });
+  }
   if (pagePath) {
-    return fetch(
-      `${baseUrl()}${root}/pages/${pagePath
-        .split("/")
-        .map(encodeURIComponent)
-        .join("/")}`,
-      { redirect: "follow" },
-    ).then((response) => json<PublicDocumentationSnapshot>(response));
+    const raw = await fetch(`${baseUrl()}${root}`).then((response) =>
+      json<RawPublicDocumentationSnapshot>(response),
+    );
+    const page = raw.pages.find(
+      (candidate) => candidate.canonical_path === pagePath,
+    );
+    if (page)
+      return normalizePublicDocumentationSnapshot(raw, {
+        ...page,
+        description: page.description ?? null,
+        blocks: page.blocks ?? [],
+      });
+    const rule = raw.redirects?.find(
+      (candidate) => candidate.source_path === pagePath,
+    );
+    if (rule?.outcome === "gone")
+      throw new Error("Documentation Page is gone");
+    const alias = raw.aliases?.find(
+      (candidate) => candidate.former_path === pagePath,
+    );
+    const targetId = alias?.documentation_page_id ?? rule?.target_page_id;
+    const target = raw.pages.find((candidate) => candidate.id === targetId);
+    if (!target) throw new Error("Documentation Page was not found");
+    const browserBase = versionSlug
+      ? `/docs/${encodeURIComponent(slug)}/versions/${encodeURIComponent(versionSlug)}`
+      : `/docs/${encodeURIComponent(slug)}`;
+    throw new DocumentationCanonicalRedirect(
+      `${browserBase}/${target.canonical_path}`,
+    );
   }
   const snapshot = await fetch(`${baseUrl()}${root}`).then((response) =>
-    json<Omit<PublicDocumentationSnapshot, "page">>(response),
+    json<RawPublicDocumentationSnapshot>(response),
   );
   const page =
     snapshot.pages.find(
       (candidate) => candidate.id === snapshot.revision.home_page_id,
     ) ?? snapshot.pages[0];
   if (!page) throw new Error("Documentation Page was not found");
-  return {
-    ...snapshot,
-    page: {
-      ...page,
-      description: page.description ?? null,
-      blocks: page.blocks ?? [],
-    },
-  };
+  return normalizePublicDocumentationSnapshot(snapshot, {
+    ...page,
+    description: page.description ?? null,
+    blocks: page.blocks ?? [],
+  });
 };
 
 export const searchPublicDocumentation = (

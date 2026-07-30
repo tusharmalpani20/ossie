@@ -109,6 +109,42 @@ export const DocumentationPageEditor = ({
           />
         </>
       ) : null}
+      {!canWrite ? (
+        <section aria-label="Saved Page content">
+          {blocks.map((block) => {
+            if (block.kind === "paragraph") return <p key={block.id}>{block.text}</p>;
+            if (block.kind === "heading") {
+              const Heading = `h${block.level}` as "h2" | "h3" | "h4";
+              return <Heading key={block.id}>{block.text}</Heading>;
+            }
+            if (
+              block.kind === "ordered_list" ||
+              block.kind === "unordered_list"
+            ) {
+              const List = block.kind === "ordered_list" ? "ol" : "ul";
+              return (
+                <List key={block.id}>
+                  {block.items.map((item) => <li key={item.id}>{item.text}</li>)}
+                </List>
+              );
+            }
+            if (block.kind === "code")
+              return <pre key={block.id}><code>{block.code}</code></pre>;
+            if (block.kind === "link")
+              return block.url ? (
+                <p key={block.id}><a href={block.url}>{block.label}</a></p>
+              ) : (
+                <p key={block.id}>{block.label}</p>
+              );
+            if (block.kind === "divider") return <hr key={block.id} />;
+            if (block.kind === "api_reference")
+              return <p key={block.id}>API operation: {block.operation_key}</p>;
+            if (block.kind === "image")
+              return <p key={block.id}>{block.caption ?? block.alt_text}</p>;
+            return null;
+          })}
+        </section>
+      ) : null}
       <p role="status">
         {saveState === "unsaved"
           ? "Unsaved changes"

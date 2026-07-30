@@ -424,14 +424,100 @@ export const seed_documentation_browser_fixture = async () => {
       }),
       "publish exact Site Revision",
     );
+    const publicationOne = publication.publication as { id: string };
+    const link = publication.link as { id: string };
+    const entry = publication.entry as { id: string; version: number };
+    const latestHome = require_success(
+      await app.inject({
+        method: "GET",
+        url: `${siteRoot}/pages/${home.id}`,
+        cookies: cookie,
+      }),
+      "reload Home Page before Publication 2",
+    ).page as { version: number };
+    require_success(
+      await app.inject({
+        method: "PUT",
+        url: `${siteRoot}/pages/${home.id}/content`,
+        cookies: cookie,
+        payload: {
+          expected_page_version: latestHome.version,
+          blocks: [
+            {
+              id: "01K13200000000000000000002",
+              kind: "paragraph",
+              position: 1,
+              expected_version: 1,
+              text: "This draft belongs only to Publication 2.",
+            },
+          ],
+        },
+      }),
+      "mutate Working Draft after Publication 1",
+    );
+    const previewTwo = require_success(
+      await app.inject({
+        method: "GET",
+        url: `${siteRoot}/preview`,
+        cookies: cookie,
+      }),
+      "load second saved preview",
+    ).preview as { working_draft: { version: number } };
+    const revisionTwo = require_success(
+      await app.inject({
+        method: "POST",
+        url: `${siteRoot}/revisions`,
+        cookies: cookie,
+        headers: { "idempotency-key": "plan132-revision-2" },
+        payload: {
+          expected_draft_version: previewTwo.working_draft.version,
+        },
+      }),
+      "create Site Revision 2",
+    ).revision as { id: string };
+    const publicationTwoResult = require_success(
+      await app.inject({
+        method: "POST",
+        url: `${siteRoot}/publications`,
+        cookies: cookie,
+        headers: { "idempotency-key": "plan132-publication-2" },
+        payload: {
+          revision_id: revisionTwo.id,
+          link: {
+            mode: "existing",
+            link_id: link.id,
+            entry_id: entry.id,
+            expected_entry_version: entry.version,
+          },
+        },
+      }),
+      "switch link to Publication 2",
+    );
+    const publicationTwo = publicationTwoResult.publication as { id: string };
+    const switchedEntry = publicationTwoResult.entry as { version: number };
+    require_success(
+      await app.inject({
+        method: "POST",
+        url: `${siteRoot}/publish-links/${link.id}/entries/${entry.id}/rollback`,
+        cookies: cookie,
+        headers: { "idempotency-key": "plan132-rollback-1" },
+        payload: {
+          site_publication_id: publicationOne.id,
+          expected_entry_version: switchedEntry.version,
+        },
+      }),
+      "roll link back to Publication 1",
+    );
     return {
       ...base,
       site_id: site.id,
       page_ids: { home: home.id, reference: reference.id },
       revision_id: revision.id,
-      publication_id: (publication.publication as { id: string }).id,
-      link_id: (publication.link as { id: string }).id,
-      entry_id: (publication.entry as { id: string }).id,
+      revision_two_id: revisionTwo.id,
+      publication_id: publicationOne.id,
+      publication_two_id: publicationTwo.id,
+      link_id: link.id,
+      entry_id: entry.id,
       routes: {
         ...base.routes,
         editor: `${base.routes.list}/${site.id}`,

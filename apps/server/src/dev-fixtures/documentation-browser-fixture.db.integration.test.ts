@@ -41,8 +41,8 @@ describe("Documentation browser fixture database seed", () => {
       pages: 2,
       comments: 1,
       operations: 1,
-      revisions: 1,
-      publications: 1,
+      revisions: 2,
+      publications: 2,
       link: {
         slug: "plan132-public",
         selected_publication_id: fixture.publication_id,

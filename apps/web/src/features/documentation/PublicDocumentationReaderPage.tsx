@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DocumentationBlock } from "@repo/types";
 import {
+  DocumentationCanonicalRedirect,
   getPublicDocumentationPage,
   searchPublicDocumentation,
   type PublicDocumentationSnapshot,
@@ -111,8 +112,13 @@ export const PublicDocumentationReaderPage = ({
       .then((loaded) => {
         if (active) setSnapshot(loaded);
       })
-      .catch(() => {
-        if (active) setUnavailable(true);
+      .catch((error: unknown) => {
+        if (!active) return;
+        if (error instanceof DocumentationCanonicalRedirect) {
+          window.location.replace(error.location);
+          return;
+        }
+        setUnavailable(true);
       });
     return () => {
       active = false;
