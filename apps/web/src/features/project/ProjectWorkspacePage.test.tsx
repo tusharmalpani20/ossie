@@ -99,7 +99,10 @@ describe("ProjectWorkspacePage", () => {
     expect(screen.queryByText("version")).not.toBeInTheDocument();
     expect(screen.queryByText("#2563eb")).not.toBeInTheDocument();
     expect(screen.queryByText("folder")).not.toBeInTheDocument();
-    expect(screen.queryByText("Documentation")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Documentation" })).toHaveAttribute(
+      "href",
+      "/projects/project_1/versions/main/documentation",
+    );
     expect(screen.queryByText("Video")).not.toBeInTheDocument();
   });
 

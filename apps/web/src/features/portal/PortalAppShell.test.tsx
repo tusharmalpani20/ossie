@@ -36,7 +36,10 @@ describe("PortalAppShell", () => {
       "aria-current",
       "page",
     );
-    expect(screen.queryByText("Documentation")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Documentation" })).toHaveAttribute(
+      "href",
+      "/projects/project_1/versions/main/documentation",
+    );
     expect(screen.queryByText("Video")).not.toBeInTheDocument();
     expect(
       screen.getByRole("navigation", { name: "Breadcrumb" }),
