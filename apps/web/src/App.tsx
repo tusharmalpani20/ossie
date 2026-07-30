@@ -34,6 +34,7 @@ import { ProjectDocumentationSiteListPage } from "./features/documentation/Proje
 import { DocumentationPageEditor } from "./features/documentation/DocumentationPageEditor";
 import { DocumentationSiteEditorPage } from "./features/documentation/DocumentationSiteEditorPage";
 import { PublicDocumentationReaderPage } from "./features/documentation/PublicDocumentationReaderPage";
+import { DocumentationDraftPreviewPage } from "./features/documentation/DocumentationDraftPreviewPage";
 import { shouldRenderDesignSystemReview } from "./appRouteGuards";
 import {
   getProject,
@@ -618,6 +619,26 @@ export default function App() {
               selected.status === "active" &&
               project.access.role === "project_admin"
             }
+          />
+        )}
+      </ProjectVersionRouteBoundary>
+    );
+  }
+
+  if (route.type === "documentation_draft_preview") {
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+        activeSection="documentation"
+        currentLabel="Documentation preview"
+      >
+        {() => (
+          <DocumentationDraftPreviewPage
+            projectId={route.projectId}
+            versionSlug={route.versionSlug}
+            siteId={route.siteId}
           />
         )}
       </ProjectVersionRouteBoundary>
