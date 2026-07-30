@@ -212,14 +212,14 @@ describe("Documentation authoring API adapter", () => {
         source: "revision",
         revision_number: 3,
       }),
-    ).toContain("/openapi/export?source=revision&revision_number=3");
+    ).toContain("/openapi/source/export?source=revision&revision_number=3");
     expect(
       documentationFrozenOpenApiExportUrl("project", "main", "site", {
         source: "publication",
         site_publication_id: "publication/id",
       }),
     ).toContain(
-      "/openapi/export?source=publication&site_publication_id=publication%2Fid",
+      "/openapi/source/export?source=publication&site_publication_id=publication%2Fid",
     );
   });
 });

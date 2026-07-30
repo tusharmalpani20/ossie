@@ -200,7 +200,7 @@ export const documentationOpenApiExportUrl = (
   siteId: string,
   expectedSourceVersion: number,
 ) =>
-  `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/openapi/export?source=draft&expected_source_version=${expectedSourceVersion}`;
+  `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/openapi/source/export?source=draft&expected_source_version=${expectedSourceVersion}`;
 
 export const documentationFrozenOpenApiExportUrl = (
   projectId: string,
@@ -214,7 +214,7 @@ export const documentationFrozenOpenApiExportUrl = (
     selection.source === "revision"
       ? `source=revision&revision_number=${selection.revision_number}`
       : `source=publication&site_publication_id=${encodeURIComponent(selection.site_publication_id)}`;
-  return `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/openapi/export?${query}`;
+  return `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/openapi/source/export?${query}`;
 };
 
 const json = async <Result>(response: Response): Promise<Result> => {
