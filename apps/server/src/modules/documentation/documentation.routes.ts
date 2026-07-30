@@ -24,6 +24,11 @@ import {
   DocumentationSnippetContentRequestSchema,
   DocumentationSnippetLifecycleRequestSchema,
   DocumentationUpdateSnippetRequestSchema,
+  DocumentationCarryForwardRequestSchema,
+  DocumentationEditionLifecycleRequestSchema,
+  DocumentationEditionUpdateRequestSchema,
+  DocumentationPageLifecycleRequestSchema,
+  DocumentationOpenApiLifecycleRequestSchema,
   RevokePublishLinkRequestSchema,
 } from "@repo/types";
 import {
@@ -60,6 +65,12 @@ const IdempotencyKeySchema = z
 const SiteParamsSchema = ParamsSchema.extend({
   site_id: z.string().trim().min(1),
 }).strict();
+const StatusListQuerySchema = z
+  .object({ status: z.enum(["active", "archived", "all"]).default("active") })
+  .strict();
+const CarryForwardOptionsQuerySchema = z
+  .object({ source_project_version_id: z.string().trim().min(1) })
+  .strict();
 const ImportInspectionParamsSchema = ParamsSchema.extend({
   inspection_id: z.string().trim().min(1),
 }).strict();
@@ -194,7 +205,69 @@ export type DocumentationRouteDependencies = {
       project_id: string;
       project_version_id: string;
       actor_org_user_id: string;
+      status?: "active" | "archived" | "all";
     }) => Promise<unknown[]>;
+    list_carry_forward_options: (input: {
+      organization_id: string;
+      project_id: string;
+      source_project_version_id: string;
+      target_project_version_id: string;
+      actor_org_user_id: string;
+    }) => Promise<unknown>;
+    carry_forward: (input: {
+      organization_id: string;
+      project_id: string;
+      actor_org_user_id: string;
+      idempotency_key: string;
+      source_project_version_id: string;
+      target_project_version_id: string;
+      selections: z.infer<
+        typeof DocumentationCarryForwardRequestSchema
+      >["selections"];
+    }) => Promise<unknown>;
+    update_edition: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      data: z.infer<typeof DocumentationEditionUpdateRequestSchema>;
+    }) => Promise<unknown>;
+    transition_edition: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      expected_edition_version: number;
+      transition: "archive" | "restore";
+    }) => Promise<unknown>;
+    list_pages: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      status: "active" | "archived" | "all";
+    }) => Promise<unknown[]>;
+    transition_page: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      page_id: string;
+      data: z.infer<typeof DocumentationPageLifecycleRequestSchema>;
+    }) => Promise<unknown>;
+    transition_openapi_source: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      expected_source_version: number;
+      transition: "archive" | "restore";
+    }) => Promise<unknown>;
     create_site: (input: {
       organization_id: string;
       project_id: string;
@@ -351,6 +424,7 @@ export type DocumentationRouteDependencies = {
       actor_org_user_id: string;
       site_id: string;
       idempotency_key: string;
+      expected_edition_version: number;
       expected_draft_version: number;
     }) => Promise<unknown>;
     create_publication: (input: {
@@ -738,7 +812,10 @@ export const build_documentation_routes = (
         code === "documentation_import_conflict" ||
         code === "documentation_import_consumed" ||
         code === "documentation_import_not_ready" ||
-        code === "documentation_export_source_unavailable"
+        code === "documentation_export_source_unavailable" ||
+        code === "documentation_lifecycle_conflict" ||
+        code === "documentation_read_only" ||
+        code === "documentation_carry_forward_target_exists"
       )
         return reply
           .status(409)
@@ -761,7 +838,8 @@ export const build_documentation_routes = (
         code === "documentation_content_unsafe" ||
         code === "documentation_snippet_nested" ||
         code === "documentation_import_invalid" ||
-        code === "documentation_import_unsupported_version"
+        code === "documentation_import_unsupported_version" ||
+        code === "documentation_carry_forward_invalid"
       )
         return reply
           .status(400)
@@ -772,7 +850,8 @@ export const build_documentation_routes = (
         code === "documentation_snippet_limit_exceeded" ||
         code === "documentation_asset_limit_exceeded" ||
         code === "documentation_content_limit_exceeded" ||
-        code === "documentation_import_limit_exceeded"
+        code === "documentation_import_limit_exceeded" ||
+        code === "documentation_carry_forward_limit_exceeded"
       )
         return reply
           .status(413)
@@ -1128,10 +1207,201 @@ export const build_documentation_routes = (
       },
     );
     fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/carry-forward-options",
+      async (request, reply) => {
+        const params = ParamsSchema.safeParse(request.params);
+        const query = CarryForwardOptionsQuerySchema.safeParse(request.query);
+        if (!params.success || !query.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const auth = await dependencies.auth_service.get_current_auth_context(
+            request.cookies[web_session_cookie_name],
+          );
+          const target = await dependencies.resolve_project_version({
+            organization_id: auth.organization.id,
+            actor_org_user_id: auth.org_user.id,
+            project_id: params.data.project_id,
+            version_slug: params.data.version_slug,
+          });
+          const options =
+            await dependencies.documentation_service.list_carry_forward_options(
+              {
+                organization_id: auth.organization.id,
+                actor_org_user_id: auth.org_user.id,
+                project_id: params.data.project_id,
+                source_project_version_id:
+                  query.data.source_project_version_id,
+                target_project_version_id: target.id,
+              },
+            );
+          return reply.send(options);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/carry-forward",
+      async (request, reply) => {
+        const params = ParamsSchema.safeParse(request.params);
+        const body = DocumentationCarryForwardRequestSchema.safeParse(
+          request.body,
+        );
+        const key = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (!params.success || !body.success || !key.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const auth = await dependencies.auth_service.get_current_auth_context(
+            request.cookies[web_session_cookie_name],
+          );
+          const target = await dependencies.resolve_project_version({
+            organization_id: auth.organization.id,
+            actor_org_user_id: auth.org_user.id,
+            project_id: params.data.project_id,
+            version_slug: params.data.version_slug,
+          });
+          if (target.id !== body.data.target_project_version_id)
+            return reply
+              .status(409)
+              .send(
+                error_response(
+                  "documentation_carry_forward_scope_conflict",
+                  "The target Project Version does not match the route",
+                ),
+              );
+          const result = await dependencies.documentation_service.carry_forward(
+            {
+              organization_id: auth.organization.id,
+              actor_org_user_id: auth.org_user.id,
+              project_id: params.data.project_id,
+              idempotency_key: key.data,
+              ...body.data,
+            },
+          );
+          const command = unwrap_idempotent_result(result);
+          return reply.status(command.replayed ? 200 : 201).send(command.body);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.patch(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/edition",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const body = DocumentationEditionUpdateRequestSchema.safeParse(
+          request.body,
+        );
+        if (!params.success || !body.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const edition =
+            await dependencies.documentation_service.update_edition({
+              ...scope,
+              site_id: params.data.site_id,
+              data: body.data,
+            });
+          return reply.send({ edition });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.patch(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/edition/lifecycle",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const body = DocumentationEditionLifecycleRequestSchema.safeParse(
+          request.body,
+        );
+        if (!params.success || !body.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const edition =
+            await dependencies.documentation_service.transition_edition({
+              ...scope,
+              site_id: params.data.site_id,
+              ...body.data,
+            });
+          return reply.send({ edition });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.patch(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/source/lifecycle",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const body = DocumentationOpenApiLifecycleRequestSchema.safeParse(
+          request.body,
+        );
+        if (!params.success || !body.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const source =
+            await dependencies.documentation_service.transition_openapi_source({
+              ...scope,
+              site_id: params.data.site_id,
+              ...body.data,
+            });
+          return reply.send({ source });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.get(
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites",
       async (request, reply) => {
         const params = ParamsSchema.safeParse(request.params);
-        if (!params.success) {
+        const query = StatusListQuerySchema.safeParse(request.query);
+        if (!params.success || !query.success) {
           return reply
             .status(400)
             .send(
@@ -1157,6 +1427,7 @@ export const build_documentation_routes = (
               actor_org_user_id: auth.org_user.id,
               project_id: params.data.project_id,
               project_version_id: project_version.id,
+              status: query.data.status,
             });
           return reply.send({ documentation_sites });
         } catch {
@@ -1947,6 +2218,67 @@ export const build_documentation_routes = (
       },
     );
 
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const query = StatusListQuerySchema.safeParse(request.query);
+        if (!params.success || !query.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const pages = await dependencies.documentation_service.list_pages({
+            ...scope,
+            site_id: params.data.site_id,
+            status: query.data.status,
+          });
+          return reply.send({ pages });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.patch(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/lifecycle",
+      async (request, reply) => {
+        const params = PageParamsSchema.safeParse(request.params);
+        const body = DocumentationPageLifecycleRequestSchema.safeParse(
+          request.body,
+        );
+        if (!params.success || !body.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const page = await dependencies.documentation_service.transition_page(
+            {
+              ...scope,
+              site_id: params.data.site_id,
+              page_id: params.data.page_id,
+              data: body.data,
+            },
+          );
+          return reply.send({ page });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
     fastify.post(
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages",
       async (request, reply) => {
@@ -2428,6 +2760,7 @@ export const build_documentation_routes = (
               ...scope,
               site_id: params.data.site_id,
               idempotency_key: key.data,
+              expected_edition_version: body.data.expected_edition_version,
               expected_draft_version: body.data.expected_draft_version,
             });
           const command = unwrap_idempotent_result(result);

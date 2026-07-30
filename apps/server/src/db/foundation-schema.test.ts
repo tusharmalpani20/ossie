@@ -681,4 +681,45 @@ describe("foundation schema migrations", () => {
       "Refusing to roll back populated Documentation portability",
     );
   });
+
+  it("adds Edition-owned lifecycle and immutable Carry-Forward provenance", () => {
+    const migration = readFileSync(
+      new URL(
+        "./migrations/028_documentation_carry_forward_multi_site_lifecycle.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const up = migration.split("-- DOWN:")[0] ?? migration;
+    const down = migration.split("-- DOWN:")[1] ?? "";
+    const operation = table_definition(
+      up,
+      "documentation_schema.documentation_carry_forward",
+    );
+    const item = table_definition(
+      up,
+      "documentation_schema.documentation_carry_forward_item",
+    );
+
+    expect(up).toContain("ADD COLUMN title VARCHAR(200)");
+    expect(up).toContain("ADD COLUMN status VARCHAR(20)");
+    expect(up).toContain("creation_trigger");
+    expect(up).toContain("snapshot_schema_version");
+    expect(up).toContain(
+      "UNIQUE (site_edition_id, snapshot_schema_version, content_digest)",
+    );
+    expect(operation).toContain("source_project_version_id VARCHAR(26)");
+    expect(operation).toContain("target_project_version_id VARCHAR(26)");
+    expect(operation).toContain("selection_count INTEGER NOT NULL");
+    expect(item).toContain("source_site_revision_id VARCHAR(26)");
+    expect(item).toContain("target_site_edition_id VARCHAR(26)");
+    expect(up).toContain("documentation_carry_forward_immutable");
+    expect(up).toContain("documentation_carry_forward_no_truncate");
+    expect(up).toContain("documentation_carry_forward_item_immutable");
+    expect(up).toContain("documentation_carry_forward_item_no_truncate");
+    expect(up).toContain("documentation.carry_forward");
+    expect(down).toContain(
+      "Refusing to roll back Documentation Carry-Forward and lifecycle",
+    );
+  });
 });

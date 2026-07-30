@@ -114,6 +114,20 @@ const U = {
       "INSERT",
       "documentation_site",
     ),
+  documentation_edition_update: () =>
+    write("documentation_schema.site_edition", "UPDATE", "site_edition"),
+  documentation_carry_forward_insert: () =>
+    write(
+      "documentation_schema.documentation_carry_forward",
+      "INSERT",
+      "documentation_carry_forward",
+    ),
+  documentation_carry_forward_item_insert: () =>
+    write(
+      "documentation_schema.documentation_carry_forward_item",
+      "INSERT",
+      "documentation_carry_forward_item",
+    ),
   documentation_page_insert: () =>
     write(
       "documentation_schema.documentation_page",
@@ -1105,6 +1119,46 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [U.documentation_site_insert(), U.documentation_page_insert()],
   ),
   command(
+    "documentation.carry_forward",
+    "documentation.editions_carried_forward",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/carry-forward",
+    ],
+    [
+      U.documentation_carry_forward_insert(),
+      U.documentation_carry_forward_item_insert(),
+      U.documentation_revision_insert(),
+      U.documentation_page_insert(),
+      U.documentation_snippet_insert(),
+      U.documentation_asset_insert(),
+      U.documentation_openapi_insert(),
+    ],
+  ),
+  command(
+    "documentation.edition.update",
+    "documentation.edition_updated",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/edition",
+    ],
+    [U.documentation_edition_update()],
+  ),
+  command(
+    "documentation.edition.archive",
+    "documentation.edition.archived",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/edition/lifecycle",
+    ],
+    [U.documentation_edition_update()],
+  ),
+  command(
+    "documentation.edition.restore",
+    "documentation.edition.restored",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/edition/lifecycle",
+    ],
+    [U.documentation_edition_update()],
+  ),
+  command(
     "documentation.page.create",
     "documentation.page_created",
     [
@@ -1133,6 +1187,26 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "documentation.page_content_replaced",
     [
       "PUT /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/content",
+    ],
+    [U.documentation_page_update()],
+  ),
+  command(
+    "documentation.page.archive",
+    "documentation.page.archived",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/lifecycle",
+    ],
+    [
+      U.documentation_page_update(),
+      U.documentation_navigation_update(),
+      U.documentation_routing_update(),
+    ],
+  ),
+  command(
+    "documentation.page.restore",
+    "documentation.page.restored",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/lifecycle",
     ],
     [U.documentation_page_update()],
   ),
@@ -1191,6 +1265,22 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
       "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/sources",
     ],
     [U.documentation_openapi_insert(), U.documentation_openapi_update()],
+  ),
+  command(
+    "documentation.openapi.archive",
+    "documentation.openapi.archived",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/source/lifecycle",
+    ],
+    [U.documentation_openapi_update()],
+  ),
+  command(
+    "documentation.openapi.restore",
+    "documentation.openapi.restored",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/source/lifecycle",
+    ],
+    [U.documentation_openapi_update()],
   ),
   command(
     "documentation.revision.create",

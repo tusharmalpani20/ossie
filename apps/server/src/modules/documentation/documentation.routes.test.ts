@@ -72,6 +72,13 @@ const documentation_service_stubs = (
   update_asset: vi.fn(),
   transition_asset: vi.fn(),
   list_artifact_publications: vi.fn(async () => []),
+  list_carry_forward_options: vi.fn(async () => ({ sites: [] })),
+  carry_forward: vi.fn(),
+  update_edition: vi.fn(),
+  transition_edition: vi.fn(),
+  list_pages: vi.fn(async () => []),
+  transition_page: vi.fn(),
+  transition_openapi_source: vi.fn(),
   ...overrides,
 });
 
@@ -106,6 +113,108 @@ const build_test_app = async (overrides?: {
 };
 
 describe("Documentation routes", () => {
+  it("carries selected Sites into the route target Version and returns replay status", async () => {
+    const targetVersionId = "01J00000000000000000000002";
+    const carry_forward = vi.fn(async () => ({
+      operation: {
+        id: "01J00000000000000000000004",
+        source_project_version_id: "01J00000000000000000000001",
+        target_project_version_id: targetVersionId,
+        selection_count: 1,
+        items: [],
+      },
+      idempotent_replay: false,
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({ carry_forward }),
+        resolve_project_version: vi.fn(async () => ({
+          id: targetVersionId,
+        })),
+      }),
+    );
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/carry-forward",
+      cookies: { ossie_session: "session" },
+      headers: { "idempotency-key": "carry-1" },
+      payload: {
+        source_project_version_id: "01J00000000000000000000001",
+        target_project_version_id: targetVersionId,
+        selections: [
+          {
+            site_id: "01J00000000000000000000003",
+            expected_source_edition_version: 2,
+            expected_source_draft_version: 4,
+          },
+        ],
+      },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(201);
+    expect(carry_forward).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project_id: "project",
+        target_project_version_id: targetVersionId,
+        idempotency_key: "carry-1",
+      }),
+    );
+  });
+
+  it("validates resource-specific Edition and OpenAPI lifecycle bodies", async () => {
+    const transition_edition = vi.fn(async () => ({
+      status: "archived",
+      version: 3,
+    }));
+    const transition_openapi_source = vi.fn(async () => ({
+      status: "archived",
+      version: 5,
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          transition_edition,
+          transition_openapi_source,
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const edition = await app.inject({
+      method: "PATCH",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/edition/lifecycle",
+      cookies: { ossie_session: "session" },
+      payload: {
+        expected_edition_version: 2,
+        transition: "archive",
+      },
+    });
+    const openapi = await app.inject({
+      method: "PATCH",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/openapi/source/lifecycle",
+      cookies: { ossie_session: "session" },
+      payload: {
+        expected_source_version: 4,
+        transition: "archive",
+      },
+    });
+    await app.close();
+
+    expect(edition.statusCode).toBe(200);
+    expect(openapi.statusCode).toBe(200);
+    expect(transition_edition).toHaveBeenCalledWith(
+      expect.objectContaining({ expected_edition_version: 2 }),
+    );
+    expect(transition_openapi_source).toHaveBeenCalledWith(
+      expect.objectContaining({ expected_source_version: 4 }),
+    );
+  });
   it("authorizes before streaming one portable Markdown inspection", async () => {
     const order: string[] = [];
     const authorize_portability = vi.fn(async () => {

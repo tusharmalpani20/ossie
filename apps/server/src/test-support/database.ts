@@ -127,6 +127,8 @@ export const reset_test_database = async () =>
         publish_schema.publish_link_entry,
         publish_schema.publish_link,
         publish_schema.published_artifact,
+        documentation_schema.documentation_carry_forward_item,
+        documentation_schema.documentation_carry_forward,
         documentation_schema.site_revision_artifact_reference,
         documentation_schema.site_revision_snippet_tab_item,
         documentation_schema.site_revision_snippet_table_cell,

@@ -21,7 +21,8 @@ export type ProjectCapability =
   | "documentation.write"
   | "documentation.site.manage"
   | "documentation.comment"
-  | "documentation.checkpoint";
+  | "documentation.checkpoint"
+  | "documentation.carry_forward";
 
 const capabilities: Record<ProjectRole, ReadonlySet<ProjectCapability>> = {
   project_admin: new Set<ProjectCapability>([
@@ -46,6 +47,7 @@ const capabilities: Record<ProjectRole, ReadonlySet<ProjectCapability>> = {
     "documentation.site.manage",
     "documentation.comment",
     "documentation.checkpoint",
+    "documentation.carry_forward",
   ]),
   editor: new Set<ProjectCapability>([
     "project.read",
@@ -63,6 +65,7 @@ const capabilities: Record<ProjectRole, ReadonlySet<ProjectCapability>> = {
     "documentation.write",
     "documentation.comment",
     "documentation.checkpoint",
+    "documentation.carry_forward",
   ]),
   viewer: new Set<ProjectCapability>([
     "project.read",
@@ -90,6 +93,7 @@ export const is_project_content_mutation = (capability: ProjectCapability) =>
   capability === "documentation.site.manage" ||
   capability === "documentation.comment" ||
   capability === "documentation.checkpoint" ||
+  capability === "documentation.carry_forward" ||
   capability === "project_version.manage";
 
 export const project_route_capability = (
@@ -101,6 +105,8 @@ export const project_route_capability = (
   if (route_template === "/api/v1/projects/:id")
     return read ? "project.read" : "project.settings.manage";
   if (route_template.includes("/documentation-sites")) {
+    if (route_template.endsWith("/documentation-sites/carry-forward"))
+      return read ? "documentation.read" : "documentation.carry_forward";
     if (route_template.includes("/publications"))
       return read ? "publication.read" : "publication.create";
     if (route_template.includes("/publish-links"))

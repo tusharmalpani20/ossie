@@ -28,6 +28,7 @@ const capabilities: ProjectCapability[] = [
   "documentation.site.manage",
   "documentation.comment",
   "documentation.checkpoint",
+  "documentation.carry_forward",
 ];
 
 describe("project access policy", () => {
@@ -56,6 +57,7 @@ describe("project access policy", () => {
       "documentation.write",
       "documentation.comment",
       "documentation.checkpoint",
+      "documentation.carry_forward",
     ] as const)
       expect(project_role_has_capability("editor", capability)).toBe(true);
     for (const capability of [
@@ -150,6 +152,11 @@ describe("project access policy", () => {
       "POST",
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions",
       "documentation.checkpoint",
+    ],
+    [
+      "POST",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/carry-forward",
+      "documentation.carry_forward",
     ],
     [
       "POST",

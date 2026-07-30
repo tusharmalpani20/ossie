@@ -175,6 +175,7 @@ import {
 import {
   canonicalize_documentation_package_json,
   export_documentation_page_markdown,
+  normalize_primary_language,
   normalize_documentation_blocks,
   validate_documentation_snippet_blocks,
 } from "@repo/documentation-domain";
@@ -874,6 +875,133 @@ export const build = (opts: BuildOptions = {}) => {
                 capability: "documentation.read",
               });
               return repository.list_sites(input);
+            },
+            list_carry_forward_options: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.carry_forward",
+              });
+              return repository.list_carry_forward_options(input);
+            },
+            carry_forward: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.carry_forward",
+              });
+              const verified_asset_digests = Object.fromEntries(
+                await Promise.all(
+                  input.selections.map(async (selection) => {
+                    const source = await repository.get_preview({
+                      organization_id: input.organization_id,
+                      project_id: input.project_id,
+                      project_version_id: input.source_project_version_id,
+                      site_id: selection.site_id,
+                    });
+                    if (!source)
+                      throw Object.assign(
+                        new Error("Source Documentation Site was not found"),
+                        { code: "documentation_carry_forward_invalid" },
+                      );
+                    const snapshot = source as {
+                      pages: Array<{ blocks: Array<Record<string, unknown>> }>;
+                      snippets: Array<{
+                        blocks: Array<Record<string, unknown>>;
+                      }>;
+                    };
+                    return [
+                      selection.site_id,
+                      await validate_referenced_asset_bytes(
+                        {
+                          organization_id: input.organization_id,
+                          project_id: input.project_id,
+                          project_version_id:
+                            input.source_project_version_id,
+                          site_id: selection.site_id,
+                        },
+                        [
+                          ...snapshot.pages.flatMap(({ blocks }) => blocks),
+                          ...snapshot.snippets.flatMap(({ blocks }) => blocks),
+                        ],
+                      ),
+                    ] as const;
+                  }),
+                ),
+              );
+              return repository.carry_forward({
+                ...input,
+                verified_asset_digests,
+              });
+            },
+            update_edition: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.site.manage",
+              });
+              return repository.update_edition({
+                ...input,
+                expected_edition_version: input.data.expected_edition_version,
+                title: input.data.title.trim(),
+                description: input.data.description?.trim() || null,
+                primary_language: normalize_primary_language(
+                  input.data.primary_language,
+                ),
+              });
+            },
+            transition_edition: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.site.manage",
+              });
+              return repository.transition_edition(input);
+            },
+            list_pages: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.list_pages(input);
+            },
+            transition_page: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.transition_page(input);
+            },
+            transition_openapi_source: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.transition_openapi_source(input);
             },
             create_site: async (input) => {
               await project_access_service.authorize({

@@ -108,6 +108,163 @@ describe("DB-backed Documentation repository", () => {
     });
   });
 
+  it("carries an exact checkpoint into a missing target Edition and replays immutably", async () => {
+    const scope = await establish_project();
+    const app = build({ logger: false });
+    const targetResponse = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions`,
+      cookies: { ossie_session: scope.session_token },
+      payload: { name: "Next" },
+    });
+    expect(targetResponse.statusCode).toBe(201);
+    const targetVersionId = targetResponse.json().project_version.id as string;
+    await app.close();
+    const repository = build_documentation_repository(pool);
+    const source = (await repository.create_site({
+      ...scope,
+      idempotency_key: "carry-source",
+      name: "Carry docs",
+      description: "Exact source",
+      primary_language: "en-US",
+      initial_home_page: { title: "Home", path: "home" },
+    })) as unknown as {
+      site: { id: string };
+      edition: { version: number };
+      working_draft: { version: number };
+    };
+    const input = {
+      organization_id: scope.organization_id,
+      project_id: scope.project_id,
+      actor_org_user_id: scope.actor_org_user_id,
+      idempotency_key: "carry-operation-1",
+      source_project_version_id: scope.project_version_id,
+      target_project_version_id: targetVersionId,
+      selections: [
+        {
+          site_id: source.site.id,
+          expected_source_edition_version: source.edition.version,
+          expected_source_draft_version: source.working_draft.version,
+        },
+      ],
+    };
+
+    const carried = await repository.carry_forward(input);
+    const replay = await repository.carry_forward(input);
+    expect(carried).toMatchObject({
+      operation: {
+        selection_count: 1,
+        idempotent_replay: false,
+        items: [{ site_id: source.site.id, source_revision_reused: false }],
+      },
+    });
+    expect(replay).toMatchObject({
+      operation: {
+        id: carried.operation.id,
+        idempotent_replay: true,
+        items: [{ source_revision_reused: true }],
+      },
+      idempotent_replay: true,
+    });
+    const target = await repository.list_sites({
+      organization_id: scope.organization_id,
+      project_id: scope.project_id,
+      project_version_id: targetVersionId,
+    });
+    expect(target).toEqual([
+      expect.objectContaining({ id: source.site.id, name: "Carry docs" }),
+    ]);
+    const counts = await pool.query<{
+      operations: string;
+      items: string;
+      target_pages: string;
+      source_revisions: string;
+    }>(
+      `SELECT
+        (SELECT count(*) FROM documentation_schema.documentation_carry_forward)
+          operations,
+        (SELECT count(*) FROM documentation_schema.documentation_carry_forward_item)
+          items,
+        (SELECT count(*) FROM documentation_schema.documentation_page page
+          JOIN documentation_schema.site_edition edition
+            ON edition.id=page.site_edition_id
+          WHERE edition.project_version_id=$1) target_pages,
+        (SELECT count(*) FROM documentation_schema.site_revision revision
+          WHERE revision.project_version_id=$2
+            AND revision.creation_trigger='carry_forward') source_revisions`,
+      [targetVersionId, scope.project_version_id],
+    );
+    expect(counts.rows[0]).toEqual({
+      operations: "1",
+      items: "1",
+      target_pages: "1",
+      source_revisions: "1",
+    });
+  });
+
+  it("makes Edition metadata version-scoped and enforces archive/restore concurrency", async () => {
+    const scope = await establish_project();
+    const repository = build_documentation_repository(pool);
+    const created = (await repository.create_site({
+      ...scope,
+      idempotency_key: "edition-lifecycle",
+      name: "Lifecycle docs",
+      description: null,
+      primary_language: "en-US",
+    })) as unknown as {
+      site: { id: string };
+      edition: { version: number };
+    };
+    const updated = await repository.update_edition({
+      ...scope,
+      site_id: created.site.id,
+      expected_edition_version: created.edition.version,
+      title: "Version-specific title",
+      description: "Version-specific description",
+      primary_language: "en-GB",
+    });
+    const archived = await repository.transition_edition({
+      ...scope,
+      site_id: created.site.id,
+      expected_edition_version: updated.version,
+      transition: "archive",
+    });
+    await expect(
+      repository.update_edition({
+        ...scope,
+        site_id: created.site.id,
+        expected_edition_version: archived.version,
+        title: "Blocked",
+        description: null,
+        primary_language: "en-US",
+      }),
+    ).rejects.toMatchObject({ code: "documentation_read_only" });
+    const restored = await repository.transition_edition({
+      ...scope,
+      site_id: created.site.id,
+      expected_edition_version: archived.version,
+      transition: "restore",
+    });
+    expect(restored).toMatchObject({
+      title: "Version-specific title",
+      status: "active",
+      version: 4,
+    });
+    const listed = await repository.list_sites({
+      organization_id: scope.organization_id,
+      project_id: scope.project_id,
+      project_version_id: scope.project_version_id,
+      status: "all",
+    });
+    expect(listed).toEqual([
+      expect.objectContaining({
+        name: "Version-specific title",
+        description: "Version-specific description",
+        primary_language: "en-GB",
+      }),
+    ]);
+  });
+
   it("binds import inspections to their creator and clears protected source state on cancellation", async () => {
     const scope = await establish_project();
     const repository = build_documentation_repository(pool);
@@ -890,6 +1047,7 @@ describe("DB-backed Documentation repository", () => {
       cookies: { ossie_session: scope.session_token },
       headers: { "idempotency-key": "revision-route-1" },
       payload: {
+        expected_edition_version: preview.json().preview.edition.version,
         expected_draft_version: preview.json().preview.working_draft.version,
       },
     });
@@ -1098,6 +1256,7 @@ describe("DB-backed Documentation repository", () => {
       cookies: { ossie_session: scope.session_token },
       headers: { "idempotency-key": "revision-route-2" },
       payload: {
+        expected_edition_version: preview2.json().preview.edition.version,
         expected_draft_version: preview2.json().preview.working_draft.version,
       },
     });
