@@ -8,6 +8,7 @@ import {
   type DocumentationOpenApiInspection,
   type DocumentationOpenApiOperation,
   documentationOpenApiExportUrl,
+  transitionDocumentationOpenApi,
 } from "../../lib/documentationApi";
 
 type Props = {
@@ -37,6 +38,9 @@ export const DocumentationOpenApiPanel = ({
   >([]);
   const [status, setStatus] = useState("");
   const [sourceVersion, setSourceVersion] = useState<number | null>(null);
+  const [sourceStatus, setSourceStatus] = useState<"active" | "archived">(
+    "active",
+  );
 
   useEffect(() => {
     let active = true;
@@ -44,6 +48,7 @@ export const DocumentationOpenApiPanel = ({
       .then((result) => {
         if (!active || !result) return;
         setSourceVersion(result.source.version);
+        setSourceStatus(result.source.status ?? "active");
         setOperations(result.operations);
       })
       .catch(() => undefined);
@@ -142,6 +147,36 @@ export const DocumentationOpenApiPanel = ({
             ))}
           </ul>
         </>
+      ) : null}
+      {sourceVersion && canWrite ? (
+        <Button
+          disabled={Boolean(status.match(/Archiving|Restoring/u))}
+          onClick={() => {
+            const next = sourceStatus === "active" ? "archive" : "restore";
+            setStatus(`${next === "archive" ? "Archiving" : "Restoring"} OpenAPI source…`);
+            void transitionDocumentationOpenApi(
+              projectId,
+              versionSlug,
+              siteId,
+              sourceVersion,
+              next,
+            )
+              .then(({ source }) => {
+                setSourceVersion(source.version);
+                setSourceStatus(source.status);
+                setStatus(
+                  `OpenAPI source ${next === "archive" ? "archived" : "restored"}.`,
+                );
+              })
+              .catch(() =>
+                setStatus("OpenAPI lifecycle changed elsewhere. Reload and retry."),
+              );
+          }}
+        >
+          {sourceStatus === "active"
+            ? "Archive OpenAPI source"
+            : "Restore OpenAPI source"}
+        </Button>
       ) : null}
       <p role="status">{status}</p>
     </section>

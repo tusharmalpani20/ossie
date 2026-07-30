@@ -18,6 +18,10 @@ import { DocumentationPublishingPanel } from "./DocumentationPublishingPanel";
 import { DocumentationSnippetPanel } from "./DocumentationSnippetPanel";
 import { DocumentationStructurePanel } from "./DocumentationStructurePanel";
 import { DocumentationPortabilityPanel } from "./DocumentationPortabilityPanel";
+import {
+  DocumentationLifecycleControls,
+  DocumentationPageLifecycleControls,
+} from "./DocumentationLifecycleControls";
 
 type Props = {
   projectId: string;
@@ -25,6 +29,7 @@ type Props = {
   siteId: string;
   canWrite: boolean;
   canPublish: boolean;
+  canManageEdition?: boolean;
   loadPreview?: typeof getDocumentationPreview;
   createRevision?: typeof createDocumentationRevision;
 };
@@ -35,6 +40,7 @@ export const DocumentationSiteEditorPage = ({
   siteId,
   canWrite,
   canPublish,
+  canManageEdition = false,
   loadPreview = getDocumentationPreview,
   createRevision = createDocumentationRevision,
 }: Props) => {
@@ -96,6 +102,7 @@ export const DocumentationSiteEditorPage = ({
         projectId,
         versionSlug,
         siteId,
+        preview.edition?.version ?? 1,
         preview.working_draft.version,
       );
       setCheckpointCount((current) => current + 1);
@@ -132,6 +139,29 @@ export const DocumentationSiteEditorPage = ({
           <p>No Pages yet.</p>
         )}
       </nav>
+      <DocumentationLifecycleControls
+        projectId={projectId}
+        versionSlug={versionSlug}
+        siteId={siteId}
+        title={preview.edition?.title ?? preview.site.name}
+        status={preview.edition?.status ?? "active"}
+        effectiveStatus={preview.edition?.status ?? "active"}
+        readOnlyReason={
+          preview.edition?.status === "archived"
+            ? "This Documentation Site Edition is archived."
+            : null
+        }
+        editionVersion={preview.edition?.version ?? 1}
+        canManage={canManageEdition}
+        onChanged={() => setPreviewRefreshCount((current) => current + 1)}
+      />
+      <DocumentationPageLifecycleControls
+        projectId={projectId}
+        versionSlug={versionSlug}
+        siteId={siteId}
+        preview={preview}
+        canWrite={canWrite}
+      />
       <DocumentationStructurePanel
         projectId={projectId}
         versionSlug={versionSlug}

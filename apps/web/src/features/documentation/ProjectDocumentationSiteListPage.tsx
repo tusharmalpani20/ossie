@@ -14,6 +14,7 @@ type Props = {
   projectId: string;
   versionSlug: string;
   canManage: boolean;
+  canCarry?: boolean;
   importUnavailableReason?: string;
   loadSites?: typeof listDocumentationSites;
   createSite?: typeof createDocumentationSite;
@@ -23,6 +24,7 @@ export const ProjectDocumentationSiteListPage = ({
   projectId,
   versionSlug,
   canManage,
+  canCarry = false,
   importUnavailableReason,
   loadSites = listDocumentationSites,
   createSite = createDocumentationSite,
@@ -67,6 +69,9 @@ export const ProjectDocumentationSiteListPage = ({
         primary_language: created.edition.primary_language,
         version: 1,
         edition_version: 1,
+        status: "active",
+        effective_status: "active",
+        read_only_reason: null,
         updated_at: new Date().toISOString(),
       },
     ]);
@@ -89,6 +94,13 @@ export const ProjectDocumentationSiteListPage = ({
           <div>
             <Button onClick={() => setCreating(true)}>Create Site</Button>
           </div>
+        ) : null}
+        {canCarry ? (
+          <a
+            href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/carry-forward`}
+          >
+            Carry Forward Sites
+          </a>
         ) : null}
       </header>
       {creating ? (
@@ -125,6 +137,7 @@ export const ProjectDocumentationSiteListPage = ({
               >
                 <strong>{site.name}</strong>
                 <span>{site.primary_language}</span>
+                {site.status === "archived" ? <span>Archived</span> : null}
               </a>
             </li>
           ))}

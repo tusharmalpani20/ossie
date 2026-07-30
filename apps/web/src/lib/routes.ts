@@ -104,6 +104,11 @@ export type PortalRoute =
       versionSlug: string;
     }
   | {
+      type: "documentation_carry_forward";
+      projectId: string;
+      versionSlug: string;
+    }
+  | {
       type: "documentation_site_editor";
       projectId: string;
       versionSlug: string;
@@ -278,6 +283,12 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
     if (rest[0] === "documentation") {
       if (rest.length === 1)
         return { type: "documentation_site_list", projectId, versionSlug };
+      if (rest.length === 2 && rest[1] === "carry-forward")
+        return {
+          type: "documentation_carry_forward",
+          projectId,
+          versionSlug,
+        };
       if (rest.length === 2 && rest[1])
         return {
           type: "documentation_site_editor",

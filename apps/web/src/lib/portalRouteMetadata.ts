@@ -86,6 +86,11 @@ const metadataByType: Partial<
     usesPortalShell: true,
     label: "Documentation",
   },
+  documentation_carry_forward: {
+    section: "documentation",
+    usesPortalShell: true,
+    label: "Carry Forward Documentation",
+  },
   documentation_site_editor: {
     section: "documentation",
     usesPortalShell: true,
@@ -145,6 +150,7 @@ const documentLabelByType: Record<PortalRoute["type"], string> = {
   interactive_demo_detail: "Interactive demo editor",
   interactive_demo_preview: "Interactive demo preview",
   documentation_site_list: "Documentation",
+  documentation_carry_forward: "Carry Forward Documentation",
   documentation_site_editor: "Documentation Site",
   documentation_page_editor: "Documentation Page editor",
   documentation_draft_preview: "Documentation draft preview",

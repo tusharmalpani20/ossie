@@ -2508,7 +2508,17 @@ export const build_documentation_repository = (database: Database) => {
   }) => {
     const source = await database.query<Record<string, unknown>>(
       `SELECT source.id,source.digest,source.openapi_version,source.title,
-              source.version
+              source.version,source.status,
+              CASE
+                WHEN source.status='archived' THEN 'archived'
+                WHEN edition.status='archived' THEN 'read_only'
+                ELSE 'active'
+              END effective_status,
+              CASE
+                WHEN source.status='archived' THEN 'This OpenAPI Source is archived.'
+                WHEN edition.status='archived' THEN 'This Documentation Site Edition is archived.'
+                ELSE NULL
+              END read_only_reason
          FROM documentation_schema.openapi_source source
          JOIN documentation_schema.site_edition edition
            ON edition.id=source.site_edition_id

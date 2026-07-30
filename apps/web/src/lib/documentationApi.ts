@@ -9,6 +9,9 @@ export type DocumentationSiteSummary = {
   primary_language: string;
   version: number;
   edition_version: number;
+  status?: "active" | "archived";
+  effective_status?: "active" | "read_only" | "archived";
+  read_only_reason?: string | null;
   updated_at: string;
 };
 
@@ -235,8 +238,9 @@ const json = async <Result>(response: Response): Promise<Result> => {
 export const listDocumentationSites = (
   projectId: string,
   versionSlug: string,
+  status: "active" | "archived" | "all" = "active",
 ) =>
-  fetch(`${baseUrl()}${sitesPath(projectId, versionSlug)}`, {
+  fetch(`${baseUrl()}${sitesPath(projectId, versionSlug)}?status=${status}`, {
     credentials: "include",
   }).then((response) =>
     json<{ documentation_sites: DocumentationSiteSummary[] }>(response),
@@ -328,6 +332,72 @@ export const updateDocumentationPage = (
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
   }).then((response) => json<{ page: DocumentationPage }>(response));
+
+export type DocumentationPageSummary = {
+  id: string;
+  title: string;
+  description: string | null;
+  canonical_path: string;
+  status: "active" | "archived";
+  effective_status: "active" | "read_only" | "archived";
+  read_only_reason: string | null;
+  version: number;
+  archived_at: string | null;
+  updated_at: string;
+};
+
+export const listDocumentationPages = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  status: "active" | "archived" | "all" = "active",
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/pages?status=${status}`,
+    { credentials: "include" },
+  ).then((response) => json<{ pages: DocumentationPageSummary[] }>(response));
+
+export const transitionDocumentationPage = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  pageId: string,
+  input:
+    | {
+        transition: "archive";
+        expected_page_version: number;
+        expected_draft_version: number;
+        expected_navigation_version: number;
+        expected_routing_version: number;
+        retirement:
+          | { mode: "none" }
+          | { mode: "gone" }
+          | { mode: "redirect"; target_page_id: string };
+        replacement_home_page_id: string | null;
+      }
+    | {
+        transition: "restore";
+        expected_page_version: number;
+        expected_draft_version: number;
+      },
+) =>
+  fetch(
+    `${baseUrl()}${pagePath(projectId, versionSlug, siteId, pageId)}/lifecycle`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  ).then((response) =>
+    json<{
+      page: DocumentationPageSummary & {
+        draft_version: number;
+        navigation_version: number;
+        routing_version: number;
+      };
+    }>(response),
+  );
 
 export const uploadDocumentationAsset = (
   projectId: string,
@@ -580,6 +650,14 @@ export type DocumentationDraftPreview = {
     description: string | null;
     version?: number;
   };
+  edition?: {
+    id: string;
+    title: string;
+    description: string | null;
+    primary_language: string;
+    status: "active" | "archived";
+    version: number;
+  };
   working_draft: {
     id: string;
     home_page_id: string | null;
@@ -724,6 +802,7 @@ export const createDocumentationRevision = (
   projectId: string,
   versionSlug: string,
   siteId: string,
+  expectedEditionVersion: number,
   expectedDraftVersion: number,
 ) =>
   fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/revisions`, {
@@ -733,9 +812,118 @@ export const createDocumentationRevision = (
       "content-type": "application/json",
       "idempotency-key": crypto.randomUUID(),
     },
-    body: JSON.stringify({ expected_draft_version: expectedDraftVersion }),
+    body: JSON.stringify({
+      expected_edition_version: expectedEditionVersion,
+      expected_draft_version: expectedDraftVersion,
+    }),
   }).then((response) =>
     json<{ revision: { id: string; revision_number: number } }>(response),
+  );
+
+export type DocumentationCarryForwardOption = {
+  site_id: string;
+  source_edition_id: string;
+  title: string;
+  description: string | null;
+  primary_language: string;
+  status: "active" | "archived";
+  effective_status: "active" | "read_only" | "archived";
+  read_only_reason: string | null;
+  source_edition_version: number;
+  source_draft_version: number;
+  latest_revision_number: number | null;
+  latest_revision_created_at: string | null;
+  target_has_edition: boolean;
+};
+
+export const listDocumentationCarryForwardOptions = (
+  projectId: string,
+  targetVersionSlug: string,
+  sourceProjectVersionId: string,
+) =>
+  fetch(
+    `${baseUrl()}${sitesPath(projectId, targetVersionSlug)}/carry-forward-options?source_project_version_id=${encodeURIComponent(sourceProjectVersionId)}`,
+    { credentials: "include" },
+  ).then((response) =>
+    json<{
+      source_project_version_id: string;
+      target_project_version_id: string;
+      sites: DocumentationCarryForwardOption[];
+    }>(response),
+  );
+
+export const carryForwardDocumentationSites = (
+  projectId: string,
+  targetVersionSlug: string,
+  input: {
+    source_project_version_id: string;
+    target_project_version_id: string;
+    selections: Array<{
+      site_id: string;
+      expected_source_edition_version: number;
+      expected_source_draft_version: number;
+    }>;
+  },
+  idempotencyKey: string,
+) =>
+  fetch(`${baseUrl()}${sitesPath(projectId, targetVersionSlug)}/carry-forward`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
+      "idempotency-key": idempotencyKey,
+    },
+    body: JSON.stringify(input),
+  }).then((response) =>
+    json<{
+      operation: {
+        id: string;
+        source_project_version_id: string;
+        target_project_version_id: string;
+        selection_count: number;
+        idempotent_replay: boolean;
+        items: Array<{
+          position: number;
+          site_id: string;
+          source_edition_id: string;
+          source_revision_id: string;
+          source_revision_number: number;
+          source_revision_reused: boolean;
+          target_edition_id: string;
+          target_draft_id: string;
+        }>;
+      };
+    }>(response),
+  );
+
+export const transitionDocumentationEdition = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  expectedEditionVersion: number,
+  transition: "archive" | "restore",
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/edition/lifecycle`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        expected_edition_version: expectedEditionVersion,
+        transition,
+      }),
+    },
+  ).then((response) =>
+    json<{
+      edition: {
+        id: string;
+        status: "active" | "archived";
+        effective_status: "active" | "read_only" | "archived";
+        read_only_reason: string | null;
+        version: number;
+      };
+    }>(response),
   );
 
 export type PublicDocumentationSnapshot = {
@@ -1074,10 +1262,46 @@ export const getDocumentationOpenApiSource = async (
   );
   if (response.status === 404) return null;
   return json<{
-    source: { id: string; version: number };
+    source: {
+      id: string;
+      version: number;
+      status?: "active" | "archived";
+      effective_status?: "active" | "read_only" | "archived";
+      read_only_reason?: string | null;
+    };
     operations: DocumentationOpenApiOperation[];
   }>(response);
 };
+
+export const transitionDocumentationOpenApi = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  expectedSourceVersion: number,
+  transition: "archive" | "restore",
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/openapi/source/lifecycle`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        expected_source_version: expectedSourceVersion,
+        transition,
+      }),
+    },
+  ).then((response) =>
+    json<{
+      source: {
+        id: string;
+        version: number;
+        status: "active" | "archived";
+        effective_status: "active" | "read_only" | "archived";
+        read_only_reason: string | null;
+      };
+    }>(response),
+  );
 
 export const inspectDocumentationOpenApi = (
   projectId: string,

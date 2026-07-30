@@ -47,6 +47,7 @@ describe("DocumentationSiteEditorPage", () => {
         "project",
         "main",
         "site",
+        1,
         3,
       ),
     );

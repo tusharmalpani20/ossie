@@ -1,0 +1,54 @@
+.page {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.page select {
+  display: block;
+  margin-top: 0.35rem;
+  max-width: 100%;
+}
+
+.grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 1rem;
+}
+
+.card label {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.65rem;
+}
+
+.card span {
+  display: grid;
+}
+
+.confirm {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.65rem;
+}
+
+.error {
+  border: 1px solid var(--destructive, #b42318);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page *,
+  .page *::before,
+  .page *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

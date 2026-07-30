@@ -36,6 +36,11 @@ import { DocumentationSiteEditorPage } from "./features/documentation/Documentat
 import { canPublishDocumentation } from "./features/documentation/documentationPermissions";
 import { PublicDocumentationReaderPage } from "./features/documentation/PublicDocumentationReaderPage";
 import { DocumentationDraftPreviewPage } from "./features/documentation/DocumentationDraftPreviewPage";
+import { DocumentationCarryForwardPage } from "./features/documentation/DocumentationCarryForwardPage";
+import {
+  canCarryForwardDocumentation,
+  canManageDocumentationEdition,
+} from "./features/documentation/documentationPermissions";
 import { shouldRenderDesignSystemReview } from "./appRouteGuards";
 import {
   getProject,
@@ -69,6 +74,7 @@ const setupGuardedRouteTypes = new Set<PortalRoute["type"]>([
   "artifact_revision_history",
   "artifact_revision_preview",
   "documentation_site_list",
+  "documentation_carry_forward",
   "documentation_site_editor",
   "documentation_page_editor",
   "documentation_draft_preview",
@@ -564,6 +570,11 @@ export default function App() {
               selected.status === "active" &&
               project.access.role === "project_admin"
             }
+            canCarry={
+              project.status === "active" &&
+              selected.status === "active" &&
+              canCarryForwardDocumentation(project.access.role)
+            }
             importUnavailableReason={
               selected.status !== "active"
                 ? "This Project Version is archived. Documentation import and Site creation are unavailable."
@@ -572,6 +583,31 @@ export default function App() {
                   : project.access.role !== "project_admin"
                     ? "Your Project role is read-only. Documentation import and Site creation require Project Admin access."
                     : undefined
+            }
+          />
+        )}
+      </ProjectVersionRouteBoundary>
+    );
+  }
+
+  if (route.type === "documentation_carry_forward") {
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+        activeSection="documentation"
+        currentLabel="Carry Forward Documentation"
+      >
+        {({ project, selected, versions }) => (
+          <DocumentationCarryForwardPage
+            projectId={route.projectId}
+            target={selected}
+            versions={versions}
+            canCarry={
+              project.status === "active" &&
+              selected.status === "active" &&
+              canCarryForwardDocumentation(project.access.role)
             }
           />
         )}
@@ -629,6 +665,9 @@ export default function App() {
               selected.status === "active" &&
               canPublishDocumentation(project.access.role)
             }
+            canManageEdition={canManageDocumentationEdition(
+              project.access.role,
+            )}
           />
         )}
       </ProjectVersionRouteBoundary>

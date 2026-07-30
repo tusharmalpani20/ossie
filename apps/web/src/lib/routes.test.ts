@@ -99,6 +99,15 @@ describe("parsePortalRoute", () => {
   it("parses Documentation authoring and multi-segment public Page routes", () => {
     expect(
       parsePortalRoute(
+        "/projects/project_1/versions/main/documentation/carry-forward",
+      ),
+    ).toEqual({
+      type: "documentation_carry_forward",
+      projectId: "project_1",
+      versionSlug: "main",
+    });
+    expect(
+      parsePortalRoute(
         "/projects/project_1/versions/main/documentation/site_1/pages/page_1",
       ),
     ).toEqual({

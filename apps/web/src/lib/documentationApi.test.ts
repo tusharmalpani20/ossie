@@ -4,6 +4,8 @@ import {
   documentationFrozenOpenApiExportUrl,
   getPublicDocumentationPage,
   inspectDocumentationImport,
+  carryForwardDocumentationSites,
+  listDocumentationCarryForwardOptions,
   listDocumentationArtifactPublications,
   listDocumentationAssets,
   saveDocumentationSnippet,
@@ -114,6 +116,61 @@ describe("Documentation public API adapter", () => {
 
 describe("Documentation authoring API adapter", () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it("uses the target Version route and exact source concurrency tokens for Carry-Forward", async () => {
+    const fetch = vi.fn(async () =>
+      json({
+        operation: {
+          id: "operation",
+          source_project_version_id: "source",
+          target_project_version_id: "target",
+          selection_count: 1,
+          idempotent_replay: false,
+          items: [],
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    await listDocumentationCarryForwardOptions("project", "next", "source/id");
+    await carryForwardDocumentationSites(
+      "project",
+      "next",
+      {
+        source_project_version_id: "source",
+        target_project_version_id: "target",
+        selections: [
+          {
+            site_id: "site",
+            expected_source_edition_version: 2,
+            expected_source_draft_version: 4,
+          },
+        ],
+      },
+      "stable-retry-key",
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining(
+        "/versions/next/documentation-sites/carry-forward-options?source_project_version_id=source%2Fid",
+      ),
+      { credentials: "include" },
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining(
+        "/versions/next/documentation-sites/carry-forward",
+      ),
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "idempotency-key": "stable-retry-key",
+        }),
+        body: expect.stringContaining(
+          '"expected_source_edition_version":2',
+        ),
+      }),
+    );
+  });
 
   it("requests typed Asset sources without exposing storage coordinates", async () => {
     const fetch = vi.fn(async () => json({ assets: [] }));
