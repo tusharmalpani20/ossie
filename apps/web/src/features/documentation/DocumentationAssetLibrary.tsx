@@ -3,6 +3,7 @@ import { Button } from "@repo/ui/button";
 import {
   listDocumentationAssets,
   transitionDocumentationAsset,
+  updateDocumentationAsset,
   uploadDocumentationAsset,
   type DocumentationAsset,
 } from "../../lib/documentationApi";
@@ -15,6 +16,7 @@ type Props = {
   canWrite: boolean;
   listAssets?: typeof listDocumentationAssets;
   transitionAsset?: typeof transitionDocumentationAsset;
+  updateAsset?: typeof updateDocumentationAsset;
   uploadAsset?: typeof uploadDocumentationAsset;
 };
 
@@ -25,9 +27,11 @@ export const DocumentationAssetLibrary = ({
   canWrite,
   listAssets = listDocumentationAssets,
   transitionAsset = transitionDocumentationAsset,
+  updateAsset = updateDocumentationAsset,
   uploadAsset = uploadDocumentationAsset,
 }: Props) => {
   const [assets, setAssets] = useState<DocumentationAsset[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
   const [status, setStatus] = useState("Loading Assets…");
 
   const load = () =>
@@ -36,6 +40,14 @@ export const DocumentationAssetLibrary = ({
       includeInUse: true,
     }).then(({ assets: loaded }) => {
       setAssets(loaded);
+      setNames(
+        Object.fromEntries(
+          loaded.map((asset) => [
+            `${asset.source.kind}:${asset.source.id}`,
+            asset.name,
+          ]),
+        ),
+      );
       setStatus(loaded.length ? "Assets loaded." : "No Assets yet.");
     });
 
@@ -82,6 +94,28 @@ export const DocumentationAssetLibrary = ({
     }
   };
 
+  const rename = async (asset: DocumentationAsset) => {
+    if (asset.source.kind !== "documentation_asset") return;
+    const key = `${asset.source.kind}:${asset.source.id}`;
+    const name = names[key]?.trim();
+    if (!name) return;
+    setStatus("Renaming Asset…");
+    try {
+      await updateAsset(
+        projectId,
+        versionSlug,
+        siteId,
+        asset.source.id,
+        asset.version,
+        name,
+      );
+      await load();
+      setStatus("Asset renamed.");
+    } catch {
+      setStatus("Asset rename conflicted or the name is unavailable.");
+    }
+  };
+
   return (
     <section aria-labelledby="documentation-assets-heading">
       <h2 id="documentation-assets-heading">Assets</h2>
@@ -109,9 +143,28 @@ export const DocumentationAssetLibrary = ({
               {asset.status}
             </p>
             {canWrite && asset.source.kind === "documentation_asset" ? (
-              <Button onClick={() => void transition(asset)}>
-                {asset.status === "active" ? "Archive" : "Restore"} Asset
-              </Button>
+              <>
+                <label>
+                  Asset name
+                  <input
+                    value={
+                      names[`${asset.source.kind}:${asset.source.id}`] ??
+                      asset.name
+                    }
+                    onChange={(event) =>
+                      setNames((current) => ({
+                        ...current,
+                        [`${asset.source.kind}:${asset.source.id}`]:
+                          event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <Button onClick={() => void rename(asset)}>Rename Asset</Button>
+                <Button onClick={() => void transition(asset)}>
+                  {asset.status === "active" ? "Archive" : "Restore"} Asset
+                </Button>
+              </>
             ) : null}
           </article>
         ))}

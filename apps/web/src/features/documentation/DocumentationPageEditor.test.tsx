@@ -179,7 +179,9 @@ describe("DocumentationPageEditor", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Upload and add image" }),
     );
-    await waitFor(() => expect(uploadAsset).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(uploadAsset).toHaveBeenCalledWith("project", "main", "site", file),
+    );
     expect(
       await screen.findByText(
         "Image added. Save the Page to retain the reference.",
@@ -223,6 +225,29 @@ describe("DocumentationPageEditor", () => {
         pageId="page"
         canWrite
         autosaveDelayMs={60_000}
+        loadOptions={async () => ({
+          preview: {
+            site: { id: "site", name: "Docs", description: null },
+            working_draft: {
+              id: "draft",
+              home_page_id: "page",
+              version: 1,
+            },
+            pages: [],
+            navigation: { version: 1, nodes: [] },
+            routing: { version: 1, aliases: [], rules: [] },
+            openapi_operations: [
+              {
+                id: "operation",
+                openapi_source_id: "01K00000000000000000000000",
+                destination_key: "list-widgets",
+                method: "get",
+                path: "/widgets",
+                summary: "List widgets",
+              },
+            ],
+          },
+        })}
         loadPage={async () => ({
           page: {
             id: "page",
@@ -267,11 +292,11 @@ describe("DocumentationPageEditor", () => {
     fireEvent.change(kind, { target: { value: "divider" } });
     fireEvent.click(screen.getByRole("button", { name: "Add divider block" }));
     fireEvent.change(kind, { target: { value: "api_reference" } });
-    fireEvent.change(screen.getByLabelText("OpenAPI Source ID"), {
-      target: { value: "01K00000000000000000000000" },
+    await screen.findByRole("option", {
+      name: "GET /widgets · List widgets",
     });
-    fireEvent.change(screen.getByLabelText("Operation key (optional)"), {
-      target: { value: "list-widgets" },
+    fireEvent.change(screen.getByLabelText("API operation"), {
+      target: { value: "operation" },
     });
     fireEvent.click(
       screen.getByRole("button", { name: "Add api reference block" }),

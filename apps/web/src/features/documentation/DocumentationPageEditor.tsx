@@ -6,6 +6,7 @@ import { ulid } from "ulid";
 import type { DocumentationBlock } from "@repo/types";
 import {
   getDocumentationPage,
+  getDocumentationPreview,
   listDocumentationArtifactPublications,
   listDocumentationAssets,
   listDocumentationSnippets,
@@ -28,6 +29,7 @@ type Props = {
   savePage?: typeof saveDocumentationPage;
   uploadAsset?: typeof uploadDocumentationAsset;
   updatePage?: typeof updateDocumentationPage;
+  loadOptions?: typeof getDocumentationPreview;
   autosaveDelayMs?: number;
 };
 
@@ -41,6 +43,7 @@ export const DocumentationPageEditor = ({
   savePage = saveDocumentationPage,
   uploadAsset = uploadDocumentationAsset,
   updatePage = updateDocumentationPage,
+  loadOptions = getDocumentationPreview,
   autosaveDelayMs = 800,
 }: Props) => {
   const [page, setPage] = useState<DocumentationPage | null>(null);
@@ -69,6 +72,17 @@ export const DocumentationPageEditor = ({
   >([]);
   const [demoPublicationOptions, setDemoPublicationOptions] = useState<
     Array<{ id: string; label: string }>
+  >([]);
+  const [pageOptions, setPageOptions] = useState<
+    Array<{ id: string; label: string }>
+  >([]);
+  const [openApiOptions, setOpenApiOptions] = useState<
+    Array<{
+      id: string;
+      label: string;
+      openapiSourceId: string;
+      operationKey: string;
+    }>
   >([]);
 
   useEffect(() => {
@@ -145,7 +159,34 @@ export const DocumentationPageEditor = ({
     return () => {
       active = false;
     };
-  }, [canWrite, projectId, siteId, versionSlug]);
+  }, [canWrite, loadOptions, projectId, siteId, versionSlug]);
+
+  useEffect(() => {
+    if (!canWrite) return;
+    let active = true;
+    loadOptions(projectId, versionSlug, siteId)
+      .then(({ preview }) => {
+        if (!active) return;
+        setPageOptions(
+          preview.pages.map((candidate) => ({
+            id: candidate.id,
+            label: `${candidate.title} · /${candidate.canonical_path}`,
+          })),
+        );
+        setOpenApiOptions(
+          preview.openapi_operations.map((operation) => ({
+            id: operation.id,
+            openapiSourceId: operation.openapi_source_id,
+            operationKey: operation.destination_key,
+            label: `${operation.method.toUpperCase()} ${operation.path} · ${operation.summary ?? operation.destination_key}`,
+          })),
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [canWrite, loadOptions, projectId, siteId, versionSlug]);
 
   const save = useCallback(async () => {
     if (!page) return;
@@ -261,6 +302,8 @@ export const DocumentationPageEditor = ({
             setBlocks(nextBlocks);
             setSaveState("unsaved");
           }}
+          openApiOptions={openApiOptions}
+          pageOptions={pageOptions}
           snippetOptions={snippetOptions}
         />
       ) : null}

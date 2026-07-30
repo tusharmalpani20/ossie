@@ -8,6 +8,7 @@ import {
   listDocumentationSnippets,
   saveDocumentationSnippet,
   transitionDocumentationSnippet,
+  updateDocumentationSnippet,
   type DocumentationSnippet,
 } from "../../lib/documentationApi";
 import { DocumentationBlockEditor } from "./DocumentationBlockEditor";
@@ -22,6 +23,7 @@ type Props = {
   createSnippet?: typeof createDocumentationSnippet;
   saveSnippet?: typeof saveDocumentationSnippet;
   transitionSnippet?: typeof transitionDocumentationSnippet;
+  updateSnippet?: typeof updateDocumentationSnippet;
 };
 
 export const DocumentationSnippetPanel = ({
@@ -34,10 +36,12 @@ export const DocumentationSnippetPanel = ({
   createSnippet = createDocumentationSnippet,
   saveSnippet = saveDocumentationSnippet,
   transitionSnippet = transitionDocumentationSnippet,
+  updateSnippet = updateDocumentationSnippet,
 }: Props) => {
   const [snippets, setSnippets] = useState<DocumentationSnippet[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [selectedName, setSelectedName] = useState("");
   const [status, setStatus] = useState("Loading Snippets…");
   const selected = snippets.find((snippet) => snippet.id === selectedId);
 
@@ -79,6 +83,7 @@ export const DocumentationSnippetPanel = ({
       snippet,
     ]);
     setSelectedId(snippet.id);
+    setSelectedName(snippet.name);
   };
 
   const create = async () => {
@@ -117,6 +122,25 @@ export const DocumentationSnippetPanel = ({
       setStatus(
         "Snippet changed on the server. Local edits are preserved; reload before retrying.",
       );
+    }
+  };
+
+  const rename = async () => {
+    if (!selected || !selectedName.trim()) return;
+    setStatus("Renaming Snippet…");
+    try {
+      const response = await updateSnippet(
+        projectId,
+        versionSlug,
+        siteId,
+        selected.id,
+        selected.version,
+        selectedName.trim(),
+      );
+      replace({ ...selected, ...response.snippet });
+      setStatus("Snippet renamed.");
+    } catch {
+      setStatus("Snippet rename conflicted or the name is unavailable.");
     }
   };
 
@@ -177,6 +201,15 @@ export const DocumentationSnippetPanel = ({
           <p>{selected.status === "archived" ? "Archived" : "Active"}</p>
           {canWrite ? (
             <>
+              <Label htmlFor="selected-documentation-snippet-name">
+                Selected Snippet name
+              </Label>
+              <Input
+                id="selected-documentation-snippet-name"
+                value={selectedName}
+                onChange={(event) => setSelectedName(event.target.value)}
+              />
+              <Button onClick={() => void rename()}>Rename Snippet</Button>
               <DocumentationBlockEditor
                 blocks={selected.blocks}
                 onChange={(blocks) => replace({ ...selected, blocks })}

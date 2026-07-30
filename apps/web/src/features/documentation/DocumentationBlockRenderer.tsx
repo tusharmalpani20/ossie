@@ -1,4 +1,10 @@
-import { Fragment, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import type { DocumentationBlock } from "@repo/types";
 import styles from "./DocumentationContentWorkflows.module.css";
 
@@ -27,16 +33,48 @@ export type RenderableDocumentationSnippet = {
 };
 
 const inline = (text: string): ReactNode => {
-  const parts = text.split(/(`[^`\n]+`|\*\*[^*\n]+\*\*|_[^_\n]+_)/gu);
+  const parts = text.split(/(`[^`\n]+`|\*\*[^*\n]+\*\*|\*[^*\n]+\*|\r?\n)/gu);
   return parts.map((part, index) => {
+    if (part === "\n" || part === "\r\n") return <br key={index} />;
     if (part.startsWith("`") && part.endsWith("`"))
       return <code key={index}>{part.slice(1, -1)}</code>;
     if (part.startsWith("**") && part.endsWith("**"))
       return <strong key={index}>{part.slice(2, -2)}</strong>;
-    if (part.startsWith("_") && part.endsWith("_"))
+    if (part.startsWith("*") && part.endsWith("*"))
       return <em key={index}>{part.slice(1, -1)}</em>;
     return <Fragment key={index}>{part}</Fragment>;
   });
+};
+
+const CopyableCode = ({
+  code,
+  language,
+}: {
+  code: string;
+  language: string | null;
+}) => {
+  const [announcement, setAnnouncement] = useState("");
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setAnnouncement("Code copied");
+    } catch {
+      setAnnouncement("Code could not be copied");
+    }
+  };
+  return (
+    <>
+      <button onClick={copy} type="button">
+        Copy code
+      </button>
+      <pre className={styles.code}>
+        <code data-language={language ?? undefined}>{code}</code>
+      </pre>
+      <span aria-live="polite" role="status">
+        {announcement}
+      </span>
+    </>
+  );
 };
 
 const Tabs = ({
@@ -45,6 +83,25 @@ const Tabs = ({
   block: Extract<DocumentationBlock, { kind: "tabs" }>;
 }) => {
   const [selected, setSelected] = useState(0);
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const selectAndFocus = (index: number) => {
+    setSelected(index);
+    tabRefs.current[index]?.focus();
+  };
+  const onKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    let next: number | undefined;
+    if (event.key === "ArrowRight") next = (index + 1) % block.items.length;
+    if (event.key === "ArrowLeft")
+      next = (index - 1 + block.items.length) % block.items.length;
+    if (event.key === "Home") next = 0;
+    if (event.key === "End") next = block.items.length - 1;
+    if (next === undefined) return;
+    event.preventDefault();
+    selectAndFocus(next);
+  };
   return (
     <section>
       <div className={styles.tabs} role="tablist" aria-label="Content tabs">
@@ -55,6 +112,10 @@ const Tabs = ({
             id={`${block.id}-${item.id}-tab`}
             key={item.id}
             onClick={() => setSelected(index)}
+            onKeyDown={(event) => onKeyDown(event, index)}
+            ref={(element) => {
+              tabRefs.current[index] = element;
+            }}
             role="tab"
             tabIndex={selected === index ? 0 : -1}
             type="button"
@@ -129,11 +190,7 @@ export const DocumentationBlockRenderer = ({
               {"title" in block && block.title ? (
                 <figcaption>{block.title}</figcaption>
               ) : null}
-              <pre className={styles.code}>
-                <code data-language={block.language ?? undefined}>
-                  {block.code}
-                </code>
-              </pre>
+              <CopyableCode code={block.code} language={block.language} />
             </figure>
           );
         case "link": {

@@ -34,4 +34,73 @@ describe("DocumentationBlockEditor", () => {
     ]);
     expect(screen.queryByLabelText(/asset id/i)).toBeNull();
   });
+
+  it("adds internal Page links from labelled same-Edition options", () => {
+    const onChange = vi.fn();
+    render(
+      <DocumentationBlockEditor
+        blocks={[]}
+        onChange={onChange}
+        pageOptions={[{ id: "page-2", label: "Install · /install" }]}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("New block type"), {
+      target: { value: "link" },
+    });
+    fireEvent.change(screen.getByLabelText("Link target kind"), {
+      target: { value: "page" },
+    });
+    fireEvent.change(screen.getByLabelText("Link label"), {
+      target: { value: "Install" },
+    });
+    fireEvent.change(screen.getByLabelText("Documentation Page"), {
+      target: { value: "page-2" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add link block" }));
+
+    expect(onChange).toHaveBeenCalledWith([
+      expect.objectContaining({
+        kind: "link",
+        label: "Install",
+        page_id: "page-2",
+      }),
+    ]);
+    expect(screen.queryByLabelText(/target page id/i)).toBeNull();
+  });
+
+  it("adds API references from labelled inspected operations", () => {
+    const onChange = vi.fn();
+    render(
+      <DocumentationBlockEditor
+        blocks={[]}
+        onChange={onChange}
+        openApiOptions={[
+          {
+            id: "operation",
+            label: "GET /widgets · List widgets",
+            openapiSourceId: "source",
+            operationKey: "operations/get-widgets",
+          },
+        ]}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("New block type"), {
+      target: { value: "api_reference" },
+    });
+    fireEvent.change(screen.getByLabelText("API operation"), {
+      target: { value: "operation" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add api reference block" }),
+    );
+
+    expect(onChange).toHaveBeenCalledWith([
+      expect.objectContaining({
+        kind: "api_reference",
+        openapi_source_id: "source",
+        operation_key: "operations/get-widgets",
+      }),
+    ]);
+    expect(screen.queryByLabelText(/openapi source id/i)).toBeNull();
+  });
 });

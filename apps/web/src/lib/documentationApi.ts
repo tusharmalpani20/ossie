@@ -267,6 +267,24 @@ export const saveDocumentationSnippet = (
     },
   ).then((response) => json<{ snippet: DocumentationSnippet }>(response));
 
+export const updateDocumentationSnippet = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  snippetId: string,
+  expectedVersion: number,
+  name: string,
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/snippets/${encodeURIComponent(snippetId)}`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expected_version: expectedVersion, name }),
+    },
+  ).then((response) => json<{ snippet: DocumentationSnippet }>(response));
+
 export const transitionDocumentationSnippet = (
   projectId: string,
   versionSlug: string,
@@ -332,6 +350,24 @@ export const transitionDocumentationAsset = (
     },
   ).then((response) => json<{ asset: DocumentationAsset }>(response));
 
+export const updateDocumentationAsset = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  assetId: string,
+  expectedVersion: number,
+  name: string,
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/assets/${encodeURIComponent(assetId)}`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expected_version: expectedVersion, name }),
+    },
+  ).then((response) => json<{ asset: DocumentationAsset }>(response));
+
 export const listDocumentationArtifactPublications = (
   projectId: string,
   versionSlug: string,
@@ -381,6 +417,8 @@ export type DocumentationDraftPreview = {
     }>;
   };
   openapi_operations: Array<{
+    id: string;
+    openapi_source_id: string;
     destination_key: string;
     method: string;
     path: string;
