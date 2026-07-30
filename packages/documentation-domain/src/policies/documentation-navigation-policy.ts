@@ -15,6 +15,12 @@ export const validate_documentation_navigation = (
   }
   const pages = new Set<string>();
   for (const node of nodes) {
+    if (node.parent_id && !byId.has(node.parent_id)) {
+      throw new DocumentationDomainError(
+        "documentation_navigation_invalid",
+        "Navigation parent must belong to the same tree",
+      );
+    }
     if (node.kind === "page") {
       if (!node.page_id || pages.has(node.page_id)) {
         throw new DocumentationDomainError(

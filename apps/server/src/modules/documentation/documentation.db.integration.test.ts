@@ -230,6 +230,114 @@ describe("DB-backed Documentation repository", () => {
       },
     });
     expect(secondPage.statusCode).toBe(201);
+    const renamed = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}`,
+      cookies: { ossie_session: scope.session_token },
+      payload: {
+        expected_version: 2,
+        canonical_path: "install-guide",
+        keywords: ["install", "setup"],
+      },
+    });
+    expect(renamed.statusCode).toBe(200);
+    const navigation = await app.inject({
+      method: "PUT",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/navigation`,
+      cookies: { ossie_session: scope.session_token },
+      payload: {
+        expected_version: 1,
+        nodes: [
+          {
+            id: "01J00000000000000000000004",
+            parent_id: null,
+            kind: "page",
+            label: null,
+            page_id: page.json().page.id,
+            position: 1,
+            expected_version: null,
+          },
+          {
+            id: "01J00000000000000000000005",
+            parent_id: null,
+            kind: "page",
+            label: null,
+            page_id: secondPage.json().page.id,
+            position: 2,
+            expected_version: null,
+          },
+        ],
+      },
+    });
+    expect(navigation.statusCode).toBe(200);
+    const routing = await app.inject({
+      method: "PUT",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/routing`,
+      cookies: { ossie_session: scope.session_token },
+      payload: {
+        expected_version: 1,
+        rules: [
+          {
+            id: "01J00000000000000000000006",
+            source_path: "setup",
+            outcome: "redirect",
+            target_page_id: secondPage.json().page.id,
+            expected_version: null,
+          },
+          {
+            id: "01J00000000000000000000007",
+            source_path: "obsolete",
+            outcome: "gone",
+            target_page_id: null,
+            expected_version: null,
+          },
+        ],
+      },
+    });
+    expect(routing.statusCode).toBe(200);
+    expect(routing.json().aliases).toEqual([
+      expect.objectContaining({
+        former_path: "install",
+        documentation_page_id: page.json().page.id,
+      }),
+    ]);
+    const comment = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}/comments`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "comment-create-route-1" },
+      payload: {
+        body: "Please clarify this installation step.",
+        block_anchor_id: "01J00000000000000000000001",
+        mentioned_project_membership_ids: [],
+      },
+    });
+    expect(comment.statusCode).toBe(201);
+    const reply = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/comments/${comment.json().thread.id}/replies`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "comment-reply-route-1" },
+      payload: {
+        body: "Clarified in the latest saved draft.",
+        mentioned_project_membership_ids: [],
+      },
+    });
+    expect(reply.statusCode).toBe(201);
+    const resolved = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/comments/${comment.json().thread.id}`,
+      cookies: { ossie_session: scope.session_token },
+      payload: { expected_version: 1, transition: "resolve" },
+    });
+    expect(resolved.statusCode).toBe(200);
+    const reopened = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/comments/${comment.json().thread.id}`,
+      cookies: { ossie_session: scope.session_token },
+      payload: { expected_version: 2, transition: "reopen" },
+    });
+    expect(reopened.statusCode).toBe(200);
     const stale = await app.inject({
       method: "PUT",
       url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}/content`,

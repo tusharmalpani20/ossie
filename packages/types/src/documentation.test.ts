@@ -1,13 +1,74 @@
 import { describe, expect, it } from "vitest";
 import {
   DocumentationBlockSchema,
+  DocumentationCommentThreadCreateRequestSchema,
   DocumentationCreateSiteRequestSchema,
+  DocumentationNavigationUpdateRequestSchema,
   DocumentationPageContentRequestSchema,
   DocumentationCreatePageRequestSchema,
+  DocumentationPageUpdateRequestSchema,
   DocumentationPublicSearchResponseSchema,
+  DocumentationRoutingUpdateRequestSchema,
 } from "./documentation";
 
 describe("Documentation shared contracts", () => {
+  it("requires explicit row versions on mutable Documentation aggregates", () => {
+    expect(
+      DocumentationPageUpdateRequestSchema.safeParse({
+        expected_version: 2,
+        canonical_path: "getting-started/install",
+        keywords: ["install", "setup"],
+      }).success,
+    ).toBe(true);
+    expect(
+      DocumentationNavigationUpdateRequestSchema.safeParse({
+        expected_version: 1,
+        nodes: [
+          {
+            id: "01J00000000000000000000001",
+            parent_id: null,
+            kind: "page",
+            label: null,
+            page_id: "01J00000000000000000000002",
+            position: 1,
+            expected_version: null,
+          },
+        ],
+      }).success,
+    ).toBe(true);
+    expect(
+      DocumentationRoutingUpdateRequestSchema.safeParse({
+        expected_version: 1,
+        rules: [
+          {
+            id: "01J00000000000000000000003",
+            source_path: "old-install",
+            outcome: "gone",
+            target_page_id: null,
+            expected_version: null,
+          },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("keeps comment bodies plain and mentions membership-scoped", () => {
+    expect(
+      DocumentationCommentThreadCreateRequestSchema.safeParse({
+        body: "Please clarify this step.",
+        block_anchor_id: "01J00000000000000000000001",
+        mentioned_project_membership_ids: [],
+      }).success,
+    ).toBe(true);
+    expect(
+      DocumentationCommentThreadCreateRequestSchema.safeParse({
+        body: "<script>alert(1)</script>",
+        block_anchor_id: null,
+        mentioned_project_membership_ids: [],
+      }).success,
+    ).toBe(false);
+  });
+
   it("strictly parses Site creation", () => {
     expect(
       DocumentationCreateSiteRequestSchema.parse({

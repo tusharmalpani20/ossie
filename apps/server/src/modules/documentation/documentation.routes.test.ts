@@ -16,6 +16,25 @@ const auth = {
     expires_at: "2026-07-31T00:00:00.000Z",
   },
 };
+const documentation_service_stubs = (
+  overrides: Partial<
+    DocumentationRouteDependencies["documentation_service"]
+  > = {},
+): DocumentationRouteDependencies["documentation_service"] => ({
+  list_sites: vi.fn(async () => []),
+  create_site: vi.fn(),
+  create_page: vi.fn(),
+  get_page: vi.fn(),
+  save_page: vi.fn(),
+  update_page: vi.fn(),
+  replace_navigation: vi.fn(),
+  replace_routing: vi.fn(),
+  list_comments: vi.fn(async () => []),
+  create_comment_thread: vi.fn(),
+  create_comment_reply: vi.fn(),
+  transition_comment: vi.fn(),
+  ...overrides,
+});
 
 const build_test_app = async (overrides?: {
   unauthenticated?: boolean;
@@ -31,11 +50,7 @@ const build_test_app = async (overrides?: {
           return auth;
         }),
       },
-      documentation_service: {
-        list_sites: vi.fn(async () => []),
-        create_page: vi.fn(),
-        get_page: vi.fn(),
-        save_page: vi.fn(),
+      documentation_service: documentation_service_stubs({
         create_site:
           overrides?.create_site ??
           vi.fn(async () => ({
@@ -44,7 +59,7 @@ const build_test_app = async (overrides?: {
             working_draft: { id: "draft", version: 2 },
             home_page: { id: "page", canonical_path: "home" },
           })),
-      },
+      }),
       resolve_project_version: vi.fn(async () => ({ id: "version" })),
     }),
   );
@@ -96,15 +111,11 @@ describe("Documentation routes", () => {
     await app.register(
       build_documentation_routes({
         auth_service: { get_current_auth_context: vi.fn(async () => auth) },
-        documentation_service: {
+        documentation_service: documentation_service_stubs({
           list_sites: vi.fn(async () => [
             { id: "site", name: "Product docs", edition_id: "edition" },
           ]),
-          create_site: vi.fn(),
-          create_page: vi.fn(),
-          get_page: vi.fn(),
-          save_page: vi.fn(),
-        },
+        }),
         resolve_project_version: vi.fn(async () => ({ id: "version" })),
       }),
     );
@@ -165,13 +176,11 @@ describe("Documentation routes", () => {
     await app.register(
       build_documentation_routes({
         auth_service: { get_current_auth_context: vi.fn(async () => auth) },
-        documentation_service: {
-          list_sites: vi.fn(async () => []),
-          create_site: vi.fn(),
+        documentation_service: documentation_service_stubs({
           create_page,
           get_page,
           save_page,
-        },
+        }),
         resolve_project_version: vi.fn(async () => ({ id: "version" })),
       }),
     );

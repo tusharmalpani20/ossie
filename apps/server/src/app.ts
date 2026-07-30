@@ -778,6 +778,83 @@ export const build = (opts: BuildOptions = {}) => {
                 blocks: input.blocks as Array<Record<string, unknown>>,
               });
             },
+            update_page: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.update_page(input);
+            },
+            replace_navigation: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.replace_navigation(input);
+            },
+            replace_routing: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.replace_routing(input);
+            },
+            create_comment_thread: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.comment",
+              });
+              return repository.create_comment_thread(input);
+            },
+            list_comments: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.list_comments(input);
+            },
+            create_comment_reply: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.comment",
+              });
+              return repository.create_comment_reply(input);
+            },
+            transition_comment: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.comment",
+              });
+              return repository.transition_comment(input);
+            },
           };
         })(),
       resolve_project_version: async (input) => {
@@ -787,7 +864,7 @@ export const build = (opts: BuildOptions = {}) => {
             actor_org_user_id: input.actor_org_user_id,
           },
           project_id: input.project_id,
-          capability: "documentation.site.manage",
+          capability: "documentation.read",
         });
         const resolution = await build_project_version_repository(
           pool,

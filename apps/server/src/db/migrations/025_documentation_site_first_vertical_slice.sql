@@ -470,15 +470,29 @@ CREATE TABLE documentation_schema.comment_mention (
   id VARCHAR(26) PRIMARY KEY,
   organization_id VARCHAR(26) NOT NULL,
   project_id VARCHAR(26) NOT NULL,
+  site_edition_id VARCHAR(26) NOT NULL,
   comment_thread_id VARCHAR(26) NOT NULL,
   comment_reply_id VARCHAR(26) DEFAULT NULL,
+  project_membership_id VARCHAR(26) NOT NULL,
   mentioned_org_user_id VARCHAR(26) NOT NULL,
   created_by_id VARCHAR(26) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT uq_comment_mention UNIQUE (comment_thread_id, comment_reply_id, mentioned_org_user_id),
+  CONSTRAINT fk_comment_mention_thread FOREIGN KEY
+    (comment_thread_id, site_edition_id, project_id, organization_id)
+    REFERENCES documentation_schema.comment_thread
+    (id, site_edition_id, project_id, organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_comment_mention_reply FOREIGN KEY
+    (comment_reply_id, comment_thread_id, site_edition_id, project_id, organization_id)
+    REFERENCES documentation_schema.comment_reply
+    (id, comment_thread_id, site_edition_id, project_id, organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_comment_mention_membership FOREIGN KEY (project_membership_id)
+    REFERENCES project_schema.project_membership(id) ON DELETE RESTRICT,
   CONSTRAINT fk_comment_mention_member FOREIGN KEY (mentioned_org_user_id, organization_id)
     REFERENCES organization_schema.org_user(id, organization_id) ON DELETE RESTRICT
 );
+CREATE UNIQUE INDEX uq_comment_mention_target
+  ON documentation_schema.comment_mention
+  (comment_thread_id,COALESCE(comment_reply_id,''),mentioned_org_user_id);
 
 -- Complete immutable snapshots. Private comments are intentionally excluded.
 CREATE TABLE documentation_schema.site_revision (

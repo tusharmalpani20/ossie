@@ -135,6 +135,108 @@ export const DocumentationCreatePageRequestSchema = z
   })
   .strict();
 
+export const DocumentationPageUpdateRequestSchema = z
+  .object({
+    expected_version: PositiveIntSchema,
+    title: TitleSchema.optional(),
+    description: DescriptionSchema.optional(),
+    canonical_path: CanonicalPathSchema.optional(),
+    keywords: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
+  })
+  .strict()
+  .refine(
+    ({ expected_version: _expected_version, ...changes }) =>
+      Object.keys(changes).length > 0,
+    { message: "At least one Page field must change" },
+  );
+
+export const DocumentationNavigationNodeSchema = z
+  .object({
+    id: IdSchema,
+    parent_id: IdSchema.nullable(),
+    kind: z.enum(["group", "page"]),
+    label: z.string().trim().min(1).max(200).nullable(),
+    page_id: IdSchema.nullable(),
+    position: PositiveIntSchema,
+    expected_version: ExpectedChildVersionSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const valid =
+      (value.kind === "group" && value.label !== null && value.page_id === null) ||
+      (value.kind === "page" && value.label === null && value.page_id !== null);
+    if (!valid)
+      context.addIssue({
+        code: "custom",
+        message: "Navigation node kind does not match its fields",
+      });
+  });
+
+export const DocumentationNavigationUpdateRequestSchema = z
+  .object({
+    expected_version: PositiveIntSchema,
+    nodes: z.array(DocumentationNavigationNodeSchema).max(2_000),
+  })
+  .strict();
+
+export const DocumentationRoutingRuleSchema = z
+  .object({
+    id: IdSchema,
+    source_path: CanonicalPathSchema,
+    outcome: z.enum(["redirect", "gone"]),
+    target_page_id: IdSchema.nullable(),
+    expected_version: ExpectedChildVersionSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      (value.outcome === "redirect" && value.target_page_id === null) ||
+      (value.outcome === "gone" && value.target_page_id !== null)
+    )
+      context.addIssue({
+        code: "custom",
+        message: "Routing outcome does not match its target",
+      });
+  });
+
+export const DocumentationRoutingUpdateRequestSchema = z
+  .object({
+    expected_version: PositiveIntSchema,
+    rules: z.array(DocumentationRoutingRuleSchema).max(2_000),
+  })
+  .strict();
+
+const PlainCommentBodySchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(10_000)
+  .refine((value) => !/[<>]/u.test(value), {
+    message: "Comment must be plain text",
+  });
+
+export const DocumentationCommentThreadCreateRequestSchema = z
+  .object({
+    body: PlainCommentBodySchema,
+    block_anchor_id: IdSchema.nullable(),
+    mentioned_project_membership_ids: z.array(IdSchema).max(50),
+  })
+  .strict();
+
+export const DocumentationCommentReplyCreateRequestSchema = z
+  .object({
+    body: PlainCommentBodySchema,
+    mentioned_project_membership_ids: z.array(IdSchema).max(50),
+  })
+  .strict();
+
+export const DocumentationCommentTransitionRequestSchema = z
+  .object({
+    expected_version: PositiveIntSchema,
+    transition: z.enum(["resolve", "reopen"]),
+  })
+  .strict();
+
 export const DocumentationPageSummarySchema = z
   .object({
     id: IdSchema,

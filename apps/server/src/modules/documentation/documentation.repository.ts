@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import { ulid } from "ulid";
 import {
+  assert_documentation_comment_transition,
+  validate_documentation_navigation,
+  validate_documentation_routes,
+} from "@repo/documentation-domain";
+import {
   DocumentationIdempotencyConflictError,
   DocumentationRowVersionConflictError,
 } from "./documentation.service";
@@ -98,6 +103,57 @@ const write_command_receipt = async (
     ],
   );
 
+const insert_comment_mentions = async (
+  client: Queryable,
+  input: {
+    organization_id: string;
+    project_id: string;
+    site_edition_id: string;
+    thread_id: string;
+    reply_id: string | null;
+    actor_org_user_id: string;
+    project_membership_ids: string[];
+  },
+) => {
+  const uniqueIds = [...new Set(input.project_membership_ids)];
+  if (!uniqueIds.length) return;
+  const memberships = await client.query<{
+    id: string;
+    org_user_id: string;
+  }>(
+    `SELECT id,org_user_id
+       FROM project_schema.project_membership
+      WHERE organization_id=$1 AND project_id=$2 AND status='active'
+        AND id=ANY($3::varchar[])`,
+    [input.organization_id, input.project_id, uniqueIds],
+  );
+  if (memberships.rows.length !== uniqueIds.length) {
+    const error = new Error("Mention must target an active Project member");
+    Object.assign(error, { code: "documentation_comment_invalid" });
+    throw error;
+  }
+  for (const membership of memberships.rows) {
+    await client.query(
+      `INSERT INTO documentation_schema.comment_mention
+        (id,organization_id,project_id,site_edition_id,comment_thread_id,
+         comment_reply_id,project_membership_id,mentioned_org_user_id,
+         created_by_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        ulid(),
+        input.organization_id,
+        input.project_id,
+        input.site_edition_id,
+        input.thread_id,
+        input.reply_id,
+        membership.id,
+        membership.org_user_id,
+        input.actor_org_user_id,
+      ],
+    );
+  }
+};
+
 type CreateSiteInput = {
   organization_id: string;
   project_id: string;
@@ -160,6 +216,708 @@ const to_documentation_block = (row: Record<string, unknown>) => {
 };
 
 export const build_documentation_repository = (database: Database) => ({
+  list_comments: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    page_id: string;
+  }) => {
+    const threads = await database.query<Record<string, unknown>>(
+      `SELECT thread.id,thread.documentation_page_id,thread.block_anchor_id,
+              thread.body,thread.state,thread.version,thread.created_by_id,
+              thread.created_at,thread.updated_at
+         FROM documentation_schema.comment_thread thread
+         JOIN documentation_schema.site_edition edition
+           ON edition.id=thread.site_edition_id
+        WHERE thread.organization_id=$1 AND thread.project_id=$2
+          AND edition.project_version_id=$3
+          AND edition.documentation_site_id=$4
+          AND thread.documentation_page_id=$5
+        ORDER BY thread.created_at,thread.id`,
+      [
+        input.organization_id,
+        input.project_id,
+        input.project_version_id,
+        input.site_id,
+        input.page_id,
+      ],
+    );
+    const ids = threads.rows.map((thread) => thread.id as string);
+    if (!ids.length) return [];
+    const replies = await database.query<Record<string, unknown>>(
+      `SELECT id,comment_thread_id,body,version,created_by_id,created_at
+         FROM documentation_schema.comment_reply
+        WHERE organization_id=$1 AND project_id=$2
+          AND comment_thread_id=ANY($3::varchar[])
+        ORDER BY created_at,id`,
+      [input.organization_id, input.project_id, ids],
+    );
+    const mentions = await database.query<{
+      comment_thread_id: string;
+      comment_reply_id: string | null;
+      project_membership_id: string;
+    }>(
+      `SELECT comment_thread_id,comment_reply_id,project_membership_id
+         FROM documentation_schema.comment_mention
+        WHERE organization_id=$1 AND project_id=$2
+          AND comment_thread_id=ANY($3::varchar[])
+        ORDER BY created_at,id`,
+      [input.organization_id, input.project_id, ids],
+    );
+    return threads.rows.map((thread) => ({
+      ...thread,
+      mentioned_project_membership_ids: mentions.rows
+        .filter(
+          (mention) =>
+            mention.comment_thread_id === thread.id &&
+            mention.comment_reply_id === null,
+        )
+        .map((mention) => mention.project_membership_id),
+      replies: replies.rows
+        .filter((reply) => reply.comment_thread_id === thread.id)
+        .map((reply) => ({
+          ...reply,
+          mentioned_project_membership_ids: mentions.rows
+            .filter((mention) => mention.comment_reply_id === reply.id)
+            .map((mention) => mention.project_membership_id),
+        })),
+    }));
+  },
+
+  update_page: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    page_id: string;
+    actor_org_user_id: string;
+    data: {
+      expected_version: number;
+      title?: string;
+      description?: string | null;
+      canonical_path?: string;
+      keywords?: string[];
+    };
+  }) =>
+    with_transaction(database, async (client) => {
+      const current = await client.query<{
+        id: string;
+        site_edition_id: string;
+        title: string;
+        description: string | null;
+        canonical_path: string;
+        version: number;
+      }>(
+        `SELECT page.id,page.site_edition_id,page.title,page.description,
+                page.canonical_path,page.version
+           FROM documentation_schema.documentation_page page
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=page.site_edition_id
+          WHERE page.organization_id=$1 AND page.project_id=$2
+            AND edition.project_version_id=$3
+            AND page.documentation_site_id=$4 AND page.id=$5
+          FOR UPDATE OF page`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+          input.page_id,
+        ],
+      );
+      const page = current.rows[0];
+      if (!page) throw new Error("Documentation Page was not found");
+      if (page.version !== input.data.expected_version)
+        throw new DocumentationRowVersionConflictError({
+          ...page,
+          blocks: [],
+        });
+
+      const canonical_path =
+        input.data.canonical_path ?? page.canonical_path;
+      if (canonical_path !== page.canonical_path) {
+        const reserved = await client.query(
+          `SELECT 1
+             FROM documentation_schema.page_slug_alias alias
+            WHERE alias.site_edition_id=$1 AND alias.former_path=$2
+           UNION ALL
+           SELECT 1
+             FROM documentation_schema.documentation_redirect_rule rule
+            WHERE rule.site_edition_id=$1 AND rule.source_path=$2
+           LIMIT 1`,
+          [page.site_edition_id, canonical_path],
+        );
+        if (reserved.rows[0]) {
+          const error = new Error("Documentation path is retired");
+          Object.assign(error, { code: "documentation_path_retired" });
+          throw error;
+        }
+        const routing = await client.query<{ id: string }>(
+          `SELECT id FROM documentation_schema.routing_set
+            WHERE site_edition_id=$1 AND organization_id=$2 AND project_id=$3`,
+          [page.site_edition_id, input.organization_id, input.project_id],
+        );
+        await client.query(
+          `INSERT INTO documentation_schema.page_slug_alias
+            (id,organization_id,project_id,site_edition_id,routing_set_id,
+             documentation_page_id,former_path,created_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            page.site_edition_id,
+            routing.rows[0]!.id,
+            input.page_id,
+            page.canonical_path,
+            input.actor_org_user_id,
+          ],
+        );
+      }
+
+      if (input.data.keywords) {
+        await client.query(
+          `DELETE FROM documentation_schema.documentation_page_keyword
+            WHERE documentation_page_id=$1 AND organization_id=$2 AND project_id=$3`,
+          [input.page_id, input.organization_id, input.project_id],
+        );
+        for (const [index, keyword] of input.data.keywords.entries()) {
+          await client.query(
+            `INSERT INTO documentation_schema.documentation_page_keyword
+              (id,organization_id,project_id,site_edition_id,
+               documentation_page_id,keyword,position)
+             VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+            [
+              ulid(),
+              input.organization_id,
+              input.project_id,
+              page.site_edition_id,
+              input.page_id,
+              keyword,
+              index + 1,
+            ],
+          );
+        }
+      }
+      const title = input.data.title ?? page.title;
+      const description =
+        "description" in input.data ? input.data.description ?? null : page.description;
+      await client.query(
+        `UPDATE documentation_schema.documentation_page
+            SET title=$1,description=$2,canonical_path=$3,version=version+1,
+                updated_by_id=$4,updated_at=CURRENT_TIMESTAMP
+          WHERE id=$5 AND organization_id=$6 AND project_id=$7`,
+        [
+          title,
+          description,
+          canonical_path,
+          input.actor_org_user_id,
+          input.page_id,
+          input.organization_id,
+          input.project_id,
+        ],
+      );
+      return {
+        ...page,
+        title,
+        description,
+        canonical_path,
+        version: page.version + 1,
+        keywords: input.data.keywords ?? [],
+      };
+    }),
+
+  replace_navigation: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    actor_org_user_id: string;
+    expected_version: number;
+    nodes: Array<{
+      id: string;
+      parent_id: string | null;
+      kind: "group" | "page";
+      label: string | null;
+      page_id: string | null;
+      position: number;
+    }>;
+  }) =>
+    with_transaction(database, async (client) => {
+      validate_documentation_navigation(
+        input.nodes.map((node) => ({
+          id: node.id,
+          parent_id: node.parent_id,
+          kind: node.kind,
+          page_id: node.page_id,
+        })),
+      );
+      const treeResult = await client.query<{
+        id: string;
+        site_edition_id: string;
+        version: number;
+      }>(
+        `SELECT tree.id,tree.site_edition_id,tree.version
+           FROM documentation_schema.navigation_tree tree
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=tree.site_edition_id
+          WHERE tree.organization_id=$1 AND tree.project_id=$2
+            AND edition.project_version_id=$3
+            AND tree.documentation_site_id=$4
+          FOR UPDATE OF tree`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+        ],
+      );
+      const tree = treeResult.rows[0];
+      if (!tree) throw new Error("Documentation Site was not found");
+      if (tree.version !== input.expected_version) {
+        const error = new Error("Navigation changed; reload and retry");
+        Object.assign(error, { code: "documentation_row_version_conflict" });
+        throw error;
+      }
+      const pageIds = input.nodes
+        .map((node) => node.page_id)
+        .filter((id): id is string => Boolean(id));
+      if (pageIds.length) {
+        const pages = await client.query<{ id: string }>(
+          `SELECT id FROM documentation_schema.documentation_page
+            WHERE site_edition_id=$1 AND organization_id=$2 AND project_id=$3
+              AND id=ANY($4::varchar[])`,
+          [
+            tree.site_edition_id,
+            input.organization_id,
+            input.project_id,
+            pageIds,
+          ],
+        );
+        if (pages.rows.length !== pageIds.length) {
+          const error = new Error("Navigation references an unknown Page");
+          Object.assign(error, { code: "documentation_navigation_invalid" });
+          throw error;
+        }
+      }
+      await client.query(
+        `DELETE FROM documentation_schema.navigation_node
+          WHERE navigation_tree_id=$1 AND organization_id=$2 AND project_id=$3`,
+        [tree.id, input.organization_id, input.project_id],
+      );
+      const remaining = new Map(input.nodes.map((node) => [node.id, node]));
+      while (remaining.size) {
+        const ready = [...remaining.values()].filter(
+          (node) => !node.parent_id || !remaining.has(node.parent_id),
+        );
+        if (!ready.length) {
+          const error = new Error("Navigation must be acyclic");
+          Object.assign(error, { code: "documentation_navigation_invalid" });
+          throw error;
+        }
+        for (const node of ready) {
+          await client.query(
+            `INSERT INTO documentation_schema.navigation_node
+              (id,organization_id,project_id,site_edition_id,navigation_tree_id,
+               parent_id,kind,label,documentation_page_id,position,
+               created_by_id,updated_by_id)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11)`,
+            [
+              node.id,
+              input.organization_id,
+              input.project_id,
+              tree.site_edition_id,
+              tree.id,
+              node.parent_id,
+              node.kind,
+              node.label,
+              node.page_id,
+              node.position,
+              input.actor_org_user_id,
+            ],
+          );
+          remaining.delete(node.id);
+        }
+      }
+      await client.query(
+        `UPDATE documentation_schema.navigation_tree
+            SET version=version+1,updated_by_id=$1,updated_at=CURRENT_TIMESTAMP
+          WHERE id=$2`,
+        [input.actor_org_user_id, tree.id],
+      );
+      return { id: tree.id, version: tree.version + 1, nodes: input.nodes };
+    }),
+
+  replace_routing: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    actor_org_user_id: string;
+    expected_version: number;
+    rules: Array<{
+      id: string;
+      source_path: string;
+      outcome: "redirect" | "gone";
+      target_page_id: string | null;
+    }>;
+  }) =>
+    with_transaction(database, async (client) => {
+      const setResult = await client.query<{
+        id: string;
+        site_edition_id: string;
+        version: number;
+      }>(
+        `SELECT routing.id,routing.site_edition_id,routing.version
+           FROM documentation_schema.routing_set routing
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=routing.site_edition_id
+          WHERE routing.organization_id=$1 AND routing.project_id=$2
+            AND edition.project_version_id=$3
+            AND routing.documentation_site_id=$4
+          FOR UPDATE OF routing`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+        ],
+      );
+      const routing = setResult.rows[0];
+      if (!routing) throw new Error("Documentation Site was not found");
+      if (routing.version !== input.expected_version) {
+        const error = new Error("Routing changed; reload and retry");
+        Object.assign(error, { code: "documentation_row_version_conflict" });
+        throw error;
+      }
+      const pages = await client.query<{ id: string; canonical_path: string }>(
+        `SELECT id,canonical_path
+           FROM documentation_schema.documentation_page
+          WHERE site_edition_id=$1 AND organization_id=$2 AND project_id=$3`,
+        [routing.site_edition_id, input.organization_id, input.project_id],
+      );
+      const paths = new Map(pages.rows.map((page) => [page.id, page.canonical_path]));
+      validate_documentation_routes(
+        input.rules.map((rule) => ({
+          source_path: rule.source_path,
+          outcome: rule.outcome,
+          target_path:
+            rule.outcome === "redirect"
+              ? paths.get(rule.target_page_id ?? "") ?? null
+              : null,
+        })),
+      );
+      if (
+        input.rules.some(
+          (rule) =>
+            pages.rows.some((page) => page.canonical_path === rule.source_path) ||
+            (rule.target_page_id !== null && !paths.has(rule.target_page_id)),
+        )
+      ) {
+        const error = new Error("Routing references a conflicting path or Page");
+        Object.assign(error, { code: "documentation_path_conflict" });
+        throw error;
+      }
+      const aliases = await client.query<{
+        id: string;
+        documentation_page_id: string;
+        former_path: string;
+      }>(
+        `SELECT id,documentation_page_id,former_path
+           FROM documentation_schema.page_slug_alias
+          WHERE site_edition_id=$1 AND organization_id=$2 AND project_id=$3
+          ORDER BY former_path`,
+        [routing.site_edition_id, input.organization_id, input.project_id],
+      );
+      if (
+        input.rules.some((rule) =>
+          aliases.rows.some((alias) => alias.former_path === rule.source_path),
+        )
+      ) {
+        const error = new Error("Documentation path is retired");
+        Object.assign(error, { code: "documentation_path_retired" });
+        throw error;
+      }
+      await client.query(
+        `DELETE FROM documentation_schema.documentation_redirect_rule
+          WHERE routing_set_id=$1 AND organization_id=$2 AND project_id=$3`,
+        [routing.id, input.organization_id, input.project_id],
+      );
+      for (const rule of input.rules) {
+        await client.query(
+          `INSERT INTO documentation_schema.documentation_redirect_rule
+            (id,organization_id,project_id,site_edition_id,routing_set_id,
+             source_path,outcome,target_page_id,created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)`,
+          [
+            rule.id,
+            input.organization_id,
+            input.project_id,
+            routing.site_edition_id,
+            routing.id,
+            rule.source_path,
+            rule.outcome,
+            rule.target_page_id,
+            input.actor_org_user_id,
+          ],
+        );
+      }
+      await client.query(
+        `UPDATE documentation_schema.routing_set
+            SET version=version+1,updated_by_id=$1,updated_at=CURRENT_TIMESTAMP
+          WHERE id=$2`,
+        [input.actor_org_user_id, routing.id],
+      );
+      return {
+        id: routing.id,
+        version: routing.version + 1,
+        rules: input.rules,
+        aliases: aliases.rows,
+      };
+    }),
+
+  create_comment_thread: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    page_id: string;
+    actor_org_user_id: string;
+    idempotency_key: string;
+    body: string;
+    block_anchor_id: string | null;
+    mentioned_project_membership_ids: string[];
+  }) =>
+    with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        site_id: input.site_id,
+        page_id: input.page_id,
+        body: input.body,
+        block_anchor_id: input.block_anchor_id,
+        mentioned_project_membership_ids:
+          input.mentioned_project_membership_ids,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.comment.create",
+        request_digest,
+      });
+      if (replay) return replay;
+      const page = await client.query<{ site_edition_id: string }>(
+        `SELECT page.site_edition_id
+           FROM documentation_schema.documentation_page page
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=page.site_edition_id
+          WHERE page.id=$1 AND page.documentation_site_id=$2
+            AND page.organization_id=$3 AND page.project_id=$4
+            AND edition.project_version_id=$5`,
+        [
+          input.page_id,
+          input.site_id,
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+        ],
+      );
+      if (!page.rows[0]) throw new Error("Documentation Page was not found");
+      if (input.block_anchor_id) {
+        const anchor = await client.query(
+          `SELECT 1 FROM documentation_schema.documentation_page_block
+            WHERE id=$1 AND documentation_page_id=$2
+              AND site_edition_id=$3 AND organization_id=$4 AND project_id=$5`,
+          [
+            input.block_anchor_id,
+            input.page_id,
+            page.rows[0].site_edition_id,
+            input.organization_id,
+            input.project_id,
+          ],
+        );
+        if (!anchor.rows[0]) {
+          const error = new Error("Comment anchor was not found");
+          Object.assign(error, { code: "documentation_comment_anchor_missing" });
+          throw error;
+        }
+      }
+      const thread = {
+        id: ulid(),
+        documentation_page_id: input.page_id,
+        block_anchor_id: input.block_anchor_id,
+        body: input.body,
+        state: "open" as const,
+        version: 1,
+      };
+      await client.query(
+        `INSERT INTO documentation_schema.comment_thread
+          (id,organization_id,project_id,site_edition_id,documentation_page_id,
+           block_anchor_id,body,created_by_id,updated_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8)`,
+        [
+          thread.id,
+          input.organization_id,
+          input.project_id,
+          page.rows[0].site_edition_id,
+          input.page_id,
+          input.block_anchor_id,
+          input.body,
+          input.actor_org_user_id,
+        ],
+      );
+      await insert_comment_mentions(client, {
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        site_edition_id: page.rows[0].site_edition_id,
+        thread_id: thread.id,
+        reply_id: null,
+        actor_org_user_id: input.actor_org_user_id,
+        project_membership_ids: input.mentioned_project_membership_ids,
+      });
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.comment.create",
+        request_digest,
+        response_status: 201,
+        response_body: thread,
+      });
+      return { ...thread, idempotent_replay: false };
+    }),
+
+  create_comment_reply: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    thread_id: string;
+    actor_org_user_id: string;
+    idempotency_key: string;
+    body: string;
+    mentioned_project_membership_ids: string[];
+  }) =>
+    with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        site_id: input.site_id,
+        thread_id: input.thread_id,
+        body: input.body,
+        mentioned_project_membership_ids:
+          input.mentioned_project_membership_ids,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.comment.reply",
+        request_digest,
+      });
+      if (replay) return replay;
+      const thread = await client.query<{ site_edition_id: string }>(
+        `SELECT thread.site_edition_id
+           FROM documentation_schema.comment_thread thread
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=thread.site_edition_id
+          WHERE thread.id=$1 AND edition.documentation_site_id=$2
+            AND thread.organization_id=$3 AND thread.project_id=$4
+            AND edition.project_version_id=$5`,
+        [
+          input.thread_id,
+          input.site_id,
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+        ],
+      );
+      if (!thread.rows[0]) throw new Error("Comment thread was not found");
+      const reply = {
+        id: ulid(),
+        comment_thread_id: input.thread_id,
+        body: input.body,
+        version: 1,
+      };
+      await client.query(
+        `INSERT INTO documentation_schema.comment_reply
+          (id,organization_id,project_id,site_edition_id,comment_thread_id,
+           body,created_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [
+          reply.id,
+          input.organization_id,
+          input.project_id,
+          thread.rows[0].site_edition_id,
+          input.thread_id,
+          input.body,
+          input.actor_org_user_id,
+        ],
+      );
+      await insert_comment_mentions(client, {
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        site_edition_id: thread.rows[0].site_edition_id,
+        thread_id: input.thread_id,
+        reply_id: reply.id,
+        actor_org_user_id: input.actor_org_user_id,
+        project_membership_ids: input.mentioned_project_membership_ids,
+      });
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.comment.reply",
+        request_digest,
+        response_status: 201,
+        response_body: reply,
+      });
+      return { ...reply, idempotent_replay: false };
+    }),
+
+  transition_comment: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    thread_id: string;
+    actor_org_user_id: string;
+    expected_version: number;
+    transition: "resolve" | "reopen";
+  }) =>
+    with_transaction(database, async (client) => {
+      const result = await client.query<{
+        id: string;
+        state: "open" | "resolved";
+        version: number;
+      }>(
+        `SELECT thread.id,thread.state,thread.version
+           FROM documentation_schema.comment_thread thread
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=thread.site_edition_id
+          WHERE thread.id=$1 AND edition.documentation_site_id=$2
+            AND thread.organization_id=$3 AND thread.project_id=$4
+            AND edition.project_version_id=$5
+          FOR UPDATE OF thread`,
+        [
+          input.thread_id,
+          input.site_id,
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+        ],
+      );
+      const thread = result.rows[0];
+      if (!thread) throw new Error("Comment thread was not found");
+      if (thread.version !== input.expected_version) {
+        const error = new Error("Comment changed; reload and retry");
+        Object.assign(error, { code: "documentation_row_version_conflict" });
+        throw error;
+      }
+      const state = assert_documentation_comment_transition(
+        thread.state,
+        input.transition,
+      );
+      await client.query(
+        `UPDATE documentation_schema.comment_thread
+            SET state=$1,version=version+1,updated_by_id=$2,
+                updated_at=CURRENT_TIMESTAMP
+          WHERE id=$3`,
+        [state, input.actor_org_user_id, input.thread_id],
+      );
+      return { ...thread, state, version: thread.version + 1 };
+    }),
+
   create_page: async (input: {
     organization_id: string;
     project_id: string;

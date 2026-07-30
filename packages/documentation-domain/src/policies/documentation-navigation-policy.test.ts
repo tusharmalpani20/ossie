@@ -20,4 +20,17 @@ describe("documentation navigation policy", () => {
       ]),
     ).toThrow(DocumentationDomainError);
   });
+
+  it("rejects a parent outside the same navigation tree", () => {
+    expect(() =>
+      validate_documentation_navigation([
+        {
+          id: "page-node",
+          kind: "page",
+          parent_id: "missing",
+          page_id: "page-1",
+        },
+      ]),
+    ).toThrow(DocumentationDomainError);
+  });
 });
