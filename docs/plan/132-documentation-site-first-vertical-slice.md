@@ -6,7 +6,9 @@ Date expanded: 2026-07-30
 
 Date rechecked: 2026-07-30
 
-Status: Implementation-ready after recheck on 2026-07-30. Product Documentation
+Status: Active implementation; core vertical path implemented and verified on
+2026-07-30, but child-owned access, asset, audit/access-evidence, portal-control,
+smoke, and browser-matrix gaps remain. Product Documentation
 runtime remains unimplemented and must not begin until this scoped plan
 checkpoint is committed. The mandatory dependency/adapter proof in Stage 1 may
 select the documented Ossie-native fallback; it may not change domain
@@ -1904,18 +1906,28 @@ against the actual child `132` result.
 
 ### Implementation
 
-- [ ] Adapter proof completed and exact pins/fallback recorded.
-- [ ] Domain/constants/types implemented test-first.
-- [ ] Migration/schema/runtime grants/immutable/protected-reference rules pass.
-- [ ] Authorized mutable API and independent Page concurrency pass.
-- [ ] Portal editor/comments/OpenAPI/preview pass.
-- [ ] Revision/Publication/Publish Link/public reader/search/metadata pass.
-- [ ] Failed preparation and atomic rollback pass.
-- [ ] Existing Guide/Demo/Capture/extension behavior remains green.
-- [ ] Deterministic Documentation fixture and V1 smoke pass.
-- [ ] Real-browser/accessibility/reflow/motion/console/security evidence passes.
-- [ ] Current truth and Master `006` updated only for shipped behavior.
-- [ ] Scoped logical commits contain no unrelated/generated/secret material.
+- [x] Adapter proof completed; Ossie-native editor/reader fallback and
+      `yaml@2.9.0` exact pin recorded.
+- [x] Domain/constants/types implemented test-first.
+- [ ] Migration/schema/runtime grants/immutable/protected-reference rules pass
+      completely. Clean migrate and Revision/Publication immutability pass;
+      asset protection and the complete DB threat matrix remain open.
+- [x] Authorized mutable API and independent Page concurrency pass for the
+      implemented Site/Page/navigation/routing/comment/OpenAPI aggregates.
+- [ ] Portal editor/comments/OpenAPI/preview pass completely. Library, Page
+      autosave/conflict/read-only state, workbench, and saved preview pass;
+      comments/OpenAPI/navigation/routing controls remain open.
+- [x] Revision/Publication/Publish Link/public reader/search/metadata core path
+      passes, including the shared Documentation family resolver.
+- [x] Failed preparation policy test and atomic rollback integration pass.
+- [x] Existing Guide/Demo/Capture/extension build and focused regressions remain
+      green.
+- [ ] Deterministic Documentation fixture passes; V1 smoke integration remains
+      open.
+- [ ] Real-browser accessibility/reflow/motion/core exactness evidence passes;
+      the complete access/security/upper-bound matrix remains open.
+- [x] Current truth and Master `006` updated only for shipped behavior.
+- [x] Scoped logical commits contain no unrelated/generated/secret material.
 
 ### Exit
 
@@ -1949,7 +1961,23 @@ against the actual child `132` result.
   idempotency receipts/retention, hard safety ceilings, route-capability
   precedence, exact public metadata/redirect handling, and the static-SPA
   crawler boundary.
-- Runtime implementation: not started.
+- 2026-07-30: Implemented the Documentation domain/constants/contracts and
+  additive migration `025`, including relational mutable aggregates,
+  immutable Revision snapshots, type-specific Site Publications, and the
+  shared Publish Link family discriminator.
+- 2026-07-30: Implemented version-scoped Site/Page/navigation/routing/comment/
+  OpenAPI/preview/Revision/Publication/rollback routes and a DB-backed 15-step
+  lifecycle integration journey.
+- 2026-07-30: Implemented the portal Site library, saved-draft workbench, Page
+  autosave/conflict/read-only state, saved preview, public reader/search/
+  operation/metadata surface, canonical alias/redirect/gone handling, and
+  shared root family resolution.
+- 2026-07-30: Added the guarded deterministic Documentation browser fixture.
+  It creates two Pages, bounded OpenAPI, authorized private mention/reply/
+  reopen, Revision/Publication 1, Working Draft mutation, Revision/Publication
+  2, and pointer-only rollback to Publication 1.
+- 2026-07-30: Agent Browser found and drove fixes for frozen metadata adapter
+  mismatch, opaque SPA redirect handling, and hidden Viewer saved content.
 
 ## 27. Verification Record
 
@@ -1974,11 +2002,29 @@ Planning verification completed so far:
 - scoped status: documentation/plan/current-direction files only; no runtime,
   migration, dependency, generated output, or browser artifact changed.
 
-Not yet run:
+Runtime verification completed:
 
-- runtime unit/route/database/smoke/build/browser verification.
+- `@repo/documentation-domain`: 8 files, 9 tests passed; type check passed.
+- `@repo/types` Documentation/Publish: 18 focused tests passed.
+- server Documentation/audit-coverage/Publish/storage: 8 files, 31 tests
+  passed.
+- web Documentation/routes/navigation/metadata: 11 files, 49 tests passed.
+- Documentation DB and browser-fixture DB: 2 files, 3 tests passed.
+- migration `025` populated rollback refusal: passed; empty-database down/up
+  rehearsal and foundation schema (13 tests): passed.
+- `pnpm lint`, `pnpm check-types`, and `pnpm build`: passed when run
+  sequentially. The initial parallel lint/build attempt was terminated by
+  resource pressure and was not counted.
+- `git diff --check`: passed at every scoped commit boundary.
+- Agent Browser evidence: see
+  `docs/ui/132-documentation-site-first-vertical-slice-browser-evidence.md`.
 
-No runtime result may be inferred from this planning record.
+Not yet run or not yet complete:
+
+- full `pnpm --filter server test:db`;
+- V1 smoke integration with the Documentation journey;
+- complete tenant/role/IDOR, protected asset, access-policy, audit/access
+  evidence, upper-bound performance, and browser access matrix.
 
 ## 28. Planning Leftovers And Handoff
 
@@ -1994,3 +2040,18 @@ After child `132` closes, carry only these accepted later concerns into child
 Publication reference blocks, full Documentation Asset workflows, content/
 asset product limits, and expanded immutable snapshot coverage. All other
 future features remain with their reserved children.
+
+Current child-owned leftovers that block closure and must not be handed to
+child `133`:
+
+- complete Documentation image asset upload/delivery/protected-reference flow;
+- internal draft search projection/API and bounded database-backed public
+  search rather than snapshot string matching;
+- portal navigation/routing/comments/OpenAPI/media/publish/history/rollback
+  controls and Revision/Publication history views;
+- restricted/password/revoked/expired Documentation viewer-session behavior;
+- complete mutation audit/access-evidence matrix, tenant/role/IDOR tests, and
+  immutable `TRUNCATE`/maintenance-path verification;
+- complete V1 smoke and full DB suite integration;
+- remaining real-browser access/security/failure/upper-bound passes listed in
+  the browser evidence.

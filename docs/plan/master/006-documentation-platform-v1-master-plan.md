@@ -2,10 +2,12 @@
 
 Date: 2026-07-30
 
-Status: Active at the child `132` plan checkpoint. Child `132` is expanded and
-rechecked; children `133` through `140` are bounded reservations that must be
-re-expanded after their actual predecessors. Product Documentation runtime
-remains unimplemented.
+Status: Active during child `132` implementation. The core relational
+Documentation authoring/publication/public-reader path is implemented and
+verified, but child `132` remains open on its documented access, asset,
+audit/access-evidence, portal-control, smoke, and browser-matrix gates.
+Children `133` through `140` remain bounded reservations that must be
+re-expanded after their actual predecessors.
 
 Master plan number: 006.
 
