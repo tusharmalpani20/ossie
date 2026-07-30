@@ -8,10 +8,10 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(79);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(82);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(79);
+    ).toBe(82);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
@@ -170,6 +170,13 @@ describe("audit coverage registry", () => {
       ),
       "utf8",
     );
+    const migration_025 = readFileSync(
+      new URL(
+        "../../db/migrations/025_documentation_site_first_vertical_slice.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
     const policy_start = migration_016.indexOf("FROM (VALUES");
     const policy_end = migration_016.indexOf(") AS policy(command, action)");
     const new_policy_start = migration_019.indexOf(
@@ -186,7 +193,7 @@ describe("audit coverage registry", () => {
       "AND selected_actor_type",
       version_policy_start,
     );
-    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}\n${migration_022}\n${migration_023}\n${migration_024}`;
+    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}\n${migration_022}\n${migration_023}\n${migration_024}\n${migration_025}`;
     const pairs = [...policy.matchAll(/\('([^']+)',\s*'([^']+)'\)/gu)]
       .map(([, command, action]) => ({ command, action }))
       .filter(({ command }) =>
@@ -257,6 +264,13 @@ describe("audit coverage registry", () => {
     const migration_024 = readFileSync(
       new URL(
         "../../db/migrations/024_revision_backed_publication_and_publish_link_manifests.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const migration_025 = readFileSync(
+      new URL(
+        "../../db/migrations/025_documentation_site_first_vertical_slice.sql",
         import.meta.url,
       ),
       "utf8",
@@ -359,6 +373,30 @@ describe("audit coverage registry", () => {
       "publish.guide_link.manifest_update",
       "publish.interactive_demo_link.manifest_update",
     ]);
+    const migration_025_up =
+      migration_025.split("-- DOWN:")[0] ?? migration_025;
+    for (const [table, operation, triggerName] of [
+      ["publish_link", "INSERT", "publish_link_i_audit_ctx"],
+      ["publish_link", "UPDATE", "publish_link_u_audit_ctx"],
+      ["publish_link_entry", "INSERT", "publish_link_entry_i_audit_ctx"],
+      ["publish_link_entry", "UPDATE", "publish_link_entry_u_audit_ctx"],
+    ] as const) {
+      const triggerStart = migration_025_up.indexOf(
+        `CREATE TRIGGER ${triggerName}`,
+      );
+      const triggerEnd = migration_025_up.indexOf(");", triggerStart);
+      const triggerDefinition = migration_025_up.slice(
+        triggerStart,
+        triggerEnd,
+      );
+      const commandArgument = [...triggerDefinition.matchAll(/'([^']+)'/gu)].at(
+        -1,
+      )?.[1];
+      actual.set(
+        `publish_schema.${table}:${operation}`,
+        commandArgument?.split(",") ?? [],
+      );
+    }
     actual.delete("publish_schema.published_artifact_capture_asset:INSERT");
 
     expect(actual).toEqual(expected);

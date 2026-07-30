@@ -9,6 +9,11 @@ import {
   DocumentationIdempotencyConflictError,
   DocumentationRowVersionConflictError,
 } from "./documentation.service";
+import {
+  build_entity_audit_event,
+  resolve_org_user_audit_context,
+} from "../audit/entity-audit";
+import { write_audit_event } from "../audit/audit.repository";
 
 type QueryResult<Row> = { rows: Row[] };
 type Queryable = {
@@ -154,6 +159,56 @@ const insert_comment_mentions = async (
   }
 };
 
+const bump_working_draft = (
+  client: Queryable,
+  input: {
+    organization_id: string;
+    project_id: string;
+    site_edition_id: string;
+    actor_org_user_id: string;
+  },
+) =>
+  client.query(
+    `UPDATE documentation_schema.site_working_draft
+        SET version=version+1,updated_by_id=$1,updated_at=CURRENT_TIMESTAMP
+      WHERE organization_id=$2 AND project_id=$3 AND site_edition_id=$4`,
+    [
+      input.actor_org_user_id,
+      input.organization_id,
+      input.project_id,
+      input.site_edition_id,
+    ],
+  );
+
+const begin_documentation_audit_context = async (
+  client: Queryable,
+  input: {
+    organization_id: string;
+    actor_org_user_id: string;
+    command: string;
+    action: string;
+  },
+) => {
+  const event_id = ulid();
+  const context = await resolve_org_user_audit_context(client, input);
+  for (const [name, value] of [
+    ["ossie.audit_event_id", event_id],
+    ["ossie.audit_organization_id", input.organization_id],
+    ["ossie.audit_action", input.action],
+    ["ossie.audit_command", input.command],
+    ["ossie.audit_actor_type", "org_user"],
+    ["ossie.audit_source_type", context.mutation.source_type],
+  ]) {
+    await client.query("SELECT set_config($1,$2,true)", [name, value]);
+  }
+  return {
+    event_id,
+    actor_label: context.actor_label,
+    source_type: context.mutation.source_type,
+    occurred_at: new Date().toISOString(),
+  };
+};
+
 type CreateSiteInput = {
   organization_id: string;
   project_id: string;
@@ -215,7 +270,1232 @@ const to_documentation_block = (row: Record<string, unknown>) => {
   }
 };
 
+const load_draft_snapshot = async (
+  db: Queryable,
+  input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+  },
+) => {
+  const aggregate = await db.query<{
+    site_id: string;
+    site_name: string;
+    site_description: string | null;
+    site_edition_id: string;
+    primary_language: string;
+    working_draft_id: string;
+    home_page_id: string | null;
+    draft_version: number;
+  }>(
+    `SELECT site.id site_id,site.name site_name,
+            site.description site_description,edition.id site_edition_id,
+            edition.primary_language,draft.id working_draft_id,
+            draft.home_page_id,draft.version draft_version
+       FROM documentation_schema.documentation_site site
+       JOIN documentation_schema.site_edition edition
+         ON edition.documentation_site_id=site.id
+       JOIN documentation_schema.site_working_draft draft
+         ON draft.site_edition_id=edition.id
+      WHERE site.organization_id=$1 AND site.project_id=$2
+        AND edition.project_version_id=$3 AND site.id=$4`,
+    [
+      input.organization_id,
+      input.project_id,
+      input.project_version_id,
+      input.site_id,
+    ],
+  );
+  const root = aggregate.rows[0];
+  if (!root) return null;
+  const pages = await db.query<{
+    id: string;
+    title: string;
+    description: string | null;
+    canonical_path: string;
+    version: number;
+  }>(
+    `SELECT id,title,description,canonical_path,version
+       FROM documentation_schema.documentation_page
+      WHERE organization_id=$1 AND project_id=$2 AND site_edition_id=$3
+      ORDER BY canonical_path,id`,
+    [input.organization_id, input.project_id, root.site_edition_id],
+  );
+  const pageIds = pages.rows.map((page) => page.id as string);
+  const blocks = pageIds.length
+    ? await db.query<Record<string, unknown>>(
+        `SELECT block.id,block.documentation_page_id,block.kind,block.position,
+                block.heading_level,block.text_content,block.code_language,
+                block.link_url,block.linked_page_id,
+                block.documentation_asset_id,block.openapi_source_id,
+                block.operation_key,block.alt_text,block.image_caption,
+                block.version,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',item.id,'text',item.text_content,
+                    'position',item.position,'expected_version',item.version
+                  ) ORDER BY item.position,item.id)
+                    FROM documentation_schema.documentation_list_item item
+                   WHERE item.documentation_page_block_id=block.id
+                ),'[]'::jsonb) items
+           FROM documentation_schema.documentation_page_block block
+          WHERE block.organization_id=$1 AND block.project_id=$2
+            AND block.documentation_page_id=ANY($3::varchar[])
+          ORDER BY block.documentation_page_id,block.position,block.id`,
+        [input.organization_id, input.project_id, pageIds],
+      )
+    : { rows: [] };
+  const keywords = pageIds.length
+    ? await db.query<Record<string, unknown>>(
+        `SELECT id,documentation_page_id,keyword,position,version
+           FROM documentation_schema.documentation_page_keyword
+          WHERE organization_id=$1 AND project_id=$2
+            AND documentation_page_id=ANY($3::varchar[])
+          ORDER BY documentation_page_id,position,id`,
+        [input.organization_id, input.project_id, pageIds],
+      )
+    : { rows: [] };
+  const navigation = await db.query<Record<string, unknown>>(
+    `SELECT node.id,node.parent_id,node.kind,node.label,
+            node.documentation_page_id page_id,node.position,node.version
+       FROM documentation_schema.navigation_node node
+      WHERE node.organization_id=$1 AND node.project_id=$2
+        AND node.site_edition_id=$3
+      ORDER BY node.parent_id NULLS FIRST,node.position,node.id`,
+    [input.organization_id, input.project_id, root.site_edition_id],
+  );
+  const aliases = await db.query<Record<string, unknown>>(
+    `SELECT id,documentation_page_id,former_path
+       FROM documentation_schema.page_slug_alias
+      WHERE organization_id=$1 AND project_id=$2 AND site_edition_id=$3
+      ORDER BY former_path,id`,
+    [input.organization_id, input.project_id, root.site_edition_id],
+  );
+  const redirects = await db.query<Record<string, unknown>>(
+    `SELECT id,source_path,outcome,target_page_id,version
+       FROM documentation_schema.documentation_redirect_rule
+      WHERE organization_id=$1 AND project_id=$2 AND site_edition_id=$3
+      ORDER BY source_path,id`,
+    [input.organization_id, input.project_id, root.site_edition_id],
+  );
+  const operations = await db.query<Record<string, unknown>>(
+    `SELECT operation.id,operation.method,operation.path,
+            operation.operation_id,operation.destination_key,
+            operation.summary,operation.openapi_source_id
+       FROM documentation_schema.openapi_operation operation
+      WHERE operation.organization_id=$1 AND operation.project_id=$2
+        AND operation.site_edition_id=$3
+      ORDER BY operation.destination_key,operation.id`,
+    [input.organization_id, input.project_id, root.site_edition_id],
+  );
+  const assets = await db.query<Record<string, unknown>>(
+    `SELECT id,file_id,mime_type,byte_size,width,height,digest
+       FROM documentation_schema.documentation_asset
+      WHERE organization_id=$1 AND project_id=$2 AND site_edition_id=$3
+      ORDER BY id`,
+    [input.organization_id, input.project_id, root.site_edition_id],
+  );
+  return {
+    site: {
+      id: root.site_id,
+      name: root.site_name,
+      description: root.site_description,
+    },
+    edition: {
+      id: root.site_edition_id,
+      project_version_id: input.project_version_id,
+      primary_language: root.primary_language,
+    },
+    working_draft: {
+      id: root.working_draft_id,
+      home_page_id: root.home_page_id,
+      version: root.draft_version,
+    },
+    pages: pages.rows.map((page) => ({
+      ...page,
+      keywords: keywords.rows
+        .filter((keyword) => keyword.documentation_page_id === page.id)
+        .map((keyword) => ({
+          id: keyword.id,
+          keyword: keyword.keyword,
+          position: keyword.position,
+          expected_version: keyword.version,
+        })),
+      blocks: blocks.rows
+        .filter((block) => block.documentation_page_id === page.id)
+        .map(to_documentation_block),
+    })),
+    navigation: navigation.rows,
+    aliases: aliases.rows,
+    redirects: redirects.rows,
+    openapi_operations: operations.rows,
+    assets: assets.rows,
+  };
+};
+
+const load_revision_snapshot = async (
+  db: Queryable,
+  input: {
+    site_revision_id: string;
+    organization_id?: string;
+    project_id?: string;
+  },
+) => {
+  const values: unknown[] = [input.site_revision_id];
+  const scope =
+    input.organization_id && input.project_id
+      ? "AND revision.organization_id=$2 AND revision.project_id=$3"
+      : "";
+  if (scope) values.push(input.organization_id, input.project_id);
+  const revision = await db.query<{
+    id: string;
+    documentation_site_id: string;
+    site_edition_id: string;
+    project_version_id: string;
+    revision_number: number;
+    site_name: string;
+    site_description: string | null;
+    home_page_id: string;
+    primary_language: string;
+    content_digest: string;
+    created_at: Date;
+  }>(
+    `SELECT revision.id,revision.documentation_site_id,
+            revision.site_edition_id,revision.project_version_id,
+            revision.revision_number,revision.site_name,
+            revision.site_description,revision.home_page_id,
+            revision.primary_language,revision.content_digest,
+            revision.created_at
+       FROM documentation_schema.site_revision revision
+      WHERE revision.id=$1 ${scope}`,
+    values,
+  );
+  const root = revision.rows[0];
+  if (!root) return null;
+  const pages = await db.query<Record<string, unknown>>(
+    `SELECT id,source_page_id,title,description,canonical_path,content_text
+       FROM documentation_schema.site_revision_page
+      WHERE site_revision_id=$1 ORDER BY canonical_path,id`,
+    [root.id],
+  );
+  const pageRowIds = pages.rows.map((page) => page.id as string);
+  const blocks = pageRowIds.length
+    ? await db.query<Record<string, unknown>>(
+        `SELECT block.id,block.site_revision_page_id,
+                block.source_block_id id,block.kind,block.position,
+                block.heading_level,block.text_content,block.code_language,
+                block.link_url,block.linked_source_page_id linked_page_id,
+                block.source_asset_id documentation_asset_id,
+                block.source_openapi_source_id openapi_source_id,
+                block.operation_key,block.alt_text,block.image_caption,
+                1 version,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',item.source_list_item_id,'text',item.text_content,
+                    'position',item.position,'expected_version',1
+                  ) ORDER BY item.position,item.id)
+                    FROM documentation_schema.site_revision_list_item item
+                   WHERE item.site_revision_page_block_id=block.id
+                ),'[]'::jsonb) items
+           FROM documentation_schema.site_revision_page_block block
+          WHERE block.site_revision_id=$1
+          ORDER BY block.site_revision_page_id,block.position,block.id`,
+        [root.id],
+      )
+    : { rows: [] };
+  const keywords = await db.query<Record<string, unknown>>(
+    `SELECT site_revision_page_id,keyword,position
+       FROM documentation_schema.site_revision_page_keyword
+      WHERE site_revision_id=$1 ORDER BY site_revision_page_id,position,id`,
+    [root.id],
+  );
+  const navigation = await db.query<Record<string, unknown>>(
+    `SELECT source_navigation_node_id id,
+            parent_source_navigation_node_id parent_id,kind,label,
+            source_page_id page_id,position
+       FROM documentation_schema.site_revision_navigation_node
+      WHERE site_revision_id=$1 ORDER BY parent_source_navigation_node_id NULLS FIRST,position,id`,
+    [root.id],
+  );
+  const aliases = await db.query<Record<string, unknown>>(
+    `SELECT source_page_id documentation_page_id,former_path
+       FROM documentation_schema.site_revision_page_alias
+      WHERE site_revision_id=$1 ORDER BY former_path,id`,
+    [root.id],
+  );
+  const redirects = await db.query<Record<string, unknown>>(
+    `SELECT source_path,outcome,target_source_page_id target_page_id
+       FROM documentation_schema.site_revision_redirect_rule
+      WHERE site_revision_id=$1 ORDER BY source_path,id`,
+    [root.id],
+  );
+  const operations = await db.query<Record<string, unknown>>(
+    `SELECT source_openapi_operation_id id,method,path,operation_id,
+            destination_key,summary
+       FROM documentation_schema.site_revision_openapi_operation
+      WHERE site_revision_id=$1 ORDER BY destination_key,id`,
+    [root.id],
+  );
+  return {
+    revision: {
+      ...root,
+      created_at: root.created_at.toISOString(),
+    },
+    pages: pages.rows.map((page) => ({
+      id: page.source_page_id,
+      title: page.title,
+      description: page.description,
+      canonical_path: page.canonical_path,
+      keywords: keywords.rows
+        .filter((keyword) => keyword.site_revision_page_id === page.id)
+        .map((keyword) => keyword.keyword),
+      blocks: blocks.rows
+        .filter((block) => block.site_revision_page_id === page.id)
+        .map(to_documentation_block),
+    })),
+    navigation: navigation.rows,
+    aliases: aliases.rows,
+    redirects: redirects.rows,
+    openapi_operations: operations.rows,
+  };
+};
+
 export const build_documentation_repository = (database: Database) => ({
+  get_preview: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+  }) => load_draft_snapshot(database, input),
+
+  create_revision: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    actor_org_user_id: string;
+    idempotency_key: string;
+    expected_draft_version: number;
+  }) =>
+    with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        project_version_id: input.project_version_id,
+        site_id: input.site_id,
+        expected_draft_version: input.expected_draft_version,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.revision.create",
+        request_digest,
+      });
+      if (replay) return replay;
+      const locked = await client.query<{ version: number }>(
+        `SELECT draft.version
+           FROM documentation_schema.site_working_draft draft
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=draft.site_edition_id
+          WHERE draft.organization_id=$1 AND draft.project_id=$2
+            AND edition.project_version_id=$3
+            AND draft.documentation_site_id=$4
+          FOR UPDATE OF draft`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+        ],
+      );
+      if (!locked.rows[0]) throw new Error("Documentation Site was not found");
+      if (locked.rows[0].version !== input.expected_draft_version) {
+        const error = new Error("Working Draft changed; reload and retry");
+        Object.assign(error, { code: "documentation_row_version_conflict" });
+        throw error;
+      }
+      const snapshot = await load_draft_snapshot(client, input);
+      if (!snapshot || !snapshot.working_draft.home_page_id) {
+        const error = new Error("Documentation Revision requires a Home Page");
+        Object.assign(error, { code: "documentation_revision_invalid" });
+        throw error;
+      }
+      const pageIds = new Set(snapshot.pages.map((page) => page.id as string));
+      if (!pageIds.has(snapshot.working_draft.home_page_id)) {
+        const error = new Error("Documentation Home Page is invalid");
+        Object.assign(error, { code: "documentation_revision_invalid" });
+        throw error;
+      }
+      for (const page of snapshot.pages) {
+        for (const block of page.blocks as Array<Record<string, unknown>>) {
+          if (
+            block.kind === "link" &&
+            block.page_id &&
+            !pageIds.has(block.page_id as string)
+          ) {
+            const error = new Error("Documentation internal link is broken");
+            Object.assign(error, { code: "documentation_internal_link_broken" });
+            throw error;
+          }
+        }
+      }
+      const content_digest = command_digest(snapshot);
+      const existing = await client.query<{
+        id: string;
+        revision_number: number;
+        content_digest: string;
+        created_at: Date;
+      }>(
+        `SELECT id,revision_number,content_digest,created_at
+           FROM documentation_schema.site_revision
+          WHERE site_edition_id=$1 AND content_digest=$2`,
+        [snapshot.edition.id, content_digest],
+      );
+      if (existing.rows[0]) {
+        const result = {
+          ...existing.rows[0],
+          created_at: existing.rows[0].created_at.toISOString(),
+        };
+        await write_command_receipt(client, {
+          ...input,
+          operation: "documentation.revision.create",
+          request_digest,
+          response_status: 200,
+          response_body: result,
+        });
+        return { ...result, idempotent_replay: true };
+      }
+      const sequence = await client.query<{ next: number }>(
+        `SELECT COALESCE(MAX(revision_number),0)+1 next
+           FROM documentation_schema.site_revision
+          WHERE site_edition_id=$1`,
+        [snapshot.edition.id],
+      );
+      const revision = {
+        id: ulid(),
+        revision_number: Number(sequence.rows[0]!.next),
+        content_digest,
+      };
+      await client.query(
+        `INSERT INTO documentation_schema.site_revision
+          (id,organization_id,project_id,documentation_site_id,site_edition_id,
+           project_version_id,revision_number,site_name,site_description,
+           home_page_id,primary_language,content_digest,created_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+        [
+          revision.id,
+          input.organization_id,
+          input.project_id,
+          input.site_id,
+          snapshot.edition.id,
+          input.project_version_id,
+          revision.revision_number,
+          snapshot.site.name,
+          snapshot.site.description,
+          snapshot.working_draft.home_page_id,
+          snapshot.edition.primary_language,
+          content_digest,
+          input.actor_org_user_id,
+        ],
+      );
+      for (const page of snapshot.pages) {
+        const revisionPageId = ulid();
+        const searchable = (page.blocks as Array<Record<string, unknown>>)
+          .flatMap((block) => {
+            if (typeof block.text === "string") return [block.text];
+            if (typeof block.code === "string") return [block.code];
+            if (typeof block.label === "string") return [block.label];
+            if (Array.isArray(block.items))
+              return (block.items as Array<{ text: string }>).map(
+                (item) => item.text,
+              );
+            return [];
+          })
+          .join("\n");
+        await client.query(
+          `INSERT INTO documentation_schema.site_revision_page
+            (id,organization_id,project_id,site_edition_id,site_revision_id,
+             source_page_id,title,description,canonical_path,content_text)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+          [
+            revisionPageId,
+            input.organization_id,
+            input.project_id,
+            snapshot.edition.id,
+            revision.id,
+            page.id,
+            page.title,
+            page.description,
+            page.canonical_path,
+            searchable,
+          ],
+        );
+        for (const keyword of page.keywords as Array<Record<string, unknown>>) {
+          await client.query(
+            `INSERT INTO documentation_schema.site_revision_page_keyword
+              (id,organization_id,project_id,site_edition_id,site_revision_id,
+               site_revision_page_id,keyword,position)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            [
+              ulid(),
+              input.organization_id,
+              input.project_id,
+              snapshot.edition.id,
+              revision.id,
+              revisionPageId,
+              keyword.keyword,
+              keyword.position,
+            ],
+          );
+        }
+        for (const block of page.blocks as Array<Record<string, unknown>>) {
+          const revisionBlockId = ulid();
+          await client.query(
+            `INSERT INTO documentation_schema.site_revision_page_block
+              (id,organization_id,project_id,site_edition_id,site_revision_id,
+               site_revision_page_id,source_block_id,kind,position,
+               heading_level,text_content,code_language,link_url,
+               linked_source_page_id,source_asset_id,source_openapi_source_id,
+               operation_key,alt_text,image_caption)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+            [
+              revisionBlockId,
+              input.organization_id,
+              input.project_id,
+              snapshot.edition.id,
+              revision.id,
+              revisionPageId,
+              block.id,
+              block.kind,
+              block.position,
+              block.level ?? null,
+              block.text ?? block.code ?? block.label ?? null,
+              block.language ?? null,
+              block.url ?? null,
+              block.page_id ?? null,
+              block.asset_id ?? null,
+              block.openapi_source_id ?? null,
+              block.operation_key ?? null,
+              block.alt_text ?? null,
+              block.caption ?? null,
+            ],
+          );
+          if (Array.isArray(block.items)) {
+            for (const item of block.items as Array<Record<string, unknown>>) {
+              await client.query(
+                `INSERT INTO documentation_schema.site_revision_list_item
+                  (id,organization_id,project_id,site_edition_id,
+                   site_revision_id,site_revision_page_block_id,
+                   source_list_item_id,text_content,position)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+                [
+                  ulid(),
+                  input.organization_id,
+                  input.project_id,
+                  snapshot.edition.id,
+                  revision.id,
+                  revisionBlockId,
+                  item.id,
+                  item.text,
+                  item.position,
+                ],
+              );
+            }
+          }
+        }
+      }
+      for (const node of snapshot.navigation) {
+        await client.query(
+          `INSERT INTO documentation_schema.site_revision_navigation_node
+            (id,organization_id,project_id,site_edition_id,site_revision_id,
+             source_navigation_node_id,parent_source_navigation_node_id,kind,
+             label,source_page_id,position)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            snapshot.edition.id,
+            revision.id,
+            node.id,
+            node.parent_id,
+            node.kind,
+            node.label,
+            node.page_id,
+            node.position,
+          ],
+        );
+      }
+      for (const alias of snapshot.aliases) {
+        await client.query(
+          `INSERT INTO documentation_schema.site_revision_page_alias
+            (id,organization_id,project_id,site_edition_id,site_revision_id,
+             source_page_id,former_path)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            snapshot.edition.id,
+            revision.id,
+            alias.documentation_page_id,
+            alias.former_path,
+          ],
+        );
+      }
+      for (const rule of snapshot.redirects) {
+        await client.query(
+          `INSERT INTO documentation_schema.site_revision_redirect_rule
+            (id,organization_id,project_id,site_edition_id,site_revision_id,
+             source_path,outcome,target_source_page_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            snapshot.edition.id,
+            revision.id,
+            rule.source_path,
+            rule.outcome,
+            rule.target_page_id,
+          ],
+        );
+      }
+      for (const operation of snapshot.openapi_operations) {
+        await client.query(
+          `INSERT INTO documentation_schema.site_revision_openapi_operation
+            (id,organization_id,project_id,site_edition_id,site_revision_id,
+             source_openapi_operation_id,method,path,operation_id,
+             destination_key,summary)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            snapshot.edition.id,
+            revision.id,
+            operation.id,
+            operation.method,
+            operation.path,
+            operation.operation_id,
+            operation.destination_key,
+            operation.summary,
+          ],
+        );
+      }
+      for (const page of snapshot.pages) {
+        for (const block of page.blocks as Array<Record<string, unknown>>) {
+          if (block.kind !== "image") continue;
+          const asset = snapshot.assets.find(
+            (candidate) => candidate.id === block.asset_id,
+          );
+          if (!asset) {
+            const error = new Error("Documentation Asset is not available");
+            Object.assign(error, { code: "documentation_revision_invalid" });
+            throw error;
+          }
+          await client.query(
+            `INSERT INTO documentation_schema.site_revision_asset_reference
+              (id,organization_id,project_id,site_edition_id,site_revision_id,
+               source_asset_id,file_id,mime_type,digest,alt_text)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+             ON CONFLICT (site_revision_id,source_asset_id) DO NOTHING`,
+            [
+              ulid(),
+              input.organization_id,
+              input.project_id,
+              snapshot.edition.id,
+              revision.id,
+              asset.id,
+              asset.file_id,
+              asset.mime_type,
+              asset.digest,
+              block.alt_text,
+            ],
+          );
+        }
+      }
+      const result = { ...revision, created_at: new Date().toISOString() };
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.revision.create",
+        request_digest,
+        response_status: 201,
+        response_body: result,
+      });
+      return { ...result, idempotent_replay: false };
+    }),
+
+  list_revisions: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+  }) => {
+    const result = await database.query<{
+      id: string;
+      revision_number: number;
+      content_digest: string;
+      created_at: Date;
+    }>(
+      `SELECT revision.id,revision.revision_number,revision.content_digest,
+              revision.created_at
+         FROM documentation_schema.site_revision revision
+        WHERE revision.organization_id=$1 AND revision.project_id=$2
+          AND revision.project_version_id=$3
+          AND revision.documentation_site_id=$4
+        ORDER BY revision.revision_number DESC`,
+      [
+        input.organization_id,
+        input.project_id,
+        input.project_version_id,
+        input.site_id,
+      ],
+    );
+    return result.rows.map((row) => ({
+      ...row,
+      created_at: row.created_at.toISOString(),
+    }));
+  },
+
+  get_revision: async (input: {
+    organization_id: string;
+    project_id: string;
+    site_revision_id: string;
+  }) => load_revision_snapshot(database, input),
+
+  create_publication: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    actor_org_user_id: string;
+    idempotency_key: string;
+    revision_id: string;
+    link:
+      | {
+          mode: "create";
+          name: string;
+          slug: string;
+          visibility: "public" | "restricted";
+        }
+      | {
+          mode: "existing";
+          link_id: string;
+          entry_id: string;
+          expected_entry_version: number;
+        };
+  }) =>
+    with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        project_version_id: input.project_version_id,
+        site_id: input.site_id,
+        revision_id: input.revision_id,
+        link: input.link,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.publication.create",
+        request_digest,
+      });
+      if (replay) return replay;
+      const audit_command =
+        input.link.mode === "create"
+          ? {
+              command: "publish.documentation_link.create",
+              action: "documentation.publish_link.created",
+            }
+          : {
+              command: "publish.documentation_link.manifest_update",
+              action: "documentation.publish_link.manifest_updated",
+            };
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        ...audit_command,
+      });
+      const snapshot = await load_revision_snapshot(client, {
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        site_revision_id: input.revision_id,
+      });
+      if (
+        !snapshot ||
+        snapshot.revision.documentation_site_id !== input.site_id ||
+        snapshot.revision.project_version_id !== input.project_version_id
+      ) {
+        const error = new Error("Documentation Revision was not found");
+        Object.assign(error, { code: "documentation_revision_invalid" });
+        throw error;
+      }
+      const prior = await client.query<{
+        id: string;
+        publication_sequence: number;
+        output_digest: string;
+        published_at: Date;
+      }>(
+        `SELECT id,publication_sequence,output_digest,published_at
+           FROM publish_schema.site_publication
+          WHERE site_revision_id=$1 AND preparation_version=1`,
+        [input.revision_id],
+      );
+      let publication = prior.rows[0]
+        ? {
+            ...prior.rows[0],
+            published_at: prior.rows[0].published_at.toISOString(),
+          }
+        : null;
+      if (!publication) {
+        const sequence = await client.query<{ next: number }>(
+          `SELECT COALESCE(MAX(publication_sequence),0)+1 next
+             FROM publish_schema.site_publication
+            WHERE site_edition_id=$1`,
+          [snapshot.revision.site_edition_id],
+        );
+        publication = {
+          id: ulid(),
+          publication_sequence: Number(sequence.rows[0]!.next),
+          output_digest: command_digest(snapshot),
+          published_at: new Date().toISOString(),
+        };
+        await client.query(
+          `INSERT INTO publish_schema.site_publication
+            (id,organization_id,project_id,documentation_site_id,
+             site_edition_id,project_version_id,site_revision_id,
+             publication_sequence,preparation_version,output_digest,
+             created_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,1,$9,$10)`,
+          [
+            publication.id,
+            input.organization_id,
+            input.project_id,
+            input.site_id,
+            snapshot.revision.site_edition_id,
+            input.project_version_id,
+            input.revision_id,
+            publication.publication_sequence,
+            publication.output_digest,
+            input.actor_org_user_id,
+          ],
+        );
+        for (const page of snapshot.pages) {
+          const searchText = [
+            page.title,
+            page.description,
+            ...(page.keywords as string[]),
+            ...(page.blocks as Array<Record<string, unknown>>).flatMap(
+              (block) => [
+                block.text,
+                block.code,
+                block.label,
+                ...(Array.isArray(block.items)
+                  ? (block.items as Array<{ text: string }>).map(
+                      (item) => item.text,
+                    )
+                  : []),
+              ],
+            ),
+          ]
+            .filter((value): value is string => typeof value === "string")
+            .join("\n");
+          await client.query(
+            `INSERT INTO publish_schema.site_publication_search_document
+              (id,organization_id,project_id,site_publication_id,
+               source_page_id,title,description,canonical_path,search_text)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+            [
+              ulid(),
+              input.organization_id,
+              input.project_id,
+              publication.id,
+              page.id,
+              page.title,
+              page.description,
+              page.canonical_path,
+              searchText,
+            ],
+          );
+        }
+      }
+      let link: { id: string; slug: string; version: number };
+      let entry: { id: string; version: number };
+      let entryBeforeVersion: number | null = null;
+      if (input.link.mode === "create") {
+        link = { id: ulid(), slug: input.link.slug, version: 1 };
+        entry = { id: ulid(), version: 1 };
+        await client.query(
+          `INSERT INTO publish_schema.publish_link
+            (id,organization_id,project_id,resource_family,
+             documentation_site_id,name,slug,visibility,status,version,
+             created_by_id)
+           VALUES ($1,$2,$3,'documentation_site',$4,$5,$6,$7,'active',1,$8)`,
+          [
+            link.id,
+            input.organization_id,
+            input.project_id,
+            input.site_id,
+            input.link.name,
+            input.link.slug,
+            input.link.visibility,
+            input.actor_org_user_id,
+          ],
+        );
+        await client.query(
+          `INSERT INTO publish_schema.publish_link_entry
+            (id,organization_id,project_id,publish_link_id,
+             project_version_id,documentation_site_id,site_edition_id,
+             site_publication_id,position,is_default,version,
+             created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,1,TRUE,1,$9,$9)`,
+          [
+            entry.id,
+            input.organization_id,
+            input.project_id,
+            link.id,
+            input.project_version_id,
+            input.site_id,
+            snapshot.revision.site_edition_id,
+            publication.id,
+            input.actor_org_user_id,
+          ],
+        );
+      } else {
+        const selected = await client.query<{
+          link_id: string;
+          slug: string;
+          link_version: number;
+          entry_id: string;
+          entry_version: number;
+          site_edition_id: string;
+        }>(
+          `SELECT link.id link_id,link.slug,link.version link_version,
+                  entry.id entry_id,entry.version entry_version,
+                  entry.site_edition_id
+             FROM publish_schema.publish_link link
+             JOIN publish_schema.publish_link_entry entry
+               ON entry.publish_link_id=link.id
+            WHERE link.id=$1 AND entry.id=$2
+              AND link.organization_id=$3 AND link.project_id=$4
+              AND link.documentation_site_id=$5
+              AND link.resource_family='documentation_site'
+              AND link.status='active'
+            FOR UPDATE OF link,entry`,
+          [
+            input.link.link_id,
+            input.link.entry_id,
+            input.organization_id,
+            input.project_id,
+            input.site_id,
+          ],
+        );
+        const selectedEntry = selected.rows[0];
+        if (
+          !selectedEntry ||
+          selectedEntry.entry_version !== input.link.expected_entry_version ||
+          selectedEntry.site_edition_id !== snapshot.revision.site_edition_id
+        ) {
+          const error = new Error("Publish Link entry changed or is invalid");
+          Object.assign(error, { code: "documentation_publication_busy" });
+          throw error;
+        }
+        entryBeforeVersion = selectedEntry.entry_version;
+        await client.query(
+          `UPDATE publish_schema.publish_link_entry
+              SET site_publication_id=$1,version=version+1,
+                  updated_by_id=$2,updated_at=CURRENT_TIMESTAMP
+            WHERE id=$3 AND publish_link_id=$4`,
+          [
+            publication.id,
+            input.actor_org_user_id,
+            selectedEntry.entry_id,
+            selectedEntry.link_id,
+          ],
+        );
+        link = {
+          id: selectedEntry.link_id,
+          slug: selectedEntry.slug,
+          version: selectedEntry.link_version,
+        };
+        entry = {
+          id: selectedEntry.entry_id,
+          version: selectedEntry.entry_version + 1,
+        };
+      }
+      const result = {
+        publication,
+        link: {
+          ...link,
+          resource_family: "documentation_site" as const,
+          documentation_site_id: input.site_id,
+        },
+        entry: { ...entry, site_publication_id: publication.id },
+      };
+      const audit_event = build_entity_audit_event({
+        id: audit.event_id,
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        root_resource_type: "documentation_site",
+        root_resource_id: input.site_id,
+        action: audit_command.action,
+        actor_org_user_id: input.actor_org_user_id,
+        actor_label: audit.actor_label,
+        source_type: audit.source_type,
+        occurred_at: audit.occurred_at,
+        before_row_version: entryBeforeVersion,
+        after_row_version: entry.version,
+        changes: [
+          ...(input.link.mode === "create"
+            ? [
+                {
+                  entity_type: "publish_link",
+                  entity_id: link.id,
+                  parent_entity_type: "documentation_site",
+                  parent_entity_id: input.site_id,
+                  before: null,
+                  after: { id: link.id, version: link.version },
+                  safe_fields: { version: "integer" as const },
+                },
+              ]
+            : []),
+          {
+            entity_type: "publish_link_entry",
+            entity_id: entry.id,
+            parent_entity_type: "publish_link",
+            parent_entity_id: link.id,
+            before:
+              entryBeforeVersion === null
+                ? null
+                : { id: entry.id, version: entryBeforeVersion },
+            after: { id: entry.id, version: entry.version },
+            safe_fields: { version: "integer" as const },
+          },
+        ],
+      });
+      if (audit_event) await write_audit_event(client, audit_event);
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.publication.create",
+        request_digest,
+        response_status: 201,
+        response_body: result,
+      });
+      return { ...result, idempotent_replay: false };
+    }),
+
+  rollback_publication: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    actor_org_user_id: string;
+    idempotency_key: string;
+    link_id: string;
+    entry_id: string;
+    site_publication_id: string;
+    expected_entry_version: number;
+  }) =>
+    with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        link_id: input.link_id,
+        entry_id: input.entry_id,
+        site_publication_id: input.site_publication_id,
+        expected_entry_version: input.expected_entry_version,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.publication.rollback",
+        request_digest,
+      });
+      if (replay) return replay;
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "publish.documentation_link.entry_rollback",
+        action: "documentation.publish_link.entry_rolled_back",
+      });
+      const target = await client.query<{
+        publication_sequence: number;
+        site_edition_id: string;
+      }>(
+        `SELECT publication_sequence,site_edition_id
+           FROM publish_schema.site_publication
+          WHERE id=$1 AND organization_id=$2 AND project_id=$3
+            AND documentation_site_id=$4 AND project_version_id=$5`,
+        [
+          input.site_publication_id,
+          input.organization_id,
+          input.project_id,
+          input.site_id,
+          input.project_version_id,
+        ],
+      );
+      const current = await client.query<{
+        version: number;
+        site_edition_id: string;
+        current_sequence: number;
+      }>(
+        `SELECT entry.version,entry.site_edition_id,
+                publication.publication_sequence current_sequence
+           FROM publish_schema.publish_link_entry entry
+           JOIN publish_schema.publish_link link ON link.id=entry.publish_link_id
+           JOIN publish_schema.site_publication publication
+             ON publication.id=entry.site_publication_id
+          WHERE entry.id=$1 AND link.id=$2
+            AND link.organization_id=$3 AND link.project_id=$4
+            AND link.documentation_site_id=$5
+            AND link.resource_family='documentation_site'
+            AND link.status='active'
+          FOR UPDATE OF entry`,
+        [
+          input.entry_id,
+          input.link_id,
+          input.organization_id,
+          input.project_id,
+          input.site_id,
+        ],
+      );
+      const destination = target.rows[0];
+      const selected = current.rows[0];
+      if (
+        !destination ||
+        !selected ||
+        selected.version !== input.expected_entry_version ||
+        selected.site_edition_id !== destination.site_edition_id ||
+        destination.publication_sequence >= selected.current_sequence
+      ) {
+        const error = new Error("Rollback target is invalid");
+        Object.assign(error, { code: "documentation_rollback_invalid" });
+        throw error;
+      }
+      await client.query(
+        `UPDATE publish_schema.publish_link_entry
+            SET site_publication_id=$1,version=version+1,
+                updated_by_id=$2,updated_at=CURRENT_TIMESTAMP
+          WHERE id=$3 AND publish_link_id=$4`,
+        [
+          input.site_publication_id,
+          input.actor_org_user_id,
+          input.entry_id,
+          input.link_id,
+        ],
+      );
+      const result = {
+        link_id: input.link_id,
+        entry_id: input.entry_id,
+        site_publication_id: input.site_publication_id,
+        version: selected.version + 1,
+      };
+      const audit_event = build_entity_audit_event({
+        id: audit.event_id,
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        root_resource_type: "documentation_site",
+        root_resource_id: input.site_id,
+        action: "documentation.publish_link.entry_rolled_back",
+        actor_org_user_id: input.actor_org_user_id,
+        actor_label: audit.actor_label,
+        source_type: audit.source_type,
+        occurred_at: audit.occurred_at,
+        before_row_version: selected.version,
+        after_row_version: selected.version + 1,
+        changes: [
+          {
+            entity_type: "publish_link_entry",
+            entity_id: input.entry_id,
+            parent_entity_type: "publish_link",
+            parent_entity_id: input.link_id,
+            before: { id: input.entry_id, version: selected.version },
+            after: { id: input.entry_id, version: selected.version + 1 },
+            safe_fields: { version: "integer" },
+          },
+        ],
+      });
+      if (audit_event) await write_audit_event(client, audit_event);
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.publication.rollback",
+        request_digest,
+        response_status: 200,
+        response_body: result,
+      });
+      return { ...result, idempotent_replay: false };
+    }),
+
+  resolve_public_site: async (input: {
+    slug: string;
+    version_slug: string | null;
+  }) => {
+    const selection = await database.query<{
+      link_id: string;
+      name: string;
+      slug: string;
+      visibility: "public" | "restricted";
+      expires_at: Date | null;
+      status: "active" | "revoked";
+      entry_id: string;
+      project_version_name: string;
+      project_version_slug: string;
+      site_publication_id: string;
+      publication_sequence: number;
+      site_revision_id: string;
+      output_digest: string;
+    }>(
+      `SELECT link.id link_id,link.name,link.slug,link.visibility,
+              link.expires_at,link.status,entry.id entry_id,
+              version.name project_version_name,
+              version.slug project_version_slug,
+              publication.id site_publication_id,
+              publication.publication_sequence,
+              publication.site_revision_id,publication.output_digest
+         FROM publish_schema.publish_link link
+         JOIN publish_schema.publish_link_entry entry
+           ON entry.publish_link_id=link.id
+         JOIN project_schema.project_version version
+           ON version.id=entry.project_version_id
+         JOIN publish_schema.site_publication publication
+           ON publication.id=entry.site_publication_id
+        WHERE link.slug=$1 AND link.resource_family='documentation_site'
+          AND (
+            ($2::varchar IS NULL AND entry.is_default)
+            OR ($2::varchar IS NOT NULL AND version.slug=$2)
+          )
+        LIMIT 1`,
+      [input.slug, input.version_slug],
+    );
+    const selected = selection.rows[0];
+    if (
+      !selected ||
+      selected.status !== "active" ||
+      (selected.expires_at && selected.expires_at.getTime() <= Date.now())
+    )
+      return null;
+    if (selected.visibility !== "public") {
+      const error = new Error("Documentation Publish Link is restricted");
+      Object.assign(error, { code: "publish_link_password_required" });
+      throw error;
+    }
+    const snapshot = await load_revision_snapshot(database, {
+      site_revision_id: selected.site_revision_id,
+    });
+    if (!snapshot) return null;
+    return {
+      resource_family: "documentation_site" as const,
+      link: {
+        id: selected.link_id,
+        name: selected.name,
+        slug: selected.slug,
+        visibility: selected.visibility,
+      },
+      entry: {
+        id: selected.entry_id,
+        project_version_name: selected.project_version_name,
+        project_version_slug: selected.project_version_slug,
+      },
+      publication: {
+        id: selected.site_publication_id,
+        publication_sequence: selected.publication_sequence,
+        output_digest: selected.output_digest,
+      },
+      ...snapshot,
+    };
+  },
+
   list_comments: async (input: {
     organization_id: string;
     project_id: string;
@@ -418,6 +1698,10 @@ export const build_documentation_repository = (database: Database) => ({
           input.project_id,
         ],
       );
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: page.site_edition_id,
+      });
       return {
         ...page,
         title,
@@ -546,6 +1830,10 @@ export const build_documentation_repository = (database: Database) => ({
           WHERE id=$2`,
         [input.actor_org_user_id, tree.id],
       );
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: tree.site_edition_id,
+      });
       return { id: tree.id, version: tree.version + 1, nodes: input.nodes };
     }),
 
@@ -669,6 +1957,10 @@ export const build_documentation_repository = (database: Database) => ({
           WHERE id=$2`,
         [input.actor_org_user_id, routing.id],
       );
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: routing.site_edition_id,
+      });
       return {
         id: routing.id,
         version: routing.version + 1,
@@ -999,6 +2291,10 @@ export const build_documentation_repository = (database: Database) => ({
         response_status: 201,
         response_body: result,
       });
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: scope.edition_id,
+      });
       return { ...result, idempotent_replay: false };
     }),
 
@@ -1180,6 +2476,10 @@ export const build_documentation_repository = (database: Database) => ({
           input.project_id,
         ],
       );
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: page.site_edition_id,
+      });
       return { ...page, version: page.version + 1, blocks: input.blocks };
     }),
 

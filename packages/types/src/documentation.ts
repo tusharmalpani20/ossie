@@ -237,6 +237,49 @@ export const DocumentationCommentTransitionRequestSchema = z
   })
   .strict();
 
+export const DocumentationCreateRevisionRequestSchema = z
+  .object({ expected_draft_version: PositiveIntSchema })
+  .strict();
+
+const DocumentationCreateLinkSelectionSchema = z
+  .object({
+    mode: z.literal("create"),
+    name: z.string().trim().min(1).max(120),
+    slug: z
+      .string()
+      .trim()
+      .min(1)
+      .max(80)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u),
+    visibility: z.enum(["public", "restricted"]),
+  })
+  .strict();
+const DocumentationExistingLinkSelectionSchema = z
+  .object({
+    mode: z.literal("existing"),
+    link_id: IdSchema,
+    entry_id: IdSchema,
+    expected_entry_version: PositiveIntSchema,
+  })
+  .strict();
+
+export const DocumentationCreatePublicationRequestSchema = z
+  .object({
+    revision_id: IdSchema,
+    link: z.discriminatedUnion("mode", [
+      DocumentationCreateLinkSelectionSchema,
+      DocumentationExistingLinkSelectionSchema,
+    ]),
+  })
+  .strict();
+
+export const DocumentationRollbackPublicationRequestSchema = z
+  .object({
+    site_publication_id: IdSchema,
+    expected_entry_version: PositiveIntSchema,
+  })
+  .strict();
+
 export const DocumentationPageSummarySchema = z
   .object({
     id: IdSchema,

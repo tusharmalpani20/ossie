@@ -855,6 +855,73 @@ export const build = (opts: BuildOptions = {}) => {
               });
               return repository.transition_comment(input);
             },
+            get_preview: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.get_preview(input);
+            },
+            list_revisions: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.list_revisions(input);
+            },
+            get_revision: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.get_revision(input);
+            },
+            create_revision: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.checkpoint",
+              });
+              return repository.create_revision(input);
+            },
+            create_publication: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.site.manage",
+              });
+              return repository.create_publication(input);
+            },
+            rollback_publication: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.site.manage",
+              });
+              return repository.rollback_publication(input);
+            },
+            resolve_public_site: repository.resolve_public_site,
           };
         })(),
       resolve_project_version: async (input) => {

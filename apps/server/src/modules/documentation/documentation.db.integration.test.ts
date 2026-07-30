@@ -338,6 +338,175 @@ describe("DB-backed Documentation repository", () => {
       payload: { expected_version: 2, transition: "reopen" },
     });
     expect(reopened.statusCode).toBe(200);
+    const linked = await app.inject({
+      method: "PUT",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}/content`,
+      cookies: { ossie_session: scope.session_token },
+      payload: {
+        expected_page_version: 3,
+        blocks: [
+          {
+            id: "01J00000000000000000000001",
+            kind: "paragraph",
+            position: 1,
+            expected_version: 1,
+            text: "Install Ossie safely.",
+          },
+          {
+            id: "01J00000000000000000000008",
+            kind: "link",
+            position: 2,
+            expected_version: null,
+            label: "Read the reference",
+            page_id: secondPage.json().page.id,
+          },
+        ],
+      },
+    });
+    expect(linked.statusCode).toBe(200);
+    const preview = await app.inject({
+      method: "GET",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/preview`,
+      cookies: { ossie_session: scope.session_token },
+    });
+    expect(preview.statusCode).toBe(200);
+    const revision1 = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/revisions`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "revision-route-1" },
+      payload: {
+        expected_draft_version: preview.json().preview.working_draft.version,
+      },
+    });
+    expect(revision1.statusCode).toBe(201);
+    const publication1 = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/publications`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "publication-route-1" },
+      payload: {
+        revision_id: revision1.json().revision.id,
+        link: {
+          mode: "create",
+          name: "Product docs",
+          slug: "product-docs",
+          visibility: "public",
+        },
+      },
+    });
+    expect(publication1.statusCode).toBe(201);
+    const publicBefore = await app.inject({
+      method: "GET",
+      url: "/api/v1/public/publish-links/product-docs/documentation/pages/install-guide",
+    });
+    expect(publicBefore.statusCode).toBe(200);
+    expect(publicBefore.json().page).toMatchObject({
+      id: page.json().page.id,
+      canonical_path: "install-guide",
+    });
+    expect(JSON.stringify(publicBefore.json())).not.toContain(
+      "Please clarify this installation step.",
+    );
+    const aliasRedirect = await app.inject({
+      method: "GET",
+      url: "/api/v1/public/publish-links/product-docs/documentation/pages/install",
+    });
+    expect(aliasRedirect.statusCode).toBe(308);
+    expect(aliasRedirect.headers.location).toBe(
+      "/docs/product-docs/install-guide",
+    );
+    const gone = await app.inject({
+      method: "GET",
+      url: "/api/v1/public/publish-links/product-docs/documentation/pages/obsolete",
+    });
+    expect(gone.statusCode).toBe(410);
+    const changed = await app.inject({
+      method: "PUT",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}/content`,
+      cookies: { ossie_session: scope.session_token },
+      payload: {
+        expected_page_version: 4,
+        blocks: [
+          {
+            id: "01J00000000000000000000001",
+            kind: "paragraph",
+            position: 1,
+            expected_version: 1,
+            text: "This belongs only to Publication 2.",
+          },
+        ],
+      },
+    });
+    expect(changed.statusCode).toBe(200);
+    const publicStillOne = await app.inject({
+      method: "GET",
+      url: "/api/v1/public/publish-links/product-docs/documentation/pages/install-guide",
+    });
+    expect(publicStillOne.statusCode).toBe(200);
+    expect(publicStillOne.json()).toEqual(publicBefore.json());
+    const preview2 = await app.inject({
+      method: "GET",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/preview`,
+      cookies: { ossie_session: scope.session_token },
+    });
+    const revision2 = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/revisions`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "revision-route-2" },
+      payload: {
+        expected_draft_version: preview2.json().preview.working_draft.version,
+      },
+    });
+    expect(revision2.statusCode).toBe(201);
+    const publication2 = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/publications`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "publication-route-2" },
+      payload: {
+        revision_id: revision2.json().revision.id,
+        link: {
+          mode: "existing",
+          link_id: publication1.json().link.id,
+          entry_id: publication1.json().entry.id,
+          expected_entry_version: 1,
+        },
+      },
+    });
+    expect(publication2.statusCode).toBe(201);
+    const publicTwo = await app.inject({
+      method: "GET",
+      url: "/api/v1/public/publish-links/product-docs/documentation/pages/install-guide",
+    });
+    expect(JSON.stringify(publicTwo.json())).toContain(
+      "This belongs only to Publication 2.",
+    );
+    const rollback = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/publish-links/${publication1.json().link.id}/entries/${publication1.json().entry.id}/rollback`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "rollback-route-1" },
+      payload: {
+        site_publication_id: publication1.json().publication.id,
+        expected_entry_version: 2,
+      },
+    });
+    expect(rollback.statusCode).toBe(200);
+    const publicRolledBack = await app.inject({
+      method: "GET",
+      url: "/api/v1/public/publish-links/product-docs/documentation/pages/install-guide",
+    });
+    expect(publicRolledBack.json()).toEqual(publicBefore.json());
+    await expect(
+      pool.query(
+        `UPDATE publish_schema.site_publication
+            SET output_digest='mutated'
+          WHERE id=$1`,
+        [publication1.json().publication.id],
+      ),
+    ).rejects.toMatchObject({ code: "42501" });
     const stale = await app.inject({
       method: "PUT",
       url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}/content`,

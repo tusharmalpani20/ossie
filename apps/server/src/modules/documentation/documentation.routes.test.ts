@@ -33,6 +33,13 @@ const documentation_service_stubs = (
   create_comment_thread: vi.fn(),
   create_comment_reply: vi.fn(),
   transition_comment: vi.fn(),
+  get_preview: vi.fn(),
+  list_revisions: vi.fn(async () => []),
+  get_revision: vi.fn(),
+  create_revision: vi.fn(),
+  create_publication: vi.fn(),
+  rollback_publication: vi.fn(),
+  resolve_public_site: vi.fn(),
   ...overrides,
 });
 

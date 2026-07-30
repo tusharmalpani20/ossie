@@ -955,6 +955,30 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [U.link_update(), U.link_entry_update()],
   ),
   command(
+    "publish.documentation_link.create",
+    "documentation.publish_link.created",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publications",
+    ],
+    [U.link_insert(), U.link_entry_insert()],
+  ),
+  command(
+    "publish.documentation_link.manifest_update",
+    "documentation.publish_link.manifest_updated",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publications",
+    ],
+    [U.link_entry_update()],
+  ),
+  command(
+    "publish.documentation_link.entry_rollback",
+    "documentation.publish_link.entry_rolled_back",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/entries/:entry_id/rollback",
+    ],
+    [U.link_entry_update()],
+  ),
+  command(
     "publish.guide_link.revoke",
     "guide.publish_link.revoked",
     [

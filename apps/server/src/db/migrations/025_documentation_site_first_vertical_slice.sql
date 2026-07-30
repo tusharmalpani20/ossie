@@ -503,6 +503,8 @@ CREATE TABLE documentation_schema.site_revision (
   site_edition_id VARCHAR(26) NOT NULL,
   project_version_id VARCHAR(26) NOT NULL,
   revision_number INTEGER NOT NULL CHECK (revision_number > 0),
+  site_name VARCHAR(200) NOT NULL,
+  site_description VARCHAR(1000) DEFAULT NULL,
   home_page_id VARCHAR(26) NOT NULL,
   primary_language VARCHAR(35) NOT NULL,
   content_digest VARCHAR(64) NOT NULL,
@@ -740,6 +742,81 @@ ALTER TABLE publish_schema.publish_link_entry
     REFERENCES publish_schema.site_publication
     (id, documentation_site_id, site_edition_id, project_version_id, project_id, organization_id) ON DELETE RESTRICT;
 
+ALTER FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT,TEXT,TEXT,TEXT)
+  RENAME TO mutation_command_policy_is_valid_v024;
+CREATE FUNCTION audit_schema.mutation_command_policy_is_valid(
+  selected_command TEXT,
+  selected_action TEXT,
+  selected_actor_type TEXT,
+  selected_source_type TEXT
+)
+RETURNS BOOLEAN AS $$
+  SELECT audit_schema.mutation_command_policy_is_valid_v024(
+    selected_command,selected_action,selected_actor_type,selected_source_type
+  ) OR (
+    (selected_command,selected_action) IN (
+      ('publish.documentation_link.create','documentation.publish_link.created'),
+      ('publish.documentation_link.manifest_update','documentation.publish_link.manifest_updated'),
+      ('publish.documentation_link.entry_rollback','documentation.publish_link.entry_rolled_back')
+    )
+    AND selected_actor_type='org_user'
+    AND selected_source_type IN ('web','api','extension')
+  );
+$$ LANGUAGE SQL IMMUTABLE;
+REVOKE ALL ON FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT,TEXT,TEXT,TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT,TEXT,TEXT,TEXT)
+  TO __OSSIE_RUNTIME_DB_ROLE__;
+
+DROP TRIGGER publish_link_i_audit_ctx ON publish_schema.publish_link;
+DROP TRIGGER publish_link_i_audit_evd ON publish_schema.publish_link;
+DROP TRIGGER publish_link_u_audit_ctx ON publish_schema.publish_link;
+DROP TRIGGER publish_link_u_audit_evd ON publish_schema.publish_link;
+DROP TRIGGER publish_link_entry_i_audit_ctx ON publish_schema.publish_link_entry;
+DROP TRIGGER publish_link_entry_i_audit_evd ON publish_schema.publish_link_entry;
+DROP TRIGGER publish_link_entry_u_audit_ctx ON publish_schema.publish_link_entry;
+DROP TRIGGER publish_link_entry_u_audit_evd ON publish_schema.publish_link_entry;
+
+CREATE TRIGGER publish_link_i_audit_ctx BEFORE INSERT ON publish_schema.publish_link
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'publish_link','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.create,publish.interactive_demo_link.create,publish.documentation_link.create'
+  );
+CREATE CONSTRAINT TRIGGER publish_link_i_audit_evd AFTER INSERT ON publish_schema.publish_link
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'publish_link','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.create,publish.interactive_demo_link.create,publish.documentation_link.create'
+  );
+CREATE TRIGGER publish_link_u_audit_ctx BEFORE UPDATE ON publish_schema.publish_link
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'publish_link','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.guide_link.revoke,publish.interactive_demo_link.revoke'
+  );
+CREATE CONSTRAINT TRIGGER publish_link_u_audit_evd AFTER UPDATE ON publish_schema.publish_link
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'publish_link','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.guide_link.revoke,publish.interactive_demo_link.revoke'
+  );
+CREATE TRIGGER publish_link_entry_i_audit_ctx BEFORE INSERT ON publish_schema.publish_link_entry
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'publish_link_entry','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.create,publish.interactive_demo_link.create,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update,publish.documentation_link.create'
+  );
+CREATE CONSTRAINT TRIGGER publish_link_entry_i_audit_evd AFTER INSERT ON publish_schema.publish_link_entry
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'publish_link_entry','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.create,publish.interactive_demo_link.create,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update,publish.documentation_link.create'
+  );
+CREATE TRIGGER publish_link_entry_u_audit_ctx BEFORE UPDATE ON publish_schema.publish_link_entry
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'publish_link_entry','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.documentation_link.manifest_update,publish.documentation_link.entry_rollback'
+  );
+CREATE CONSTRAINT TRIGGER publish_link_entry_u_audit_evd AFTER UPDATE ON publish_schema.publish_link_entry
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'publish_link_entry','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.documentation_link.manifest_update,publish.documentation_link.entry_rollback'
+  );
+
 CREATE FUNCTION documentation_schema.prevent_immutable_documentation_mutation()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -847,6 +924,59 @@ BEGIN
   END IF;
 END;
 $$;
+
+DROP TRIGGER publish_link_i_audit_ctx ON publish_schema.publish_link;
+DROP TRIGGER publish_link_i_audit_evd ON publish_schema.publish_link;
+DROP TRIGGER publish_link_u_audit_ctx ON publish_schema.publish_link;
+DROP TRIGGER publish_link_u_audit_evd ON publish_schema.publish_link;
+DROP TRIGGER publish_link_entry_i_audit_ctx ON publish_schema.publish_link_entry;
+DROP TRIGGER publish_link_entry_i_audit_evd ON publish_schema.publish_link_entry;
+DROP TRIGGER publish_link_entry_u_audit_ctx ON publish_schema.publish_link_entry;
+DROP TRIGGER publish_link_entry_u_audit_evd ON publish_schema.publish_link_entry;
+DROP FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT,TEXT,TEXT,TEXT);
+ALTER FUNCTION audit_schema.mutation_command_policy_is_valid_v024(TEXT,TEXT,TEXT,TEXT)
+  RENAME TO mutation_command_policy_is_valid;
+
+CREATE TRIGGER publish_link_i_audit_ctx BEFORE INSERT ON publish_schema.publish_link
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'publish_link','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.create,publish.interactive_demo_link.create'
+  );
+CREATE CONSTRAINT TRIGGER publish_link_i_audit_evd AFTER INSERT ON publish_schema.publish_link
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'publish_link','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.create,publish.interactive_demo_link.create'
+  );
+CREATE TRIGGER publish_link_u_audit_ctx BEFORE UPDATE ON publish_schema.publish_link
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'publish_link','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.guide_link.revoke,publish.interactive_demo_link.revoke'
+  );
+CREATE CONSTRAINT TRIGGER publish_link_u_audit_evd AFTER UPDATE ON publish_schema.publish_link
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'publish_link','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.guide_link.revoke,publish.interactive_demo_link.revoke'
+  );
+CREATE TRIGGER publish_link_entry_i_audit_ctx BEFORE INSERT ON publish_schema.publish_link_entry
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'publish_link_entry','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.create,publish.interactive_demo_link.create,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update'
+  );
+CREATE CONSTRAINT TRIGGER publish_link_entry_i_audit_evd AFTER INSERT ON publish_schema.publish_link_entry
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'publish_link_entry','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.create,publish.interactive_demo_link.create,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update'
+  );
+CREATE TRIGGER publish_link_entry_u_audit_ctx BEFORE UPDATE ON publish_schema.publish_link_entry
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'publish_link_entry','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback'
+  );
+CREATE CONSTRAINT TRIGGER publish_link_entry_u_audit_evd AFTER UPDATE ON publish_schema.publish_link_entry
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'publish_link_entry','direct',
+    'publish.guide,publish.interactive_demo,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback'
+  );
 
 ALTER TABLE publish_schema.publish_link_entry
   DROP CONSTRAINT fk_publish_link_entry_site_publication,

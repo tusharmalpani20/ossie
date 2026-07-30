@@ -9,7 +9,11 @@ import {
   DocumentationPageContentRequestSchema,
   DocumentationPageUpdateRequestSchema,
   DocumentationRoutingUpdateRequestSchema,
+  DocumentationCreatePublicationRequestSchema,
+  DocumentationCreateRevisionRequestSchema,
+  DocumentationRollbackPublicationRequestSchema,
 } from "@repo/types";
+import { normalize_documentation_path } from "@repo/documentation-domain";
 import { z } from "zod";
 import { web_session_cookie_name } from "../authentication/session-cookie";
 import type { AuthContext } from "../authentication/session.service";
@@ -39,6 +43,20 @@ const PageParamsSchema = SiteParamsSchema.extend({
 const ThreadParamsSchema = SiteParamsSchema.extend({
   thread_id: z.string().trim().min(1),
 }).strict();
+const RevisionParamsSchema = SiteParamsSchema.extend({
+  revision_id: z.string().trim().min(1),
+}).strict();
+const PublicationEntryParamsSchema = SiteParamsSchema.extend({
+  link_id: z.string().trim().min(1),
+  entry_id: z.string().trim().min(1),
+}).strict();
+const PublicDocumentationParamsSchema = z
+  .object({
+    slug: z.string().trim().min(1).max(80),
+    version_slug: z.string().trim().min(1).optional(),
+    "*": z.string().optional(),
+  })
+  .strict();
 
 const unwrap_idempotent_result = (result: unknown) => {
   if (!result || typeof result !== "object")
@@ -164,6 +182,61 @@ export type DocumentationRouteDependencies = {
       expected_version: number;
       transition: "resolve" | "reopen";
     }) => Promise<unknown>;
+    get_preview: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+    }) => Promise<unknown>;
+    list_revisions: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+    }) => Promise<unknown[]>;
+    get_revision: (input: {
+      organization_id: string;
+      project_id: string;
+      actor_org_user_id: string;
+      site_revision_id: string;
+    }) => Promise<unknown>;
+    create_revision: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      idempotency_key: string;
+      expected_draft_version: number;
+    }) => Promise<unknown>;
+    create_publication: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      idempotency_key: string;
+      revision_id: string;
+      link: z.infer<typeof DocumentationCreatePublicationRequestSchema>["link"];
+    }) => Promise<unknown>;
+    rollback_publication: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      link_id: string;
+      entry_id: string;
+      idempotency_key: string;
+      site_publication_id: string;
+      expected_entry_version: number;
+    }) => Promise<unknown>;
+    resolve_public_site: (input: {
+      slug: string;
+      version_slug: string | null;
+    }) => Promise<unknown>;
   };
   resolve_project_version: (input: {
     organization_id: string;
@@ -214,7 +287,9 @@ export const build_documentation_routes = (
         code === "documentation_row_version_conflict" ||
         code === "documentation_path_conflict" ||
         code === "documentation_path_retired" ||
-        code === "documentation_comment_transition_invalid"
+        code === "documentation_comment_transition_invalid" ||
+        code === "documentation_publication_busy" ||
+        code === "documentation_rollback_invalid"
       )
         return reply
           .status(409)
@@ -224,7 +299,9 @@ export const build_documentation_routes = (
         code === "documentation_redirect_cycle" ||
         code === "documentation_path_invalid" ||
         code === "documentation_comment_anchor_missing" ||
-        code === "documentation_comment_invalid"
+        code === "documentation_comment_invalid" ||
+        code === "documentation_revision_invalid" ||
+        code === "documentation_internal_link_broken"
       )
         return reply
           .status(400)
@@ -681,6 +758,395 @@ export const build_documentation_routes = (
           return documentation_error(error, reply);
         }
       },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/preview",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        const scope = await authorized_scope(request, params.data);
+        const preview = await dependencies.documentation_service.get_preview({
+          ...scope,
+          site_id: params.data.site_id,
+        });
+        if (!preview)
+          return reply.status(404).send(
+            error_response(
+              "documentation_site_not_found",
+              "Documentation Site was not found",
+            ),
+          );
+        return reply.send({ preview });
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        const scope = await authorized_scope(request, params.data);
+        const revisions =
+          await dependencies.documentation_service.list_revisions({
+            ...scope,
+            site_id: params.data.site_id,
+          });
+        return reply.send({ revisions });
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const body = DocumentationCreateRevisionRequestSchema.safeParse(
+          request.body,
+        );
+        const key = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (!params.success || !body.success || !key.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const result =
+            await dependencies.documentation_service.create_revision({
+              ...scope,
+              site_id: params.data.site_id,
+              idempotency_key: key.data,
+              expected_draft_version: body.data.expected_draft_version,
+            });
+          const command = unwrap_idempotent_result(result);
+          return reply
+            .status(command.replayed ? 200 : 201)
+            .send({ revision: command.body });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions/:revision_id",
+      async (request, reply) => {
+        const params = RevisionParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        const scope = await authorized_scope(request, params.data);
+        const revision = await dependencies.documentation_service.get_revision({
+          organization_id: scope.organization_id,
+          actor_org_user_id: scope.actor_org_user_id,
+          project_id: scope.project_id,
+          site_revision_id: params.data.revision_id,
+        });
+        if (!revision)
+          return reply.status(404).send(
+            error_response(
+              "documentation_revision_not_found",
+              "Documentation Revision was not found",
+            ),
+          );
+        return reply.send({ revision });
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publications",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const body = DocumentationCreatePublicationRequestSchema.safeParse(
+          request.body,
+        );
+        const key = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (!params.success || !body.success || !key.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const result =
+            await dependencies.documentation_service.create_publication({
+              ...scope,
+              site_id: params.data.site_id,
+              idempotency_key: key.data,
+              ...body.data,
+            });
+          const command = unwrap_idempotent_result(result);
+          return reply
+            .status(command.replayed ? 200 : 201)
+            .send(command.body);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/entries/:entry_id/rollback",
+      async (request, reply) => {
+        const params = PublicationEntryParamsSchema.safeParse(request.params);
+        const body = DocumentationRollbackPublicationRequestSchema.safeParse(
+          request.body,
+        );
+        const key = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (!params.success || !body.success || !key.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const result =
+            await dependencies.documentation_service.rollback_publication({
+              ...scope,
+              site_id: params.data.site_id,
+              link_id: params.data.link_id,
+              entry_id: params.data.entry_id,
+              idempotency_key: key.data,
+              ...body.data,
+            });
+          const command = unwrap_idempotent_result(result);
+          return reply.send(command.body);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    const public_site = async (params: unknown) => {
+      const parsed = PublicDocumentationParamsSchema.safeParse(params);
+      if (!parsed.success) return null;
+      const site = await dependencies.documentation_service.resolve_public_site({
+        slug: parsed.data.slug,
+        version_slug: parsed.data.version_slug ?? null,
+      });
+      return { params: parsed.data, site };
+    };
+
+    fastify.get(
+      "/api/v1/public/publish-links/:slug/documentation",
+      async (request, reply) => {
+        const result = await public_site(request.params);
+        if (!result?.site)
+          return reply.status(404).send(
+            error_response(
+              "publish_link_not_found",
+              "Publish Link was not found",
+            ),
+          );
+        return reply.send(result.site);
+      },
+    );
+    fastify.get(
+      "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation",
+      async (request, reply) => {
+        const result = await public_site(request.params);
+        if (!result?.site)
+          return reply.status(404).send(
+            error_response(
+              "publish_link_not_found",
+              "Publish Link was not found",
+            ),
+          );
+        return reply.send(result.site);
+      },
+    );
+
+    const register_public_page = (path: string) =>
+      fastify.get(path, async (request, reply) => {
+        const result = await public_site(request.params);
+        if (!result?.site)
+          return reply.status(404).send(
+            error_response(
+              "publish_link_not_found",
+              "Publish Link was not found",
+            ),
+          );
+        let requestedPath: string;
+        try {
+          requestedPath = normalize_documentation_path(
+            result.params["*"] ?? "",
+          );
+        } catch {
+          return reply.status(404).send(
+            error_response(
+              "documentation_page_not_found",
+              "Documentation Page was not found",
+            ),
+          );
+        }
+        const site = result.site as {
+          pages: Array<{
+            id: string;
+            canonical_path: string;
+            [key: string]: unknown;
+          }>;
+          aliases: Array<{
+            former_path: string;
+            documentation_page_id: string;
+          }>;
+          redirects: Array<{
+            source_path: string;
+            outcome: "redirect" | "gone";
+            target_page_id: string | null;
+          }>;
+          [key: string]: unknown;
+        };
+        const page = site.pages.find(
+          (candidate) => candidate.canonical_path === requestedPath,
+        );
+        if (page) return reply.send({ ...site, page });
+        const alias = site.aliases.find(
+          (candidate) => candidate.former_path === requestedPath,
+        );
+        const redirect = site.redirects.find(
+          (candidate) => candidate.source_path === requestedPath,
+        );
+        if (redirect?.outcome === "gone")
+          return reply.status(410).send(
+            error_response(
+              "documentation_page_gone",
+              "Documentation Page is gone",
+            ),
+          );
+        const targetPageId =
+          alias?.documentation_page_id ?? redirect?.target_page_id;
+        const target = site.pages.find(
+          (candidate) => candidate.id === targetPageId,
+        );
+        if (target)
+          return reply
+            .status(308)
+            .header(
+              "location",
+              `/docs/${result.params.slug}/${target.canonical_path}`,
+            )
+            .send();
+        return reply.status(404).send(
+          error_response(
+            "documentation_page_not_found",
+            "Documentation Page was not found",
+          ),
+        );
+      });
+    register_public_page(
+      "/api/v1/public/publish-links/:slug/documentation/pages/*",
+    );
+    register_public_page(
+      "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/pages/*",
+    );
+
+    const register_public_search = (path: string) =>
+      fastify.get(path, async (request, reply) => {
+        const query = z
+          .object({ q: z.string().trim().min(1).max(200) })
+          .strict()
+          .safeParse(request.query);
+        const result = await public_site(request.params);
+        if (!query.success || !result?.site)
+          return reply.status(query.success ? 404 : 400).send(
+            error_response(
+              query.success
+                ? "publish_link_not_found"
+                : "invalid_documentation_request",
+              query.success
+                ? "Publish Link was not found"
+                : "Documentation request is invalid",
+            ),
+          );
+        const site = result.site as {
+          pages: Array<{
+            id: string;
+            title: string;
+            description: string | null;
+            canonical_path: string;
+            blocks: unknown[];
+          }>;
+        };
+        const needle = query.data.q.toLocaleLowerCase();
+        const results = site.pages
+          .filter((page) =>
+            JSON.stringify(page).toLocaleLowerCase().includes(needle),
+          )
+          .slice(0, 50)
+          .map((page) => ({
+            page_id: page.id,
+            title: page.title,
+            excerpt: page.description ?? "",
+            canonical_path: page.canonical_path,
+          }));
+        return reply.send({ results });
+      });
+    register_public_search(
+      "/api/v1/public/publish-links/:slug/documentation/search",
+    );
+    register_public_search(
+      "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/search",
+    );
+
+    const register_public_metadata = (
+      path: string,
+      kind: "sitemap" | "robots",
+    ) =>
+      fastify.get(path, async (request, reply) => {
+        const result = await public_site(request.params);
+        if (!result?.site) return reply.status(404).send();
+        const site = result.site as {
+          pages: Array<{ canonical_path: string }>;
+        };
+        if (kind === "robots")
+          return reply
+            .type("text/plain")
+            .send("User-agent: *\nAllow: /\n");
+        const urls = site.pages
+          .map(
+            (page) =>
+              `<url><loc>/docs/${result.params.slug}/${page.canonical_path}</loc></url>`,
+          )
+          .join("");
+        return reply
+          .type("application/xml")
+          .send(`<?xml version="1.0"?><urlset>${urls}</urlset>`);
+      });
+    register_public_metadata(
+      "/api/v1/public/publish-links/:slug/documentation/sitemap.xml",
+      "sitemap",
+    );
+    register_public_metadata(
+      "/api/v1/public/publish-links/:slug/documentation/robots.txt",
+      "robots",
     );
   };
 };

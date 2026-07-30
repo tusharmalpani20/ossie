@@ -9,6 +9,9 @@ import {
   DocumentationPageUpdateRequestSchema,
   DocumentationPublicSearchResponseSchema,
   DocumentationRoutingUpdateRequestSchema,
+  DocumentationCreateRevisionRequestSchema,
+  DocumentationCreatePublicationRequestSchema,
+  DocumentationRollbackPublicationRequestSchema,
 } from "./documentation";
 
 describe("Documentation shared contracts", () => {
@@ -67,6 +70,31 @@ describe("Documentation shared contracts", () => {
         mentioned_project_membership_ids: [],
       }).success,
     ).toBe(false);
+  });
+
+  it("separates checkpoint, publication, and rollback commands", () => {
+    expect(
+      DocumentationCreateRevisionRequestSchema.safeParse({
+        expected_draft_version: 8,
+      }).success,
+    ).toBe(true);
+    expect(
+      DocumentationCreatePublicationRequestSchema.safeParse({
+        revision_id: "01J00000000000000000000001",
+        link: {
+          mode: "create",
+          name: "Product docs",
+          slug: "product-docs",
+          visibility: "public",
+        },
+      }).success,
+    ).toBe(true);
+    expect(
+      DocumentationRollbackPublicationRequestSchema.safeParse({
+        site_publication_id: "01J00000000000000000000002",
+        expected_entry_version: 2,
+      }).success,
+    ).toBe(true);
   });
 
   it("strictly parses Site creation", () => {
