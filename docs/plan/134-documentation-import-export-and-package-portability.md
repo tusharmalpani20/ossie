@@ -4,9 +4,9 @@ Date reserved: 2026-07-30
 
 Date expanded: 2026-07-30
 
-Status: Implemented and verified on 2026-07-30. The implementation checkpoint
-is complete; the independent close-previous recheck remains the next workflow
-step before Master `006` marks child `134` closed.
+Status: Complete and independently close-rechecked on 2026-07-30. The
+implementation and close-previous verification are complete, Master `006`
+marks child `134` closed, and the actual result hands off to child `135`.
 
 Parent plan:
 
@@ -2589,6 +2589,8 @@ Current-truth docs must distinguish implemented behavior from later child
 - [x] Full fixtures, DB, smoke, regression, lint, type, and build pass.
 - [x] Agent-browser and accessibility evidence passes.
 - [x] ADR/Context/format/evidence/plan/Master are current.
+- [x] Independent close-previous audit repaired stale claims and repeated
+      focused, full, migration, and browser verification.
 - [x] Scoped logical commits complete.
 
 ## 28. Planning Log
@@ -2646,6 +2648,34 @@ Current-truth docs must distinguish implemented behavior from later child
 - 2026-07-30: Runtime commits through the implementation checkpoint are
   `ab4b83f`, `63f82f8`, `d7bc801`, `91c2fc9`, `787e931`, `23f7d76`,
   `6ed843a`, `774a3b2`, `1d8da66`, `e7126a9`, and `91c9a41`.
+- 2026-07-30: Independent close-recheck repaired the portal's canonical
+  OpenAPI export URL and made Inspect receipts pointer-only and replay
+  responses state-aware. Cancelled/consumed/expired inspections cannot regain
+  stale reports, replay returns `200`, and internal replay metadata is not an
+  API field.
+- 2026-07-30: Implemented the previously claimed admission boundary:
+  per-process and per-actor parser leases, a bounded actor/Project-Version
+  attempt window with `Retry-After`, and a transactionally serialized ceiling
+  of ten live ready inspections. Direct OpenAPI Inspect uses the same parser
+  admission boundary.
+- 2026-07-30: Repaired package completeness by parsing the accepted
+  `markdown-folder` profile, staging deterministic ZIP output to a generated
+  transient export File before headers, streaming the reopened File, and
+  purging it after completion/disconnect. Manifest descriptor paths,
+  roles, and MIME now bind exactly to the indexed Site graph. Draft Asset
+  packaging stages the exact bytes that passed one-read
+  digest/signature/MIME/dimension validation.
+- 2026-07-30: Real browser recheck repaired consumed-review cleanup and
+  workbench refresh after Apply, archived/read-only import explanation,
+  blocking-summary focus, Site-list landmark/heading semantics, and safe
+  blocking inspections for integrity-valid unresolved graphs. The real portal
+  then passed Page Apply, first-Site package Apply, imported protected-content
+  workbench and Page preview, archived state, blocking Apply prevention,
+  keyboard activation, 320-pixel reflow, reduced motion, console/error, and
+  axe checks.
+- 2026-07-30: Close-recheck commits are `7d80968`, `3881e12`, `8a7eff6`,
+  `dad62cd`, `36c6a9b`, `849bd5e`, `7743001`, `17ce124`, `0489a79`,
+  `d7ad94c`, `e8f41ff`, `ad4a298`, and `67981f9`.
 
 ## 29. Planning Verification Record
 
@@ -2676,20 +2706,23 @@ No runtime, migration, package, dependency, schema, route, UI, ADR, or
 current-truth change was claimed by the planning checkpoint. The subsequent
 implementation verification completed:
 
-- server unit: 111 files / 468 tests;
-- web unit: 70 files / 396 tests;
-- server DB: 22 files / 74 tests;
+- server unit: 112 files / 480 tests;
+- web unit: 70 files / 399 tests;
+- server DB: 22 files / 75 tests;
 - V1 smoke: 1 file / 2 tests;
 - extension: 19 files / 140 tests, plus lint, type check, and production build;
 - focused package Apply into both a newly created Site and a Site containing
   only its generated placeholder Home Page;
-- clean migration `001`–`027` with runtime Audit-schema verification;
+- clean migration `001`–`027`, populated rollback refusal, and clean guarded
+  migration `027` down/up with runtime Audit-schema verification;
 - server and web type checks, lint, and production builds; server lint retained
   32 pre-close warnings and no errors, while web lint passed with zero
   warnings;
 - deterministic Chrome `151` / agent-browser `0.33.1` Admin and Viewer
-  journeys, real ZIP download/inspection/upload/cancel, exact export controls,
-  320 CSS-pixel reflow, no product console errors, and zero axe violations,
+  journeys, real ZIP download/inspection/upload/cancel/Apply, first-Site and
+  Page import, archived state, blocking focus/Apply prevention, exact export
+  controls, 320 CSS-pixel reflow, reduced motion, no product console errors,
+  and zero axe violations,
   recorded in
   `docs/ui/134-documentation-import-export-and-package-portability-browser-evidence.md`.
 
@@ -2721,8 +2754,8 @@ Non-blocking future work remains:
 - child `137`: browser-direct Try It;
 - child `138`: configurable quotas, operational cleanup/reporting,
   performance/profiling, production observability, capability-dependent
-  browsers, and replacing the hard-bounded deterministic JSZip export
-  materialization with a temporary-file streaming writer before package sizes
-  approach the current hard ceiling;
+  browsers, and evaluating a different streaming ZIP implementation only if
+  future accepted package ceilings or profiling outgrow the current bounded
+  JSZip entry writer and transient-file response pipeline;
 - child `139`: final Documentation V1 closeout;
 - child `140`: post-V1 decisions including Git and third-party import adapters.

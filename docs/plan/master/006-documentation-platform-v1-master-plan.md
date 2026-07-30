@@ -2,12 +2,12 @@
 
 Date: 2026-07-30
 
-Status: Active after child `134` implementation verification on 2026-07-30.
+Status: Active after child `134` independent close-recheck on 2026-07-30.
 The first vertical slice, constrained V1 content, Edition-owned Snippets,
 protected Documentation/Capture Assets, exact artifact references, immutable
-snapshots, and inspected portability are implemented and verified. Child `134`
-awaits its independent close-previous recheck; children `135` through `140`
-remain bounded reservations that must be re-expanded after their actual
+snapshots, and inspected portability are implemented, independently
+close-rechecked, and verified. Child `135` is the next bounded reservation;
+children `135` through `140` must be re-expanded after their actual
 predecessors.
 
 Master plan number: 006.
@@ -2626,7 +2626,7 @@ By child `139`, the combined verification must include:
 
 - [x] Create, expand, recheck, implement, verify, and close child `132`.
 - [x] Create, expand, recheck, implement, verify, and close child `133`.
-- [ ] Create, expand, recheck, implement, verify, and close child `134`.
+- [x] Create, expand, recheck, implement, verify, and close child `134`.
 - [ ] Create, expand, recheck, implement, verify, and close child `135`.
 - [ ] Create, expand, recheck, implement, verify, and close child `136`.
 - [ ] Create, expand, recheck, implement, verify, and close child `137`.
@@ -2677,11 +2677,11 @@ proposals without another accepted plan.
 
 ## 45. Immediate Next Action
 
-Product Documentation is implemented through the child `134` implementation
-checkpoint. The next activity is to independently close-recheck
-`docs/plan/134-documentation-import-export-and-package-portability.md` against
-the current code and this master, repair any gaps, then close it and hand the
-actual result to child `135`.
+Product Documentation is implemented and independently close-rechecked through
+child `134`. The next activity is to rewrite/expand
+`docs/plan/135-documentation-carry-forward-multi-site-and-lifecycle.md`
+against the actual closed child `134` contracts and current code, then recheck
+that plan before implementation.
 
 Children `135` through `140` remain sequential reservations. Each later child
 follows the same close-predecessor rule.
@@ -2764,6 +2764,13 @@ follows the same close-predecessor rule.
   Apply, protected-media round trips, portal workflows, ADR `0031`, and format
   documentation. The aggregate child checkbox remains open until the requested
   independent close-previous recheck.
+- 2026-07-30: independently close-rechecked and closed child `134`. Repairs
+  made Inspect replay receipts state-aware, enforced parser/rate/ready
+  admission, implemented `markdown-folder` parsing, staged and streamed
+  transient ZIP exports, preserved one-pass validated Asset bytes, retained
+  safe blocking inspections, and corrected portal refresh/read-only/focus/
+  landmark behavior. The actual portability result now hands off to child
+  `135`.
 
 ## 47. Master Planning Verification Record
 
@@ -2783,8 +2790,8 @@ Required final results:
   planning checkpoint; superseded by the child `132` runtime evidence above.
 - scoped diff assertion: passed; documentation/plan files only.
 - child file assertion: exactly one correctly named plan exists for each child
-  `132` through `140`; `132` and `133` are complete and `134`–`140` identify
-  themselves as reservations.
+  `132` through `140`; `132` through `134` are complete and `135`–`140`
+  identify themselves as reservations.
 
 Child `132` runtime evidence includes:
 
@@ -2825,24 +2832,26 @@ Child `133` runtime evidence includes:
   controls, and Snippet/Asset rename; protected-byte focused tests,
   Documentation DB, and V1 smoke all passed after the final integrity repair.
 
-Child `134` implementation-checkpoint evidence includes:
+Child `134` implementation and close-recheck evidence includes:
 
-- server unit 111 files / 468 tests, web unit 70 files / 396 tests, server DB
-  22 files / 74 tests, V1 smoke 1 file / 2 tests, and extension 19 files / 140
+- server unit 112 files / 480 tests, web unit 70 files / 399 tests, server DB
+  22 files / 75 tests, V1 smoke 1 file / 2 tests, and extension 19 files / 140
   tests;
-- clean migration `001`–`027`, guarded placeholder-Home deletion, protected
-  Documentation/Capture media export, exact OpenAPI sources, and package
-  create-Site/empty-Site round trips;
+- clean migration `001`–`027`, populated rollback refusal, clean guarded `027`
+  down/up, protected Documentation/Capture media export, exact OpenAPI sources,
+  and package create-Site/empty-Site round trips;
 - server/web lint, type checks, and production builds;
 - headless Chrome `151` with agent-browser `0.33.1` Admin/Viewer package
-  download, inspection, upload/cancel, permission, reflow, console, and
+  download, inspection, upload/cancel/Apply, Page Apply, first-Site import,
+  archived/read-only explanation, safe blocking focus/Apply prevention,
+  keyboard activation, reflow, reduced motion, console/error, and
   zero-violation axe evidence in
   `docs/ui/134-documentation-import-export-and-package-portability-browser-evidence.md`.
 
 ## 48. Planning Leftovers And Handoff
 
-- Product Documentation children `132` and `133` are complete. Child `134` is
-  implemented and verified, with its independent close-previous recheck next.
+- Product Documentation children `132` through `134` are complete and
+  independently close-rechecked. Child `135` is next.
 - Child `132` established the first vertical slice. Child `133` extended it
   with the complete constrained V1 block graph, Edition-owned Snippets,
   Documentation/Capture Asset sources, exact artifact Publication references,
@@ -2857,9 +2866,8 @@ Child `134` implementation-checkpoint evidence includes:
   collaboration, permanent deletion, cross-artifact search, server proxy,
   stored credentials, SDK generation, and Video remain deferred/rejected as
   recorded.
-- The next work is the child `134` close-previous recheck against its accepted
-  plan and this master. Once clean, close `134` and hand the actual portable
-  graph to child `135`.
+- The next work is to expand child `135` against the closed child `134` result,
+  then recheck that implementation-ready plan before runtime work.
 - The measured single-chunk bundle growth, organization-configurable
   quotas/reporting, production observability, and capability-dependent
   Firefox/WebKit or production-p75 evidence remain child `138` work.
