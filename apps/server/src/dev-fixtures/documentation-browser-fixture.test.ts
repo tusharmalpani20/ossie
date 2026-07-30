@@ -27,8 +27,12 @@ describe("Documentation browser fixture", () => {
         "snippet_conflict",
         "asset_archive_protection",
         "expanded_content",
+        "review_request",
+        "review_inbox",
+        "review_publication_evidence",
       ]),
     );
+    expect(fixture.routes.review_inbox).toContain("/documentation/reviews");
     expect(
       documentation_browser_fixture_cli_summary(fixture),
     ).not.toHaveProperty("session_token");

@@ -809,6 +809,114 @@ export const DocumentationReviewNotificationTypeSchema = z.enum(
 );
 export { DocumentationReviewDecisionValueSchema };
 
+export const DocumentationReviewDecisionSchema = z
+  .object({
+    id: IdSchema,
+    decision: DocumentationReviewDecisionValueSchema,
+    reason: z.string().nullable(),
+    decided_by_id: IdSchema,
+    created_at: IsoDateTimeStringSchema,
+  })
+  .strict();
+export const DocumentationReviewAssignmentSchema = z
+  .object({
+    id: IdSchema,
+    reviewer_org_user_id: IdSchema,
+    reviewer_display_name: z.string().min(1),
+    current_project_role: z
+      .enum(["project_admin", "editor", "viewer"])
+      .nullable(),
+    current_access_status: z.enum(["active", "revoked", "disabled"]),
+    is_maintainer_at_assignment: z.boolean(),
+    is_current_maintainer: z.boolean(),
+    decision: DocumentationReviewDecisionSchema.nullable(),
+  })
+  .strict();
+export const DocumentationReviewRequestSchema = z
+  .object({
+    id: IdSchema,
+    site_id: IdSchema,
+    site_edition_id: IdSchema,
+    site_revision_id: IdSchema,
+    revision_number: PositiveIntSchema,
+    request_number: PositiveIntSchema,
+    status: DocumentationReviewRequestStatusSchema,
+    effective_status: DocumentationReviewEffectiveStatusSchema,
+    required_approvals: PositiveIntSchema.max(DOCUMENTATION_REVIEWERS_MAX),
+    require_maintainer_approval: z.boolean(),
+    valid_approval_count: z.number().int().min(0),
+    valid_maintainer_approval_count: z.number().int().min(0),
+    created_by_id: IdSchema,
+    created_by_display_name: z.string().min(1),
+    version: PositiveIntSchema,
+    created_at: IsoDateTimeStringSchema,
+    closed_at: IsoDateTimeStringSchema.nullable(),
+    superseded_by_revision_id: IdSchema.nullable(),
+    superseded_at: IsoDateTimeStringSchema.nullable(),
+  })
+  .strict();
+export const DocumentationReviewGatePreviewSchema = z
+  .object({
+    site_revision_id: IdSchema,
+    policy_mode: DocumentationReviewPolicyModeSchema,
+    policy_version: PositiveIntSchema,
+    outcome: z.enum([
+      "not_required",
+      "approval_missing",
+      "approval_pending",
+      "approved",
+      "invalidated",
+    ]),
+    governing_review_request_id: IdSchema.nullable(),
+    required_approvals: PositiveIntSchema,
+    valid_approval_count: z.number().int().min(0),
+    require_maintainer_approval: z.boolean(),
+    valid_maintainer_approval_count: z.number().int().min(0),
+    override_available_to_actor: z.boolean(),
+  })
+  .strict();
+export const DocumentationReviewNotificationSchema = z
+  .object({
+    id: IdSchema,
+    project_id: IdSchema,
+    project_version_id: IdSchema,
+    site_id: IdSchema,
+    site_revision_id: IdSchema,
+    review_request_id: IdSchema,
+    type: DocumentationReviewNotificationTypeSchema,
+    status: DocumentationReviewInboxStatusSchema,
+    version: PositiveIntSchema,
+    created_at: IsoDateTimeStringSchema,
+    read_at: IsoDateTimeStringSchema.nullable(),
+  })
+  .strict();
+export const DocumentationPublicationReviewEvidenceSummarySchema = z
+  .object({
+    id: IdSchema,
+    site_revision_id: IdSchema,
+    site_publication_id: IdSchema,
+    publish_link_id: IdSchema,
+    publish_link_entry_id: IdSchema,
+    operation: z.enum(["publication", "rollback"]),
+    policy_mode: DocumentationReviewPolicyModeSchema,
+    policy_version: PositiveIntSchema,
+    required_approvals: PositiveIntSchema,
+    require_maintainer_approval: z.boolean(),
+    valid_approval_count: z.number().int().min(0),
+    valid_maintainer_approval_count: z.number().int().min(0),
+    outcome: DocumentationPublicationReviewOutcomeSchema,
+    review_request_id: IdSchema.nullable(),
+    created_by_id: IdSchema,
+    created_at: IsoDateTimeStringSchema,
+  })
+  .strict();
+export const DocumentationPublicationReviewEvidenceDetailSchema = z
+  .object({
+    evidence: DocumentationPublicationReviewEvidenceSummarySchema,
+    override_reason: z.string().nullable(),
+  })
+  .strict();
+
 export const DocumentationApplyOpenApiRequestSchema = z
   .object({
     inspection_id: IdSchema,

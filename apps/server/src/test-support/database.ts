@@ -118,6 +118,13 @@ export const reset_test_database = async () =>
   with_maintenance_client(async (client) => {
     await client.query(`
       TRUNCATE TABLE
+        documentation_schema.documentation_review_notification,
+        publish_schema.documentation_publication_review_evidence,
+        documentation_schema.documentation_review_decision,
+        documentation_schema.documentation_review_assignment,
+        documentation_schema.documentation_review_request,
+        documentation_schema.documentation_review_maintainer,
+        documentation_schema.documentation_review_policy,
         audit_schema.audit_change_item,
         audit_schema.audit_event,
         audit_schema.access_event,

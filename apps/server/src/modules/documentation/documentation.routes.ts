@@ -195,6 +195,11 @@ const unwrap_idempotent_result = (result: unknown) => {
   return { body, replayed: idempotent_replay === true };
 };
 
+const normalize_publication_review_gate = (body: unknown) =>
+  body && typeof body === "object" && !("review_gate" in body)
+    ? { ...(body as Record<string, unknown>), review_gate: null }
+    : body;
+
 export type DocumentationRouteDependencies = {
   auth_service: {
     get_current_auth_context: (session?: string) => Promise<AuthContext>;
@@ -436,6 +441,9 @@ export type DocumentationRouteDependencies = {
       idempotency_key: string;
       revision_id: string;
       link: z.infer<typeof DocumentationCreatePublicationRequestSchema>["link"];
+      review_override: z.infer<
+        typeof DocumentationCreatePublicationRequestSchema
+      >["review_override"];
     }) => Promise<unknown>;
     rollback_publication: (input: {
       organization_id: string;
@@ -448,6 +456,9 @@ export type DocumentationRouteDependencies = {
       idempotency_key: string;
       site_publication_id: string;
       expected_entry_version: number;
+      review_override: z.infer<
+        typeof DocumentationRollbackPublicationRequestSchema
+      >["review_override"];
     }) => Promise<unknown>;
     revoke_publish_link: (input: {
       organization_id: string;
@@ -815,7 +826,10 @@ export const build_documentation_routes = (
         code === "documentation_export_source_unavailable" ||
         code === "documentation_lifecycle_conflict" ||
         code === "documentation_read_only" ||
-        code === "documentation_carry_forward_target_exists"
+        code === "documentation_carry_forward_target_exists" ||
+        code === "documentation_review_version_conflict" ||
+        code === "documentation_review_revision_not_latest" ||
+        code === "documentation_review_gate_unsatisfied"
       )
         return reply
           .status(409)
@@ -839,7 +853,8 @@ export const build_documentation_routes = (
         code === "documentation_snippet_nested" ||
         code === "documentation_import_invalid" ||
         code === "documentation_import_unsupported_version" ||
-        code === "documentation_carry_forward_invalid"
+        code === "documentation_carry_forward_invalid" ||
+        code === "documentation_review_invalid"
       )
         return reply
           .status(400)
@@ -1299,7 +1314,9 @@ export const build_documentation_routes = (
             },
           );
           const command = unwrap_idempotent_result(result);
-          return reply.status(command.replayed ? 200 : 201).send(command.body);
+          return reply
+            .status(command.replayed ? 200 : 201)
+            .send(normalize_publication_review_gate(command.body));
         } catch (error) {
           return documentation_error(error, reply);
         }
@@ -2924,7 +2941,7 @@ export const build_documentation_routes = (
               ...body.data,
             });
           const command = unwrap_idempotent_result(result);
-          return reply.send(command.body);
+          return reply.send(normalize_publication_review_gate(command.body));
         } catch (error) {
           return documentation_error(error, reply);
         }

@@ -163,6 +163,73 @@ const U = {
     write("documentation_schema.openapi_source", "UPDATE", "openapi_source"),
   documentation_revision_insert: () =>
     write("documentation_schema.site_revision", "INSERT", "site_revision"),
+  documentation_review_policy_insert: () =>
+    write(
+      "documentation_schema.documentation_review_policy",
+      "INSERT",
+      "documentation_review_policy",
+    ),
+  documentation_review_policy_update: () =>
+    write(
+      "documentation_schema.documentation_review_policy",
+      "UPDATE",
+      "documentation_review_policy",
+    ),
+  documentation_review_maintainer_insert: () =>
+    write(
+      "documentation_schema.documentation_review_maintainer",
+      "INSERT",
+      "documentation_review_maintainer",
+    ),
+  documentation_review_maintainer_delete: () =>
+    write(
+      "documentation_schema.documentation_review_maintainer",
+      "DELETE",
+      "documentation_review_maintainer",
+      ["delete"],
+    ),
+  documentation_review_request_insert: () =>
+    write(
+      "documentation_schema.documentation_review_request",
+      "INSERT",
+      "documentation_review_request",
+    ),
+  documentation_review_request_update: () =>
+    write(
+      "documentation_schema.documentation_review_request",
+      "UPDATE",
+      "documentation_review_request",
+    ),
+  documentation_review_assignment_insert: () =>
+    write(
+      "documentation_schema.documentation_review_assignment",
+      "INSERT",
+      "documentation_review_assignment",
+    ),
+  documentation_review_decision_insert: () =>
+    write(
+      "documentation_schema.documentation_review_decision",
+      "INSERT",
+      "documentation_review_decision",
+    ),
+  documentation_review_notification_insert: () =>
+    write(
+      "documentation_schema.documentation_review_notification",
+      "INSERT",
+      "documentation_review_notification",
+    ),
+  documentation_review_notification_update: () =>
+    write(
+      "documentation_schema.documentation_review_notification",
+      "UPDATE",
+      "documentation_review_notification",
+    ),
+  documentation_publication_review_evidence_insert: () =>
+    write(
+      "publish_schema.documentation_publication_review_evidence",
+      "INSERT",
+      "documentation_publication_review_evidence",
+    ),
   documentation_import_inspection_insert: () =>
     write(
       "documentation_schema.documentation_import_inspection",
@@ -1052,6 +1119,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
       U.documentation_routing_update(),
       U.documentation_import_inspection_update(),
       U.documentation_import_application_insert(),
+      U.documentation_review_policy_insert(),
       U.file_update("delete"),
     ],
   ),
@@ -1116,7 +1184,11 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites",
     ],
-    [U.documentation_site_insert(), U.documentation_page_insert()],
+    [
+      U.documentation_site_insert(),
+      U.documentation_page_insert(),
+      U.documentation_review_policy_insert(),
+    ],
   ),
   command(
     "documentation.carry_forward",
@@ -1132,6 +1204,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
       U.documentation_snippet_insert(),
       U.documentation_asset_insert(),
       U.documentation_openapi_insert(),
+      U.documentation_review_policy_insert(),
     ],
   ),
   command(
@@ -1288,7 +1361,78 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions",
     ],
-    [U.documentation_revision_insert()],
+    [
+      U.documentation_revision_insert(),
+      U.documentation_review_request_update(),
+      U.documentation_review_notification_insert(),
+    ],
+  ),
+  command(
+    "documentation.review_policy.update",
+    "documentation.review_policy_updated",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/review-policy",
+    ],
+    [
+      U.documentation_review_policy_update(),
+      U.documentation_review_maintainer_delete(),
+      U.documentation_review_maintainer_insert(),
+    ],
+  ),
+  command(
+    "documentation.review_request.create",
+    "documentation.review_requested",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/reviews",
+    ],
+    [
+      U.documentation_review_request_insert(),
+      U.documentation_review_assignment_insert(),
+      U.documentation_review_notification_insert(),
+    ],
+  ),
+  command(
+    "documentation.review_request.cancel",
+    "documentation.review_canceled",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/reviews/:review_request_id/cancel",
+    ],
+    [
+      U.documentation_review_request_update(),
+      U.documentation_review_notification_insert(),
+    ],
+  ),
+  command(
+    "documentation.review_decision.approve",
+    "documentation.review_approved",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/reviews/:review_request_id/decisions",
+    ],
+    [
+      U.documentation_review_decision_insert(),
+      U.documentation_review_request_update(),
+      U.documentation_review_notification_insert(),
+    ],
+  ),
+  command(
+    "documentation.review_decision.reject",
+    "documentation.review_rejected",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/reviews/:review_request_id/decisions",
+    ],
+    [
+      U.documentation_review_decision_insert(),
+      U.documentation_review_request_update(),
+      U.documentation_review_notification_insert(),
+    ],
+  ),
+  command(
+    "documentation.review_notification.read",
+    "documentation.review_notification_read",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-review-inbox/:notification_id/read",
+    ],
+    [U.documentation_review_notification_update()],
   ),
   command(
     "publish.interactive_demo",
@@ -1376,7 +1520,12 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publications",
     ],
-    [U.link_insert(), U.link_entry_insert()],
+    [
+      U.link_insert(),
+      U.link_entry_insert(),
+      U.documentation_publication_review_evidence_insert(),
+      U.documentation_review_notification_insert(),
+    ],
   ),
   command(
     "publish.documentation_link.manifest_update",
@@ -1384,7 +1533,11 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publications",
     ],
-    [U.link_entry_update()],
+    [
+      U.link_entry_update(),
+      U.documentation_publication_review_evidence_insert(),
+      U.documentation_review_notification_insert(),
+    ],
   ),
   command(
     "publish.documentation_link.entry_rollback",
@@ -1392,7 +1545,11 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/entries/:entry_id/rollback",
     ],
-    [U.link_entry_update()],
+    [
+      U.link_entry_update(),
+      U.documentation_publication_review_evidence_insert(),
+      U.documentation_review_notification_insert(),
+    ],
   ),
   command(
     "publish.documentation_link.revoke",

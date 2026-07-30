@@ -22,7 +22,13 @@ export type ProjectCapability =
   | "documentation.site.manage"
   | "documentation.comment"
   | "documentation.checkpoint"
-  | "documentation.carry_forward";
+  | "documentation.carry_forward"
+  | "documentation.review.request"
+  | "documentation.review.decide"
+  | "documentation.review.manage"
+  | "documentation.review.inbox"
+  | "documentation.review.override"
+  | "documentation.review.evidence.read_sensitive";
 
 const capabilities: Record<ProjectRole, ReadonlySet<ProjectCapability>> = {
   project_admin: new Set<ProjectCapability>([
@@ -48,6 +54,12 @@ const capabilities: Record<ProjectRole, ReadonlySet<ProjectCapability>> = {
     "documentation.comment",
     "documentation.checkpoint",
     "documentation.carry_forward",
+    "documentation.review.request",
+    "documentation.review.decide",
+    "documentation.review.manage",
+    "documentation.review.inbox",
+    "documentation.review.override",
+    "documentation.review.evidence.read_sensitive",
   ]),
   editor: new Set<ProjectCapability>([
     "project.read",
@@ -66,6 +78,9 @@ const capabilities: Record<ProjectRole, ReadonlySet<ProjectCapability>> = {
     "documentation.comment",
     "documentation.checkpoint",
     "documentation.carry_forward",
+    "documentation.review.request",
+    "documentation.review.decide",
+    "documentation.review.inbox",
   ]),
   viewer: new Set<ProjectCapability>([
     "project.read",
@@ -73,6 +88,8 @@ const capabilities: Record<ProjectRole, ReadonlySet<ProjectCapability>> = {
     "artifact.read",
     "publication.read",
     "documentation.read",
+    "documentation.review.decide",
+    "documentation.review.inbox",
   ]),
 };
 
@@ -94,6 +111,10 @@ export const is_project_content_mutation = (capability: ProjectCapability) =>
   capability === "documentation.comment" ||
   capability === "documentation.checkpoint" ||
   capability === "documentation.carry_forward" ||
+  capability === "documentation.review.request" ||
+  capability === "documentation.review.decide" ||
+  capability === "documentation.review.manage" ||
+  capability === "documentation.review.override" ||
   capability === "project_version.manage";
 
 export const project_route_capability = (
@@ -104,6 +125,31 @@ export const project_route_capability = (
   const read = method === "GET";
   if (route_template === "/api/v1/projects/:id")
     return read ? "project.read" : "project.settings.manage";
+  if (route_template.includes("/documentation-review-inbox"))
+    return "documentation.review.inbox";
+  if (route_template.includes("/documentation-sites")) {
+    if (
+      route_template.includes("/review-publication-evidence/:evidence_id")
+    )
+      return "documentation.review.evidence.read_sensitive";
+    if (route_template.includes("/review-publication-evidence"))
+      return "documentation.read";
+    if (route_template.endsWith("/review-policy"))
+      return read ? "documentation.read" : "documentation.review.manage";
+    if (route_template.endsWith("/review-candidates"))
+      return "documentation.review.request";
+    if (route_template.endsWith("/review-gate"))
+      return "documentation.read";
+    if (route_template.includes("/reviews/")) {
+      if (route_template.endsWith("/decisions"))
+        return "documentation.review.decide";
+      if (route_template.endsWith("/cancel"))
+        return "documentation.review.request";
+      return "documentation.read";
+    }
+    if (route_template.endsWith("/reviews"))
+      return read ? "documentation.read" : "documentation.review.request";
+  }
   if (route_template.includes("/documentation-sites")) {
     if (route_template.endsWith("/documentation-sites/carry-forward"))
       return read ? "documentation.read" : "documentation.carry_forward";

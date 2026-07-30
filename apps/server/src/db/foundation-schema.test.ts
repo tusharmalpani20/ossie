@@ -37,6 +37,9 @@ TO __OSSIE_RUNTIME_DB_ROLE__;`,
 TO __OSSIE_RUNTIME_DB_ROLE__;`,
   `GRANT DELETE ON documentation_schema.documentation_page
 TO __OSSIE_RUNTIME_DB_ROLE__;`,
+  `GRANT SELECT,INSERT,DELETE ON
+  documentation_schema.documentation_review_maintainer
+TO __OSSIE_RUNTIME_DB_ROLE__;`,
 ] as const;
 
 const without_approved_runtime_delete_grants = (sql: string) =>
@@ -720,6 +723,34 @@ describe("foundation schema migrations", () => {
     expect(up).toContain("documentation.carry_forward");
     expect(down).toContain(
       "Refusing to roll back Documentation Carry-Forward and lifecycle",
+    );
+  });
+
+  it("adds scoped Documentation review history and publication evidence", () => {
+    const migration = readFileSync(
+      new URL(
+        "./migrations/029_documentation_review_and_approval_workflow.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const up = migration.split("-- DOWN:")[0] ?? migration;
+    const down = migration.split("-- DOWN:")[1] ?? "";
+    for (const table of [
+      "documentation_review_policy",
+      "documentation_review_maintainer",
+      "documentation_review_request",
+      "documentation_review_assignment",
+      "documentation_review_decision",
+      "documentation_review_notification",
+      "documentation_publication_review_evidence",
+    ])
+      expect(up).toContain(table);
+    expect(up).toContain("WHERE status='open'");
+    expect(up).toContain("prevent_documentation_review_history_mutation");
+    expect(up).not.toContain("ON DELETE CASCADE");
+    expect(down).toContain(
+      "Refusing to roll back Documentation review workflow",
     );
   });
 });

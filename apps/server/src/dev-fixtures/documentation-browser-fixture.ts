@@ -55,6 +55,9 @@ export const build_documentation_browser_fixture = () => {
       "snippet_conflict",
       "asset_archive_protection",
       "expanded_content",
+      "review_request",
+      "review_inbox",
+      "review_publication_evidence",
     ] as const,
     routes: {
       list: `/projects/${capture.project_id}/versions/summer-release/documentation`,
@@ -64,6 +67,7 @@ export const build_documentation_browser_fixture = () => {
       public_gone: "/docs/plan132-public/obsolete",
       public_operation:
         "/docs/plan132-public/operations/get-widgets-listwidgets",
+      review_inbox: `/projects/${capture.project_id}/versions/summer-release/documentation/reviews`,
     },
   };
 };
@@ -690,6 +694,28 @@ export const seed_documentation_browser_fixture = async () => {
       }),
       "roll link back to Publication 1",
     );
+    const policy = require_success(
+      await app.inject({
+        method: "GET",
+        url: `${siteRoot}/review-policy`,
+        cookies: cookie,
+      }),
+      "load Documentation Review Policy",
+    ) as { version: number };
+    const review = require_success(
+      await app.inject({
+        method: "POST",
+        url: `${siteRoot}/reviews`,
+        cookies: cookie,
+        headers: { "idempotency-key": "plan136-review-request-1" },
+        payload: {
+          site_revision_id: revisionTwo.id,
+          expected_policy_version: policy.version,
+          reviewer_org_user_ids: [viewer.org_user_id],
+        },
+      }),
+      "request Documentation review",
+    ) as { review_request: { id: string } };
     const secondary = require_success(
       await app.inject({
         method: "POST",
@@ -724,6 +750,7 @@ export const seed_documentation_browser_fixture = async () => {
       publication_two_id: publicationTwo.id,
       link_id: link.id,
       entry_id: entry.id,
+      review_request_id: review.review_request.id,
       routes: {
         ...base.routes,
         editor: `${base.routes.list}/${site.id}`,

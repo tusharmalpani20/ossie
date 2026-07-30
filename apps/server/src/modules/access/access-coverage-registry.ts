@@ -36,6 +36,23 @@ const registration = (
 };
 
 const root_for_route = (route: string) => {
+  if (route.includes("/documentation-review-inbox/:notification_id"))
+    return {
+      type: "documentation_review_notification",
+      parameter: "notification_id",
+    };
+  if (route.includes("/documentation-review-inbox"))
+    return { type: "project_version", parameter: "version_slug" };
+  if (route.includes("/review-publication-evidence/:evidence_id"))
+    return {
+      type: "documentation_publication_review_evidence",
+      parameter: "evidence_id",
+    };
+  if (route.includes("/reviews/:review_request_id"))
+    return {
+      type: "documentation_review_request",
+      parameter: "review_request_id",
+    };
   if (route.includes("/documentation-import-inspections"))
     return { type: "project_version", parameter: "version_slug" };
   if (route.includes("/documentation-sites/:site_id/pages/:page_id"))
@@ -575,6 +592,62 @@ const reads: AccessRouteRegistration[] = [
     "documentation_search.viewed",
     "documentation_site",
     "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/review-policy",
+    "documentation.review_policy_viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/review-candidates",
+    "documentation.review_candidates_viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  registration(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/review-gate",
+    {
+      action: "documentation.review_gate_viewed",
+      denied_action: "documentation_site.access_denied",
+      root_resource_type: "documentation_site",
+      root_parameter: "site_id",
+      project_parameter: "project_id",
+      policy: "denial_only",
+      surface: "portal",
+      authorization_type: "project_role",
+      atomic_commands: [],
+    },
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/reviews",
+    "documentation.review_request_list_viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/reviews/:review_request_id",
+    "documentation.review_request_viewed",
+    "documentation_review_request",
+    "review_request_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-review-inbox",
+    "documentation.review_inbox_viewed",
+    "project_version",
+    "version_slug",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/review-publication-evidence",
+    "documentation.publication_review_evidence_list_viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/review-publication-evidence/:evidence_id",
+    "documentation.publication_review_evidence_viewed",
+    "documentation_publication_review_evidence",
+    "evidence_id",
   ),
 ];
 

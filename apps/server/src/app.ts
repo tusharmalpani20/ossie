@@ -164,6 +164,9 @@ import {
 } from "./modules/documentation/documentation-portability.js";
 import { build_documentation_import_cleanup } from "./modules/documentation/documentation-import-cleanup.js";
 import { build_documentation_import_admission } from "./modules/documentation/documentation-import-admission.js";
+import { build_documentation_review_repository } from "./modules/documentation-review/documentation-review.repository.js";
+import { build_documentation_review_service } from "./modules/documentation-review/documentation-review.service.js";
+import { build_documentation_review_routes } from "./modules/documentation-review/documentation-review.routes.js";
 import {
   assert_documentation_image_dimensions,
   assert_documentation_image_format,
@@ -1395,6 +1398,15 @@ export const build = (opts: BuildOptions = {}) => {
                 project_id: input.project_id,
                 capability: "publication.create",
               });
+              if (input.review_override)
+                await project_access_service.authorize({
+                  auth: {
+                    organization_id: input.organization_id,
+                    actor_org_user_id: input.actor_org_user_id,
+                  },
+                  project_id: input.project_id,
+                  capability: "documentation.review.override",
+                });
               if (input.link.mode === "existing")
                 return repository.create_publication({
                   ...input,
@@ -1423,6 +1435,15 @@ export const build = (opts: BuildOptions = {}) => {
                 project_id: input.project_id,
                 capability: "publication.create",
               });
+              if (input.review_override)
+                await project_access_service.authorize({
+                  auth: {
+                    organization_id: input.organization_id,
+                    actor_org_user_id: input.actor_org_user_id,
+                  },
+                  project_id: input.project_id,
+                  capability: "documentation.review.override",
+                });
               return repository.rollback_publication(input);
             },
             revoke_publish_link: async (input) => {
@@ -2634,6 +2655,31 @@ export const build = (opts: BuildOptions = {}) => {
         return { id: resolution.project_version.id };
       },
     }),
+  );
+
+  app.register(
+    build_documentation_review_routes({
+      auth_service: {
+        get_current_auth_context:
+          default_authentication_session_service.get_current_auth_context,
+      },
+      documentation_review_service: build_documentation_review_service(
+        build_documentation_review_repository(pool),
+        project_access_service,
+      ),
+      resolve_project_version: async (input) => {
+        const resolution = await build_project_version_repository(
+          pool,
+        ).resolve_version({
+          organization_id: input.organization_id,
+          project_id: input.project_id,
+          slug: input.version_slug,
+        });
+        if (!resolution) throw new Error("Project Version was not found");
+        return { id: resolution.project_version.id };
+      },
+    }),
+    { prefix: "/api/v1/projects" },
   );
 
   app.register(

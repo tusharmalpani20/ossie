@@ -29,6 +29,12 @@ const capabilities: ProjectCapability[] = [
   "documentation.comment",
   "documentation.checkpoint",
   "documentation.carry_forward",
+  "documentation.review.request",
+  "documentation.review.decide",
+  "documentation.review.manage",
+  "documentation.review.inbox",
+  "documentation.review.override",
+  "documentation.review.evidence.read_sensitive",
 ];
 
 describe("project access policy", () => {
@@ -58,6 +64,9 @@ describe("project access policy", () => {
       "documentation.comment",
       "documentation.checkpoint",
       "documentation.carry_forward",
+      "documentation.review.request",
+      "documentation.review.decide",
+      "documentation.review.inbox",
     ] as const)
       expect(project_role_has_capability("editor", capability)).toBe(true);
     for (const capability of [
@@ -67,6 +76,9 @@ describe("project access policy", () => {
       "project_version.manage",
       "asset.purge",
       "documentation.site.manage",
+      "documentation.review.manage",
+      "documentation.review.override",
+      "documentation.review.evidence.read_sensitive",
     ] as const)
       expect(project_role_has_capability("editor", capability)).toBe(false);
   });
@@ -78,6 +90,8 @@ describe("project access policy", () => {
       "artifact.read",
       "publication.read",
       "documentation.read",
+      "documentation.review.decide",
+      "documentation.review.inbox",
     ] as const)
       expect(project_role_has_capability("viewer", capability)).toBe(true);
     for (const capability of capabilities.filter(
@@ -88,6 +102,8 @@ describe("project access policy", () => {
           "artifact.read",
           "publication.read",
           "documentation.read",
+          "documentation.review.decide",
+          "documentation.review.inbox",
         ].includes(value),
     ))
       expect(project_role_has_capability("viewer", capability)).toBe(false);
@@ -115,6 +131,36 @@ describe("project access policy", () => {
       "POST",
       "/api/v1/projects/:project_id/guides/:guide_id/publications",
       "publication.create",
+    ],
+    [
+      "PATCH",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/review-policy",
+      "documentation.review.manage",
+    ],
+    [
+      "POST",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/reviews",
+      "documentation.review.request",
+    ],
+    [
+      "POST",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/reviews/:review_request_id/decisions",
+      "documentation.review.decide",
+    ],
+    [
+      "GET",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-review-inbox",
+      "documentation.review.inbox",
+    ],
+    [
+      "PATCH",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-review-inbox/:notification_id/read",
+      "documentation.review.inbox",
+    ],
+    [
+      "GET",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/review-publication-evidence/:evidence_id",
+      "documentation.review.evidence.read_sensitive",
     ],
     [
       "PATCH",
@@ -176,5 +222,11 @@ describe("project access policy", () => {
   it("blocks Project Version management while the owning Project is archived", () => {
     expect(is_project_content_mutation("project_version.manage")).toBe(true);
     expect(is_project_content_mutation("publish_link.manage")).toBe(true);
+    expect(is_project_content_mutation("documentation.review.manage")).toBe(
+      true,
+    );
+    expect(is_project_content_mutation("documentation.review.inbox")).toBe(
+      false,
+    );
   });
 });
