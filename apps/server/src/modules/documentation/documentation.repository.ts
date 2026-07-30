@@ -1101,6 +1101,19 @@ const load_draft_snapshot = async (
       ORDER BY operation.destination_key,operation.id`,
     [input.organization_id, input.project_id, root.site_edition_id],
   );
+  const openapiSource = await db.query<Record<string, unknown>>(
+    `SELECT source.id,source.version,source.digest,source.file_id,
+            CASE WHEN file.mime_type='application/json' THEN 'json'
+                 ELSE 'yaml' END original_format,
+            file.storage_provider,file.storage_key,file.mime_type,
+            file.size_bytes,file.checksum_sha256
+       FROM documentation_schema.openapi_source source
+       JOIN file_schema.file file
+         ON file.id=source.file_id AND file.organization_id=source.organization_id
+      WHERE source.organization_id=$1 AND source.project_id=$2
+        AND source.site_edition_id=$3 AND file.is_deleted=FALSE`,
+    [input.organization_id, input.project_id, root.site_edition_id],
+  );
   const assets = await db.query<Record<string, unknown>>(
     `SELECT id,file_id,mime_type,byte_size,width,height,digest,name,status,version
        FROM documentation_schema.documentation_asset
@@ -1213,6 +1226,7 @@ const load_draft_snapshot = async (
       rules: redirects.rows,
     },
     openapi_operations: operations.rows,
+    openapi_source: openapiSource.rows[0] ?? null,
     assets: assets.rows,
     snippets: snippets.rows.map((snippet) => ({
       id: snippet.id as string,
@@ -2107,6 +2121,59 @@ export const build_documentation_repository = (database: Database) => ({
       values,
     );
     return result.rows[0] ?? null;
+  },
+
+  get_frozen_export_assets: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    source: "revision" | "publication";
+    revision_number?: number;
+    site_publication_id?: string;
+  }) => {
+    const values: unknown[] = [
+      input.organization_id,
+      input.project_id,
+      input.project_version_id,
+      input.site_id,
+    ];
+    const publicationJoin =
+      input.source === "publication"
+        ? `JOIN publish_schema.site_publication publication
+             ON publication.site_revision_id=revision.id
+            AND publication.organization_id=revision.organization_id
+            AND publication.project_id=revision.project_id`
+        : "";
+    const sourceFilter =
+      input.source === "revision"
+        ? `revision.revision_number=$${values.push(input.revision_number)}`
+        : `publication.id=$${values.push(input.site_publication_id)}`;
+    const result = await database.query<Record<string, unknown>>(
+      `SELECT reference.source_asset_id id,reference.file_id,
+              reference.mime_type,reference.byte_size,
+              reference.width,reference.height,reference.digest,
+              reference.source_kind,file.storage_provider,file.storage_key,
+              file.size_bytes,file.checksum_sha256
+         FROM documentation_schema.site_revision revision
+         ${publicationJoin}
+         JOIN documentation_schema.site_revision_asset_reference reference
+           ON reference.site_revision_id=revision.id
+         JOIN file_schema.file file
+           ON file.id=reference.file_id
+          AND file.organization_id=reference.organization_id
+        WHERE revision.organization_id=$1 AND revision.project_id=$2
+          AND revision.project_version_id=$3
+          AND revision.documentation_site_id=$4
+          AND ${sourceFilter} AND file.is_deleted=FALSE
+        ORDER BY reference.source_kind,reference.source_asset_id`,
+      values,
+    );
+    return result.rows.map((row, index) => ({
+      ...row,
+      name: `Imported media ${index + 1}`,
+      status: "active",
+    }));
   },
 
   search_draft: async (input: {

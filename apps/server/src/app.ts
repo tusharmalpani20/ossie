@@ -1423,7 +1423,7 @@ export const build = (opts: BuildOptions = {}) => {
               } as never);
               if (!exported) return null;
               const raw = exported.snapshot as Record<string, any>;
-              const snapshot = raw.working_draft
+              let snapshot = raw.working_draft
                 ? raw
                 : {
                     site: {
@@ -1447,6 +1447,33 @@ export const build = (opts: BuildOptions = {}) => {
                     },
                     openapi_operations: raw.openapi_operations,
                   };
+              if (input.source !== "draft") {
+                const selector =
+                  input.source === "revision"
+                    ? {
+                        source: "revision" as const,
+                        revision_number: input.revision_number,
+                      }
+                    : {
+                        source: "publication" as const,
+                        site_publication_id: input.site_publication_id,
+                      };
+                const [assets, openapiSource] = await Promise.all([
+                  repository.get_frozen_export_assets({
+                    ...input,
+                    ...selector,
+                  }),
+                  repository.get_openapi_export_file({
+                    ...input,
+                    ...selector,
+                  } as never),
+                ]);
+                snapshot = {
+                  ...snapshot,
+                  assets,
+                  openapi_source: openapiSource,
+                };
+              }
               const portable =
                 create_portable_documentation_snapshot(snapshot);
               const pageIndex = snapshot.pages.findIndex(
@@ -1480,7 +1507,7 @@ export const build = (opts: BuildOptions = {}) => {
               );
               if (!exported) return null;
               const raw = exported.snapshot as Record<string, any>;
-              const snapshot = raw.working_draft
+              let snapshot = raw.working_draft
                 ? raw
                 : {
                     site: {
@@ -1504,6 +1531,33 @@ export const build = (opts: BuildOptions = {}) => {
                     },
                     openapi_operations: raw.openapi_operations,
                   };
+              if (input.source !== "draft") {
+                const selector =
+                  input.source === "revision"
+                    ? {
+                        source: "revision" as const,
+                        revision_number: input.revision_number,
+                      }
+                    : {
+                        source: "publication" as const,
+                        site_publication_id: input.site_publication_id,
+                      };
+                const [assets, openapiSource] = await Promise.all([
+                  repository.get_frozen_export_assets({
+                    ...input,
+                    ...selector,
+                  }),
+                  repository.get_openapi_export_file({
+                    ...input,
+                    ...selector,
+                  } as never),
+                ]);
+                snapshot = {
+                  ...snapshot,
+                  assets,
+                  openapi_source: openapiSource,
+                };
+              }
               const portable =
                 create_portable_documentation_snapshot(snapshot);
               const entries: Array<{
@@ -1512,7 +1566,8 @@ export const build = (opts: BuildOptions = {}) => {
                   | "page_typed"
                   | "page_markdown"
                   | "snippet"
-                  | "asset";
+                  | "asset"
+                  | "openapi";
                 mime_type: string;
                 bytes: Buffer | string | object;
               }> = [];
@@ -1537,15 +1592,17 @@ export const build = (opts: BuildOptions = {}) => {
                   mime_type: "application/json",
                   bytes: snippet,
                 });
-              if (exported.source === "draft")
-                for (const [index, asset] of (
-                  snapshot.assets as Array<Record<string, any>>
-                ).entries()) {
+              for (const [index, asset] of (
+                snapshot.assets as Array<Record<string, any>>
+              ).entries()) {
                   const portableAsset = portable.site.assets[index];
-                  const file = await repository.get_asset_file_record({
-                    ...input,
-                    asset_id: asset.id,
-                  });
+                  const file =
+                    exported.source === "draft"
+                      ? await repository.get_asset_file_record({
+                          ...input,
+                          asset_id: asset.id,
+                        })
+                      : asset;
                   if (!file || !portableAsset)
                     throw Object.assign(
                       new Error(
@@ -1553,7 +1610,9 @@ export const build = (opts: BuildOptions = {}) => {
                       ),
                       { code: "documentation_export_source_unavailable" },
                     );
-                  const stored = await default_capture_file_storage.get(file);
+                  const stored = await default_capture_file_storage.get(
+                    file as { storage_key: string },
+                  );
                   const chunks: Buffer[] = [];
                   for await (const chunk of stored.stream as AsyncIterable<
                     Buffer | string
@@ -1579,6 +1638,39 @@ export const build = (opts: BuildOptions = {}) => {
                     bytes,
                   });
                 }
+              if (snapshot.openapi_source) {
+                const sourceFile = snapshot.openapi_source as Record<
+                  string,
+                  unknown
+                >;
+                const stored = await default_capture_file_storage.get(
+                  sourceFile as never,
+                );
+                const chunks: Buffer[] = [];
+                for await (const chunk of stored.stream as AsyncIterable<
+                  Buffer | string
+                >)
+                  chunks.push(
+                    Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+                  );
+                const bytes = Buffer.concat(chunks);
+                if (
+                  createHash("sha256").update(bytes).digest("hex") !==
+                  portable.site.openapi?.sha256
+                )
+                  throw Object.assign(
+                    new Error(
+                      "Documentation export OpenAPI source is unavailable",
+                    ),
+                    { code: "documentation_export_source_unavailable" },
+                  );
+                entries.push({
+                  path: portable.site.openapi.path,
+                  role: "openapi",
+                  mime_type: String(sourceFile.mime_type),
+                  bytes,
+                });
+              }
               const result = await create_documentation_site_package({
                 source: {
                   kind:
@@ -2009,7 +2101,11 @@ export const build = (opts: BuildOptions = {}) => {
                       handle: asset.handle,
                       id: ulid(),
                       file_id,
-                      file: { ...stored, original_name: asset.name },
+                      file: {
+                        ...stored,
+                        mime_type: asset.mime_type,
+                        original_name: asset.name,
+                      },
                       name: asset.name,
                       status: asset.status,
                       width: metadata.width,
@@ -2063,6 +2159,7 @@ export const build = (opts: BuildOptions = {}) => {
                       file_id,
                       file: {
                         ...stored,
+                        mime_type,
                         original_name: `openapi-source.${parsed.site.openapi.original_format}`,
                       },
                       digest: parsed.site.openapi.sha256,
