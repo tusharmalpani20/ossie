@@ -461,4 +461,47 @@ describe("foundation schema migrations", () => {
       ),
     );
   });
+
+  it("adds relational Documentation authoring, immutable Site snapshots, and family-safe links", () => {
+    const migration = readFileSync(
+      new URL(
+        "./migrations/025_documentation_site_first_vertical_slice.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const up = migration.split("-- DOWN:")[0] ?? migration;
+    const down = migration.split("-- DOWN:")[1] ?? "";
+
+    for (const table of [
+      "documentation_schema.documentation_site",
+      "documentation_schema.site_edition",
+      "documentation_schema.site_working_draft",
+      "documentation_schema.documentation_page",
+      "documentation_schema.documentation_page_block",
+      "documentation_schema.navigation_node",
+      "documentation_schema.page_slug_alias",
+      "documentation_schema.documentation_redirect_rule",
+      "documentation_schema.openapi_source",
+      "documentation_schema.openapi_operation",
+      "documentation_schema.comment_thread",
+      "documentation_schema.comment_reply",
+      "documentation_schema.comment_mention",
+      "documentation_schema.site_revision",
+      "documentation_schema.site_revision_page",
+      "publish_schema.site_publication",
+      "publish_schema.site_publication_search_document",
+    ]) {
+      expect(up).toContain(`CREATE TABLE ${table}`);
+    }
+    expect(up).toContain("resource_family VARCHAR(50) NOT NULL DEFAULT 'artifact'");
+    expect(up).toContain("documentation_site_id VARCHAR(26) DEFAULT NULL");
+    expect(up).toContain("site_publication_id VARCHAR(26) DEFAULT NULL");
+    expect(up).toContain("prevent_immutable_documentation_mutation");
+    expect(up).toContain("comments are intentionally excluded");
+    expect(up.toLowerCase()).not.toContain("jsonb");
+    expect(down).toContain(
+      "Refusing to roll back populated Documentation first vertical slice",
+    );
+  });
 });
