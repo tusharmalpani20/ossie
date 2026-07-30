@@ -35,6 +35,8 @@ TO __OSSIE_RUNTIME_DB_ROLE__;`,
   documentation_schema.documentation_table_cell,
   documentation_schema.documentation_tab_item
 TO __OSSIE_RUNTIME_DB_ROLE__;`,
+  `GRANT DELETE ON documentation_schema.documentation_page
+TO __OSSIE_RUNTIME_DB_ROLE__;`,
 ] as const;
 
 const without_approved_runtime_delete_grants = (sql: string) =>
