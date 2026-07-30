@@ -2,17 +2,16 @@
 
 Date: 2026-07-30
 
-Status: Partial closure evidence. The implemented authoring/public core passed
-the checks below; the child remains active because the open items listed at the
-end are still owned by child 132.
+Status: Complete for child `132`. The first vertical slice passed its
+authenticated authoring, public-reader, access, failure, accessibility,
+responsive, and accepted upper-bound checks in the available headless Chrome
+environment. Environment limitations and later-child work are recorded below.
 
 ## Environment
 
-- Repository commits exercised before documentation closeout: the Plan 132
-  implementation through `1ed44c1`, followed by the DB contract regression in
-  `dd2f980`.
-- API: Fastify on `http://127.0.0.1:3002`, testing configuration,
-  disposable `ossie_test`.
+- Repository exercised through runtime commit `6ddf72a`.
+- API: Fastify on `http://127.0.0.1:3002`, testing configuration, disposable
+  `ossie_test`.
 - Web: Vite on `http://127.0.0.1:3000`.
 - Agent Browser CLI: `0.33.1`.
 - Browser: Chrome for Testing `151.0.7922.47`, headless Linux.
@@ -20,79 +19,145 @@ end are still owned by child 132.
 - Synthetic users only: `plan125-admin@example.test` and
   `plan125-viewer@example.test`.
 - Screenshots were written under `/tmp/ossie-plan132-browser/screenshots` and
-  were deliberately not committed.
+  deliberately not committed.
 
-## Passed Browser Evidence
+## Authenticated Authoring And Permissions
 
 - Admin authenticated and opened the version-scoped Documentation library and
   Site workbench.
-- The workbench rendered both stable Pages and the saved-draft checkpoint.
+- The workbench rendered stable Pages and the saved-draft checkpoint.
 - Page content autosaved through the real `PUT .../content` route and announced
   `Saved`.
-- A Page was created through the Structure panel, flat Page navigation was
-  saved, and a retired path was persisted through the routing control. The
-  final routing mutation returned HTTP `200` through the documented
-  `{ routing }` contract.
-- A protected PNG was uploaded with required alternative text, attached to the
-  Page, and saved through the editor. The fixture's independently frozen PNG
-  rendered from the exact Publication-specific protected-asset URL with its
-  natural dimensions and alt text intact.
+- Every accepted first-slice safe block was authored through portal controls:
+  paragraph, heading, ordered list, unordered list, code, internal Page link,
+  divider, read-only API reference, and protected image with required
+  alternative text.
+- Blocks were reordered and deleted through the editor controls. A 2,000-block
+  accepted-upper-bound draft was also saved and loaded.
+- Page title and canonical path were edited with Row Version protection and the
+  permanent-alias consequence was presented before save.
+- Structure controls created a Page, created and reordered a navigation group,
+  assigned a Page parent, saved navigation, added a permanent redirect, and
+  marked a retired path `gone`.
+- OpenAPI JSON was selected through the file control, inspected, and applied.
+  The resulting reference rendered `GET /browser-check`.
+- A private Page comment was added through the portal and announced
+  `Private comment added.` Private comments did not appear in public content or
+  public search.
 - Two independent Chrome sessions loaded the same Page. The first saved a
   change; the second received the conflict response, announced
   `Conflict — local work is preserved`, and retained the exact local textarea
   value.
-- Viewer opened the same Site and Page. Revision/mutation controls and the
-  editable textarea were absent; saved Page content remained readable.
+- Viewer opened the same Site and Page. Revision/mutation controls and editable
+  fields were absent while saved Page content remained readable.
+- Admin/Editor/Viewer capability and tenant/nested-resource swaps were covered
+  by the focused route and database matrix; browser dogfood covered the Admin
+  and Viewer surfaces without weakening the server-authoritative checks.
+
+## Preview, Revision, Publication, And Rollback
+
 - Saved-draft preview rendered the complete latest server-saved Site and
   labelled its exact Working Draft version.
-- Public Publication 1 rendered frozen navigation, internal Page links, a
-  read-only OpenAPI operation destination, safe blocks, search, canonical
-  metadata, and no private comment.
+- Revision 1 and Publication 1 were created and exposed through the stable
+  Documentation link.
+- After Working Draft mutation, Revision 2 and Publication 2 were created.
+  Publication 1 remained unchanged.
+- Pointer-only rollback restored Publication 1 content without rebuilding or
+  mutating either Publication.
+- An aborted publication request produced
+  `Publication failed. The live link was not changed.` The injected preparation
+  failure unit test and database rollback test separately cover failures after
+  the request reaches the server.
+
+## Public Reader, Routing, Search, And Assets
+
+- Publication 1 rendered frozen navigation, internal Page links, safe blocks,
+  the read-only OpenAPI operation destination, canonical metadata, and no
+  private comment.
 - Public search returned the frozen install Page for `install` and no result
-  for private/comment-only text. The browser response did not expose the
-  persisted search-document collection.
-- Alias `install` and redirect rule `setup` both replaced the browser URL with
+  for private/comment-only text. Responses did not expose persisted search
+  projection internals.
+- Alias `install` and redirect rule `setup` both resolved to
   `/docs/plan132-public/install-guide`.
 - The operation deep link rendered `GET /widgets`.
 - The intentional `gone` route rendered a non-revealing unavailable state.
 - Direct API checks returned `308` for alias/redirect, `410` for gone, `404`
   for missing, `200 application/xml` for sitemap, and `200 text/plain` for
   robots.
-- The shared resolver
-  `?resource_family=documentation_site` returned the Documentation Site family.
-- After Working Draft mutation, Revision/Publication 2, and pointer-only
-  rollback, the public reader contained Publication 1 text and did not contain
-  Publication 2 text.
-- Desktop public reader axe `4.12.1` reported zero WCAG A/AA violations and
-  zero incomplete checks. The portal editor reported zero violations and one
-  indeterminate contrast check caused by an obscured textarea.
-- At 320 CSS px, `scrollWidth` and `clientWidth` were both `320`.
+- The shared resolver with
+  `resource_family=documentation_site` returned the Documentation Site family.
+- A protected PNG rendered only through its exact Publication-scoped asset URL,
+  with its alternative text and natural dimensions intact.
+
+## Restricted Link And Viewer-Session Matrix
+
+- Password link with the wrong password rendered only
+  `Password is invalid.`
+- The correct password established the protected viewer session and rendered
+  the frozen Documentation Site.
+- Revoking the link invalidated the already-established viewer session; the
+  next read rendered the generic Documentation-unavailable surface.
+- Restricted and expired links rendered the same generic unavailable surface
+  without revealing whether the Site, entry, or Publication exists.
+- Direct restricted-asset access returned `403`; expired-asset access returned
+  `410`.
+- Public, password, restricted, expired, and revoked outcomes were exercised
+  with synthetic links. Server route/database tests provide the authoritative
+  tenant and capability matrix.
+
+## Accessibility, Responsive, Motion, And Performance
+
+- Public reader axe `4.12.1` reported zero WCAG A/AA violations and zero
+  incomplete checks.
+- The 2,000-block portal editor reported zero violations and one indeterminate
+  contrast check for partially obscured textareas; inspection found no
+  actionable violation.
+- At 320 CSS px, public `scrollWidth` and `clientWidth` were both `320`.
 - Reduced-motion emulation reported
   `matchMedia("(prefers-reduced-motion: reduce)").matches === true`.
-- Local public-reader lab sample: TTFB `9.2 ms`, FCP/LCP `440 ms`, CLS `0`.
-  This is local fixture evidence, not a production p75 claim.
+- No page errors or application console errors were observed. Vite debug and
+  React development-tool messages were informational.
+- Local public-reader lab sample: TTFB `6.3 ms`, FCP `544 ms`, LCP `648 ms`,
+  CLS `0`. INP was unavailable because this short synthetic run did not produce
+  a meaningful interaction sample.
+- The 2,000-block editor loaded 2,001 fieldsets, 6,006 buttons, and 10,153 DOM
+  nodes in approximately `330.9 ms` navigation time with approximately
+  `29.6 MiB` JavaScript heap. Its save request completed in approximately
+  `681.3 ms`.
+- Production build comparison against pre-child commit `50d009c`:
+  JavaScript changed from `468.99 kB` raw / `130.54 kB` gzip to `516.90 kB`
+  raw / `142.18 kB` gzip; CSS changed from `73.94 kB` raw / `14.29 kB` gzip to
+  `74.53 kB` raw / `14.40 kB` gzip. The JavaScript delta is `47.91 kB` raw /
+  `11.64 kB` gzip and is handed to child `138` for V1 bundle/code-splitting
+  hardening.
 
-The initial public-reader run exposed a blank surface because the SPA expected
-top-level Site metadata while the server correctly froze it on the Revision.
-The adapter was fixed and the browser pass repeated. A second pass exposed
-opaque Fetch redirect handling; canonical resolution was moved to the frozen
-Site snapshot while Fastify remains authoritative for direct HTTP `308`/`410`.
-A third pass exposed hidden Viewer content; the read-only renderer was added
-and rechecked. Mutation dogfood then exposed a missing `Idempotency-Key` CORS
-allowlist entry, UUID-sized browser IDs against ULID-width columns, and a raw
-routing response where the shared client expected `{ routing }`. All three
-received focused regressions; the final routing request returned `200` with no
-page error.
+## Dogfood Defects Closed
 
-## Open Child-Owned Browser Matrix
+Browser dogfood exposed and drove focused regressions for:
 
-The following required child-132 passes are not complete and must not be
-inferred from the evidence above:
+- frozen metadata being read from mutable top-level Site state rather than the
+  Revision snapshot;
+- opaque SPA redirect handling;
+- hidden Viewer saved content;
+- a missing `Idempotency-Key` CORS allowlist entry;
+- UUID-sized browser IDs exceeding persisted ULID-width columns;
+- a raw routing response where the shared client required `{ routing }`;
+- stale OpenAPI replacement using no expected source version;
+- revoked viewer sessions remaining valid;
+- nested Revision lookup not binding every parent scope.
 
-- exercise comments, OpenAPI inspect/apply, every accepted safe block, alias,
-  redirect, navigation reorder/group, and injected preparation-failure behavior
-  through portal controls rather than fixture/API setup;
-- restricted/password/revoked/expired Documentation links and viewer sessions;
-- complete Admin/Editor/Viewer and cross-tenant/IDOR browser matrix;
-- accepted upper-bound fixture measurements and production bundle delta;
-- Firefox/WebKit evidence (no supported executable was exercised).
+All were fixed and the relevant focused, broad, database, smoke, and browser
+checks were repeated.
+
+## Honest Environment And Later-Child Limits
+
+- Firefox and WebKit were not installed in the headless host. Chrome is the
+  required child `132` browser evidence; cross-engine certification remains a
+  capability-dependent later hardening check.
+- These are local lab measurements, not production p75 Web Vitals.
+- The current Vite application still emits one primary application chunk.
+  Bundle splitting, organization-configurable quotas/reporting, and production
+  observability belong to child `138`.
+- Public routes are rendered through the existing Vite SPA boundary. Deployment
+  or crawler-specific server rendering is not introduced by child `132`.
+- No child-owned S1/S2 defect remains open.

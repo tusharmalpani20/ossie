@@ -2,15 +2,13 @@
 
 Date: 2026-07-30
 
-Status: Active during child `132` implementation. The core relational
-Documentation authoring/publication/public-reader path, protected first-slice
-image flow, database-backed search, fixture, V1 smoke journey, and primary
-headless-browser workflow are implemented and verified. Child `132` remains
-open on restricted/password viewer sessions, complete mutation audit/access
-evidence, exhaustive tenant/immutable-maintenance threat rows, remaining
-portal-authoring controls, and the browser access/upper-bound matrix. Children
-`133` through `140` remain bounded reservations that must be re-expanded after
-their actual predecessors.
+Status: Active after child `132` completion on 2026-07-30. The complete first
+vertical slice is implemented and verified, including restricted viewer
+sessions, mutation audit/access evidence, tenant and immutable-maintenance
+threat checks, first-slice authoring controls, and the headless Chrome
+access/upper-bound matrix. Child `133` is next; children `133` through `140`
+remain bounded reservations that must be re-expanded after their actual
+predecessors.
 
 Master plan number: 006.
 
@@ -88,7 +86,7 @@ distinguish these bands.
 
 ### 2.1 Current Runtime
 
-At child `132` implementation checkpoint:
+After child `132` completion:
 
 - Ossie implements Organizations, Org Users, Projects, Project Membership,
   Project Versions, Captures, Guides, Interactive Demos, relational
@@ -109,9 +107,10 @@ At child `132` implementation checkpoint:
   Revision and type-specific Publication snapshots, protected first-slice image
   assets, version-scoped authenticated APIs and portal routes, stable
   Documentation Publish Links, and exact public reader/search/metadata routes.
-- Child `132` is still active on the restricted/password viewer-session,
-  complete Audit/Access, exhaustive tenant/maintenance, remaining portal
-  authoring, and browser access/upper-bound gates recorded in that child.
+- Child `132` is complete. Restricted/password/revoked/expired viewer sessions,
+  complete first-slice Audit/Access coverage, nested tenant scope,
+  immutable-table runtime/maintenance guards, all first-slice authoring
+  controls, and the accepted Chrome access/upper-bound evidence pass.
 - Tiptap and Fumadocs are not application dependencies.
 
 ### 2.2 Accepted Target
@@ -2615,7 +2614,8 @@ By child `139`, the combined verification must include:
 - [x] ADRs `0027` through `0030` exist.
 - [x] Source-of-truth, threat, tooling, access, URL, search, publication,
       concurrency, retention, migration, and feature decisions are consolidated.
-- [x] Current code has no Product Documentation runtime.
+- [x] Planning baseline confirmed there was no Product Documentation runtime
+      before child `132`.
 - [x] Refined nine-child sequence is defined without adding product scope.
 - [x] Recheck this master against child `131`, current code, and current
       dependency research.
@@ -2624,7 +2624,7 @@ By child `139`, the combined verification must include:
 
 ### Implementation
 
-- [ ] Create, expand, recheck, implement, verify, and close child `132`.
+- [x] Create, expand, recheck, implement, verify, and close child `132`.
 - [ ] Create, expand, recheck, implement, verify, and close child `133`.
 - [ ] Create, expand, recheck, implement, verify, and close child `134`.
 - [ ] Create, expand, recheck, implement, verify, and close child `135`.
@@ -2677,20 +2677,16 @@ proposals without another accepted plan.
 
 ## 45. Immediate Next Action
 
-Product Documentation runtime is now implemented for the verified subset
-recorded in child `132`; it is not yet a closed first slice.
+Product Documentation's complete first vertical slice is implemented,
+rechecked, documented, and committed through child `132`.
 
-The next activity is to finish and independently recheck the child-owned
-closure gates listed in
-`docs/plan/132-documentation-site-first-vertical-slice.md`: restricted/password
-viewer sessions, the complete mutation Audit/Access matrix, exhaustive
-tenant/nested-ID and immutable-maintenance verification, remaining portal
-authoring controls, and the accepted browser access/upper-bound matrix.
+The next activity is to rewrite/expand and independently recheck
+`docs/plan/133-documentation-content-snippets-and-asset-workflows.md` from the
+actual child `132` result and this master. Do not implement child `133` until
+that plan is implementation-ready and clean.
 
-Children `133` through `140` are reservations, not implementation-ready plans.
-Do not implement or fully expand child `133` until child `132` is implemented,
-rechecked, documented, and committed. Each later child follows the same
-close-predecessor rule.
+Children `133` through `140` remain sequential reservations. Each later child
+follows the same close-predecessor rule.
 
 ## 46. Planning And Recheck Log
 
@@ -2735,6 +2731,14 @@ close-predecessor rule.
 - 2026-07-30: retained child `132` as active because its own restricted-link,
   complete atomic Audit/Access, exhaustive tenant/maintenance, remaining
   authoring-control, and browser upper-bound/access gates are not yet complete.
+- 2026-07-30: closed the remaining child `132` gates: protected viewer sessions
+  and revocation, complete first-slice mutation audit/access coverage, nested
+  Revision scope binding, immutable `TRUNCATE`/controlled-maintenance checks,
+  all first-slice block/structure/routing/OpenAPI controls, and the Chrome
+  access/failure/2,000-block upper-bound matrix.
+- 2026-07-30: repeated full web/server/extension/database/smoke/workspace/build
+  verification, recorded the production bundle delta and environment limits,
+  marked child `132` complete, and moved the active handoff to child `133`.
 
 ## 47. Master Planning Verification Record
 
@@ -2754,29 +2758,30 @@ Required final results:
   planning checkpoint; superseded by the child `132` runtime evidence above.
 - scoped diff assertion: passed; documentation/plan files only.
 - child file assertion: exactly one correctly named plan exists for each child
-  `132` through `140`; `132` is implementation-ready and `133`–`140` identify
-  themselves as reservations.
+  `132` through `140`; `132` is complete and `133`–`140` identify themselves as
+  reservations.
 
-Child `132` runtime evidence now includes:
+Child `132` runtime evidence includes:
 
-- final focused server run: 8 files, 49 tests;
-- final focused web Documentation run: 10 files, 21 tests, plus explicit web
-  lint;
+- full web suite: 62 files, 374 tests;
+- full server unit suite: 104 files, 436 tests;
 - full server DB suite: 22 files, 71 tests;
 - V1 smoke suite: 1 file, 2 tests;
+- full extension suite: 19 files, 140 tests;
 - sequential repository lint, type check, and build: 14, 13, and 13 successful
   tasks respectively;
-- headless Chrome authoring/public-reader, exactness, protected image, search,
-  reflow, reduced-motion, and axe evidence in
+- headless Chrome complete first-slice authoring, access/failure, public-reader,
+  exactness, protected image, search, 2,000-block upper-bound, reflow,
+  reduced-motion, axe, and local Web Vitals evidence in
   `docs/ui/132-documentation-site-first-vertical-slice-browser-evidence.md`.
+- production web bundle delta against pre-child `50d009c`: `47.91 kB`
+  JavaScript raw / `11.64 kB` gzip and `0.59 kB` CSS raw / `0.11 kB` gzip.
 
 ## 48. Planning Leftovers And Handoff
 
-- Product Documentation runtime exists for the verified child `132` subset,
-  but child `132` is not closed.
-- Child `132` now owns exact planned migration/table/route/file names within the
-  fixed master boundaries. Reconcile them again if the codebase changes before
-  implementation.
+- Product Documentation's child `132` first vertical slice is complete.
+- Child `132` established the migration/table/route/file contracts within the
+  fixed master boundaries. Child `133` must extend rather than replace them.
 - The child `132` compatibility proof selected the replaceable Ossie-native
   editor/reader fallback and exact `yaml@2.9.0`; no Tiptap/Fumadocs runtime was
   added.
@@ -2787,6 +2792,11 @@ Child `132` runtime evidence now includes:
   collaboration, permanent deletion, cross-artifact search, server proxy,
   stored credentials, SDK generation, and Video remain deferred/rejected as
   recorded.
-- The next runtime work remains child `132` closure. Child `133` may be
-  re-expanded only from the actual closed and independently rechecked child
-  `132` result.
+- The next work is child `133` plan expansion/recheck from the actual closed
+  child `132` result. Its accepted scope is remaining V1 typed content,
+  Edition-owned snippets, exact Guide/Demo Publication references, full
+  Documentation Asset workflows, product limits, and expanded immutable
+  snapshot coverage.
+- The measured single-chunk bundle growth, organization-configurable
+  quotas/reporting, production observability, and capability-dependent
+  Firefox/WebKit or production-p75 evidence remain child `138` work.
