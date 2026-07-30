@@ -27,6 +27,164 @@ export class DocumentationApiError extends Error {
   }
 }
 
+export type DocumentationImportInspection = {
+  id: string;
+  kind: "page_markdown" | "site_package";
+  status: "ready" | "consumed" | "cancelled" | "expired";
+  format_version: 1 | null;
+  source_digest: string;
+  content_fingerprint: string;
+  expires_at: string;
+  summary: {
+    pages: number;
+    snippets: number;
+    assets: number;
+    openapi_sources: number;
+    external_bindings: number;
+    expanded_bytes: number;
+  };
+  proposal: {
+    title: string | null;
+    canonical_path: string | null;
+    site_name: string | null;
+    primary_language: string | null;
+    required_bindings: Array<{
+      handle: string;
+      kind: "guide_publication" | "interactive_demo_publication";
+      display: { title: string };
+    }>;
+  };
+  issues: Array<{
+    severity: "blocking" | "warning";
+    code: string;
+    location: string | null;
+    message: string;
+  }>;
+  issue_counts: { blocking: number; warnings: number };
+  has_blocking_issues: boolean;
+  issues_truncated: boolean;
+};
+
+const importPath = (projectId: string, versionSlug: string) =>
+  `/api/v1/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation-import-inspections`;
+
+export const inspectDocumentationImport = (
+  projectId: string,
+  versionSlug: string,
+  kind: "page_markdown" | "site_package",
+  file: File,
+) => {
+  const form = new FormData();
+  form.append("file", file);
+  return fetch(
+    `${baseUrl()}${importPath(projectId, versionSlug)}?kind=${kind}`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "idempotency-key": crypto.randomUUID() },
+      body: form,
+    },
+  ).then((response) =>
+    json<{ inspection: DocumentationImportInspection }>(response),
+  );
+};
+
+export const applyDocumentationImport = (
+  projectId: string,
+  versionSlug: string,
+  inspectionId: string,
+  input: {
+    content_fingerprint: string;
+    target:
+      | { mode: "create_site"; name: string | null }
+      | {
+          mode: "empty_site";
+          site_id: string;
+          expected_site_version: number;
+          expected_draft_version: number;
+          apply_primary_language: boolean;
+        }
+      | {
+          mode: "page";
+          site_id: string;
+          expected_draft_version: number;
+          title: string;
+          canonical_path: string;
+          set_as_home: boolean;
+        };
+    external_bindings: Array<{
+      handle: string;
+      published_artifact_id: string;
+    }>;
+    confirm: true;
+  },
+) =>
+  fetch(
+    `${baseUrl()}${importPath(projectId, versionSlug)}/${encodeURIComponent(inspectionId)}/apply`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": crypto.randomUUID(),
+      },
+      body: JSON.stringify(input),
+    },
+  ).then((response) =>
+    json<{
+      application: {
+        id: string;
+        target_site_id: string;
+        created_page_id: string | null;
+      };
+    }>(response),
+  );
+
+export const cancelDocumentationImport = (
+  projectId: string,
+  versionSlug: string,
+  inspectionId: string,
+) =>
+  fetch(
+    `${baseUrl()}${importPath(projectId, versionSlug)}/${encodeURIComponent(inspectionId)}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+      headers: { "idempotency-key": crypto.randomUUID() },
+    },
+  ).then((response) => {
+    if (!response.ok)
+      return json<never>(response);
+    return undefined;
+  });
+
+export const documentationPackageExportUrl = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  siteVersion: number,
+  draftVersion: number,
+) =>
+  `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/export/package.zip?source=draft&expected_site_version=${siteVersion}&expected_draft_version=${draftVersion}`;
+
+export const documentationPageMarkdownExportUrl = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  pageId: string,
+  pageVersion: number,
+  draftVersion: number,
+) =>
+  `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/pages/${encodeURIComponent(pageId)}/export/markdown?source=draft&expected_page_version=${pageVersion}&expected_draft_version=${draftVersion}`;
+
+export const documentationOpenApiExportUrl = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  expectedSourceVersion: number,
+) =>
+  `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/openapi/export?source=draft&expected_source_version=${expectedSourceVersion}`;
+
 const json = async <Result>(response: Response): Promise<Result> => {
   const body = (await response.json().catch(() => null)) as {
     error?: { type?: string; message?: string };
@@ -382,7 +540,12 @@ export const listDocumentationArtifactPublications = (
   );
 
 export type DocumentationDraftPreview = {
-  site: { id: string; name: string; description: string | null };
+  site: {
+    id: string;
+    name: string;
+    description: string | null;
+    version?: number;
+  };
   working_draft: {
     id: string;
     home_page_id: string | null;

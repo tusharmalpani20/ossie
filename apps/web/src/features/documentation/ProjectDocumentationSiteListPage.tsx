@@ -8,6 +8,7 @@ import {
   type DocumentationSiteSummary,
 } from "../../lib/documentationApi";
 import styles from "./ProjectDocumentationSiteListPage.module.css";
+import { DocumentationPortabilityPanel } from "./DocumentationPortabilityPanel";
 
 type Props = {
   projectId: string;
@@ -83,7 +84,9 @@ export const ProjectDocumentationSiteListPage = ({
           <h1>Documentation Sites</h1>
         </div>
         {canManage && !creating ? (
-          <Button onClick={() => setCreating(true)}>Create Site</Button>
+          <div>
+            <Button onClick={() => setCreating(true)}>Create Site</Button>
+          </div>
         ) : null}
       </header>
       {creating ? (
@@ -118,6 +121,18 @@ export const ProjectDocumentationSiteListPage = ({
           ))}
         </ul>
       )}
+      <DocumentationPortabilityPanel
+        projectId={projectId}
+        versionSlug={versionSlug}
+        kind="site_package"
+        mode="create_site"
+        canImport={canManage}
+        onApplied={(siteId) => {
+          window.location.assign(
+            `/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/${encodeURIComponent(siteId)}`,
+          );
+        }}
+      />
     </main>
   );
 };

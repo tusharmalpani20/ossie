@@ -7,6 +7,7 @@ import {
   inspectDocumentationOpenApi,
   type DocumentationOpenApiInspection,
   type DocumentationOpenApiOperation,
+  documentationOpenApiExportUrl,
 } from "../../lib/documentationApi";
 
 type Props = {
@@ -119,13 +120,28 @@ export const DocumentationOpenApiPanel = ({
         </div>
       ) : null}
       {operations.length ? (
-        <ul>
-          {operations.map((operation) => (
-            <li key={operation.destination_key}>
-              {operation.method.toUpperCase()} {operation.path}
-            </li>
-          ))}
-        </ul>
+        <>
+          {sourceVersion ? (
+            <a
+              href={documentationOpenApiExportUrl(
+                projectId,
+                versionSlug,
+                siteId,
+                sourceVersion,
+              )}
+              download
+            >
+              Export exact OpenAPI source
+            </a>
+          ) : null}
+          <ul>
+            {operations.map((operation) => (
+              <li key={operation.destination_key}>
+                {operation.method.toUpperCase()} {operation.path}
+              </li>
+            ))}
+          </ul>
+        </>
       ) : null}
       <p role="status">{status}</p>
     </section>

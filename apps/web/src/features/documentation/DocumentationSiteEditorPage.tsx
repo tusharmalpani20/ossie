@@ -4,12 +4,14 @@ import {
   createDocumentationRevision,
   getDocumentationPreview,
   type DocumentationDraftPreview,
+  documentationPackageExportUrl,
 } from "../../lib/documentationApi";
 import { DocumentationOpenApiPanel } from "./DocumentationOpenApiPanel";
 import { DocumentationAssetLibrary } from "./DocumentationAssetLibrary";
 import { DocumentationPublishingPanel } from "./DocumentationPublishingPanel";
 import { DocumentationSnippetPanel } from "./DocumentationSnippetPanel";
 import { DocumentationStructurePanel } from "./DocumentationStructurePanel";
+import { DocumentationPortabilityPanel } from "./DocumentationPortabilityPanel";
 
 type Props = {
   projectId: string;
@@ -115,6 +117,44 @@ export const DocumentationSiteEditorPage = ({
         siteId={siteId}
         versionSlug={versionSlug}
       />
+      <section aria-labelledby="documentation-portability-heading">
+        <h2 id="documentation-portability-heading">Import and export</h2>
+        <p>
+          Site packages preserve typed content and protected media. Imports
+          never overwrite a non-empty Site.
+        </p>
+        <a
+          href={documentationPackageExportUrl(
+            projectId,
+            versionSlug,
+            siteId,
+            preview.site.version ?? 1,
+            preview.working_draft.version,
+          )}
+          download
+        >
+          Export saved draft ZIP
+        </a>
+        <DocumentationPortabilityPanel
+          projectId={projectId}
+          versionSlug={versionSlug}
+          kind="site_package"
+          mode="empty_site"
+          siteId={siteId}
+          siteVersion={preview.site.version ?? 1}
+          draftVersion={preview.working_draft.version}
+          canImport={canWrite}
+        />
+        <DocumentationPortabilityPanel
+          projectId={projectId}
+          versionSlug={versionSlug}
+          kind="page_markdown"
+          mode="page"
+          siteId={siteId}
+          draftVersion={preview.working_draft.version}
+          canImport={canWrite}
+        />
+      </section>
       <section aria-labelledby="checkpoint-heading">
         <h2 id="checkpoint-heading">Publish</h2>
         <p>

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DocumentationCanonicalRedirect,
   getPublicDocumentationPage,
+  inspectDocumentationImport,
   listDocumentationAssets,
   saveDocumentationSnippet,
 } from "./documentationApi";
@@ -150,6 +151,38 @@ describe("Documentation authoring API adapter", () => {
           expected_snippet_version: 2,
           blocks: [],
         }),
+      }),
+    );
+  });
+
+  it("uploads one actor-scoped portability inspection with idempotency", async () => {
+    const fetch = vi.fn(async () =>
+      json({
+        inspection: {
+          id: "inspection",
+          kind: "page_markdown",
+          status: "ready",
+        },
+      }, 201),
+    );
+    vi.stubGlobal("fetch", fetch);
+    await inspectDocumentationImport(
+      "project",
+      "main",
+      "page_markdown",
+      new File(["# Page"], "page.md", { type: "text/markdown" }),
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "/documentation-import-inspections?kind=page_markdown",
+      ),
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        headers: expect.objectContaining({
+          "idempotency-key": expect.any(String),
+        }),
+        body: expect.any(FormData),
       }),
     );
   });

@@ -14,10 +14,12 @@ import {
   updateDocumentationPage,
   uploadDocumentationAsset,
   type DocumentationPage,
+  documentationPageMarkdownExportUrl,
 } from "../../lib/documentationApi";
 import { DocumentationBlockEditor } from "./DocumentationBlockEditor";
 import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
 import { DocumentationCommentsPanel } from "./DocumentationCommentsPanel";
+import { DocumentationPortabilityPanel } from "./DocumentationPortabilityPanel";
 
 type Props = {
   projectId: string;
@@ -84,6 +86,7 @@ export const DocumentationPageEditor = ({
       operationKey: string;
     }>
   >([]);
+  const [draftVersion, setDraftVersion] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -167,6 +170,7 @@ export const DocumentationPageEditor = ({
     loadOptions(projectId, versionSlug, siteId)
       .then(({ preview }) => {
         if (!active) return;
+        setDraftVersion(preview.working_draft.version);
         setPageOptions(
           preview.pages.map((candidate) => ({
             id: candidate.id,
@@ -290,6 +294,40 @@ export const DocumentationPageEditor = ({
           ) : null}
           <Button onClick={() => void saveMetadata()}>Save Page details</Button>
           <p role="status">{metadataStatus}</p>
+        </section>
+      ) : null}
+      {draftVersion ? (
+        <section aria-labelledby="documentation-page-portability-heading">
+          <h2 id="documentation-page-portability-heading">
+            Page import and export
+          </h2>
+          <p>
+            Markdown is readable, create-only interchange. It omits Page
+            description, keywords, binary media, and typed relationship
+            fidelity. Use a Site package for a complete round trip.
+          </p>
+          <a
+            href={documentationPageMarkdownExportUrl(
+              projectId,
+              versionSlug,
+              siteId,
+              pageId,
+              page.version,
+              draftVersion,
+            )}
+            download
+          >
+            Export current Page Markdown
+          </a>
+          <DocumentationPortabilityPanel
+            projectId={projectId}
+            versionSlug={versionSlug}
+            kind="page_markdown"
+            mode="page"
+            siteId={siteId}
+            draftVersion={draftVersion}
+            canImport={canWrite}
+          />
         </section>
       ) : null}
       {canWrite ? (
