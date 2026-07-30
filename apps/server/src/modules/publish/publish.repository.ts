@@ -718,6 +718,44 @@ export const build_publish_transactional_repository = (
     );
     return load_link(db, input, input.link_id);
   },
+  async resolve_public_documentation_link(input) {
+    const row = (
+      await db.query<{
+        id: string;
+        organization_id: string;
+        project_id: string;
+        visibility: "public" | "restricted";
+        status: "active" | "revoked";
+        expires_at: Date | null;
+        password_hash: string | null;
+        password_salt: string | null;
+      }>(
+        `SELECT id,organization_id,project_id,visibility,status,expires_at,
+                password_hash,password_salt
+           FROM publish_schema.publish_link
+          WHERE slug=$1 AND resource_family='documentation_site'
+          LIMIT 1`,
+        [input.slug],
+      )
+    ).rows[0];
+    return row
+      ? {
+          publish_link: {
+            visibility: row.visibility,
+            status: row.status,
+            expires_at: row.expires_at?.toISOString() ?? null,
+            password_protected: Boolean(row.password_hash),
+          },
+          access_context: {
+            organization_id: row.organization_id,
+            project_id: row.project_id,
+            publish_link_id: row.id,
+          },
+          password_hash: row.password_hash,
+          password_salt: row.password_salt,
+        }
+      : null;
+  },
   async resolve_public_publish_link(input) {
     const row = (
       await db.query<LinkRow & { organization_id: string; project_id: string }>(
@@ -786,16 +824,14 @@ export const build_publish_transactional_repository = (
       input.artifact_type === "guide" && "guide_blocks" in detail
         ? build_public_published_artifact({
             artifact_type: "guide",
-            publication_sequence:
-              entry.published_artifact.publication_sequence,
+            publication_sequence: entry.published_artifact.publication_sequence,
             detail,
             asset_file_url: (asset_id) =>
               `/api/v1/public/publish-links/${input.slug}/versions/${entry!.project_version.slug}/assets/${asset_id}/file?artifact_type=guide`,
           })
         : build_public_published_artifact({
             artifact_type: "interactive_demo",
-            publication_sequence:
-              entry.published_artifact.publication_sequence,
+            publication_sequence: entry.published_artifact.publication_sequence,
             detail: detail as InteractiveDemoRevisionDetail,
             asset_file_url: (asset_id) =>
               `/api/v1/public/publish-links/${input.slug}/versions/${entry!.project_version.slug}/assets/${asset_id}/file?artifact_type=interactive_demo`,

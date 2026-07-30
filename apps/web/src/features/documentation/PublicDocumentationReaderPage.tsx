@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { DocumentationBlock } from "@repo/types";
 import {
   DocumentationCanonicalRedirect,
+  DocumentationApiError,
+  createPublicDocumentationViewerSession,
   getPublicDocumentationPage,
   searchPublicDocumentation,
   type PublicDocumentationSnapshot,
@@ -17,6 +19,7 @@ type Props = {
   pagePath?: string;
   loadPage?: typeof getPublicDocumentationPage;
   search?: typeof searchPublicDocumentation;
+  createViewerSession?: typeof createPublicDocumentationViewerSession;
 };
 
 const Block = ({
@@ -44,22 +47,26 @@ const Block = ({
       const List = block.kind === "ordered_list" ? "ol" : "ul";
       return (
         <List>
-          {block.items.map((item) => <li key={item.id}>{item.text}</li>)}
+          {block.items.map((item) => (
+            <li key={item.id}>{item.text}</li>
+          ))}
         </List>
       );
     }
     case "code":
-      return <pre><code data-language={block.language ?? undefined}>{block.code}</code></pre>;
+      return (
+        <pre>
+          <code data-language={block.language ?? undefined}>{block.code}</code>
+        </pre>
+      );
     case "link": {
-      const page = snapshot.pages.find((candidate) => candidate.id === block.page_id);
+      const page = snapshot.pages.find(
+        (candidate) => candidate.id === block.page_id,
+      );
       return (
         <p>
           <a
-            href={
-              page
-                ? `${pageBase}/${page.canonical_path}`
-                : block.url
-            }
+            href={page ? `${pageBase}/${page.canonical_path}` : block.url}
             rel={block.url ? "noopener noreferrer" : undefined}
           >
             {block.label}
@@ -102,9 +109,16 @@ export const PublicDocumentationReaderPage = ({
   pagePath,
   loadPage = getPublicDocumentationPage,
   search = searchPublicDocumentation,
+  createViewerSession = createPublicDocumentationViewerSession,
 }: Props) => {
-  const [snapshot, setSnapshot] = useState<PublicDocumentationSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<PublicDocumentationSnapshot | null>(
+    null,
+  );
   const [unavailable, setUnavailable] = useState(false);
+  const [passwordRequired, setPasswordRequired] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -120,7 +134,11 @@ export const PublicDocumentationReaderPage = ({
     let active = true;
     loadPage(slug, versionSlug, pagePath)
       .then((loaded) => {
-        if (active) setSnapshot(loaded);
+        if (active) {
+          setPasswordRequired(false);
+          setUnavailable(false);
+          setSnapshot(loaded);
+        }
       })
       .catch((error: unknown) => {
         if (!active) return;
@@ -128,12 +146,19 @@ export const PublicDocumentationReaderPage = ({
           window.location.replace(error.location);
           return;
         }
+        if (
+          error instanceof DocumentationApiError &&
+          error.type === "publish_link_password_required"
+        ) {
+          setPasswordRequired(true);
+          return;
+        }
         setUnavailable(true);
       });
     return () => {
       active = false;
     };
-  }, [loadPage, pagePath, slug, versionSlug]);
+  }, [loadPage, pagePath, retry, slug, versionSlug]);
 
   useEffect(() => {
     if (!snapshot) return;
@@ -171,6 +196,39 @@ export const PublicDocumentationReaderPage = ({
     }
   };
 
+  const unlock = async (event: React.FormEvent) => {
+    event.preventDefault();
+    try {
+      await createViewerSession(slug, { password });
+      setPasswordError(null);
+      setRetry((value) => value + 1);
+    } catch {
+      setPasswordError("Password is invalid.");
+    }
+  };
+
+  if (passwordRequired)
+    return (
+      <main id="main-content">
+        <form onSubmit={(event) => void unlock(event)}>
+          <h1>Password required</h1>
+          <label>
+            Publish Link password
+            <input
+              aria-label="Publish Link password"
+              type="password"
+              value={password}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setPasswordError(null);
+              }}
+            />
+          </label>
+          {passwordError ? <p role="alert">{passwordError}</p> : null}
+          <button type="submit">Continue</button>
+        </form>
+      </main>
+    );
   if (unavailable)
     return (
       <main id="main-content">
@@ -209,7 +267,9 @@ export const PublicDocumentationReaderPage = ({
           <ul>
             {results.map((result) => (
               <li key={result.page_id}>
-                <a href={`${pageBase}/${result.canonical_path}`}>{result.title}</a>
+                <a href={`${pageBase}/${result.canonical_path}`}>
+                  {result.title}
+                </a>
                 <p>{result.excerpt}</p>
               </li>
             ))}
@@ -222,7 +282,9 @@ export const PublicDocumentationReaderPage = ({
             {snapshot.navigation
               .filter((node) => node.kind === "page")
               .map((node) => {
-                const page = snapshot.pages.find((candidate) => candidate.id === node.page_id);
+                const page = snapshot.pages.find(
+                  (candidate) => candidate.id === node.page_id,
+                );
                 return page ? (
                   <li key={node.id}>
                     <a href={`${pageBase}/${page.canonical_path}`}>
@@ -234,7 +296,9 @@ export const PublicDocumentationReaderPage = ({
           </ul>
         </nav>
         <main id="main-content">
-          <p><a href={pageBase}>Documentation</a></p>
+          <p>
+            <a href={pageBase}>Documentation</a>
+          </p>
           <h1>{snapshot.page.title}</h1>
           {snapshot.page.blocks.map((block) => (
             <Block

@@ -45,6 +45,11 @@ export const DocumentationPublishingPanel = ({
   >([]);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [visibility, setVisibility] = useState<"public" | "restricted">(
+    "public",
+  );
+  const [expiresAt, setExpiresAt] = useState("");
+  const [password, setPassword] = useState("");
   const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
   const [status, setStatus] = useState("Loading Revision history…");
 
@@ -95,7 +100,11 @@ export const DocumentationPublishingPanel = ({
           mode: "create",
           name: name.trim(),
           slug: slug.trim(),
-          visibility: "public",
+          visibility,
+          expires_at: expiresAt
+            ? new Date(expiresAt).toISOString()
+            : null,
+          password: password || null,
         },
       );
       setPublishedSlug(result.link.slug);
@@ -250,6 +259,38 @@ export const DocumentationPublishingPanel = ({
             value={slug}
             onChange={(event) => setSlug(event.target.value)}
             pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+          />
+          <Label htmlFor="documentation-link-visibility">Link access</Label>
+          <select
+            id="documentation-link-visibility"
+            value={visibility}
+            onChange={(event) =>
+              setVisibility(event.target.value as "public" | "restricted")
+            }
+          >
+            <option value="public">Public</option>
+            <option value="restricted">Restricted</option>
+          </select>
+          <Label htmlFor="documentation-link-expires">
+            Link expiry (optional)
+          </Label>
+          <Input
+            id="documentation-link-expires"
+            type="datetime-local"
+            value={expiresAt}
+            onChange={(event) => setExpiresAt(event.target.value)}
+          />
+          <Label htmlFor="documentation-link-password">
+            Public link password (optional)
+          </Label>
+          <Input
+            id="documentation-link-password"
+            type="password"
+            value={password}
+            minLength={8}
+            maxLength={128}
+            disabled={visibility === "restricted"}
+            onChange={(event) => setPassword(event.target.value)}
           />
           <Button onClick={() => void publishRevision()}>
             Publish revision

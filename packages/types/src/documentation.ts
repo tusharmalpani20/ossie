@@ -5,11 +5,7 @@ import {
   DOCUMENTATION_SEARCH_RESULTS_MAX,
 } from "@repo/constants";
 import { z } from "zod";
-import {
-  IdSchema,
-  IsoDateTimeStringSchema,
-  PositiveIntSchema,
-} from "./common";
+import { IdSchema, IsoDateTimeStringSchema, PositiveIntSchema } from "./common";
 
 const TitleSchema = z.string().trim().min(1).max(DOCUMENTATION_PAGE_TITLE_MAX);
 const DescriptionSchema = z
@@ -162,7 +158,9 @@ export const DocumentationNavigationNodeSchema = z
   .strict()
   .superRefine((value, context) => {
     const valid =
-      (value.kind === "group" && value.label !== null && value.page_id === null) ||
+      (value.kind === "group" &&
+        value.label !== null &&
+        value.page_id === null) ||
       (value.kind === "page" && value.label === null && value.page_id !== null);
     if (!valid)
       context.addIssue({
@@ -251,6 +249,8 @@ const DocumentationCreateLinkSelectionSchema = z
       .max(80)
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u),
     visibility: z.enum(["public", "restricted"]),
+    expires_at: IsoDateTimeStringSchema.nullable().default(null),
+    password: z.string().nullable().default(null),
   })
   .strict();
 const DocumentationExistingLinkSelectionSchema = z

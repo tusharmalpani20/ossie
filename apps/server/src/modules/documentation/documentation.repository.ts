@@ -971,11 +971,7 @@ export const build_documentation_repository = (database: Database) => ({
         `SELECT id,version FROM documentation_schema.openapi_source
           WHERE site_edition_id=$1 AND organization_id=$2 AND project_id=$3
           FOR UPDATE`,
-        [
-          inspected.site_edition_id,
-          input.organization_id,
-          input.project_id,
-        ],
+        [inspected.site_edition_id, input.organization_id, input.project_id],
       );
       if (
         (current.rows[0]?.version ?? null) !== input.expected_source_version
@@ -1214,7 +1210,9 @@ export const build_documentation_repository = (database: Database) => ({
             !pageIds.has(block.page_id as string)
           ) {
             const error = new Error("Documentation internal link is broken");
-            Object.assign(error, { code: "documentation_internal_link_broken" });
+            Object.assign(error, {
+              code: "documentation_internal_link_broken",
+            });
             throw error;
           }
         }
@@ -1625,7 +1623,9 @@ export const build_documentation_repository = (database: Database) => ({
     return links.rows.map((link) => ({
       ...link,
       expires_at: link.expires_at?.toISOString() ?? null,
-      entries: entries.rows.filter((entry) => entry.publish_link_id === link.id),
+      entries: entries.rows.filter(
+        (entry) => entry.publish_link_id === link.id,
+      ),
     }));
   },
 
@@ -1649,6 +1649,9 @@ export const build_documentation_repository = (database: Database) => ({
           name: string;
           slug: string;
           visibility: "public" | "restricted";
+          expires_at: string | null;
+          password_hash: string | null;
+          password_salt: string | null;
         }
       | {
           mode: "existing";
@@ -1796,9 +1799,13 @@ export const build_documentation_repository = (database: Database) => ({
         await client.query(
           `INSERT INTO publish_schema.publish_link
             (id,organization_id,project_id,resource_family,
-             documentation_site_id,name,slug,visibility,status,version,
-             created_by_id)
-           VALUES ($1,$2,$3,'documentation_site',$4,$5,$6,$7,'active',1,$8)`,
+             documentation_site_id,name,slug,visibility,expires_at,
+             password_hash,password_salt,password_set_at,password_updated_at,
+             status,version,created_by_id)
+           VALUES ($1,$2,$3,'documentation_site',$4,$5,$6,$7,$8,$9,$10,
+                   CASE WHEN $9::text IS NULL THEN NULL ELSE CURRENT_TIMESTAMP END,
+                   CASE WHEN $9::text IS NULL THEN NULL ELSE CURRENT_TIMESTAMP END,
+                   'active',1,$11)`,
           [
             link.id,
             input.organization_id,
@@ -1807,6 +1814,9 @@ export const build_documentation_repository = (database: Database) => ({
             input.link.name,
             input.link.slug,
             input.link.visibility,
+            input.link.expires_at,
+            input.link.password_hash,
+            input.link.password_salt,
             input.actor_org_user_id,
           ],
         );
@@ -2211,11 +2221,6 @@ export const build_documentation_repository = (database: Database) => ({
       (selected.expires_at && selected.expires_at.getTime() <= Date.now())
     )
       return null;
-    if (selected.visibility !== "public") {
-      const error = new Error("Documentation Publish Link is restricted");
-      Object.assign(error, { code: "publish_link_password_required" });
-      throw error;
-    }
     const snapshot = await load_revision_snapshot(database, {
       site_revision_id: selected.site_revision_id,
     });
@@ -2374,8 +2379,7 @@ export const build_documentation_repository = (database: Database) => ({
           blocks: [],
         });
 
-      const canonical_path =
-        input.data.canonical_path ?? page.canonical_path;
+      const canonical_path = input.data.canonical_path ?? page.canonical_path;
       if (canonical_path !== page.canonical_path) {
         const reserved = await client.query(
           `SELECT 1
@@ -2442,7 +2446,9 @@ export const build_documentation_repository = (database: Database) => ({
       }
       const title = input.data.title ?? page.title;
       const description =
-        "description" in input.data ? input.data.description ?? null : page.description;
+        "description" in input.data
+          ? (input.data.description ?? null)
+          : page.description;
       await client.query(
         `UPDATE documentation_schema.documentation_page
             SET title=$1,description=$2,canonical_path=$3,version=version+1,
@@ -2660,25 +2666,31 @@ export const build_documentation_repository = (database: Database) => ({
           WHERE site_edition_id=$1 AND organization_id=$2 AND project_id=$3`,
         [routing.site_edition_id, input.organization_id, input.project_id],
       );
-      const paths = new Map(pages.rows.map((page) => [page.id, page.canonical_path]));
+      const paths = new Map(
+        pages.rows.map((page) => [page.id, page.canonical_path]),
+      );
       validate_documentation_routes(
         input.rules.map((rule) => ({
           source_path: rule.source_path,
           outcome: rule.outcome,
           target_path:
             rule.outcome === "redirect"
-              ? paths.get(rule.target_page_id ?? "") ?? null
+              ? (paths.get(rule.target_page_id ?? "") ?? null)
               : null,
         })),
       );
       if (
         input.rules.some(
           (rule) =>
-            pages.rows.some((page) => page.canonical_path === rule.source_path) ||
+            pages.rows.some(
+              (page) => page.canonical_path === rule.source_path,
+            ) ||
             (rule.target_page_id !== null && !paths.has(rule.target_page_id)),
         )
       ) {
-        const error = new Error("Routing references a conflicting path or Page");
+        const error = new Error(
+          "Routing references a conflicting path or Page",
+        );
         Object.assign(error, { code: "documentation_path_conflict" });
         throw error;
       }
@@ -2803,7 +2815,9 @@ export const build_documentation_repository = (database: Database) => ({
         );
         if (!anchor.rows[0]) {
           const error = new Error("Comment anchor was not found");
-          Object.assign(error, { code: "documentation_comment_anchor_missing" });
+          Object.assign(error, {
+            code: "documentation_comment_anchor_missing",
+          });
           throw error;
         }
       }

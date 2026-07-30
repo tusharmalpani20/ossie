@@ -1,4 +1,8 @@
-import type { FastifyInstance, FastifyPluginAsync } from "fastify";
+import type {
+  FastifyInstance,
+  FastifyPluginAsync,
+  FastifyReply,
+} from "fastify";
 import {
   DocumentationCommentReplyCreateRequestSchema,
   DocumentationCommentThreadCreateRequestSchema,
@@ -14,12 +18,11 @@ import {
   DocumentationRollbackPublicationRequestSchema,
   DocumentationApplyOpenApiRequestSchema,
 } from "@repo/types";
-import {
-  normalize_documentation_path,
-} from "@repo/documentation-domain";
+import { normalize_documentation_path } from "@repo/documentation-domain";
 import { z } from "zod";
 import { web_session_cookie_name } from "../authentication/session-cookie";
 import type { AuthContext } from "../authentication/session.service";
+import { public_viewer_cookie_name } from "../publish/public-viewer-cookie";
 import { error_response } from "../shared/http-errors";
 import {
   DocumentationIdempotencyConflictError,
@@ -81,10 +84,9 @@ const PublicAssetParamsSchema = z
 const unwrap_idempotent_result = (result: unknown) => {
   if (!result || typeof result !== "object")
     return { body: result, replayed: false };
-  const {
-    idempotent_replay,
-    ...body
-  } = result as Record<string, unknown> & { idempotent_replay?: boolean };
+  const { idempotent_replay, ...body } = result as Record<string, unknown> & {
+    idempotent_replay?: boolean;
+  };
   return { body, replayed: idempotent_replay === true };
 };
 
@@ -150,7 +152,9 @@ export type DocumentationRouteDependencies = {
       actor_org_user_id: string;
       site_id: string;
       expected_version: number;
-      nodes: z.infer<typeof DocumentationNavigationUpdateRequestSchema>["nodes"];
+      nodes: z.infer<
+        typeof DocumentationNavigationUpdateRequestSchema
+      >["nodes"];
     }) => Promise<unknown>;
     replace_routing: (input: {
       organization_id: string;
@@ -278,6 +282,7 @@ export type DocumentationRouteDependencies = {
     resolve_public_site: (input: {
       slug: string;
       version_slug: string | null;
+      viewer_token?: string;
     }) => Promise<unknown>;
     inspect_openapi: (input: {
       organization_id: string;
@@ -332,6 +337,7 @@ export type DocumentationRouteDependencies = {
       slug: string;
       version_slug: string | null;
       asset_id: string;
+      viewer_token?: string;
     }) => Promise<{
       stream: NodeJS.ReadableStream;
       mime_type: string;
@@ -374,7 +380,9 @@ export const build_documentation_routes = (
     };
     const documentation_error = (
       error: unknown,
-      reply: { status: (status: number) => { send: (body: unknown) => unknown } },
+      reply: {
+        status: (status: number) => { send: (body: unknown) => unknown };
+      },
     ) => {
       const code =
         typeof error === "object" &&
@@ -393,7 +401,9 @@ export const build_documentation_routes = (
       )
         return reply
           .status(409)
-          .send(error_response(code, "Documentation changed; reload and retry"));
+          .send(
+            error_response(code, "Documentation changed; reload and retry"),
+          );
       if (
         code === "documentation_navigation_invalid" ||
         code === "documentation_redirect_cycle" ||
@@ -406,6 +416,22 @@ export const build_documentation_routes = (
         return reply
           .status(400)
           .send(error_response(code, "Documentation request is invalid"));
+      if (code === "publish_link_password_required")
+        return reply
+          .status(401)
+          .send(error_response(code, "A valid viewer session is required"));
+      if (code === "publish_link_not_public")
+        return reply
+          .status(403)
+          .send(error_response(code, "Publish Link is restricted"));
+      if (code === "publish_link_expired")
+        return reply
+          .status(410)
+          .send(error_response(code, "Publish Link has expired"));
+      if (code === "publish_link_not_found")
+        return reply
+          .status(404)
+          .send(error_response(code, "Publish Link was not found"));
       throw error;
     };
     fastify.get(
@@ -413,18 +439,19 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = ParamsSchema.safeParse(request.params);
         if (!params.success) {
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         }
         try {
-          const auth =
-            await dependencies.auth_service.get_current_auth_context(
-              request.cookies[web_session_cookie_name],
-            );
+          const auth = await dependencies.auth_service.get_current_auth_context(
+            request.cookies[web_session_cookie_name],
+          );
           const project_version = await dependencies.resolve_project_version({
             organization_id: auth.organization.id,
             actor_org_user_id: auth.org_user.id,
@@ -440,9 +467,9 @@ export const build_documentation_routes = (
             });
           return reply.send({ documentation_sites });
         } catch {
-          return reply.status(401).send(
-            error_response("unauthenticated", "Authentication required"),
-          );
+          return reply
+            .status(401)
+            .send(error_response("unauthenticated", "Authentication required"));
         }
       },
     );
@@ -451,7 +478,9 @@ export const build_documentation_routes = (
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites",
       async (request, reply) => {
         const params = ParamsSchema.safeParse(request.params);
-        const body = DocumentationCreateSiteRequestSchema.safeParse(request.body);
+        const body = DocumentationCreateSiteRequestSchema.safeParse(
+          request.body,
+        );
         const idempotency_key = IdempotencyKeySchema.safeParse(
           request.headers["idempotency-key"],
         );
@@ -467,10 +496,9 @@ export const build_documentation_routes = (
         }
 
         try {
-          const auth =
-            await dependencies.auth_service.get_current_auth_context(
-              request.cookies[web_session_cookie_name],
-            );
+          const auth = await dependencies.auth_service.get_current_auth_context(
+            request.cookies[web_session_cookie_name],
+          );
           const project_version = await dependencies.resolve_project_version({
             organization_id: auth.organization.id,
             actor_org_user_id: auth.org_user.id,
@@ -489,12 +517,14 @@ export const build_documentation_routes = (
           return reply.status(command.replayed ? 200 : 201).send(command.body);
         } catch (error) {
           if (error instanceof DocumentationIdempotencyConflictError)
-            return reply.status(409).send(
-              error_response(
-                error.code,
-                "Idempotency key was already used for a different request",
-              ),
-            );
+            return reply
+              .status(409)
+              .send(
+                error_response(
+                  error.code,
+                  "Idempotency key was already used for a different request",
+                ),
+              );
           return reply
             .status(401)
             .send(error_response("unauthenticated", "Authentication required"));
@@ -507,12 +537,14 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = SiteParamsSchema.safeParse(request.params);
         if (!params.success || !request.isMultipart())
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         try {
           let upload:
             | {
@@ -525,12 +557,14 @@ export const build_documentation_routes = (
             limits: { files: 1, fields: 0, fileSize: 10 * 1024 * 1024 },
           })) {
             if (part.type !== "file" || upload)
-              return reply.status(400).send(
-                error_response(
-                  "invalid_documentation_request",
-                  "Exactly one OpenAPI File is required",
-                ),
-              );
+              return reply
+                .status(400)
+                .send(
+                  error_response(
+                    "invalid_documentation_request",
+                    "Exactly one OpenAPI File is required",
+                  ),
+                );
             const normalizedMime =
               part.mimetype === "application/json"
                 ? "application/json"
@@ -540,12 +574,14 @@ export const build_documentation_routes = (
                   ? "application/yaml"
                   : null;
             if (!normalizedMime)
-              return reply.status(400).send(
-                error_response(
-                  "documentation_openapi_invalid",
-                  "OpenAPI File must be JSON or YAML",
-                ),
-              );
+              return reply
+                .status(400)
+                .send(
+                  error_response(
+                    "documentation_openapi_invalid",
+                    "OpenAPI File must be JSON or YAML",
+                  ),
+                );
             upload = {
               bytes: await part.toBuffer(),
               mime_type: normalizedMime,
@@ -553,12 +589,14 @@ export const build_documentation_routes = (
             };
           }
           if (!upload)
-            return reply.status(400).send(
-              error_response(
-                "invalid_documentation_request",
-                "Exactly one OpenAPI File is required",
-              ),
-            );
+            return reply
+              .status(400)
+              .send(
+                error_response(
+                  "invalid_documentation_request",
+                  "Exactly one OpenAPI File is required",
+                ),
+              );
           const scope = await authorized_scope(request, params.data);
           const inspection =
             await dependencies.documentation_service.inspect_openapi({
@@ -595,12 +633,14 @@ export const build_documentation_routes = (
           request.headers["idempotency-key"],
         );
         if (!params.success || !body.success || !key.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         try {
           const scope = await authorized_scope(request, params.data);
           const result =
@@ -611,9 +651,7 @@ export const build_documentation_routes = (
               ...body.data,
             });
           const command = unwrap_idempotent_result(result);
-          return reply
-            .status(command.replayed ? 200 : 201)
-            .send(command.body);
+          return reply.status(command.replayed ? 200 : 201).send(command.body);
         } catch (error) {
           return documentation_error(error, reply);
         }
@@ -625,12 +663,14 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = SiteParamsSchema.safeParse(request.params);
         if (!params.success || !request.isMultipart())
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Exactly one Documentation image is required",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Exactly one Documentation image is required",
+              ),
+            );
         let upload:
           | {
               bytes: Buffer;
@@ -652,12 +692,14 @@ export const build_documentation_routes = (
               part.mimetype,
             )
           )
-            return reply.status(400).send(
-              error_response(
-                "documentation_asset_invalid",
-                "Documentation image is invalid",
-              ),
-            );
+            return reply
+              .status(400)
+              .send(
+                error_response(
+                  "documentation_asset_invalid",
+                  "Documentation image is invalid",
+                ),
+              );
           upload = {
             bytes: await part.toBuffer(),
             mime_type: part.mimetype as
@@ -669,12 +711,14 @@ export const build_documentation_routes = (
           };
         }
         if (!upload)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Exactly one Documentation image is required",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Exactly one Documentation image is required",
+              ),
+            );
         try {
           const scope = await authorized_scope(request, params.data);
           const asset = await dependencies.documentation_service.upload_asset({
@@ -694,12 +738,14 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = AssetParamsSchema.safeParse(request.params);
         if (!params.success)
-          return reply.status(404).send(
-            error_response(
-              "documentation_asset_not_found",
-              "Documentation Asset was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_asset_not_found",
+                "Documentation Asset was not found",
+              ),
+            );
         const scope = await authorized_scope(request, params.data);
         const file = await dependencies.documentation_service.get_asset_file({
           ...scope,
@@ -707,12 +753,14 @@ export const build_documentation_routes = (
           asset_id: params.data.asset_id,
         });
         if (!file)
-          return reply.status(404).send(
-            error_response(
-              "documentation_asset_not_found",
-              "Documentation Asset was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_asset_not_found",
+                "Documentation Asset was not found",
+              ),
+            );
         reply
           .header("content-type", file.mime_type)
           .header("content-length", String(file.size_bytes));
@@ -725,12 +773,14 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = SiteParamsSchema.safeParse(request.params);
         if (!params.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         const scope = await authorized_scope(request, params.data);
         const source =
           await dependencies.documentation_service.get_openapi_source({
@@ -738,12 +788,14 @@ export const build_documentation_routes = (
             site_id: params.data.site_id,
           });
         if (!source)
-          return reply.status(404).send(
-            error_response(
-              "documentation_openapi_not_found",
-              "OpenAPI Source was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_openapi_not_found",
+                "OpenAPI Source was not found",
+              ),
+            );
         return reply.send(source);
       },
     );
@@ -753,18 +805,22 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = PageParamsSchema.safeParse(request.params);
         if (!params.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         const scope = await authorized_scope(request, params.data);
-        const comments = await dependencies.documentation_service.list_comments({
-          ...scope,
-          site_id: params.data.site_id,
-          page_id: params.data.page_id,
-        });
+        const comments = await dependencies.documentation_service.list_comments(
+          {
+            ...scope,
+            site_id: params.data.site_id,
+            page_id: params.data.page_id,
+          },
+        );
         return reply.send({ comments });
       },
     );
@@ -773,22 +829,25 @@ export const build_documentation_routes = (
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages",
       async (request, reply) => {
         const params = SiteParamsSchema.safeParse(request.params);
-        const body = DocumentationCreatePageRequestSchema.safeParse(request.body);
+        const body = DocumentationCreatePageRequestSchema.safeParse(
+          request.body,
+        );
         const key = IdempotencyKeySchema.safeParse(
           request.headers["idempotency-key"],
         );
         if (!params.success || !body.success || !key.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
-        try {
-          const auth =
-            await dependencies.auth_service.get_current_auth_context(
-              request.cookies[web_session_cookie_name],
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
             );
+        try {
+          const auth = await dependencies.auth_service.get_current_auth_context(
+            request.cookies[web_session_cookie_name],
+          );
           const version = await dependencies.resolve_project_version({
             organization_id: auth.organization.id,
             actor_org_user_id: auth.org_user.id,
@@ -810,18 +869,22 @@ export const build_documentation_routes = (
             .send({ page: command.body });
         } catch (error) {
           if (error instanceof DocumentationIdempotencyConflictError)
-            return reply.status(409).send(
+            return reply
+              .status(409)
+              .send(
+                error_response(
+                  error.code,
+                  "Idempotency key was already used for a different request",
+                ),
+              );
+          return reply
+            .status(404)
+            .send(
               error_response(
-                error.code,
-                "Idempotency key was already used for a different request",
+                "documentation_site_not_found",
+                "Documentation Site was not found",
               ),
             );
-          return reply.status(404).send(
-            error_response(
-              "documentation_site_not_found",
-              "Documentation Site was not found",
-            ),
-          );
         }
       },
     );
@@ -830,19 +893,22 @@ export const build_documentation_routes = (
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/content",
       async (request, reply) => {
         const params = PageParamsSchema.safeParse(request.params);
-        const body = DocumentationPageContentRequestSchema.safeParse(request.body);
+        const body = DocumentationPageContentRequestSchema.safeParse(
+          request.body,
+        );
         if (!params.success || !body.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
-        try {
-          const auth =
-            await dependencies.auth_service.get_current_auth_context(
-              request.cookies[web_session_cookie_name],
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
             );
+        try {
+          const auth = await dependencies.auth_service.get_current_auth_context(
+            request.cookies[web_session_cookie_name],
+          );
           const version = await dependencies.resolve_project_version({
             organization_id: auth.organization.id,
             actor_org_user_id: auth.org_user.id,
@@ -861,16 +927,15 @@ export const build_documentation_routes = (
           });
           return reply.send({ page: result });
         } catch (error) {
-          if (!(error instanceof DocumentationRowVersionConflictError)) throw error;
-          return reply.status(409).send(
-            {
-              ...error_response(
-                "documentation_row_version_conflict",
-                "Documentation Page changed; preserve local work and reconcile",
-              ),
-              latest_page: error.latest_page,
-            },
-          );
+          if (!(error instanceof DocumentationRowVersionConflictError))
+            throw error;
+          return reply.status(409).send({
+            ...error_response(
+              "documentation_row_version_conflict",
+              "Documentation Page changed; preserve local work and reconcile",
+            ),
+            latest_page: error.latest_page,
+          });
         }
       },
     );
@@ -880,17 +945,18 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = PageParamsSchema.safeParse(request.params);
         if (!params.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
-        try {
-          const auth =
-            await dependencies.auth_service.get_current_auth_context(
-              request.cookies[web_session_cookie_name],
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
             );
+        try {
+          const auth = await dependencies.auth_service.get_current_auth_context(
+            request.cookies[web_session_cookie_name],
+          );
           const version = await dependencies.resolve_project_version({
             organization_id: auth.organization.id,
             actor_org_user_id: auth.org_user.id,
@@ -908,12 +974,14 @@ export const build_documentation_routes = (
           if (!page) throw new Error("not found");
           return reply.send({ page });
         } catch {
-          return reply.status(404).send(
-            error_response(
-              "documentation_page_not_found",
-              "Documentation Page was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_page_not_found",
+                "Documentation Page was not found",
+              ),
+            );
         }
       },
     );
@@ -922,14 +990,18 @@ export const build_documentation_routes = (
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id",
       async (request, reply) => {
         const params = PageParamsSchema.safeParse(request.params);
-        const body = DocumentationPageUpdateRequestSchema.safeParse(request.body);
+        const body = DocumentationPageUpdateRequestSchema.safeParse(
+          request.body,
+        );
         if (!params.success || !body.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         try {
           const scope = await authorized_scope(request, params.data);
           const page = await dependencies.documentation_service.update_page({
@@ -953,12 +1025,14 @@ export const build_documentation_routes = (
           request.body,
         );
         if (!params.success || !body.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         try {
           const scope = await authorized_scope(request, params.data);
           const navigation =
@@ -983,12 +1057,14 @@ export const build_documentation_routes = (
           request.body,
         );
         if (!params.success || !body.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         try {
           const scope = await authorized_scope(request, params.data);
           const routing =
@@ -1009,18 +1085,21 @@ export const build_documentation_routes = (
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/comments",
       async (request, reply) => {
         const params = PageParamsSchema.safeParse(request.params);
-        const body =
-          DocumentationCommentThreadCreateRequestSchema.safeParse(request.body);
+        const body = DocumentationCommentThreadCreateRequestSchema.safeParse(
+          request.body,
+        );
         const key = IdempotencyKeySchema.safeParse(
           request.headers["idempotency-key"],
         );
         if (!params.success || !body.success || !key.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         try {
           const scope = await authorized_scope(request, params.data);
           const result =
@@ -1045,18 +1124,21 @@ export const build_documentation_routes = (
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/comments/:thread_id/replies",
       async (request, reply) => {
         const params = ThreadParamsSchema.safeParse(request.params);
-        const body =
-          DocumentationCommentReplyCreateRequestSchema.safeParse(request.body);
+        const body = DocumentationCommentReplyCreateRequestSchema.safeParse(
+          request.body,
+        );
         const key = IdempotencyKeySchema.safeParse(
           request.headers["idempotency-key"],
         );
         if (!params.success || !body.success || !key.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         try {
           const scope = await authorized_scope(request, params.data);
           const result =
@@ -1081,15 +1163,18 @@ export const build_documentation_routes = (
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/comments/:thread_id",
       async (request, reply) => {
         const params = ThreadParamsSchema.safeParse(request.params);
-        const body =
-          DocumentationCommentTransitionRequestSchema.safeParse(request.body);
+        const body = DocumentationCommentTransitionRequestSchema.safeParse(
+          request.body,
+        );
         if (!params.success || !body.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         try {
           const scope = await authorized_scope(request, params.data);
           const thread =
@@ -1115,24 +1200,27 @@ export const build_documentation_routes = (
           .strict()
           .safeParse(request.query);
         if (!params.success || !query.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         const scope = await authorized_scope(request, params.data);
-        const results =
-          await dependencies.documentation_service.search_draft({
+        const results = await dependencies.documentation_service.search_draft({
           ...scope,
           site_id: params.data.site_id,
           query: query.data.q,
         });
         return reply.send({
-          results: (results as Array<Record<string, unknown>>).map((result) => ({
-            ...result,
-            portal_path: `/projects/${params.data.project_id}/versions/${params.data.version_slug}/documentation/${params.data.site_id}/pages/${String(result.page_id)}`,
-          })),
+          results: (results as Array<Record<string, unknown>>).map(
+            (result) => ({
+              ...result,
+              portal_path: `/projects/${params.data.project_id}/versions/${params.data.version_slug}/documentation/${params.data.site_id}/pages/${String(result.page_id)}`,
+            }),
+          ),
         });
       },
     );
@@ -1142,24 +1230,28 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = SiteParamsSchema.safeParse(request.params);
         if (!params.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         const scope = await authorized_scope(request, params.data);
         const preview = await dependencies.documentation_service.get_preview({
           ...scope,
           site_id: params.data.site_id,
         });
         if (!preview)
-          return reply.status(404).send(
-            error_response(
-              "documentation_site_not_found",
-              "Documentation Site was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_site_not_found",
+                "Documentation Site was not found",
+              ),
+            );
         return reply.send({ preview });
       },
     );
@@ -1169,12 +1261,14 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = SiteParamsSchema.safeParse(request.params);
         if (!params.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         const scope = await authorized_scope(request, params.data);
         const revisions =
           await dependencies.documentation_service.list_revisions({
@@ -1196,12 +1290,14 @@ export const build_documentation_routes = (
           request.headers["idempotency-key"],
         );
         if (!params.success || !body.success || !key.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         try {
           const scope = await authorized_scope(request, params.data);
           const result =
@@ -1226,12 +1322,14 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = RevisionParamsSchema.safeParse(request.params);
         if (!params.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         const scope = await authorized_scope(request, params.data);
         const revision = await dependencies.documentation_service.get_revision({
           organization_id: scope.organization_id,
@@ -1240,12 +1338,14 @@ export const build_documentation_routes = (
           site_revision_id: params.data.revision_id,
         });
         if (!revision)
-          return reply.status(404).send(
-            error_response(
-              "documentation_revision_not_found",
-              "Documentation Revision was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_revision_not_found",
+                "Documentation Revision was not found",
+              ),
+            );
         return reply.send({ revision });
       },
     );
@@ -1255,12 +1355,14 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = SiteParamsSchema.safeParse(request.params);
         if (!params.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         const scope = await authorized_scope(request, params.data);
         const publications =
           await dependencies.documentation_service.list_publications({
@@ -1276,12 +1378,14 @@ export const build_documentation_routes = (
       async (request, reply) => {
         const params = SiteParamsSchema.safeParse(request.params);
         if (!params.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         const scope = await authorized_scope(request, params.data);
         const publish_links =
           await dependencies.documentation_service.list_publish_links({
@@ -1303,12 +1407,14 @@ export const build_documentation_routes = (
           request.headers["idempotency-key"],
         );
         if (!params.success || !body.success || !key.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         try {
           const scope = await authorized_scope(request, params.data);
           const result =
@@ -1319,9 +1425,7 @@ export const build_documentation_routes = (
               ...body.data,
             });
           const command = unwrap_idempotent_result(result);
-          return reply
-            .status(command.replayed ? 200 : 201)
-            .send(command.body);
+          return reply.status(command.replayed ? 200 : 201).send(command.body);
         } catch (error) {
           return documentation_error(error, reply);
         }
@@ -1339,12 +1443,14 @@ export const build_documentation_routes = (
           request.headers["idempotency-key"],
         );
         if (!params.success || !body.success || !key.success)
-          return reply.status(400).send(
-            error_response(
-              "invalid_documentation_request",
-              "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
         try {
           const scope = await authorized_scope(request, params.data);
           const result =
@@ -1364,14 +1470,25 @@ export const build_documentation_routes = (
       },
     );
 
-    const public_site = async (params: unknown) => {
+    const public_site = async (
+      params: unknown,
+      reply: FastifyReply,
+      viewer_token?: string,
+    ) => {
       const parsed = PublicDocumentationParamsSchema.safeParse(params);
       if (!parsed.success) return null;
-      const site = await dependencies.documentation_service.resolve_public_site({
-        slug: parsed.data.slug,
-        version_slug: parsed.data.version_slug ?? null,
-      });
-      return { params: parsed.data, site };
+      try {
+        const site =
+          await dependencies.documentation_service.resolve_public_site({
+            slug: parsed.data.slug,
+            version_slug: parsed.data.version_slug ?? null,
+            viewer_token,
+          });
+        return { params: parsed.data, site };
+      } catch (error) {
+        documentation_error(error, reply);
+        return null;
+      }
     };
     const public_site_response = (site: unknown): Record<string, unknown> => {
       if (!site || typeof site !== "object") return {};
@@ -1383,54 +1500,77 @@ export const build_documentation_routes = (
     fastify.get(
       "/api/v1/public/publish-links/:slug/documentation",
       async (request, reply) => {
-        const result = await public_site(request.params);
+        const result = await public_site(
+          request.params,
+          reply,
+          request.cookies?.[public_viewer_cookie_name],
+        );
+        if (reply.sent) return reply;
         if (!result?.site)
-          return reply.status(404).send(
-            error_response(
-              "publish_link_not_found",
-              "Publish Link was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "publish_link_not_found",
+                "Publish Link was not found",
+              ),
+            );
         return reply.send(public_site_response(result.site));
       },
     );
     fastify.get(
       "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation",
       async (request, reply) => {
-        const result = await public_site(request.params);
+        const result = await public_site(
+          request.params,
+          reply,
+          request.cookies?.[public_viewer_cookie_name],
+        );
+        if (reply.sent) return reply;
         if (!result?.site)
-          return reply.status(404).send(
-            error_response(
-              "publish_link_not_found",
-              "Publish Link was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "publish_link_not_found",
+                "Publish Link was not found",
+              ),
+            );
         return reply.send(public_site_response(result.site));
       },
     );
 
     const register_public_page = (path: string) =>
       fastify.get(path, async (request, reply) => {
-        const result = await public_site(request.params);
+        const result = await public_site(
+          request.params,
+          reply,
+          request.cookies?.[public_viewer_cookie_name],
+        );
+        if (reply.sent) return reply;
         if (!result?.site)
-          return reply.status(404).send(
-            error_response(
-              "publish_link_not_found",
-              "Publish Link was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "publish_link_not_found",
+                "Publish Link was not found",
+              ),
+            );
         let requestedPath: string;
         try {
           requestedPath = normalize_documentation_path(
             result.params["*"] ?? "",
           );
         } catch {
-          return reply.status(404).send(
-            error_response(
-              "documentation_page_not_found",
-              "Documentation Page was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_page_not_found",
+                "Documentation Page was not found",
+              ),
+            );
         }
         const site = result.site as {
           pages: Array<{
@@ -1452,8 +1592,7 @@ export const build_documentation_routes = (
         const page = site.pages.find(
           (candidate) => candidate.canonical_path === requestedPath,
         );
-        if (page)
-          return reply.send({ ...public_site_response(site), page });
+        if (page) return reply.send({ ...public_site_response(site), page });
         const alias = site.aliases.find(
           (candidate) => candidate.former_path === requestedPath,
         );
@@ -1461,12 +1600,14 @@ export const build_documentation_routes = (
           (candidate) => candidate.source_path === requestedPath,
         );
         if (redirect?.outcome === "gone")
-          return reply.status(410).send(
-            error_response(
-              "documentation_page_gone",
-              "Documentation Page is gone",
-            ),
-          );
+          return reply
+            .status(410)
+            .send(
+              error_response(
+                "documentation_page_gone",
+                "Documentation Page is gone",
+              ),
+            );
         const targetPageId =
           alias?.documentation_page_id ?? redirect?.target_page_id;
         const target = site.pages.find(
@@ -1482,12 +1623,14 @@ export const build_documentation_routes = (
                 : `/docs/${result.params.slug}/${target.canonical_path}`,
             )
             .send();
-        return reply.status(404).send(
-          error_response(
-            "documentation_page_not_found",
-            "Documentation Page was not found",
-          ),
-        );
+        return reply
+          .status(404)
+          .send(
+            error_response(
+              "documentation_page_not_found",
+              "Documentation Page was not found",
+            ),
+          );
       });
     register_public_page(
       "/api/v1/public/publish-links/:slug/documentation/pages/*",
@@ -1502,18 +1645,25 @@ export const build_documentation_routes = (
           .object({ q: z.string().trim().min(1).max(200) })
           .strict()
           .safeParse(request.query);
-        const result = await public_site(request.params);
+        const result = await public_site(
+          request.params,
+          reply,
+          request.cookies?.[public_viewer_cookie_name],
+        );
+        if (reply.sent) return reply;
         if (!query.success || !result?.site)
-          return reply.status(query.success ? 404 : 400).send(
-            error_response(
-              query.success
-                ? "publish_link_not_found"
-                : "invalid_documentation_request",
-              query.success
-                ? "Publish Link was not found"
-                : "Documentation request is invalid",
-            ),
-          );
+          return reply
+            .status(query.success ? 404 : 400)
+            .send(
+              error_response(
+                query.success
+                  ? "publish_link_not_found"
+                  : "invalid_documentation_request",
+                query.success
+                  ? "Publish Link was not found"
+                  : "Documentation request is invalid",
+              ),
+            );
         const site = result.site as {
           search_documents: Array<{
             page_id: string;
@@ -1532,8 +1682,7 @@ export const build_documentation_routes = (
           .map((document) => ({
             page_id: document.page_id,
             title: document.title,
-            excerpt:
-              document.description ?? document.search_text.slice(0, 240),
+            excerpt: document.description ?? document.search_text.slice(0, 240),
             canonical_path: document.canonical_path,
           }));
         return reply.send({ results });
@@ -1549,25 +1698,34 @@ export const build_documentation_routes = (
       fastify.get(path, async (request, reply) => {
         const params = PublicOperationParamsSchema.safeParse(request.params);
         if (!params.success)
-          return reply.status(404).send(
-            error_response(
-              "documentation_operation_not_found",
-              "OpenAPI operation was not found",
-            ),
-          );
-        const site = await dependencies.documentation_service.resolve_public_site(
-          {
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_operation_not_found",
+                "OpenAPI operation was not found",
+              ),
+            );
+        let site: unknown;
+        try {
+          site = await dependencies.documentation_service.resolve_public_site({
             slug: params.data.slug,
             version_slug: params.data.version_slug ?? null,
-          },
-        );
+            viewer_token: request.cookies?.[public_viewer_cookie_name],
+          });
+        } catch (error) {
+          documentation_error(error, reply);
+          return reply;
+        }
         if (!site)
-          return reply.status(404).send(
-            error_response(
-              "publish_link_not_found",
-              "Publish Link was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "publish_link_not_found",
+                "Publish Link was not found",
+              ),
+            );
         const snapshot = site as {
           openapi_operations: Array<{
             destination_key: string;
@@ -1579,12 +1737,14 @@ export const build_documentation_routes = (
             candidate.destination_key === params.data.operation_key,
         );
         if (!operation)
-          return reply.status(404).send(
-            error_response(
-              "documentation_operation_not_found",
-              "OpenAPI operation was not found",
-            ),
-          );
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_operation_not_found",
+                "OpenAPI operation was not found",
+              ),
+            );
         return reply.send({ operation });
       });
     register_public_operation(
@@ -1595,12 +1755,20 @@ export const build_documentation_routes = (
       fastify.get(path, async (request, reply) => {
         const params = PublicAssetParamsSchema.safeParse(request.params);
         if (!params.success) return reply.status(404).send();
-        const file =
-          await dependencies.documentation_service.get_public_asset_file({
-            slug: params.data.slug,
-            version_slug: params.data.version_slug ?? null,
-            asset_id: params.data.asset_id,
-          });
+        let file;
+        try {
+          file = await dependencies.documentation_service.get_public_asset_file(
+            {
+              slug: params.data.slug,
+              version_slug: params.data.version_slug ?? null,
+              asset_id: params.data.asset_id,
+              viewer_token: request.cookies?.[public_viewer_cookie_name],
+            },
+          );
+        } catch (error) {
+          documentation_error(error, reply);
+          return reply;
+        }
         if (!file) return reply.status(404).send();
         reply
           .header("content-type", file.mime_type)
@@ -1622,15 +1790,18 @@ export const build_documentation_routes = (
       kind: "sitemap" | "robots",
     ) =>
       fastify.get(path, async (request, reply) => {
-        const result = await public_site(request.params);
+        const result = await public_site(
+          request.params,
+          reply,
+          request.cookies?.[public_viewer_cookie_name],
+        );
+        if (reply.sent) return reply;
         if (!result?.site) return reply.status(404).send();
         const site = result.site as {
           pages: Array<{ canonical_path: string }>;
         };
         if (kind === "robots")
-          return reply
-            .type("text/plain")
-            .send("User-agent: *\nAllow: /\n");
+          return reply.type("text/plain").send("User-agent: *\nAllow: /\n");
         const urls = site.pages
           .map(
             (page) =>

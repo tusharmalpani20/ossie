@@ -130,6 +130,17 @@ export type PublishRepository = {
       })
     | null
   >;
+  resolve_public_documentation_link(input: { slug: string }): Promise<{
+    publish_link: {
+      visibility: "public" | "restricted";
+      status: "active" | "revoked";
+      expires_at: string | null;
+      password_protected: boolean;
+    };
+    access_context: PublicPublishAccessContext;
+    password_hash: string | null;
+    password_salt: string | null;
+  } | null>;
   find_public_viewer_session(input: {
     publish_link_id: string;
     token_hash: string;
@@ -180,6 +191,38 @@ export const build_publish_service = (
   }) => {
     const resolved = await repository.resolve_public_publish_link(input);
     if (!resolved) throw new PublishLinkNotFoundError();
+    assert_public_publish_link_access({
+      publish_link: resolved.publish_link,
+      now: new Date(),
+    });
+    const session = input.viewer_token
+      ? await repository.find_public_viewer_session({
+          publish_link_id: resolved.access_context.publish_link_id,
+          token_hash: hash_token(input.viewer_token),
+        })
+      : null;
+    const access = assert_public_viewer_session_access({
+      publish_link: resolved.publish_link,
+      session,
+      now: new Date(),
+    });
+    if (access.should_touch_session && input.viewer_token) {
+      await repository.touch_public_viewer_session({
+        publish_link_id: resolved.access_context.publish_link_id,
+        token_hash: hash_token(input.viewer_token),
+      });
+    }
+    options.on_public_publish_link_resolved?.(resolved.access_context);
+    return resolved;
+  };
+  const documentation_access = async (input: {
+    slug: string;
+    viewer_token?: string;
+  }) => {
+    const resolved = await repository.resolve_public_documentation_link(input);
+    if (!resolved) throw new PublishLinkNotFoundError();
+    if (resolved.publish_link.status !== "active")
+      throw new PublishLinkNotFoundError();
     assert_public_publish_link_access({
       publish_link: resolved.publish_link,
       now: new Date(),
@@ -281,6 +324,13 @@ export const build_publish_service = (
         canonical_public_url: resolved.canonical_public_url,
       };
     },
+    async authorize_public_documentation(input: {
+      slug: string;
+      viewer_token?: string;
+    }) {
+      const resolved = await documentation_access(input);
+      return resolved.access_context;
+    },
     async create_public_publish_viewer_session(input: {
       slug: string;
       artifact_type: PublishArtifactType;
@@ -291,6 +341,40 @@ export const build_publish_service = (
         version_slug: null,
       });
       if (resolved) {
+        assert_public_publish_link_access({
+          publish_link: resolved.publish_link,
+          now: new Date(),
+        });
+      }
+      if (
+        !resolved ||
+        !resolved.password_hash ||
+        !resolved.password_salt ||
+        !(await verify_public_link_password(
+          input.password,
+          resolved.password_hash,
+          resolved.password_salt,
+        ))
+      ) {
+        throw new InvalidPublicViewerPasswordError();
+      }
+      const token = randomBytes(32).toString("base64url");
+      return repository.create_public_viewer_session({
+        publish_link_id: resolved.access_context.publish_link_id,
+        token,
+        token_hash: hash_token(token),
+        expires_at: public_viewer_session_expires_at(new Date()),
+      });
+    },
+    async create_public_documentation_viewer_session(input: {
+      slug: string;
+      password: string;
+    }) {
+      const resolved =
+        await repository.resolve_public_documentation_link(input);
+      if (resolved) {
+        if (resolved.publish_link.status !== "active")
+          throw new PublishLinkNotFoundError();
         assert_public_publish_link_access({
           publish_link: resolved.publish_link,
           now: new Date(),

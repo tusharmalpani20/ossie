@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import cookie from "@fastify/cookie";
 import { describe, expect, it, vi } from "vitest";
 import {
   PublishLinkNotFoundError,
@@ -94,6 +95,38 @@ describe("relational publication routes", () => {
     expect(resolve_public_documentation).toHaveBeenCalledWith({
       slug: "product-docs",
       version_slug: null,
+      viewer_token: undefined,
+    });
+    await app.close();
+  });
+  it("creates a shared viewer session for password-protected Documentation", async () => {
+    const create_public_documentation_viewer_session = vi.fn(async () => ({
+      token: "viewer-token",
+      expires_at: new Date(Date.now() + 60_000).toISOString(),
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_publish_routes({
+        auth_service: {} as never,
+        publish_service: {
+          create_public_documentation_viewer_session,
+        } as never,
+      }),
+      { prefix: "/api/v1" },
+    );
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/public/publish-links/product-docs/viewer-sessions?resource_family=documentation_site",
+      payload: { password: "safe local password" },
+    });
+    expect(response.statusCode).toBe(201);
+    expect(
+      response.cookies.find((cookie) => cookie.name === "ossie_public_viewer"),
+    ).toMatchObject({ value: "viewer-token", httpOnly: true });
+    expect(create_public_documentation_viewer_session).toHaveBeenCalledWith({
+      slug: "product-docs",
+      password: "safe local password",
     });
     await app.close();
   });

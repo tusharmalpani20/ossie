@@ -87,6 +87,8 @@ describe("Documentation shared contracts", () => {
           name: "Product docs",
           slug: "product-docs",
           visibility: "public",
+          expires_at: "2026-08-30T00:00:00.000Z",
+          password: "safe local password",
         },
       }).success,
     ).toBe(true);

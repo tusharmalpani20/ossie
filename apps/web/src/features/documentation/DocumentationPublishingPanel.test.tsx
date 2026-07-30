@@ -36,6 +36,9 @@ describe("DocumentationPublishingPanel", () => {
     fireEvent.change(screen.getByLabelText("Public link slug"), {
       target: { value: "product-docs" },
     });
+    fireEvent.change(screen.getByLabelText("Public link password (optional)"), {
+      target: { value: "safe local password" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Publish revision" }));
     await waitFor(() =>
       expect(publish).toHaveBeenCalledWith(
@@ -48,6 +51,8 @@ describe("DocumentationPublishingPanel", () => {
           name: "Product docs",
           slug: "product-docs",
           visibility: "public",
+          expires_at: null,
+          password: "safe local password",
         },
       ),
     );

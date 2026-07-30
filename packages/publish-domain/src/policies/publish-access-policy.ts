@@ -38,7 +38,7 @@ export const validate_publish_access_input = (input: {
 };
 
 export const assert_public_publish_link_access = (input: {
-  publish_link: PublicPublishLink;
+  publish_link: Pick<PublicPublishLink, "visibility" | "expires_at">;
   now: Date;
 }) => {
   if (input.publish_link.visibility !== "public") {

@@ -16,11 +16,30 @@ const baseUrl = () => import.meta.env.VITE_OSSIE_API_URL ?? "";
 const sitesPath = (projectId: string, versionSlug: string) =>
   `/api/v1/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation-sites`;
 
-const json = async <Result>(response: Response): Promise<Result> => {
-  if (!response.ok) {
-    throw new Error(`Documentation request failed (${response.status})`);
+export class DocumentationApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly type: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "DocumentationApiError";
   }
-  return (await response.json()) as Result;
+}
+
+const json = async <Result>(response: Response): Promise<Result> => {
+  const body = (await response.json().catch(() => null)) as {
+    error?: { type?: string; message?: string };
+  } | null;
+  if (!response.ok) {
+    throw new DocumentationApiError(
+      response.status,
+      body?.error?.type ?? "documentation_request_failed",
+      body?.error?.message ??
+        `Documentation request failed (${response.status})`,
+    );
+  }
+  return body as Result;
 };
 
 export const listDocumentationSites = (
@@ -109,11 +128,14 @@ export const uploadDocumentationAsset = (
 ) => {
   const form = new FormData();
   form.append("file", file);
-  return fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/assets`, {
-    method: "POST",
-    credentials: "include",
-    body: form,
-  }).then((response) =>
+  return fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/assets`,
+    {
+      method: "POST",
+      credentials: "include",
+      body: form,
+    },
+  ).then((response) =>
     json<{
       asset: {
         id: string;
@@ -168,11 +190,8 @@ export type DocumentationDraftPreview = {
   }>;
 };
 
-const sitePath = (
-  projectId: string,
-  versionSlug: string,
-  siteId: string,
-) => `${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}`;
+const sitePath = (projectId: string, versionSlug: string, siteId: string) =>
+  `${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}`;
 
 export const getDocumentationPreview = (
   projectId: string,
@@ -369,11 +388,12 @@ export const getPublicDocumentationPage = async (
   const root = publicDocumentationPath(slug, versionSlug);
   if (pagePath?.startsWith("operations/")) {
     const operationKey = pagePath.slice("operations/".length);
-    const raw = await fetch(`${baseUrl()}${root}`).then((response) =>
-      json<RawPublicDocumentationSnapshot>(response),
-    );
+    const raw = await fetch(`${baseUrl()}${root}`, {
+      credentials: "include",
+    }).then((response) => json<RawPublicDocumentationSnapshot>(response));
     const { operation } = await fetch(
       `${baseUrl()}${root}/operations/${encodeURIComponent(operationKey)}`,
+      { credentials: "include" },
     ).then((response) =>
       json<{
         operation: {
@@ -386,7 +406,9 @@ export const getPublicDocumentationPage = async (
     );
     return normalizePublicDocumentationSnapshot(raw, {
       id: `operation:${operation.destination_key}`,
-      title: operation.summary ?? `${operation.method.toUpperCase()} ${operation.path}`,
+      title:
+        operation.summary ??
+        `${operation.method.toUpperCase()} ${operation.path}`,
       description: `${operation.method.toUpperCase()} ${operation.path}`,
       canonical_path: pagePath,
       blocks: [
@@ -402,9 +424,9 @@ export const getPublicDocumentationPage = async (
     });
   }
   if (pagePath) {
-    const raw = await fetch(`${baseUrl()}${root}`).then((response) =>
-      json<RawPublicDocumentationSnapshot>(response),
-    );
+    const raw = await fetch(`${baseUrl()}${root}`, {
+      credentials: "include",
+    }).then((response) => json<RawPublicDocumentationSnapshot>(response));
     const page = raw.pages.find(
       (candidate) => candidate.canonical_path === pagePath,
     );
@@ -417,8 +439,7 @@ export const getPublicDocumentationPage = async (
     const rule = raw.redirects?.find(
       (candidate) => candidate.source_path === pagePath,
     );
-    if (rule?.outcome === "gone")
-      throw new Error("Documentation Page is gone");
+    if (rule?.outcome === "gone") throw new Error("Documentation Page is gone");
     const alias = raw.aliases?.find(
       (candidate) => candidate.former_path === pagePath,
     );
@@ -432,9 +453,9 @@ export const getPublicDocumentationPage = async (
       `${browserBase}/${target.canonical_path}`,
     );
   }
-  const snapshot = await fetch(`${baseUrl()}${root}`).then((response) =>
-    json<RawPublicDocumentationSnapshot>(response),
-  );
+  const snapshot = await fetch(`${baseUrl()}${root}`, {
+    credentials: "include",
+  }).then((response) => json<RawPublicDocumentationSnapshot>(response));
   const page =
     snapshot.pages.find(
       (candidate) => candidate.id === snapshot.revision.home_page_id,
@@ -454,6 +475,7 @@ export const searchPublicDocumentation = (
 ) =>
   fetch(
     `${baseUrl()}${publicDocumentationPath(slug, versionSlug)}/search?q=${encodeURIComponent(query)}`,
+    { credentials: "include" },
   ).then((response) =>
     json<{
       results: Array<{
@@ -464,6 +486,23 @@ export const searchPublicDocumentation = (
       }>;
     }>(response),
   );
+
+export const createPublicDocumentationViewerSession = (
+  slug: string,
+  input: { password: string },
+): Promise<void> =>
+  fetch(
+    `${baseUrl()}/api/v1/public/publish-links/${encodeURIComponent(slug)}/viewer-sessions?resource_family=documentation_site`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        "X-Ossie-Access-Surface": "public_reader",
+      },
+      body: JSON.stringify(input),
+    },
+  ).then((response) => json<void>(response));
 
 export type DocumentationCommentThread = {
   id: string;
@@ -487,10 +526,9 @@ export const listDocumentationComments = (
   siteId: string,
   pageId: string,
 ) =>
-  fetch(
-    `${baseUrl()}${commentsPath(projectId, versionSlug, siteId, pageId)}`,
-    { credentials: "include" },
-  ).then((response) =>
+  fetch(`${baseUrl()}${commentsPath(projectId, versionSlug, siteId, pageId)}`, {
+    credentials: "include",
+  }).then((response) =>
     json<{ comments: DocumentationCommentThread[] }>(response),
   );
 
@@ -501,22 +539,19 @@ export const createDocumentationComment = (
   pageId: string,
   body: string,
 ) =>
-  fetch(
-    `${baseUrl()}${commentsPath(projectId, versionSlug, siteId, pageId)}`,
-    {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "content-type": "application/json",
-        "idempotency-key": crypto.randomUUID(),
-      },
-      body: JSON.stringify({
-        body,
-        block_anchor_id: null,
-        mentioned_project_membership_ids: [],
-      }),
+  fetch(`${baseUrl()}${commentsPath(projectId, versionSlug, siteId, pageId)}`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
+      "idempotency-key": crypto.randomUUID(),
     },
-  ).then((response) =>
+    body: JSON.stringify({
+      body,
+      block_anchor_id: null,
+      mentioned_project_membership_ids: [],
+    }),
+  }).then((response) =>
     json<{ thread: Omit<DocumentationCommentThread, "replies"> }>(response),
   );
 
@@ -535,17 +570,18 @@ export const createDocumentationCommentReply = (
   threadId: string,
   body: string,
 ) =>
-  fetch(`${baseUrl()}${threadPath(projectId, versionSlug, siteId, threadId)}/replies`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "content-type": "application/json",
-      "idempotency-key": crypto.randomUUID(),
+  fetch(
+    `${baseUrl()}${threadPath(projectId, versionSlug, siteId, threadId)}/replies`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": crypto.randomUUID(),
+      },
+      body: JSON.stringify({ body, mentioned_project_membership_ids: [] }),
     },
-    body: JSON.stringify({ body, mentioned_project_membership_ids: [] }),
-  }).then((response) =>
-    json<{ reply: { id: string; body: string } }>(response),
-  );
+  ).then((response) => json<{ reply: { id: string; body: string } }>(response));
 
 export const transitionDocumentationComment = (
   projectId: string,
@@ -666,9 +702,12 @@ export const listDocumentationPublications = (
   versionSlug: string,
   siteId: string,
 ) =>
-  fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publications`, {
-    credentials: "include",
-  }).then((response) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publications`,
+    {
+      credentials: "include",
+    },
+  ).then((response) =>
     json<{ publications: DocumentationPublicationSummary[] }>(response),
   );
 
@@ -677,9 +716,12 @@ export const listDocumentationPublishLinks = (
   versionSlug: string,
   siteId: string,
 ) =>
-  fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publish-links`, {
-    credentials: "include",
-  }).then((response) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publish-links`,
+    {
+      credentials: "include",
+    },
+  ).then((response) =>
     json<{ publish_links: DocumentationPublishLinkSummary[] }>(response),
   );
 
@@ -689,6 +731,8 @@ type DocumentationPublicationLinkSelection =
       name: string;
       slug: string;
       visibility: "public" | "restricted";
+      expires_at?: string | null;
+      password?: string | null;
     }
   | {
       mode: "existing";
@@ -704,15 +748,18 @@ export const createDocumentationPublication = (
   revisionId: string,
   link: DocumentationPublicationLinkSelection,
 ) =>
-  fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publications`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "content-type": "application/json",
-      "idempotency-key": crypto.randomUUID(),
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publications`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": crypto.randomUUID(),
+      },
+      body: JSON.stringify({ revision_id: revisionId, link }),
     },
-    body: JSON.stringify({ revision_id: revisionId, link }),
-  }).then((response) =>
+  ).then((response) =>
     json<{
       publication: { id: string; publication_sequence: number };
       link: {

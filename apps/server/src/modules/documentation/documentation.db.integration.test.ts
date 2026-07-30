@@ -481,6 +481,103 @@ describe("DB-backed Documentation repository", () => {
     expect(JSON.stringify(publicBefore.json())).not.toContain(
       "Please clarify this installation step.",
     );
+    const passwordPublication = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/publications`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "publication-route-password" },
+      payload: {
+        revision_id: revision1.json().revision.id,
+        link: {
+          mode: "create",
+          name: "Protected Product docs",
+          slug: "protected-product-docs",
+          visibility: "public",
+          password: "safe local password",
+        },
+      },
+    });
+    expect(passwordPublication.statusCode).toBe(201);
+    expect(
+      (
+        await app.inject({
+          url: "/api/v1/public/publish-links/protected-product-docs/documentation/pages/install-guide",
+        })
+      ).statusCode,
+    ).toBe(401);
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/v1/public/publish-links/protected-product-docs/viewer-sessions?resource_family=documentation_site",
+          payload: { password: "wrong password" },
+        })
+      ).statusCode,
+    ).toBe(400);
+    const viewerSession = await app.inject({
+      method: "POST",
+      url: "/api/v1/public/publish-links/protected-product-docs/viewer-sessions?resource_family=documentation_site",
+      payload: { password: "safe local password" },
+    });
+    expect(viewerSession.statusCode).toBe(201);
+    const viewerToken = viewerSession.cookies.find(
+      (cookie) => cookie.name === "ossie_public_viewer",
+    )?.value;
+    expect(
+      (
+        await app.inject({
+          url: "/api/v1/public/publish-links/protected-product-docs/documentation/pages/install-guide",
+          cookies: { ossie_public_viewer: viewerToken ?? "" },
+        })
+      ).statusCode,
+    ).toBe(200);
+    const restrictedPublication = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/publications`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "publication-route-restricted" },
+      payload: {
+        revision_id: revision1.json().revision.id,
+        link: {
+          mode: "create",
+          name: "Restricted Product docs",
+          slug: "restricted-product-docs",
+          visibility: "restricted",
+        },
+      },
+    });
+    expect(restrictedPublication.statusCode).toBe(201);
+    expect(
+      (
+        await app.inject({
+          url: "/api/v1/public/publish-links/restricted-product-docs/documentation/pages/install-guide",
+        })
+      ).statusCode,
+    ).toBe(403);
+    const expiredPublication = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/publications`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "publication-route-expired" },
+      payload: {
+        revision_id: revision1.json().revision.id,
+        link: {
+          mode: "create",
+          name: "Expired Product docs",
+          slug: "expired-product-docs",
+          visibility: "public",
+          expires_at: "2020-01-01T00:00:00.000Z",
+        },
+      },
+    });
+    expect(expiredPublication.statusCode).toBe(201);
+    expect(
+      (
+        await app.inject({
+          url: "/api/v1/public/publish-links/expired-product-docs/documentation/pages/install-guide",
+        })
+      ).statusCode,
+    ).toBe(410);
     const publicOperation = await app.inject({
       method: "GET",
       url: "/api/v1/public/publish-links/product-docs/documentation/operations/get-widgets-listwidgets",

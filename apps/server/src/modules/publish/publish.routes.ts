@@ -62,6 +62,7 @@ export type PublishRouteDependencies = {
   resolve_public_documentation?: (input: {
     slug: string;
     version_slug: string | null;
+    viewer_token?: string;
   }) => Promise<unknown | null>;
 };
 type Params = {
@@ -457,6 +458,7 @@ export const build_publish_routes =
           const result = await dependencies.resolve_public_documentation?.({
             slug: p.slug,
             version_slug: null,
+            viewer_token: request.cookies?.[public_viewer_cookie_name],
           });
           return result
             ? result
@@ -490,6 +492,7 @@ export const build_publish_routes =
             const result = await dependencies.resolve_public_documentation?.({
               slug: p.slug,
               version_slug: p.version_slug!,
+              viewer_token: request.cookies?.[public_viewer_cookie_name],
             });
             return result
               ? result
@@ -523,20 +526,20 @@ export const build_publish_routes =
             body = CreatePublicViewerSessionRequestSchema.safeParse(
               request.body,
             );
-          if (
-            !query.success ||
-            !("artifact_type" in query.data) ||
-            !body.success
-          )
-            return invalid(reply);
+          if (!query.success || !body.success) return invalid(reply);
+          const slug = (request.params as PublicParams).slug;
           const result =
-            await dependencies.publish_service.create_public_publish_viewer_session(
-              {
-                slug: (request.params as PublicParams).slug,
-                artifact_type: query.data.artifact_type,
-                password: body.data.password,
-              },
-            );
+            "resource_family" in query.data
+              ? await dependencies.publish_service.create_public_documentation_viewer_session(
+                  { slug, password: body.data.password },
+                )
+              : await dependencies.publish_service.create_public_publish_viewer_session(
+                  {
+                    slug,
+                    artifact_type: query.data.artifact_type,
+                    password: body.data.password,
+                  },
+                );
           set_public_viewer_cookie(reply, result.token, result.expires_at);
           return reply.status(201).send({ expires_at: result.expires_at });
         } catch (e) {

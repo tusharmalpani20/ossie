@@ -94,6 +94,8 @@ import {
 } from "./modules/publish/publish.routes.js";
 import { build_audited_publish_repository } from "./modules/publish/publish.audit.js";
 import { build_publish_service } from "./modules/publish/publish.service.js";
+import { hash_public_link_password } from "./modules/publish/public-link-password.js";
+import { validate_publish_password_input } from "@repo/publish-domain";
 import {
   audit_request_context,
   run_with_audit_request_context,
@@ -702,6 +704,19 @@ export const build = (opts: BuildOptions = {}) => {
     { prefix: "/api/v1/projects" },
   );
 
+  const documentation_public_access_service = build_publish_service(
+    build_audited_publish_repository(pool),
+    {
+      on_public_publish_link_resolved: (link) =>
+        set_access_resolved_resource({
+          organization_id: link.organization_id,
+          project_id: link.project_id,
+          root_resource_type: "publish_link",
+          root_resource_id: link.publish_link_id,
+        }),
+    },
+  );
+
   app.register(
     build_documentation_routes({
       auth_service: {
@@ -945,7 +960,24 @@ export const build = (opts: BuildOptions = {}) => {
                 project_id: input.project_id,
                 capability: "documentation.site.manage",
               });
-              return repository.create_publication(input);
+              if (input.link.mode === "existing")
+                return repository.create_publication({
+                  ...input,
+                  link: input.link,
+                });
+              validate_publish_password_input(input.link.password);
+              const password =
+                input.link.password === null
+                  ? { hash: null, salt: null }
+                  : await hash_public_link_password(input.link.password);
+              return repository.create_publication({
+                ...input,
+                link: {
+                  ...input.link,
+                  password_hash: password.hash,
+                  password_salt: password.salt,
+                },
+              });
             },
             rollback_publication: async (input) => {
               await project_access_service.authorize({
@@ -958,7 +990,15 @@ export const build = (opts: BuildOptions = {}) => {
               });
               return repository.rollback_publication(input);
             },
-            resolve_public_site: repository.resolve_public_site,
+            resolve_public_site: async (input) => {
+              await documentation_public_access_service.authorize_public_documentation(
+                {
+                  slug: input.slug,
+                  viewer_token: input.viewer_token,
+                },
+              );
+              return repository.resolve_public_site(input);
+            },
             upload_asset: async (input) => {
               await project_access_service.authorize({
                 auth: {
@@ -1026,6 +1066,12 @@ export const build = (opts: BuildOptions = {}) => {
               };
             },
             get_public_asset_file: async (input) => {
+              await documentation_public_access_service.authorize_public_documentation(
+                {
+                  slug: input.slug,
+                  viewer_token: input.viewer_token,
+                },
+              );
               const file = await repository.get_public_asset_file_record(input);
               if (!file || file.storage_provider !== "local") return null;
               const stored = await default_capture_file_storage.get({
@@ -1349,8 +1395,15 @@ export const build = (opts: BuildOptions = {}) => {
             revoke_publish_link: "publish_link.manage",
           });
         })(),
-      resolve_public_documentation:
-        build_documentation_repository(pool).resolve_public_site,
+      resolve_public_documentation: async (input) => {
+        await documentation_public_access_service.authorize_public_documentation(
+          {
+            slug: input.slug,
+            viewer_token: input.viewer_token,
+          },
+        );
+        return build_documentation_repository(pool).resolve_public_site(input);
+      },
     }),
     {
       prefix: "/api/v1",

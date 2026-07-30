@@ -63,4 +63,39 @@ describe("revision-backed publication service", () => {
     ).rejects.toBeInstanceOf(PublishLinkNotPublicError);
     expect(create_public_viewer_session).not.toHaveBeenCalled();
   });
+
+  it("authorizes password-protected Documentation through the shared viewer session", async () => {
+    const touch_public_viewer_session = vi.fn(async () => undefined);
+    const repository = {
+      resolve_public_documentation_link: vi.fn(async () => ({
+        publish_link: {
+          visibility: "public",
+          status: "active",
+          expires_at: null,
+          password_protected: true,
+        },
+        password_hash: "hash",
+        password_salt: "salt",
+        access_context: {
+          organization_id: "org_1",
+          project_id: "project_1",
+          publish_link_id: "link_1",
+        },
+      })),
+      find_public_viewer_session: vi.fn(async () => ({
+        publish_link_id: "link_1",
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+        revoked_at: null,
+      })),
+      touch_public_viewer_session,
+    } as unknown as PublishRepository;
+
+    await expect(
+      build_publish_service(repository).authorize_public_documentation({
+        slug: "product-docs",
+        viewer_token: "viewer-token",
+      }),
+    ).resolves.toMatchObject({ publish_link_id: "link_1" });
+    expect(touch_public_viewer_session).toHaveBeenCalledOnce();
+  });
 });

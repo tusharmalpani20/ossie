@@ -1,10 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PublicDocumentationReaderPage } from "./PublicDocumentationReaderPage";
+import { DocumentationApiError } from "../../lib/documentationApi";
 
 describe("PublicDocumentationReaderPage", () => {
   afterEach(() => {
-    document.head.querySelectorAll("[data-documentation-metadata]").forEach((node) => node.remove());
+    document.head
+      .querySelectorAll("[data-documentation-metadata]")
+      .forEach((node) => node.remove());
   });
 
   it("renders the exact publication, metadata, navigation, and safe blocks", async () => {
@@ -16,7 +19,9 @@ describe("PublicDocumentationReaderPage", () => {
           site: { name: "Product docs", description: "Safe product help" },
           revision: { primary_language: "en-US", home_page_id: "page" },
           pages: [{ id: "page", title: "Install", canonical_path: "install" }],
-          navigation: [{ id: "nav", kind: "page", page_id: "page", label: null }],
+          navigation: [
+            { id: "nav", kind: "page", page_id: "page", label: null },
+          ],
           openapi_operations: [
             {
               destination_key: "get-widgets",
@@ -71,7 +76,9 @@ describe("PublicDocumentationReaderPage", () => {
       />,
     );
 
-    expect(await screen.findByRole("heading", { name: "Install" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Install" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Follow these steps.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /List widgets/ })).toHaveAttribute(
       "href",
@@ -93,7 +100,9 @@ describe("PublicDocumentationReaderPage", () => {
       target: { value: "install" },
     });
     fireEvent.submit(screen.getByRole("search"));
-    await waitFor(() => expect(screen.getByText("1 result")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("1 result")).toBeInTheDocument(),
+    );
     expect(screen.getAllByRole("link", { name: "Install" })[0]).toHaveAttribute(
       "href",
       "/docs/product-docs/install",
@@ -110,7 +119,52 @@ describe("PublicDocumentationReaderPage", () => {
         search={vi.fn()}
       />,
     );
-    expect(await screen.findByRole("heading", { name: "Documentation unavailable" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Documentation unavailable" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Product docs")).not.toBeInTheDocument();
+  });
+
+  it("unlocks password-protected Documentation through a shared viewer session", async () => {
+    const loadPage = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new DocumentationApiError(
+          401,
+          "publish_link_password_required",
+          "Password required",
+        ),
+      )
+      .mockResolvedValue({
+        site: { name: "Product docs", description: null },
+        revision: { primary_language: "en-US", home_page_id: "page" },
+        pages: [{ id: "page", title: "Home", canonical_path: "home" }],
+        navigation: [],
+        openapi_operations: [],
+        page: {
+          id: "page",
+          title: "Home",
+          description: null,
+          canonical_path: "home",
+          blocks: [],
+        },
+      });
+    const createViewerSession = vi.fn(async () => undefined);
+    render(
+      <PublicDocumentationReaderPage
+        slug="protected-docs"
+        loadPage={loadPage}
+        search={vi.fn()}
+        createViewerSession={createViewerSession}
+      />,
+    );
+    fireEvent.change(await screen.findByLabelText("Publish Link password"), {
+      target: { value: "safe local password" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("heading", { name: "Home" });
+    expect(createViewerSession).toHaveBeenCalledWith("protected-docs", {
+      password: "safe local password",
+    });
   });
 });
