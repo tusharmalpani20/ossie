@@ -260,4 +260,47 @@ describe("Documentation routes", () => {
     expect(sitemap.body).toContain("/docs/product-docs/versions/v2/install");
     expect(robots.statusCode).toBe(200);
   });
+
+  it("searches only safe saved-draft fields after authorization", async () => {
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          get_preview: vi.fn(async () => ({
+            pages: [
+              {
+                id: "page",
+                title: "Install",
+                description: null,
+                canonical_path: "install",
+                blocks: [
+                  {
+                    id: "block",
+                    kind: "paragraph",
+                    text: "Safe setup copy",
+                  },
+                ],
+              },
+            ],
+            openapi_operations: [],
+          })),
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const found = await app.inject({
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/search?q=setup",
+      cookies: { ossie_session: "session" },
+    });
+    const absent = await app.inject({
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/search?q=private-comment",
+      cookies: { ossie_session: "session" },
+    });
+    await app.close();
+    expect(found.statusCode).toBe(200);
+    expect(found.json().results).toHaveLength(1);
+    expect(absent.json().results).toEqual([]);
+  });
 });
