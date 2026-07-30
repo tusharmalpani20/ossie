@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
 import { Label } from "@repo/ui/label";
 import {
   applyDocumentationOpenApi,
+  getDocumentationOpenApiSource,
   inspectDocumentationOpenApi,
   type DocumentationOpenApiInspection,
   type DocumentationOpenApiOperation,
@@ -15,6 +16,7 @@ type Props = {
   canWrite: boolean;
   inspect?: typeof inspectDocumentationOpenApi;
   apply?: typeof applyDocumentationOpenApi;
+  loadSource?: typeof getDocumentationOpenApiSource;
 };
 
 export const DocumentationOpenApiPanel = ({
@@ -24,6 +26,7 @@ export const DocumentationOpenApiPanel = ({
   canWrite,
   inspect = inspectDocumentationOpenApi,
   apply = applyDocumentationOpenApi,
+  loadSource = getDocumentationOpenApiSource,
 }: Props) => {
   const [file, setFile] = useState<File | null>(null);
   const [inspection, setInspection] =
@@ -32,6 +35,21 @@ export const DocumentationOpenApiPanel = ({
     DocumentationOpenApiOperation[]
   >([]);
   const [status, setStatus] = useState("");
+  const [sourceVersion, setSourceVersion] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    loadSource(projectId, versionSlug, siteId)
+      .then((result) => {
+        if (!active || !result) return;
+        setSourceVersion(result.source.version);
+        setOperations(result.operations);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [loadSource, projectId, siteId, versionSlug]);
 
   const inspectFile = async () => {
     if (!file) return;
@@ -54,8 +72,9 @@ export const DocumentationOpenApiPanel = ({
         versionSlug,
         siteId,
         inspection.id,
-        null,
+        sourceVersion,
       );
+      setSourceVersion(result.source.version);
       setOperations(result.operations);
       setStatus("OpenAPI source applied.");
     } catch {

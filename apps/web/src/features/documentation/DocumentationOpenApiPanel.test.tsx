@@ -32,6 +32,7 @@ describe("DocumentationOpenApiPanel", () => {
         canWrite
         inspect={inspect}
         apply={apply}
+        loadSource={async () => null}
       />,
     );
     const file = new File(["{}"], "openapi.json", {
@@ -53,5 +54,51 @@ describe("DocumentationOpenApiPanel", () => {
       ),
     );
     expect(await screen.findByText(/GET.*\/widgets/)).toBeInTheDocument();
+  });
+
+  it("applies over the currently loaded source version", async () => {
+    const apply = vi.fn(async () => ({
+      source: { id: "source", version: 4 },
+      operations: [],
+    }));
+    render(
+      <DocumentationOpenApiPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canWrite
+        loadSource={async () => ({
+          source: { id: "source", version: 3 },
+          operations: [],
+        })}
+        inspect={async () => ({
+          inspection: {
+            id: "inspection",
+            openapi_version: "3.1.0",
+            title: "Widget API",
+            operation_count: 0,
+            warnings: [],
+          },
+        })}
+        apply={apply}
+      />,
+    );
+    const file = new File(["{}"], "openapi.json", {
+      type: "application/json",
+    });
+    fireEvent.change(screen.getByLabelText("OpenAPI JSON or YAML"), {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Inspect OpenAPI" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apply source" }));
+    await waitFor(() =>
+      expect(apply).toHaveBeenCalledWith(
+        "project",
+        "main",
+        "site",
+        "inspection",
+        3,
+      ),
+    );
   });
 });

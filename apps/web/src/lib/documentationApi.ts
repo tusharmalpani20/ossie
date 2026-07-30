@@ -637,6 +637,22 @@ export type DocumentationOpenApiOperation = {
   summary: string | null;
 };
 
+export const getDocumentationOpenApiSource = async (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+) => {
+  const response = await fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/openapi/source`,
+    { credentials: "include" },
+  );
+  if (response.status === 404) return null;
+  return json<{
+    source: { id: string; version: number };
+    operations: DocumentationOpenApiOperation[];
+  }>(response);
+};
+
 export const inspectDocumentationOpenApi = (
   projectId: string,
   versionSlug: string,
