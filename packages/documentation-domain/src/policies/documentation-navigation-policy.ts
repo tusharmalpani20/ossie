@@ -1,5 +1,6 @@
 import { DocumentationDomainError } from "../errors/documentation-domain-error";
 import type { DocumentationNavigationNode } from "../types/documentation-domain";
+import { DOCUMENTATION_NAVIGATION_DEPTH_MAX } from "@repo/constants";
 
 export { DocumentationDomainError };
 
@@ -37,6 +38,7 @@ export const validate_documentation_navigation = (
     }
     const visited = new Set([node.id]);
     let parentId = node.parent_id;
+    let depth = 1;
     while (parentId) {
       if (visited.has(parentId)) {
         throw new DocumentationDomainError(
@@ -45,6 +47,13 @@ export const validate_documentation_navigation = (
         );
       }
       visited.add(parentId);
+      depth += 1;
+      if (depth > DOCUMENTATION_NAVIGATION_DEPTH_MAX) {
+        throw new DocumentationDomainError(
+          "documentation_navigation_invalid",
+          `Navigation cannot exceed ${DOCUMENTATION_NAVIGATION_DEPTH_MAX} levels`,
+        );
+      }
       parentId = byId.get(parentId)?.parent_id ?? null;
     }
   }

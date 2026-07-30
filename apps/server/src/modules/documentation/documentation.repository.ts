@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import { ulid } from "ulid";
 import {
+  DOCUMENTATION_COMMENT_REPLIES_PER_THREAD_MAX,
+  DOCUMENTATION_COMMENT_THREADS_PER_PAGE_MAX,
+  DOCUMENTATION_PAGES_PER_EDITION_MAX,
+} from "@repo/constants";
+import {
   assert_documentation_comment_transition,
   build_documentation_search_document,
   inspect_openapi_document,
@@ -1718,8 +1723,27 @@ export const build_documentation_repository = (database: Database) => ({
     project_id: string;
     project_version_id: string;
     site_id: string;
-    site_revision_id: string;
-  }) => load_revision_snapshot(database, input),
+    revision_number: number;
+  }) => {
+    const revision = await database.query<{ id: string }>(
+      `SELECT revision.id
+         FROM documentation_schema.site_revision revision
+        WHERE revision.organization_id=$1 AND revision.project_id=$2
+          AND revision.project_version_id=$3
+          AND revision.documentation_site_id=$4
+          AND revision.revision_number=$5`,
+      [
+        input.organization_id,
+        input.project_id,
+        input.project_version_id,
+        input.site_id,
+        input.revision_number,
+      ],
+    );
+    const site_revision_id = revision.rows[0]?.id;
+    if (!site_revision_id) return null;
+    return load_revision_snapshot(database, { ...input, site_revision_id });
+  },
 
   create_publication: async (input: {
     organization_id: string;
@@ -3052,7 +3076,8 @@ export const build_documentation_repository = (database: Database) => ({
              ON edition.id=page.site_edition_id
           WHERE page.id=$1 AND page.documentation_site_id=$2
             AND page.organization_id=$3 AND page.project_id=$4
-            AND edition.project_version_id=$5`,
+            AND edition.project_version_id=$5
+          FOR UPDATE OF page`,
         [
           input.page_id,
           input.site_id,
@@ -3062,6 +3087,21 @@ export const build_documentation_repository = (database: Database) => ({
         ],
       );
       if (!page.rows[0]) throw new Error("Documentation Page was not found");
+      const thread_count = await client.query<{ thread_count: number }>(
+        `SELECT COUNT(*)::integer thread_count
+           FROM documentation_schema.comment_thread
+          WHERE organization_id=$1 AND project_id=$2
+            AND documentation_page_id=$3`,
+        [input.organization_id, input.project_id, input.page_id],
+      );
+      if (
+        (thread_count.rows[0]?.thread_count ?? 0) >=
+        DOCUMENTATION_COMMENT_THREADS_PER_PAGE_MAX
+      ) {
+        const error = new Error("Documentation comment limit exceeded");
+        Object.assign(error, { code: "documentation_comment_limit_exceeded" });
+        throw error;
+      }
       if (input.block_anchor_id) {
         const anchor = await client.query(
           `SELECT 1 FROM documentation_schema.documentation_page_block
@@ -3172,7 +3212,8 @@ export const build_documentation_repository = (database: Database) => ({
              ON edition.id=thread.site_edition_id
           WHERE thread.id=$1 AND edition.documentation_site_id=$2
             AND thread.organization_id=$3 AND thread.project_id=$4
-            AND edition.project_version_id=$5`,
+            AND edition.project_version_id=$5
+          FOR UPDATE OF thread`,
         [
           input.thread_id,
           input.site_id,
@@ -3182,6 +3223,21 @@ export const build_documentation_repository = (database: Database) => ({
         ],
       );
       if (!thread.rows[0]) throw new Error("Comment thread was not found");
+      const reply_count = await client.query<{ reply_count: number }>(
+        `SELECT COUNT(*)::integer reply_count
+           FROM documentation_schema.comment_reply
+          WHERE organization_id=$1 AND project_id=$2
+            AND comment_thread_id=$3`,
+        [input.organization_id, input.project_id, input.thread_id],
+      );
+      if (
+        (reply_count.rows[0]?.reply_count ?? 0) >=
+        DOCUMENTATION_COMMENT_REPLIES_PER_THREAD_MAX
+      ) {
+        const error = new Error("Documentation comment limit exceeded");
+        Object.assign(error, { code: "documentation_comment_limit_exceeded" });
+        throw error;
+      }
       const audit = await begin_documentation_audit_context(client, {
         ...input,
         command: "documentation.comment.reply_create",
@@ -3358,6 +3414,20 @@ export const build_documentation_repository = (database: Database) => ({
       );
       const scope = parent.rows[0];
       if (!scope) throw new Error("Documentation Site was not found");
+      const page_count = await client.query<{ page_count: number }>(
+        `SELECT COUNT(*)::integer page_count
+           FROM documentation_schema.documentation_page
+          WHERE organization_id=$1 AND project_id=$2 AND site_edition_id=$3`,
+        [input.organization_id, input.project_id, scope.edition_id],
+      );
+      if (
+        (page_count.rows[0]?.page_count ?? 0) >=
+        DOCUMENTATION_PAGES_PER_EDITION_MAX
+      ) {
+        const error = new Error("Documentation Page limit exceeded");
+        Object.assign(error, { code: "documentation_page_limit_exceeded" });
+        throw error;
+      }
       const audit = await begin_documentation_audit_context(client, {
         ...input,
         command: "documentation.page.create",

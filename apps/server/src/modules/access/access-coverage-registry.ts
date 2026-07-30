@@ -36,11 +36,7 @@ const registration = (
 };
 
 const root_for_route = (route: string) => {
-  if (
-    route.includes(
-      "/documentation-sites/:site_id/pages/:page_id",
-    )
-  )
+  if (route.includes("/documentation-sites/:site_id/pages/:page_id"))
     return { type: "documentation_page", parameter: "page_id" };
   if (route.includes("/documentation-sites/:site_id/comments/:thread_id"))
     return { type: "documentation_comment", parameter: "thread_id" };
@@ -475,7 +471,7 @@ const reads: AccessRouteRegistration[] = [
     "site_id",
   ),
   read(
-    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions/:revision_id",
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions/:revision_number",
     "documentation_revision.viewed",
     "documentation_revision",
     "revision_id",
@@ -575,10 +571,7 @@ const public_routes: AccessRouteRegistration[] = [
     authorization_type: "system",
     atomic_commands: [],
   }),
-  ...[
-    "",
-    "/versions/:version_slug",
-  ].flatMap((version_prefix) => [
+  ...["", "/versions/:version_slug"].flatMap((version_prefix) => [
     public_documentation_read(
       `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation`,
       "documentation_publication.viewed",

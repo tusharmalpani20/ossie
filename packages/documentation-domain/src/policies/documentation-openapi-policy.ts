@@ -1,8 +1,18 @@
 import { DocumentationDomainError } from "../errors/documentation-domain-error";
+import { DOCUMENTATION_OPENAPI_OPERATIONS_MAX } from "@repo/constants";
 
 export { DocumentationDomainError };
 
-const HTTP_METHODS = ["get", "put", "post", "delete", "options", "head", "patch", "trace"] as const;
+const HTTP_METHODS = [
+  "get",
+  "put",
+  "post",
+  "delete",
+  "options",
+  "head",
+  "patch",
+  "trace",
+] as const;
 
 const visit = (value: unknown, depth = 0): void => {
   if (depth > 100) {
@@ -68,18 +78,28 @@ export const inspect_openapi_document = (input: unknown) => {
       const value = record[method];
       if (!value || typeof value !== "object") return [];
       const operationId = (value as Record<string, unknown>).operationId;
-      return [{
-        method,
-        path,
-        ...(typeof operationId === "string" ? { operation_id: operationId } : {}),
-        destination_key: destination(
+      return [
+        {
           method,
           path,
-          typeof operationId === "string" ? operationId : undefined,
-        ),
-      }];
+          ...(typeof operationId === "string"
+            ? { operation_id: operationId }
+            : {}),
+          destination_key: destination(
+            method,
+            path,
+            typeof operationId === "string" ? operationId : undefined,
+          ),
+        },
+      ];
     });
   });
+  if (operations.length > DOCUMENTATION_OPENAPI_OPERATIONS_MAX) {
+    throw new DocumentationDomainError(
+      "documentation_openapi_invalid",
+      `OpenAPI documents cannot exceed ${DOCUMENTATION_OPENAPI_OPERATIONS_MAX} operations`,
+    );
+  }
   return {
     openapi_version: document.openapi,
     title: info.title.trim(),

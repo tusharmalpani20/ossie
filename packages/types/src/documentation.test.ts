@@ -165,6 +165,23 @@ describe("Documentation shared contracts", () => {
     ).toThrow();
   });
 
+  it("enforces the accepted saved-text ceiling per Page", () => {
+    expect(
+      DocumentationPageContentRequestSchema.safeParse({
+        expected_page_version: 1,
+        blocks: [
+          {
+            id: "01J00000000000000000000001",
+            kind: "paragraph",
+            text: "x".repeat(4 * 1024 * 1024 + 1),
+            position: 1,
+            expected_version: null,
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
   it("strictly validates Page identity inputs and canonical paths", () => {
     expect(
       DocumentationCreatePageRequestSchema.parse({
@@ -180,6 +197,41 @@ describe("Documentation shared contracts", () => {
         canonical_path: "../secret",
       }),
     ).toThrow();
+    expect(() =>
+      DocumentationCreatePageRequestSchema.parse({
+        title: "Too deep",
+        description: null,
+        canonical_path: Array.from({ length: 9 }, () => "segment").join("/"),
+      }),
+    ).toThrow();
+    expect(() =>
+      DocumentationCreatePageRequestSchema.parse({
+        title: "Long segment",
+        description: null,
+        canonical_path: "a".repeat(81),
+      }),
+    ).toThrow();
+  });
+
+  it("enforces the accepted Page keyword ceiling", () => {
+    expect(
+      DocumentationPageUpdateRequestSchema.safeParse({
+        expected_version: 1,
+        keywords: Array.from({ length: 20 }, (_, index) => `keyword-${index}`),
+      }).success,
+    ).toBe(true);
+    expect(
+      DocumentationPageUpdateRequestSchema.safeParse({
+        expected_version: 1,
+        keywords: Array.from({ length: 21 }, (_, index) => `keyword-${index}`),
+      }).success,
+    ).toBe(false);
+    expect(
+      DocumentationPageUpdateRequestSchema.safeParse({
+        expected_version: 1,
+        keywords: ["k".repeat(81)],
+      }).success,
+    ).toBe(false);
   });
 
   it("does not permit comments in public search responses", () => {

@@ -7,11 +7,7 @@ import {
 } from "../../test-support/database";
 import { build_documentation_repository } from "./documentation.repository";
 
-const multipart_file = (
-  filename: string,
-  mime_type: string,
-  bytes: Buffer,
-) => {
+const multipart_file = (filename: string, mime_type: string, bytes: Buffer) => {
   const boundary = "ossie-documentation-openapi-boundary";
   return {
     headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
@@ -341,11 +337,7 @@ describe("DB-backed Documentation repository", () => {
       method: "POST",
       url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/openapi/inspections`,
       cookies: { ossie_session: scope.session_token },
-      ...multipart_file(
-        "openapi.json",
-        "application/json",
-        openapiDocument,
-      ),
+      ...multipart_file("openapi.json", "application/json", openapiDocument),
     });
     expect(inspection.statusCode).toBe(201);
     expect(inspection.json().inspection).toMatchObject({
@@ -748,7 +740,7 @@ describe("DB-backed Documentation repository", () => {
     expect(
       (
         await app.inject({
-          url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${secondSite.json().site.id}/revisions/${revision1.json().revision.id}`,
+          url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${secondSite.json().site.id}/revisions/${revision1.json().revision.revision_number}`,
           cookies: { ossie_session: scope.session_token },
         })
       ).statusCode,
@@ -830,9 +822,11 @@ describe("DB-backed Documentation repository", () => {
       "publish_schema.site_publication",
       "publish_schema.site_publication_search_document",
     ]) {
-      await expect(pool.query(`UPDATE ${table} SET id=id`)).rejects.toMatchObject(
-        { code: expect.stringMatching(/23514|42501|55000/) },
-      );
+      await expect(
+        pool.query(`UPDATE ${table} SET id=id`),
+      ).rejects.toMatchObject({
+        code: expect.stringMatching(/23514|42501|55000/),
+      });
       await expect(pool.query(`DELETE FROM ${table}`)).rejects.toMatchObject({
         code: expect.stringMatching(/23514|42501|55000/),
       });

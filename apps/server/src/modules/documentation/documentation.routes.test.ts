@@ -160,7 +160,9 @@ describe("Documentation routes", () => {
       {
         id: "link",
         slug: "product-docs",
-        entries: [{ id: "entry", version: 2, site_publication_id: "publication" }],
+        entries: [
+          { id: "entry", version: 2, site_publication_id: "publication" },
+        ],
       },
     ]);
     const app = Fastify();
@@ -194,7 +196,10 @@ describe("Documentation routes", () => {
     expect(links.statusCode).toBe(200);
     expect(links.json().publish_links[0].entries[0].version).toBe(2);
     expect(list_publications).toHaveBeenCalledWith(
-      expect.objectContaining({ site_id: "site", project_version_id: "version" }),
+      expect.objectContaining({
+        site_id: "site",
+        project_version_id: "version",
+      }),
     );
   });
 
@@ -246,7 +251,7 @@ describe("Documentation routes", () => {
       }),
     );
     const response = await app.inject({
-      url: "/api/v1/projects/project/versions/main/documentation-sites/site/revisions/revision",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/revisions/3",
       cookies: { ossie_session: "session" },
     });
     await app.close();
@@ -258,7 +263,7 @@ describe("Documentation routes", () => {
       project_version_id: "version",
       site_id: "site",
       actor_org_user_id: "actor",
-      site_revision_id: "revision",
+      revision_number: 3,
     });
   });
 
@@ -345,6 +350,7 @@ describe("Documentation routes", () => {
   });
 
   it("keeps version-scoped redirects and metadata on the selected public entry", async () => {
+    process.env.OSSIE_PUBLIC_WEB_URL = "https://docs.example.test";
     const app = Fastify();
     await app.register(
       build_documentation_routes({
@@ -376,8 +382,11 @@ describe("Documentation routes", () => {
       "/docs/product-docs/versions/v2/install",
     );
     expect(sitemap.statusCode).toBe(200);
-    expect(sitemap.body).toContain("/docs/product-docs/versions/v2/install");
+    expect(sitemap.body).toContain(
+      "<loc>https://docs.example.test/docs/product-docs/versions/v2/install</loc>",
+    );
     expect(robots.statusCode).toBe(200);
+    delete process.env.OSSIE_PUBLIC_WEB_URL;
   });
 
   it("searches only safe saved-draft fields after authorization", async () => {
@@ -415,6 +424,33 @@ describe("Documentation routes", () => {
     expect(found.statusCode).toBe(200);
     expect(found.json().results).toHaveLength(1);
     expect(absent.json().results).toEqual([]);
+  });
+
+  it("addresses immutable Revision history by Edition revision number", async () => {
+    const get_revision = vi.fn(async () => ({
+      id: "revision",
+      revision_number: 7,
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({ get_revision }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+
+    const response = await app.inject({
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/revisions/7",
+      cookies: { ossie_session: "session" },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(200);
+    expect(get_revision).toHaveBeenCalledWith(
+      expect.objectContaining({ site_id: "site", revision_number: 7 }),
+    );
   });
 
   it("accepts one bounded image and serves only a resolved public Asset", async () => {
@@ -457,6 +493,17 @@ describe("Documentation routes", () => {
         `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="pixel.png"\r\nContent-Type: image/png\r\n\r\npng\r\n--${boundary}--\r\n`,
       ),
     });
+    const gifUpload = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/assets",
+      cookies: { ossie_session: "session" },
+      headers: {
+        "content-type": `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="animated.gif"\r\nContent-Type: image/gif\r\n\r\ngif\r\n--${boundary}--\r\n`,
+      ),
+    });
     const download = await app.inject({
       method: "GET",
       url: "/api/v1/public/publish-links/docs/documentation/assets/asset/file",
@@ -468,6 +515,7 @@ describe("Documentation routes", () => {
     await app.close();
 
     expect(upload.statusCode).toBe(201);
+    expect(gifUpload.statusCode).toBe(415);
     expect(upload_asset).toHaveBeenCalledWith(
       expect.objectContaining({
         site_id: "site",

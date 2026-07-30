@@ -151,6 +151,10 @@ import {
 import { build_documentation_repository } from "./modules/documentation/documentation.repository.js";
 import { build_documentation_service } from "./modules/documentation/documentation.service.js";
 import { parse_documentation_openapi } from "./modules/documentation/documentation-openapi.js";
+import {
+  assert_documentation_image_dimensions,
+  assert_documentation_image_format,
+} from "./modules/documentation/documentation-asset.js";
 
 type BuildOptions = FastifyServerOptions & {
   public_instance_service?: PublicInstanceRouteService;
@@ -958,7 +962,7 @@ export const build = (opts: BuildOptions = {}) => {
                   actor_org_user_id: input.actor_org_user_id,
                 },
                 project_id: input.project_id,
-                capability: "documentation.site.manage",
+                capability: "publication.create",
               });
               if (input.link.mode === "existing")
                 return repository.create_publication({
@@ -986,7 +990,7 @@ export const build = (opts: BuildOptions = {}) => {
                   actor_org_user_id: input.actor_org_user_id,
                 },
                 project_id: input.project_id,
-                capability: "documentation.site.manage",
+                capability: "publication.create",
               });
               return repository.rollback_publication(input);
             },
@@ -997,7 +1001,7 @@ export const build = (opts: BuildOptions = {}) => {
                   actor_org_user_id: input.actor_org_user_id,
                 },
                 project_id: input.project_id,
-                capability: "documentation.site.manage",
+                capability: "publish_link.manage",
               });
               return repository.revoke_publish_link(input);
             },
@@ -1027,6 +1031,14 @@ export const build = (opts: BuildOptions = {}) => {
                 Object.assign(error, { code: "documentation_asset_invalid" });
                 throw error;
               }
+              assert_documentation_image_format(
+                metadata.format,
+                input.mime_type,
+              );
+              assert_documentation_image_dimensions(
+                metadata.width,
+                metadata.height,
+              );
               const file_id = ulid();
               const asset_id = ulid();
               const stored = await default_capture_file_storage.put({

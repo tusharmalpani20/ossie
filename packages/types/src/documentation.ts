@@ -1,8 +1,14 @@
 import {
   DOCUMENTATION_BLOCKS_PER_PAGE_MAX,
+  DOCUMENTATION_CANONICAL_PATH_MAX_BYTES,
+  DOCUMENTATION_CANONICAL_PATH_SEGMENT_MAX_BYTES,
+  DOCUMENTATION_CANONICAL_PATH_SEGMENTS_MAX,
   DOCUMENTATION_DESCRIPTION_MAX,
+  DOCUMENTATION_KEYWORD_MAX,
+  DOCUMENTATION_KEYWORDS_PER_PAGE_MAX,
   DOCUMENTATION_PAGE_TITLE_MAX,
   DOCUMENTATION_SEARCH_RESULTS_MAX,
+  DOCUMENTATION_SAVED_TEXT_PER_PAGE_MAX_BYTES,
 } from "@repo/constants";
 import { z } from "zod";
 import { IdSchema, IsoDateTimeStringSchema, PositiveIntSchema } from "./common";
@@ -17,8 +23,21 @@ const CanonicalPathSchema = z
   .string()
   .trim()
   .min(1)
-  .max(240)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/u);
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/u)
+  .refine(
+    (value) =>
+      new TextEncoder().encode(value).byteLength <=
+        DOCUMENTATION_CANONICAL_PATH_MAX_BYTES &&
+      value.split("/").length <= DOCUMENTATION_CANONICAL_PATH_SEGMENTS_MAX &&
+      value
+        .split("/")
+        .every(
+          (segment) =>
+            new TextEncoder().encode(segment).byteLength <=
+            DOCUMENTATION_CANONICAL_PATH_SEGMENT_MAX_BYTES,
+        ),
+    { message: "Canonical path exceeds its accepted safety ceiling" },
+  );
 const ExpectedChildVersionSchema = PositiveIntSchema.nullable();
 
 const PositionedBlockBase = {
@@ -121,7 +140,39 @@ export const DocumentationPageContentRequestSchema = z
       .array(DocumentationBlockSchema)
       .max(DOCUMENTATION_BLOCKS_PER_PAGE_MAX),
   })
-  .strict();
+  .strict()
+  .refine(
+    ({ blocks }) => {
+      const text = blocks
+        .flatMap((block) => {
+          const record = block as Record<string, unknown>;
+          const values = [
+            record.text,
+            record.code,
+            record.label,
+            record.url,
+            record.alt_text,
+            record.caption,
+            record.operation_key,
+          ];
+          if (Array.isArray(record.items))
+            values.push(
+              ...(record.items as Array<{ text?: string }>).map(
+                (item) => item.text,
+              ),
+            );
+          return values.filter(
+            (value): value is string => typeof value === "string",
+          );
+        })
+        .join("");
+      return (
+        new TextEncoder().encode(text).byteLength <=
+        DOCUMENTATION_SAVED_TEXT_PER_PAGE_MAX_BYTES
+      );
+    },
+    { message: "Saved Page text exceeds its accepted safety ceiling" },
+  );
 
 export const DocumentationCreatePageRequestSchema = z
   .object({
@@ -137,7 +188,10 @@ export const DocumentationPageUpdateRequestSchema = z
     title: TitleSchema.optional(),
     description: DescriptionSchema.optional(),
     canonical_path: CanonicalPathSchema.optional(),
-    keywords: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
+    keywords: z
+      .array(z.string().trim().min(1).max(DOCUMENTATION_KEYWORD_MAX))
+      .max(DOCUMENTATION_KEYWORDS_PER_PAGE_MAX)
+      .optional(),
   })
   .strict()
   .refine(

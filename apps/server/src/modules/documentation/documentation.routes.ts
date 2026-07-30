@@ -25,6 +25,7 @@ import { web_session_cookie_name } from "../authentication/session-cookie";
 import type { AuthContext } from "../authentication/session.service";
 import { public_viewer_cookie_name } from "../publish/public-viewer-cookie";
 import { error_response } from "../shared/http-errors";
+import { get_public_web_url } from "../../config/public-web-url.config";
 import {
   DocumentationIdempotencyConflictError,
   DocumentationRowVersionConflictError,
@@ -51,7 +52,7 @@ const ThreadParamsSchema = SiteParamsSchema.extend({
   thread_id: z.string().trim().min(1),
 }).strict();
 const RevisionParamsSchema = SiteParamsSchema.extend({
-  revision_id: z.string().trim().min(1),
+  revision_number: z.coerce.number().int().positive(),
 }).strict();
 const AssetParamsSchema = SiteParamsSchema.extend({
   asset_id: z.string().trim().min(1),
@@ -252,7 +253,7 @@ export type DocumentationRouteDependencies = {
       project_version_id: string;
       site_id: string;
       actor_org_user_id: string;
-      site_revision_id: string;
+      revision_number: number;
     }) => Promise<unknown>;
     create_revision: (input: {
       organization_id: string;
@@ -333,7 +334,7 @@ export type DocumentationRouteDependencies = {
       actor_org_user_id: string;
       site_id: string;
       bytes: Buffer;
-      mime_type: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+      mime_type: "image/png" | "image/jpeg" | "image/webp";
       original_name: string;
     }) => Promise<unknown>;
     get_asset_file: (input: {
@@ -423,6 +424,7 @@ export const build_documentation_routes = (
         code === "documentation_navigation_invalid" ||
         code === "documentation_redirect_cycle" ||
         code === "documentation_path_invalid" ||
+        code === "documentation_asset_invalid" ||
         code === "documentation_comment_anchor_missing" ||
         code === "documentation_comment_invalid" ||
         code === "documentation_revision_invalid" ||
@@ -431,6 +433,13 @@ export const build_documentation_routes = (
         return reply
           .status(400)
           .send(error_response(code, "Documentation request is invalid"));
+      if (
+        code === "documentation_page_limit_exceeded" ||
+        code === "documentation_comment_limit_exceeded"
+      )
+        return reply
+          .status(413)
+          .send(error_response(code, "Documentation limit exceeded"));
       if (code === "publish_link_password_required")
         return reply
           .status(401)
@@ -689,24 +698,14 @@ export const build_documentation_routes = (
         let upload:
           | {
               bytes: Buffer;
-              mime_type:
-                | "image/png"
-                | "image/jpeg"
-                | "image/webp"
-                | "image/gif";
+              mime_type: "image/png" | "image/jpeg" | "image/webp";
               original_name: string;
             }
           | undefined;
         for await (const part of request.parts({
           limits: { files: 1, fields: 0, fileSize: 10 * 1024 * 1024 },
         })) {
-          if (
-            part.type !== "file" ||
-            upload ||
-            !["image/png", "image/jpeg", "image/webp", "image/gif"].includes(
-              part.mimetype,
-            )
-          )
+          if (part.type !== "file" || upload)
             return reply
               .status(400)
               .send(
@@ -715,13 +714,23 @@ export const build_documentation_routes = (
                   "Documentation image is invalid",
                 ),
               );
+          if (
+            !["image/png", "image/jpeg", "image/webp"].includes(part.mimetype)
+          )
+            return reply
+              .status(415)
+              .send(
+                error_response(
+                  "documentation_asset_type_unsupported",
+                  "Documentation image type is unsupported",
+                ),
+              );
           upload = {
             bytes: await part.toBuffer(),
             mime_type: part.mimetype as
               | "image/png"
               | "image/jpeg"
-              | "image/webp"
-              | "image/gif",
+              | "image/webp",
             original_name: part.filename,
           };
         }
@@ -1333,7 +1342,7 @@ export const build_documentation_routes = (
     );
 
     fastify.get(
-      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions/:revision_id",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions/:revision_number",
       async (request, reply) => {
         const params = RevisionParamsSchema.safeParse(request.params);
         if (!params.success)
@@ -1352,7 +1361,7 @@ export const build_documentation_routes = (
           project_id: scope.project_id,
           project_version_id: scope.project_version_id,
           site_id: params.data.site_id,
-          site_revision_id: params.data.revision_id,
+          revision_number: params.data.revision_number,
         });
         if (!revision)
           return reply
@@ -1848,10 +1857,12 @@ export const build_documentation_routes = (
         if (kind === "robots")
           return reply.type("text/plain").send("User-agent: *\nAllow: /\n");
         const urls = site.pages
-          .map(
-            (page) =>
-              `<url><loc>/docs/${result.params.slug}${result.params.version_slug ? `/versions/${result.params.version_slug}` : ""}/${page.canonical_path}</loc></url>`,
-          )
+          .map((page) => {
+            const origin =
+              get_public_web_url() ??
+              `${request.protocol}://${request.hostname}`;
+            return `<url><loc>${origin}/docs/${result.params.slug}${result.params.version_slug ? `/versions/${result.params.version_slug}` : ""}/${page.canonical_path}</loc></url>`;
+          })
           .join("");
         return reply
           .type("application/xml")
