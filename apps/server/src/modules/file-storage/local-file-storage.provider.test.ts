@@ -188,9 +188,8 @@ describe("local file storage provider", () => {
     });
     const reopened = await provider.get(stored);
     expect(reopened.size_bytes).toBe(9);
-    for await (const _chunk of reopened.stream) {
-      // Consume the staged export before deleting it.
-    }
+    for await (const chunk of reopened.stream)
+      expect(Buffer.from(chunk)).not.toHaveLength(0);
     await provider.purge_exact(stored);
     await expect(provider.get(stored)).rejects.toBeInstanceOf(
       FileBytesNotFoundError,

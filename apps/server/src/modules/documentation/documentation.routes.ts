@@ -1266,7 +1266,7 @@ export const build_documentation_routes = (
             },
           })) {
             if (part.type !== "file" || fileSeen) {
-              part.type === "file" && part.file.resume();
+              if (part.type === "file") part.file.resume();
               throw Object.assign(
                 new Error("Exactly one import File is required"),
                 { code: "documentation_import_invalid" },

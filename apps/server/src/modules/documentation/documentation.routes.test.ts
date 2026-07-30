@@ -170,9 +170,8 @@ describe("Documentation routes", () => {
         auth_service: { get_current_auth_context: vi.fn(async () => auth) },
         documentation_service: documentation_service_stubs({
           inspect_import: vi.fn(async (input) => {
-            for await (const _chunk of input.stream) {
-              // Consume the authorized multipart stream before replying.
-            }
+            for await (const chunk of input.stream)
+              expect(Buffer.from(chunk)).not.toHaveLength(0);
             return {
               id: "inspection",
               status: "cancelled",
@@ -213,9 +212,8 @@ describe("Documentation routes", () => {
         auth_service: { get_current_auth_context: vi.fn(async () => auth) },
         documentation_service: documentation_service_stubs({
           inspect_import: vi.fn(async (input) => {
-            for await (const _chunk of input.stream) {
-              // Consume the authorized multipart stream before rejecting.
-            }
+            for await (const chunk of input.stream)
+              expect(Buffer.from(chunk)).not.toHaveLength(0);
             throw Object.assign(new Error("busy"), {
               code: "documentation_import_busy",
               retry_after_seconds: 3,
