@@ -113,4 +113,86 @@ describe("DocumentationPortabilityPanel", () => {
     expect(screen.queryByRole("region", { name: "Import review" })).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Import applied.");
   });
+
+  it("requires an exact labelled Publication selection before package Apply", async () => {
+    api.inspectDocumentationImport.mockResolvedValueOnce({
+      inspection: {
+        id: "inspection-binding",
+        status: "ready",
+        kind: "site_package",
+        format_version: 1,
+        content_fingerprint: "b".repeat(64),
+        expires_at: "2099-01-01T00:00:00.000Z",
+        summary: {
+          pages: 1,
+          snippets: 0,
+          assets: 0,
+          openapi_sources: 0,
+          external_bindings: 1,
+          expanded_bytes: 20,
+        },
+        proposal: {
+          package_profile: "roundtrip",
+          claimed_source_kind: "working_draft",
+          title: null,
+          canonical_path: null,
+          site_name: "Imported docs",
+          site_description: null,
+          primary_language: "en-US",
+          home_page_handle: "page-0001",
+          pages: [],
+          required_bindings: [
+            {
+              handle: "binding-0001",
+              kind: "guide_publication",
+              display: { title: "Install guide" },
+            },
+          ],
+        },
+        issues: [],
+        issue_counts: { blocking: 0, warnings: 0 },
+        has_blocking_issues: false,
+        issues_truncated: false,
+      },
+    });
+    api.listDocumentationArtifactPublications.mockResolvedValueOnce({
+      publications: [
+        {
+          published_artifact_id: "publication",
+          title: "Install guide",
+          project_version_name: "Summer",
+          revision_number: 2,
+          publication_sequence: 3,
+        },
+      ],
+    });
+    render(
+      <DocumentationPortabilityPanel
+        projectId="project"
+        versionSlug="main"
+        kind="site_package"
+        mode="create_site"
+        canImport
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Ossie Site ZIP"), {
+      target: {
+        files: [
+          new File(["zip"], "docs.zip", { type: "application/zip" }),
+        ],
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Inspect file" }));
+
+    const apply = await screen.findByRole("button", {
+      name: "Confirm and apply import",
+    });
+    expect(apply).toBeDisabled();
+    const selector = await screen.findByRole("combobox", {
+      name: "Install guide",
+    });
+    expect(selector).toHaveTextContent("Install guide · Summer · r2 · p3");
+    fireEvent.change(selector, { target: { value: "publication" } });
+    expect(apply).toBeEnabled();
+  });
 });

@@ -62,6 +62,68 @@ describe("Documentation portability adapter", () => {
     expect(JSON.stringify(portable)).not.toContain("page-b");
     expect(JSON.stringify(portable)).not.toContain("block-db");
   });
+
+  it("exports publication references as explicit bindings and resolves only the selected identity", () => {
+    const portable = create_portable_documentation_snapshot({
+      site: { id: "site", name: "Docs", description: null },
+      edition: { primary_language: "en-US" },
+      working_draft: { home_page_id: "page" },
+      pages: [
+        {
+          id: "page",
+          title: "Start",
+          description: null,
+          canonical_path: "start",
+          keywords: [],
+          blocks: [
+            {
+              id: "block",
+              kind: "guide_publication",
+              position: 1,
+              published_artifact_id: "publication-db-id",
+              publication: {
+                title: "Install guide",
+                description: null,
+                project_version_label: "Summer",
+                revision_number: 2,
+                publication_sequence: 3,
+              },
+            },
+          ],
+        },
+      ],
+      snippets: [],
+      assets: [],
+      navigation: { nodes: [] },
+      routing: { aliases: [], rules: [] },
+      openapi_operations: [],
+    });
+    const binding = portable.site.external_bindings[0]!;
+    expect(binding).toMatchObject({
+      kind: "guide_publication",
+      display: { title: "Install guide" },
+    });
+    expect(portable.pages[0]?.blocks[0]).toMatchObject({
+      kind: "guide_publication",
+      external_binding_handle: binding.handle,
+    });
+    expect(JSON.stringify(portable)).not.toContain("publication-db-id");
+
+    const prepared = prepare_portable_documentation_import({
+      site: portable.site,
+      pages: portable.pages,
+      snippets: portable.snippets,
+      external_bindings: [
+        {
+          handle: binding.handle,
+          published_artifact_id: "selected-publication-id",
+        },
+      ],
+    });
+    expect(prepared.pages[0]?.blocks[0]?.published_artifact_id).toBe(
+      "selected-publication-id",
+    );
+  });
 });
 
 describe("prepare_portable_documentation_import", () => {
