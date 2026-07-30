@@ -313,7 +313,7 @@ describe("DB-backed Documentation repository", () => {
       },
     });
     expect(routing.statusCode).toBe(200);
-    expect(routing.json().aliases).toEqual([
+    expect(routing.json().routing.aliases).toEqual([
       expect.objectContaining({
         former_path: "install",
         documentation_page_id: page.json().page.id,
