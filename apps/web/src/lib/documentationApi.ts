@@ -436,3 +436,62 @@ export const transitionDocumentationComment = (
   }).then((response) =>
     json<{ thread: Omit<DocumentationCommentThread, "replies"> }>(response),
   );
+
+export type DocumentationOpenApiInspection = {
+  id: string;
+  openapi_version: string;
+  title: string;
+  operation_count: number;
+  warnings: string[];
+};
+
+export type DocumentationOpenApiOperation = {
+  destination_key: string;
+  method: string;
+  path: string;
+  summary: string | null;
+};
+
+export const inspectDocumentationOpenApi = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  file: File,
+) => {
+  const form = new FormData();
+  form.append("file", file);
+  return fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/openapi/inspections`,
+    { method: "POST", credentials: "include", body: form },
+  ).then((response) =>
+    json<{ inspection: DocumentationOpenApiInspection }>(response),
+  );
+};
+
+export const applyDocumentationOpenApi = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  inspectionId: string,
+  expectedSourceVersion: number | null,
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/openapi/sources`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": crypto.randomUUID(),
+      },
+      body: JSON.stringify({
+        inspection_id: inspectionId,
+        expected_source_version: expectedSourceVersion,
+      }),
+    },
+  ).then((response) =>
+    json<{
+      source: { id: string; version: number };
+      operations: DocumentationOpenApiOperation[];
+    }>(response),
+  );

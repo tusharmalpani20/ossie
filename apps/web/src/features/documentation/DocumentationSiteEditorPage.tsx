@@ -5,6 +5,7 @@ import {
   getDocumentationPreview,
   type DocumentationDraftPreview,
 } from "../../lib/documentationApi";
+import { DocumentationOpenApiPanel } from "./DocumentationOpenApiPanel";
 
 type Props = {
   projectId: string;
@@ -98,6 +99,12 @@ export const DocumentationSiteEditorPage = ({
           <p>Read-only access</p>
         )}
       </section>
+      <DocumentationOpenApiPanel
+        projectId={projectId}
+        versionSlug={versionSlug}
+        siteId={siteId}
+        canWrite={canWrite}
+      />
       <p role="status">{status}</p>
     </main>
   );
