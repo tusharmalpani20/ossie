@@ -2,10 +2,12 @@
 
 Date started: 2026-07-29
 
-Status: Provisional workshop resumed in a user-requested batch format. Questions
-`25` through `30` and `32` are provisionally accepted; the comments boundary in
-Questions `23`/`31` is being refined. Child `131` remains Not started until
-child `130` is merged, verified, and accepted.
+Status: All 32 workshop answers are provisionally accepted. On 2026-07-30 the
+user accepted basic private comments in the first slice, resolving the reopened
+Questions `23`/`31` boundary and the conditional comment proof in Question
+`32`. Child `130` is complete; child `131` remains Not started until every
+provisional answer is rechecked against that merged result and the required
+canonical outputs are completed.
 
 ## Sequence Boundary
 
@@ -4757,16 +4759,15 @@ Local evidence:
 
 Status:
 
-Provisionally accepted, then reopened in part on 2026-07-30. Immutable Site
-Revision and Publication history, exact previews, optional checkpoint reasons,
-safe structural change summaries, curated Project Activity, and complete
-accepted Audit/Access Evidence remain accepted. The user subsequently required
-comments and related collaboration to be included rather than wholly deferred.
-Question `31` now owns the exact first-slice and later-V1 collaboration
-boundary. Public feedback and product analytics remain separate until that
-question is settled. Audit/Access records remain security evidence and cannot
-be repurposed as hidden analytics. All answers remain subject to recheck and
-final acceptance after child `130` passes.
+Provisionally accepted, reopened in part, and resolved on 2026-07-30. Immutable
+Site Revision and Publication history, exact previews, optional checkpoint
+reasons, safe structural change summaries, curated Project Activity, and
+complete accepted Audit/Access Evidence remain accepted. Basic private comments
+are included in the first slice under Question `31`; fuller internal review
+remains later in V1, and public feedback/product analytics remain later.
+Audit/Access records remain security evidence and cannot be repurposed as hidden
+analytics. All answers remain subject to the post-`130` recheck and final child
+`131` acceptance.
 
 Decision records after the sequence gate:
 
@@ -5224,12 +5225,12 @@ Provisionally accepted:
   reader performance targets
 - Question `32`: the proposed small end-to-end Documentation vertical slice
 
-Still being refined:
+Resolved on 2026-07-30:
 
-- Questions `23` and `31`: the user wants comments and related collaboration
-  included, reopening the earlier decision to defer them; the exact first-slice
-  versus later-V1 boundary and whether approval blocks Publication remain to be
-  settled
+- Questions `23` and `31`: the user accepted basic private comments in the
+  first slice. Formal Review Requests, approval states and optional
+  approval-before-Publication rules remain later in V1; approval does not block
+  Publication in the first slice.
 
 ### Q25. Are localization and locale fallback part of the model now or
 explicitly deferred?
@@ -5986,10 +5987,13 @@ Affected scope:
 
 Status:
 
-Awaiting provisional user decision. The user has accepted that comments and
-related collaboration belong in the product, reopening Question `23`. The
-recommended boundary is basic private comments in the first slice, fuller
-internal review later in V1, and public feedback/analytics later.
+Provisionally accepted on 2026-07-30. Basic private Page comment threads,
+replies, mentions, resolve/reopen behavior, stable-block anchoring with Page
+fallback, authorization, privacy, and safe Audit coverage are part of the first
+slice. Formal Review Requests, approval states, notifications, maintainers, and
+optional approval-before-Publication rules remain later in V1. Public feedback,
+product analytics, and live collaboration remain later. This outcome remains
+subject to the post-`130` recheck and final child `131` acceptance.
 
 Decision records after the sequence gate:
 
@@ -6015,7 +6019,7 @@ The slice:
 5. Upload, inspect, and validate one self-contained OpenAPI file.
 6. Add one read-only API Reference block and derived operation destinations.
 7. Autosave the two Pages independently with Row Version conflict protection.
-8. If Question `31` is accepted, add and resolve one private Page comment.
+8. Add and resolve one private Page comment.
 9. Preview the complete Working Draft.
 10. Create one immutable Site Revision.
 11. Publish through the existing Publish Link model.
@@ -6089,10 +6093,9 @@ Affected scope:
 
 Status:
 
-Provisionally accepted for the base slice. The comment proof at step `8` becomes
-part of the slice if Question `31` accepts the recommended comments boundary.
-This remains subject to recheck against the merged child `129`/`130` result and
-final acceptance after child `130` passes.
+Provisionally accepted for the base slice, including the private comment proof
+at step `8`. This remains subject to recheck against the merged child
+`129`/`130` result and final child `131` acceptance.
 
 Decision records after the sequence gate:
 
@@ -6100,4 +6103,3 @@ Decision records after the sequence gate:
 - the expanded child `131` feature matrix and threat model
 - the ordered implementation children beginning at `132`
 - this grill record
-
