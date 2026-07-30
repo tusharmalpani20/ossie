@@ -160,4 +160,54 @@ describe("Documentation Site package", () => {
     await writeFile(filePath, corrupted);
     await expect(inspect_documentation_site_package(filePath)).rejects.toThrow();
   });
+
+  it("parses manifest-owned markdown-folder Pages into the portable graph", async () => {
+    const markdownSite = {
+      ...site,
+      pages: site.pages.map((entry) => ({ ...entry, typed_path: null })),
+    };
+    const result = await create_documentation_site_package({
+      profile: "markdown-folder",
+      source: {
+        kind: "working_draft",
+        project_version_label: "v1",
+        revision_number: null,
+        publication_sequence: null,
+      },
+      site: markdownSite,
+      entries: [
+        {
+          path: "pages/page-0001.md",
+          role: "page_markdown",
+          mime_type: "text/markdown",
+          bytes: "# Start\n\nWelcome\n",
+        },
+      ],
+    });
+    const root = await mkdtemp(path.join(tmpdir(), "ossie-package-"));
+    roots.push(root);
+    const filePath = path.join(root, "package.zip");
+    await writeFile(filePath, result.bytes);
+
+    await expect(
+      inspect_documentation_site_package(filePath),
+    ).resolves.toMatchObject({
+      manifest: { profile: "markdown-folder" },
+      pages: [
+        {
+          handle: "page-0001",
+          title: "Start",
+          canonical_path: "start",
+          blocks: [
+            {
+              handle: "block-0001",
+              kind: "paragraph",
+              text: "Welcome",
+            },
+          ],
+        },
+      ],
+      counts: { pages: 1, blocks: 1 },
+    });
+  });
 });

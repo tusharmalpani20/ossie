@@ -21,6 +21,7 @@ import {
 import JSZip from "jszip";
 import { inspect_documentation_archive } from "./documentation-archive";
 import { parse_duplicate_safe_json } from "./documentation-json";
+import { inspect_documentation_markdown } from "./documentation-markdown";
 
 const README =
   "# Ossie Documentation package\n\nThis versioned archive contains a portable Documentation Site snapshot.\n";
@@ -204,6 +205,15 @@ export const inspect_documentation_site_package = async (filePath: string) => {
   const snippetByPath = new Map(
     site.snippets.map((snippet) => [snippet.path, snippet]),
   );
+  const markdownPageByPath = new Map(
+    site.pages.map((page) => [page.markdown_path, page]),
+  );
+  const pageHandleByPath = Object.fromEntries(
+    site.pages.map((page) => [page.markdown_path, page.handle]),
+  );
+  const assetHandleByPath = Object.fromEntries(
+    site.assets.map((asset) => [asset.path, asset.handle]),
+  );
   if (
     manifest.profile === "roundtrip" &&
     pageByPath.size !== site.pages.length
@@ -227,6 +237,36 @@ export const inspect_documentation_site_package = async (filePath: string) => {
           throw new Error("roundtrip Page metadata disagrees with site.json");
         pages.push(page);
       }
+      const markdownPageIndex = markdownPageByPath.get(entry.path);
+      if (
+        manifest.profile === "markdown-folder" &&
+        markdownPageIndex
+      ) {
+        const markdownPage = inspect_documentation_markdown(entry.bytes, {
+          filename_stem: markdownPageIndex.canonical_path,
+          package_path: entry.path,
+          asset_handle_by_path: assetHandleByPath,
+          page_handle_by_path: pageHandleByPath,
+        });
+        if (
+          markdownPage.title !== markdownPageIndex.title ||
+          markdownPage.canonical_path !== markdownPageIndex.canonical_path
+        )
+          throw new Error(
+            "markdown-folder Page metadata disagrees with site.json",
+          );
+        pages.push(
+          DocumentationPortablePageV1Schema.parse({
+            schema_version: 1,
+            handle: markdownPageIndex.handle,
+            title: markdownPageIndex.title,
+            description: markdownPageIndex.description,
+            canonical_path: markdownPageIndex.canonical_path,
+            keywords: markdownPageIndex.keywords,
+            blocks: markdownPage.blocks,
+          }),
+        );
+      }
       const snippetIndex = snippetByPath.get(entry.path);
       if (snippetIndex) {
         const snippet = DocumentationPortableSnippetV1Schema.parse(
@@ -239,7 +279,7 @@ export const inspect_documentation_site_package = async (filePath: string) => {
     },
   });
   if (
-    (manifest.profile === "roundtrip" && pages.length !== site.pages.length) ||
+    pages.length !== site.pages.length ||
     snippets.length !== site.snippets.length
   )
     throw new Error("Documentation package typed content is incomplete");
