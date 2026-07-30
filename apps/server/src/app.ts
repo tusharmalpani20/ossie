@@ -163,6 +163,7 @@ import {
   prepare_portable_documentation_import,
 } from "./modules/documentation/documentation-portability.js";
 import { build_documentation_import_cleanup } from "./modules/documentation/documentation-import-cleanup.js";
+import { build_documentation_import_admission } from "./modules/documentation/documentation-import-admission.js";
 import {
   assert_documentation_image_dimensions,
   assert_documentation_image_format,
@@ -175,7 +176,11 @@ import {
   validate_documentation_snippet_blocks,
 } from "@repo/documentation-domain";
 import {
+  DOCUMENTATION_IMPORT_ATTEMPTS_PER_WINDOW_MAX,
+  DOCUMENTATION_IMPORT_ATTEMPT_WINDOW_MS,
   DOCUMENTATION_IMPORT_LIFETIME_MS,
+  DOCUMENTATION_IMPORT_PARSERS_PER_ACTOR_MAX,
+  DOCUMENTATION_IMPORT_PARSERS_PER_PROCESS_MAX,
   DOCUMENTATION_MARKDOWN_UPLOAD_MAX_BYTES,
   DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
 } from "@repo/constants";
@@ -328,6 +333,12 @@ export const build = (opts: BuildOptions = {}) => {
   });
   const max_screenshot_upload_bytes = get_max_screenshot_upload_bytes();
   const rate_limit_config = get_rate_limit_config();
+  const documentation_import_admission = build_documentation_import_admission({
+    parsers_per_process_max: DOCUMENTATION_IMPORT_PARSERS_PER_PROCESS_MAX,
+    parsers_per_actor_max: DOCUMENTATION_IMPORT_PARSERS_PER_ACTOR_MAX,
+    attempts_per_window_max: DOCUMENTATION_IMPORT_ATTEMPTS_PER_WINDOW_MAX,
+    attempt_window_ms: DOCUMENTATION_IMPORT_ATTEMPT_WINDOW_MS,
+  });
   const rate_limit_buckets = new Map<string, RateLimitBucket>();
 
   app.addHook("onRequest", (request, _reply, done) => {
@@ -1734,44 +1745,52 @@ export const build = (opts: BuildOptions = {}) => {
               };
             },
             inspect_import: async (input) => {
-              const inspection_id = ulid();
-              const file_id = ulid();
-              const stored = await default_capture_file_storage.put({
-                organization_id: input.organization_id,
-                project_id: input.project_id,
-                documentation_import_inspection_id: inspection_id,
-                file_id,
-                mime_type: input.mime_type,
-                stream: input.stream,
-                max_size_bytes:
-                  input.kind === "page_markdown"
-                    ? DOCUMENTATION_MARKDOWN_UPLOAD_MAX_BYTES
-                    : DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
+              const admission = documentation_import_admission.acquire({
+                actor_key: `${input.organization_id}:${input.actor_org_user_id}:${input.project_version_id}`,
               });
               try {
-                let content_fingerprint: string;
-                let safe_report: Record<string, unknown>;
-                if (input.kind === "page_markdown") {
-                  const source = await default_capture_file_storage.get(stored);
-                  const chunks: Buffer[] = [];
-                  for await (const chunk of source.stream as AsyncIterable<
-                    Buffer | string
-                  >)
-                    chunks.push(
-                      Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+                const inspection_id = ulid();
+                const file_id = ulid();
+                const stored = await default_capture_file_storage.put({
+                  organization_id: input.organization_id,
+                  project_id: input.project_id,
+                  documentation_import_inspection_id: inspection_id,
+                  file_id,
+                  mime_type: input.mime_type,
+                  stream: input.stream,
+                  max_size_bytes:
+                    input.kind === "page_markdown"
+                      ? DOCUMENTATION_MARKDOWN_UPLOAD_MAX_BYTES
+                      : DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
+                });
+                try {
+                  let content_fingerprint: string;
+                  let safe_report: Record<string, unknown>;
+                  if (input.kind === "page_markdown") {
+                    const source =
+                      await default_capture_file_storage.get(stored);
+                    const chunks: Buffer[] = [];
+                    for await (const chunk of source.stream as AsyncIterable<
+                      Buffer | string
+                    >)
+                      chunks.push(
+                        Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+                      );
+                    const parsed = inspect_documentation_markdown(
+                      Buffer.concat(chunks),
+                      {
+                        filename_stem: input.original_name.replace(
+                          /\.md$/iu,
+                          "",
+                        ),
+                      },
                     );
-                  const parsed = inspect_documentation_markdown(
-                    Buffer.concat(chunks),
-                    {
-                      filename_stem: input.original_name.replace(/\.md$/iu, ""),
-                    },
-                  );
-                  content_fingerprint = createHash("sha256")
-                    .update(
-                      canonicalize_documentation_package_json(parsed.blocks),
-                    )
-                    .digest("hex");
-                  safe_report = {
+                    content_fingerprint = createHash("sha256")
+                      .update(
+                        canonicalize_documentation_package_json(parsed.blocks),
+                      )
+                      .digest("hex");
+                    safe_report = {
                     summary: {
                       pages: 1,
                       snippets: 0,
@@ -1796,13 +1815,15 @@ export const build = (opts: BuildOptions = {}) => {
                     issue_counts: { blocking: 0, warnings: 0 },
                     has_blocking_issues: false,
                     issues_truncated: false,
-                  };
-                } else {
-                  const parsed = await inspect_documentation_site_package(
-                    default_capture_file_storage.resolve_internal_path(stored),
-                  );
-                  content_fingerprint = parsed.manifest.content_fingerprint;
-                  safe_report = {
+                    };
+                  } else {
+                    const parsed = await inspect_documentation_site_package(
+                      default_capture_file_storage.resolve_internal_path(
+                        stored,
+                      ),
+                    );
+                    content_fingerprint = parsed.manifest.content_fingerprint;
+                    safe_report = {
                     summary: {
                       pages: parsed.counts.pages,
                       snippets: parsed.counts.snippets,
@@ -1833,44 +1854,52 @@ export const build = (opts: BuildOptions = {}) => {
                     issue_counts: { blocking: 0, warnings: 0 },
                     has_blocking_issues: false,
                     issues_truncated: false,
+                    };
+                  }
+                  const persisted =
+                    (await repository.create_import_inspection({
+                      ...input,
+                      inspection_id,
+                      file_id,
+                      source_file: {
+                        ...stored,
+                        mime_type: input.mime_type,
+                      },
+                      content_fingerprint,
+                      safe_report,
+                      expires_at: new Date(
+                        Date.now() + DOCUMENTATION_IMPORT_LIFETIME_MS,
+                      ),
+                    })) as unknown as Record<string, unknown> & {
+                      id: string;
+                      safe_report?: Record<string, unknown>;
+                    };
+                  if (persisted.id !== inspection_id)
+                    await default_capture_file_storage.delete_best_effort(
+                      stored,
+                    );
+                  const {
+                    safe_report: persistedReport,
+                    created_by_id: _createdById,
+                    ...inspection
+                  } = persisted;
+                  const report =
+                    persistedReport ??
+                    (persisted.idempotent_replay ? null : safe_report);
+                  return {
+                    ...inspection,
+                    format_version:
+                      input.kind === "site_package" ? 1 : null,
+                    ...(report ?? {}),
                   };
+                } catch (error) {
+                  await default_capture_file_storage.delete_best_effort(
+                    stored,
+                  );
+                  throw error;
                 }
-                const persisted =
-                  (await repository.create_import_inspection({
-                    ...input,
-                    inspection_id,
-                    file_id,
-                    source_file: {
-                      ...stored,
-                      mime_type: input.mime_type,
-                    },
-                    content_fingerprint,
-                    safe_report,
-                    expires_at: new Date(
-                      Date.now() + DOCUMENTATION_IMPORT_LIFETIME_MS,
-                    ),
-                  })) as unknown as Record<string, unknown> & {
-                    id: string;
-                    safe_report?: Record<string, unknown>;
-                  };
-                if (persisted.id !== inspection_id)
-                  await default_capture_file_storage.delete_best_effort(stored);
-                const {
-                  safe_report: persistedReport,
-                  created_by_id: _createdById,
-                  ...inspection
-                } = persisted;
-                const report =
-                  persistedReport ??
-                  (persisted.idempotent_replay ? null : safe_report);
-                return {
-                  ...inspection,
-                  format_version: input.kind === "site_package" ? 1 : null,
-                  ...(report ?? {}),
-                };
-              } catch (error) {
-                await default_capture_file_storage.delete_best_effort(stored);
-                throw error;
+              } finally {
+                admission.release();
               }
             },
             get_import_inspection: async (input) => {
@@ -2304,45 +2333,55 @@ export const build = (opts: BuildOptions = {}) => {
                 project_id: input.project_id,
                 capability: "documentation.write",
               });
-              const file_id = ulid();
-              const inspection_id = ulid();
-              const stored = await default_capture_file_storage.put({
-                organization_id: input.organization_id,
-                project_id: input.project_id,
-                documentation_site_id: input.site_id,
-                file_id,
-                mime_type: input.mime_type,
-                stream: input.stream,
-                max_size_bytes: 10 * 1024 * 1024,
+              const admission = documentation_import_admission.acquire({
+                actor_key: `${input.organization_id}:${input.actor_org_user_id}:${input.project_version_id}`,
               });
               try {
-                const source = await default_capture_file_storage.get(stored);
-                const chunks: Buffer[] = [];
-                for await (const chunk of source.stream as AsyncIterable<
-                  Buffer | string
-                >)
-                  chunks.push(
-                    Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
-                  );
-                const parsed = parse_documentation_openapi(
-                  Buffer.concat(chunks),
-                  input.mime_type,
-                );
-                return await repository.create_openapi_inspection({
-                  ...input,
+                const file_id = ulid();
+                const inspection_id = ulid();
+                const stored = await default_capture_file_storage.put({
+                  organization_id: input.organization_id,
+                  project_id: input.project_id,
+                  documentation_site_id: input.site_id,
                   file_id,
-                  inspection_id,
-                  file: {
-                    ...stored,
-                    mime_type: input.mime_type,
-                    original_name: input.original_name,
-                  },
-                  document: parsed.document,
-                  summary: parsed.summary,
+                  mime_type: input.mime_type,
+                  stream: input.stream,
+                  max_size_bytes: 10 * 1024 * 1024,
                 });
-              } catch (error) {
-                await default_capture_file_storage.delete_best_effort(stored);
-                throw error;
+                try {
+                  const source =
+                    await default_capture_file_storage.get(stored);
+                  const chunks: Buffer[] = [];
+                  for await (const chunk of source.stream as AsyncIterable<
+                    Buffer | string
+                  >)
+                    chunks.push(
+                      Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+                    );
+                  const parsed = parse_documentation_openapi(
+                    Buffer.concat(chunks),
+                    input.mime_type,
+                  );
+                  return await repository.create_openapi_inspection({
+                    ...input,
+                    file_id,
+                    inspection_id,
+                    file: {
+                      ...stored,
+                      mime_type: input.mime_type,
+                      original_name: input.original_name,
+                    },
+                    document: parsed.document,
+                    summary: parsed.summary,
+                  });
+                } catch (error) {
+                  await default_capture_file_storage.delete_best_effort(
+                    stored,
+                  );
+                  throw error;
+                }
+              } finally {
+                admission.release();
               }
             },
             apply_openapi_source: async (input) => {

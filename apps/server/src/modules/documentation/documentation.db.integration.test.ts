@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { ulid } from "ulid";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
 import {
@@ -208,6 +209,53 @@ describe("DB-backed Documentation repository", () => {
       "documentation.import.inspected",
       "documentation.import.cancelled",
     ]);
+  });
+
+  it("caps ready import inspections per actor and Project Version", async () => {
+    const scope = await establish_project();
+    const repository = build_documentation_repository(pool);
+    for (let index = 0; index < 10; index += 1) {
+      await repository.create_import_inspection({
+        ...scope,
+        idempotency_key: `ready-${index}`,
+        inspection_id: ulid(),
+        file_id: ulid(),
+        kind: "page_markdown",
+        source_file: {
+          storage_provider: "local",
+          storage_key: `organizations/test/projects/test/documentation-import-inspections/ready-${index}/source.md`,
+          mime_type: "text/markdown",
+          size_bytes: 8,
+          checksum_sha256: index.toString(16).padStart(64, "0"),
+        },
+        content_fingerprint: (index + 20).toString(16).padStart(64, "0"),
+        safe_report: { proposal: { title: `Page ${index}` } },
+        expires_at: new Date("2099-08-01T00:00:00.000Z"),
+      });
+    }
+
+    await expect(
+      repository.create_import_inspection({
+        ...scope,
+        idempotency_key: "ready-over-limit",
+        inspection_id: ulid(),
+        file_id: ulid(),
+        kind: "page_markdown",
+        source_file: {
+          storage_provider: "local",
+          storage_key:
+            "organizations/test/projects/test/documentation-import-inspections/ready-over/source.md",
+          mime_type: "text/markdown",
+          size_bytes: 8,
+          checksum_sha256: "f".repeat(64),
+        },
+        content_fingerprint: "e".repeat(64),
+        safe_report: { proposal: { title: "Over limit" } },
+        expires_at: new Date("2099-08-01T00:00:00.000Z"),
+      }),
+    ).rejects.toMatchObject({
+      code: "documentation_import_limit_exceeded",
+    });
   });
 
   it("applies one inspected Markdown Page with permanent provenance and one Draft bump", async () => {

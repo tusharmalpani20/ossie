@@ -5,6 +5,7 @@ import {
   DOCUMENTATION_COMMENT_THREADS_PER_PAGE_MAX,
   DOCUMENTATION_ASSETS_PER_EDITION_MAX,
   DOCUMENTATION_PAGES_PER_EDITION_MAX,
+  DOCUMENTATION_READY_IMPORTS_PER_ACTOR_MAX,
   DOCUMENTATION_SNIPPETS_PER_EDITION_MAX,
 } from "@repo/constants";
 import {
@@ -6912,6 +6913,35 @@ export const build_documentation_repository = (database: Database) => ({
           idempotent_replay: true,
         };
       }
+      await client.query(
+        `SELECT pg_advisory_xact_lock(
+           hashtextextended($1, 0)
+         )`,
+        [
+          `documentation-import:${input.organization_id}:${input.project_version_id}:${input.actor_org_user_id}`,
+        ],
+      );
+      const readyCount = await client.query<{ count: string }>(
+        `SELECT count(*)::text count
+           FROM documentation_schema.documentation_import_inspection
+          WHERE organization_id=$1 AND project_id=$2 AND project_version_id=$3
+            AND created_by_id=$4 AND status='ready'
+            AND expires_at > clock_timestamp()`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.actor_org_user_id,
+        ],
+      );
+      if (
+        Number(readyCount.rows[0]?.count ?? 0) >=
+        DOCUMENTATION_READY_IMPORTS_PER_ACTOR_MAX
+      )
+        throw Object.assign(
+          new Error("Documentation import inspection limit exceeded"),
+          { code: "documentation_import_limit_exceeded" },
+        );
       const audit = await begin_documentation_audit_context(client, {
         ...input,
         command: "documentation.import.inspect",

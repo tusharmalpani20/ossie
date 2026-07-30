@@ -691,9 +691,7 @@ export const build_documentation_routes = (
     };
     const documentation_error = (
       error: unknown,
-      reply: {
-        status: (status: number) => { send: (body: unknown) => unknown };
-      },
+      reply: FastifyReply,
     ) => {
       const code =
         typeof error === "object" &&
@@ -702,6 +700,24 @@ export const build_documentation_routes = (
         typeof error.code === "string"
           ? error.code
           : null;
+      if (code === "documentation_import_busy") {
+        const retryAfter =
+          typeof error === "object" &&
+          error !== null &&
+          "retry_after_seconds" in error &&
+          typeof error.retry_after_seconds === "number"
+            ? Math.max(1, Math.ceil(error.retry_after_seconds))
+            : 1;
+        return reply
+          .header("Retry-After", String(retryAfter))
+          .status(429)
+          .send(
+            error_response(
+              code,
+              "Documentation import is temporarily unavailable",
+            ),
+          );
+      }
       if (
         code === "documentation_row_version_conflict" ||
         code === "documentation_path_conflict" ||
@@ -753,7 +769,8 @@ export const build_documentation_routes = (
         code === "documentation_comment_limit_exceeded" ||
         code === "documentation_snippet_limit_exceeded" ||
         code === "documentation_asset_limit_exceeded" ||
-        code === "documentation_content_limit_exceeded"
+        code === "documentation_content_limit_exceeded" ||
+        code === "documentation_import_limit_exceeded"
       )
         return reply
           .status(413)
