@@ -253,7 +253,8 @@ export const build_documentation_routes = (
             blocks: body.data.blocks,
           });
           return reply.send({ page: result });
-        } catch {
+        } catch (error) {
+          request.log.error({ err: error }, "Documentation Page save failed");
           return reply.status(409).send(
             error_response(
               "documentation_row_version_conflict",

@@ -41,6 +41,52 @@ type CreateSiteInput = {
   initial_home_page?: { title: string; path: string };
 };
 
+const to_documentation_block = (row: Record<string, unknown>) => {
+  const base = {
+    id: row.id,
+    kind: row.kind,
+    position: row.position,
+    expected_version: row.version,
+  };
+  switch (row.kind) {
+    case "paragraph":
+      return { ...base, text: row.text_content };
+    case "heading":
+      return { ...base, level: row.heading_level, text: row.text_content };
+    case "code":
+      return {
+        ...base,
+        code: row.text_content,
+        language: row.operation_key,
+      };
+    case "link":
+      return {
+        ...base,
+        label: row.text_content,
+        ...(row.link_url
+          ? { url: row.link_url }
+          : { page_id: row.linked_page_id }),
+      };
+    case "image":
+      return {
+        ...base,
+        asset_id: row.documentation_asset_id,
+        alt_text: row.alt_text,
+        caption: row.text_content,
+      };
+    case "api_reference":
+      return {
+        ...base,
+        openapi_source_id: row.openapi_source_id,
+        operation_key: row.operation_key,
+      };
+    case "divider":
+      return base;
+    default:
+      return base;
+  }
+};
+
 export const build_documentation_repository = (database: Database) => ({
   create_page: async (input: {
     organization_id: string;
@@ -144,7 +190,10 @@ export const build_documentation_repository = (database: Database) => ({
           AND documentation_page_id=$3 ORDER BY position,id`,
       [input.organization_id, input.project_id, input.page_id],
     );
-    return { ...page.rows[0], blocks: blocks.rows };
+    return {
+      ...page.rows[0],
+      blocks: blocks.rows.map(to_documentation_block),
+    };
   },
 
   save_page: async (input: {
@@ -160,12 +209,14 @@ export const build_documentation_repository = (database: Database) => ({
     with_transaction(database, async (client) => {
       const current = await client.query<{
         id: string;
+        site_edition_id: string;
         title: string;
         description: string | null;
         canonical_path: string;
         version: number;
       }>(
-        `SELECT page.id,page.title,page.description,page.canonical_path,page.version
+        `SELECT page.id,page.site_edition_id,page.title,page.description,
+                page.canonical_path,page.version
            FROM documentation_schema.documentation_page page
            JOIN documentation_schema.site_edition edition
              ON edition.id=page.site_edition_id
@@ -201,14 +252,13 @@ export const build_documentation_repository = (database: Database) => ({
              kind,position,heading_level,text_content,link_url,linked_page_id,
              documentation_asset_id,openapi_source_id,operation_key,alt_text,
              created_by_id,updated_by_id)
-           SELECT $1,$2,$3,page.site_edition_id,page.id,$4,$5,$6,$7,$8,$9,
-                  $10,$11,$12,$13,$14,$14
-             FROM documentation_schema.documentation_page page
-            WHERE page.id=$15 AND page.organization_id=$2 AND page.project_id=$3`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$16)`,
           [
             block.id,
             input.organization_id,
             input.project_id,
+            page.site_edition_id,
+            input.page_id,
             block.kind,
             block.position,
             block.level ?? null,
@@ -220,7 +270,6 @@ export const build_documentation_repository = (database: Database) => ({
             block.operation_key ?? null,
             block.alt_text ?? null,
             input.actor_org_user_id,
-            input.page_id,
           ],
         );
       }
@@ -276,6 +325,8 @@ export const build_documentation_repository = (database: Database) => ({
       const site_id = ulid();
       const edition_id = ulid();
       const working_draft_id = ulid();
+      const navigation_tree_id = ulid();
+      const routing_set_id = ulid();
       const home_page_id = input.initial_home_page ? ulid() : null;
 
       await client.query(
@@ -313,6 +364,34 @@ export const build_documentation_repository = (database: Database) => ({
          VALUES ($1,$2,$3,$4,$5,$6,$6)`,
         [
           working_draft_id,
+          input.organization_id,
+          input.project_id,
+          site_id,
+          edition_id,
+          input.actor_org_user_id,
+        ],
+      );
+      await client.query(
+        `INSERT INTO documentation_schema.navigation_tree
+          (id,organization_id,project_id,documentation_site_id,site_edition_id,
+           created_by_id,updated_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$6)`,
+        [
+          navigation_tree_id,
+          input.organization_id,
+          input.project_id,
+          site_id,
+          edition_id,
+          input.actor_org_user_id,
+        ],
+      );
+      await client.query(
+        `INSERT INTO documentation_schema.routing_set
+          (id,organization_id,project_id,documentation_site_id,site_edition_id,
+           created_by_id,updated_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$6)`,
+        [
+          routing_set_id,
           input.organization_id,
           input.project_id,
           site_id,
@@ -375,6 +454,8 @@ export const build_documentation_repository = (database: Database) => ({
           home_page_id,
           version: home_page_id ? 2 : 1,
         },
+        navigation: { id: navigation_tree_id, version: 1 },
+        routing: { id: routing_set_id, version: 1 },
         home_page: home_page_id
           ? {
               id: home_page_id,

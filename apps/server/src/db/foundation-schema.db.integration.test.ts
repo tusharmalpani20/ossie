@@ -657,6 +657,46 @@ describe("foundation schema migrations on postgres", () => {
     ).resolves.toMatch(/immutable stable interactive demo artifact identity/i);
   });
 
+  it("creates the complete relational Documentation first-slice schema", async () => {
+    for (const table_name of [
+      "documentation_site",
+      "site_edition",
+      "site_working_draft",
+      "documentation_page",
+      "documentation_page_keyword",
+      "documentation_page_block",
+      "documentation_list_item",
+      "navigation_tree",
+      "navigation_node",
+      "routing_set",
+      "page_slug_alias",
+      "documentation_redirect_rule",
+      "documentation_asset",
+      "openapi_inspection",
+      "openapi_source",
+      "openapi_operation",
+      "comment_thread",
+      "comment_reply",
+      "comment_mention",
+      "documentation_command_receipt",
+      "documentation_draft_search_document",
+      "site_revision",
+      "site_revision_page",
+      "site_revision_page_keyword",
+      "site_revision_page_block",
+      "site_revision_list_item",
+      "site_revision_navigation_node",
+      "site_revision_page_alias",
+      "site_revision_redirect_rule",
+      "site_revision_openapi_operation",
+      "site_revision_asset_reference",
+    ]) {
+      await expect(
+        table_exists("documentation_schema", table_name),
+      ).resolves.toBe(true);
+    }
+  });
+
   it("creates relational Publication and multi-version Publish Link schema", async () => {
     for (const column_name of [
       "organization_id",

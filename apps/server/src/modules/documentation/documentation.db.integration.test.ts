@@ -134,10 +134,36 @@ describe("DB-backed Documentation repository", () => {
       method: "PUT",
       url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}/content`,
       cookies: { ossie_session: scope.session_token },
-      payload: { expected_page_version: 1, blocks: [] },
+      payload: {
+        expected_page_version: 1,
+        blocks: [
+          {
+            id: "01J00000000000000000000001",
+            kind: "paragraph",
+            position: 1,
+            expected_version: null,
+            text: "Install Ossie safely.",
+          },
+        ],
+      },
     });
     expect(saved.statusCode).toBe(200);
     expect(saved.json().page.version).toBe(2);
+    const loaded = await app.inject({
+      method: "GET",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}`,
+      cookies: { ossie_session: scope.session_token },
+    });
+    expect(loaded.statusCode).toBe(200);
+    expect(loaded.json().page.blocks).toEqual([
+      {
+        id: "01J00000000000000000000001",
+        kind: "paragraph",
+        position: 1,
+        expected_version: 1,
+        text: "Install Ossie safely.",
+      },
+    ]);
     const secondPage = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages`,
