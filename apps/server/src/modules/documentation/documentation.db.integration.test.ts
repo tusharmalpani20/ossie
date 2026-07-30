@@ -1,7 +1,10 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
-import { reset_test_database } from "../../test-support/database";
+import {
+  reset_test_database,
+  with_maintenance_client,
+} from "../../test-support/database";
 import { build_documentation_repository } from "./documentation.repository";
 
 const multipart_file = (
@@ -722,6 +725,49 @@ describe("DB-backed Documentation repository", () => {
       payload: { expected_page_version: 1, blocks: [] },
     });
     expect(independent.statusCode).toBe(200);
+    const secondSite = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "site-create-nested-swap" },
+      payload: {
+        name: "Other docs",
+        primary_language: "en-US",
+        initial_home_page: { title: "Other home", path: "other-home" },
+      },
+    });
+    expect(secondSite.statusCode).toBe(201);
+    expect(
+      (
+        await app.inject({
+          url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${secondSite.json().site.id}/pages/${page.json().page.id}`,
+          cookies: { ossie_session: scope.session_token },
+        })
+      ).statusCode,
+    ).toBe(404);
+    expect(
+      (
+        await app.inject({
+          url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${secondSite.json().site.id}/revisions/${revision1.json().revision.id}`,
+          cookies: { ossie_session: scope.session_token },
+        })
+      ).statusCode,
+    ).toBe(404);
+    const secondProject = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects",
+      cookies: { ossie_session: scope.session_token },
+      payload: { name: "Other Product" },
+    });
+    expect(secondProject.statusCode).toBe(201);
+    expect(
+      (
+        await app.inject({
+          url: `/api/v1/projects/${secondProject.json().project.id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}`,
+          cookies: { ossie_session: scope.session_token },
+        })
+      ).statusCode,
+    ).toBe(404);
     const auditActions = await pool.query<{ action: string }>(
       `SELECT action FROM audit_schema.audit_event
         WHERE root_resource_type='documentation_site'
@@ -769,6 +815,38 @@ describe("DB-backed Documentation repository", () => {
         [page.json().page.id],
       ),
     ).rejects.toMatchObject({ code: "23514" });
+    for (const table of [
+      "documentation_schema.page_slug_alias",
+      "documentation_schema.site_revision",
+      "documentation_schema.site_revision_page",
+      "documentation_schema.site_revision_page_keyword",
+      "documentation_schema.site_revision_page_block",
+      "documentation_schema.site_revision_list_item",
+      "documentation_schema.site_revision_navigation_node",
+      "documentation_schema.site_revision_page_alias",
+      "documentation_schema.site_revision_redirect_rule",
+      "documentation_schema.site_revision_openapi_operation",
+      "documentation_schema.site_revision_asset_reference",
+      "publish_schema.site_publication",
+      "publish_schema.site_publication_search_document",
+    ]) {
+      await expect(pool.query(`UPDATE ${table} SET id=id`)).rejects.toMatchObject(
+        { code: expect.stringMatching(/23514|42501|55000/) },
+      );
+      await expect(pool.query(`DELETE FROM ${table}`)).rejects.toMatchObject({
+        code: expect.stringMatching(/23514|42501|55000/),
+      });
+      await expect(pool.query(`TRUNCATE ${table}`)).rejects.toMatchObject({
+        code: expect.stringMatching(/23514|42501|55000/),
+      });
+    }
+    await expect(
+      with_maintenance_client((client) =>
+        client.query(
+          "TRUNCATE publish_schema.site_publication_search_document",
+        ),
+      ),
+    ).resolves.toBeDefined();
     await app.close();
   });
 });

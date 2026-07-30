@@ -577,6 +577,8 @@ const load_revision_snapshot = async (
     site_revision_id: string;
     organization_id?: string;
     project_id?: string;
+    project_version_id?: string;
+    site_id?: string;
   },
 ) => {
   const values: unknown[] = [input.site_revision_id];
@@ -585,6 +587,12 @@ const load_revision_snapshot = async (
       ? "AND revision.organization_id=$2 AND revision.project_id=$3"
       : "";
   if (scope) values.push(input.organization_id, input.project_id);
+  const versionScope = input.project_version_id
+    ? `AND revision.project_version_id=$${values.push(input.project_version_id)}`
+    : "";
+  const siteScope = input.site_id
+    ? `AND revision.documentation_site_id=$${values.push(input.site_id)}`
+    : "";
   const revision = await db.query<{
     id: string;
     documentation_site_id: string;
@@ -605,7 +613,7 @@ const load_revision_snapshot = async (
             revision.primary_language,revision.content_digest,
             revision.created_at
        FROM documentation_schema.site_revision revision
-      WHERE revision.id=$1 ${scope}`,
+      WHERE revision.id=$1 ${scope} ${versionScope} ${siteScope}`,
     values,
   );
   const root = revision.rows[0];
@@ -1708,6 +1716,8 @@ export const build_documentation_repository = (database: Database) => ({
   get_revision: async (input: {
     organization_id: string;
     project_id: string;
+    project_version_id: string;
+    site_id: string;
     site_revision_id: string;
   }) => load_revision_snapshot(database, input),
 

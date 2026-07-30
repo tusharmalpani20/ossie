@@ -249,6 +249,8 @@ export type DocumentationRouteDependencies = {
     get_revision: (input: {
       organization_id: string;
       project_id: string;
+      project_version_id: string;
+      site_id: string;
       actor_org_user_id: string;
       site_revision_id: string;
     }) => Promise<unknown>;
@@ -1348,6 +1350,8 @@ export const build_documentation_routes = (
           organization_id: scope.organization_id,
           actor_org_user_id: scope.actor_org_user_id,
           project_id: scope.project_id,
+          project_version_id: scope.project_version_id,
+          site_id: params.data.site_id,
           site_revision_id: params.data.revision_id,
         });
         if (!revision)

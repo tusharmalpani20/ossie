@@ -234,6 +234,34 @@ describe("Documentation routes", () => {
     });
   });
 
+  it("scopes Revision reads to the requested version and Site", async () => {
+    const get_revision = vi.fn(async () => ({ revision: { id: "revision" } }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({ get_revision }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const response = await app.inject({
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/revisions/revision",
+      cookies: { ossie_session: "session" },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(200);
+    expect(get_revision).toHaveBeenCalledWith({
+      organization_id: "org",
+      project_id: "project",
+      project_version_id: "version",
+      site_id: "site",
+      actor_org_user_id: "actor",
+      site_revision_id: "revision",
+    });
+  });
+
   it("rejects unknown fields and missing idempotency keys", async () => {
     const app = await build_test_app();
     const response = await app.inject({
