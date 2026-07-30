@@ -44,6 +44,7 @@ const establish_project = async () => {
     project_id: project.json().project.id as string,
     project_version_id: project.json().project.default_project_version
       .id as string,
+    session_token: session ?? "",
   };
 };
 
@@ -86,6 +87,31 @@ describe("DB-backed Documentation repository", () => {
       editions: "1",
       drafts: "1",
       pages: "1",
+    });
+  });
+
+  it("exposes the authorized version-scoped Site creation API", async () => {
+    const scope = await establish_project();
+    const app = build({ logger: false });
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "site-create-route-1" },
+      payload: {
+        name: "Product docs",
+        description: null,
+        primary_language: "en-US",
+        initial_home_page: { title: "Home", path: "home" },
+      },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({
+      site: { name: "Product docs" },
+      edition: { primary_language: "en-US" },
+      home_page: { canonical_path: "home" },
     });
   });
 });

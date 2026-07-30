@@ -1,0 +1,105 @@
+import Fastify from "fastify";
+import cookie from "@fastify/cookie";
+import { describe, expect, it, vi } from "vitest";
+import {
+  build_documentation_routes,
+  type DocumentationRouteDependencies,
+} from "./documentation.routes";
+
+const auth = {
+  user: { id: "user", email: "owner@example.test", display_name: "Owner" },
+  organization: { id: "org", name: "Organization" },
+  org_user: { id: "actor", role: "owner" },
+  session: {
+    id: "session",
+    session_type: "web",
+    expires_at: "2026-07-31T00:00:00.000Z",
+  },
+};
+
+const build_test_app = async (overrides?: {
+  unauthenticated?: boolean;
+  create_site?: DocumentationRouteDependencies["documentation_service"]["create_site"];
+}) => {
+  const app = Fastify();
+  await app.register(cookie);
+  await app.register(
+    build_documentation_routes({
+      auth_service: {
+        get_current_auth_context: vi.fn(async () => {
+          if (overrides?.unauthenticated) throw new Error("unauthenticated");
+          return auth;
+        }),
+      },
+      documentation_service: {
+        create_site:
+          overrides?.create_site ??
+          vi.fn(async () => ({
+            site: { id: "site", name: "Product docs" },
+            edition: { id: "edition", primary_language: "en-US" },
+            working_draft: { id: "draft", version: 2 },
+            home_page: { id: "page", canonical_path: "home" },
+          })),
+      },
+      resolve_project_version: vi.fn(async () => ({ id: "version" })),
+    }),
+  );
+  return app;
+};
+
+describe("Documentation routes", () => {
+  it("creates one version-scoped Site from a strict request", async () => {
+    const create_site = vi.fn(async () => ({
+      site: { id: "site", name: "Product docs" },
+      edition: { id: "edition", primary_language: "en-US" },
+      working_draft: { id: "draft", version: 2 },
+      home_page: { id: "page", canonical_path: "home" },
+    }));
+    const app = await build_test_app({ create_site });
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project/versions/main/documentation-sites",
+      cookies: { ossie_session: "session" },
+      headers: { "idempotency-key": "site-create-1" },
+      payload: {
+        name: "Product docs",
+        description: null,
+        primary_language: "en-US",
+        initial_home_page: { title: "Home", path: "home" },
+      },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({
+      site: { id: "site" },
+      edition: { id: "edition" },
+    });
+    expect(create_site).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organization_id: "org",
+        project_id: "project",
+        project_version_id: "version",
+        actor_org_user_id: "actor",
+        idempotency_key: "site-create-1",
+      }),
+    );
+  });
+
+  it("rejects unknown fields and missing idempotency keys", async () => {
+    const app = await build_test_app();
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project/versions/main/documentation-sites",
+      cookies: { ossie_session: "session" },
+      payload: {
+        name: "Docs",
+        primary_language: "en",
+        unexpected: true,
+      },
+    });
+    await app.close();
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error.type).toBe("invalid_documentation_request");
+  });
+});

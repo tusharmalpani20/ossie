@@ -33,7 +33,17 @@ export class DocumentationPublicationPreparationError extends Error {
 }
 
 type Repository = {
-  create_site: (input: Record<string, unknown>) => Promise<unknown>;
+  create_site: (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    actor_org_user_id: string;
+    idempotency_key: string;
+    name: string;
+    description: string | null;
+    primary_language: string;
+    initial_home_page?: { title: string; path: string };
+  }) => Promise<unknown>;
   save_page: (input: Record<string, unknown>) => Promise<unknown>;
   create_revision: (input: Record<string, unknown>) => Promise<unknown>;
   prepare_publication: (input: Record<string, unknown>) => Promise<unknown>;

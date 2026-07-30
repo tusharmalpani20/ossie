@@ -132,12 +132,19 @@ import {
 } from "./modules/project-version/project-version.routes.js";
 import { build_project_version_service } from "./modules/project-version/project-version.service.js";
 import { build_audited_project_version_repository } from "./modules/project-version/project-version.audit.js";
+import { build_project_version_repository } from "./modules/project-version/project-version.repository.js";
 import { build_artifact_revision_routes } from "./modules/artifact-revision/artifact-revision.routes.js";
 import { build_artifact_revision_service } from "./modules/artifact-revision/artifact-revision.service.js";
 import { build_audited_artifact_revision_repository } from "./modules/artifact-revision/artifact-revision.audit.js";
 import { build_artifact_carry_forward_routes } from "./modules/artifact-carry-forward/artifact-carry-forward.routes.js";
 import { build_artifact_carry_forward_service } from "./modules/artifact-carry-forward/artifact-carry-forward.service.js";
 import { build_audited_artifact_carry_forward_repository } from "./modules/artifact-carry-forward/artifact-carry-forward.audit.js";
+import {
+  build_documentation_routes,
+  type DocumentationRouteDependencies,
+} from "./modules/documentation/documentation.routes.js";
+import { build_documentation_repository } from "./modules/documentation/documentation.repository.js";
+import { build_documentation_service } from "./modules/documentation/documentation.service.js";
 
 type BuildOptions = FastifyServerOptions & {
   public_instance_service?: PublicInstanceRouteService;
@@ -159,6 +166,7 @@ type BuildOptions = FastifyServerOptions & {
   guide_screenshot_upload_service?: GuideRouteDependencies["guide_screenshot_upload_service"];
   interactive_demo_service?: InteractiveDemoRouteDependencies["interactive_demo_service"];
   publish_service?: PublishRouteDependencies["publish_service"];
+  documentation_service?: DocumentationRouteDependencies["documentation_service"];
   access_event_writer?: {
     append(event: AccessEvent): Promise<void>;
   };
@@ -272,6 +280,7 @@ export const build = (opts: BuildOptions = {}) => {
     guide_screenshot_upload_service,
     interactive_demo_service,
     publish_service,
+    documentation_service,
     access_event_writer,
     compliance_service,
     readiness_check = async () => {
@@ -687,6 +696,62 @@ export const build = (opts: BuildOptions = {}) => {
       ),
     }),
     { prefix: "/api/v1/projects" },
+  );
+
+  app.register(
+    build_documentation_routes({
+      auth_service: {
+        get_current_auth_context:
+          default_authentication_session_service.get_current_auth_context,
+      },
+      documentation_service:
+        documentation_service ??
+        (() => {
+          const unavailable = async () => {
+            throw new Error("Documentation operation is not available");
+          };
+          const service = build_documentation_service({
+            ...build_documentation_repository(pool),
+            save_page: unavailable,
+            create_revision: unavailable,
+            prepare_publication: unavailable,
+            switch_publication: unavailable,
+            rollback_publication: unavailable,
+          });
+          return {
+            create_site: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.site.manage",
+              });
+              return service.create_site(input);
+            },
+          };
+        })(),
+      resolve_project_version: async (input) => {
+        await project_access_service.authorize({
+          auth: {
+            organization_id: input.organization_id,
+            actor_org_user_id: input.actor_org_user_id,
+          },
+          project_id: input.project_id,
+          capability: "documentation.site.manage",
+        });
+        const resolution = await build_project_version_repository(
+          pool,
+        ).resolve_version({
+          organization_id: input.organization_id,
+          project_id: input.project_id,
+          slug: input.version_slug,
+        });
+        if (!resolution) throw new Error("Project Version was not found");
+        return { id: resolution.project_version.id };
+      },
+    }),
   );
 
   app.register(
