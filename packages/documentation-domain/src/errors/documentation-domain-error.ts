@@ -22,7 +22,10 @@ export type DocumentationDomainErrorCode =
   | "documentation_path_invalid"
   | "documentation_redirect_cycle"
   | "documentation_revision_invalid"
-  | "documentation_rollback_invalid";
+  | "documentation_rollback_invalid"
+  | "documentation_review_invalid"
+  | "documentation_review_transition_invalid"
+  | "documentation_review_gate_unsatisfied";
 
 export class DocumentationDomainError extends Error {
   readonly code: DocumentationDomainErrorCode;

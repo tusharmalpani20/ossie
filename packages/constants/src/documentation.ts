@@ -150,3 +150,39 @@ export const DOCUMENTATION_CARRY_FORWARD_CONTENT_NODES_MAX = 250_000;
 export const DOCUMENTATION_CARRY_FORWARD_PROTECTED_REFERENCES_MAX = 10_000;
 export const DOCUMENTATION_CARRY_FORWARD_SAVED_TEXT_MAX_BYTES =
   256 * 1024 * 1024;
+
+export const DOCUMENTATION_REVIEW_POLICY_MODES = [
+  "optional",
+  "approval_required",
+] as const;
+export const DOCUMENTATION_REVIEW_REQUEST_STATUSES = [
+  "open",
+  "approved",
+  "rejected",
+  "canceled",
+  "superseded",
+] as const;
+export const DOCUMENTATION_REVIEW_EFFECTIVE_STATUSES = [
+  ...DOCUMENTATION_REVIEW_REQUEST_STATUSES,
+  "invalidated",
+] as const;
+export const DOCUMENTATION_REVIEW_DECISIONS = ["approve", "reject"] as const;
+export const DOCUMENTATION_PUBLICATION_REVIEW_OUTCOMES = [
+  "not_required",
+  "approved",
+  "overridden",
+] as const;
+export const DOCUMENTATION_REVIEW_INBOX_STATUSES = ["unread", "read"] as const;
+export const DOCUMENTATION_REVIEW_NOTIFICATION_TYPES = [
+  "review_assigned",
+  "review_approved",
+  "review_rejected",
+  "review_canceled",
+  "review_superseded",
+  "publication_overridden",
+] as const;
+export const DOCUMENTATION_REVIEWERS_MAX = 10;
+export const DOCUMENTATION_REVIEW_MAINTAINERS_MAX = 20;
+export const DOCUMENTATION_REVIEW_REASON_MAX = 1_000;
+export const DOCUMENTATION_REVIEW_INBOX_PAGE_MAX = 50;
+export const DOCUMENTATION_REVIEW_REQUESTS_PER_EDITION_HARD_MAX = 10_000;

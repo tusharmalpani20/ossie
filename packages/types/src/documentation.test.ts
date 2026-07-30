@@ -31,6 +31,11 @@ import {
   DocumentationEditionUpdateRequestSchema,
   DocumentationPageLifecycleRequestSchema,
   DocumentationOpenApiLifecycleRequestSchema,
+  DocumentationReviewPolicyUpdateRequestSchema,
+  DocumentationReviewRequestCreateRequestSchema,
+  DocumentationReviewDecisionRequestSchema,
+  DocumentationReviewCancelRequestSchema,
+  DocumentationPublicationReviewOverrideSchema,
 } from "./documentation";
 
 describe("Documentation shared contracts", () => {
@@ -581,6 +586,81 @@ describe("Documentation shared contracts", () => {
         id: "01J00000000000000000000001",
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("Documentation review contracts", () => {
+  const id = "01J00000000000000000000001";
+
+  it("validates policy thresholds and unique maintainers", () => {
+    expect(
+      DocumentationReviewPolicyUpdateRequestSchema.safeParse({
+        expected_policy_version: 1,
+        mode: "approval_required",
+        required_approvals: 2,
+        require_maintainer_approval: true,
+        maintainer_org_user_ids: [id],
+      }).success,
+    ).toBe(false);
+    expect(
+      DocumentationReviewPolicyUpdateRequestSchema.safeParse({
+        expected_policy_version: 1,
+        mode: "approval_required",
+        required_approvals: 1,
+        require_maintainer_approval: true,
+        maintainer_org_user_ids: [id],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("normalizes and bounds review reasons", () => {
+    expect(
+      DocumentationReviewDecisionRequestSchema.parse({
+        expected_review_request_version: 1,
+        decision: "approve",
+        reason: "  cafe\u0301\r\nok  ",
+      }).reason,
+    ).toBe("café\nok");
+    expect(
+      DocumentationReviewDecisionRequestSchema.safeParse({
+        expected_review_request_version: 1,
+        decision: "reject",
+        reason: " ",
+      }).success,
+    ).toBe(false);
+    expect(
+      DocumentationReviewCancelRequestSchema.safeParse({
+        expected_review_request_version: 1,
+        reason: "bad\u0000reason",
+      }).success,
+    ).toBe(false);
+    expect(
+      DocumentationPublicationReviewOverrideSchema.safeParse({
+        expected_policy_version: 1,
+        reason: "too short",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires explicit exact revisions and defaults legacy overrides to null", () => {
+    expect(
+      DocumentationReviewRequestCreateRequestSchema.safeParse({
+        site_revision_id: id,
+        expected_policy_version: 1,
+        reviewer_org_user_ids: [id],
+      }).success,
+    ).toBe(true);
+    expect(
+      DocumentationCreatePublicationRequestSchema.parse({
+        revision_id: id,
+        link: {
+          mode: "existing",
+          link_id: id,
+          entry_id: id,
+          expected_entry_version: 1,
+        },
+      }).review_override,
+    ).toBeNull();
   });
 });
 

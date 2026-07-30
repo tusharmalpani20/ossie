@@ -34,6 +34,16 @@ import {
   DOCUMENTATION_LIFECYCLE_STATUSES,
   DOCUMENTATION_EFFECTIVE_STATUSES,
   DOCUMENTATION_REVISION_TRIGGERS,
+  DOCUMENTATION_REVIEW_POLICY_MODES,
+  DOCUMENTATION_REVIEW_REQUEST_STATUSES,
+  DOCUMENTATION_REVIEW_EFFECTIVE_STATUSES,
+  DOCUMENTATION_REVIEW_DECISIONS,
+  DOCUMENTATION_PUBLICATION_REVIEW_OUTCOMES,
+  DOCUMENTATION_REVIEW_INBOX_STATUSES,
+  DOCUMENTATION_REVIEW_NOTIFICATION_TYPES,
+  DOCUMENTATION_REVIEWERS_MAX,
+  DOCUMENTATION_REVIEW_MAINTAINERS_MAX,
+  DOCUMENTATION_REVIEW_REASON_MAX,
 } from "@repo/constants";
 import { z } from "zod";
 import { IdSchema, IsoDateTimeStringSchema, PositiveIntSchema } from "./common";
@@ -638,6 +648,27 @@ const DocumentationExistingLinkSelectionSchema = z
   })
   .strict();
 
+export const PlainReviewReasonSchema = z
+  .string()
+  .transform((value) => value.replace(/\r\n?/gu, "\n").normalize("NFC").trim())
+  .refine((value) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value), {
+    message: "Reason contains a disallowed control character",
+  })
+  .refine(
+    (value) => Array.from(value).length <= DOCUMENTATION_REVIEW_REASON_MAX,
+    { message: "Reason exceeds the accepted limit" },
+  );
+
+export const DocumentationPublicationReviewOverrideSchema = z
+  .object({
+    expected_policy_version: PositiveIntSchema,
+    reason: PlainReviewReasonSchema.refine(
+      (value) => Array.from(value).length >= 20,
+      { message: "Override reason must contain at least 20 characters" },
+    ),
+  })
+  .strict();
+
 export const DocumentationCreatePublicationRequestSchema = z
   .object({
     revision_id: IdSchema,
@@ -645,6 +676,9 @@ export const DocumentationCreatePublicationRequestSchema = z
       DocumentationCreateLinkSelectionSchema,
       DocumentationExistingLinkSelectionSchema,
     ]),
+    review_override: DocumentationPublicationReviewOverrideSchema.nullable().default(
+      null,
+    ),
   })
   .strict();
 
@@ -652,8 +686,128 @@ export const DocumentationRollbackPublicationRequestSchema = z
   .object({
     site_publication_id: IdSchema,
     expected_entry_version: PositiveIntSchema,
+    review_override: DocumentationPublicationReviewOverrideSchema.nullable().default(
+      null,
+    ),
   })
   .strict();
+
+const DocumentationReviewPolicyModeSchema = z.enum(
+  DOCUMENTATION_REVIEW_POLICY_MODES,
+);
+const DocumentationReviewDecisionValueSchema = z.enum(
+  DOCUMENTATION_REVIEW_DECISIONS,
+);
+const unique_ids = (ids: string[]) => new Set(ids).size === ids.length;
+
+export const DocumentationReviewPolicySchema = z
+  .object({
+    id: IdSchema,
+    site_id: IdSchema,
+    site_edition_id: IdSchema,
+    mode: DocumentationReviewPolicyModeSchema,
+    required_approvals: z.number().int().min(1).max(DOCUMENTATION_REVIEWERS_MAX),
+    require_maintainer_approval: z.boolean(),
+    maintainer_org_user_ids: z
+      .array(IdSchema)
+      .max(DOCUMENTATION_REVIEW_MAINTAINERS_MAX),
+    version: PositiveIntSchema,
+    updated_at: IsoDateTimeStringSchema,
+  })
+  .strict();
+
+export const DocumentationReviewPolicyUpdateRequestSchema = z
+  .object({
+    expected_policy_version: PositiveIntSchema,
+    mode: DocumentationReviewPolicyModeSchema,
+    required_approvals: z.number().int().min(1).max(DOCUMENTATION_REVIEWERS_MAX),
+    require_maintainer_approval: z.boolean(),
+    maintainer_org_user_ids: z
+      .array(IdSchema)
+      .max(DOCUMENTATION_REVIEW_MAINTAINERS_MAX),
+  })
+  .strict()
+  .refine((value) => unique_ids(value.maintainer_org_user_ids), {
+    message: "Maintainers must be unique",
+  })
+  .refine(
+    (value) =>
+      !value.require_maintainer_approval ||
+      (value.maintainer_org_user_ids.length > 0 &&
+        value.required_approvals <= value.maintainer_org_user_ids.length),
+    { message: "Maintainer requirement cannot be satisfied" },
+  );
+
+export const DocumentationReviewCandidateSchema = z
+  .object({
+    org_user_id: IdSchema,
+    display_name: z.string().min(1),
+    project_role: z.enum(["project_admin", "editor", "viewer"]),
+    is_organization_owner: z.boolean(),
+    is_maintainer: z.boolean(),
+  })
+  .strict();
+
+export const DocumentationReviewRequestCreateRequestSchema = z
+  .object({
+    site_revision_id: IdSchema,
+    expected_policy_version: PositiveIntSchema,
+    reviewer_org_user_ids: z.array(IdSchema).min(1).max(DOCUMENTATION_REVIEWERS_MAX),
+  })
+  .strict()
+  .refine((value) => unique_ids(value.reviewer_org_user_ids), {
+    message: "Reviewers must be unique",
+  });
+
+export const DocumentationReviewDecisionRequestSchema = z.discriminatedUnion(
+  "decision",
+  [
+    z
+      .object({
+        expected_review_request_version: PositiveIntSchema,
+        decision: z.literal("approve"),
+        reason: PlainReviewReasonSchema.transform((value) =>
+          value.length === 0 ? null : value,
+        ).nullable(),
+      })
+      .strict(),
+    z
+      .object({
+        expected_review_request_version: PositiveIntSchema,
+        decision: z.literal("reject"),
+        reason: PlainReviewReasonSchema.refine((value) => value.length > 0),
+      })
+      .strict(),
+  ],
+);
+
+export const DocumentationReviewCancelRequestSchema = z
+  .object({
+    expected_review_request_version: PositiveIntSchema,
+    reason: PlainReviewReasonSchema.refine((value) => value.length > 0),
+  })
+  .strict();
+
+export const DocumentationReviewNotificationReadRequestSchema = z
+  .object({ expected_version: PositiveIntSchema })
+  .strict();
+
+export const DocumentationReviewRequestStatusSchema = z.enum(
+  DOCUMENTATION_REVIEW_REQUEST_STATUSES,
+);
+export const DocumentationReviewEffectiveStatusSchema = z.enum(
+  DOCUMENTATION_REVIEW_EFFECTIVE_STATUSES,
+);
+export const DocumentationPublicationReviewOutcomeSchema = z.enum(
+  DOCUMENTATION_PUBLICATION_REVIEW_OUTCOMES,
+);
+export const DocumentationReviewInboxStatusSchema = z.enum(
+  DOCUMENTATION_REVIEW_INBOX_STATUSES,
+);
+export const DocumentationReviewNotificationTypeSchema = z.enum(
+  DOCUMENTATION_REVIEW_NOTIFICATION_TYPES,
+);
+export { DocumentationReviewDecisionValueSchema };
 
 export const DocumentationApplyOpenApiRequestSchema = z
   .object({
