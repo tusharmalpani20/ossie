@@ -249,14 +249,17 @@ _Avoid_: Artifact revision number, row version, project version
 A stable shareable access route for one authored output. The implemented Guide/Interactive Demo form belongs to one Artifact and exposes explicitly selected Artifact Editions through immutable Published Artifact entries. The accepted Documentation form belongs to one Documentation Site and exposes explicitly selected Site Editions through immutable Site Publication entries. Each link has one explicit default version and one link-wide access policy.
 _Avoid_: Draft link
 
-## Documentation Language: Shipped First Slice And Accepted V1
+## Documentation Language: Shipped Through Child 133 And Accepted V1
 
 Documentation Site, Site Edition, Site Working Draft, Documentation Page,
 Navigation Tree, redirect/alias rules, OpenAPI Source, Documentation Asset,
 private comments, Site Revision, Site Publication, and Documentation Publish
-Link are implemented by child `132`. Reusable snippets, Carry-Forward, and
-later review/lifecycle extensions below remain accepted V1 target language and
-must not be described as shipped yet.
+Link were implemented by child `132`. Child `133` adds Edition-owned reusable
+snippets, the complete constrained V1 content block set, exact Guide and
+Interactive Demo Publication reference cards, a Documentation Asset library,
+and authorized same-Project Capture Asset reuse. Carry-Forward and later
+review/lifecycle extensions below remain accepted V1 target language and must
+not be described as shipped yet.
 
 The terms below are accepted by child `131` for implementation beginning at
 `132`. They describe the target domain and do not claim shipped tables, routes,
@@ -301,9 +304,11 @@ across Sites or Editions.
 _Avoid_: Cross-site component, executable MDX
 
 **Documentation Asset**:
-A protected File referenced by Documentation working state, Revisions, or
-Publications. It may be edition-owned or reuse an authorized Capture/Derived
-Asset without copying the binary.
+An Edition-owned protected File referenced by Documentation working state,
+Revisions, or Publications. Documentation content may alternatively reference
+an authorized same-Project Capture Asset without copying the binary. A
+Derived/Redacted Asset source remains conditional future scope because no
+owning runtime domain exists.
 _Avoid_: Public URL, safely purgeable archived file
 
 **OpenAPI Source**:
@@ -469,9 +474,15 @@ _Avoid_: Publish Link, Site Publication
 - A **Documentation Site** has at most one **Site Edition** for each Project Version
 - Every **Site Edition** belongs to exactly one Documentation Site and one Project Version in the same Project
 - Every **Site Edition** owns exactly one **Site Working Draft**
-- A **Site Working Draft** currently owns many Documentation Pages, Navigation
-  Groups, redirect rules, OpenAPI Sources, and Documentation Asset references;
-  reusable snippets remain child `133` scope
+- A **Site Working Draft** owns many Documentation Pages, Navigation Groups,
+  reusable snippets, redirect rules, OpenAPI Sources, and Edition-owned
+  Documentation Assets
+- A **Reusable Documentation Snippet** belongs to exactly one Site Edition,
+  may be referenced by many Pages in that Edition, cannot nest another
+  Snippet, and is frozen into each Site Revision
+- Documentation image uses reference either an Edition-owned Documentation
+  Asset or an authorized same-Project Capture Asset; archive prevents new
+  selection but preserves existing mutable and immutable references
 - Every **Documentation Page** belongs to exactly one Site Edition and appears at most once in its authoritative Navigation Tree; unlisted Pages are allowed
 - Page slugs and **Page Slug Aliases** are unique within one Site Edition, and aliases cannot be reassigned
 - Every **Site Revision** belongs to exactly one Site Edition and freezes the complete reader-visible Site state

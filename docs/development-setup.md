@@ -146,6 +146,15 @@ There is no pre-`025` Product Documentation data to backfill. Deploy the
 migrated server and portal together; older clients do not know the new strict
 Documentation contracts.
 
+Migration `026` additively expands that model with the constrained V1 Page
+content graph, Edition-owned reusable Snippets, Documentation Asset lifecycle,
+authorized Capture Asset references, exact Guide/Interactive Demo Publication
+references, and their complete immutable Revision projections. It preserves
+child `132` rows and public Publications. Deploy the migrated server and portal
+together because pre-`026` clients do not understand the expanded strict block
+and asset-source unions. The guarded down migration refuses to discard retained
+child `133` mutable or immutable data.
+
 ## Running Apps
 
 Server:
@@ -174,7 +183,9 @@ rtk pnpm --filter server seed:documentation-browser-fixture
 ```
 
 The fixture resets `ossie_test`, uses synthetic users/content only, and must
-never target a retained database.
+never target a retained database. It includes expanded Page content, a reusable
+Snippet, Documentation- and Capture-backed images, two exact Publications,
+public search, and rollback coverage.
 
 For self-hosted extension use, build the extension, load `apps/extension/dist` as an unpacked Chrome extension, and configure the extension with the server URL for the instance it should talk to.
 

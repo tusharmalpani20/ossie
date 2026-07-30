@@ -26,6 +26,10 @@ canonical portal handoff. Current status is recorded in
 `docs/pre-documentation-closeout.md`. Child `132` then shipped and verified the
 first Product Documentation vertical slice; its current evidence is
 `docs/ui/132-documentation-site-first-vertical-slice-browser-evidence.md`.
+Child `133` then added and verified the constrained V1 content, reusable
+Snippet, Documentation/Capture Asset, exact artifact Publication reference,
+immutable snapshot, public reader, and search workflows. Its evidence is
+`docs/ui/133-documentation-content-snippets-and-asset-workflows-browser-evidence.md`.
 The original entries below remain unchanged.
 
 ## Prerequisites
@@ -88,6 +92,28 @@ The DB-backed smoke test covers:
 - Product Documentation Site/Page creation, safe content, private comments,
   protected image delivery, two immutable Site Revisions/Publications, exact
   public Page/alias/search behavior, and pointer-only rollback
+- expanded Product Documentation content and reusable Snippet expansion;
+  Documentation- and Capture-backed image references; exact immutable artifact
+  Publication metadata; P1/P2 separation; Snippet-aware public search; and
+  Documentation-aware Capture Asset purge protection
+
+## 2026-07-30 Child 133 Documentation Content Closeout
+
+- Plan:
+  `docs/plan/133-documentation-content-snippets-and-asset-workflows.md`
+- Runtime commits: `7fc8989`, `dbed973`, `eed0b41`, `c3ee1b6`, `11b8e32`,
+  `b461245`, `aac2fd6`
+- Automated: Documentation domain 11 files / 21 tests; shared contracts 18
+  files / 78 tests; server unit 105 files / 443 tests; web 68 files / 385
+  tests; server DB 22 files / 72 tests; V1 smoke 1 file / 2 tests; clean
+  migration `001`–`026` plus guarded `026` down/up; workspace lint, type check,
+  and build.
+- Browser: headless Chrome `151.0.0.0` through `agent-browser`; public expanded
+  reader/search/media, 320 CSS-pixel reflow at 200% zoom, reduced motion,
+  keyboard skip navigation, Admin Snippet lifecycle, Viewer read-only
+  permissions, and axe audits with zero violations.
+- Evidence:
+  `docs/ui/133-documentation-content-snippets-and-asset-workflows-browser-evidence.md`
 
 ## 2026-07-30 Child 132 Documentation Closeout
 

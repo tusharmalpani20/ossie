@@ -2,13 +2,12 @@
 
 Date: 2026-07-30
 
-Status: Active after child `132` completion on 2026-07-30. The complete first
-vertical slice is implemented and verified, including restricted viewer
-sessions, mutation audit/access evidence, tenant and immutable-maintenance
-threat checks, first-slice authoring controls, and the headless Chrome
-access/upper-bound matrix. Child `133` is next; children `133` through `140`
-remain bounded reservations that must be re-expanded after their actual
-predecessors.
+Status: Active after child `133` completion on 2026-07-30. The first vertical
+slice and its constrained V1 content, Edition-owned Snippet, protected
+Documentation/Capture Asset, exact artifact-reference, immutable snapshot,
+search, authoring, and reader deepening are implemented and verified. Child
+`134` is next; children `134` through `140` remain bounded reservations that
+must be re-expanded after their actual predecessors.
 
 Master plan number: 006.
 
@@ -86,7 +85,7 @@ distinguish these bands.
 
 ### 2.1 Current Runtime
 
-After child `132` completion:
+After child `133` completion:
 
 - Ossie implements Organizations, Org Users, Projects, Project Membership,
   Project Versions, Captures, Guides, Interactive Demos, relational
@@ -101,16 +100,21 @@ After child `132` completion:
 - `apps/docs` is repository contributor/operator documentation and is not
   Product Documentation.
 - Migrations end at
-  `025_documentation_site_first_vertical_slice.sql`.
+  `026_documentation_content_snippets_and_asset_workflows.sql`.
 - Product Documentation now has a domain package, relational mutable Site/
   Edition/Page/navigation/routing/comment/OpenAPI/search state, immutable
-  Revision and type-specific Publication snapshots, protected first-slice image
-  assets, version-scoped authenticated APIs and portal routes, stable
-  Documentation Publish Links, and exact public reader/search/metadata routes.
+  Revision and type-specific Publication snapshots, protected image assets,
+  version-scoped authenticated APIs and portal routes, stable Documentation
+  Publish Links, and exact public reader/search/metadata routes.
 - Child `132` is complete. Restricted/password/revoked/expired viewer sessions,
   complete first-slice Audit/Access coverage, nested tenant scope,
   immutable-table runtime/maintenance guards, all first-slice authoring
   controls, and the accepted Chrome access/upper-bound evidence pass.
+- Child `133` is complete. The constrained V1 block set, Edition-owned reusable
+  Snippets, Documentation Asset archive/restore, same-Project Capture Asset
+  reuse, exact Guide/Demo Publication cards, complete immutable expansion,
+  Snippet-aware search, Capture purge protection, and Admin/Viewer/public
+  Chrome evidence pass.
 - Tiptap and Fumadocs are not application dependencies.
 
 ### 2.2 Accepted Target
@@ -138,17 +142,11 @@ some are now partially or fully implemented as recorded in the child logs:
 
 The following are deliberately owned by expanded child plans:
 
-- exact PostgreSQL table and index names inside the accepted schema ownership;
-- exact API and browser URL syntax within the accepted URL invariants;
 - exact Tiptap/Fumadocs compatible package versions at implementation time;
-- adapter interfaces and internal module filenames;
-- first-slice Page/block/OpenAPI/asset/search/publication safety limits;
 - search implementation and storage technology, provided it remains a derived,
   permission-filtered projection;
 - publication preparation execution strategy for the initial self-hosted
   deployment;
-- exact editor block decomposition within the accepted constrained-content
-  boundary;
 - exact browser-direct Try It origin/credential UX after the required proof.
 
 These mechanics must be decided and documented before their owning child is
@@ -1321,10 +1319,10 @@ At minimum:
 - divider or comparable simple structure;
 - read-only API Reference block.
 
-Remaining V1 constrained content in child `133` includes Ossie-owned typed
-blocks that reference exact authorized Guide/Interactive Demo Publications.
-They never resolve a mutable artifact draft, title/slug guess, or arbitrary
-iframe.
+Child `133` completed the remaining V1 constrained content, including
+Ossie-owned typed blocks that reference exact authorized Guide/Interactive
+Demo Publications. They never resolve a mutable artifact draft, title/slug
+guess, or arbitrary iframe.
 
 Child `132` may narrow decorative options. It may not introduce executable
 customer components.
@@ -2085,7 +2083,8 @@ Deepen the proven editor without changing the first-slice authority model.
 - no live cross-Site/Edition sharing;
 - exact authorized Guide/Interactive Demo Publication reference blocks;
 - Documentation Asset library/upload/select/archive;
-- authorized same-Project Capture/Derived Asset reuse;
+- authorized same-Project Capture Asset reuse and an explicit unsupported seam
+  for a future owning Derived/Redacted Asset domain;
 - protected reference accounting;
 - media accessibility metadata;
 - authoring validation and ergonomics;
@@ -2625,7 +2624,7 @@ By child `139`, the combined verification must include:
 ### Implementation
 
 - [x] Create, expand, recheck, implement, verify, and close child `132`.
-- [ ] Create, expand, recheck, implement, verify, and close child `133`.
+- [x] Create, expand, recheck, implement, verify, and close child `133`.
 - [ ] Create, expand, recheck, implement, verify, and close child `134`.
 - [ ] Create, expand, recheck, implement, verify, and close child `135`.
 - [ ] Create, expand, recheck, implement, verify, and close child `136`.
@@ -2677,15 +2676,16 @@ proposals without another accepted plan.
 
 ## 45. Immediate Next Action
 
-Product Documentation's complete first vertical slice is implemented,
-rechecked, documented, and committed through child `132`.
+Product Documentation's complete first vertical slice and constrained
+content/Snippet/Asset deepening are implemented, rechecked, documented, and
+committed through child `133`.
 
 The next activity is to rewrite/expand and independently recheck
-`docs/plan/133-documentation-content-snippets-and-asset-workflows.md` from the
-actual child `132` result and this master. Do not implement child `133` until
+`docs/plan/134-documentation-import-export-and-package-portability.md` from the
+actual child `133` result and this master. Do not implement child `134` until
 that plan is implementation-ready and clean.
 
-Children `133` through `140` remain sequential reservations. Each later child
+Children `134` through `140` remain sequential reservations. Each later child
 follows the same close-predecessor rule.
 
 ## 46. Planning And Recheck Log
@@ -2745,6 +2745,15 @@ follows the same close-predecessor rule.
   serialized cross-table path-namespace mutation. Current-truth/evidence docs
   were reconciled and real Chrome proved an Editor checkpoint and existing-link
   publication.
+- 2026-07-30: expanded, independently rechecked, implemented, and closed child
+  `133`. Added migration `026`, the complete constrained relational content
+  graph, Edition-owned Snippets, Documentation/Capture Asset workflows, exact
+  Guide/Demo Publication references, complete immutable projections,
+  Snippet-aware search, Capture purge protection, and authoring/reader UI.
+- 2026-07-30: passed domain/contracts/server/web/DB/smoke/migration/workspace
+  verification and headless Chrome public/Admin/Viewer/accessibility evidence;
+  browser QA repaired Snippet-only public indexing and duplicate authenticated
+  main landmarks. The active handoff moved to child `134`.
 
 ## 47. Master Planning Verification Record
 
@@ -2787,11 +2796,28 @@ Child `132` runtime evidence includes:
 - production web bundle delta against pre-child `50d009c`: `47.91 kB`
   JavaScript raw / `11.64 kB` gzip and `0.59 kB` CSS raw / `0.11 kB` gzip.
 
+Child `133` runtime evidence includes:
+
+- additive migration `026`, complete relational Page/Snippet child graphs,
+  Edition-owned Asset lifecycle, exact Guide/Demo Publication references, and
+  immutable Site Revision projections;
+- Documentation domain 11 files / 21 tests, shared contracts 18 files / 78
+  tests, server unit 105 files / 443 tests, web unit 68 files / 385 tests,
+  server DB 22 files / 72 tests, and V1 smoke 1 file / 2 tests;
+- clean `001`–`026` migration plus guarded `026` down/up, and workspace lint,
+  type check, and build;
+- headless Chrome public expanded reader/search/media, responsive 200%-zoom
+  reflow, reduced motion, Admin Snippet lifecycle, Viewer read-only
+  permissions, and zero-violation axe evidence in
+  `docs/ui/133-documentation-content-snippets-and-asset-workflows-browser-evidence.md`.
+
 ## 48. Planning Leftovers And Handoff
 
-- Product Documentation's child `132` first vertical slice is complete.
-- Child `132` established the migration/table/route/file contracts within the
-  fixed master boundaries. Child `133` must extend rather than replace them.
+- Product Documentation children `132` and `133` are complete.
+- Child `132` established the first vertical slice. Child `133` extended it
+  with the complete constrained V1 block graph, Edition-owned Snippets,
+  Documentation/Capture Asset sources, exact artifact Publication references,
+  and matching immutable/public/search contracts.
 - The child `132` compatibility proof selected the replaceable Ossie-native
   editor/reader fallback and exact `yaml@2.9.0`; no Tiptap/Fumadocs runtime was
   added.
@@ -2802,14 +2828,13 @@ Child `132` runtime evidence includes:
   collaboration, permanent deletion, cross-artifact search, server proxy,
   stored credentials, SDK generation, and Video remain deferred/rejected as
   recorded.
-- The next work is child `133` plan expansion/recheck from the actual closed
-  child `132` result. Its accepted scope is remaining V1 typed content,
-  Edition-owned snippets, exact Guide/Demo Publication references, full
-  Documentation Asset workflows, product limits, and expanded immutable
-  snapshot coverage.
+- The next work is child `134` plan expansion/recheck from the actual closed
+  child `133` result. It must serialize and import the authoritative relational
+  content safely without creating filesystem, Markdown, or ZIP authority.
 - The measured single-chunk bundle growth, organization-configurable
   quotas/reporting, production observability, and capability-dependent
   Firefox/WebKit or production-p75 evidence remain child `138` work.
-- Child `133` must preserve the first-slice hard ceilings and Edition
-  path-namespace serialization. Child `138` must measure and, where needed,
-  split public immutable snapshot loading by Page/search/metadata access shape.
+- Child `134` must preserve the child `133` hard ceilings, exact immutable
+  references, source discriminants, and Edition path-namespace serialization.
+  Child `138` must measure and, where needed, split public immutable snapshot
+  loading by Page/search/metadata access shape.

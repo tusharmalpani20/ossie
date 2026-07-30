@@ -6,9 +6,11 @@ Date expanded: 2026-07-30
 
 Date rechecked: 2026-07-30
 
-Status: Ready for implementation — independently rechecked against Master
-`006`, completed child `132`, accepted Documentation decisions, and current
-runtime contracts. Runtime implementation has not started.
+Status: Complete — implemented and verified on 2026-07-30. Migration `026`,
+expanded relational content, Edition-owned Snippets, protected
+Documentation/Capture Asset workflows, exact artifact Publication references,
+immutable Revision/public projections, authoring/reader UI, search, audit,
+access, migration, smoke, and headless-browser evidence all pass.
 
 Parent plan:
 
@@ -442,6 +444,7 @@ authorization responsibility.
 - `apps/server/src/modules/audit/audit-source-coverage.test.ts`
 - `apps/server/src/modules/project-activity/project-activity.repository.ts`
 - `apps/server/src/modules/project-activity/project-activity.repository.test.ts`
+- `apps/server/src/test-support/database.ts`
 
 `publish.repository.ts` is read-only for exact artifact Publication selection
 unless a small shared query helper is required. Existing Guide/Demo Publication
@@ -1774,17 +1777,17 @@ Child `133` closes only when:
 
 ### Runtime
 
-- [ ] Domain policies and shared contracts pass.
-- [ ] Migration `026` clean/upgrade/down-up/runtime-role tests pass.
-- [ ] Expanded Page and Snippet content APIs pass.
-- [ ] Asset library/Capture reuse/protection APIs pass.
-- [ ] Exact artifact Publication reference APIs pass.
-- [ ] Complete Revision/Publication/public/search graph passes.
-- [ ] Portal authoring and reader component tests pass.
-- [ ] Fixture, DB smoke, broad regression, and build pass.
-- [ ] Agent-browser and accessibility matrix passes.
-- [ ] Current-truth docs, evidence, plan, and Master are current.
-- [ ] Scoped logical commits complete.
+- [x] Domain policies and shared contracts pass.
+- [x] Migration `026` clean/upgrade/down-up/runtime-role tests pass.
+- [x] Expanded Page and Snippet content APIs pass.
+- [x] Asset library/Capture reuse/protection APIs pass.
+- [x] Exact artifact Publication reference APIs pass.
+- [x] Complete Revision/Publication/public/search graph passes.
+- [x] Portal authoring and reader component tests pass.
+- [x] Fixture, DB smoke, broad regression, and build pass.
+- [x] Agent-browser and accessibility matrix passes.
+- [x] Current-truth docs, evidence, plan, and Master are current.
+- [x] Scoped logical commits complete.
 
 ## 23. Planning And Implementation Log
 
@@ -1810,13 +1813,32 @@ Child `133` closes only when:
   deferred child-graph constraints, aggregate Revision limits, lock order,
   archive-name conflicts, dependency response variants, and child `135`
   lifecycle ownership.
-
-No runtime, schema, package, API, UI, fixture, or current-product behavior has
-been changed by this planning expansion.
+- 2026-07-30: Added strict shared block/Snippet/Asset contracts and policies,
+  including safe scalar normalization, non-nesting, source discriminants,
+  aggregate ceilings, and artifact-reference projections (`7fc8989`).
+- 2026-07-30: Added migration `026` and the authorized relational repository,
+  routes, complete immutable snapshot graph, public loaders, lifecycle
+  commands, and database coverage (`dbed973`).
+- 2026-07-30: Added the shared safe renderer, Snippet workbench, Asset library,
+  publication selectors, expanded Page editor, draft/public rendering, and
+  search integration (`eed0b41`).
+- 2026-07-30: Extended Capture Asset protection reporting and purge refusal to
+  mutable Documentation Page/Snippet uses and immutable Site Revision
+  references, including portal dependency copy (`c3ee1b6`).
+- 2026-07-30: Expanded the deterministic fixture and V1 smoke journey across
+  Snippets, both image sources, exact immutable references, P1/P2, rollback,
+  search, access, and response consistency (`11b8e32`).
+- 2026-07-30: Closed audit/access registry coverage and expanded safe
+  draft/public search extraction (`b461245`).
+- 2026-07-30: Headless-browser QA found and fixed Snippet-only public search
+  indexing and duplicate authenticated `main` landmarks; the repeated search,
+  smoke, type, component, role, and axe checks passed (`aac2fd6`).
+- 2026-07-30: Updated current-truth docs, browser evidence, this child, and
+  Master `006` only for behavior actually verified by child `133`.
 
 ## 24. Verification Record
 
-Planning verification completed:
+Implementation verification completed:
 
 - repository baseline/worktree inspected;
 - child `132` completion, verification, and handoff inspected;
@@ -1831,19 +1853,28 @@ Planning verification completed:
 - current first-slice limits, Page replacement semantics, Edition
   path-namespace serialization, immutable snapshot model, public URL model,
   and Ossie-native adapter fallback preserved;
-- `git diff --check`: passed for this expansion;
-- plan-only worktree audit: passed for this expansion;
-- Prettier check over the scoped plan: passed after the independent recheck;
-- local Markdown-link scan: passed; the plan contains no unresolved Markdown
-  link target;
-- exact existing/new/read-only file inventory scan: passed;
-- stale reservation/optional-runtime ambiguity scan: passed;
-- only this child-plan file is changed;
-- runtime/DB/browser verification remains intentionally unrun because this is a
-  planning-only recheck.
-
-This record is planning evidence only. It does not claim any child `133`
-runtime test or browser pass.
+- Documentation domain: 11 files / 21 tests passed;
+- shared contract packages: 18 files / 78 tests passed;
+- server unit: 105 files / 443 tests passed;
+- web unit: 68 files / 385 tests passed;
+- server DB: 22 files / 72 tests passed;
+- V1 smoke: 1 file / 2 tests passed, including Snippet-only public search;
+- migration: clean `001` through `026` and guarded `026` down/up passed;
+- repository lint, type check, and production build passed; the build retains
+  only the existing web chunk-size warning;
+- focused post-browser verification: web Documentation 15 files / 33 tests,
+  web type check, and smoke 1 file / 2 tests passed;
+- `git diff --check` and scoped worktree review passed;
+- headless Chrome `151.0.0.0` through `agent-browser 0.33.1` passed the public
+  expanded reader/search/media, 320 CSS-pixel reflow at 200% zoom,
+  reduced-motion, keyboard skip-link, Admin Snippet lifecycle, Viewer
+  read-only, console/error, and axe checks;
+- axe reported zero violations for public, Admin, and Viewer surfaces. The
+  Admin run retained one non-violation `incomplete` contrast sample caused by
+  textarea overlap during automated sampling;
+- browser environment, results, transient evidence paths, and honest
+  capability boundaries are recorded in
+  `docs/ui/133-documentation-content-snippets-and-asset-workflows-browser-evidence.md`.
 
 ## 25. Leftovers And Handoff To Child 134
 
@@ -1861,6 +1892,12 @@ Child `134` must receive:
 - hard counts/sizes and archive behavior;
 - public safe projections and fields that must never export;
 - migration `026` compatibility results.
+
+The handoff baseline is the completed child `133` relational runtime. Package
+import/export must call the same validators and authorized selectors, preserve
+ordered child rows and controlled Markdown scalars, remap package-local
+Snippet/Asset identities transactionally, and never treat the serialized
+package as a second source of truth.
 
 Child `134` may serialize these authoritative contracts into a versioned safe
 package. It must not reinterpret them as filesystem/Markdown/ZIP authority,

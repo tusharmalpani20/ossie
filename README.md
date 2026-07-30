@@ -8,7 +8,7 @@ Ossie is an alpha-stage, self-hosted open-source tool for turning browser
 workflows into Guides and Interactive Demos and for authoring Product
 Documentation Sites. Projects have explicit Project Membership, Audit/Access
 Evidence, and Project Version release contexts beginning with a real default
-`Main` record. Guides, Demos, and the shipped Documentation first slice use
+`Main` record. Guides, Demos, and the shipped Documentation workflows use
 mutable version-scoped working state, immutable Revisions, and revision-backed
 Publications. Video is not shipped.
 
@@ -16,18 +16,18 @@ Publications. Video is not shipped.
 
 ## What Works Today
 
-| Area              | Current alpha capability                                                                                                                                                                                                                                                                                         |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Setup and auth    | Web first-run setup, password login, cookie-backed portal sessions, and organization-scoped users.                                                                                                                                                                                                               |
-| Projects          | Project creation, Project Membership, explicit Project Versions with a transactional default `Main`, canonical Version workspaces, lifecycle management, and project settings/archive controls.                                                                                                                  |
-| Capture           | Manual portal Capture Sessions, screenshot upload, ordered Capture Events, and safe event editing; the Chrome extension has current direct-page and real installed toolbar evidence for automatic and manual screenshot Capture.                                                                                 |
-| Extension         | Instance/portal URL setup, login, Project and Project Version selection, automatic/manual Capture, pause/resume, restart recovery, exactly-once Event ordering, finish/local clear, and canonical portal handoff pass code, tests, and unpacked-toolbar dogfood.                                                 |
-| Guides            | Generate guides from capture sessions, edit blocks and steps, manage screenshots, annotate screenshots, preview, publish, password-protect, embed, export Markdown, and export HTML ZIP.                                                                                                                         |
-| Interactive demos | Generate demos from capture sessions, edit scenes, add hotspots, publish, password-protect, embed, and view public demos.                                                                                                                                                                                        |
-| Documentation     | Create version-scoped Documentation Sites and Pages, author the safe first-slice block set, organize navigation and redirects, review privately, checkpoint, publish or roll back exact immutable Site Revisions, and serve public/password readers, search, metadata, OpenAPI references, and protected images. |
-| Sharing           | Revision-backed immutable Publications and independent multi-version Publish Link manifests for Guides and Demos, with explicit rollout, canonical version URLs, public/restricted/password access, expiry, embeds, rollback, and revocation.                                                                    |
-| Team basics       | Organization invite creation, invite acceptance, and member access to shared projects.                                                                                                                                                                                                                           |
-| Operations        | Local PostgreSQL, local file storage, health/readiness endpoints, CORS/cookie hardening, rate limits, and documented backup/restore expectations.                                                                                                                                                                |
+| Area              | Current alpha capability                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Setup and auth    | Web first-run setup, password login, cookie-backed portal sessions, and organization-scoped users.                                                                                                                                                                                                                                                                            |
+| Projects          | Project creation, Project Membership, explicit Project Versions with a transactional default `Main`, canonical Version workspaces, lifecycle management, and project settings/archive controls.                                                                                                                                                                               |
+| Capture           | Manual portal Capture Sessions, screenshot upload, ordered Capture Events, and safe event editing; the Chrome extension has current direct-page and real installed toolbar evidence for automatic and manual screenshot Capture.                                                                                                                                              |
+| Extension         | Instance/portal URL setup, login, Project and Project Version selection, automatic/manual Capture, pause/resume, restart recovery, exactly-once Event ordering, finish/local clear, and canonical portal handoff pass code, tests, and unpacked-toolbar dogfood.                                                                                                              |
+| Guides            | Generate guides from capture sessions, edit blocks and steps, manage screenshots, annotate screenshots, preview, publish, password-protect, embed, export Markdown, and export HTML ZIP.                                                                                                                                                                                      |
+| Interactive demos | Generate demos from capture sessions, edit scenes, add hotspots, publish, password-protect, embed, and view public demos.                                                                                                                                                                                                                                                     |
+| Documentation     | Create version-scoped Documentation Sites and Pages; author the constrained V1 block set and reusable Edition-owned snippets; select protected Documentation/Capture images and exact Guide/Demo Publications; organize navigation and redirects; review privately; checkpoint, publish, or roll back immutable Site Revisions; and serve public/password readers and search. |
+| Sharing           | Revision-backed immutable Publications and independent multi-version Publish Link manifests for Guides and Demos, with explicit rollout, canonical version URLs, public/restricted/password access, expiry, embeds, rollback, and revocation.                                                                                                                                 |
+| Team basics       | Organization invite creation, invite acceptance, and member access to shared projects.                                                                                                                                                                                                                                                                                        |
+| Operations        | Local PostgreSQL, local file storage, health/readiness endpoints, CORS/cookie hardening, rate limits, and documented backup/restore expectations.                                                                                                                                                                                                                             |
 
 The DB-backed v1 smoke workflow now proves the main backend path from first-run setup to published guide/demo and accepted teammate invite. See [V1 dogfood smoke suite](docs/v1-dogfood-smoke-suite.md).
 
@@ -73,9 +73,9 @@ The product intentionally keeps guides and interactive demos separate. A capture
 
 Master Plan `005` has closed its version/governance foundation, current-product
 UI modernization, and Documentation domain grill. Product Documentation has an
-accepted target model; child `132` now contains the rechecked first-slice
-implementation plan, while children `133` through `140` reserve the remaining
-ordered sequence:
+accepted target model. Children `132` and `133` have shipped the vertical slice
+and content/snippet/asset deepening; children `134` through `140` own the
+remaining ordered sequence:
 
 ```text
 Organization
@@ -84,7 +84,7 @@ Organization
       -> Capture Sessions
       -> Guide Editions
       -> Interactive Demo Editions
-      -> Product Documentation Sites (first vertical slice shipped)
+      -> Product Documentation Sites (content/snippet/asset workflows shipped)
       -> Video (later and not yet modeled)
 ```
 
@@ -92,9 +92,10 @@ This diagram is navigation context, while the Capture, Guide, Interactive Demo, 
 
 Product Documentation means customer-authored documentation sites and knowledge
 bases. It is different from `apps/docs`, which is this repository's
-contributor/operator documentation hub. Child `132` ships the complete first
-vertical slice; children `133` through `140` own the remaining accepted V1
-work.
+contributor/operator documentation hub. Child `132` shipped the complete first
+vertical slice and child `133` shipped the constrained V1 content, snippet,
+asset, and exact artifact-reference workflows. Children `134` through `140`
+own the remaining accepted V1 work.
 
 ## Intentionally Deferred
 
@@ -110,9 +111,9 @@ work.
 - Chrome Web Store packaging remains pending. Current extension evidence uses a
   real unpacked Manifest V3 toolbar action with synthetic data; direct-page
   automation remains a separate evidence class.
-- Remaining Product Documentation snippets, extended Asset workflows,
-  portability, lifecycle, review, API try-it, and operational hardening are
-  sequenced in children `133` through `140`.
+- Remaining Product Documentation portability, Carry-Forward and broader
+  lifecycle, review, API try-it, and operational hardening are sequenced in
+  children `134` through `140`.
 - Loom-style Video recording, storage, playback, transcription, and collaboration are later work and have no accepted runtime model yet.
 
 ## Quick Local Path
