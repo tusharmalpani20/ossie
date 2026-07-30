@@ -1232,7 +1232,9 @@ export const build_documentation_routes = (
             .status(308)
             .header(
               "location",
-              `/docs/${result.params.slug}/${target.canonical_path}`,
+              result.params.version_slug
+                ? `/docs/${result.params.slug}/versions/${result.params.version_slug}/${target.canonical_path}`
+                : `/docs/${result.params.slug}/${target.canonical_path}`,
             )
             .send();
         return reply.status(404).send(
@@ -1363,7 +1365,7 @@ export const build_documentation_routes = (
         const urls = site.pages
           .map(
             (page) =>
-              `<url><loc>/docs/${result.params.slug}/${page.canonical_path}</loc></url>`,
+              `<url><loc>/docs/${result.params.slug}${result.params.version_slug ? `/versions/${result.params.version_slug}` : ""}/${page.canonical_path}</loc></url>`,
           )
           .join("");
         return reply
@@ -1376,6 +1378,14 @@ export const build_documentation_routes = (
     );
     register_public_metadata(
       "/api/v1/public/publish-links/:slug/documentation/robots.txt",
+      "robots",
+    );
+    register_public_metadata(
+      "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/sitemap.xml",
+      "sitemap",
+    );
+    register_public_metadata(
+      "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/robots.txt",
       "robots",
     );
   };

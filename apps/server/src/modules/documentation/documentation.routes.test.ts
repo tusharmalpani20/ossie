@@ -224,4 +224,40 @@ describe("Documentation routes", () => {
       expect.objectContaining({ page_id: "page", expected_page_version: 1 }),
     );
   });
+
+  it("keeps version-scoped redirects and metadata on the selected public entry", async () => {
+    const app = Fastify();
+    await app.register(
+      build_documentation_routes({
+        auth_service: {} as never,
+        documentation_service: documentation_service_stubs({
+          resolve_public_site: vi.fn(async () => ({
+            pages: [{ id: "page", canonical_path: "install" }],
+            aliases: [
+              { former_path: "old-install", documentation_page_id: "page" },
+            ],
+            redirects: [],
+            openapi_operations: [],
+          })),
+        }),
+        resolve_project_version: vi.fn(),
+      }),
+    );
+    const redirected = await app.inject({
+      url: "/api/v1/public/publish-links/product-docs/versions/v2/documentation/pages/old-install",
+    });
+    const sitemap = await app.inject({
+      url: "/api/v1/public/publish-links/product-docs/versions/v2/documentation/sitemap.xml",
+    });
+    const robots = await app.inject({
+      url: "/api/v1/public/publish-links/product-docs/versions/v2/documentation/robots.txt",
+    });
+    await app.close();
+    expect(redirected.headers.location).toBe(
+      "/docs/product-docs/versions/v2/install",
+    );
+    expect(sitemap.statusCode).toBe(200);
+    expect(sitemap.body).toContain("/docs/product-docs/versions/v2/install");
+    expect(robots.statusCode).toBe(200);
+  });
 });
