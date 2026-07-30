@@ -51,6 +51,9 @@ const documentation_service_stubs = (
   get_import_inspection: vi.fn(),
   cancel_import_inspection: vi.fn(),
   apply_import: vi.fn(),
+  export_site_package: vi.fn(),
+  export_page_markdown: vi.fn(),
+  export_openapi_source: vi.fn(),
   inspect_openapi: vi.fn(),
   apply_openapi_source: vi.fn(),
   get_openapi_source: vi.fn(),
@@ -210,6 +213,36 @@ describe("Documentation routes", () => {
         }),
       }),
     );
+  });
+
+  it("downloads a private no-sniff Markdown export with a safe filename", async () => {
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          export_page_markdown: vi.fn(async () => ({
+            bytes: Buffer.from("# Start\n"),
+            filename: "start.md",
+            mime_type: "text/markdown; charset=utf-8",
+          })),
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/pages/page/export/markdown?source=draft&expected_page_version=2&expected_draft_version=4",
+      cookies: { ossie_session: "session" },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toBe("# Start\n");
+    expect(response.headers["cache-control"]).toBe("private, no-store");
+    expect(response.headers["x-content-type-options"]).toBe("nosniff");
+    expect(response.headers["content-disposition"]).toContain("start.md");
   });
 
   it("creates one version-scoped Site from a strict request", async () => {

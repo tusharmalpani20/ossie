@@ -36,6 +36,8 @@ const registration = (
 };
 
 const root_for_route = (route: string) => {
+  if (route.includes("/documentation-import-inspections"))
+    return { type: "project_version", parameter: "version_slug" };
   if (route.includes("/documentation-sites/:site_id/pages/:page_id"))
     return { type: "documentation_page", parameter: "page_id" };
   if (route.includes("/documentation-sites/:site_id/snippets/:snippet_id"))
@@ -436,6 +438,33 @@ const reads: AccessRouteRegistration[] = [
     "documentation_site.list_viewed",
     "project",
     "project_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-import-inspections/:inspection_id",
+    "documentation_import_inspection.viewed",
+    "project_version",
+    "version_slug",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/export/package.zip",
+    "documentation_package.exported",
+    "documentation_site",
+    "site_id",
+    "download",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/export/markdown",
+    "documentation_page.markdown_exported",
+    "documentation_page",
+    "page_id",
+    "download",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/source/export",
+    "documentation_openapi.exported",
+    "documentation_site",
+    "site_id",
+    "download",
   ),
   read(
     "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/source",

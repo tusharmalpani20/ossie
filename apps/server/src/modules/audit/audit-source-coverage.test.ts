@@ -73,6 +73,7 @@ const excluded = new Set([
   "documentation_schema.site_working_draft:UPDATE",
   "documentation_schema.navigation_tree:INSERT",
   "documentation_schema.routing_set:INSERT",
+  "documentation_schema.site_revision_openapi_source:INSERT",
   "publish_schema.site_publication:INSERT",
   "publish_schema.site_publication_search_document:INSERT",
 ]);

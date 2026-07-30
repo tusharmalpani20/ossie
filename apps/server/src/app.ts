@@ -153,7 +153,12 @@ import { build_documentation_repository } from "./modules/documentation/document
 import { build_documentation_service } from "./modules/documentation/documentation.service.js";
 import { parse_documentation_openapi } from "./modules/documentation/documentation-openapi.js";
 import { inspect_documentation_markdown } from "./modules/documentation/documentation-markdown.js";
-import { inspect_documentation_site_package } from "./modules/documentation/documentation-package.js";
+import {
+  create_documentation_site_package,
+  inspect_documentation_site_package,
+} from "./modules/documentation/documentation-package.js";
+import { create_portable_documentation_snapshot } from "./modules/documentation/documentation-portability.js";
+import { build_documentation_import_cleanup } from "./modules/documentation/documentation-import-cleanup.js";
 import {
   assert_documentation_image_dimensions,
   assert_documentation_image_format,
@@ -161,6 +166,7 @@ import {
 import { validate_documentation_asset_bytes } from "./modules/documentation/documentation-asset-integrity.js";
 import {
   canonicalize_documentation_package_json,
+  export_documentation_page_markdown,
   normalize_documentation_blocks,
   validate_documentation_snippet_blocks,
 } from "@repo/documentation-domain";
@@ -605,6 +611,30 @@ export const build = (opts: BuildOptions = {}) => {
   const default_capture_file_storage = build_local_file_storage_provider({
     root: default_local_storage_root(),
   });
+  if (process.env.NODE_ENV === "production") {
+    const documentation_import_cleanup = build_documentation_import_cleanup({
+      repository: build_documentation_repository(pool),
+      storage: default_capture_file_storage,
+    });
+    const run_documentation_import_cleanup = () =>
+      documentation_import_cleanup.run_once().catch((error: unknown) => {
+        app.log.error(
+          { error },
+          "Documentation import cleanup pass failed",
+        );
+      });
+    app.addHook("onReady", async () => {
+      await run_documentation_import_cleanup();
+    });
+    const cleanup_interval = setInterval(
+      run_documentation_import_cleanup,
+      15 * 60 * 1000,
+    );
+    cleanup_interval.unref();
+    app.addHook("onClose", async () => {
+      clearInterval(cleanup_interval);
+    });
+  }
   const project_access_service = build_project_access_service(
     build_project_membership_repository(pool),
   );
@@ -1372,6 +1402,241 @@ export const build = (opts: BuildOptions = {}) => {
                 capability: input.capability,
               });
             },
+            export_page_markdown: async (input) => {
+              const exported = await repository.get_export_snapshot({
+                ...input,
+                ...(input.source === "draft"
+                  ? {
+                      expected_draft_version: input.expected_draft_version,
+                      expected_page_id: input.page_id,
+                      expected_page_version: input.expected_page_version,
+                    }
+                  : input.source === "revision"
+                    ? { revision_number: input.revision_number }
+                    : {
+                        site_publication_id: input.site_publication_id,
+                      }),
+              } as never);
+              if (!exported) return null;
+              const raw = exported.snapshot as Record<string, any>;
+              const snapshot = raw.working_draft
+                ? raw
+                : {
+                    site: {
+                      id: input.site_id,
+                      name: raw.revision.site_name,
+                      description: raw.revision.site_description,
+                    },
+                    edition: {
+                      primary_language: raw.revision.primary_language,
+                    },
+                    working_draft: {
+                      home_page_id: raw.revision.home_page_id,
+                    },
+                    pages: raw.pages,
+                    snippets: raw.snippets,
+                    assets: raw.assets ?? [],
+                    navigation: { nodes: raw.navigation },
+                    routing: {
+                      aliases: raw.aliases,
+                      rules: raw.redirects,
+                    },
+                    openapi_operations: raw.openapi_operations,
+                  };
+              const portable =
+                create_portable_documentation_snapshot(snapshot);
+              const pageIndex = snapshot.pages.findIndex(
+                (page: Record<string, unknown>) => page.id === input.page_id,
+              );
+              const page = portable.pages[pageIndex];
+              if (!page) return null;
+              const markdown = export_documentation_page_markdown(page, {
+                page_paths: Object.fromEntries(
+                  portable.site.pages.map((candidate) => [
+                    candidate.handle,
+                    `${candidate.canonical_path}.md`,
+                  ]),
+                ),
+              });
+              const filename = `${
+                page.canonical_path
+                  .split("/")
+                  .at(-1)
+                  ?.replace(/[^a-z0-9._-]+/giu, "-") || "page"
+              }.md`;
+              return {
+                bytes: Buffer.from(markdown, "utf8"),
+                filename,
+                mime_type: "text/markdown; charset=utf-8",
+              };
+            },
+            export_site_package: async (input) => {
+              const exported = await repository.get_export_snapshot(
+                input as never,
+              );
+              if (!exported) return null;
+              const raw = exported.snapshot as Record<string, any>;
+              const snapshot = raw.working_draft
+                ? raw
+                : {
+                    site: {
+                      id: input.site_id,
+                      name: raw.revision.site_name,
+                      description: raw.revision.site_description,
+                    },
+                    edition: {
+                      primary_language: raw.revision.primary_language,
+                    },
+                    working_draft: {
+                      home_page_id: raw.revision.home_page_id,
+                    },
+                    pages: raw.pages,
+                    snippets: raw.snippets,
+                    assets: raw.assets ?? [],
+                    navigation: { nodes: raw.navigation },
+                    routing: {
+                      aliases: raw.aliases,
+                      rules: raw.redirects,
+                    },
+                    openapi_operations: raw.openapi_operations,
+                  };
+              const portable =
+                create_portable_documentation_snapshot(snapshot);
+              const entries: Array<{
+                path: string;
+                role:
+                  | "page_typed"
+                  | "page_markdown"
+                  | "snippet"
+                  | "asset";
+                mime_type: string;
+                bytes: Buffer | string | object;
+              }> = [];
+              for (const page of portable.pages) {
+                entries.push({
+                  path: `pages/${page.handle}.json`,
+                  role: "page_typed",
+                  mime_type: "application/json",
+                  bytes: page,
+                });
+                entries.push({
+                  path: `pages/${page.handle}.md`,
+                  role: "page_markdown",
+                  mime_type: "text/markdown",
+                  bytes: export_documentation_page_markdown(page),
+                });
+              }
+              for (const snippet of portable.snippets)
+                entries.push({
+                  path: `snippets/${snippet.handle}.json`,
+                  role: "snippet",
+                  mime_type: "application/json",
+                  bytes: snippet,
+                });
+              if (exported.source === "draft")
+                for (const [index, asset] of (
+                  snapshot.assets as Array<Record<string, any>>
+                ).entries()) {
+                  const portableAsset = portable.site.assets[index];
+                  const file = await repository.get_asset_file_record({
+                    ...input,
+                    asset_id: asset.id,
+                  });
+                  if (!file || !portableAsset)
+                    throw Object.assign(
+                      new Error(
+                        "Documentation export Asset source is unavailable",
+                      ),
+                      { code: "documentation_export_source_unavailable" },
+                    );
+                  const stored = await default_capture_file_storage.get(file);
+                  const chunks: Buffer[] = [];
+                  for await (const chunk of stored.stream as AsyncIterable<
+                    Buffer | string
+                  >)
+                    chunks.push(
+                      Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+                    );
+                  const bytes = Buffer.concat(chunks);
+                  if (
+                    createHash("sha256").update(bytes).digest("hex") !==
+                    portableAsset.sha256
+                  )
+                    throw Object.assign(
+                      new Error(
+                        "Documentation export Asset digest is unavailable",
+                      ),
+                      { code: "documentation_export_source_unavailable" },
+                    );
+                  entries.push({
+                    path: portableAsset.path,
+                    role: "asset",
+                    mime_type: portableAsset.mime_type,
+                    bytes,
+                  });
+                }
+              const result = await create_documentation_site_package({
+                source: {
+                  kind:
+                    exported.source === "draft"
+                      ? "working_draft"
+                      : exported.source === "revision"
+                        ? "site_revision"
+                        : "site_publication",
+                  project_version_label: input.version_slug,
+                  revision_number:
+                    raw.revision?.revision_number ??
+                    (input.source === "revision"
+                      ? input.revision_number
+                      : null),
+                  publication_sequence:
+                    exported.publication_sequence ?? null,
+                },
+                site: portable.site,
+                entries,
+              });
+              const safeName =
+                String(snapshot.site.name)
+                  .normalize("NFKD")
+                  .replace(/[^a-z0-9._-]+/giu, "-")
+                  .replace(/^-+|-+$/gu, "")
+                  .slice(0, 80) || "documentation";
+              return {
+                bytes: result.bytes,
+                filename: `${safeName}-${input.version_slug}-documentation-v1.zip`,
+                mime_type: "application/zip",
+              };
+            },
+            export_openapi_source: async (input) => {
+              const file = await repository.get_openapi_export_file(
+                input as never,
+              );
+              if (!file) return null;
+              const stored = await default_capture_file_storage.get(file);
+              const chunks: Buffer[] = [];
+              for await (const chunk of stored.stream as AsyncIterable<
+                Buffer | string
+              >)
+                chunks.push(
+                  Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+                );
+              const bytes = Buffer.concat(chunks);
+              if (
+                createHash("sha256").update(bytes).digest("hex") !== file.digest
+              )
+                throw Object.assign(
+                  new Error("Documentation OpenAPI source is unavailable"),
+                  { code: "documentation_export_source_unavailable" },
+                );
+              return {
+                bytes,
+                filename:
+                  file.original_format === "json"
+                    ? "openapi-source.json"
+                    : "openapi-source.yaml",
+                mime_type: file.mime_type,
+              };
+            },
             inspect_import: async (input) => {
               const inspection_id = ulid();
               const file_id = ulid();
@@ -1677,10 +1942,6 @@ export const build = (opts: BuildOptions = {}) => {
                 project_id: input.project_id,
                 capability: "documentation.write",
               });
-              const parsed = parse_documentation_openapi(
-                input.bytes,
-                input.mime_type,
-              );
               const file_id = ulid();
               const inspection_id = ulid();
               const stored = await default_capture_file_storage.put({
@@ -1689,10 +1950,22 @@ export const build = (opts: BuildOptions = {}) => {
                 documentation_site_id: input.site_id,
                 file_id,
                 mime_type: input.mime_type,
-                stream: Readable.from(input.bytes),
+                stream: input.stream,
                 max_size_bytes: 10 * 1024 * 1024,
               });
               try {
+                const source = await default_capture_file_storage.get(stored);
+                const chunks: Buffer[] = [];
+                for await (const chunk of source.stream as AsyncIterable<
+                  Buffer | string
+                >)
+                  chunks.push(
+                    Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+                  );
+                const parsed = parse_documentation_openapi(
+                  Buffer.concat(chunks),
+                  input.mime_type,
+                );
                 return await repository.create_openapi_inspection({
                   ...input,
                   file_id,

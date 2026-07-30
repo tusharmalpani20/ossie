@@ -994,7 +994,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "documentation.import.inspect",
     "documentation.import.inspected",
     [
-      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-imports/inspections",
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-import-inspections",
     ],
     [U.file_insert(), U.documentation_import_inspection_insert()],
   ),
@@ -1002,7 +1002,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "documentation.page_markdown_import.apply",
     "documentation.page_markdown_import_applied",
     [
-      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-imports/inspections/:inspection_id/apply",
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-import-inspections/:inspection_id/apply",
     ],
     [
       U.documentation_page_insert(),
@@ -1017,7 +1017,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "documentation.site_package_import.apply",
     "documentation.site_package_import_applied",
     [
-      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-imports/inspections/:inspection_id/apply",
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-import-inspections/:inspection_id/apply",
     ],
     [
       U.file_insert(),
@@ -1037,7 +1037,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     "documentation.import.cancel",
     "documentation.import.cancelled",
     [
-      "DELETE /api/v1/projects/:project_id/versions/:version_slug/documentation-imports/inspections/:inspection_id",
+      "DELETE /api/v1/projects/:project_id/versions/:version_slug/documentation-import-inspections/:inspection_id",
     ],
     [U.documentation_import_inspection_update(), U.file_update("delete")],
   ),

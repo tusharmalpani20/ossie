@@ -66,6 +66,50 @@ const ImportInspectionParamsSchema = ParamsSchema.extend({
 const ImportInspectionQuerySchema = z
   .object({ kind: z.enum(["page_markdown", "site_package"]) })
   .strict();
+const DraftPageExportQuerySchema = z
+  .object({
+    source: z.literal("draft"),
+    expected_page_version: z.coerce.number().int().positive(),
+    expected_draft_version: z.coerce.number().int().positive(),
+  })
+  .strict();
+const ImmutableExportQuerySchema = z.union([
+  z
+    .object({
+      source: z.literal("revision"),
+      revision_number: z.coerce.number().int().positive(),
+    })
+    .strict(),
+  z
+    .object({
+      source: z.literal("publication"),
+      site_publication_id: z.string().trim().min(1),
+    })
+    .strict(),
+]);
+const PageExportQuerySchema = z.union([
+  DraftPageExportQuerySchema,
+  ...ImmutableExportQuerySchema.options,
+]);
+const PackageExportQuerySchema = z.union([
+  z
+    .object({
+      source: z.literal("draft"),
+      expected_site_version: z.coerce.number().int().positive(),
+      expected_draft_version: z.coerce.number().int().positive(),
+    })
+    .strict(),
+  ...ImmutableExportQuerySchema.options,
+]);
+const OpenApiExportQuerySchema = z.union([
+  z
+    .object({
+      source: z.literal("draft"),
+      expected_source_version: z.coerce.number().int().positive(),
+    })
+    .strict(),
+  ...ImmutableExportQuerySchema.options,
+]);
 const PageParamsSchema = SiteParamsSchema.extend({
   page_id: z.string().trim().min(1),
 }).strict();
@@ -390,13 +434,54 @@ export type DocumentationRouteDependencies = {
       idempotency_key: string;
       data: z.infer<typeof DocumentationImportApplyRequestSchema>;
     }) => Promise<unknown>;
+    export_site_package: (
+      input: {
+        organization_id: string;
+        project_id: string;
+        project_version_id: string;
+        actor_org_user_id: string;
+        site_id: string;
+        version_slug: string;
+      } & z.infer<typeof PackageExportQuerySchema>,
+    ) => Promise<{
+      bytes: Buffer;
+      filename: string;
+      mime_type: string;
+    } | null>;
+    export_page_markdown: (
+      input: {
+        organization_id: string;
+        project_id: string;
+        project_version_id: string;
+        actor_org_user_id: string;
+        site_id: string;
+        page_id: string;
+      } & z.infer<typeof PageExportQuerySchema>,
+    ) => Promise<{
+      bytes: Buffer;
+      filename: string;
+      mime_type: string;
+    } | null>;
+    export_openapi_source: (
+      input: {
+        organization_id: string;
+        project_id: string;
+        project_version_id: string;
+        actor_org_user_id: string;
+        site_id: string;
+      } & z.infer<typeof OpenApiExportQuerySchema>,
+    ) => Promise<{
+      bytes: Buffer;
+      filename: string;
+      mime_type: string;
+    } | null>;
     inspect_openapi: (input: {
       organization_id: string;
       project_id: string;
       project_version_id: string;
       actor_org_user_id: string;
       site_id: string;
-      bytes: Buffer;
+      stream: NodeJS.ReadableStream;
       mime_type: "application/json" | "application/yaml";
       original_name: string;
     }) => Promise<unknown>;
@@ -634,7 +719,8 @@ export const build_documentation_routes = (
         code === "documentation_reference_protected" ||
         code === "documentation_import_conflict" ||
         code === "documentation_import_consumed" ||
-        code === "documentation_import_not_ready"
+        code === "documentation_import_not_ready" ||
+        code === "documentation_export_source_unavailable"
       )
         return reply
           .status(409)
@@ -1185,6 +1271,149 @@ export const build_documentation_routes = (
       },
     );
 
+    const send_private_download = (
+      reply: FastifyReply,
+      download: { bytes: Buffer; filename: string; mime_type: string },
+    ) =>
+      reply
+        .header("Content-Type", download.mime_type)
+        .header("Content-Length", String(download.bytes.length))
+        .header(
+          "Content-Disposition",
+          `attachment; filename="${download.filename.replace(/["\\\r\n]/gu, "-")}"`,
+        )
+        .header("Cache-Control", "private, no-store")
+        .header("X-Content-Type-Options", "nosniff")
+        .send(download.bytes);
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/export/package.zip",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const query = PackageExportQuerySchema.safeParse(request.query);
+        if (!params.success || !query.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation export request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          await dependencies.documentation_service.authorize_portability({
+            ...scope,
+            capability: "documentation.read",
+          });
+          const download =
+            await dependencies.documentation_service.export_site_package({
+              ...scope,
+              site_id: params.data.site_id,
+              version_slug: params.data.version_slug,
+              ...query.data,
+            });
+          if (!download)
+            return reply
+              .status(404)
+              .send(
+                error_response(
+                  "documentation_export_not_found",
+                  "Documentation export source was not found",
+                ),
+              );
+          return send_private_download(reply, download);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/export/markdown",
+      async (request, reply) => {
+        const params = PageParamsSchema.safeParse(request.params);
+        const query = PageExportQuerySchema.safeParse(request.query);
+        if (!params.success || !query.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation export request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          await dependencies.documentation_service.authorize_portability({
+            ...scope,
+            capability: "documentation.read",
+          });
+          const download =
+            await dependencies.documentation_service.export_page_markdown({
+              ...scope,
+              site_id: params.data.site_id,
+              page_id: params.data.page_id,
+              ...query.data,
+            });
+          if (!download)
+            return reply
+              .status(404)
+              .send(
+                error_response(
+                  "documentation_export_not_found",
+                  "Documentation export source was not found",
+                ),
+              );
+          return send_private_download(reply, download);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/source/export",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const query = OpenApiExportQuerySchema.safeParse(request.query);
+        if (!params.success || !query.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation export request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          await dependencies.documentation_service.authorize_portability({
+            ...scope,
+            capability: "documentation.read",
+          });
+          const download =
+            await dependencies.documentation_service.export_openapi_source({
+              ...scope,
+              site_id: params.data.site_id,
+              ...query.data,
+            });
+          if (!download)
+            return reply
+              .status(404)
+              .send(
+                error_response(
+                  "documentation_export_not_found",
+                  "Documentation export source was not found",
+                ),
+              );
+          return send_private_download(reply, download);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
     fastify.get(
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-import-inspections/:inspection_id",
       async (request, reply) => {
@@ -1318,9 +1547,14 @@ export const build_documentation_routes = (
               ),
             );
         try {
+          const scope = await authorized_scope(request, params.data);
+          await dependencies.documentation_service.authorize_portability({
+            ...scope,
+            capability: "documentation.write",
+          });
           let upload:
             | {
-                bytes: Buffer;
+                inspection: unknown;
                 mime_type: "application/json" | "application/yaml";
                 original_name: string;
               }
@@ -1355,7 +1589,14 @@ export const build_documentation_routes = (
                   ),
                 );
             upload = {
-              bytes: await part.toBuffer(),
+              inspection:
+                await dependencies.documentation_service.inspect_openapi({
+                  ...scope,
+                  site_id: params.data.site_id,
+                  stream: part.file,
+                  mime_type: normalizedMime,
+                  original_name: part.filename,
+                }),
               mime_type: normalizedMime,
               original_name: part.filename,
             };
@@ -1369,14 +1610,7 @@ export const build_documentation_routes = (
                   "Exactly one OpenAPI File is required",
                 ),
               );
-          const scope = await authorized_scope(request, params.data);
-          const inspection =
-            await dependencies.documentation_service.inspect_openapi({
-              ...scope,
-              site_id: params.data.site_id,
-              ...upload,
-            });
-          return reply.status(201).send({ inspection });
+          return reply.status(201).send({ inspection: upload.inspection });
         } catch (error) {
           const code =
             typeof error === "object" &&

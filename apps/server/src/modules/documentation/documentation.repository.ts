@@ -784,6 +784,7 @@ const load_draft_snapshot = async (
     site_id: string;
     site_name: string;
     site_description: string | null;
+    site_version: number;
     site_edition_id: string;
     primary_language: string;
     working_draft_id: string;
@@ -792,7 +793,7 @@ const load_draft_snapshot = async (
     navigation_version: number;
     routing_version: number;
   }>(
-    `SELECT site.id site_id,site.name site_name,
+    `SELECT site.id site_id,site.name site_name,site.version site_version,
             site.description site_description,edition.id site_edition_id,
             edition.primary_language,draft.id working_draft_id,
             draft.home_page_id,draft.version draft_version,
@@ -997,6 +998,7 @@ const load_draft_snapshot = async (
       id: root.site_id,
       name: root.site_name,
       description: root.site_description,
+      version: root.site_version,
     },
     edition: {
       id: root.site_edition_id,
@@ -1668,6 +1670,7 @@ export const build_documentation_repository = (database: Database) => ({
             AND inspection.project_id=$3
             AND inspection.documentation_site_id=$4
             AND edition.project_version_id=$5
+            AND inspection.created_by_id=$6
           FOR UPDATE OF inspection`,
         [
           input.inspection_id,
@@ -1675,6 +1678,7 @@ export const build_documentation_repository = (database: Database) => ({
           input.project_id,
           input.site_id,
           input.project_version_id,
+          input.actor_org_user_id,
         ],
       );
       const inspected = inspection.rows[0];
@@ -1766,7 +1770,8 @@ export const build_documentation_repository = (database: Database) => ({
       }
       await client.query(
         `UPDATE documentation_schema.openapi_inspection
-            SET consumed_at=CURRENT_TIMESTAMP WHERE id=$1`,
+            SET consumed_at=CURRENT_TIMESTAMP,parsed_document=NULL
+          WHERE id=$1`,
         [input.inspection_id],
       );
       await bump_working_draft(client, {
@@ -1835,6 +1840,101 @@ export const build_documentation_repository = (database: Database) => ({
     return { source: source.rows[0], operations: operations.rows };
   },
 
+  get_openapi_export_file: async (
+    input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      site_id: string;
+    } & (
+      | { source: "draft"; expected_source_version: number }
+      | { source: "revision"; revision_number: number }
+      | { source: "publication"; site_publication_id: string }
+    ),
+  ) => {
+    if (input.source === "draft") {
+      const result = await database.query<{
+        storage_provider: string;
+        storage_key: string;
+        mime_type: string;
+        size_bytes: number;
+        digest: string;
+        original_format: "json" | "yaml";
+        version: number;
+      }>(
+        `SELECT file.storage_provider,file.storage_key,file.mime_type,
+                file.size_bytes,source.digest,source.version,
+                CASE WHEN file.mime_type='application/json'
+                  THEN 'json' ELSE 'yaml' END original_format
+           FROM documentation_schema.openapi_source source
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=source.site_edition_id
+           JOIN file_schema.file file
+             ON file.id=source.file_id
+            AND file.organization_id=source.organization_id
+          WHERE source.organization_id=$1 AND source.project_id=$2
+            AND edition.project_version_id=$3
+            AND edition.documentation_site_id=$4
+            AND file.is_deleted=FALSE`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+        ],
+      );
+      const file = result.rows[0];
+      if (!file) return null;
+      if (file.version !== input.expected_source_version) {
+        const error = new Error("Documentation OpenAPI Source changed");
+        Object.assign(error, { code: "documentation_row_version_conflict" });
+        throw error;
+      }
+      return file;
+    }
+    const values: unknown[] = [
+      input.organization_id,
+      input.project_id,
+      input.project_version_id,
+      input.site_id,
+    ];
+    const sourceFilter =
+      input.source === "revision"
+        ? `revision.revision_number=$${values.push(input.revision_number)}`
+        : `publication.id=$${values.push(input.site_publication_id)}`;
+    const publicationJoin =
+      input.source === "publication"
+        ? `JOIN publish_schema.site_publication publication
+             ON publication.site_revision_id=revision.id
+            AND publication.organization_id=revision.organization_id
+            AND publication.project_id=revision.project_id`
+        : "";
+    const result = await database.query<{
+      storage_provider: string;
+      storage_key: string;
+      mime_type: string;
+      size_bytes: number;
+      digest: string;
+      original_format: "json" | "yaml";
+    }>(
+      `SELECT file.storage_provider,file.storage_key,file.mime_type,
+              file.size_bytes,frozen.digest,frozen.original_format
+         FROM documentation_schema.site_revision revision
+         ${publicationJoin}
+         JOIN documentation_schema.site_revision_openapi_source frozen
+           ON frozen.site_revision_id=revision.id
+         JOIN file_schema.file file
+           ON file.id=frozen.file_id
+          AND file.organization_id=frozen.organization_id
+        WHERE revision.organization_id=$1 AND revision.project_id=$2
+          AND revision.project_version_id=$3
+          AND revision.documentation_site_id=$4
+          AND ${sourceFilter} AND file.is_deleted=FALSE`,
+      values,
+    );
+    return result.rows[0] ?? null;
+  },
+
   search_draft: async (input: {
     organization_id: string;
     project_id: string;
@@ -1875,6 +1975,104 @@ export const build_documentation_repository = (database: Database) => ({
     project_version_id: string;
     site_id: string;
   }) => load_draft_snapshot(database, input),
+
+  get_export_snapshot: async (
+    input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      site_id: string;
+    } & (
+      | {
+          source: "draft";
+          expected_site_version?: number;
+          expected_draft_version: number;
+          expected_page_id?: string;
+          expected_page_version?: number;
+        }
+      | { source: "revision"; revision_number: number }
+      | { source: "publication"; site_publication_id: string }
+    ),
+  ) =>
+    with_transaction(database, async (client) => {
+      await client.query(
+        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",
+      );
+      if (input.source === "draft") {
+        const snapshot = await load_draft_snapshot(client, input);
+        if (!snapshot) return null;
+        if (
+          (input.expected_site_version !== undefined &&
+            snapshot.site.version !== input.expected_site_version) ||
+          snapshot.working_draft.version !== input.expected_draft_version ||
+          (input.expected_page_id !== undefined &&
+            snapshot.pages.find(
+              (page) => page.id === input.expected_page_id,
+            )?.version !== input.expected_page_version)
+        ) {
+          const error = new Error("Documentation export source changed");
+          Object.assign(error, { code: "documentation_row_version_conflict" });
+          throw error;
+        }
+        return { source: "draft" as const, snapshot };
+      }
+      let revision: { id: string; publication_sequence: number | null } | null =
+        null;
+      if (input.source === "revision") {
+        const selected = await client.query<{ id: string }>(
+          `SELECT id FROM documentation_schema.site_revision
+            WHERE organization_id=$1 AND project_id=$2
+              AND project_version_id=$3 AND documentation_site_id=$4
+              AND revision_number=$5`,
+          [
+            input.organization_id,
+            input.project_id,
+            input.project_version_id,
+            input.site_id,
+            input.revision_number,
+          ],
+        );
+        if (selected.rows[0])
+          revision = { id: selected.rows[0].id, publication_sequence: null };
+      } else {
+        const selected = await client.query<{
+          site_revision_id: string;
+          publication_sequence: number;
+        }>(
+          `SELECT publication.site_revision_id,
+                  publication.publication_sequence
+             FROM publish_schema.site_publication publication
+            WHERE publication.id=$1 AND publication.organization_id=$2
+              AND publication.project_id=$3
+              AND publication.project_version_id=$4
+              AND publication.documentation_site_id=$5`,
+          [
+            input.site_publication_id,
+            input.organization_id,
+            input.project_id,
+            input.project_version_id,
+            input.site_id,
+          ],
+        );
+        if (selected.rows[0])
+          revision = {
+            id: selected.rows[0].site_revision_id,
+            publication_sequence: selected.rows[0].publication_sequence,
+          };
+      }
+      if (!revision) return null;
+      const snapshot = await load_revision_snapshot(client, {
+        ...input,
+        site_revision_id: revision.id,
+      });
+      return snapshot
+        ? {
+            source: input.source,
+            snapshot,
+            publication_sequence: revision.publication_sequence,
+          }
+        : null;
+    }),
 
   create_revision: async (input: {
     organization_id: string;
@@ -2688,6 +2886,52 @@ export const build_documentation_repository = (database: Database) => ({
             operation.operation_id,
             operation.destination_key,
             operation.summary,
+          ],
+        );
+      }
+      const openapiSource = await client.query<{
+        id: string;
+        file_id: string;
+        digest: string;
+        mime_type: string;
+        openapi_version: string;
+        title: string;
+      }>(
+        `SELECT source.id,source.file_id,source.digest,file.mime_type,
+                source.openapi_version,source.title
+           FROM documentation_schema.openapi_source source
+           JOIN file_schema.file file
+             ON file.id=source.file_id
+            AND file.organization_id=source.organization_id
+          WHERE source.organization_id=$1 AND source.project_id=$2
+            AND source.site_edition_id=$3 AND file.is_deleted=FALSE`,
+        [
+          input.organization_id,
+          input.project_id,
+          snapshot.edition.id,
+        ],
+      );
+      if (openapiSource.rows[0]) {
+        const source = openapiSource.rows[0];
+        await client.query(
+          `INSERT INTO documentation_schema.site_revision_openapi_source
+            (id,organization_id,project_id,site_edition_id,site_revision_id,
+             source_openapi_source_id,file_id,digest,mime_type,
+             original_format,openapi_version,title)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            snapshot.edition.id,
+            revision.id,
+            source.id,
+            source.file_id,
+            source.digest,
+            source.mime_type,
+            source.mime_type === "application/json" ? "json" : "yaml",
+            source.openapi_version,
+            source.title,
           ],
         );
       }
@@ -6628,6 +6872,109 @@ export const build_documentation_repository = (database: Database) => ({
       });
       return { ...result, idempotent_replay: false };
     }),
+
+  expire_import_inspections: async (input: {
+    now: Date;
+    limit: number;
+    command: "documentation.import.expire";
+  }) => {
+    const candidates = await database.query<{ id: string }>(
+      `SELECT id
+         FROM documentation_schema.documentation_import_inspection
+        WHERE status='ready' AND expires_at <= $1
+        ORDER BY expires_at,id LIMIT $2`,
+      [input.now, input.limit],
+    );
+    const expired: Array<{ storage_key: string }> = [];
+    for (const candidate of candidates.rows) {
+      const result = await with_transaction(database, async (client) => {
+        const selected = await client.query<{
+          id: string;
+          organization_id: string;
+          project_id: string;
+          project_version_id: string;
+          status: string;
+          version: number;
+          expires_at: Date;
+          source_file_id: string;
+          source_file_version: number;
+          storage_key: string;
+        }>(
+          `SELECT inspection.id,inspection.organization_id,
+                  inspection.project_id,inspection.project_version_id,
+                  inspection.status,inspection.version,inspection.expires_at,
+                  inspection.source_file_id,file.version source_file_version,
+                  file.storage_key
+             FROM documentation_schema.documentation_import_inspection inspection
+             JOIN file_schema.file file
+               ON file.id=inspection.source_file_id
+              AND file.organization_id=inspection.organization_id
+            WHERE inspection.id=$1 FOR UPDATE OF inspection`,
+          [candidate.id],
+        );
+        const inspection = selected.rows[0];
+        if (
+          !inspection ||
+          inspection.status !== "ready" ||
+          inspection.expires_at > input.now
+        )
+          return null;
+        const event_id = ulid();
+        for (const [name, value] of [
+          ["ossie.audit_event_id", event_id],
+          ["ossie.audit_organization_id", inspection.organization_id],
+          ["ossie.audit_action", "documentation.import.expired"],
+          ["ossie.audit_command", input.command],
+          ["ossie.audit_actor_type", "system"],
+          ["ossie.audit_source_type", "system"],
+        ])
+          await client.query("SELECT set_config($1,$2,true)", [name, value]);
+        await client.query(
+          `UPDATE documentation_schema.documentation_import_inspection
+              SET status='expired' WHERE id=$1`,
+          [inspection.id],
+        );
+        const auditEvent = build_entity_audit_event({
+          id: event_id,
+          organization_id: inspection.organization_id,
+          project_id: inspection.project_id,
+          root_resource_type: "project_version",
+          root_resource_id: inspection.project_version_id,
+          action: "documentation.import.expired",
+          actor_org_user_id: null,
+          actor_label: "System",
+          actor_type: "system",
+          source_type: "system",
+          occurred_at: input.now.toISOString(),
+          before_row_version: inspection.version,
+          after_row_version: inspection.version + 1,
+          changes: [
+            {
+              entity_type: "documentation_import_inspection",
+              entity_id: inspection.id,
+              parent_entity_type: "project_version",
+              parent_entity_id: inspection.project_version_id,
+              before: { version: inspection.version },
+              after: { version: inspection.version + 1 },
+              safe_fields: { version: "integer" },
+            },
+            {
+              entity_type: "file",
+              entity_id: inspection.source_file_id,
+              parent_entity_type: "project_version",
+              parent_entity_id: inspection.project_version_id,
+              before: { version: inspection.source_file_version },
+              after: null,
+            },
+          ],
+        });
+        if (auditEvent) await write_audit_event(client, auditEvent);
+        return { storage_key: inspection.storage_key };
+      });
+      if (result) expired.push(result);
+    }
+    return expired;
+  },
 
   apply_markdown_import: async (input: {
     organization_id: string;

@@ -186,7 +186,10 @@ describe("DB-backed Documentation repository", () => {
       name: "Imported docs",
       description: null,
       primary_language: "en-US",
-    })) as { site: { id: string }; working_draft: { version: number } };
+    })) as unknown as {
+      site: { id: string };
+      working_draft: { version: number };
+    };
     await repository.create_import_inspection({
       ...scope,
       idempotency_key: "inspect-for-apply",
@@ -206,7 +209,7 @@ describe("DB-backed Documentation repository", () => {
       expires_at: new Date("2099-01-01T00:00:00.000Z"),
     });
 
-    const applied = await repository.apply_markdown_import({
+    const applied = (await repository.apply_markdown_import({
       ...scope,
       idempotency_key: "apply-markdown-1",
       inspection_id: "01K00000000000000000000020",
@@ -224,7 +227,12 @@ describe("DB-backed Documentation repository", () => {
           text: "Portable content",
         },
       ],
-    });
+    })) as unknown as {
+      created_page_id: string;
+      inspection_id: string;
+      target_site_id: string;
+      counts: { pages: number; blocks: number };
+    };
     expect(applied).toMatchObject({
       inspection_id: "01K00000000000000000000020",
       target_site_id: site.site.id,
@@ -1117,6 +1125,50 @@ describe("DB-backed Documentation repository", () => {
         })
       ).statusCode,
     ).toBe(404);
+    const exportVersions = await pool.query<{
+      site_version: number;
+      draft_version: number;
+      page_version: number;
+    }>(
+      `SELECT site.version site_version,draft.version draft_version,
+              page.version page_version
+         FROM documentation_schema.documentation_site site
+         JOIN documentation_schema.site_edition edition
+           ON edition.documentation_site_id=site.id
+         JOIN documentation_schema.site_working_draft draft
+           ON draft.site_edition_id=edition.id
+         JOIN documentation_schema.documentation_page page
+           ON page.id=$1
+        WHERE site.id=$2`,
+      [page.json().page.id, response.json().site.id],
+    );
+    const exportState = exportVersions.rows[0]!;
+    const markdownExport = await app.inject({
+      method: "GET",
+      url:
+        `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}` +
+        `/pages/${page.json().page.id}/export/markdown?source=draft` +
+        `&expected_page_version=${exportState.page_version}` +
+        `&expected_draft_version=${exportState.draft_version}`,
+      cookies: { ossie_session: scope.session_token },
+    });
+    expect(markdownExport.statusCode).toBe(200);
+    expect(markdownExport.headers["content-type"]).toContain("text/markdown");
+    expect(markdownExport.body).toContain("# Install");
+    const packageExport = await app.inject({
+      method: "GET",
+      url:
+        `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}` +
+        `/export/package.zip?source=draft` +
+        `&expected_site_version=${exportState.site_version}` +
+        `&expected_draft_version=${exportState.draft_version}`,
+      cookies: { ossie_session: scope.session_token },
+    });
+    expect(packageExport.statusCode).toBe(200);
+    expect(packageExport.headers["content-type"]).toContain("application/zip");
+    expect(packageExport.rawPayload.subarray(0, 2).toString("ascii")).toBe(
+      "PK",
+    );
     const auditActions = await pool.query<{ action: string }>(
       `SELECT action FROM audit_schema.audit_event
         WHERE root_resource_type='documentation_site'
