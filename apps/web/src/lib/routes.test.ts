@@ -108,6 +108,15 @@ describe("parsePortalRoute", () => {
     });
     expect(
       parsePortalRoute(
+        "/projects/project_1/versions/main/documentation/reviews",
+      ),
+    ).toEqual({
+      type: "documentation_review_inbox",
+      projectId: "project_1",
+      versionSlug: "main",
+    });
+    expect(
+      parsePortalRoute(
         "/projects/project_1/versions/main/documentation/site_1/pages/page_1",
       ),
     ).toEqual({

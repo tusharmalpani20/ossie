@@ -39,8 +39,12 @@ import { DocumentationDraftPreviewPage } from "./features/documentation/Document
 import { DocumentationCarryForwardPage } from "./features/documentation/DocumentationCarryForwardPage";
 import {
   canCarryForwardDocumentation,
+  canDecideDocumentationReview,
   canManageDocumentationEdition,
+  canManageDocumentationReview,
+  canRequestDocumentationReview,
 } from "./features/documentation/documentationPermissions";
+import { DocumentationReviewInboxPage } from "./features/documentation/DocumentationReviewInboxPage";
 import { shouldRenderDesignSystemReview } from "./appRouteGuards";
 import {
   getProject,
@@ -75,6 +79,7 @@ const setupGuardedRouteTypes = new Set<PortalRoute["type"]>([
   "artifact_revision_preview",
   "documentation_site_list",
   "documentation_carry_forward",
+  "documentation_review_inbox",
   "documentation_site_editor",
   "documentation_page_editor",
   "documentation_draft_preview",
@@ -668,6 +673,30 @@ export default function App() {
             canManageEdition={canManageDocumentationEdition(
               project.access.role,
             )}
+            canRequestReview={canRequestDocumentationReview(
+              project.access.role,
+            )}
+            canManageReview={canManageDocumentationReview(project.access.role)}
+            canDecideReview={canDecideDocumentationReview(project.access.role)}
+          />
+        )}
+      </ProjectVersionRouteBoundary>
+    );
+  }
+
+  if (route.type === "documentation_review_inbox") {
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+        activeSection="documentation"
+        currentLabel="Review inbox"
+      >
+        {() => (
+          <DocumentationReviewInboxPage
+            projectId={route.projectId}
+            versionSlug={route.versionSlug}
           />
         )}
       </ProjectVersionRouteBoundary>

@@ -1455,6 +1455,10 @@ export const createDocumentationPublication = (
   siteId: string,
   revisionId: string,
   link: DocumentationPublicationLinkSelection,
+  reviewOverride: {
+    expected_policy_version: number;
+    reason: string;
+  } | null = null,
 ) =>
   fetch(
     `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publications`,
@@ -1465,7 +1469,11 @@ export const createDocumentationPublication = (
         "content-type": "application/json",
         "idempotency-key": crypto.randomUUID(),
       },
-      body: JSON.stringify({ revision_id: revisionId, link }),
+      body: JSON.stringify({
+        revision_id: revisionId,
+        link,
+        review_override: reviewOverride,
+      }),
     },
   ).then((response) =>
     json<{
@@ -1476,6 +1484,13 @@ export const createDocumentationPublication = (
         resource_family: "documentation_site";
       };
       entry: { id: string; version: number };
+      review_gate?: {
+        evidence_id: string;
+        policy_mode: "optional" | "approval_required";
+        policy_version: number;
+        outcome: "not_required" | "approved" | "overridden";
+        review_request_id: string | null;
+      } | null;
     }>(response),
   );
 
@@ -1487,6 +1502,10 @@ export const rollbackDocumentationPublication = (
   entryId: string,
   publicationId: string,
   expectedEntryVersion: number,
+  reviewOverride: {
+    expected_policy_version: number;
+    reason: string;
+  } | null = null,
 ) =>
   fetch(
     `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publish-links/${encodeURIComponent(linkId)}/entries/${encodeURIComponent(entryId)}/rollback`,
@@ -1500,12 +1519,20 @@ export const rollbackDocumentationPublication = (
       body: JSON.stringify({
         site_publication_id: publicationId,
         expected_entry_version: expectedEntryVersion,
+        review_override: reviewOverride,
       }),
     },
   ).then((response) =>
     json<{
       link: { id: string; slug: string };
       entry: { id: string; version: number; site_publication_id: string };
+      review_gate?: {
+        evidence_id: string;
+        policy_mode: "optional" | "approval_required";
+        policy_version: number;
+        outcome: "not_required" | "approved" | "overridden";
+        review_request_id: string | null;
+      } | null;
     }>(response),
   );
 

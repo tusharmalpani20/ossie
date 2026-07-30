@@ -1,0 +1,40 @@
+.panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border, #d7dce2);
+  border-radius: 0.75rem;
+}
+
+.status {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--muted, #f4f6f8);
+}
+
+.candidateList,
+.requestList,
+.inboxList {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.candidate {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+@media (max-width: 320px) {
+  .panel {
+    padding: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    scroll-behavior: auto;
+  }
+}

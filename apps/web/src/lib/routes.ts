@@ -109,6 +109,11 @@ export type PortalRoute =
       versionSlug: string;
     }
   | {
+      type: "documentation_review_inbox";
+      projectId: string;
+      versionSlug: string;
+    }
+  | {
       type: "documentation_site_editor";
       projectId: string;
       versionSlug: string;
@@ -286,6 +291,12 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
       if (rest.length === 2 && rest[1] === "carry-forward")
         return {
           type: "documentation_carry_forward",
+          projectId,
+          versionSlug,
+        };
+      if (rest.length === 2 && rest[1] === "reviews")
+        return {
+          type: "documentation_review_inbox",
           projectId,
           versionSlug,
         };

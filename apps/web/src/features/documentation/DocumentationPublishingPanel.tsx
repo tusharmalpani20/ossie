@@ -13,18 +13,21 @@ import {
   type DocumentationPublishLinkSummary,
   type DocumentationRevisionSummary,
 } from "../../lib/documentationApi";
+import { getDocumentationReviewGate } from "../../lib/documentationReviewApi";
 
 type Props = {
   projectId: string;
   versionSlug: string;
   siteId: string;
   canPublish: boolean;
+  canOverrideReview?: boolean;
   loadRevisions?: typeof listDocumentationRevisions;
   loadPublications?: typeof listDocumentationPublications;
   loadPublishLinks?: typeof listDocumentationPublishLinks;
   publish?: typeof createDocumentationPublication;
   rollback?: typeof rollbackDocumentationPublication;
   revoke?: typeof revokeDocumentationPublishLink;
+  loadReviewGate?: typeof getDocumentationReviewGate;
 };
 
 export const DocumentationPublishingPanel = ({
@@ -32,12 +35,14 @@ export const DocumentationPublishingPanel = ({
   versionSlug,
   siteId,
   canPublish,
+  canOverrideReview = false,
   loadRevisions = listDocumentationRevisions,
   loadPublications = listDocumentationPublications,
   loadPublishLinks = listDocumentationPublishLinks,
   publish = createDocumentationPublication,
   rollback = rollbackDocumentationPublication,
   revoke = revokeDocumentationPublishLink,
+  loadReviewGate = getDocumentationReviewGate,
 }: Props) => {
   const [revisions, setRevisions] = useState<DocumentationRevisionSummary[]>([]);
   const [publications, setPublications] = useState<
@@ -55,6 +60,11 @@ export const DocumentationPublishingPanel = ({
   const [password, setPassword] = useState("");
   const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
   const [status, setStatus] = useState("Loading Revision history…");
+  const [selectedRevisionId, setSelectedRevisionId] = useState("");
+  const [reviewGate, setReviewGate] = useState<Awaited<
+    ReturnType<typeof getDocumentationReviewGate>
+  > | null>(null);
+  const [overrideReason, setOverrideReason] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -66,6 +76,9 @@ export const DocumentationPublishingPanel = ({
       .then(([revisionResult, publicationResult, linkResult]) => {
         if (!active) return;
         setRevisions(revisionResult.revisions);
+        setSelectedRevisionId(
+          (current) => current || revisionResult.revisions[0]?.id || "",
+        );
         setPublications(publicationResult.publications);
         setPublishLinks(linkResult.publish_links);
         setStatus(
@@ -89,12 +102,47 @@ export const DocumentationPublishingPanel = ({
     versionSlug,
   ]);
 
+  useEffect(() => {
+    if (!selectedRevisionId) return;
+    let active = true;
+    loadReviewGate(projectId, versionSlug, siteId, selectedRevisionId)
+      .then((gate) => {
+        if (active) setReviewGate(gate);
+      })
+      .catch(() => {
+        if (active) setReviewGate(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    loadReviewGate,
+    projectId,
+    selectedRevisionId,
+    siteId,
+    versionSlug,
+  ]);
+
+  const selectedRevision =
+    revisions.find((revision) => revision.id === selectedRevisionId) ?? null;
+  const gateBlocked =
+    reviewGate?.outcome === "approval_missing" ||
+    reviewGate?.outcome === "approval_pending" ||
+    reviewGate?.outcome === "invalidated";
+  const reviewOverride =
+    gateBlocked && canOverrideReview && overrideReason.trim().length >= 20
+      ? {
+          expected_policy_version: reviewGate!.policy_version,
+          reason: overrideReason.trim(),
+        }
+      : null;
+
   const publishRevision = async () => {
-    const revision = revisions[0];
+    const revision = selectedRevision;
     if (!revision || !name.trim() || !slug.trim()) return;
     setStatus("Preparing the exact Publication; the live link is unchanged until success…");
     try {
-      const result = await publish(
+      const args = [
         projectId,
         versionSlug,
         siteId,
@@ -109,7 +157,10 @@ export const DocumentationPublishingPanel = ({
             : null,
           password: password || null,
         },
-      );
+      ] as const;
+      const result = reviewOverride
+        ? await publish(...args, reviewOverride)
+        : await publish(...args);
       setPublishedSlug(result.link.slug);
       setStatus(
         `Publication ${result.publication.publication_sequence} is live.`,
@@ -120,13 +171,13 @@ export const DocumentationPublishingPanel = ({
   };
 
   const publishToExisting = async () => {
-    const revision = revisions[0];
+    const revision = selectedRevision;
     const link = publishLinks[0];
     const entry = link?.entries[0];
     if (!revision || !link || !entry) return;
     setStatus("Preparing the exact Publication; the live link is unchanged until success…");
     try {
-      const result = await publish(
+      const args = [
         projectId,
         versionSlug,
         siteId,
@@ -137,7 +188,10 @@ export const DocumentationPublishingPanel = ({
           entry_id: entry.id,
           expected_entry_version: entry.version,
         },
-      );
+      ] as const;
+      const result = reviewOverride
+        ? await publish(...args, reviewOverride)
+        : await publish(...args);
       setPublishedSlug(result.link.slug);
       setPublishLinks((current) =>
         current.map((candidate) =>
@@ -171,7 +225,7 @@ export const DocumentationPublishingPanel = ({
     if (!link || !entry) return;
     setStatus(`Rolling back to exact Publication ${publication.publication_sequence}…`);
     try {
-      const result = await rollback(
+      const args = [
         projectId,
         versionSlug,
         siteId,
@@ -179,7 +233,10 @@ export const DocumentationPublishingPanel = ({
         entry.id,
         publication.id,
         entry.version,
-      );
+      ] as const;
+      const result = reviewOverride
+        ? await rollback(...args, reviewOverride)
+        : await rollback(...args);
       setPublishLinks((current) =>
         current.map((candidate) =>
           candidate.id === link.id
@@ -235,11 +292,41 @@ export const DocumentationPublishingPanel = ({
     <section aria-labelledby="documentation-publishing-heading">
       <h2 id="documentation-publishing-heading">Revision history and publication</h2>
       {revisions.length ? (
-        <ol>
+        <>
+        <Label htmlFor="documentation-publication-revision">
+          Exact Revision
+        </Label>
+        <select
+          id="documentation-publication-revision"
+          value={selectedRevisionId}
+          onChange={(event) => setSelectedRevisionId(event.target.value)}
+        >
           {revisions.map((revision) => (
-            <li key={revision.id}>Revision {revision.revision_number}</li>
+            <option key={revision.id} value={revision.id}>
+              Revision {revision.revision_number}
+            </option>
           ))}
-        </ol>
+        </select>
+        <p>
+          Review gate:{" "}
+          {reviewGate
+            ? reviewGate.outcome.replaceAll("_", " ")
+            : "Loading gate status"}
+        </p>
+        {gateBlocked && canOverrideReview ? (
+          <>
+            <Label htmlFor="documentation-review-override-reason">
+              Admin override reason (at least 20 characters)
+            </Label>
+            <textarea
+              id="documentation-review-override-reason"
+              value={overrideReason}
+              onChange={(event) => setOverrideReason(event.target.value)}
+              maxLength={1000}
+            />
+          </>
+        ) : null}
+        </>
       ) : (
         <p>No Revisions yet.</p>
       )}
@@ -253,9 +340,12 @@ export const DocumentationPublishingPanel = ({
           {canPublish && existingLink.status === "active" ? (
             <Button onClick={() => void revokeLink()}>Revoke link</Button>
           ) : null}
-          {canPublish && revisions[0] ? (
-            <Button onClick={() => void publishToExisting()}>
-              Publish Revision {revisions[0].revision_number} to existing link
+          {canPublish && selectedRevision ? (
+            <Button
+              disabled={gateBlocked && !reviewOverride}
+              onClick={() => void publishToExisting()}
+            >
+              Publish Revision {selectedRevision.revision_number} to existing link
             </Button>
           ) : null}
           <ul>
@@ -265,7 +355,10 @@ export const DocumentationPublishingPanel = ({
                 {publication.revision_number})
                 {canPublish &&
                 publication.id !== existingEntry.site_publication_id ? (
-                  <Button onClick={() => void rollBackTo(publication)}>
+                  <Button
+                    disabled={gateBlocked && !reviewOverride}
+                    onClick={() => void rollBackTo(publication)}
+                  >
                     Roll back to Publication {publication.publication_sequence}
                   </Button>
                 ) : null}
@@ -321,7 +414,10 @@ export const DocumentationPublishingPanel = ({
             disabled={visibility === "restricted"}
             onChange={(event) => setPassword(event.target.value)}
           />
-          <Button onClick={() => void publishRevision()}>
+          <Button
+            disabled={gateBlocked && !reviewOverride}
+            onClick={() => void publishRevision()}
+          >
             Publish revision
           </Button>
         </>

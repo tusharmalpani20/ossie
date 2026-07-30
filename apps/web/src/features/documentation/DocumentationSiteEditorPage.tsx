@@ -22,6 +22,7 @@ import {
   DocumentationLifecycleControls,
   DocumentationPageLifecycleControls,
 } from "./DocumentationLifecycleControls";
+import { DocumentationReviewPanel } from "./DocumentationReviewPanel";
 
 type Props = {
   projectId: string;
@@ -30,6 +31,9 @@ type Props = {
   canWrite: boolean;
   canPublish: boolean;
   canManageEdition?: boolean;
+  canRequestReview?: boolean;
+  canManageReview?: boolean;
+  canDecideReview?: boolean;
   loadPreview?: typeof getDocumentationPreview;
   createRevision?: typeof createDocumentationRevision;
 };
@@ -41,6 +45,9 @@ export const DocumentationSiteEditorPage = ({
   canWrite,
   canPublish,
   canManageEdition = false,
+  canRequestReview = false,
+  canManageReview = false,
+  canDecideReview = false,
   loadPreview = getDocumentationPreview,
   createRevision = createDocumentationRevision,
 }: Props) => {
@@ -50,7 +57,9 @@ export const DocumentationSiteEditorPage = ({
   const [status, setStatus] = useState("Loading saved draft…");
   const [checkpointCount, setCheckpointCount] = useState(0);
   const [previewRefreshCount, setPreviewRefreshCount] = useState(0);
-  const [revisions, setRevisions] = useState<DocumentationRevisionSummary[]>([]);
+  const [revisions, setRevisions] = useState<DocumentationRevisionSummary[]>(
+    [],
+  );
   const [publications, setPublications] = useState<
     DocumentationPublicationSummary[]
   >([]);
@@ -69,13 +78,7 @@ export const DocumentationSiteEditorPage = ({
     return () => {
       active = false;
     };
-  }, [
-    loadPreview,
-    previewRefreshCount,
-    projectId,
-    siteId,
-    versionSlug,
-  ]);
+  }, [loadPreview, previewRefreshCount, projectId, siteId, versionSlug]);
 
   useEffect(() => {
     let active = true;
@@ -119,8 +122,7 @@ export const DocumentationSiteEditorPage = ({
   const editionEffectiveStatus =
     preview.edition?.effective_status ?? preview.edition?.status ?? "active";
   const effectiveCanWrite = canWrite && editionEffectiveStatus === "active";
-  const effectiveCanPublish =
-    canPublish && editionEffectiveStatus === "active";
+  const effectiveCanPublish = canPublish && editionEffectiveStatus === "active";
   return (
     <section aria-labelledby="documentation-site-heading">
       <header>
@@ -162,6 +164,15 @@ export const DocumentationSiteEditorPage = ({
         siteId={siteId}
         preview={preview}
         canWrite={effectiveCanWrite}
+      />
+      <DocumentationReviewPanel
+        projectId={projectId}
+        versionSlug={versionSlug}
+        siteId={siteId}
+        latestRevision={revisions[0] ?? null}
+        canRequest={canRequestReview && editionEffectiveStatus === "active"}
+        canManagePolicy={canManageReview && editionEffectiveStatus === "active"}
+        canDecide={canDecideReview && editionEffectiveStatus === "active"}
       />
       <DocumentationStructurePanel
         projectId={projectId}
@@ -321,6 +332,7 @@ export const DocumentationSiteEditorPage = ({
         versionSlug={versionSlug}
         siteId={siteId}
         canPublish={effectiveCanPublish}
+        canOverrideReview={canManageReview}
       />
       <p role="status">{status}</p>
     </section>

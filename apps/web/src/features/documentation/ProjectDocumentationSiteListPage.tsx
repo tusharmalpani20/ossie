@@ -9,6 +9,7 @@ import {
 } from "../../lib/documentationApi";
 import styles from "./ProjectDocumentationSiteListPage.module.css";
 import { DocumentationPortabilityPanel } from "./DocumentationPortabilityPanel";
+import { listDocumentationReviewInbox } from "../../lib/documentationReviewApi";
 
 type Props = {
   projectId: string;
@@ -18,6 +19,7 @@ type Props = {
   importUnavailableReason?: string;
   loadSites?: typeof listDocumentationSites;
   createSite?: typeof createDocumentationSite;
+  loadReviewInbox?: typeof listDocumentationReviewInbox;
 };
 
 export const ProjectDocumentationSiteListPage = ({
@@ -28,11 +30,13 @@ export const ProjectDocumentationSiteListPage = ({
   importUnavailableReason,
   loadSites = listDocumentationSites,
   createSite = createDocumentationSite,
+  loadReviewInbox = listDocumentationReviewInbox,
 }: Props) => {
   const [sites, setSites] = useState<DocumentationSiteSummary[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
+  const [reviewUnreadCount, setReviewUnreadCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -50,6 +54,18 @@ export const ProjectDocumentationSiteListPage = ({
       active = false;
     };
   }, [loadSites, projectId, versionSlug]);
+
+  useEffect(() => {
+    let active = true;
+    loadReviewInbox(projectId, versionSlug)
+      .then((inbox) => {
+        if (active) setReviewUnreadCount(inbox.unread_count);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [loadReviewInbox, projectId, versionSlug]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -102,6 +118,12 @@ export const ProjectDocumentationSiteListPage = ({
             Carry Forward Sites
           </a>
         ) : null}
+        <a
+          href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/reviews`}
+        >
+          Review inbox
+          {reviewUnreadCount ? ` (${reviewUnreadCount} unread)` : ""}
+        </a>
       </header>
       {creating ? (
         <form className={styles.form} onSubmit={submit}>
