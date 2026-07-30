@@ -8,10 +8,10 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(98);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(106);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(98);
+    ).toBe(106);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
@@ -23,16 +23,18 @@ describe("audit coverage registry", () => {
     expect(AUDIT_COMMANDS).toContain("capture_asset.purge.complete");
     expect(AUDIT_COMMANDS).toContain("documentation.site.create");
     expect(AUDIT_COMMANDS).toContain("documentation.revision.create");
+    expect(AUDIT_COMMANDS).toContain("documentation.snippet.content_replace");
+    expect(AUDIT_COMMANDS).toContain("documentation.asset.archive");
   });
 
   it("covers all product tables and the relational Publish Link DELETE boundary", () => {
     const writes = AUDIT_COVERAGE_REGISTRY.flatMap(({ writes }) => writes);
-    expect(new Set(writes.map(({ table }) => table)).size).toBe(51);
+    expect(new Set(writes.map(({ table }) => table)).size).toBe(52);
     expect(
       new Set(
         writes.map(({ table, sql_operation }) => `${table}:${sql_operation}`),
       ).size,
-    ).toBe(78);
+    ).toBe(81);
     expect(
       writes
         .filter(({ sql_operation }) => sql_operation === "DELETE")
@@ -179,6 +181,13 @@ describe("audit coverage registry", () => {
       ),
       "utf8",
     );
+    const migration_026 = readFileSync(
+      new URL(
+        "../../db/migrations/026_documentation_content_snippets_and_asset_workflows.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
     const policy_start = migration_016.indexOf("FROM (VALUES");
     const policy_end = migration_016.indexOf(") AS policy(command, action)");
     const new_policy_start = migration_019.indexOf(
@@ -195,7 +204,7 @@ describe("audit coverage registry", () => {
       "AND selected_actor_type",
       version_policy_start,
     );
-    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}\n${migration_022}\n${migration_023}\n${migration_024}\n${migration_025}`;
+    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}\n${migration_022}\n${migration_023}\n${migration_024}\n${migration_025}\n${migration_026}`;
     const pairs = [...policy.matchAll(/\('([^']+)',\s*'([^']+)'\)/gu)]
       .map(([, command, action]) => ({ command, action }))
       .filter(({ command }) =>
@@ -273,6 +282,13 @@ describe("audit coverage registry", () => {
     const migration_025 = readFileSync(
       new URL(
         "../../db/migrations/025_documentation_site_first_vertical_slice.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const migration_026 = readFileSync(
+      new URL(
+        "../../db/migrations/026_documentation_content_snippets_and_asset_workflows.sql",
         import.meta.url,
       ),
       "utf8",
@@ -388,11 +404,7 @@ describe("audit coverage registry", () => {
         "public_publish_viewer_session_u_audit_ctx",
       ],
       ["file", "INSERT", "file_i_audit_ctx"],
-      [
-        "documentation_asset",
-        "INSERT",
-        "documentation_asset_i_audit_ctx",
-      ],
+      ["documentation_asset", "INSERT", "documentation_asset_i_audit_ctx"],
       ["documentation_site", "INSERT", "documentation_site_i_audit_ctx"],
       ["documentation_page", "INSERT", "documentation_page_i_audit_ctx"],
       ["documentation_page", "UPDATE", "documentation_page_u_audit_ctx"],
@@ -432,6 +444,27 @@ describe("audit coverage registry", () => {
               ? "documentation_schema"
               : "publish_schema"
         }.${table}:${operation}`,
+        commandArgument?.split(",") ?? [],
+      );
+    }
+    const migration_026_up =
+      migration_026.split("-- DOWN:")[0] ?? migration_026;
+    for (const [table, operation, triggerName] of [
+      ["documentation_snippet", "INSERT", "documentation_snippet_i_audit_ctx"],
+      ["documentation_snippet", "UPDATE", "documentation_snippet_u_audit_ctx"],
+      ["documentation_asset", "UPDATE", "documentation_asset_u_audit_ctx"],
+    ] as const) {
+      const triggerStart = migration_026_up.indexOf(
+        `CREATE TRIGGER ${triggerName}`,
+      );
+      const triggerEnd = migration_026_up.indexOf(");", triggerStart);
+      const commandArgument = [
+        ...migration_026_up
+          .slice(triggerStart, triggerEnd)
+          .matchAll(/'([^']+)'/gu),
+      ].at(-1)?.[1];
+      actual.set(
+        `documentation_schema.${table}:${operation}`,
         commandArgument?.split(",") ?? [],
       );
     }

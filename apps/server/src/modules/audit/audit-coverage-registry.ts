@@ -90,6 +90,24 @@ const U = {
       "INSERT",
       "documentation_asset",
     ),
+  documentation_asset_update: () =>
+    write(
+      "documentation_schema.documentation_asset",
+      "UPDATE",
+      "documentation_asset",
+    ),
+  documentation_snippet_insert: () =>
+    write(
+      "documentation_schema.documentation_snippet",
+      "INSERT",
+      "documentation_snippet",
+    ),
+  documentation_snippet_update: () =>
+    write(
+      "documentation_schema.documentation_snippet",
+      "UPDATE",
+      "documentation_snippet",
+    ),
   documentation_site_insert: () =>
     write(
       "documentation_schema.documentation_site",
@@ -109,49 +127,21 @@ const U = {
       "documentation_page",
     ),
   documentation_navigation_update: () =>
-    write(
-      "documentation_schema.navigation_tree",
-      "UPDATE",
-      "navigation_tree",
-    ),
+    write("documentation_schema.navigation_tree", "UPDATE", "navigation_tree"),
   documentation_routing_update: () =>
     write("documentation_schema.routing_set", "UPDATE", "routing_set"),
   documentation_comment_insert: () =>
-    write(
-      "documentation_schema.comment_thread",
-      "INSERT",
-      "comment_thread",
-    ),
+    write("documentation_schema.comment_thread", "INSERT", "comment_thread"),
   documentation_comment_update: () =>
-    write(
-      "documentation_schema.comment_thread",
-      "UPDATE",
-      "comment_thread",
-    ),
+    write("documentation_schema.comment_thread", "UPDATE", "comment_thread"),
   documentation_reply_insert: () =>
-    write(
-      "documentation_schema.comment_reply",
-      "INSERT",
-      "comment_reply",
-    ),
+    write("documentation_schema.comment_reply", "INSERT", "comment_reply"),
   documentation_openapi_insert: () =>
-    write(
-      "documentation_schema.openapi_source",
-      "INSERT",
-      "openapi_source",
-    ),
+    write("documentation_schema.openapi_source", "INSERT", "openapi_source"),
   documentation_openapi_update: () =>
-    write(
-      "documentation_schema.openapi_source",
-      "UPDATE",
-      "openapi_source",
-    ),
+    write("documentation_schema.openapi_source", "UPDATE", "openapi_source"),
   documentation_revision_insert: () =>
-    write(
-      "documentation_schema.site_revision",
-      "INSERT",
-      "site_revision",
-    ),
+    write("documentation_schema.site_revision", "INSERT", "site_revision"),
   asset_insert: () =>
     write("capture_schema.capture_asset", "INSERT", "capture_asset"),
   asset_update: (operation: AuditOperation = "update") =>
@@ -957,6 +947,70 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
       "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets",
     ],
     [U.file_insert(), U.documentation_asset_insert()],
+  ),
+  command(
+    "documentation.asset.update",
+    "documentation.asset_updated",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets/:asset_id",
+    ],
+    [U.documentation_asset_update()],
+  ),
+  command(
+    "documentation.asset.archive",
+    "documentation.asset_archived",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets/:asset_id/lifecycle",
+    ],
+    [U.documentation_asset_update()],
+  ),
+  command(
+    "documentation.asset.restore",
+    "documentation.asset_restored",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets/:asset_id/lifecycle",
+    ],
+    [U.documentation_asset_update()],
+  ),
+  command(
+    "documentation.snippet.create",
+    "documentation.snippet_created",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets",
+    ],
+    [U.documentation_snippet_insert()],
+  ),
+  command(
+    "documentation.snippet.update",
+    "documentation.snippet_updated",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets/:snippet_id",
+    ],
+    [U.documentation_snippet_update()],
+  ),
+  command(
+    "documentation.snippet.content_replace",
+    "documentation.snippet_content_replaced",
+    [
+      "PUT /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets/:snippet_id/content",
+    ],
+    [U.documentation_snippet_update()],
+  ),
+  command(
+    "documentation.snippet.archive",
+    "documentation.snippet_archived",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets/:snippet_id/lifecycle",
+    ],
+    [U.documentation_snippet_update()],
+  ),
+  command(
+    "documentation.snippet.restore",
+    "documentation.snippet_restored",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets/:snippet_id/lifecycle",
+    ],
+    [U.documentation_snippet_update()],
   ),
   command(
     "documentation.site.create",

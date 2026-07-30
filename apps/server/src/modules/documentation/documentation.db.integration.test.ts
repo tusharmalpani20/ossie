@@ -131,7 +131,7 @@ describe("DB-backed Documentation repository", () => {
       payload: { name: "Authentication warning" },
     });
     expect(snippet.statusCode).toBe(201);
-    const snippetId = snippet.json().id as string;
+    const snippetId = snippet.json().snippet.id as string;
     const snippetSaved = await app.inject({
       method: "PUT",
       url: `${root}/snippets/${snippetId}/content`,

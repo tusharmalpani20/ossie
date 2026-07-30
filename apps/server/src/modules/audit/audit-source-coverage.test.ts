@@ -25,6 +25,16 @@ const excluded = new Set([
   "documentation_schema.site_revision_page:INSERT",
   "documentation_schema.site_revision_page_keyword:INSERT",
   "documentation_schema.site_revision_page_block:INSERT",
+  "documentation_schema.site_revision_page_tab_item:INSERT",
+  "documentation_schema.site_revision_page_table_row:INSERT",
+  "documentation_schema.site_revision_page_table_cell:INSERT",
+  "documentation_schema.site_revision_snippet:INSERT",
+  "documentation_schema.site_revision_snippet_block:INSERT",
+  "documentation_schema.site_revision_snippet_list_item:INSERT",
+  "documentation_schema.site_revision_snippet_tab_item:INSERT",
+  "documentation_schema.site_revision_snippet_table_row:INSERT",
+  "documentation_schema.site_revision_snippet_table_cell:INSERT",
+  "documentation_schema.site_revision_artifact_reference:INSERT",
   "documentation_schema.site_revision_list_item:INSERT",
   "documentation_schema.site_revision_navigation_node:INSERT",
   "documentation_schema.site_revision_page_alias:INSERT",
@@ -42,6 +52,22 @@ const excluded = new Set([
   "documentation_schema.documentation_page_block:DELETE",
   "documentation_schema.documentation_list_item:INSERT",
   "documentation_schema.documentation_list_item:DELETE",
+  "documentation_schema.documentation_tab_item:INSERT",
+  "documentation_schema.documentation_tab_item:DELETE",
+  "documentation_schema.documentation_table_row:INSERT",
+  "documentation_schema.documentation_table_row:DELETE",
+  "documentation_schema.documentation_table_cell:INSERT",
+  "documentation_schema.documentation_table_cell:DELETE",
+  "documentation_schema.documentation_snippet_block:INSERT",
+  "documentation_schema.documentation_snippet_block:DELETE",
+  "documentation_schema.documentation_snippet_list_item:INSERT",
+  "documentation_schema.documentation_snippet_list_item:DELETE",
+  "documentation_schema.documentation_snippet_tab_item:INSERT",
+  "documentation_schema.documentation_snippet_tab_item:DELETE",
+  "documentation_schema.documentation_snippet_table_row:INSERT",
+  "documentation_schema.documentation_snippet_table_row:DELETE",
+  "documentation_schema.documentation_snippet_table_cell:INSERT",
+  "documentation_schema.documentation_snippet_table_cell:DELETE",
   "documentation_schema.site_edition:INSERT",
   "documentation_schema.site_working_draft:INSERT",
   "documentation_schema.site_working_draft:UPDATE",
@@ -94,11 +120,13 @@ describe("Audit production SQL source coverage", () => {
     expect(uncovered).toEqual([]);
     expect([...registered].filter((key) => !discovered.has(key))).toEqual([]);
     expect(
-      [...excluded].filter(
-        (key) =>
-          !key.startsWith("documentation_schema.") &&
-          !key.startsWith("publish_schema.site_publication"),
-      ).sort(),
+      [...excluded]
+        .filter(
+          (key) =>
+            !key.startsWith("documentation_schema.") &&
+            !key.startsWith("publish_schema.site_publication"),
+        )
+        .sort(),
     ).toEqual([
       "audit_schema.access_event:INSERT",
       "audit_schema.audit_change_item:INSERT",

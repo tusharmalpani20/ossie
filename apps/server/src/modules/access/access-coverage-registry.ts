@@ -38,6 +38,10 @@ const registration = (
 const root_for_route = (route: string) => {
   if (route.includes("/documentation-sites/:site_id/pages/:page_id"))
     return { type: "documentation_page", parameter: "page_id" };
+  if (route.includes("/documentation-sites/:site_id/snippets/:snippet_id"))
+    return { type: "documentation_snippet", parameter: "snippet_id" };
+  if (route.includes("/documentation-sites/:site_id/assets/:asset_id"))
+    return { type: "documentation_asset", parameter: "asset_id" };
   if (route.includes("/documentation-sites/:site_id/comments/:thread_id"))
     return { type: "documentation_comment", parameter: "thread_id" };
   if (
@@ -447,6 +451,37 @@ const reads: AccessRouteRegistration[] = [
     "download",
   ),
   read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets",
+    "documentation_asset.list_viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets/capture/:asset_id/file",
+    "documentation_capture_asset.downloaded",
+    "documentation_site",
+    "site_id",
+    "download",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets",
+    "documentation_snippet.list_viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets/:snippet_id",
+    "documentation_snippet.viewed",
+    "documentation_snippet",
+    "snippet_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/artifact-publications",
+    "documentation_artifact_publication.list_viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
     "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id",
     "documentation_page.viewed",
     "documentation_page",
@@ -599,6 +634,10 @@ const public_routes: AccessRouteRegistration[] = [
     public_documentation_read(
       `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation/assets/:asset_id/file`,
       "documentation_asset.public_downloaded",
+    ),
+    public_documentation_read(
+      `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation/assets/capture/:asset_id/file`,
+      "documentation_capture_asset.public_downloaded",
     ),
   ]),
 ];

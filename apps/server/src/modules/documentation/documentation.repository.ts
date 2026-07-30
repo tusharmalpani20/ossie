@@ -208,20 +208,42 @@ const search_text_for_blocks = (
   for (const block of blocks) {
     if (block.kind === "heading" && typeof block.text === "string")
       headings.push(block.text);
-    for (const field of ["text", "code", "label", "alt_text", "caption"]) {
+    for (const field of [
+      "text",
+      "code",
+      "label",
+      "title",
+      "attribution",
+      "alt_text",
+      "caption",
+    ]) {
       const value = block[field];
       if (typeof value === "string") body.push(value);
     }
     if (Array.isArray(block.items))
       for (const item of block.items) {
-        if (
-          typeof item === "object" &&
-          item !== null &&
-          "text" in item &&
-          typeof item.text === "string"
-        )
-          body.push(item.text);
+        if (typeof item !== "object" || item === null) continue;
+        for (const field of ["text", "label", "body"]) {
+          const value = (item as Record<string, unknown>)[field];
+          if (typeof value === "string") body.push(value);
+        }
       }
+    if (Array.isArray(block.rows))
+      for (const row of block.rows)
+        if (
+          typeof row === "object" &&
+          row !== null &&
+          "cells" in row &&
+          Array.isArray(row.cells)
+        )
+          for (const cell of row.cells)
+            if (
+              typeof cell === "object" &&
+              cell !== null &&
+              "text" in cell &&
+              typeof cell.text === "string"
+            )
+              body.push(cell.text);
   }
   return build_documentation_search_document({
     title,
@@ -1696,18 +1718,22 @@ export const build_documentation_repository = (database: Database) => ({
       );
       for (const page of snapshot.pages) {
         const revisionPageId = ulid();
-        const searchable = (page.blocks as Array<Record<string, unknown>>)
-          .flatMap((block) => {
-            if (typeof block.text === "string") return [block.text];
-            if (typeof block.code === "string") return [block.code];
-            if (typeof block.label === "string") return [block.label];
-            if (Array.isArray(block.items))
-              return (block.items as Array<{ text: string }>).map(
-                (item) => item.text,
-              );
-            return [];
-          })
-          .join("\n");
+        const expandedSnippetBlocks = (
+          page.blocks as Array<Record<string, unknown>>
+        ).flatMap((block) => {
+          if (block.kind !== "snippet_reference") return [];
+          return (snapshot.snippets.find(
+            (snippet) => snippet.id === block.snippet_id,
+          )?.blocks ?? []) as Array<Record<string, unknown>>;
+        });
+        const searchable = search_text_for_blocks(
+          page.title as string,
+          page.description as string | null,
+          [
+            ...(page.blocks as Array<Record<string, unknown>>),
+            ...expandedSnippetBlocks,
+          ],
+        );
         await client.query(
           `INSERT INTO documentation_schema.site_revision_page
             (id,organization_id,project_id,site_edition_id,site_revision_id,
@@ -4721,6 +4747,34 @@ export const build_documentation_repository = (database: Database) => ({
         ...input,
         site_edition_id: page.site_edition_id,
       });
+      const referencedSnippetIds = input.blocks
+        .filter((block) => block.kind === "snippet_reference")
+        .map((block) => block.snippet_id);
+      const referencedSnippetSearch = referencedSnippetIds.length
+        ? await client.query<{ search_text: string }>(
+            `SELECT concat_ws(' ',block.text_content,block.display_title,
+                     block.quote_attribution,block.table_caption,
+                     block.alt_text,block.image_caption,
+                     (SELECT string_agg(item.text_content,' ' ORDER BY item.position)
+                        FROM documentation_schema.documentation_snippet_list_item item
+                       WHERE item.documentation_snippet_block_id=block.id),
+                     (SELECT string_agg(concat_ws(' ',tab.label,tab.body),' '
+                                        ORDER BY tab.position)
+                        FROM documentation_schema.documentation_snippet_tab_item tab
+                       WHERE tab.documentation_snippet_block_id=block.id),
+                     (SELECT string_agg(cell.text_content,' '
+                                        ORDER BY row.position,cell.column_position)
+                        FROM documentation_schema.documentation_snippet_table_row row
+                        JOIN documentation_schema.documentation_snippet_table_cell cell
+                          ON cell.documentation_snippet_table_row_id=row.id
+                       WHERE row.documentation_snippet_block_id=block.id)
+                   ) search_text
+               FROM documentation_schema.documentation_snippet_block block
+              WHERE block.documentation_snippet_id=ANY($1::varchar[])
+              ORDER BY block.documentation_snippet_id,block.position`,
+            [referencedSnippetIds],
+          )
+        : { rows: [] };
       await insert_draft_search_document(client, {
         organization_id: input.organization_id,
         project_id: input.project_id,
@@ -4731,11 +4785,12 @@ export const build_documentation_repository = (database: Database) => ({
         title: page.title,
         description: page.description,
         canonical_path: page.canonical_path,
-        search_text: search_text_for_blocks(
-          page.title,
-          page.description,
-          input.blocks,
-        ),
+        search_text: search_text_for_blocks(page.title, page.description, [
+          ...input.blocks,
+          ...referencedSnippetSearch.rows.map(({ search_text }) => ({
+            text: search_text,
+          })),
+        ]),
       });
       await write_documentation_audit_event(client, {
         audit,
@@ -5107,6 +5162,58 @@ export const build_documentation_repository = (database: Database) => ({
         ...input,
         site_edition_id: snippet.site_edition_id,
       });
+      await client.query(
+        `WITH affected AS (
+           SELECT DISTINCT block.documentation_page_id
+             FROM documentation_schema.documentation_page_block block
+            WHERE block.site_edition_id=$1
+              AND block.kind='snippet_reference'
+              AND block.snippet_id=$2
+         ),
+         expanded AS (
+           SELECT page.id,
+                  concat_ws(' ',page.title,page.description,
+                    string_agg(concat_ws(' ',block.text_content,
+                      block.display_title,block.quote_attribution,
+                      block.table_caption,block.alt_text,block.image_caption,
+                      (SELECT string_agg(item.text_content,' ' ORDER BY item.position)
+                         FROM documentation_schema.documentation_list_item item
+                        WHERE item.documentation_page_block_id=block.id),
+                      (SELECT string_agg(concat_ws(' ',tab.label,tab.body),' '
+                                         ORDER BY tab.position)
+                         FROM documentation_schema.documentation_tab_item tab
+                        WHERE tab.documentation_page_block_id=block.id),
+                      (SELECT string_agg(cell.text_content,' '
+                                         ORDER BY row.position,cell.column_position)
+                         FROM documentation_schema.documentation_table_row row
+                         JOIN documentation_schema.documentation_table_cell cell
+                           ON cell.documentation_table_row_id=row.id
+                        WHERE row.documentation_page_block_id=block.id),
+                      (SELECT string_agg(concat_ws(' ',snippet_block.text_content,
+                                snippet_block.display_title,
+                                snippet_block.quote_attribution,
+                                snippet_block.table_caption,
+                                snippet_block.alt_text,
+                                snippet_block.image_caption),' '
+                                ORDER BY snippet_block.position)
+                         FROM documentation_schema.documentation_snippet_block snippet_block
+                        WHERE snippet_block.documentation_snippet_id=block.snippet_id)
+                    ),' ' ORDER BY block.position)
+                  ) search_text
+             FROM affected
+             JOIN documentation_schema.documentation_page page
+               ON page.id=affected.documentation_page_id
+             LEFT JOIN documentation_schema.documentation_page_block block
+               ON block.documentation_page_id=page.id
+            GROUP BY page.id,page.title,page.description
+         )
+         UPDATE documentation_schema.documentation_draft_search_document document
+            SET search_text=expanded.search_text,
+                updated_at=CURRENT_TIMESTAMP
+           FROM expanded
+          WHERE document.documentation_page_id=expanded.id`,
+        [snippet.site_edition_id, input.snippet_id],
+      );
       await write_documentation_audit_event(client, {
         audit,
         ...input,
@@ -5171,10 +5278,18 @@ export const build_documentation_repository = (database: Database) => ({
         throw error;
       }
       const status = input.transition === "archive" ? "archived" : "active";
+      const command =
+        input.transition === "archive"
+          ? "documentation.snippet.archive"
+          : "documentation.snippet.restore";
+      const action =
+        input.transition === "archive"
+          ? "documentation.snippet_archived"
+          : "documentation.snippet_restored";
       const audit = await begin_documentation_audit_context(client, {
         ...input,
-        command: `documentation.snippet.${input.transition}`,
-        action: `documentation.snippet_${input.transition}d`,
+        command,
+        action,
       });
       try {
         await client.query(
@@ -5200,7 +5315,7 @@ export const build_documentation_repository = (database: Database) => ({
       await write_documentation_audit_event(client, {
         audit,
         ...input,
-        action: `documentation.snippet_${input.transition}d`,
+        action,
         entity_type: "documentation_snippet",
         entity_id: input.snippet_id,
         before_version: snippet.version,
@@ -5690,10 +5805,18 @@ export const build_documentation_repository = (database: Database) => ({
         throw error;
       }
       const status = input.transition === "archive" ? "archived" : "active";
+      const command =
+        input.transition === "archive"
+          ? "documentation.asset.archive"
+          : "documentation.asset.restore";
+      const action =
+        input.transition === "archive"
+          ? "documentation.asset_archived"
+          : "documentation.asset_restored";
       const audit = await begin_documentation_audit_context(client, {
         ...input,
-        command: `documentation.asset.${input.transition}`,
-        action: `documentation.asset_${input.transition}d`,
+        command,
+        action,
       });
       try {
         await client.query(
@@ -5719,7 +5842,7 @@ export const build_documentation_repository = (database: Database) => ({
       await write_documentation_audit_event(client, {
         audit,
         ...input,
-        action: `documentation.asset_${input.transition}d`,
+        action,
         entity_type: "documentation_asset",
         entity_id: input.asset_id,
         before_version: asset.version,
