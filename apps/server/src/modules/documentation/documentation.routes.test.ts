@@ -40,6 +40,9 @@ const documentation_service_stubs = (
   create_publication: vi.fn(),
   rollback_publication: vi.fn(),
   resolve_public_site: vi.fn(),
+  inspect_openapi: vi.fn(),
+  apply_openapi_source: vi.fn(),
+  get_openapi_source: vi.fn(),
   ...overrides,
 });
 

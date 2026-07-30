@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { ulid } from "ulid";
 import {
   assert_documentation_comment_transition,
+  inspect_openapi_document,
   validate_documentation_navigation,
   validate_documentation_routes,
 } from "@repo/documentation-domain";
@@ -562,6 +563,345 @@ const load_revision_snapshot = async (
 };
 
 export const build_documentation_repository = (database: Database) => ({
+  create_openapi_inspection: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    actor_org_user_id: string;
+    file_id: string;
+    inspection_id: string;
+    file: {
+      storage_provider: string;
+      storage_key: string;
+      mime_type: string;
+      size_bytes: number;
+      original_name: string;
+      checksum_sha256: string;
+    };
+    document: unknown;
+    summary: {
+      openapi_version: string;
+      title: string;
+      operation_count: number;
+      operations: Array<{
+        method: string;
+        path: string;
+        operation_id?: string;
+        destination_key: string;
+      }>;
+    };
+  }) =>
+    with_transaction(database, async (client) => {
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.openapi.inspect",
+        action: "documentation.openapi.inspected",
+      });
+      const edition = await client.query<{ id: string }>(
+        `SELECT id FROM documentation_schema.site_edition
+          WHERE organization_id=$1 AND project_id=$2
+            AND project_version_id=$3 AND documentation_site_id=$4`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+        ],
+      );
+      if (!edition.rows[0]) throw new Error("Documentation Site was not found");
+      await client.query(
+        `INSERT INTO file_schema.file
+          (id,organization_id,storage_provider,storage_key,mime_type,
+           size_bytes,original_name,checksum_sha256,metadata,
+           created_by_id,updated_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$10)`,
+        [
+          input.file_id,
+          input.organization_id,
+          input.file.storage_provider,
+          input.file.storage_key,
+          input.file.mime_type,
+          input.file.size_bytes,
+          input.file.original_name,
+          input.file.checksum_sha256,
+          JSON.stringify({ purpose: "documentation_openapi_inspection" }),
+          input.actor_org_user_id,
+        ],
+      );
+      const expires_at = new Date(Date.now() + 60 * 60 * 1000);
+      await client.query(
+        `INSERT INTO documentation_schema.openapi_inspection
+          (id,organization_id,project_id,documentation_site_id,
+           site_edition_id,file_id,digest,openapi_version,title,
+           operation_count,parsed_document,expires_at,created_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,$13)`,
+        [
+          input.inspection_id,
+          input.organization_id,
+          input.project_id,
+          input.site_id,
+          edition.rows[0].id,
+          input.file_id,
+          input.file.checksum_sha256,
+          input.summary.openapi_version,
+          input.summary.title,
+          input.summary.operation_count,
+          JSON.stringify(input.document),
+          expires_at,
+          input.actor_org_user_id,
+        ],
+      );
+      const audit_event = build_entity_audit_event({
+        id: audit.event_id,
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        root_resource_type: "documentation_site",
+        root_resource_id: input.site_id,
+        action: "documentation.openapi.inspected",
+        actor_org_user_id: input.actor_org_user_id,
+        actor_label: audit.actor_label,
+        source_type: audit.source_type,
+        occurred_at: audit.occurred_at,
+        before_row_version: null,
+        after_row_version: null,
+        changes: [
+          {
+            entity_type: "file",
+            entity_id: input.file_id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: input.site_id,
+            before: null,
+            after: { id: input.file_id },
+          },
+          {
+            entity_type: "openapi_inspection",
+            entity_id: input.inspection_id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: input.site_id,
+            before: null,
+            after: { id: input.inspection_id },
+          },
+        ],
+      });
+      if (audit_event) await write_audit_event(client, audit_event);
+      return {
+        id: input.inspection_id,
+        digest: input.file.checksum_sha256,
+        openapi_version: input.summary.openapi_version,
+        title: input.summary.title,
+        operation_count: input.summary.operation_count,
+        warnings: [],
+        expires_at: expires_at.toISOString(),
+      };
+    }),
+
+  apply_openapi_source: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    actor_org_user_id: string;
+    idempotency_key: string;
+    inspection_id: string;
+    expected_source_version: number | null;
+  }) =>
+    with_transaction(database, async (client) => {
+      const request_digest = command_digest({
+        site_id: input.site_id,
+        inspection_id: input.inspection_id,
+        expected_source_version: input.expected_source_version,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.openapi.apply",
+        request_digest,
+      });
+      if (replay) return replay;
+      const inspection = await client.query<{
+        id: string;
+        site_edition_id: string;
+        file_id: string;
+        digest: string;
+        openapi_version: string;
+        title: string;
+        parsed_document: unknown;
+        expires_at: Date;
+        consumed_at: Date | null;
+      }>(
+        `SELECT inspection.id,inspection.site_edition_id,inspection.file_id,
+                inspection.digest,inspection.openapi_version,inspection.title,
+                inspection.parsed_document,inspection.expires_at,
+                inspection.consumed_at
+           FROM documentation_schema.openapi_inspection inspection
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=inspection.site_edition_id
+          WHERE inspection.id=$1 AND inspection.organization_id=$2
+            AND inspection.project_id=$3
+            AND inspection.documentation_site_id=$4
+            AND edition.project_version_id=$5
+          FOR UPDATE OF inspection`,
+        [
+          input.inspection_id,
+          input.organization_id,
+          input.project_id,
+          input.site_id,
+          input.project_version_id,
+        ],
+      );
+      const inspected = inspection.rows[0];
+      if (
+        !inspected ||
+        inspected.expires_at.getTime() <= Date.now() ||
+        inspected.consumed_at
+      ) {
+        const error = new Error("OpenAPI inspection expired");
+        Object.assign(error, { code: "documentation_inspection_expired" });
+        throw error;
+      }
+      const current = await client.query<{ id: string; version: number }>(
+        `SELECT id,version FROM documentation_schema.openapi_source
+          WHERE site_edition_id=$1 AND organization_id=$2 AND project_id=$3
+          FOR UPDATE`,
+        [
+          inspected.site_edition_id,
+          input.organization_id,
+          input.project_id,
+        ],
+      );
+      if (
+        (current.rows[0]?.version ?? null) !== input.expected_source_version
+      ) {
+        const error = new Error("OpenAPI Source changed; reload and retry");
+        Object.assign(error, { code: "documentation_row_version_conflict" });
+        throw error;
+      }
+      const source_id = current.rows[0]?.id ?? ulid();
+      if (current.rows[0]) {
+        await client.query(
+          `DELETE FROM documentation_schema.openapi_operation
+            WHERE openapi_source_id=$1 AND organization_id=$2 AND project_id=$3`,
+          [source_id, input.organization_id, input.project_id],
+        );
+        await client.query(
+          `UPDATE documentation_schema.openapi_source
+              SET file_id=$1,digest=$2,openapi_version=$3,title=$4,
+                  version=version+1,updated_by_id=$5,
+                  updated_at=CURRENT_TIMESTAMP
+            WHERE id=$6`,
+          [
+            inspected.file_id,
+            inspected.digest,
+            inspected.openapi_version,
+            inspected.title,
+            input.actor_org_user_id,
+            source_id,
+          ],
+        );
+      } else {
+        await client.query(
+          `INSERT INTO documentation_schema.openapi_source
+            (id,organization_id,project_id,site_edition_id,file_id,digest,
+             openapi_version,title,created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)`,
+          [
+            source_id,
+            input.organization_id,
+            input.project_id,
+            inspected.site_edition_id,
+            inspected.file_id,
+            inspected.digest,
+            inspected.openapi_version,
+            inspected.title,
+            input.actor_org_user_id,
+          ],
+        );
+      }
+      const summary = inspect_openapi_document(inspected.parsed_document);
+      const operations = [];
+      for (const operation of summary.operations) {
+        const persisted = { id: ulid(), ...operation };
+        operations.push(persisted);
+        await client.query(
+          `INSERT INTO documentation_schema.openapi_operation
+            (id,organization_id,project_id,site_edition_id,openapi_source_id,
+             method,path,operation_id,destination_key)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          [
+            persisted.id,
+            input.organization_id,
+            input.project_id,
+            inspected.site_edition_id,
+            source_id,
+            persisted.method,
+            persisted.path,
+            persisted.operation_id ?? null,
+            persisted.destination_key,
+          ],
+        );
+      }
+      await client.query(
+        `UPDATE documentation_schema.openapi_inspection
+            SET consumed_at=CURRENT_TIMESTAMP WHERE id=$1`,
+        [input.inspection_id],
+      );
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: inspected.site_edition_id,
+      });
+      const result = {
+        source: {
+          id: source_id,
+          digest: inspected.digest,
+          openapi_version: inspected.openapi_version,
+          title: inspected.title,
+          version: (current.rows[0]?.version ?? 0) + 1,
+        },
+        operations,
+      };
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.openapi.apply",
+        request_digest,
+        response_status: 201,
+        response_body: result,
+      });
+      return { ...result, idempotent_replay: false };
+    }),
+
+  get_openapi_source: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+  }) => {
+    const source = await database.query<Record<string, unknown>>(
+      `SELECT source.id,source.digest,source.openapi_version,source.title,
+              source.version
+         FROM documentation_schema.openapi_source source
+         JOIN documentation_schema.site_edition edition
+           ON edition.id=source.site_edition_id
+        WHERE source.organization_id=$1 AND source.project_id=$2
+          AND edition.project_version_id=$3
+          AND edition.documentation_site_id=$4`,
+      [
+        input.organization_id,
+        input.project_id,
+        input.project_version_id,
+        input.site_id,
+      ],
+    );
+    if (!source.rows[0]) return null;
+    const operations = await database.query<Record<string, unknown>>(
+      `SELECT id,method,path,operation_id,destination_key,summary
+         FROM documentation_schema.openapi_operation
+        WHERE openapi_source_id=$1 AND organization_id=$2 AND project_id=$3
+        ORDER BY destination_key,id`,
+      [source.rows[0].id, input.organization_id, input.project_id],
+    );
+    return { source: source.rows[0], operations: operations.rows };
+  },
+
   get_preview: async (input: {
     organization_id: string;
     project_id: string;

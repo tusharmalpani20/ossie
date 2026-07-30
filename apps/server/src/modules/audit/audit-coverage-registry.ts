@@ -875,6 +875,14 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     ],
   ),
   command(
+    "documentation.openapi.inspect",
+    "documentation.openapi.inspected",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/inspections",
+    ],
+    [U.file_insert()],
+  ),
+  command(
     "publish.interactive_demo",
     "interactive_demo.published",
     [

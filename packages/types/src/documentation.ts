@@ -280,6 +280,13 @@ export const DocumentationRollbackPublicationRequestSchema = z
   })
   .strict();
 
+export const DocumentationApplyOpenApiRequestSchema = z
+  .object({
+    inspection_id: IdSchema,
+    expected_source_version: PositiveIntSchema.nullable(),
+  })
+  .strict();
+
 export const DocumentationPageSummarySchema = z
   .object({
     id: IdSchema,

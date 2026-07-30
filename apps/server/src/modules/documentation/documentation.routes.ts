@@ -12,6 +12,7 @@ import {
   DocumentationCreatePublicationRequestSchema,
   DocumentationCreateRevisionRequestSchema,
   DocumentationRollbackPublicationRequestSchema,
+  DocumentationApplyOpenApiRequestSchema,
 } from "@repo/types";
 import { normalize_documentation_path } from "@repo/documentation-domain";
 import { z } from "zod";
@@ -55,6 +56,13 @@ const PublicDocumentationParamsSchema = z
     slug: z.string().trim().min(1).max(80),
     version_slug: z.string().trim().min(1).optional(),
     "*": z.string().optional(),
+  })
+  .strict();
+const PublicOperationParamsSchema = z
+  .object({
+    slug: z.string().trim().min(1).max(80),
+    version_slug: z.string().trim().min(1).optional(),
+    operation_key: z.string().trim().min(1).max(255),
   })
   .strict();
 
@@ -237,6 +245,33 @@ export type DocumentationRouteDependencies = {
       slug: string;
       version_slug: string | null;
     }) => Promise<unknown>;
+    inspect_openapi: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      bytes: Buffer;
+      mime_type: "application/json" | "application/yaml";
+      original_name: string;
+    }) => Promise<unknown>;
+    apply_openapi_source: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      idempotency_key: string;
+      inspection_id: string;
+      expected_source_version: number | null;
+    }) => Promise<unknown>;
+    get_openapi_source: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+    }) => Promise<unknown>;
   };
   resolve_project_version: (input: {
     organization_id: string;
@@ -399,6 +434,152 @@ export const build_documentation_routes = (
             .status(401)
             .send(error_response("unauthenticated", "Authentication required"));
         }
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/inspections",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        if (!params.success || !request.isMultipart())
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        try {
+          let upload:
+            | {
+                bytes: Buffer;
+                mime_type: "application/json" | "application/yaml";
+                original_name: string;
+              }
+            | undefined;
+          for await (const part of request.parts({
+            limits: { files: 1, fields: 0, fileSize: 10 * 1024 * 1024 },
+          })) {
+            if (part.type !== "file" || upload)
+              return reply.status(400).send(
+                error_response(
+                  "invalid_documentation_request",
+                  "Exactly one OpenAPI File is required",
+                ),
+              );
+            const normalizedMime =
+              part.mimetype === "application/json"
+                ? "application/json"
+                : part.mimetype === "application/yaml" ||
+                    part.mimetype === "text/yaml" ||
+                    /\.ya?ml$/iu.test(part.filename)
+                  ? "application/yaml"
+                  : null;
+            if (!normalizedMime)
+              return reply.status(400).send(
+                error_response(
+                  "documentation_openapi_invalid",
+                  "OpenAPI File must be JSON or YAML",
+                ),
+              );
+            upload = {
+              bytes: await part.toBuffer(),
+              mime_type: normalizedMime,
+              original_name: part.filename,
+            };
+          }
+          if (!upload)
+            return reply.status(400).send(
+              error_response(
+                "invalid_documentation_request",
+                "Exactly one OpenAPI File is required",
+              ),
+            );
+          const scope = await authorized_scope(request, params.data);
+          const inspection =
+            await dependencies.documentation_service.inspect_openapi({
+              ...scope,
+              site_id: params.data.site_id,
+              ...upload,
+            });
+          return reply.status(201).send({ inspection });
+        } catch (error) {
+          const code =
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            error.code === "documentation_openapi_invalid"
+              ? error.code
+              : null;
+          if (code)
+            return reply
+              .status(400)
+              .send(error_response(code, "OpenAPI File is invalid"));
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/sources",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const body = DocumentationApplyOpenApiRequestSchema.safeParse(
+          request.body,
+        );
+        const key = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (!params.success || !body.success || !key.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const result =
+            await dependencies.documentation_service.apply_openapi_source({
+              ...scope,
+              site_id: params.data.site_id,
+              idempotency_key: key.data,
+              ...body.data,
+            });
+          const command = unwrap_idempotent_result(result);
+          return reply
+            .status(command.replayed ? 200 : 201)
+            .send(command.body);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/source",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        const scope = await authorized_scope(request, params.data);
+        const source =
+          await dependencies.documentation_service.get_openapi_source({
+            ...scope,
+            site_id: params.data.site_id,
+          });
+        if (!source)
+          return reply.status(404).send(
+            error_response(
+              "documentation_openapi_not_found",
+              "OpenAPI Source was not found",
+            ),
+          );
+        return reply.send(source);
       },
     );
 
@@ -1114,6 +1295,55 @@ export const build_documentation_routes = (
     );
     register_public_search(
       "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/search",
+    );
+
+    const register_public_operation = (path: string) =>
+      fastify.get(path, async (request, reply) => {
+        const params = PublicOperationParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply.status(404).send(
+            error_response(
+              "documentation_operation_not_found",
+              "OpenAPI operation was not found",
+            ),
+          );
+        const site = await dependencies.documentation_service.resolve_public_site(
+          {
+            slug: params.data.slug,
+            version_slug: params.data.version_slug ?? null,
+          },
+        );
+        if (!site)
+          return reply.status(404).send(
+            error_response(
+              "publish_link_not_found",
+              "Publish Link was not found",
+            ),
+          );
+        const snapshot = site as {
+          openapi_operations: Array<{
+            destination_key: string;
+            [key: string]: unknown;
+          }>;
+        };
+        const operation = snapshot.openapi_operations.find(
+          (candidate) =>
+            candidate.destination_key === params.data.operation_key,
+        );
+        if (!operation)
+          return reply.status(404).send(
+            error_response(
+              "documentation_operation_not_found",
+              "OpenAPI operation was not found",
+            ),
+          );
+        return reply.send({ operation });
+      });
+    register_public_operation(
+      "/api/v1/public/publish-links/:slug/documentation/operations/:operation_key",
+    );
+    register_public_operation(
+      "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/operations/:operation_key",
     );
 
     const register_public_metadata = (

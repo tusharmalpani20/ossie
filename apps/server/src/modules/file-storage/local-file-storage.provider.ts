@@ -45,6 +45,9 @@ const extension_by_mime_type = new Map([
   ["image/png", "png"],
   ["image/jpeg", "jpg"],
   ["image/webp", "webp"],
+  ["application/json", "json"],
+  ["application/yaml", "yaml"],
+  ["text/yaml", "yaml"],
 ]);
 
 const file_extension_for_mime_type = (mime_type: string) => {
@@ -85,23 +88,31 @@ const resolve_storage_path = (root: string, storage_key: string) => {
 export const build_local_file_storage_provider = (input: { root: string }) => {
   const root = path.resolve(input.root);
 
-  const put = async (file: {
-    organization_id: string;
-    project_id: string;
-    capture_session_id: string;
-    file_id: string;
-    mime_type: string;
-    stream: NodeJS.ReadableStream;
-    max_size_bytes?: number;
-  }): Promise<StoredFile> => {
+  const put = async (
+    file: {
+      organization_id: string;
+      project_id: string;
+      file_id: string;
+      mime_type: string;
+      stream: NodeJS.ReadableStream;
+      max_size_bytes?: number;
+    } & (
+      | { capture_session_id: string; documentation_site_id?: never }
+      | { documentation_site_id: string; capture_session_id?: never }
+    ),
+  ): Promise<StoredFile> => {
     const extension = file_extension_for_mime_type(file.mime_type);
     const storage_key = [
       "organizations",
       file.organization_id,
       "projects",
       file.project_id,
-      "capture-sessions",
-      file.capture_session_id,
+      "documentation_site_id" in file
+        ? "documentation-sites"
+        : "capture-sessions",
+      "documentation_site_id" in file
+        ? file.documentation_site_id
+        : file.capture_session_id,
       `${file.file_id}.${extension}`,
     ].join("/");
     const storage_path = resolve_storage_path(root, storage_key);

@@ -1,3 +1,5 @@
+import { Readable } from "node:stream";
+import { ulid } from "ulid";
 import cookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
 import fastifyMultipart from "@fastify/multipart";
@@ -145,6 +147,7 @@ import {
 } from "./modules/documentation/documentation.routes.js";
 import { build_documentation_repository } from "./modules/documentation/documentation.repository.js";
 import { build_documentation_service } from "./modules/documentation/documentation.service.js";
+import { parse_documentation_openapi } from "./modules/documentation/documentation-openapi.js";
 
 type BuildOptions = FastifyServerOptions & {
   public_instance_service?: PublicInstanceRouteService;
@@ -922,6 +925,70 @@ export const build = (opts: BuildOptions = {}) => {
               return repository.rollback_publication(input);
             },
             resolve_public_site: repository.resolve_public_site,
+            inspect_openapi: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              const parsed = parse_documentation_openapi(
+                input.bytes,
+                input.mime_type,
+              );
+              const file_id = ulid();
+              const inspection_id = ulid();
+              const stored = await default_capture_file_storage.put({
+                organization_id: input.organization_id,
+                project_id: input.project_id,
+                documentation_site_id: input.site_id,
+                file_id,
+                mime_type: input.mime_type,
+                stream: Readable.from(input.bytes),
+                max_size_bytes: 10 * 1024 * 1024,
+              });
+              try {
+                return await repository.create_openapi_inspection({
+                  ...input,
+                  file_id,
+                  inspection_id,
+                  file: {
+                    ...stored,
+                    mime_type: input.mime_type,
+                    original_name: input.original_name,
+                  },
+                  document: parsed.document,
+                  summary: parsed.summary,
+                });
+              } catch (error) {
+                await default_capture_file_storage.delete_best_effort(stored);
+                throw error;
+              }
+            },
+            apply_openapi_source: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.apply_openapi_source(input);
+            },
+            get_openapi_source: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.get_openapi_source(input);
+            },
           };
         })(),
       resolve_project_version: async (input) => {

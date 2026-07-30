@@ -12,6 +12,7 @@ import {
   DocumentationCreateRevisionRequestSchema,
   DocumentationCreatePublicationRequestSchema,
   DocumentationRollbackPublicationRequestSchema,
+  DocumentationApplyOpenApiRequestSchema,
 } from "./documentation";
 
 describe("Documentation shared contracts", () => {
@@ -93,6 +94,15 @@ describe("Documentation shared contracts", () => {
       DocumentationRollbackPublicationRequestSchema.safeParse({
         site_publication_id: "01J00000000000000000000002",
         expected_entry_version: 2,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("applies only a previously inspected OpenAPI File", () => {
+    expect(
+      DocumentationApplyOpenApiRequestSchema.safeParse({
+        inspection_id: "01J00000000000000000000001",
+        expected_source_version: null,
       }).success,
     ).toBe(true);
   });

@@ -757,7 +757,8 @@ RETURNS BOOLEAN AS $$
     (selected_command,selected_action) IN (
       ('publish.documentation_link.create','documentation.publish_link.created'),
       ('publish.documentation_link.manifest_update','documentation.publish_link.manifest_updated'),
-      ('publish.documentation_link.entry_rollback','documentation.publish_link.entry_rolled_back')
+      ('publish.documentation_link.entry_rollback','documentation.publish_link.entry_rolled_back'),
+      ('documentation.openapi.inspect','documentation.openapi.inspected')
     )
     AND selected_actor_type='org_user'
     AND selected_source_type IN ('web','api','extension')
@@ -775,6 +776,8 @@ DROP TRIGGER publish_link_entry_i_audit_ctx ON publish_schema.publish_link_entry
 DROP TRIGGER publish_link_entry_i_audit_evd ON publish_schema.publish_link_entry;
 DROP TRIGGER publish_link_entry_u_audit_ctx ON publish_schema.publish_link_entry;
 DROP TRIGGER publish_link_entry_u_audit_evd ON publish_schema.publish_link_entry;
+DROP TRIGGER file_i_audit_ctx ON file_schema.file;
+DROP TRIGGER file_i_audit_evd ON file_schema.file;
 
 CREATE TRIGGER publish_link_i_audit_ctx BEFORE INSERT ON publish_schema.publish_link
   FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
@@ -815,6 +818,16 @@ CREATE CONSTRAINT TRIGGER publish_link_entry_u_audit_evd AFTER UPDATE ON publish
   DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
     'publish_link_entry','direct',
     'publish.guide,publish.interactive_demo,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.documentation_link.manifest_update,publish.documentation_link.entry_rollback'
+  );
+CREATE TRIGGER file_i_audit_ctx BEFORE INSERT ON file_schema.file
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'file','direct',
+    'capture_asset.create,capture_asset.upload,guide.block.screenshot_upload,documentation.openapi.inspect'
+  );
+CREATE CONSTRAINT TRIGGER file_i_audit_evd AFTER INSERT ON file_schema.file
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'file','direct',
+    'capture_asset.create,capture_asset.upload,guide.block.screenshot_upload,documentation.openapi.inspect'
   );
 
 CREATE FUNCTION documentation_schema.prevent_immutable_documentation_mutation()
@@ -933,9 +946,22 @@ DROP TRIGGER publish_link_entry_i_audit_ctx ON publish_schema.publish_link_entry
 DROP TRIGGER publish_link_entry_i_audit_evd ON publish_schema.publish_link_entry;
 DROP TRIGGER publish_link_entry_u_audit_ctx ON publish_schema.publish_link_entry;
 DROP TRIGGER publish_link_entry_u_audit_evd ON publish_schema.publish_link_entry;
+DROP TRIGGER file_i_audit_ctx ON file_schema.file;
+DROP TRIGGER file_i_audit_evd ON file_schema.file;
 DROP FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT,TEXT,TEXT,TEXT);
 ALTER FUNCTION audit_schema.mutation_command_policy_is_valid_v024(TEXT,TEXT,TEXT,TEXT)
   RENAME TO mutation_command_policy_is_valid;
+
+CREATE TRIGGER file_i_audit_ctx BEFORE INSERT ON file_schema.file
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'file','direct',
+    'capture_asset.create,capture_asset.upload,guide.block.screenshot_upload'
+  );
+CREATE CONSTRAINT TRIGGER file_i_audit_evd AFTER INSERT ON file_schema.file
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'file','direct',
+    'capture_asset.create,capture_asset.upload,guide.block.screenshot_upload'
+  );
 
 CREATE TRIGGER publish_link_i_audit_ctx BEFORE INSERT ON publish_schema.publish_link
   FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(

@@ -8,10 +8,10 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(82);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(83);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(82);
+    ).toBe(83);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
@@ -380,6 +380,7 @@ describe("audit coverage registry", () => {
       ["publish_link", "UPDATE", "publish_link_u_audit_ctx"],
       ["publish_link_entry", "INSERT", "publish_link_entry_i_audit_ctx"],
       ["publish_link_entry", "UPDATE", "publish_link_entry_u_audit_ctx"],
+      ["file", "INSERT", "file_i_audit_ctx"],
     ] as const) {
       const triggerStart = migration_025_up.indexOf(
         `CREATE TRIGGER ${triggerName}`,
@@ -393,7 +394,7 @@ describe("audit coverage registry", () => {
         -1,
       )?.[1];
       actual.set(
-        `publish_schema.${table}:${operation}`,
+        `${table === "file" ? "file_schema" : "publish_schema"}.${table}:${operation}`,
         commandArgument?.split(",") ?? [],
       );
     }

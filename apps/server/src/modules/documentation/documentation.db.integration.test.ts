@@ -4,6 +4,24 @@ import { pool } from "../../config/database.config";
 import { reset_test_database } from "../../test-support/database";
 import { build_documentation_repository } from "./documentation.repository";
 
+const multipart_file = (
+  filename: string,
+  mime_type: string,
+  bytes: Buffer,
+) => {
+  const boundary = "ossie-documentation-openapi-boundary";
+  return {
+    headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+    payload: Buffer.concat([
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mime_type}\r\n\r\n`,
+      ),
+      bytes,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]),
+  };
+};
+
 const establish_project = async () => {
   const app = build({ logger: false });
   const setup = await app.inject({
@@ -301,6 +319,53 @@ describe("DB-backed Documentation repository", () => {
         documentation_page_id: page.json().page.id,
       }),
     ]);
+    const openapiDocument = Buffer.from(
+      JSON.stringify({
+        openapi: "3.1.0",
+        info: { title: "Product API", version: "1.0.0" },
+        paths: {
+          "/widgets": {
+            get: {
+              operationId: "listWidgets",
+              summary: "List widgets",
+              responses: { "200": { description: "OK" } },
+            },
+          },
+        },
+      }),
+    );
+    const inspection = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/openapi/inspections`,
+      cookies: { ossie_session: scope.session_token },
+      ...multipart_file(
+        "openapi.json",
+        "application/json",
+        openapiDocument,
+      ),
+    });
+    expect(inspection.statusCode).toBe(201);
+    expect(inspection.json().inspection).toMatchObject({
+      openapi_version: "3.1.0",
+      operation_count: 1,
+    });
+    expect(JSON.stringify(inspection.json())).not.toContain('"paths"');
+    const appliedSource = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/openapi/sources`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "openapi-apply-route-1" },
+      payload: {
+        inspection_id: inspection.json().inspection.id,
+        expected_source_version: null,
+      },
+    });
+    expect(appliedSource.statusCode).toBe(201);
+    expect(appliedSource.json().operations).toEqual([
+      expect.objectContaining({
+        destination_key: "get-widgets-listwidgets",
+      }),
+    ]);
     const comment = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}/comments`,
@@ -360,6 +425,14 @@ describe("DB-backed Documentation repository", () => {
             label: "Read the reference",
             page_id: secondPage.json().page.id,
           },
+          {
+            id: "01J00000000000000000000009",
+            kind: "api_reference",
+            position: 3,
+            expected_version: null,
+            openapi_source_id: appliedSource.json().source.id,
+            operation_key: "get-widgets-listwidgets",
+          },
         ],
       },
     });
@@ -408,6 +481,16 @@ describe("DB-backed Documentation repository", () => {
     expect(JSON.stringify(publicBefore.json())).not.toContain(
       "Please clarify this installation step.",
     );
+    const publicOperation = await app.inject({
+      method: "GET",
+      url: "/api/v1/public/publish-links/product-docs/documentation/operations/get-widgets-listwidgets",
+    });
+    expect(publicOperation.statusCode).toBe(200);
+    expect(publicOperation.json().operation).toMatchObject({
+      method: "get",
+      path: "/widgets",
+      destination_key: "get-widgets-listwidgets",
+    });
     const aliasRedirect = await app.inject({
       method: "GET",
       url: "/api/v1/public/publish-links/product-docs/documentation/pages/install",
