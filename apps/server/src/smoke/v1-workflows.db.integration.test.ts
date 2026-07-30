@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../app";
 import { pool } from "../config/database.config";
 import { reset_test_database } from "../test-support/database";
+import { seed_documentation_browser_fixture } from "../dev-fixtures/documentation-browser-fixture";
 
 const multipart_payload = (
   parts: Array<{
@@ -716,5 +717,52 @@ describe("v1 dogfood smoke workflow", () => {
     );
 
     await app.close();
+  }, 30_000);
+
+  it("publishes and rolls back an exact Documentation Site vertical slice", async () => {
+    const fixture = await seed_documentation_browser_fixture();
+    const app = build({ logger: false });
+    try {
+      const public_page = await app.inject({
+        method: "GET",
+        url: "/api/v1/public/publish-links/plan132-public/documentation/pages/install-guide",
+        headers: { "x-ossie-access-surface": "public_reader" },
+      });
+      expect(public_page.statusCode, public_page.body).toBe(200);
+      expect(public_page.json()).toMatchObject({
+        publication: { id: fixture.publication_id },
+        page: { title: "Install" },
+      });
+      const alias = await app.inject({
+        method: "GET",
+        url: "/api/v1/public/publish-links/plan132-public/documentation/pages/install",
+      });
+      expect(alias.statusCode).toBe(308);
+      expect(alias.headers.location).toBe(
+        "/docs/plan132-public/install-guide",
+      );
+
+      const persisted = await pool.query<{
+        selected_publication_id: string;
+        revision_count: string;
+        publication_count: string;
+      }>(
+        `SELECT entry.site_publication_id selected_publication_id,
+                (SELECT COUNT(*) FROM documentation_schema.site_revision
+                  WHERE documentation_site_id=$1)::text revision_count,
+                (SELECT COUNT(*) FROM publish_schema.site_publication
+                  WHERE documentation_site_id=$1)::text publication_count
+           FROM publish_schema.publish_link_entry entry
+          WHERE entry.id=$2`,
+        [fixture.site_id, fixture.entry_id],
+      );
+      expect(persisted.rows[0]).toEqual({
+        selected_publication_id: fixture.publication_id,
+        revision_count: "2",
+        publication_count: "2",
+      });
+    } finally {
+      await app.close();
+    }
   }, 30_000);
 });
