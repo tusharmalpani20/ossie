@@ -73,6 +73,30 @@ describe("relational publication routes", () => {
     ).toBe(400);
     await app.close();
   });
+  it("resolves the Documentation family from the shared public-link root", async () => {
+    const app = Fastify();
+    const resolve_public_documentation = vi.fn(async () => ({
+      resource_family: "documentation_site",
+      revision: { site_name: "Product docs" },
+    }));
+    await app.register(
+      build_publish_routes({
+        auth_service: {} as never,
+        publish_service: {} as never,
+        resolve_public_documentation,
+      }),
+      { prefix: "/api/v1" },
+    );
+    const response = await app.inject({
+      url: "/api/v1/public/publish-links/product-docs?resource_family=documentation_site",
+    });
+    expect(response.statusCode).toBe(200);
+    expect(resolve_public_documentation).toHaveBeenCalledWith({
+      slug: "product-docs",
+      version_slug: null,
+    });
+    await app.close();
+  });
   it("returns a non-revealing 404 when a public Publish Link is unavailable", async () => {
     const app = Fastify();
     await app.register(

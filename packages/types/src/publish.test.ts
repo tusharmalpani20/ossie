@@ -359,5 +359,10 @@ describe("publication and Publish Link contracts", () => {
       artifact_type: "guide",
     });
     expect(() => PublicPublishLinkQuerySchema.parse({})).toThrow();
+    expect(
+      PublicPublishLinkQuerySchema.parse({
+        resource_family: "documentation_site",
+      }),
+    ).toEqual({ resource_family: "documentation_site" });
   });
 });

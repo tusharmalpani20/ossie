@@ -1237,6 +1237,8 @@ export const build = (opts: BuildOptions = {}) => {
             revoke_publish_link: "publish_link.manage",
           });
         })(),
+      resolve_public_documentation:
+        build_documentation_repository(pool).resolve_public_site,
     }),
     {
       prefix: "/api/v1",

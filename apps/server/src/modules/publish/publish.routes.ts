@@ -59,6 +59,10 @@ export type PublishRouteDependencies = {
     get_current_auth_context(session_token?: string): Promise<AuthContext>;
   };
   publish_service: PublishService;
+  resolve_public_documentation?: (input: {
+    slug: string;
+    version_slug: string | null;
+  }) => Promise<unknown | null>;
 };
 type Params = {
   project_id: string;
@@ -449,6 +453,22 @@ export const build_publish_routes =
         const query = public_query(request.query);
         if (!query.success) return invalid(reply);
         const p = request.params as PublicParams;
+        if ("resource_family" in query.data) {
+          const result = await dependencies.resolve_public_documentation?.({
+            slug: p.slug,
+            version_slug: null,
+          });
+          return result
+            ? result
+            : reply
+                .status(404)
+                .send(
+                  error_response(
+                    "publish_link_not_found",
+                    "Publish Link was not found",
+                  ),
+                );
+        }
         return await dependencies.publish_service.resolve_public_publish_link({
           slug: p.slug,
           artifact_type: query.data.artifact_type,
@@ -466,6 +486,22 @@ export const build_publish_routes =
           const query = public_query(request.query);
           if (!query.success) return invalid(reply);
           const p = request.params as PublicParams;
+          if ("resource_family" in query.data) {
+            const result = await dependencies.resolve_public_documentation?.({
+              slug: p.slug,
+              version_slug: p.version_slug!,
+            });
+            return result
+              ? result
+              : reply
+                  .status(404)
+                  .send(
+                    error_response(
+                      "publish_link_not_found",
+                      "Publish Link was not found",
+                    ),
+                  );
+          }
           return await dependencies.publish_service.resolve_public_publish_link(
             {
               slug: p.slug,
@@ -487,7 +523,12 @@ export const build_publish_routes =
             body = CreatePublicViewerSessionRequestSchema.safeParse(
               request.body,
             );
-          if (!query.success || !body.success) return invalid(reply);
+          if (
+            !query.success ||
+            !("artifact_type" in query.data) ||
+            !body.success
+          )
+            return invalid(reply);
           const result =
             await dependencies.publish_service.create_public_publish_viewer_session(
               {
@@ -508,7 +549,8 @@ export const build_publish_routes =
       async (request, reply) => {
         try {
           const query = public_query(request.query);
-          if (!query.success) return invalid(reply);
+          if (!query.success || !("artifact_type" in query.data))
+            return invalid(reply);
           const p = request.params as PublicParams;
           const file =
             await dependencies.publish_service.get_public_published_asset_file({

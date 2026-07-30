@@ -319,9 +319,10 @@ export const RollbackPublishLinkEntryResponseSchema = z
   })
   .strict();
 
-export const PublicPublishLinkQuerySchema = z
-  .object({ artifact_type: z.enum(PUBLISH_ARTIFACT_TYPES) })
-  .strict();
+export const PublicPublishLinkQuerySchema = z.union([
+  z.object({ artifact_type: z.enum(PUBLISH_ARTIFACT_TYPES) }).strict(),
+  z.object({ resource_family: z.literal("documentation_site") }).strict(),
+]);
 
 export const CreatePublicViewerSessionRequestSchema = z
   .object({ password: z.string() })
