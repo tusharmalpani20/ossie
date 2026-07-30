@@ -546,7 +546,7 @@ export const build_capture_asset_transactional_repository = (
       )
     ).rows[0];
     if (!asset) return null;
-    const dependencies = (
+    const existingDependencies = (
       await db.query<Record<string, unknown>>(
         `
       SELECT 'guide_working_draft' dependency_type,edition.guide_id artifact_id,edition.id edition_id,NULL::int revision_number,
@@ -583,6 +583,42 @@ export const build_capture_asset_transactional_repository = (
         ],
       )
     ).rows;
+    const documentationDependencies = (
+      await db.query<Record<string, unknown>>(
+        `SELECT 'documentation_page' dependency_type,
+                edition.documentation_site_id,block.site_edition_id,
+                block.documentation_page_id entity_id,
+                NULL::varchar site_revision_id,NULL::int revision_number
+           FROM documentation_schema.documentation_page_block block
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=block.site_edition_id
+          WHERE block.project_id=$1 AND block.organization_id=$2
+            AND block.capture_asset_id=$3
+          UNION ALL
+         SELECT 'documentation_snippet',edition.documentation_site_id,
+                block.site_edition_id,block.documentation_snippet_id,
+                NULL,NULL
+           FROM documentation_schema.documentation_snippet_block block
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=block.site_edition_id
+          WHERE block.project_id=$1 AND block.organization_id=$2
+            AND block.capture_asset_id=$3
+          UNION ALL
+         SELECT 'documentation_revision',revision.documentation_site_id,
+                NULL,NULL,revision.id,revision.revision_number
+           FROM documentation_schema.site_revision_asset_reference reference
+           JOIN documentation_schema.site_revision revision
+             ON revision.id=reference.site_revision_id
+          WHERE reference.project_id=$1 AND reference.organization_id=$2
+            AND reference.source_kind='capture_asset'
+            AND reference.source_asset_id=$3`,
+        [input.project_id, input.organization_id, input.capture_asset_id],
+      )
+    ).rows;
+    const dependencies = [
+      ...existingDependencies,
+      ...documentationDependencies,
+    ];
     const safe = dependencies
       .slice(0, 100)
       .map((row) =>

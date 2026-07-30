@@ -142,16 +142,28 @@ describe("capture contracts", () => {
         status: "archived",
         purge_operation_status: null,
         can_purge: false,
-        total_dependency_count: 1,
+        total_dependency_count: 3,
         dependencies: [
           {
             dependency_type: "guide_working_draft",
             artifact_id: "guide_1",
             edition_id: "edition_1",
           },
+          {
+            dependency_type: "documentation_page",
+            documentation_site_id: "site_1",
+            site_edition_id: "site_edition_1",
+            entity_id: "page_1",
+          },
+          {
+            dependency_type: "documentation_revision",
+            documentation_site_id: "site_1",
+            site_revision_id: "site_revision_1",
+            revision_number: 2,
+          },
         ],
       }).dependencies,
-    ).toHaveLength(1);
+    ).toHaveLength(3);
     expect(
       CaptureAssetPurgeResponseSchema.parse({
         capture_asset_id: "capture_asset_1",

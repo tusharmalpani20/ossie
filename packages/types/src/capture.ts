@@ -450,6 +450,22 @@ const SharedFileAssetDependencySchema = z
     capture_asset_id: IdSchema,
   })
   .strict();
+const DocumentationDraftAssetDependencySchema = z
+  .object({
+    dependency_type: z.enum(["documentation_page", "documentation_snippet"]),
+    documentation_site_id: IdSchema,
+    site_edition_id: IdSchema,
+    entity_id: IdSchema,
+  })
+  .strict();
+const DocumentationRevisionAssetDependencySchema = z
+  .object({
+    dependency_type: z.literal("documentation_revision"),
+    documentation_site_id: IdSchema,
+    site_revision_id: IdSchema,
+    revision_number: PositiveIntSchema,
+  })
+  .strict();
 export const CaptureAssetDependencySchema = z.discriminatedUnion(
   "dependency_type",
   [
@@ -457,6 +473,8 @@ export const CaptureAssetDependencySchema = z.discriminatedUnion(
     RevisionAssetDependencySchema,
     PublishedAssetDependencySchema,
     SharedFileAssetDependencySchema,
+    DocumentationDraftAssetDependencySchema,
+    DocumentationRevisionAssetDependencySchema,
   ],
 );
 

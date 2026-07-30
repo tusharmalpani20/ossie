@@ -27,6 +27,12 @@ const dependencyLabel = (
       return `Publication ${dependency.publication_sequence}`;
     case "shared_file_asset":
       return `Capture Asset ${dependency.capture_asset_id} shares this File`;
+    case "documentation_page":
+      return `Documentation Page ${dependency.entity_id}`;
+    case "documentation_snippet":
+      return `Documentation Snippet ${dependency.entity_id}`;
+    case "documentation_revision":
+      return `Documentation Revision ${dependency.revision_number}`;
   }
 };
 
