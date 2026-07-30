@@ -51,7 +51,19 @@ const documentation_service_stubs = (
   get_openapi_source: vi.fn(),
   upload_asset: vi.fn(),
   get_asset_file: vi.fn(),
+  get_capture_asset_file: vi.fn(),
   get_public_asset_file: vi.fn(),
+  get_public_capture_asset_file: vi.fn(),
+  list_snippets: vi.fn(async () => []),
+  create_snippet: vi.fn(),
+  get_snippet: vi.fn(),
+  update_snippet: vi.fn(),
+  save_snippet: vi.fn(),
+  transition_snippet: vi.fn(),
+  list_assets: vi.fn(async () => []),
+  update_asset: vi.fn(),
+  transition_asset: vi.fn(),
+  list_artifact_publications: vi.fn(async () => []),
   ...overrides,
 });
 
@@ -526,5 +538,127 @@ describe("Documentation routes", () => {
     expect(download.statusCode).toBe(200);
     expect(download.headers["content-type"]).toBe("image/png");
     expect(missing.statusCode).toBe(404);
+  });
+
+  it("exposes versioned Snippet, Asset library, and exact Publication workflows", async () => {
+    const create_snippet = vi.fn(async () => ({
+      id: "snippet",
+      name: "Authentication warning",
+      status: "active",
+      version: 1,
+      blocks: [],
+    }));
+    const save_snippet = vi.fn(async () => ({
+      id: "snippet",
+      name: "Authentication warning",
+      status: "active",
+      version: 2,
+      blocks: [],
+    }));
+    const transition_asset = vi.fn(async () => ({
+      source: { kind: "documentation_asset", id: "asset" },
+      name: "Install",
+      status: "archived",
+      version: 2,
+    }));
+    const list_artifact_publications = vi.fn(async () => [
+      {
+        published_artifact_id: "publication",
+        artifact_type: "guide",
+        title: "Install guide",
+        publication_sequence: 3,
+        revision_number: 2,
+      },
+    ]);
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          create_snippet,
+          save_snippet,
+          transition_asset,
+          list_artifact_publications,
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const root =
+      "/api/v1/projects/project/versions/main/documentation-sites/site";
+    const created = await app.inject({
+      method: "POST",
+      url: `${root}/snippets`,
+      cookies: { ossie_session: "session" },
+      headers: { "idempotency-key": "snippet-create-1" },
+      payload: { name: "Authentication warning" },
+    });
+    const saved = await app.inject({
+      method: "PUT",
+      url: `${root}/snippets/snippet/content`,
+      cookies: { ossie_session: "session" },
+      payload: { expected_snippet_version: 1, blocks: [] },
+    });
+    const archived = await app.inject({
+      method: "PATCH",
+      url: `${root}/assets/asset/lifecycle`,
+      cookies: { ossie_session: "session" },
+      payload: { expected_version: 1, transition: "archive" },
+    });
+    const options = await app.inject({
+      method: "GET",
+      url: `${root}/artifact-publications?artifact_type=guide`,
+      cookies: { ossie_session: "session" },
+    });
+    const nested = await app.inject({
+      method: "PUT",
+      url: `${root}/snippets/snippet/content`,
+      cookies: { ossie_session: "session" },
+      payload: {
+        expected_snippet_version: 2,
+        blocks: [
+          {
+            id: "01J00000000000000000000001",
+            kind: "snippet_reference",
+            snippet_id: "01J00000000000000000000002",
+            position: 1,
+            expected_version: null,
+          },
+        ],
+      },
+    });
+    await app.close();
+
+    expect(created.statusCode).toBe(201);
+    expect(saved.statusCode).toBe(200);
+    expect(archived.statusCode).toBe(200);
+    expect(options.statusCode).toBe(200);
+    expect(options.json().publications[0].published_artifact_id).toBe(
+      "publication",
+    );
+    expect(nested.statusCode).toBe(400);
+    expect(create_snippet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        site_id: "site",
+        idempotency_key: "snippet-create-1",
+        data: { name: "Authentication warning" },
+      }),
+    );
+    expect(save_snippet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        snippet_id: "snippet",
+        expected_snippet_version: 1,
+      }),
+    );
+    expect(transition_asset).toHaveBeenCalledWith(
+      expect.objectContaining({
+        asset_id: "asset",
+        expected_version: 1,
+        transition: "archive",
+      }),
+    );
+    expect(list_artifact_publications).toHaveBeenCalledWith(
+      expect.objectContaining({ artifact_type: "guide" }),
+    );
   });
 });

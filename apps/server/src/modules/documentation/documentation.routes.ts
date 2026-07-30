@@ -17,6 +17,12 @@ import {
   DocumentationCreateRevisionRequestSchema,
   DocumentationRollbackPublicationRequestSchema,
   DocumentationApplyOpenApiRequestSchema,
+  DocumentationAssetLifecycleRequestSchema,
+  DocumentationAssetUpdateRequestSchema,
+  DocumentationCreateSnippetRequestSchema,
+  DocumentationSnippetContentRequestSchema,
+  DocumentationSnippetLifecycleRequestSchema,
+  DocumentationUpdateSnippetRequestSchema,
   RevokePublishLinkRequestSchema,
 } from "@repo/types";
 import { normalize_documentation_path } from "@repo/documentation-domain";
@@ -57,6 +63,30 @@ const RevisionParamsSchema = SiteParamsSchema.extend({
 const AssetParamsSchema = SiteParamsSchema.extend({
   asset_id: z.string().trim().min(1),
 }).strict();
+const SnippetParamsSchema = SiteParamsSchema.extend({
+  snippet_id: z.string().trim().min(1),
+}).strict();
+const SnippetListQuerySchema = z
+  .object({
+    status: z.enum(["active", "archived", "all"]).default("active"),
+    cursor: z.string().trim().min(1).optional(),
+  })
+  .strict();
+const AssetListQuerySchema = z
+  .object({
+    source: z.enum(["documentation", "capture", "all"]).default("all"),
+    status: z.enum(["active", "archived", "all"]).default("active"),
+    include_archived_versions: z.coerce.boolean().default(false),
+    include_in_use: z.coerce.boolean().default(false),
+    cursor: z.string().trim().min(1).optional(),
+  })
+  .strict();
+const ArtifactPublicationQuerySchema = z
+  .object({
+    artifact_type: z.enum(["guide", "interactive_demo"]),
+    cursor: z.string().trim().min(1).optional(),
+  })
+  .strict();
 const PublicationEntryParamsSchema = SiteParamsSchema.extend({
   link_id: z.string().trim().min(1),
   entry_id: z.string().trim().min(1),
@@ -349,6 +379,18 @@ export type DocumentationRouteDependencies = {
       mime_type: string;
       size_bytes: number;
     } | null>;
+    get_capture_asset_file: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      asset_id: string;
+    }) => Promise<{
+      stream: NodeJS.ReadableStream;
+      mime_type: string;
+      size_bytes: number;
+    } | null>;
     get_public_asset_file: (input: {
       slug: string;
       version_slug: string | null;
@@ -359,6 +401,114 @@ export type DocumentationRouteDependencies = {
       mime_type: string;
       size_bytes: number;
     } | null>;
+    get_public_capture_asset_file: (input: {
+      slug: string;
+      version_slug: string | null;
+      asset_id: string;
+      viewer_token?: string;
+    }) => Promise<{
+      stream: NodeJS.ReadableStream;
+      mime_type: string;
+      size_bytes: number;
+    } | null>;
+    list_snippets: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      status: "active" | "archived" | "all";
+      cursor?: string;
+    }) => Promise<unknown[]>;
+    create_snippet: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      idempotency_key: string;
+      data: z.infer<typeof DocumentationCreateSnippetRequestSchema>;
+    }) => Promise<unknown>;
+    get_snippet: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      snippet_id: string;
+    }) => Promise<unknown>;
+    update_snippet: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      snippet_id: string;
+      data: z.infer<typeof DocumentationUpdateSnippetRequestSchema>;
+    }) => Promise<unknown>;
+    save_snippet: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      snippet_id: string;
+      expected_snippet_version: number;
+      blocks: z.infer<
+        typeof DocumentationSnippetContentRequestSchema
+      >["blocks"];
+    }) => Promise<unknown>;
+    transition_snippet: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      snippet_id: string;
+      expected_version: number;
+      transition: "archive" | "restore";
+    }) => Promise<unknown>;
+    list_assets: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      source: "documentation" | "capture" | "all";
+      status: "active" | "archived" | "all";
+      include_archived_versions: boolean;
+      include_in_use: boolean;
+      cursor?: string;
+    }) => Promise<unknown[]>;
+    update_asset: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      asset_id: string;
+      expected_version: number;
+      name: string;
+    }) => Promise<unknown>;
+    transition_asset: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      asset_id: string;
+      expected_version: number;
+      transition: "archive" | "restore";
+    }) => Promise<unknown>;
+    list_artifact_publications: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      artifact_type: "guide" | "interactive_demo";
+      cursor?: string;
+    }) => Promise<unknown[]>;
   };
   resolve_project_version: (input: {
     organization_id: string;
@@ -413,7 +563,15 @@ export const build_documentation_routes = (
         code === "documentation_path_retired" ||
         code === "documentation_comment_transition_invalid" ||
         code === "documentation_publication_busy" ||
-        code === "documentation_rollback_invalid"
+        code === "documentation_rollback_invalid" ||
+        code === "documentation_snippet_conflict" ||
+        code === "documentation_snippet_name_conflict" ||
+        code === "documentation_snippet_archived" ||
+        code === "documentation_asset_conflict" ||
+        code === "documentation_asset_name_conflict" ||
+        code === "documentation_asset_archived" ||
+        code === "documentation_asset_source_unavailable" ||
+        code === "documentation_reference_protected"
       )
         return reply
           .status(409)
@@ -428,14 +586,21 @@ export const build_documentation_routes = (
         code === "documentation_comment_anchor_missing" ||
         code === "documentation_comment_invalid" ||
         code === "documentation_revision_invalid" ||
-        code === "documentation_internal_link_broken"
+        code === "documentation_internal_link_broken" ||
+        code === "documentation_table_invalid" ||
+        code === "documentation_tabs_invalid" ||
+        code === "documentation_asset_source_unsupported" ||
+        code === "documentation_artifact_publication_type_mismatch"
       )
         return reply
           .status(400)
           .send(error_response(code, "Documentation request is invalid"));
       if (
         code === "documentation_page_limit_exceeded" ||
-        code === "documentation_comment_limit_exceeded"
+        code === "documentation_comment_limit_exceeded" ||
+        code === "documentation_snippet_limit_exceeded" ||
+        code === "documentation_asset_limit_exceeded" ||
+        code === "documentation_content_limit_exceeded"
       )
         return reply
           .status(413)
@@ -456,8 +621,309 @@ export const build_documentation_routes = (
         return reply
           .status(404)
           .send(error_response(code, "Publish Link was not found"));
+      if (
+        code === "documentation_snippet_not_found" ||
+        code === "documentation_artifact_publication_not_found"
+      )
+        return reply
+          .status(404)
+          .send(error_response(code, "Documentation resource was not found"));
       throw error;
     };
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const query = SnippetListQuerySchema.safeParse(request.query);
+        if (!params.success || !query.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        const scope = await authorized_scope(request, params.data);
+        const snippets = await dependencies.documentation_service.list_snippets(
+          {
+            ...scope,
+            site_id: params.data.site_id,
+            ...query.data,
+          },
+        );
+        return reply.send({ snippets });
+      },
+    );
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const body = DocumentationCreateSnippetRequestSchema.safeParse(
+          request.body,
+        );
+        const key = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (!params.success || !body.success || !key.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const result =
+            await dependencies.documentation_service.create_snippet({
+              ...scope,
+              site_id: params.data.site_id,
+              idempotency_key: key.data,
+              data: body.data,
+            });
+          const command = unwrap_idempotent_result(result);
+          return reply.status(command.replayed ? 200 : 201).send(command.body);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets/:snippet_id",
+      async (request, reply) => {
+        const params = SnippetParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_snippet_not_found",
+                "Snippet was not found",
+              ),
+            );
+        const scope = await authorized_scope(request, params.data);
+        const snippet = await dependencies.documentation_service.get_snippet({
+          ...scope,
+          site_id: params.data.site_id,
+          snippet_id: params.data.snippet_id,
+        });
+        if (!snippet)
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_snippet_not_found",
+                "Snippet was not found",
+              ),
+            );
+        return reply.send({ snippet });
+      },
+    );
+    fastify.patch(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets/:snippet_id",
+      async (request, reply) => {
+        const params = SnippetParamsSchema.safeParse(request.params);
+        const body = DocumentationUpdateSnippetRequestSchema.safeParse(
+          request.body,
+        );
+        if (!params.success || !body.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const snippet =
+            await dependencies.documentation_service.update_snippet({
+              ...scope,
+              site_id: params.data.site_id,
+              snippet_id: params.data.snippet_id,
+              data: body.data,
+            });
+          return reply.send({ snippet });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+    fastify.put(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets/:snippet_id/content",
+      async (request, reply) => {
+        const params = SnippetParamsSchema.safeParse(request.params);
+        const body = DocumentationSnippetContentRequestSchema.safeParse(
+          request.body,
+        );
+        if (!params.success || !body.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const snippet = await dependencies.documentation_service.save_snippet(
+            {
+              ...scope,
+              site_id: params.data.site_id,
+              snippet_id: params.data.snippet_id,
+              ...body.data,
+            },
+          );
+          return reply.send({ snippet });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+    fastify.patch(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/snippets/:snippet_id/lifecycle",
+      async (request, reply) => {
+        const params = SnippetParamsSchema.safeParse(request.params);
+        const body = DocumentationSnippetLifecycleRequestSchema.safeParse(
+          request.body,
+        );
+        if (!params.success || !body.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const snippet =
+            await dependencies.documentation_service.transition_snippet({
+              ...scope,
+              site_id: params.data.site_id,
+              snippet_id: params.data.snippet_id,
+              ...body.data,
+            });
+          return reply.send({ snippet });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const query = AssetListQuerySchema.safeParse(request.query);
+        if (!params.success || !query.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        const scope = await authorized_scope(request, params.data);
+        const assets = await dependencies.documentation_service.list_assets({
+          ...scope,
+          site_id: params.data.site_id,
+          ...query.data,
+        });
+        return reply.send({ assets });
+      },
+    );
+    fastify.patch(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets/:asset_id",
+      async (request, reply) => {
+        const params = AssetParamsSchema.safeParse(request.params);
+        const body = DocumentationAssetUpdateRequestSchema.safeParse(
+          request.body,
+        );
+        if (!params.success || !body.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const asset = await dependencies.documentation_service.update_asset({
+            ...scope,
+            site_id: params.data.site_id,
+            asset_id: params.data.asset_id,
+            ...body.data,
+          });
+          return reply.send({ asset });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+    fastify.patch(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets/:asset_id/lifecycle",
+      async (request, reply) => {
+        const params = AssetParamsSchema.safeParse(request.params);
+        const body = DocumentationAssetLifecycleRequestSchema.safeParse(
+          request.body,
+        );
+        if (!params.success || !body.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const asset =
+            await dependencies.documentation_service.transition_asset({
+              ...scope,
+              site_id: params.data.site_id,
+              asset_id: params.data.asset_id,
+              ...body.data,
+            });
+          return reply.send({ asset });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/artifact-publications",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const query = ArtifactPublicationQuerySchema.safeParse(request.query);
+        if (!params.success || !query.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        const scope = await authorized_scope(request, params.data);
+        const publications =
+          await dependencies.documentation_service.list_artifact_publications({
+            ...scope,
+            site_id: params.data.site_id,
+            ...query.data,
+          });
+        return reply.send({ publications });
+      },
+    );
     fastify.get(
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites",
       async (request, reply) => {
@@ -754,6 +1220,42 @@ export const build_documentation_routes = (
         } catch (error) {
           return documentation_error(error, reply);
         }
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets/capture/:asset_id/file",
+      async (request, reply) => {
+        const params = AssetParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_asset_not_found",
+                "Documentation Asset was not found",
+              ),
+            );
+        const scope = await authorized_scope(request, params.data);
+        const file =
+          await dependencies.documentation_service.get_capture_asset_file({
+            ...scope,
+            site_id: params.data.site_id,
+            asset_id: params.data.asset_id,
+          });
+        if (!file)
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_asset_not_found",
+                "Documentation Asset was not found",
+              ),
+            );
+        reply
+          .header("content-type", file.mime_type)
+          .header("content-length", String(file.size_bytes));
+        return reply.send(file.stream);
       },
     );
 
@@ -1805,20 +2307,25 @@ export const build_documentation_routes = (
       "/api/v1/public/publish-links/:slug/documentation/operations/:operation_key",
     );
 
-    const register_public_asset = (path: string) =>
+    const register_public_asset = (
+      path: string,
+      source: "documentation" | "capture",
+    ) =>
       fastify.get(path, async (request, reply) => {
         const params = PublicAssetParamsSchema.safeParse(request.params);
         if (!params.success) return reply.status(404).send();
         let file;
         try {
-          file = await dependencies.documentation_service.get_public_asset_file(
-            {
-              slug: params.data.slug,
-              version_slug: params.data.version_slug ?? null,
-              asset_id: params.data.asset_id,
-              viewer_token: request.cookies?.[public_viewer_cookie_name],
-            },
-          );
+          const load =
+            source === "capture"
+              ? dependencies.documentation_service.get_public_capture_asset_file
+              : dependencies.documentation_service.get_public_asset_file;
+          file = await load({
+            slug: params.data.slug,
+            version_slug: params.data.version_slug ?? null,
+            asset_id: params.data.asset_id,
+            viewer_token: request.cookies?.[public_viewer_cookie_name],
+          });
         } catch (error) {
           documentation_error(error, reply);
           return reply;
@@ -1831,9 +2338,19 @@ export const build_documentation_routes = (
       });
     register_public_asset(
       "/api/v1/public/publish-links/:slug/documentation/assets/:asset_id/file",
+      "documentation",
     );
     register_public_asset(
       "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/assets/:asset_id/file",
+      "documentation",
+    );
+    register_public_asset(
+      "/api/v1/public/publish-links/:slug/documentation/assets/capture/:asset_id/file",
+      "capture",
+    );
+    register_public_asset(
+      "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/assets/capture/:asset_id/file",
+      "capture",
     );
     register_public_operation(
       "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/operations/:operation_key",

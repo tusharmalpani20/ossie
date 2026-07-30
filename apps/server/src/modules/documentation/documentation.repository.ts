@@ -4,11 +4,14 @@ import {
   DOCUMENTATION_COMMENT_REPLIES_PER_THREAD_MAX,
   DOCUMENTATION_COMMENT_THREADS_PER_PAGE_MAX,
   DOCUMENTATION_PAGES_PER_EDITION_MAX,
+  DOCUMENTATION_SNIPPETS_PER_EDITION_MAX,
 } from "@repo/constants";
 import {
   assert_documentation_comment_transition,
   build_documentation_search_document,
   inspect_openapi_document,
+  normalize_documentation_asset_name,
+  normalize_documentation_snippet_name,
   validate_documentation_navigation,
   validate_documentation_routes,
 } from "@repo/documentation-domain";
@@ -54,10 +57,9 @@ const lock_documentation_path_namespace = (
   client: Queryable,
   site_edition_id: string,
 ) =>
-  client.query(
-    "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))",
-    [site_edition_id],
-  );
+  client.query("SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))", [
+    site_edition_id,
+  ]);
 
 const command_digest = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -383,11 +385,19 @@ const to_documentation_block = (row: Record<string, unknown>) => {
         ...(row.link_url
           ? { url: row.link_url }
           : { page_id: row.linked_page_id }),
+        ...(row.linked_block_id
+          ? { target_block_id: row.linked_block_id }
+          : {}),
       };
     case "image":
       return {
         ...base,
-        asset_id: row.documentation_asset_id,
+        source: row.capture_asset_id
+          ? { kind: "capture_asset", id: row.capture_asset_id }
+          : {
+              kind: "documentation_asset",
+              id: row.documentation_asset_id,
+            },
         alt_text: row.alt_text,
         caption: row.image_caption,
       };
@@ -402,6 +412,41 @@ const to_documentation_block = (row: Record<string, unknown>) => {
       };
     case "divider":
       return base;
+    case "quote":
+      return {
+        ...base,
+        text: row.text_content,
+        attribution: row.quote_attribution,
+      };
+    case "table":
+      return { ...base, caption: row.table_caption, rows: row.rows };
+    case "code_example":
+      return {
+        ...base,
+        code: row.text_content,
+        language: row.code_language,
+        title: row.display_title,
+      };
+    case "callout":
+      return {
+        ...base,
+        tone: row.callout_tone,
+        title: row.display_title,
+        text: row.text_content,
+      };
+    case "tabs":
+      return { ...base, items: row.items };
+    case "snippet_reference":
+      return { ...base, snippet_id: row.snippet_id };
+    case "guide_publication":
+    case "interactive_demo_publication":
+      return {
+        ...base,
+        published_artifact_id: row.published_artifact_id,
+        ...(row.artifact_reference
+          ? { publication: row.artifact_reference }
+          : {}),
+      };
     default:
       return base;
   }
@@ -472,9 +517,12 @@ const load_draft_snapshot = async (
     ? await db.query<Record<string, unknown>>(
         `SELECT block.id,block.documentation_page_id,block.kind,block.position,
                 block.heading_level,block.text_content,block.code_language,
-                block.link_url,block.linked_page_id,
-                block.documentation_asset_id,block.openapi_source_id,
-                block.operation_key,block.alt_text,block.image_caption,
+                block.link_url,block.linked_page_id,block.linked_block_id,
+                block.documentation_asset_id,block.capture_asset_id,
+                block.openapi_source_id,block.operation_key,block.snippet_id,
+                block.published_artifact_id,block.callout_tone,
+                block.display_title,block.quote_attribution,
+                block.table_caption,block.alt_text,block.image_caption,
                 block.version,
                 COALESCE((
                   SELECT jsonb_agg(jsonb_build_object(
@@ -483,7 +531,32 @@ const load_draft_snapshot = async (
                   ) ORDER BY item.position,item.id)
                     FROM documentation_schema.documentation_list_item item
                    WHERE item.documentation_page_block_id=block.id
-                ),'[]'::jsonb) items
+                ),'[]'::jsonb) list_items,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',tab.id,'label',tab.label,'body',tab.body,
+                    'position',tab.position,'expected_version',tab.version
+                  ) ORDER BY tab.position,tab.id)
+                    FROM documentation_schema.documentation_tab_item tab
+                   WHERE tab.documentation_page_block_id=block.id
+                ),'[]'::jsonb) tab_items,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',row.id,'position',row.position,
+                    'expected_version',row.version,'cells',(
+                      SELECT jsonb_agg(jsonb_build_object(
+                        'id',cell.id,
+                        'column_position',cell.column_position,
+                        'expected_version',cell.version,
+                        'is_header',cell.is_header,'text',cell.text_content
+                      ) ORDER BY cell.column_position,cell.id)
+                      FROM documentation_schema.documentation_table_cell cell
+                      WHERE cell.documentation_table_row_id=row.id
+                    )
+                  ) ORDER BY row.position,row.id)
+                  FROM documentation_schema.documentation_table_row row
+                  WHERE row.documentation_page_block_id=block.id
+                ),'[]'::jsonb) rows
            FROM documentation_schema.documentation_page_block block
           WHERE block.organization_id=$1 AND block.project_id=$2
             AND block.documentation_page_id=ANY($3::varchar[])
@@ -535,12 +608,71 @@ const load_draft_snapshot = async (
     [input.organization_id, input.project_id, root.site_edition_id],
   );
   const assets = await db.query<Record<string, unknown>>(
-    `SELECT id,file_id,mime_type,byte_size,width,height,digest
+    `SELECT id,file_id,mime_type,byte_size,width,height,digest,name,status,version
        FROM documentation_schema.documentation_asset
       WHERE organization_id=$1 AND project_id=$2 AND site_edition_id=$3
       ORDER BY id`,
     [input.organization_id, input.project_id, root.site_edition_id],
   );
+  const snippets = await db.query<Record<string, unknown>>(
+    `SELECT id,name,status,version
+       FROM documentation_schema.documentation_snippet
+      WHERE organization_id=$1 AND project_id=$2 AND site_edition_id=$3
+      ORDER BY lower(name),id`,
+    [input.organization_id, input.project_id, root.site_edition_id],
+  );
+  const snippetIds = snippets.rows.map((snippet) => snippet.id as string);
+  const snippetBlocks = snippetIds.length
+    ? await db.query<Record<string, unknown>>(
+        `SELECT block.id,block.documentation_snippet_id,block.kind,
+                block.position,block.heading_level,block.text_content,
+                block.code_language,block.link_url,block.linked_page_id,
+                block.linked_block_id,block.documentation_asset_id,
+                block.capture_asset_id,block.openapi_source_id,
+                block.operation_key,block.published_artifact_id,
+                block.callout_tone,block.display_title,
+                block.quote_attribution,block.table_caption,block.alt_text,
+                block.image_caption,block.version,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',item.id,'text',item.text_content,
+                    'position',item.position,'expected_version',item.version
+                  ) ORDER BY item.position,item.id)
+                    FROM documentation_schema.documentation_snippet_list_item item
+                   WHERE item.documentation_snippet_block_id=block.id
+                ),'[]'::jsonb) list_items,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',tab.id,'label',tab.label,'body',tab.body,
+                    'position',tab.position,'expected_version',tab.version
+                  ) ORDER BY tab.position,tab.id)
+                    FROM documentation_schema.documentation_snippet_tab_item tab
+                   WHERE tab.documentation_snippet_block_id=block.id
+                ),'[]'::jsonb) tab_items,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',row.id,'position',row.position,
+                    'expected_version',row.version,'cells',(
+                      SELECT jsonb_agg(jsonb_build_object(
+                        'id',cell.id,
+                        'column_position',cell.column_position,
+                        'expected_version',cell.version,
+                        'is_header',cell.is_header,'text',cell.text_content
+                      ) ORDER BY cell.column_position,cell.id)
+                      FROM documentation_schema.documentation_snippet_table_cell cell
+                      WHERE cell.documentation_snippet_table_row_id=row.id
+                    )
+                  ) ORDER BY row.position,row.id)
+                  FROM documentation_schema.documentation_snippet_table_row row
+                  WHERE row.documentation_snippet_block_id=block.id
+                ),'[]'::jsonb) rows
+           FROM documentation_schema.documentation_snippet_block block
+          WHERE block.organization_id=$1 AND block.project_id=$2
+            AND block.documentation_snippet_id=ANY($3::varchar[])
+          ORDER BY block.documentation_snippet_id,block.position,block.id`,
+        [input.organization_id, input.project_id, snippetIds],
+      )
+    : { rows: [] };
   return {
     site: {
       id: root.site_id,
@@ -569,7 +701,12 @@ const load_draft_snapshot = async (
         })),
       blocks: blocks.rows
         .filter((block) => block.documentation_page_id === page.id)
-        .map(to_documentation_block),
+        .map((row) =>
+          to_documentation_block({
+            ...row,
+            items: row.kind === "tabs" ? row.tab_items : row.list_items,
+          }),
+        ),
     })),
     navigation: {
       version: root.navigation_version,
@@ -582,6 +719,20 @@ const load_draft_snapshot = async (
     },
     openapi_operations: operations.rows,
     assets: assets.rows,
+    snippets: snippets.rows.map((snippet) => ({
+      id: snippet.id as string,
+      name: snippet.name as string,
+      status: snippet.status as "active" | "archived",
+      version: snippet.version as number,
+      blocks: snippetBlocks.rows
+        .filter((block) => block.documentation_snippet_id === snippet.id)
+        .map((row) =>
+          to_documentation_block({
+            ...row,
+            items: row.kind === "tabs" ? row.tab_items : row.list_items,
+          }),
+        ),
+    })),
   };
 };
 
@@ -645,9 +796,17 @@ const load_revision_snapshot = async (
                 block.source_block_id id,block.kind,block.position,
                 block.heading_level,block.text_content,block.code_language,
                 block.link_url,block.linked_source_page_id linked_page_id,
-                block.source_asset_id documentation_asset_id,
+                block.linked_source_block_id linked_block_id,
+                CASE WHEN block.source_kind='documentation_asset'
+                  THEN block.source_asset_id END documentation_asset_id,
+                CASE WHEN block.source_kind='capture_asset'
+                  THEN block.source_asset_id END capture_asset_id,
+                block.source_snippet_id snippet_id,
                 block.source_openapi_source_id openapi_source_id,
-                block.operation_key,block.alt_text,block.image_caption,
+                block.operation_key,block.published_artifact_id,
+                block.callout_tone,block.display_title,
+                block.quote_attribution,block.table_caption,
+                block.alt_text,block.image_caption,
                 1 version,
                 COALESCE((
                   SELECT jsonb_agg(jsonb_build_object(
@@ -656,7 +815,51 @@ const load_revision_snapshot = async (
                   ) ORDER BY item.position,item.id)
                     FROM documentation_schema.site_revision_list_item item
                    WHERE item.site_revision_page_block_id=block.id
-                ),'[]'::jsonb) items
+                ),'[]'::jsonb) list_items,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',item.source_tab_item_id,'label',item.label,
+                    'body',item.body,'position',item.position,
+                    'expected_version',1
+                  ) ORDER BY item.position,item.id)
+                    FROM documentation_schema.site_revision_page_tab_item item
+                   WHERE item.site_revision_page_block_id=block.id
+                ),'[]'::jsonb) tab_items,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',row.source_row_id,'position',row.position,
+                    'expected_version',1,'cells',(
+                      SELECT jsonb_agg(jsonb_build_object(
+                        'id',cell.source_cell_id,
+                        'column_position',cell.column_position,
+                        'expected_version',1,'is_header',cell.is_header,
+                        'text',cell.text_content
+                      ) ORDER BY cell.column_position,cell.id)
+                      FROM documentation_schema.site_revision_page_table_cell cell
+                      WHERE cell.site_revision_page_table_row_id=row.id
+                    )
+                  ) ORDER BY row.position,row.id)
+                  FROM documentation_schema.site_revision_page_table_row row
+                  WHERE row.site_revision_page_block_id=block.id
+                ),'[]'::jsonb) rows,
+                (
+                  SELECT jsonb_build_object(
+                    'published_artifact_id',reference.published_artifact_id,
+                    'artifact_type',reference.artifact_type,
+                    'title',reference.frozen_title,
+                    'description',reference.frozen_description,
+                    'project_version',jsonb_build_object(
+                      'id',reference.project_version_id,
+                      'name',reference.project_version_name,
+                      'slug',reference.project_version_slug
+                    ),
+                    'revision_number',reference.revision_number,
+                    'publication_sequence',reference.publication_sequence
+                  )
+                  FROM documentation_schema.site_revision_artifact_reference reference
+                  WHERE reference.site_revision_id=block.site_revision_id
+                    AND reference.source_block_id=block.source_block_id
+                ) artifact_reference
            FROM documentation_schema.site_revision_page_block block
           WHERE block.site_revision_id=$1
           ORDER BY block.site_revision_page_id,block.position,block.id`,
@@ -696,6 +899,87 @@ const load_revision_snapshot = async (
       WHERE site_revision_id=$1 ORDER BY destination_key,id`,
     [root.id],
   );
+  const snippets = await db.query<Record<string, unknown>>(
+    `SELECT id,source_snippet_id,name,source_status
+       FROM documentation_schema.site_revision_snippet
+      WHERE site_revision_id=$1 ORDER BY lower(name),source_snippet_id`,
+    [root.id],
+  );
+  const snippetRowIds = snippets.rows.map((snippet) => snippet.id as string);
+  const snippetBlocks = snippetRowIds.length
+    ? await db.query<Record<string, unknown>>(
+        `SELECT block.id,block.site_revision_snippet_id,
+                block.source_block_id id,block.kind,block.position,
+                block.heading_level,block.text_content,block.code_language,
+                block.link_url,block.linked_source_page_id linked_page_id,
+                block.linked_source_block_id linked_block_id,
+                CASE WHEN block.source_kind='documentation_asset'
+                  THEN block.source_asset_id END documentation_asset_id,
+                CASE WHEN block.source_kind='capture_asset'
+                  THEN block.source_asset_id END capture_asset_id,
+                block.source_openapi_source_id openapi_source_id,
+                block.operation_key,block.published_artifact_id,
+                block.callout_tone,block.display_title,
+                block.quote_attribution,block.table_caption,block.alt_text,
+                block.image_caption,1 version,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',item.source_list_item_id,'text',item.text_content,
+                    'position',item.position,'expected_version',1
+                  ) ORDER BY item.position,item.id)
+                    FROM documentation_schema.site_revision_snippet_list_item item
+                   WHERE item.site_revision_snippet_block_id=block.id
+                ),'[]'::jsonb) list_items,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',item.source_tab_item_id,'label',item.label,
+                    'body',item.body,'position',item.position,
+                    'expected_version',1
+                  ) ORDER BY item.position,item.id)
+                    FROM documentation_schema.site_revision_snippet_tab_item item
+                   WHERE item.site_revision_snippet_block_id=block.id
+                ),'[]'::jsonb) tab_items,
+                COALESCE((
+                  SELECT jsonb_agg(jsonb_build_object(
+                    'id',row.source_row_id,'position',row.position,
+                    'expected_version',1,'cells',(
+                      SELECT jsonb_agg(jsonb_build_object(
+                        'id',cell.source_cell_id,
+                        'column_position',cell.column_position,
+                        'expected_version',1,'is_header',cell.is_header,
+                        'text',cell.text_content
+                      ) ORDER BY cell.column_position,cell.id)
+                      FROM documentation_schema.site_revision_snippet_table_cell cell
+                      WHERE cell.site_revision_snippet_table_row_id=row.id
+                    )
+                  ) ORDER BY row.position,row.id)
+                  FROM documentation_schema.site_revision_snippet_table_row row
+                  WHERE row.site_revision_snippet_block_id=block.id
+                ),'[]'::jsonb) rows,
+                (
+                  SELECT jsonb_build_object(
+                    'published_artifact_id',reference.published_artifact_id,
+                    'artifact_type',reference.artifact_type,
+                    'title',reference.frozen_title,
+                    'description',reference.frozen_description,
+                    'project_version',jsonb_build_object(
+                      'id',reference.project_version_id,
+                      'name',reference.project_version_name,
+                      'slug',reference.project_version_slug
+                    ),
+                    'revision_number',reference.revision_number,
+                    'publication_sequence',reference.publication_sequence
+                  )
+                  FROM documentation_schema.site_revision_artifact_reference reference
+                  WHERE reference.site_revision_id=block.site_revision_id
+                    AND reference.source_block_id=block.source_block_id
+                ) artifact_reference
+           FROM documentation_schema.site_revision_snippet_block block
+          WHERE block.site_revision_id=$1
+          ORDER BY block.site_revision_snippet_id,block.position,block.id`,
+        [root.id],
+      )
+    : { rows: [] };
   return {
     revision: {
       ...root,
@@ -711,12 +995,30 @@ const load_revision_snapshot = async (
         .map((keyword) => keyword.keyword),
       blocks: blocks.rows
         .filter((block) => block.site_revision_page_id === page.id)
-        .map(to_documentation_block),
+        .map((row) =>
+          to_documentation_block({
+            ...row,
+            items: row.kind === "tabs" ? row.tab_items : row.list_items,
+          }),
+        ),
     })),
     navigation: navigation.rows,
     aliases: aliases.rows,
     redirects: redirects.rows,
     openapi_operations: operations.rows,
+    snippets: snippets.rows.map((snippet) => ({
+      id: snippet.source_snippet_id,
+      name: snippet.name,
+      status: snippet.source_status,
+      blocks: snippetBlocks.rows
+        .filter((block) => block.site_revision_snippet_id === snippet.id)
+        .map((row) =>
+          to_documentation_block({
+            ...row,
+            items: row.kind === "tabs" ? row.tab_items : row.list_items,
+          }),
+        ),
+    })),
   };
 };
 
@@ -780,8 +1082,9 @@ export const build_documentation_repository = (database: Database) => ({
       await client.query(
         `INSERT INTO documentation_schema.documentation_asset
           (id,organization_id,project_id,documentation_site_id,site_edition_id,
-           file_id,mime_type,byte_size,width,height,digest,created_by_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+           file_id,mime_type,byte_size,width,height,digest,name,created_by_id,
+           updated_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$13)`,
         [
           input.asset_id,
           input.organization_id,
@@ -794,6 +1097,7 @@ export const build_documentation_repository = (database: Database) => ({
           input.width,
           input.height,
           input.file.checksum_sha256,
+          normalize_documentation_asset_name(input.file.original_name),
           input.actor_org_user_id,
         ],
       );
@@ -838,6 +1142,9 @@ export const build_documentation_repository = (database: Database) => ({
         width: input.width,
         height: input.height,
         digest: input.file.checksum_sha256,
+        name: normalize_documentation_asset_name(input.file.original_name),
+        status: "active",
+        version: 1,
       };
     }),
 
@@ -1304,8 +1611,30 @@ export const build_documentation_repository = (database: Database) => ({
             });
             throw error;
           }
+          if (block.kind === "snippet_reference") {
+            const snippet = snapshot.snippets.find(
+              (candidate) => candidate.id === block.snippet_id,
+            );
+            if (!snippet) {
+              const error = new Error("Documentation Snippet is not available");
+              Object.assign(error, { code: "documentation_revision_invalid" });
+              throw error;
+            }
+          }
         }
       }
+      const referencedSnippetIds = new Set(
+        snapshot.pages.flatMap((page) =>
+          (page.blocks as Array<Record<string, unknown>>)
+            .filter((block) => block.kind === "snippet_reference")
+            .map((block) => block.snippet_id as string),
+        ),
+      );
+      snapshot.snippets = snapshot.snippets.filter(
+        (snippet) =>
+          snippet.status === "active" ||
+          referencedSnippetIds.has(snippet.id as string),
+      );
       const content_digest = command_digest(snapshot);
       const existing = await client.query<{
         id: string;
@@ -1422,9 +1751,13 @@ export const build_documentation_repository = (database: Database) => ({
               (id,organization_id,project_id,site_edition_id,site_revision_id,
                site_revision_page_id,source_block_id,kind,position,
                heading_level,text_content,code_language,link_url,
-               linked_source_page_id,source_asset_id,source_openapi_source_id,
-               operation_key,alt_text,image_caption)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+               linked_source_page_id,linked_source_block_id,source_kind,
+               source_asset_id,source_snippet_id,source_openapi_source_id,
+               operation_key,published_artifact_id,published_artifact_type,
+               callout_tone,display_title,quote_attribution,table_caption,
+               alt_text,image_caption)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
+                     $16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)`,
             [
               revisionBlockId,
               input.organization_id,
@@ -1440,14 +1773,31 @@ export const build_documentation_repository = (database: Database) => ({
               block.language ?? null,
               block.url ?? null,
               block.page_id ?? null,
-              block.asset_id ?? null,
+              block.target_block_id ?? null,
+              (block.source as { kind?: string } | undefined)?.kind ?? null,
+              (block.source as { id?: string } | undefined)?.id ?? null,
+              block.snippet_id ?? null,
               block.openapi_source_id ?? null,
               block.operation_key ?? null,
+              block.published_artifact_id ?? null,
+              block.kind === "guide_publication"
+                ? "guide"
+                : block.kind === "interactive_demo_publication"
+                  ? "interactive_demo"
+                  : null,
+              block.tone ?? null,
+              block.title ?? null,
+              block.attribution ?? null,
+              block.caption ?? null,
               block.alt_text ?? null,
               block.caption ?? null,
             ],
           );
-          if (Array.isArray(block.items)) {
+          if (
+            (block.kind === "ordered_list" ||
+              block.kind === "unordered_list") &&
+            Array.isArray(block.items)
+          ) {
             for (const item of block.items as Array<Record<string, unknown>>) {
               await client.query(
                 `INSERT INTO documentation_schema.site_revision_list_item
@@ -1468,6 +1818,385 @@ export const build_documentation_repository = (database: Database) => ({
                 ],
               );
             }
+          }
+          if (block.kind === "tabs" && Array.isArray(block.items)) {
+            for (const item of block.items as Array<Record<string, unknown>>) {
+              await client.query(
+                `INSERT INTO documentation_schema.site_revision_page_tab_item
+                  (id,organization_id,project_id,site_edition_id,
+                   site_revision_id,site_revision_page_block_id,
+                   source_tab_item_id,label,body,position)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+                [
+                  ulid(),
+                  input.organization_id,
+                  input.project_id,
+                  snapshot.edition.id,
+                  revision.id,
+                  revisionBlockId,
+                  item.id,
+                  item.label,
+                  item.body,
+                  item.position,
+                ],
+              );
+            }
+          }
+          if (block.kind === "table" && Array.isArray(block.rows)) {
+            for (const row of block.rows as Array<Record<string, unknown>>) {
+              const revisionRowId = ulid();
+              await client.query(
+                `INSERT INTO documentation_schema.site_revision_page_table_row
+                  (id,organization_id,project_id,site_edition_id,
+                   site_revision_id,site_revision_page_block_id,
+                   source_row_id,position)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+                [
+                  revisionRowId,
+                  input.organization_id,
+                  input.project_id,
+                  snapshot.edition.id,
+                  revision.id,
+                  revisionBlockId,
+                  row.id,
+                  row.position,
+                ],
+              );
+              for (const cell of row.cells as Array<Record<string, unknown>>)
+                await client.query(
+                  `INSERT INTO documentation_schema.site_revision_page_table_cell
+                    (id,organization_id,project_id,site_edition_id,
+                     site_revision_id,site_revision_page_table_row_id,
+                     source_cell_id,column_position,is_header,text_content)
+                   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+                  [
+                    ulid(),
+                    input.organization_id,
+                    input.project_id,
+                    snapshot.edition.id,
+                    revision.id,
+                    revisionRowId,
+                    cell.id,
+                    cell.column_position,
+                    cell.is_header,
+                    cell.text,
+                  ],
+                );
+            }
+          }
+          if (
+            block.kind === "guide_publication" ||
+            block.kind === "interactive_demo_publication"
+          ) {
+            const type =
+              block.kind === "guide_publication" ? "guide" : "interactive_demo";
+            const publication = await client.query<{
+              id: string;
+              project_version_id: string;
+              project_version_name: string;
+              project_version_slug: string;
+              publication_sequence: number;
+              revision_number: number;
+              title: string;
+              description: string | null;
+            }>(
+              `SELECT publication.id,publication.project_version_id,
+                      version.name project_version_name,
+                      version.slug project_version_slug,
+                      publication.publication_sequence,
+                      COALESCE(guide_revision.revision_number,
+                               demo_revision.revision_number) revision_number,
+                      COALESCE(guide_revision.title,demo_revision.title) title,
+                      left(COALESCE(guide_revision.description,
+                                    demo_revision.description),1000) description
+                 FROM publish_schema.published_artifact publication
+                 JOIN project_schema.project_version version
+                   ON version.id=publication.project_version_id
+                 LEFT JOIN guide_schema.guide_revision guide_revision
+                   ON guide_revision.id=publication.guide_revision_id
+                 LEFT JOIN interactive_demo_schema.interactive_demo_revision demo_revision
+                   ON demo_revision.id=publication.interactive_demo_revision_id
+                WHERE publication.id=$1 AND publication.artifact_type=$2
+                  AND publication.organization_id=$3
+                  AND publication.project_id=$4`,
+              [
+                block.published_artifact_id,
+                type,
+                input.organization_id,
+                input.project_id,
+              ],
+            );
+            const exact = publication.rows[0];
+            if (!exact) {
+              const error = new Error("Artifact Publication is not available");
+              Object.assign(error, {
+                code: "documentation_artifact_publication_not_found",
+              });
+              throw error;
+            }
+            await client.query(
+              `INSERT INTO documentation_schema.site_revision_artifact_reference
+                (id,organization_id,project_id,site_edition_id,
+                 site_revision_id,source_block_id,published_artifact_id,
+                 artifact_type,frozen_title,frozen_description,
+                 project_version_id,project_version_name,project_version_slug,
+                 revision_number,publication_sequence)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+              [
+                ulid(),
+                input.organization_id,
+                input.project_id,
+                snapshot.edition.id,
+                revision.id,
+                block.id,
+                exact.id,
+                type,
+                exact.title,
+                exact.description,
+                exact.project_version_id,
+                exact.project_version_name,
+                exact.project_version_slug,
+                exact.revision_number,
+                exact.publication_sequence,
+              ],
+            );
+          }
+        }
+      }
+      for (const snippet of snapshot.snippets) {
+        const revisionSnippetId = ulid();
+        await client.query(
+          `INSERT INTO documentation_schema.site_revision_snippet
+            (id,organization_id,project_id,site_edition_id,site_revision_id,
+             source_snippet_id,name,source_status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [
+            revisionSnippetId,
+            input.organization_id,
+            input.project_id,
+            snapshot.edition.id,
+            revision.id,
+            snippet.id,
+            snippet.name,
+            snippet.status,
+          ],
+        );
+        for (const block of snippet.blocks as Array<Record<string, unknown>>) {
+          const revisionBlockId = ulid();
+          const source = block.source as
+            | { kind: string; id: string }
+            | undefined;
+          const artifactType =
+            block.kind === "guide_publication"
+              ? "guide"
+              : block.kind === "interactive_demo_publication"
+                ? "interactive_demo"
+                : null;
+          await client.query(
+            `INSERT INTO documentation_schema.site_revision_snippet_block
+              (id,organization_id,project_id,site_edition_id,site_revision_id,
+               site_revision_snippet_id,source_snippet_id,source_block_id,
+               kind,position,heading_level,text_content,code_language,link_url,
+               linked_source_page_id,linked_source_block_id,source_kind,
+               source_asset_id,source_openapi_source_id,operation_key,
+               published_artifact_id,published_artifact_type,callout_tone,
+               display_title,quote_attribution,table_caption,alt_text,
+               image_caption)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
+                     $16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)`,
+            [
+              revisionBlockId,
+              input.organization_id,
+              input.project_id,
+              snapshot.edition.id,
+              revision.id,
+              revisionSnippetId,
+              snippet.id,
+              block.id,
+              block.kind,
+              block.position,
+              block.level ?? null,
+              block.text ?? block.code ?? block.label ?? null,
+              block.language ?? null,
+              block.url ?? null,
+              block.page_id ?? null,
+              block.target_block_id ?? null,
+              source?.kind ?? null,
+              source?.id ?? null,
+              block.openapi_source_id ?? null,
+              block.operation_key ?? null,
+              block.published_artifact_id ?? null,
+              artifactType,
+              block.tone ?? null,
+              block.title ?? null,
+              block.attribution ?? null,
+              block.caption ?? null,
+              block.alt_text ?? null,
+              block.caption ?? null,
+            ],
+          );
+          if (
+            (block.kind === "ordered_list" ||
+              block.kind === "unordered_list") &&
+            Array.isArray(block.items)
+          )
+            for (const item of block.items as Array<Record<string, unknown>>)
+              await client.query(
+                `INSERT INTO documentation_schema.site_revision_snippet_list_item
+                  (id,organization_id,project_id,site_edition_id,
+                   site_revision_id,site_revision_snippet_block_id,
+                   source_list_item_id,text_content,position)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+                [
+                  ulid(),
+                  input.organization_id,
+                  input.project_id,
+                  snapshot.edition.id,
+                  revision.id,
+                  revisionBlockId,
+                  item.id,
+                  item.text,
+                  item.position,
+                ],
+              );
+          if (block.kind === "tabs" && Array.isArray(block.items))
+            for (const item of block.items as Array<Record<string, unknown>>)
+              await client.query(
+                `INSERT INTO documentation_schema.site_revision_snippet_tab_item
+                  (id,organization_id,project_id,site_edition_id,
+                   site_revision_id,site_revision_snippet_block_id,
+                   source_tab_item_id,label,body,position)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+                [
+                  ulid(),
+                  input.organization_id,
+                  input.project_id,
+                  snapshot.edition.id,
+                  revision.id,
+                  revisionBlockId,
+                  item.id,
+                  item.label,
+                  item.body,
+                  item.position,
+                ],
+              );
+          if (block.kind === "table" && Array.isArray(block.rows))
+            for (const row of block.rows as Array<Record<string, unknown>>) {
+              const revisionRowId = ulid();
+              await client.query(
+                `INSERT INTO documentation_schema.site_revision_snippet_table_row
+                  (id,organization_id,project_id,site_edition_id,
+                   site_revision_id,site_revision_snippet_block_id,
+                   source_row_id,position)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+                [
+                  revisionRowId,
+                  input.organization_id,
+                  input.project_id,
+                  snapshot.edition.id,
+                  revision.id,
+                  revisionBlockId,
+                  row.id,
+                  row.position,
+                ],
+              );
+              for (const cell of row.cells as Array<Record<string, unknown>>)
+                await client.query(
+                  `INSERT INTO documentation_schema.site_revision_snippet_table_cell
+                    (id,organization_id,project_id,site_edition_id,
+                     site_revision_id,site_revision_snippet_table_row_id,
+                     source_cell_id,column_position,is_header,text_content)
+                   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+                  [
+                    ulid(),
+                    input.organization_id,
+                    input.project_id,
+                    snapshot.edition.id,
+                    revision.id,
+                    revisionRowId,
+                    cell.id,
+                    cell.column_position,
+                    cell.is_header,
+                    cell.text,
+                  ],
+                );
+            }
+          if (
+            block.kind === "guide_publication" ||
+            block.kind === "interactive_demo_publication"
+          ) {
+            const type =
+              block.kind === "guide_publication" ? "guide" : "interactive_demo";
+            const publication = await client.query<{
+              id: string;
+              project_version_id: string;
+              project_version_name: string;
+              project_version_slug: string;
+              publication_sequence: number;
+              revision_number: number;
+              title: string;
+              description: string | null;
+            }>(
+              `SELECT publication.id,publication.project_version_id,
+                      version.name project_version_name,
+                      version.slug project_version_slug,
+                      publication.publication_sequence,
+                      COALESCE(guide_revision.revision_number,
+                               demo_revision.revision_number) revision_number,
+                      COALESCE(guide_revision.title,demo_revision.title) title,
+                      left(COALESCE(guide_revision.description,
+                                    demo_revision.description),1000) description
+                 FROM publish_schema.published_artifact publication
+                 JOIN project_schema.project_version version
+                   ON version.id=publication.project_version_id
+                 LEFT JOIN guide_schema.guide_revision guide_revision
+                   ON guide_revision.id=publication.guide_revision_id
+                 LEFT JOIN interactive_demo_schema.interactive_demo_revision demo_revision
+                   ON demo_revision.id=publication.interactive_demo_revision_id
+                WHERE publication.id=$1 AND publication.artifact_type=$2
+                  AND publication.organization_id=$3
+                  AND publication.project_id=$4`,
+              [
+                block.published_artifact_id,
+                type,
+                input.organization_id,
+                input.project_id,
+              ],
+            );
+            const exact = publication.rows[0];
+            if (!exact) {
+              const error = new Error("Artifact Publication is not available");
+              Object.assign(error, {
+                code: "documentation_artifact_publication_not_found",
+              });
+              throw error;
+            }
+            await client.query(
+              `INSERT INTO documentation_schema.site_revision_artifact_reference
+                (id,organization_id,project_id,site_edition_id,
+                 site_revision_id,source_block_id,published_artifact_id,
+                 artifact_type,frozen_title,frozen_description,
+                 project_version_id,project_version_name,project_version_slug,
+                 revision_number,publication_sequence)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+              [
+                ulid(),
+                input.organization_id,
+                input.project_id,
+                snapshot.edition.id,
+                revision.id,
+                block.id,
+                exact.id,
+                type,
+                exact.title,
+                exact.description,
+                exact.project_version_id,
+                exact.project_version_name,
+                exact.project_version_slug,
+                exact.revision_number,
+                exact.publication_sequence,
+              ],
+            );
           }
         }
       }
@@ -1550,37 +2279,94 @@ export const build_documentation_repository = (database: Database) => ({
           ],
         );
       }
-      for (const page of snapshot.pages) {
-        for (const block of page.blocks as Array<Record<string, unknown>>) {
-          if (block.kind !== "image") continue;
-          const asset = snapshot.assets.find(
-            (candidate) => candidate.id === block.asset_id,
-          );
-          if (!asset) {
-            const error = new Error("Documentation Asset is not available");
-            Object.assign(error, { code: "documentation_revision_invalid" });
-            throw error;
-          }
-          await client.query(
-            `INSERT INTO documentation_schema.site_revision_asset_reference
-              (id,organization_id,project_id,site_edition_id,site_revision_id,
-               source_asset_id,file_id,mime_type,digest,alt_text)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-             ON CONFLICT (site_revision_id,source_asset_id) DO NOTHING`,
-            [
-              ulid(),
-              input.organization_id,
-              input.project_id,
-              snapshot.edition.id,
-              revision.id,
-              asset.id,
-              asset.file_id,
-              asset.mime_type,
-              asset.digest,
-              block.alt_text,
-            ],
-          );
+      const imageBlocks = [
+        ...snapshot.pages.flatMap(
+          (page) => page.blocks as Array<Record<string, unknown>>,
+        ),
+        ...snapshot.snippets.flatMap(
+          (snippet) => snippet.blocks as Array<Record<string, unknown>>,
+        ),
+      ].filter((block) => block.kind === "image");
+      for (const block of imageBlocks) {
+        const source = block.source as
+          | { kind: "documentation_asset" | "capture_asset"; id: string }
+          | undefined;
+        if (!source) {
+          const error = new Error("Documentation Asset source is invalid");
+          Object.assign(error, { code: "documentation_revision_invalid" });
+          throw error;
         }
+        let asset:
+          | {
+              id: string;
+              file_id: string;
+              mime_type: string;
+              byte_size: number;
+              width: number;
+              height: number;
+              digest: string;
+            }
+          | undefined;
+        if (source.kind === "documentation_asset") {
+          asset = snapshot.assets.find(
+            (candidate) => candidate.id === source.id,
+          ) as typeof asset;
+        } else {
+          const capture = await client.query<{
+            id: string;
+            file_id: string;
+            mime_type: string;
+            byte_size: number;
+            width: number;
+            height: number;
+            digest: string;
+          }>(
+            `SELECT asset.id,asset.file_id,file.mime_type,
+                    file.size_bytes byte_size,asset.width,asset.height,
+                    file.checksum_sha256 digest
+               FROM capture_schema.capture_asset asset
+               JOIN file_schema.file file ON file.id=asset.file_id
+              WHERE asset.id=$1 AND asset.organization_id=$2
+                AND asset.project_id=$3 AND asset.is_deleted=FALSE
+                AND file.is_deleted=FALSE
+                AND asset.asset_type IN ('screenshot','redacted_screenshot')
+                AND asset.status IN ('active','archived')
+                AND file.mime_type IN ('image/png','image/jpeg','image/webp')
+              FOR UPDATE OF asset,file`,
+            [source.id, input.organization_id, input.project_id],
+          );
+          asset = capture.rows[0];
+        }
+        if (!asset) {
+          const error = new Error("Documentation Asset is not available");
+          Object.assign(error, { code: "documentation_revision_invalid" });
+          throw error;
+        }
+        await client.query(
+          `INSERT INTO documentation_schema.site_revision_asset_reference
+            (id,organization_id,project_id,site_edition_id,site_revision_id,
+             source_kind,source_asset_id,file_id,mime_type,digest,byte_size,
+             width,height,alt_text)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+           ON CONFLICT (site_revision_id,source_kind,source_asset_id)
+           DO NOTHING`,
+          [
+            ulid(),
+            input.organization_id,
+            input.project_id,
+            snapshot.edition.id,
+            revision.id,
+            source.kind,
+            asset.id,
+            asset.file_id,
+            asset.mime_type,
+            asset.digest,
+            asset.byte_size,
+            asset.width,
+            asset.height,
+            block.alt_text,
+          ],
+        );
       }
       const result = { ...revision, created_at: new Date().toISOString() };
       await write_documentation_audit_event(client, {
@@ -2378,6 +3164,67 @@ export const build_documentation_repository = (database: Database) => ({
     return result.rows[0] ?? null;
   },
 
+  get_capture_asset_file_record: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    asset_id: string;
+  }) => {
+    const result = await database.query<{
+      storage_provider: string;
+      storage_key: string;
+      mime_type: string;
+      size_bytes: number;
+    }>(
+      `SELECT file.storage_provider,file.storage_key,file.mime_type,
+              file.size_bytes
+         FROM capture_schema.capture_asset asset
+         JOIN file_schema.file file
+           ON file.id=asset.file_id AND file.organization_id=asset.organization_id
+        WHERE asset.id=$1 AND asset.organization_id=$2 AND asset.project_id=$3
+          AND asset.is_deleted=FALSE AND file.is_deleted=FALSE
+          AND asset.asset_type IN ('screenshot','redacted_screenshot')
+          AND file.mime_type IN ('image/png','image/jpeg','image/webp')
+          AND (
+            asset.status='active'
+            OR (
+              asset.status='archived'
+              AND EXISTS (
+                SELECT 1
+                  FROM documentation_schema.site_edition edition
+                 WHERE edition.documentation_site_id=$4
+                   AND edition.project_version_id=$5
+                   AND edition.organization_id=$2
+                   AND edition.project_id=$3
+                   AND (
+                     EXISTS (
+                       SELECT 1
+                         FROM documentation_schema.documentation_page_block block
+                        WHERE block.site_edition_id=edition.id
+                          AND block.capture_asset_id=asset.id
+                     )
+                     OR EXISTS (
+                       SELECT 1
+                         FROM documentation_schema.documentation_snippet_block block
+                        WHERE block.site_edition_id=edition.id
+                          AND block.capture_asset_id=asset.id
+                     )
+                   )
+              )
+            )
+          )`,
+      [
+        input.asset_id,
+        input.organization_id,
+        input.project_id,
+        input.site_id,
+        input.project_version_id,
+      ],
+    );
+    return result.rows[0] ?? null;
+  },
+
   get_public_asset_file_record: async (input: {
     slug: string;
     version_slug: string | null;
@@ -2399,11 +3246,51 @@ export const build_documentation_repository = (database: Database) => ({
          JOIN publish_schema.site_publication publication
            ON publication.id=entry.site_publication_id
          JOIN documentation_schema.site_revision_asset_reference reference
-           ON reference.site_revision_id=publication.site_revision_id
+          ON reference.site_revision_id=publication.site_revision_id
           AND reference.source_asset_id=$3
+          AND reference.source_kind='documentation_asset'
          JOIN file_schema.file file ON file.id=reference.file_id
         WHERE link.slug=$1 AND link.resource_family='documentation_site'
           AND link.status='active' AND link.visibility='public'
+          AND (link.expires_at IS NULL OR link.expires_at>CURRENT_TIMESTAMP)
+          AND (
+            ($2::varchar IS NULL AND entry.is_default)
+            OR ($2::varchar IS NOT NULL AND version.slug=$2)
+          )
+          AND file.is_deleted=FALSE
+        LIMIT 1`,
+      [input.slug, input.version_slug, input.asset_id],
+    );
+    return result.rows[0] ?? null;
+  },
+
+  get_public_capture_asset_file_record: async (input: {
+    slug: string;
+    version_slug: string | null;
+    asset_id: string;
+  }) => {
+    const result = await database.query<{
+      storage_provider: string;
+      storage_key: string;
+      mime_type: string;
+      size_bytes: number;
+    }>(
+      `SELECT file.storage_provider,file.storage_key,reference.mime_type,
+              reference.byte_size size_bytes
+         FROM publish_schema.publish_link link
+         JOIN publish_schema.publish_link_entry entry
+           ON entry.publish_link_id=link.id
+         JOIN project_schema.project_version version
+           ON version.id=entry.project_version_id
+         JOIN publish_schema.site_publication publication
+           ON publication.id=entry.site_publication_id
+         JOIN documentation_schema.site_revision_asset_reference reference
+           ON reference.site_revision_id=publication.site_revision_id
+          AND reference.source_asset_id=$3
+          AND reference.source_kind='capture_asset'
+         JOIN file_schema.file file ON file.id=reference.file_id
+        WHERE link.slug=$1 AND link.resource_family='documentation_site'
+          AND link.status='active'
           AND (link.expires_at IS NULL OR link.expires_at>CURRENT_TIMESTAMP)
           AND (
             ($2::varchar IS NULL AND entry.is_default)
@@ -3545,9 +4432,13 @@ export const build_documentation_repository = (database: Database) => ({
     const blocks = await database.query<Record<string, unknown>>(
       `SELECT block.id,block.kind,block.position,block.heading_level,
               block.text_content,block.code_language,block.link_url,
-              block.linked_page_id,block.documentation_asset_id,
-              block.openapi_source_id,block.operation_key,block.alt_text,
-              block.image_caption,block.version,
+              block.linked_page_id,block.linked_block_id,
+              block.documentation_asset_id,block.capture_asset_id,
+              block.openapi_source_id,block.operation_key,
+              block.snippet_id,block.published_artifact_id,
+              block.callout_tone,block.display_title,
+              block.quote_attribution,block.table_caption,
+              block.alt_text,block.image_caption,block.version,
               COALESCE((
                 SELECT jsonb_agg(jsonb_build_object(
                   'id',item.id,'text',item.text_content,'position',item.position,
@@ -3555,7 +4446,31 @@ export const build_documentation_repository = (database: Database) => ({
                 ) ORDER BY item.position,item.id)
                   FROM documentation_schema.documentation_list_item item
                  WHERE item.documentation_page_block_id=block.id
-              ),'[]'::jsonb) items
+              ),'[]'::jsonb) list_items,
+              COALESCE((
+                SELECT jsonb_agg(jsonb_build_object(
+                  'id',tab.id,'label',tab.label,'body',tab.body,
+                  'position',tab.position,'expected_version',tab.version
+                ) ORDER BY tab.position,tab.id)
+                  FROM documentation_schema.documentation_tab_item tab
+                 WHERE tab.documentation_page_block_id=block.id
+              ),'[]'::jsonb) tab_items,
+              COALESCE((
+                SELECT jsonb_agg(jsonb_build_object(
+                  'id',row.id,'position',row.position,
+                  'expected_version',row.version,'cells',(
+                    SELECT jsonb_agg(jsonb_build_object(
+                      'id',cell.id,'column_position',cell.column_position,
+                      'expected_version',cell.version,'is_header',cell.is_header,
+                      'text',cell.text_content
+                    ) ORDER BY cell.column_position,cell.id)
+                    FROM documentation_schema.documentation_table_cell cell
+                    WHERE cell.documentation_table_row_id=row.id
+                  )
+                ) ORDER BY row.position,row.id)
+                FROM documentation_schema.documentation_table_row row
+                WHERE row.documentation_page_block_id=block.id
+              ),'[]'::jsonb) rows
          FROM documentation_schema.documentation_page_block block
         WHERE block.organization_id=$1 AND block.project_id=$2
           AND block.documentation_page_id=$3 ORDER BY block.position,block.id`,
@@ -3563,7 +4478,12 @@ export const build_documentation_repository = (database: Database) => ({
     );
     return {
       ...page.rows[0],
-      blocks: blocks.rows.map(to_documentation_block),
+      blocks: blocks.rows.map((row) =>
+        to_documentation_block({
+          ...row,
+          items: row.kind === "tabs" ? row.tab_items : row.list_items,
+        }),
+      ),
     };
   },
 
@@ -3617,6 +4537,21 @@ export const build_documentation_repository = (database: Database) => ({
         action: "documentation.page_content_replaced",
       });
       await client.query(
+        `DELETE FROM documentation_schema.documentation_table_cell
+          WHERE documentation_page_id=$1`,
+        [input.page_id],
+      );
+      await client.query(
+        `DELETE FROM documentation_schema.documentation_table_row
+          WHERE documentation_page_id=$1`,
+        [input.page_id],
+      );
+      await client.query(
+        `DELETE FROM documentation_schema.documentation_tab_item
+          WHERE documentation_page_id=$1`,
+        [input.page_id],
+      );
+      await client.query(
         `DELETE FROM documentation_schema.documentation_list_item item
           USING documentation_schema.documentation_page_block block
          WHERE item.documentation_page_block_id=block.id
@@ -3630,14 +4565,29 @@ export const build_documentation_repository = (database: Database) => ({
         [input.organization_id, input.project_id, input.page_id],
       );
       for (const block of input.blocks) {
+        const source =
+          typeof block.source === "object" && block.source
+            ? (block.source as { kind: string; id: string })
+            : block.asset_id
+              ? { kind: "documentation_asset", id: String(block.asset_id) }
+              : null;
+        const publication_type =
+          block.kind === "guide_publication"
+            ? "guide"
+            : block.kind === "interactive_demo_publication"
+              ? "interactive_demo"
+              : null;
         await client.query(
           `INSERT INTO documentation_schema.documentation_page_block
             (id,organization_id,project_id,site_edition_id,documentation_page_id,
              kind,position,heading_level,text_content,link_url,linked_page_id,
-             code_language,documentation_asset_id,openapi_source_id,operation_key,
-             alt_text,image_caption,
+             linked_block_id,code_language,documentation_asset_id,
+             capture_asset_id,openapi_source_id,operation_key,snippet_id,
+             published_artifact_id,published_artifact_type,callout_tone,
+             display_title,quote_attribution,table_caption,alt_text,image_caption,
              created_by_id,updated_by_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$18)`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
+                   $16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$27)`,
           [
             block.id,
             input.organization_id,
@@ -3650,10 +4600,19 @@ export const build_documentation_repository = (database: Database) => ({
             block.text ?? block.code ?? block.label ?? null,
             block.url ?? null,
             block.page_id ?? null,
+            block.target_block_id ?? null,
             block.language ?? null,
-            block.asset_id ?? null,
+            source?.kind === "documentation_asset" ? source.id : null,
+            source?.kind === "capture_asset" ? source.id : null,
             block.openapi_source_id ?? null,
             block.operation_key ?? null,
+            block.snippet_id ?? null,
+            block.published_artifact_id ?? null,
+            publication_type,
+            block.tone ?? null,
+            block.title ?? null,
+            block.attribution ?? null,
+            block.caption ?? null,
             block.alt_text ?? null,
             block.caption ?? null,
             input.actor_org_user_id,
@@ -3681,6 +4640,69 @@ export const build_documentation_repository = (database: Database) => ({
                 item.position,
               ],
             );
+          }
+        }
+        if (block.kind === "tabs" && Array.isArray(block.items)) {
+          for (const item of block.items as Array<Record<string, unknown>>) {
+            await client.query(
+              `INSERT INTO documentation_schema.documentation_tab_item
+                (id,organization_id,project_id,site_edition_id,
+                 documentation_page_id,documentation_page_block_id,
+                 label,body,position)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+              [
+                item.id,
+                input.organization_id,
+                input.project_id,
+                page.site_edition_id,
+                input.page_id,
+                block.id,
+                item.label,
+                item.body,
+                item.position,
+              ],
+            );
+          }
+        }
+        if (block.kind === "table" && Array.isArray(block.rows)) {
+          for (const row of block.rows as Array<Record<string, unknown>>) {
+            await client.query(
+              `INSERT INTO documentation_schema.documentation_table_row
+                (id,organization_id,project_id,site_edition_id,
+                 documentation_page_id,documentation_page_block_id,position)
+               VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+              [
+                row.id,
+                input.organization_id,
+                input.project_id,
+                page.site_edition_id,
+                input.page_id,
+                block.id,
+                row.position,
+              ],
+            );
+            for (const cell of row.cells as Array<Record<string, unknown>>) {
+              await client.query(
+                `INSERT INTO documentation_schema.documentation_table_cell
+                  (id,organization_id,project_id,site_edition_id,
+                   documentation_page_id,documentation_page_block_id,
+                   documentation_table_row_id,column_position,is_header,
+                   text_content)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+                [
+                  cell.id,
+                  input.organization_id,
+                  input.project_id,
+                  page.site_edition_id,
+                  input.page_id,
+                  block.id,
+                  row.id,
+                  cell.column_position,
+                  cell.is_header,
+                  cell.text,
+                ],
+              );
+            }
           }
         }
       }
@@ -3760,6 +4782,1013 @@ export const build_documentation_repository = (database: Database) => ({
       updated_at: row.updated_at.toISOString(),
     }));
   },
+  list_snippets: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    status: "active" | "archived" | "all";
+    cursor?: string;
+  }) => {
+    const result = await database.query<{
+      id: string;
+      name: string;
+      status: "active" | "archived";
+      version: number;
+      updated_at: Date;
+    }>(
+      `SELECT snippet.id,snippet.name,snippet.status,snippet.version,
+              snippet.updated_at
+         FROM documentation_schema.documentation_snippet snippet
+         JOIN documentation_schema.site_edition edition
+           ON edition.id=snippet.site_edition_id
+        WHERE snippet.organization_id=$1 AND snippet.project_id=$2
+          AND edition.project_version_id=$3
+          AND snippet.documentation_site_id=$4
+          AND ($5='all' OR snippet.status=$5)
+          AND ($6::varchar IS NULL OR
+            (lower(snippet.name),snippet.id) >
+            (lower(split_part($6,':',1)),split_part($6,':',2)))
+        ORDER BY lower(snippet.name),snippet.id LIMIT 100`,
+      [
+        input.organization_id,
+        input.project_id,
+        input.project_version_id,
+        input.site_id,
+        input.status,
+        input.cursor ?? null,
+      ],
+    );
+    return result.rows.map((row) => ({
+      ...row,
+      updated_at: row.updated_at.toISOString(),
+    }));
+  },
+
+  get_snippet: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    snippet_id: string;
+  }) => {
+    const snippet = await database.query<{
+      id: string;
+      name: string;
+      status: "active" | "archived";
+      version: number;
+      updated_at: Date;
+    }>(
+      `SELECT snippet.id,snippet.name,snippet.status,snippet.version,
+              snippet.updated_at
+         FROM documentation_schema.documentation_snippet snippet
+         JOIN documentation_schema.site_edition edition
+           ON edition.id=snippet.site_edition_id
+        WHERE snippet.organization_id=$1 AND snippet.project_id=$2
+          AND edition.project_version_id=$3
+          AND snippet.documentation_site_id=$4 AND snippet.id=$5`,
+      [
+        input.organization_id,
+        input.project_id,
+        input.project_version_id,
+        input.site_id,
+        input.snippet_id,
+      ],
+    );
+    if (!snippet.rows[0]) return null;
+    const blocks = await database.query<Record<string, unknown>>(
+      `SELECT block.id,block.kind,block.position,block.heading_level,
+              block.text_content,block.code_language,block.link_url,
+              block.linked_page_id,block.linked_block_id,
+              block.documentation_asset_id,block.capture_asset_id,
+              block.openapi_source_id,block.operation_key,
+              block.published_artifact_id,block.callout_tone,
+              block.display_title,block.quote_attribution,block.table_caption,
+              block.alt_text,block.image_caption,block.version,
+              COALESCE((
+                SELECT jsonb_agg(jsonb_build_object(
+                  'id',item.id,'text',item.text_content,'position',item.position,
+                  'expected_version',item.version
+                ) ORDER BY item.position,item.id)
+                  FROM documentation_schema.documentation_snippet_list_item item
+                 WHERE item.documentation_snippet_block_id=block.id
+              ),'[]'::jsonb) items,
+              COALESCE((
+                SELECT jsonb_agg(jsonb_build_object(
+                  'id',tab.id,'label',tab.label,'body',tab.body,
+                  'position',tab.position,'expected_version',tab.version
+                ) ORDER BY tab.position,tab.id)
+                  FROM documentation_schema.documentation_snippet_tab_item tab
+                 WHERE tab.documentation_snippet_block_id=block.id
+              ),'[]'::jsonb) tabs,
+              COALESCE((
+                SELECT jsonb_agg(jsonb_build_object(
+                  'id',row.id,'position',row.position,
+                  'expected_version',row.version,'cells',(
+                    SELECT jsonb_agg(jsonb_build_object(
+                      'id',cell.id,'column_position',cell.column_position,
+                      'expected_version',cell.version,'is_header',cell.is_header,
+                      'text',cell.text_content
+                    ) ORDER BY cell.column_position,cell.id)
+                    FROM documentation_schema.documentation_snippet_table_cell cell
+                    WHERE cell.documentation_snippet_table_row_id=row.id
+                  )
+                ) ORDER BY row.position,row.id)
+                FROM documentation_schema.documentation_snippet_table_row row
+                WHERE row.documentation_snippet_block_id=block.id
+              ),'[]'::jsonb) rows
+         FROM documentation_schema.documentation_snippet_block block
+        WHERE block.organization_id=$1 AND block.project_id=$2
+          AND block.documentation_snippet_id=$3
+        ORDER BY block.position,block.id`,
+      [input.organization_id, input.project_id, input.snippet_id],
+    );
+    return {
+      ...snippet.rows[0],
+      updated_at: snippet.rows[0].updated_at.toISOString(),
+      blocks: blocks.rows.map((row) =>
+        to_documentation_block({
+          ...row,
+          items: row.kind === "tabs" ? row.tabs : row.items,
+        }),
+      ),
+    };
+  },
+
+  create_snippet: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    actor_org_user_id: string;
+    idempotency_key: string;
+    data: { name: string };
+  }) =>
+    with_transaction(database, async (client) => {
+      const name = normalize_documentation_snippet_name(input.data.name);
+      const request_digest = command_digest({
+        site_id: input.site_id,
+        name,
+      });
+      const replay = await read_command_receipt(client, {
+        ...input,
+        operation: "documentation.snippet.create",
+        request_digest,
+      });
+      if (replay) return replay;
+      const parent = await client.query<{
+        edition_id: string;
+        working_draft_id: string;
+      }>(
+        `SELECT edition.id edition_id,draft.id working_draft_id
+           FROM documentation_schema.site_edition edition
+           JOIN documentation_schema.site_working_draft draft
+             ON draft.site_edition_id=edition.id
+          WHERE edition.organization_id=$1 AND edition.project_id=$2
+            AND edition.project_version_id=$3
+            AND edition.documentation_site_id=$4
+          FOR UPDATE OF draft`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+        ],
+      );
+      const scope = parent.rows[0];
+      if (!scope) throw new Error("Documentation Site was not found");
+      const count = await client.query<{ count: number }>(
+        `SELECT COUNT(*)::integer count
+           FROM documentation_schema.documentation_snippet
+          WHERE site_edition_id=$1`,
+        [scope.edition_id],
+      );
+      if (
+        (count.rows[0]?.count ?? 0) >= DOCUMENTATION_SNIPPETS_PER_EDITION_MAX
+      ) {
+        const error = new Error("Documentation Snippet limit exceeded");
+        Object.assign(error, { code: "documentation_snippet_limit_exceeded" });
+        throw error;
+      }
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.snippet.create",
+        action: "documentation.snippet_created",
+      });
+      const id = ulid();
+      try {
+        await client.query(
+          `INSERT INTO documentation_schema.documentation_snippet
+            (id,organization_id,project_id,documentation_site_id,
+             site_edition_id,site_working_draft_id,name,created_by_id,
+             updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8)`,
+          [
+            id,
+            input.organization_id,
+            input.project_id,
+            input.site_id,
+            scope.edition_id,
+            scope.working_draft_id,
+            name,
+            input.actor_org_user_id,
+          ],
+        );
+      } catch (error) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "constraint" in error &&
+          error.constraint === "uq_documentation_snippet_active_name"
+        )
+          Object.assign(error, { code: "documentation_snippet_name_conflict" });
+        throw error;
+      }
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: scope.edition_id,
+      });
+      const result = {
+        id,
+        name,
+        status: "active",
+        version: 1,
+        blocks: [],
+        updated_at: new Date().toISOString(),
+      };
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.snippet_created",
+        entity_type: "documentation_snippet",
+        entity_id: id,
+        before_version: null,
+        after_version: 1,
+      });
+      await write_command_receipt(client, {
+        ...input,
+        operation: "documentation.snippet.create",
+        request_digest,
+        response_status: 201,
+        response_body: result,
+      });
+      return { ...result, idempotent_replay: false };
+    }),
+
+  update_snippet: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    snippet_id: string;
+    actor_org_user_id: string;
+    data: { expected_version: number; name: string };
+  }) =>
+    with_transaction(database, async (client) => {
+      const current = await client.query<{
+        id: string;
+        site_edition_id: string;
+        name: string;
+        status: "active" | "archived";
+        version: number;
+      }>(
+        `SELECT snippet.id,snippet.site_edition_id,snippet.name,
+                snippet.status,snippet.version
+           FROM documentation_schema.documentation_snippet snippet
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=snippet.site_edition_id
+          WHERE snippet.organization_id=$1 AND snippet.project_id=$2
+            AND edition.project_version_id=$3
+            AND snippet.documentation_site_id=$4 AND snippet.id=$5
+          FOR UPDATE OF snippet`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+          input.snippet_id,
+        ],
+      );
+      const snippet = current.rows[0];
+      if (!snippet) {
+        const error = new Error("Documentation Snippet was not found");
+        Object.assign(error, { code: "documentation_snippet_not_found" });
+        throw error;
+      }
+      if (snippet.version !== input.data.expected_version) {
+        const error = new Error("Documentation Snippet changed");
+        Object.assign(error, { code: "documentation_snippet_conflict" });
+        throw error;
+      }
+      const name = normalize_documentation_snippet_name(input.data.name);
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.snippet.update",
+        action: "documentation.snippet_updated",
+      });
+      try {
+        await client.query(
+          `UPDATE documentation_schema.documentation_snippet
+              SET name=$1,version=version+1,updated_by_id=$2,
+                  updated_at=CURRENT_TIMESTAMP WHERE id=$3`,
+          [name, input.actor_org_user_id, input.snippet_id],
+        );
+      } catch (error) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "constraint" in error &&
+          error.constraint === "uq_documentation_snippet_active_name"
+        )
+          Object.assign(error, { code: "documentation_snippet_name_conflict" });
+        throw error;
+      }
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: snippet.site_edition_id,
+      });
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.snippet_updated",
+        entity_type: "documentation_snippet",
+        entity_id: input.snippet_id,
+        before_version: snippet.version,
+        after_version: snippet.version + 1,
+      });
+      return {
+        id: snippet.id,
+        name,
+        status: snippet.status,
+        version: snippet.version + 1,
+      };
+    }),
+
+  transition_snippet: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    snippet_id: string;
+    actor_org_user_id: string;
+    expected_version: number;
+    transition: "archive" | "restore";
+  }) =>
+    with_transaction(database, async (client) => {
+      const current = await client.query<{
+        id: string;
+        site_edition_id: string;
+        name: string;
+        status: "active" | "archived";
+        version: number;
+      }>(
+        `SELECT snippet.id,snippet.site_edition_id,snippet.name,
+                snippet.status,snippet.version
+           FROM documentation_schema.documentation_snippet snippet
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=snippet.site_edition_id
+          WHERE snippet.organization_id=$1 AND snippet.project_id=$2
+            AND edition.project_version_id=$3
+            AND snippet.documentation_site_id=$4 AND snippet.id=$5
+          FOR UPDATE OF snippet`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+          input.snippet_id,
+        ],
+      );
+      const snippet = current.rows[0];
+      if (!snippet) {
+        const error = new Error("Documentation Snippet was not found");
+        Object.assign(error, { code: "documentation_snippet_not_found" });
+        throw error;
+      }
+      if (snippet.version !== input.expected_version) {
+        const error = new Error("Documentation Snippet changed");
+        Object.assign(error, { code: "documentation_snippet_conflict" });
+        throw error;
+      }
+      const status = input.transition === "archive" ? "archived" : "active";
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: `documentation.snippet.${input.transition}`,
+        action: `documentation.snippet_${input.transition}d`,
+      });
+      try {
+        await client.query(
+          `UPDATE documentation_schema.documentation_snippet
+              SET status=$1,version=version+1,updated_by_id=$2,
+                  updated_at=CURRENT_TIMESTAMP WHERE id=$3`,
+          [status, input.actor_org_user_id, input.snippet_id],
+        );
+      } catch (error) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "constraint" in error &&
+          error.constraint === "uq_documentation_snippet_active_name"
+        )
+          Object.assign(error, { code: "documentation_snippet_name_conflict" });
+        throw error;
+      }
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: snippet.site_edition_id,
+      });
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: `documentation.snippet_${input.transition}d`,
+        entity_type: "documentation_snippet",
+        entity_id: input.snippet_id,
+        before_version: snippet.version,
+        after_version: snippet.version + 1,
+      });
+      return {
+        id: snippet.id,
+        name: snippet.name,
+        status,
+        version: snippet.version + 1,
+      };
+    }),
+
+  save_snippet: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    snippet_id: string;
+    actor_org_user_id: string;
+    expected_snippet_version: number;
+    blocks: Array<Record<string, unknown>>;
+  }) =>
+    with_transaction(database, async (client) => {
+      const current = await client.query<{
+        id: string;
+        site_edition_id: string;
+        name: string;
+        status: "active" | "archived";
+        version: number;
+      }>(
+        `SELECT snippet.id,snippet.site_edition_id,snippet.name,
+                snippet.status,snippet.version
+           FROM documentation_schema.documentation_snippet snippet
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=snippet.site_edition_id
+          WHERE snippet.organization_id=$1 AND snippet.project_id=$2
+            AND edition.project_version_id=$3
+            AND snippet.documentation_site_id=$4 AND snippet.id=$5
+          FOR UPDATE OF snippet`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+          input.snippet_id,
+        ],
+      );
+      const snippet = current.rows[0];
+      if (!snippet) {
+        const error = new Error("Documentation Snippet was not found");
+        Object.assign(error, { code: "documentation_snippet_not_found" });
+        throw error;
+      }
+      if (snippet.version !== input.expected_snippet_version) {
+        const error = new Error("Documentation Snippet changed");
+        Object.assign(error, { code: "documentation_snippet_conflict" });
+        throw error;
+      }
+      if (snippet.status === "archived") {
+        const error = new Error("Archived Documentation Snippet is read-only");
+        Object.assign(error, { code: "documentation_snippet_archived" });
+        throw error;
+      }
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.snippet.content_replace",
+        action: "documentation.snippet_content_replaced",
+      });
+      await client.query(
+        `DELETE FROM documentation_schema.documentation_snippet_table_cell
+          WHERE documentation_snippet_id=$1`,
+        [input.snippet_id],
+      );
+      await client.query(
+        `DELETE FROM documentation_schema.documentation_snippet_table_row
+          WHERE documentation_snippet_id=$1`,
+        [input.snippet_id],
+      );
+      await client.query(
+        `DELETE FROM documentation_schema.documentation_snippet_tab_item
+          WHERE documentation_snippet_id=$1`,
+        [input.snippet_id],
+      );
+      await client.query(
+        `DELETE FROM documentation_schema.documentation_snippet_list_item
+          WHERE documentation_snippet_id=$1`,
+        [input.snippet_id],
+      );
+      await client.query(
+        `DELETE FROM documentation_schema.documentation_snippet_block
+          WHERE documentation_snippet_id=$1`,
+        [input.snippet_id],
+      );
+      for (const block of input.blocks) {
+        const source =
+          typeof block.source === "object" && block.source
+            ? (block.source as { kind: string; id: string })
+            : null;
+        const publication_type =
+          block.kind === "guide_publication"
+            ? "guide"
+            : block.kind === "interactive_demo_publication"
+              ? "interactive_demo"
+              : null;
+        await client.query(
+          `INSERT INTO documentation_schema.documentation_snippet_block
+            (id,organization_id,project_id,site_edition_id,
+             documentation_snippet_id,kind,position,heading_level,
+             text_content,link_url,linked_page_id,linked_block_id,
+             code_language,documentation_asset_id,capture_asset_id,
+             openapi_source_id,operation_key,published_artifact_id,
+             published_artifact_type,callout_tone,display_title,
+             quote_attribution,table_caption,alt_text,image_caption,
+             created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
+                   $16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$26)`,
+          [
+            block.id,
+            input.organization_id,
+            input.project_id,
+            snippet.site_edition_id,
+            input.snippet_id,
+            block.kind,
+            block.position,
+            block.level ?? null,
+            block.text ?? block.code ?? block.label ?? null,
+            block.url ?? null,
+            block.page_id ?? null,
+            block.target_block_id ?? null,
+            block.language ?? null,
+            source?.kind === "documentation_asset" ? source.id : null,
+            source?.kind === "capture_asset" ? source.id : null,
+            block.openapi_source_id ?? null,
+            block.operation_key ?? null,
+            block.published_artifact_id ?? null,
+            publication_type,
+            block.tone ?? null,
+            block.title ?? null,
+            block.attribution ?? null,
+            block.caption ?? null,
+            block.alt_text ?? null,
+            block.caption ?? null,
+            input.actor_org_user_id,
+          ],
+        );
+        if (
+          (block.kind === "ordered_list" || block.kind === "unordered_list") &&
+          Array.isArray(block.items)
+        )
+          for (const item of block.items as Array<Record<string, unknown>>)
+            await client.query(
+              `INSERT INTO documentation_schema.documentation_snippet_list_item
+                (id,organization_id,project_id,site_edition_id,
+                 documentation_snippet_id,documentation_snippet_block_id,
+                 text_content,position)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+              [
+                item.id,
+                input.organization_id,
+                input.project_id,
+                snippet.site_edition_id,
+                input.snippet_id,
+                block.id,
+                item.text,
+                item.position,
+              ],
+            );
+        if (block.kind === "tabs" && Array.isArray(block.items))
+          for (const item of block.items as Array<Record<string, unknown>>)
+            await client.query(
+              `INSERT INTO documentation_schema.documentation_snippet_tab_item
+                (id,organization_id,project_id,site_edition_id,
+                 documentation_snippet_id,documentation_snippet_block_id,
+                 label,body,position)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+              [
+                item.id,
+                input.organization_id,
+                input.project_id,
+                snippet.site_edition_id,
+                input.snippet_id,
+                block.id,
+                item.label,
+                item.body,
+                item.position,
+              ],
+            );
+        if (block.kind === "table" && Array.isArray(block.rows))
+          for (const row of block.rows as Array<Record<string, unknown>>) {
+            await client.query(
+              `INSERT INTO documentation_schema.documentation_snippet_table_row
+                (id,organization_id,project_id,site_edition_id,
+                 documentation_snippet_id,documentation_snippet_block_id,
+                 position)
+               VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+              [
+                row.id,
+                input.organization_id,
+                input.project_id,
+                snippet.site_edition_id,
+                input.snippet_id,
+                block.id,
+                row.position,
+              ],
+            );
+            for (const cell of row.cells as Array<Record<string, unknown>>)
+              await client.query(
+                `INSERT INTO documentation_schema.documentation_snippet_table_cell
+                  (id,organization_id,project_id,site_edition_id,
+                   documentation_snippet_id,documentation_snippet_block_id,
+                   documentation_snippet_table_row_id,column_position,
+                   is_header,text_content)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+                [
+                  cell.id,
+                  input.organization_id,
+                  input.project_id,
+                  snippet.site_edition_id,
+                  input.snippet_id,
+                  block.id,
+                  row.id,
+                  cell.column_position,
+                  cell.is_header,
+                  cell.text,
+                ],
+              );
+          }
+      }
+      await client.query(
+        `UPDATE documentation_schema.documentation_snippet
+            SET version=version+1,updated_by_id=$1,updated_at=CURRENT_TIMESTAMP
+          WHERE id=$2`,
+        [input.actor_org_user_id, input.snippet_id],
+      );
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: snippet.site_edition_id,
+      });
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.snippet_content_replaced",
+        entity_type: "documentation_snippet",
+        entity_id: input.snippet_id,
+        before_version: snippet.version,
+        after_version: snippet.version + 1,
+      });
+      return {
+        id: snippet.id,
+        name: snippet.name,
+        status: snippet.status,
+        version: snippet.version + 1,
+        blocks: input.blocks,
+      };
+    }),
+
+  list_assets: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    source: "documentation" | "capture" | "all";
+    status: "active" | "archived" | "all";
+    include_archived_versions: boolean;
+  }) => {
+    const assets: Array<Record<string, unknown>> = [];
+    if (input.source !== "capture") {
+      const documentationAssets = await database.query<{
+        id: string;
+        name: string;
+        status: "active" | "archived";
+        version: number;
+        mime_type: string;
+        width: number;
+        height: number;
+      }>(
+        `SELECT asset.id,asset.name,asset.status,asset.version,
+                asset.mime_type,asset.width,asset.height
+           FROM documentation_schema.documentation_asset asset
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=asset.site_edition_id
+          WHERE asset.organization_id=$1 AND asset.project_id=$2
+            AND edition.project_version_id=$3
+            AND asset.documentation_site_id=$4
+            AND ($5='all' OR asset.status=$5)
+          ORDER BY lower(asset.name),asset.id LIMIT 100`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+          input.status,
+        ],
+      );
+      assets.push(
+        ...documentationAssets.rows.map((asset) => ({
+          source: { kind: "documentation_asset", id: asset.id },
+          ...asset,
+          source_project_version: null,
+        })),
+      );
+    }
+    if (input.source !== "documentation") {
+      const captureAssets = await database.query<{
+        id: string;
+        name: string;
+        status: string;
+        version: number;
+        mime_type: string;
+        width: number;
+        height: number;
+        project_version_id: string;
+        project_version_name: string;
+        project_version_slug: string;
+      }>(
+        `SELECT asset.id,COALESCE(file.original_name,'Capture image') name,
+                asset.status,asset.version,file.mime_type,
+                asset.width,asset.height,version.id project_version_id,
+                version.name project_version_name,
+                version.slug project_version_slug
+           FROM capture_schema.capture_asset asset
+           JOIN capture_schema.capture_session session
+             ON session.id=asset.capture_session_id
+           JOIN project_schema.project_version version
+             ON version.id=session.project_version_id
+           JOIN file_schema.file file ON file.id=asset.file_id
+          WHERE asset.organization_id=$1 AND asset.project_id=$2
+            AND asset.is_deleted=FALSE AND file.is_deleted=FALSE
+            AND asset.asset_type IN ('screenshot','redacted_screenshot')
+            AND file.mime_type IN ('image/png','image/jpeg','image/webp')
+            AND asset.status IN ('active','archived')
+            AND ($3 OR version.status='active')
+          ORDER BY version.position,asset.created_at DESC,asset.id LIMIT 100`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.include_archived_versions,
+        ],
+      );
+      assets.push(
+        ...captureAssets.rows.map((asset) => ({
+          source: { kind: "capture_asset", id: asset.id },
+          name: asset.name,
+          status: asset.status,
+          version: asset.version,
+          mime_type: asset.mime_type,
+          width: asset.width,
+          height: asset.height,
+          source_project_version: {
+            id: asset.project_version_id,
+            name: asset.project_version_name,
+            slug: asset.project_version_slug,
+          },
+        })),
+      );
+    }
+    return assets.slice(0, 100);
+  },
+
+  update_asset: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    asset_id: string;
+    actor_org_user_id: string;
+    expected_version: number;
+    name: string;
+  }) =>
+    with_transaction(database, async (client) => {
+      const current = await client.query<{
+        id: string;
+        site_edition_id: string;
+        name: string;
+        status: "active" | "archived";
+        version: number;
+      }>(
+        `SELECT asset.id,asset.site_edition_id,asset.name,asset.status,
+                asset.version
+           FROM documentation_schema.documentation_asset asset
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=asset.site_edition_id
+          WHERE asset.organization_id=$1 AND asset.project_id=$2
+            AND edition.project_version_id=$3
+            AND asset.documentation_site_id=$4 AND asset.id=$5
+          FOR UPDATE OF asset`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+          input.asset_id,
+        ],
+      );
+      const asset = current.rows[0];
+      if (!asset) throw new Error("Documentation Asset was not found");
+      if (asset.version !== input.expected_version) {
+        const error = new Error("Documentation Asset changed");
+        Object.assign(error, { code: "documentation_asset_conflict" });
+        throw error;
+      }
+      const name = normalize_documentation_asset_name(input.name);
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.asset.update",
+        action: "documentation.asset_updated",
+      });
+      try {
+        await client.query(
+          `UPDATE documentation_schema.documentation_asset
+              SET name=$1,version=version+1,updated_by_id=$2,
+                  updated_at=CURRENT_TIMESTAMP WHERE id=$3`,
+          [name, input.actor_org_user_id, input.asset_id],
+        );
+      } catch (error) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "constraint" in error &&
+          error.constraint === "uq_documentation_asset_active_name"
+        )
+          Object.assign(error, { code: "documentation_asset_name_conflict" });
+        throw error;
+      }
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: asset.site_edition_id,
+      });
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: "documentation.asset_updated",
+        entity_type: "documentation_asset",
+        entity_id: input.asset_id,
+        before_version: asset.version,
+        after_version: asset.version + 1,
+      });
+      return {
+        source: { kind: "documentation_asset", id: asset.id },
+        name,
+        status: asset.status,
+        version: asset.version + 1,
+      };
+    }),
+
+  transition_asset: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    asset_id: string;
+    actor_org_user_id: string;
+    expected_version: number;
+    transition: "archive" | "restore";
+  }) =>
+    with_transaction(database, async (client) => {
+      const current = await client.query<{
+        id: string;
+        site_edition_id: string;
+        name: string;
+        status: "active" | "archived";
+        version: number;
+      }>(
+        `SELECT asset.id,asset.site_edition_id,asset.name,asset.status,
+                asset.version
+           FROM documentation_schema.documentation_asset asset
+           JOIN documentation_schema.site_edition edition
+             ON edition.id=asset.site_edition_id
+          WHERE asset.organization_id=$1 AND asset.project_id=$2
+            AND edition.project_version_id=$3
+            AND asset.documentation_site_id=$4 AND asset.id=$5
+          FOR UPDATE OF asset`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+          input.asset_id,
+        ],
+      );
+      const asset = current.rows[0];
+      if (!asset) throw new Error("Documentation Asset was not found");
+      if (asset.version !== input.expected_version) {
+        const error = new Error("Documentation Asset changed");
+        Object.assign(error, { code: "documentation_asset_conflict" });
+        throw error;
+      }
+      const status = input.transition === "archive" ? "archived" : "active";
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: `documentation.asset.${input.transition}`,
+        action: `documentation.asset_${input.transition}d`,
+      });
+      try {
+        await client.query(
+          `UPDATE documentation_schema.documentation_asset
+              SET status=$1,version=version+1,updated_by_id=$2,
+                  updated_at=CURRENT_TIMESTAMP WHERE id=$3`,
+          [status, input.actor_org_user_id, input.asset_id],
+        );
+      } catch (error) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "constraint" in error &&
+          error.constraint === "uq_documentation_asset_active_name"
+        )
+          Object.assign(error, { code: "documentation_asset_name_conflict" });
+        throw error;
+      }
+      await bump_working_draft(client, {
+        ...input,
+        site_edition_id: asset.site_edition_id,
+      });
+      await write_documentation_audit_event(client, {
+        audit,
+        ...input,
+        action: `documentation.asset_${input.transition}d`,
+        entity_type: "documentation_asset",
+        entity_id: input.asset_id,
+        before_version: asset.version,
+        after_version: asset.version + 1,
+      });
+      return {
+        source: { kind: "documentation_asset", id: asset.id },
+        name: asset.name,
+        status,
+        version: asset.version + 1,
+      };
+    }),
+
+  list_artifact_publications: async (input: {
+    organization_id: string;
+    project_id: string;
+    site_id: string;
+    artifact_type: "guide" | "interactive_demo";
+  }) => {
+    const result = await database.query<{
+      published_artifact_id: string;
+      artifact_type: "guide" | "interactive_demo";
+      artifact_id: string;
+      edition_id: string;
+      project_version_id: string;
+      project_version_name: string;
+      project_version_slug: string;
+      publication_sequence: number;
+      revision_number: number;
+      title: string;
+      description: string | null;
+      published_at: Date;
+    }>(
+      `SELECT publication.id published_artifact_id,
+              publication.artifact_type,
+              CASE WHEN publication.artifact_type='guide'
+                THEN publication.guide_id
+                ELSE publication.interactive_demo_id END artifact_id,
+              CASE WHEN publication.artifact_type='guide'
+                THEN publication.guide_edition_id
+                ELSE publication.interactive_demo_edition_id END edition_id,
+              publication.project_version_id,
+              version.name project_version_name,
+              version.slug project_version_slug,
+              publication.publication_sequence,
+              COALESCE(guide_revision.revision_number,
+                       demo_revision.revision_number) revision_number,
+              COALESCE(guide_revision.title,demo_revision.title) title,
+              left(COALESCE(guide_revision.description,
+                            demo_revision.description),1000) description,
+              publication.published_at
+         FROM publish_schema.published_artifact publication
+         JOIN project_schema.project_version version
+           ON version.id=publication.project_version_id
+         LEFT JOIN guide_schema.guide_revision guide_revision
+           ON guide_revision.id=publication.guide_revision_id
+         LEFT JOIN interactive_demo_schema.interactive_demo_revision demo_revision
+           ON demo_revision.id=publication.interactive_demo_revision_id
+        WHERE publication.organization_id=$1 AND publication.project_id=$2
+          AND publication.artifact_type=$3
+        ORDER BY publication.published_at DESC,publication.id LIMIT 100`,
+      [input.organization_id, input.project_id, input.artifact_type],
+    );
+    return result.rows.map((row) => ({
+      ...row,
+      published_at: row.published_at.toISOString(),
+    }));
+  },
+
   create_site: async (input: CreateSiteInput) =>
     with_transaction(database, async (client) => {
       const request_digest = command_digest({

@@ -107,6 +107,209 @@ describe("DB-backed Documentation repository", () => {
     });
   });
 
+  it("persists Edition-owned Snippets and expanded Page blocks with independent conflicts", async () => {
+    const scope = await establish_project();
+    const app = build({ logger: false });
+    const site = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "content-workflow-site" },
+      payload: {
+        name: "Content workflows",
+        primary_language: "en-US",
+        initial_home_page: { title: "Home", path: "home" },
+      },
+    });
+    expect(site.statusCode).toBe(201);
+    const root = `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${site.json().site.id}`;
+    const snippet = await app.inject({
+      method: "POST",
+      url: `${root}/snippets`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "snippet-create-db" },
+      payload: { name: "Authentication warning" },
+    });
+    expect(snippet.statusCode).toBe(201);
+    const snippetId = snippet.json().id as string;
+    const snippetSaved = await app.inject({
+      method: "PUT",
+      url: `${root}/snippets/${snippetId}/content`,
+      cookies: { ossie_session: scope.session_token },
+      payload: {
+        expected_snippet_version: 1,
+        blocks: [
+          {
+            id: "01J00000000000000000000101",
+            kind: "callout",
+            tone: "warning",
+            title: "Keep credentials private",
+            text: "Never paste **secrets**.",
+            position: 1,
+            expected_version: null,
+          },
+          {
+            id: "01J00000000000000000000102",
+            kind: "tabs",
+            position: 2,
+            expected_version: null,
+            items: [
+              {
+                id: "01J00000000000000000000103",
+                label: "npm",
+                body: "`npm install`",
+                position: 1,
+                expected_version: null,
+              },
+              {
+                id: "01J00000000000000000000104",
+                label: "pnpm",
+                body: "`pnpm add`",
+                position: 2,
+                expected_version: null,
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(snippetSaved.statusCode).toBe(200);
+    const page = await app.inject({
+      method: "POST",
+      url: `${root}/pages`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "content-workflow-page" },
+      payload: {
+        title: "Install",
+        description: null,
+        canonical_path: "install",
+      },
+    });
+    expect(page.statusCode).toBe(201);
+    const pageId = page.json().page.id as string;
+    const pageSaved = await app.inject({
+      method: "PUT",
+      url: `${root}/pages/${pageId}/content`,
+      cookies: { ossie_session: scope.session_token },
+      payload: {
+        expected_page_version: 1,
+        blocks: [
+          {
+            id: "01J00000000000000000000105",
+            kind: "quote",
+            text: "Ship small slices.",
+            attribution: "Ossie",
+            position: 1,
+            expected_version: null,
+          },
+          {
+            id: "01J00000000000000000000106",
+            kind: "table",
+            caption: "Package commands",
+            position: 2,
+            expected_version: null,
+            rows: [
+              {
+                id: "01J00000000000000000000107",
+                position: 1,
+                expected_version: null,
+                cells: [
+                  {
+                    id: "01J00000000000000000000108",
+                    column_position: 1,
+                    expected_version: null,
+                    is_header: true,
+                    text: "Manager",
+                  },
+                  {
+                    id: "01J00000000000000000000109",
+                    column_position: 2,
+                    expected_version: null,
+                    is_header: true,
+                    text: "Command",
+                  },
+                ],
+              },
+              {
+                id: "01J0000000000000000000010A",
+                position: 2,
+                expected_version: null,
+                cells: [
+                  {
+                    id: "01J0000000000000000000010B",
+                    column_position: 1,
+                    expected_version: null,
+                    is_header: false,
+                    text: "pnpm",
+                  },
+                  {
+                    id: "01J0000000000000000000010C",
+                    column_position: 2,
+                    expected_version: null,
+                    is_header: false,
+                    text: "`pnpm add`",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "01J0000000000000000000010D",
+            kind: "snippet_reference",
+            snippet_id: snippetId,
+            position: 3,
+            expected_version: null,
+          },
+        ],
+      },
+    });
+    expect(pageSaved.statusCode, pageSaved.body).toBe(200);
+    const loaded = await app.inject({
+      url: `${root}/pages/${pageId}`,
+      cookies: { ossie_session: scope.session_token },
+    });
+    expect(loaded.statusCode).toBe(200);
+    expect(loaded.json().page.blocks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "table",
+          caption: "Package commands",
+          rows: expect.arrayContaining([
+            expect.objectContaining({ cells: expect.any(Array) }),
+          ]),
+        }),
+        expect.objectContaining({
+          kind: "snippet_reference",
+          snippet_id: snippetId,
+        }),
+      ]),
+    );
+    const snippetChanged = await app.inject({
+      method: "PUT",
+      url: `${root}/snippets/${snippetId}/content`,
+      cookies: { ossie_session: scope.session_token },
+      payload: {
+        expected_snippet_version: 2,
+        blocks: [
+          {
+            id: "01J0000000000000000000010E",
+            kind: "paragraph",
+            text: "Updated shared text.",
+            position: 1,
+            expected_version: null,
+          },
+        ],
+      },
+    });
+    expect(snippetChanged.statusCode).toBe(200);
+    const pageAfterSnippet = await app.inject({
+      url: `${root}/pages/${pageId}`,
+      cookies: { ossie_session: scope.session_token },
+    });
+    expect(pageAfterSnippet.json().page.version).toBe(2);
+    await app.close();
+  });
+
   it("exposes the authorized version-scoped Site creation API", async () => {
     const scope = await establish_project();
     const app = build({ logger: false });
@@ -204,7 +407,7 @@ describe("DB-backed Documentation repository", () => {
         ],
       },
     });
-    expect(saved.statusCode).toBe(200);
+    expect(saved.statusCode, saved.body).toBe(200);
     expect(saved.json().page.version).toBe(2);
     const loaded = await app.inject({
       method: "GET",
@@ -447,7 +650,7 @@ describe("DB-backed Documentation repository", () => {
         expected_draft_version: preview.json().preview.working_draft.version,
       },
     });
-    expect(revision1.statusCode).toBe(201);
+    expect(revision1.statusCode, revision1.body).toBe(201);
     const publication1 = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/publications`,

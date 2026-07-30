@@ -801,6 +801,119 @@ export const build = (opts: BuildOptions = {}) => {
                 blocks: input.blocks as Array<Record<string, unknown>>,
               });
             },
+            list_snippets: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.list_snippets(input);
+            },
+            create_snippet: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.create_snippet(input);
+            },
+            get_snippet: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.get_snippet(input);
+            },
+            update_snippet: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.update_snippet(input);
+            },
+            save_snippet: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.save_snippet({
+                ...input,
+                blocks: input.blocks as Array<Record<string, unknown>>,
+              });
+            },
+            transition_snippet: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.transition_snippet(input);
+            },
+            list_assets: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.list_assets(input);
+            },
+            update_asset: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.update_asset(input);
+            },
+            transition_asset: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.transition_asset(input);
+            },
+            list_artifact_publications: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.list_artifact_publications(input);
+            },
             update_page: async (input) => {
               await project_access_service.authorize({
                 auth: {
@@ -1088,6 +1201,27 @@ export const build = (opts: BuildOptions = {}) => {
                 mime_type: file.mime_type,
               };
             },
+            get_capture_asset_file: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              const file =
+                await repository.get_capture_asset_file_record(input);
+              if (!file || file.storage_provider !== "local") return null;
+              const stored = await default_capture_file_storage.get({
+                storage_key: file.storage_key,
+              });
+              return {
+                stream: stored.stream,
+                size_bytes: stored.size_bytes,
+                mime_type: file.mime_type,
+              };
+            },
             get_public_asset_file: async (input) => {
               await documentation_public_access_service.authorize_public_documentation(
                 {
@@ -1096,6 +1230,25 @@ export const build = (opts: BuildOptions = {}) => {
                 },
               );
               const file = await repository.get_public_asset_file_record(input);
+              if (!file || file.storage_provider !== "local") return null;
+              const stored = await default_capture_file_storage.get({
+                storage_key: file.storage_key,
+              });
+              return {
+                stream: stored.stream,
+                size_bytes: stored.size_bytes,
+                mime_type: file.mime_type,
+              };
+            },
+            get_public_capture_asset_file: async (input) => {
+              await documentation_public_access_service.authorize_public_documentation(
+                {
+                  slug: input.slug,
+                  viewer_token: input.viewer_token,
+                },
+              );
+              const file =
+                await repository.get_public_capture_asset_file_record(input);
               if (!file || file.storage_provider !== "local") return null;
               const stored = await default_capture_file_storage.get({
                 storage_key: file.storage_key,

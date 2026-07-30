@@ -25,6 +25,16 @@ const approved_runtime_delete_grants = [
   documentation_schema.openapi_operation,
   documentation_schema.documentation_draft_search_document
 TO __OSSIE_RUNTIME_DB_ROLE__;`,
+  `GRANT DELETE ON
+  documentation_schema.documentation_snippet_block,
+  documentation_schema.documentation_snippet_list_item,
+  documentation_schema.documentation_snippet_table_row,
+  documentation_schema.documentation_snippet_table_cell,
+  documentation_schema.documentation_snippet_tab_item,
+  documentation_schema.documentation_table_row,
+  documentation_schema.documentation_table_cell,
+  documentation_schema.documentation_tab_item
+TO __OSSIE_RUNTIME_DB_ROLE__;`,
 ] as const;
 
 const without_approved_runtime_delete_grants = (sql: string) =>
@@ -509,7 +519,9 @@ describe("foundation schema migrations", () => {
     ]) {
       expect(up).toContain(`CREATE TABLE ${table}`);
     }
-    expect(up).toContain("resource_family VARCHAR(50) NOT NULL DEFAULT 'artifact'");
+    expect(up).toContain(
+      "resource_family VARCHAR(50) NOT NULL DEFAULT 'artifact'",
+    );
     expect(up).toContain("documentation_site_id VARCHAR(26) DEFAULT NULL");
     expect(up).toContain("site_publication_id VARCHAR(26) DEFAULT NULL");
     expect(up).toContain("prevent_immutable_documentation_mutation");
@@ -533,15 +545,12 @@ describe("foundation schema migrations", () => {
       "publish_schema.site_publication",
       "publish_schema.site_publication_search_document",
     ]) {
-      expect(table_definition(up, authoritative_table).toLowerCase()).not.toContain(
-        "jsonb",
-      );
+      expect(
+        table_definition(up, authoritative_table).toLowerCase(),
+      ).not.toContain("jsonb");
     }
     expect(
-      table_definition(
-        up,
-        "documentation_schema.openapi_inspection",
-      ),
+      table_definition(up, "documentation_schema.openapi_inspection"),
     ).toContain("parsed_document JSONB NOT NULL");
     expect(
       table_definition(
@@ -551,6 +560,64 @@ describe("foundation schema migrations", () => {
     ).toContain("response_body JSONB NOT NULL");
     expect(down).toContain(
       "Refusing to roll back populated Documentation first vertical slice",
+    );
+  });
+
+  it("adds relational Documentation snippets, typed content children, and frozen dependencies", () => {
+    const migration = readFileSync(
+      new URL(
+        "./migrations/026_documentation_content_snippets_and_asset_workflows.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const up = migration.split("-- DOWN:")[0] ?? migration;
+    const down = migration.split("-- DOWN:")[1] ?? "";
+
+    for (const table of [
+      "documentation_schema.documentation_snippet",
+      "documentation_schema.documentation_snippet_block",
+      "documentation_schema.documentation_snippet_list_item",
+      "documentation_schema.documentation_table_row",
+      "documentation_schema.documentation_table_cell",
+      "documentation_schema.documentation_tab_item",
+      "documentation_schema.documentation_snippet_table_row",
+      "documentation_schema.documentation_snippet_table_cell",
+      "documentation_schema.documentation_snippet_tab_item",
+      "documentation_schema.site_revision_snippet",
+      "documentation_schema.site_revision_snippet_block",
+      "documentation_schema.site_revision_snippet_list_item",
+      "documentation_schema.site_revision_snippet_table_row",
+      "documentation_schema.site_revision_snippet_table_cell",
+      "documentation_schema.site_revision_snippet_tab_item",
+      "documentation_schema.site_revision_page_table_row",
+      "documentation_schema.site_revision_page_table_cell",
+      "documentation_schema.site_revision_page_tab_item",
+      "documentation_schema.site_revision_artifact_reference",
+    ])
+      expect(up).toContain(`CREATE TABLE ${table}`);
+
+    const snippet = table_definition(
+      up,
+      "documentation_schema.documentation_snippet",
+    );
+    expect(snippet).toContain("site_edition_id VARCHAR(26) NOT NULL");
+    expect(snippet).toContain("site_working_draft_id VARCHAR(26) NOT NULL");
+    expect(snippet).toContain("status VARCHAR(20) NOT NULL DEFAULT 'active'");
+    expect(snippet).toContain("version INTEGER NOT NULL DEFAULT 1");
+    expect(snippet.toLowerCase()).not.toContain("json");
+
+    expect(up).toContain("source_kind VARCHAR(30) NOT NULL");
+    expect(up).toContain("linked_source_block_id VARCHAR(26) DEFAULT NULL");
+    expect(up).toContain("published_artifact_id VARCHAR(26)");
+    expect(up).toContain("capture_asset_id VARCHAR(26)");
+    expect(up).toContain("prevent_immutable_documentation_mutation");
+    expect(up).toContain("'site_revision_artifact_reference'");
+    expect(up).toContain(
+      "UNIQUE (site_revision_id, source_kind, source_asset_id)",
+    );
+    expect(down).toContain(
+      "Refusing to roll back populated Documentation content workflows",
     );
   });
 });
