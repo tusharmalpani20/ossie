@@ -3,12 +3,23 @@ import type { DocumentationAssetSourceInput } from "../types/documentation-domai
 
 export { DocumentationDomainError };
 
-const unsafe_name_characters =
-  /[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069/\\]+/gu;
+const safe_asset_name_characters = (value: string) =>
+  [...value]
+    .map((character) => {
+      const point = character.codePointAt(0) ?? 0;
+      return point <= 31 ||
+        point === 127 ||
+        (point >= 0x202a && point <= 0x202e) ||
+        (point >= 0x2066 && point <= 0x2069) ||
+        character === "/" ||
+        character === "\\"
+        ? " "
+        : character;
+    })
+    .join("");
 
 export const normalize_documentation_asset_name = (value: string) => {
-  const name = value
-    .replace(unsafe_name_characters, " ")
+  const name = safe_asset_name_characters(value)
     .replace(/\s+/gu, " ")
     .trim()
     .replace(/^\.+\s*/u, "");

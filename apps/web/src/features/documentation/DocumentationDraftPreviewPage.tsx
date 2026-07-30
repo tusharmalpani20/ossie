@@ -39,10 +39,10 @@ export const DocumentationDraftPreviewPage = ({
   if (failed) return <p role="alert">Saved draft preview is unavailable.</p>;
   if (!preview) return <p role="status">Loading saved draft preview…</p>;
   return (
-    <main id="main-content">
+    <section aria-labelledby="documentation-preview-heading">
       <header>
         <p>Latest saved state — local unsaved edits are not included.</p>
-        <h1>{preview.site.name} preview</h1>
+        <h1 id="documentation-preview-heading">{preview.site.name} preview</h1>
         <p>Server-saved draft version {preview.working_draft.version}</p>
       </header>
       {preview.pages.map((page) => (
@@ -65,6 +65,6 @@ export const DocumentationDraftPreviewPage = ({
           />
         </article>
       ))}
-    </main>
+    </section>
   );
 };

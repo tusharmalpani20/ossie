@@ -2683,25 +2683,23 @@ export const build_documentation_repository = (database: Database) => ({
           ],
         );
         for (const page of snapshot.pages) {
-          const searchText = [
-            page.title,
-            page.description,
-            ...(page.keywords as string[]),
-            ...(page.blocks as Array<Record<string, unknown>>).flatMap(
-              (block) => [
-                block.text,
-                block.code,
-                block.label,
-                ...(Array.isArray(block.items)
-                  ? (block.items as Array<{ text: string }>).map(
-                      (item) => item.text,
-                    )
-                  : []),
-              ],
-            ),
-          ]
-            .filter((value): value is string => typeof value === "string")
-            .join("\n");
+          const expandedSnippetBlocks = (
+            page.blocks as Array<Record<string, unknown>>
+          ).flatMap((block) => {
+            if (block.kind !== "snippet_reference") return [];
+            return (snapshot.snippets.find(
+              (snippet) => snippet.id === block.snippet_id,
+            )?.blocks ?? []) as Array<Record<string, unknown>>;
+          });
+          const searchText = search_text_for_blocks(
+            page.title as string,
+            page.description as string | null,
+            [
+              ...(page.blocks as Array<Record<string, unknown>>),
+              ...expandedSnippetBlocks,
+              ...((page.keywords as string[]).map((text) => ({ text })) ?? []),
+            ],
+          );
           await client.query(
             `INSERT INTO publish_schema.site_publication_search_document
               (id,organization_id,project_id,site_publication_id,

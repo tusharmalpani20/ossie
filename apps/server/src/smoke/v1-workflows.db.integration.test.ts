@@ -739,6 +739,15 @@ describe("v1 dogfood smoke workflow", () => {
           }),
         ],
       });
+      const snippet_search = await app.inject({
+        method: "GET",
+        url: "/api/v1/public/publish-links/plan132-public/documentation/search?q=production",
+        headers: { "x-ossie-access-surface": "public_reader" },
+      });
+      expect(snippet_search.statusCode, snippet_search.body).toBe(200);
+      expect(snippet_search.json().results).toEqual([
+        expect.objectContaining({ page_id: fixture.page_ids.home }),
+      ]);
       const alias = await app.inject({
         method: "GET",
         url: "/api/v1/public/publish-links/plan132-public/documentation/pages/install",

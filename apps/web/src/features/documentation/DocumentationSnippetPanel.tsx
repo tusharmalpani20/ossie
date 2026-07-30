@@ -71,8 +71,6 @@ export const DocumentationSnippetPanel = ({
     return () => {
       active = false;
     };
-    // replace intentionally uses the current state setter only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getSnippet, projectId, selectedId, siteId, versionSlug]);
 
   const replace = (snippet: DocumentationSnippet) => {

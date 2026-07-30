@@ -74,10 +74,10 @@ export const DocumentationSiteEditorPage = ({
   if (!preview) return <p role="status">{status}</p>;
   const base = `/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/${encodeURIComponent(siteId)}`;
   return (
-    <main id="main-content">
+    <section aria-labelledby="documentation-site-heading">
       <header>
         <p>Documentation workbench</p>
-        <h1>{preview.site.name}</h1>
+        <h1 id="documentation-site-heading">{preview.site.name}</h1>
         {preview.site.description ? <p>{preview.site.description}</p> : null}
       </header>
       <nav aria-label="Documentation Pages">
@@ -142,6 +142,6 @@ export const DocumentationSiteEditorPage = ({
         canPublish={canPublish}
       />
       <p role="status">{status}</p>
-    </main>
+    </section>
   );
 };

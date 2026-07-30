@@ -226,9 +226,9 @@ export const DocumentationPageEditor = ({
   };
 
   return (
-    <main id="main-content">
+    <section aria-labelledby="documentation-page-heading">
       <p>Documentation Page</p>
-      <h1>{page.title}</h1>
+      <h1 id="documentation-page-heading">{page.title}</h1>
       {canWrite ? (
         <section aria-labelledby="documentation-page-details-heading">
           <h2 id="documentation-page-details-heading">Page details</h2>
@@ -317,6 +317,6 @@ export const DocumentationPageEditor = ({
         pageId={pageId}
         canComment={canWrite}
       />
-    </main>
+    </section>
   );
 };
