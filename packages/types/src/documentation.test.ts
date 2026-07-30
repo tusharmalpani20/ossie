@@ -24,6 +24,12 @@ import {
   DocumentationPortableSnippetV1Schema,
   DocumentationImportInspectionResponseSchema,
   DocumentationImportApplyRequestSchema,
+  DocumentationCarryForwardRequestSchema,
+  DocumentationCarryForwardResponseSchema,
+  DocumentationEditionLifecycleRequestSchema,
+  DocumentationEditionUpdateRequestSchema,
+  DocumentationPageLifecycleRequestSchema,
+  DocumentationOpenApiLifecycleRequestSchema,
 } from "./documentation";
 
 describe("Documentation shared contracts", () => {
@@ -293,6 +299,7 @@ describe("Documentation shared contracts", () => {
   it("separates checkpoint, publication, and rollback commands", () => {
     expect(
       DocumentationCreateRevisionRequestSchema.safeParse({
+        expected_edition_version: 3,
         expected_draft_version: 8,
       }).success,
     ).toBe(true);
@@ -571,6 +578,114 @@ describe("Documentation shared contracts", () => {
       DocumentationAssetSourceSchema.safeParse({
         kind: "derived_asset",
         id: "01J00000000000000000000001",
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("Documentation carry-forward and lifecycle contracts", () => {
+  const sourceVersionId = "01J00000000000000000000001";
+  const targetVersionId = "01J00000000000000000000002";
+  const siteId = "01J00000000000000000000003";
+
+  it("requires explicit source and target versions plus optimistic source versions", () => {
+    const request = {
+      source_project_version_id: sourceVersionId,
+      target_project_version_id: targetVersionId,
+      selections: [
+        {
+          site_id: siteId,
+          expected_source_edition_version: 3,
+          expected_source_draft_version: 7,
+        },
+      ],
+    };
+
+    expect(DocumentationCarryForwardRequestSchema.parse(request)).toEqual(
+      request,
+    );
+    expect(
+      DocumentationCarryForwardRequestSchema.safeParse({
+        ...request,
+        target_project_version_id: sourceVersionId,
+      }).success,
+    ).toBe(false);
+    expect(
+      DocumentationCarryForwardRequestSchema.safeParse({
+        ...request,
+        selections: [...request.selections, request.selections[0]],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("returns ordered provenance without exposing graph content", () => {
+    const response = {
+      operation: {
+        id: "01J00000000000000000000004",
+        source_project_version_id: sourceVersionId,
+        target_project_version_id: targetVersionId,
+        selection_count: 1,
+        idempotent_replay: false,
+        items: [
+          {
+            position: 1,
+            site_id: siteId,
+            source_edition_id: "01J00000000000000000000005",
+            source_revision_id: "01J00000000000000000000006",
+            source_revision_number: 2,
+            source_revision_reused: true,
+            target_edition_id: "01J00000000000000000000007",
+            target_draft_id: "01J00000000000000000000008",
+          },
+        ],
+      },
+    };
+    expect(DocumentationCarryForwardResponseSchema.parse(response)).toEqual(
+      response,
+    );
+    expect(
+      DocumentationCarryForwardResponseSchema.safeParse({
+        operation: { ...response.operation, page_content: "secret" },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("keeps lifecycle concurrency fields resource-specific", () => {
+    expect(
+      DocumentationEditionUpdateRequestSchema.parse({
+        expected_edition_version: 2,
+        title: "API docs",
+        description: null,
+        primary_language: "en-US",
+      }),
+    ).toBeTruthy();
+    expect(
+      DocumentationEditionLifecycleRequestSchema.parse({
+        expected_edition_version: 2,
+        transition: "archive",
+      }),
+    ).toBeTruthy();
+    expect(
+      DocumentationPageLifecycleRequestSchema.parse({
+        expected_page_version: 2,
+        expected_draft_version: 4,
+        expected_navigation_version: 3,
+        expected_routing_version: 2,
+        transition: "archive",
+        retirement: { mode: "gone" },
+        replacement_home_page_id: null,
+      }),
+    ).toBeTruthy();
+    expect(
+      DocumentationOpenApiLifecycleRequestSchema.parse({
+        expected_source_version: 2,
+        transition: "restore",
+      }),
+    ).toBeTruthy();
+    expect(
+      DocumentationEditionLifecycleRequestSchema.safeParse({
+        expected_version: 2,
+        transition: "archive",
       }).success,
     ).toBe(false);
   });

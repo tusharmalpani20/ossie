@@ -14,3 +14,5 @@ export * from "./policies/documentation-asset-policy";
 export * from "./policies/documentation-artifact-reference-policy";
 export * from "./policies/documentation-package-policy";
 export * from "./policies/documentation-markdown-policy";
+export * from "./policies/documentation-carry-forward-policy";
+export * from "./policies/documentation-lifecycle-policy";

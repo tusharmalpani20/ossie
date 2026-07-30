@@ -30,6 +30,10 @@ import {
   DOCUMENTATION_PACKAGE_FORMAT_VERSION,
   DOCUMENTATION_PACKAGE_PROFILES,
   DOCUMENTATION_PACKAGE_SOURCE_KINDS,
+  DOCUMENTATION_CARRY_FORWARD_MAX_SELECTIONS,
+  DOCUMENTATION_LIFECYCLE_STATUSES,
+  DOCUMENTATION_EFFECTIVE_STATUSES,
+  DOCUMENTATION_REVISION_TRIGGERS,
 } from "@repo/constants";
 import { z } from "zod";
 import { IdSchema, IsoDateTimeStringSchema, PositiveIntSchema } from "./common";
@@ -604,7 +608,10 @@ export const DocumentationCommentTransitionRequestSchema = z
   .strict();
 
 export const DocumentationCreateRevisionRequestSchema = z
-  .object({ expected_draft_version: PositiveIntSchema })
+  .object({
+    expected_edition_version: PositiveIntSchema,
+    expected_draft_version: PositiveIntSchema,
+  })
   .strict();
 
 const DocumentationCreateLinkSelectionSchema = z
@@ -1206,6 +1213,186 @@ export const DocumentationImportApplyRequestSchema = z
       )
       .max(DOCUMENTATION_EXTERNAL_BINDINGS_MAX),
     confirm: z.literal(true),
+  })
+  .strict();
+
+export const DocumentationLifecycleStatusSchema = z.enum(
+  DOCUMENTATION_LIFECYCLE_STATUSES,
+);
+export const DocumentationEffectiveStatusSchema = z.enum(
+  DOCUMENTATION_EFFECTIVE_STATUSES,
+);
+export const DocumentationRevisionTriggerSchema = z.enum(
+  DOCUMENTATION_REVISION_TRIGGERS,
+);
+
+export const DocumentationEditionUpdateRequestSchema = z
+  .object({
+    expected_edition_version: PositiveIntSchema,
+    title: TitleSchema,
+    description: DescriptionSchema,
+    primary_language: z.string().trim().min(2).max(35),
+  })
+  .strict();
+
+export const DocumentationEditionLifecycleRequestSchema = z
+  .object({
+    expected_edition_version: PositiveIntSchema,
+    transition: z.enum(["archive", "restore"]),
+  })
+  .strict();
+
+const DocumentationPageRetirementSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("none") }).strict(),
+  z
+    .object({
+      mode: z.literal("redirect"),
+      target_page_id: IdSchema,
+    })
+    .strict(),
+  z.object({ mode: z.literal("gone") }).strict(),
+]);
+
+export const DocumentationPageLifecycleRequestSchema = z.discriminatedUnion(
+  "transition",
+  [
+    z
+      .object({
+        transition: z.literal("archive"),
+        expected_page_version: PositiveIntSchema,
+        expected_draft_version: PositiveIntSchema,
+        expected_navigation_version: PositiveIntSchema,
+        expected_routing_version: PositiveIntSchema,
+        retirement: DocumentationPageRetirementSchema,
+        replacement_home_page_id: IdSchema.nullable(),
+      })
+      .strict(),
+    z
+      .object({
+        transition: z.literal("restore"),
+        expected_page_version: PositiveIntSchema,
+        expected_draft_version: PositiveIntSchema,
+      })
+      .strict(),
+  ],
+);
+
+export const DocumentationOpenApiLifecycleRequestSchema = z
+  .object({
+    expected_source_version: PositiveIntSchema,
+    transition: z.enum(["archive", "restore"]),
+  })
+  .strict();
+
+export const DocumentationStatusFilterSchema = z.enum([
+  "active",
+  "archived",
+  "all",
+]);
+
+const DocumentationCarryForwardSelectionSchema = z
+  .object({
+    site_id: IdSchema,
+    expected_source_edition_version: PositiveIntSchema,
+    expected_source_draft_version: PositiveIntSchema,
+  })
+  .strict();
+
+export const DocumentationCarryForwardRequestSchema = z
+  .object({
+    source_project_version_id: IdSchema,
+    target_project_version_id: IdSchema,
+    selections: z
+      .array(DocumentationCarryForwardSelectionSchema)
+      .min(1)
+      .max(DOCUMENTATION_CARRY_FORWARD_MAX_SELECTIONS),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      value.source_project_version_id === value.target_project_version_id
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["target_project_version_id"],
+        message: "Source and target Project Versions must differ",
+      });
+    }
+    const siteIds = value.selections.map((selection) => selection.site_id);
+    if (new Set(siteIds).size !== siteIds.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["selections"],
+        message: "Each Documentation Site may be selected only once",
+      });
+    }
+  });
+
+const DocumentationCarryForwardItemSchema = z
+  .object({
+    position: PositiveIntSchema,
+    site_id: IdSchema,
+    source_edition_id: IdSchema,
+    source_revision_id: IdSchema,
+    source_revision_number: PositiveIntSchema,
+    source_revision_reused: z.boolean(),
+    target_edition_id: IdSchema,
+    target_draft_id: IdSchema,
+  })
+  .strict();
+
+export const DocumentationCarryForwardResponseSchema = z
+  .object({
+    operation: z
+      .object({
+        id: IdSchema,
+        source_project_version_id: IdSchema,
+        target_project_version_id: IdSchema,
+        selection_count: PositiveIntSchema.max(
+          DOCUMENTATION_CARRY_FORWARD_MAX_SELECTIONS,
+        ),
+        idempotent_replay: z.boolean(),
+        items: z
+          .array(DocumentationCarryForwardItemSchema)
+          .min(1)
+          .max(DOCUMENTATION_CARRY_FORWARD_MAX_SELECTIONS),
+      })
+      .strict()
+      .superRefine((value, context) => {
+        if (value.selection_count !== value.items.length) {
+          context.addIssue({
+            code: "custom",
+            path: ["selection_count"],
+            message: "Selection count must equal the ordered item count",
+          });
+        }
+      }),
+  })
+  .strict();
+
+export const DocumentationCarryForwardOptionsResponseSchema = z
+  .object({
+    source_project_version_id: IdSchema,
+    target_project_version_id: IdSchema,
+    sites: z.array(
+      z
+        .object({
+          site_id: IdSchema,
+          source_edition_id: IdSchema,
+          title: TitleSchema,
+          description: DescriptionSchema,
+          primary_language: z.string().min(2).max(35),
+          status: DocumentationLifecycleStatusSchema,
+          effective_status: DocumentationEffectiveStatusSchema,
+          read_only_reason: z.string().max(500).nullable(),
+          source_edition_version: PositiveIntSchema,
+          source_draft_version: PositiveIntSchema,
+          latest_revision_number: PositiveIntSchema.nullable(),
+          latest_revision_created_at: IsoDateTimeStringSchema.nullable(),
+          target_has_edition: z.boolean(),
+        })
+        .strict(),
+    ),
   })
   .strict();
 

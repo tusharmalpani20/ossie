@@ -36,6 +36,17 @@ export const DOCUMENTATION_CONTROLLED_MARKDOWN_VERSION = 1;
 export const DOCUMENTATION_NAVIGATION_KINDS = ["group", "page"] as const;
 export const DOCUMENTATION_ROUTING_OUTCOMES = ["redirect", "gone"] as const;
 export const DOCUMENTATION_COMMENT_STATES = ["open", "resolved"] as const;
+export const DOCUMENTATION_LIFECYCLE_STATUSES = ["active", "archived"] as const;
+export const DOCUMENTATION_EFFECTIVE_STATUSES = [
+  "active",
+  "read_only",
+  "archived",
+] as const;
+export const DOCUMENTATION_REVISION_TRIGGERS = [
+  "manual_checkpoint",
+  "publication",
+  "carry_forward",
+] as const;
 
 export const DOCUMENTATION_PAGE_TITLE_MAX = 200;
 export const DOCUMENTATION_DESCRIPTION_MAX = 1_000;
@@ -131,3 +142,11 @@ export const DOCUMENTATION_IMPORT_PARSERS_PER_ACTOR_MAX = 1;
 export const DOCUMENTATION_IMPORT_ATTEMPTS_PER_WINDOW_MAX = 20;
 export const DOCUMENTATION_IMPORT_ATTEMPT_WINDOW_MS = 10 * 60 * 1_000;
 export const DOCUMENTATION_IMPORT_LIFETIME_MS = 60 * 60 * 1_000;
+
+export const DOCUMENTATION_CARRY_FORWARD_MAX_SELECTIONS = 10;
+export const DOCUMENTATION_CARRY_FORWARD_PAGES_MAX = 5_000;
+export const DOCUMENTATION_CARRY_FORWARD_SNIPPETS_MAX = 5_000;
+export const DOCUMENTATION_CARRY_FORWARD_CONTENT_NODES_MAX = 250_000;
+export const DOCUMENTATION_CARRY_FORWARD_PROTECTED_REFERENCES_MAX = 10_000;
+export const DOCUMENTATION_CARRY_FORWARD_SAVED_TEXT_MAX_BYTES =
+  256 * 1024 * 1024;
