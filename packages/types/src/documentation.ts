@@ -145,8 +145,7 @@ export const DocumentationPageUpdateRequestSchema = z
   })
   .strict()
   .refine(
-    ({ expected_version: _expected_version, ...changes }) =>
-      Object.keys(changes).length > 0,
+    (value) => Object.keys(value).some((key) => key !== "expected_version"),
     { message: "At least one Page field must change" },
   );
 
