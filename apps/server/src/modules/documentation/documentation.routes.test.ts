@@ -34,6 +34,7 @@ const documentation_service_stubs = (
   create_comment_reply: vi.fn(),
   transition_comment: vi.fn(),
   get_preview: vi.fn(),
+  search_draft: vi.fn(async () => []),
   list_revisions: vi.fn(async () => []),
   list_publications: vi.fn(async () => []),
   list_publish_links: vi.fn(async () => []),
@@ -316,24 +317,18 @@ describe("Documentation routes", () => {
       build_documentation_routes({
         auth_service: { get_current_auth_context: vi.fn(async () => auth) },
         documentation_service: documentation_service_stubs({
-          get_preview: vi.fn(async () => ({
-            pages: [
-              {
-                id: "page",
-                title: "Install",
-                description: null,
-                canonical_path: "install",
-                blocks: [
+          search_draft: vi.fn(async ({ query }) =>
+            query === "setup"
+              ? [
                   {
-                    id: "block",
-                    kind: "paragraph",
-                    text: "Safe setup copy",
+                    page_id: "page",
+                    title: "Install",
+                    excerpt: "Safe setup copy",
+                    canonical_path: "install",
                   },
-                ],
-              },
-            ],
-            openapi_operations: [],
-          })),
+                ]
+              : [],
+          ),
         }),
         resolve_project_version: vi.fn(async () => ({ id: "version" })),
       }),

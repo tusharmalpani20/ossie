@@ -869,6 +869,17 @@ export const build = (opts: BuildOptions = {}) => {
               });
               return repository.get_preview(input);
             },
+            search_draft: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.search_draft(input);
+            },
             list_revisions: async (input) => {
               await project_access_service.authorize({
                 auth: {

@@ -15,7 +15,6 @@ import {
   DocumentationApplyOpenApiRequestSchema,
 } from "@repo/types";
 import {
-  build_documentation_search_document,
   normalize_documentation_path,
 } from "@repo/documentation-domain";
 import { z } from "zod";
@@ -77,39 +76,6 @@ const unwrap_idempotent_result = (result: unknown) => {
     ...body
   } = result as Record<string, unknown> & { idempotent_replay?: boolean };
   return { body, replayed: idempotent_replay === true };
-};
-
-const searchable_page = (page: {
-  title: string;
-  description: string | null;
-  blocks: Array<Record<string, unknown>>;
-}) => {
-  const headings: string[] = [];
-  const body: string[] = [];
-  for (const block of page.blocks) {
-    if (block.kind === "heading" && typeof block.text === "string")
-      headings.push(block.text);
-    for (const field of ["text", "code", "label", "alt_text", "caption"]) {
-      const value = block[field];
-      if (typeof value === "string") body.push(value);
-    }
-    if (Array.isArray(block.items))
-      for (const item of block.items) {
-        if (
-          typeof item === "object" &&
-          item !== null &&
-          "text" in item &&
-          typeof item.text === "string"
-        )
-          body.push(item.text);
-      }
-  }
-  return build_documentation_search_document({
-    title: page.title,
-    description: page.description,
-    headings,
-    body_text: body.join(" "),
-  });
 };
 
 export type DocumentationRouteDependencies = {
@@ -233,6 +199,14 @@ export type DocumentationRouteDependencies = {
       actor_org_user_id: string;
       site_id: string;
     }) => Promise<unknown>;
+    search_draft: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      query: string;
+    }) => Promise<unknown[]>;
     list_revisions: (input: {
       organization_id: string;
       project_id: string;
@@ -1007,41 +981,18 @@ export const build_documentation_routes = (
             ),
           );
         const scope = await authorized_scope(request, params.data);
-        const preview = await dependencies.documentation_service.get_preview({
+        const results =
+          await dependencies.documentation_service.search_draft({
           ...scope,
           site_id: params.data.site_id,
+          query: query.data.q,
         });
-        if (!preview)
-          return reply.status(404).send(
-            error_response(
-              "documentation_site_not_found",
-              "Documentation Site was not found",
-            ),
-          );
-        const snapshot = preview as {
-          pages: Array<{
-            id: string;
-            title: string;
-            description: string | null;
-            canonical_path: string;
-            blocks: Array<Record<string, unknown>>;
-          }>;
-        };
-        const needle = query.data.q.toLocaleLowerCase();
-        const results = snapshot.pages
-          .map((page) => ({ page, document: searchable_page(page) }))
-          .filter(({ document }) =>
-            document.text.toLocaleLowerCase().includes(needle),
-          )
-          .slice(0, 50)
-          .map(({ page, document }) => ({
-            page_id: page.id,
-            title: page.title,
-            excerpt: document.description ?? document.text.slice(0, 240),
-            canonical_path: page.canonical_path,
-            portal_path: `/projects/${params.data.project_id}/versions/${params.data.version_slug}/documentation/${params.data.site_id}/pages/${page.id}`,
-          }));
-        return reply.send({ results });
+        return reply.send({
+          results: (results as Array<Record<string, unknown>>).map((result) => ({
+            ...result,
+            portal_path: `/projects/${params.data.project_id}/versions/${params.data.version_slug}/documentation/${params.data.site_id}/pages/${String(result.page_id)}`,
+          })),
+        });
       },
     );
 
@@ -1281,6 +1232,12 @@ export const build_documentation_routes = (
       });
       return { params: parsed.data, site };
     };
+    const public_site_response = (site: unknown): Record<string, unknown> => {
+      if (!site || typeof site !== "object") return {};
+      const response = { ...(site as Record<string, unknown>) };
+      delete response.search_documents;
+      return response;
+    };
 
     fastify.get(
       "/api/v1/public/publish-links/:slug/documentation",
@@ -1293,7 +1250,7 @@ export const build_documentation_routes = (
               "Publish Link was not found",
             ),
           );
-        return reply.send(result.site);
+        return reply.send(public_site_response(result.site));
       },
     );
     fastify.get(
@@ -1307,7 +1264,7 @@ export const build_documentation_routes = (
               "Publish Link was not found",
             ),
           );
-        return reply.send(result.site);
+        return reply.send(public_site_response(result.site));
       },
     );
 
@@ -1354,7 +1311,8 @@ export const build_documentation_routes = (
         const page = site.pages.find(
           (candidate) => candidate.canonical_path === requestedPath,
         );
-        if (page) return reply.send({ ...site, page });
+        if (page)
+          return reply.send({ ...public_site_response(site), page });
         const alias = site.aliases.find(
           (candidate) => candidate.former_path === requestedPath,
         );
@@ -1416,26 +1374,26 @@ export const build_documentation_routes = (
             ),
           );
         const site = result.site as {
-          pages: Array<{
-            id: string;
+          search_documents: Array<{
+            page_id: string;
             title: string;
             description: string | null;
             canonical_path: string;
-            blocks: Array<Record<string, unknown>>;
+            search_text: string;
           }>;
         };
         const needle = query.data.q.toLocaleLowerCase();
-        const results = site.pages
-          .map((page) => ({ page, document: searchable_page(page) }))
-          .filter(({ document }) =>
-            document.text.toLocaleLowerCase().includes(needle),
+        const results = site.search_documents
+          .filter((document) =>
+            document.search_text.toLocaleLowerCase().includes(needle),
           )
           .slice(0, 50)
-          .map(({ page, document }) => ({
-            page_id: page.id,
-            title: page.title,
-            excerpt: document.description ?? document.text.slice(0, 240),
-            canonical_path: page.canonical_path,
+          .map((document) => ({
+            page_id: document.page_id,
+            title: document.title,
+            excerpt:
+              document.description ?? document.search_text.slice(0, 240),
+            canonical_path: document.canonical_path,
           }));
         return reply.send({ results });
       });

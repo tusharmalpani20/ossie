@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { ulid } from "ulid";
 import {
   assert_documentation_comment_transition,
+  build_documentation_search_document,
   inspect_openapi_document,
   validate_documentation_navigation,
   validate_documentation_routes,
@@ -178,6 +179,79 @@ const bump_working_draft = (
       input.organization_id,
       input.project_id,
       input.site_edition_id,
+    ],
+  );
+
+const search_text_for_blocks = (
+  title: string,
+  description: string | null,
+  blocks: Array<Record<string, unknown>>,
+) => {
+  const headings: string[] = [];
+  const body: string[] = [];
+  for (const block of blocks) {
+    if (block.kind === "heading" && typeof block.text === "string")
+      headings.push(block.text);
+    for (const field of ["text", "code", "label", "alt_text", "caption"]) {
+      const value = block[field];
+      if (typeof value === "string") body.push(value);
+    }
+    if (Array.isArray(block.items))
+      for (const item of block.items) {
+        if (
+          typeof item === "object" &&
+          item !== null &&
+          "text" in item &&
+          typeof item.text === "string"
+        )
+          body.push(item.text);
+      }
+  }
+  return build_documentation_search_document({
+    title,
+    description,
+    headings,
+    body_text: body.join(" "),
+  }).text;
+};
+
+const insert_draft_search_document = (
+  client: Queryable,
+  input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    site_edition_id: string;
+    page_id: string;
+    title: string;
+    description: string | null;
+    canonical_path: string;
+    search_text: string;
+  },
+) =>
+  client.query(
+    `INSERT INTO documentation_schema.documentation_draft_search_document
+      (id,organization_id,project_id,project_version_id,documentation_site_id,
+       site_edition_id,documentation_page_id,title,description,canonical_path,
+       search_text)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+     ON CONFLICT (documentation_page_id) DO UPDATE
+       SET title=EXCLUDED.title,description=EXCLUDED.description,
+           canonical_path=EXCLUDED.canonical_path,
+           search_text=EXCLUDED.search_text,updated_at=CURRENT_TIMESTAMP`,
+    [
+      ulid(),
+      input.organization_id,
+      input.project_id,
+      input.project_version_id,
+      input.site_id,
+      input.site_edition_id,
+      input.page_id,
+      input.title,
+      input.description,
+      input.canonical_path,
+      input.search_text,
     ],
   );
 
@@ -914,6 +988,40 @@ export const build_documentation_repository = (database: Database) => ({
       [source.rows[0].id, input.organization_id, input.project_id],
     );
     return { source: source.rows[0], operations: operations.rows };
+  },
+
+  search_draft: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    query: string;
+  }) => {
+    const result = await database.query<{
+      page_id: string;
+      title: string;
+      description: string | null;
+      canonical_path: string;
+      excerpt: string;
+    }>(
+      `SELECT documentation_page_id page_id,title,description,canonical_path,
+              COALESCE(description,left(search_text,240)) excerpt
+         FROM documentation_schema.documentation_draft_search_document
+        WHERE organization_id=$1 AND project_id=$2
+          AND project_version_id=$3 AND documentation_site_id=$4
+          AND search_vector @@ plainto_tsquery('simple',$5)
+        ORDER BY ts_rank(search_vector,plainto_tsquery('simple',$5)) DESC,
+                 canonical_path,page_id
+        LIMIT 50`,
+      [
+        input.organization_id,
+        input.project_id,
+        input.project_version_id,
+        input.site_id,
+        input.query,
+      ],
+    );
+    return result.rows;
   },
 
   get_preview: async (input: {
@@ -1919,6 +2027,19 @@ export const build_documentation_repository = (database: Database) => ({
       site_revision_id: selected.site_revision_id,
     });
     if (!snapshot) return null;
+    const search_documents = await database.query<{
+      page_id: string;
+      title: string;
+      description: string | null;
+      canonical_path: string;
+      search_text: string;
+    }>(
+      `SELECT source_page_id page_id,title,description,canonical_path,search_text
+         FROM publish_schema.site_publication_search_document
+        WHERE site_publication_id=$1
+        ORDER BY canonical_path,page_id`,
+      [selected.site_publication_id],
+    );
     return {
       resource_family: "documentation_site" as const,
       link: {
@@ -1937,6 +2058,7 @@ export const build_documentation_repository = (database: Database) => ({
         publication_sequence: selected.publication_sequence,
         output_digest: selected.output_digest,
       },
+      search_documents: search_documents.rows,
       ...snapshot,
     };
   },
@@ -2147,6 +2269,21 @@ export const build_documentation_repository = (database: Database) => ({
         ...input,
         site_edition_id: page.site_edition_id,
       });
+      await client.query(
+        `UPDATE documentation_schema.documentation_draft_search_document
+            SET title=$1,description=$2,canonical_path=$3,
+                updated_at=CURRENT_TIMESTAMP
+          WHERE documentation_page_id=$4 AND organization_id=$5
+            AND project_id=$6`,
+        [
+          title,
+          description,
+          canonical_path,
+          input.page_id,
+          input.organization_id,
+          input.project_id,
+        ],
+      );
       return {
         ...page,
         title,
@@ -2721,6 +2858,22 @@ export const build_documentation_repository = (database: Database) => ({
           input.actor_org_user_id,
         ],
       );
+      await insert_draft_search_document(client, {
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        project_version_id: input.project_version_id,
+        site_id: input.site_id,
+        site_edition_id: scope.edition_id,
+        page_id: id,
+        title: input.data.title,
+        description: input.data.description,
+        canonical_path: input.data.canonical_path,
+        search_text: search_text_for_blocks(
+          input.data.title,
+          input.data.description,
+          [],
+        ),
+      });
       const result = {
         id,
         title: input.data.title,
@@ -2925,6 +3078,22 @@ export const build_documentation_repository = (database: Database) => ({
         ...input,
         site_edition_id: page.site_edition_id,
       });
+      await insert_draft_search_document(client, {
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        project_version_id: input.project_version_id,
+        site_id: input.site_id,
+        site_edition_id: page.site_edition_id,
+        page_id: input.page_id,
+        title: page.title,
+        description: page.description,
+        canonical_path: page.canonical_path,
+        search_text: search_text_for_blocks(
+          page.title,
+          page.description,
+          input.blocks,
+        ),
+      });
       return { ...page, version: page.version + 1, blocks: input.blocks };
     }),
 
@@ -3072,6 +3241,22 @@ export const build_documentation_repository = (database: Database) => ({
             input.actor_org_user_id,
           ],
         );
+        await insert_draft_search_document(client, {
+          organization_id: input.organization_id,
+          project_id: input.project_id,
+          project_version_id: input.project_version_id,
+          site_id,
+          site_edition_id: edition_id,
+          page_id: home_page_id,
+          title: input.initial_home_page.title,
+          description: null,
+          canonical_path: input.initial_home_page.path,
+          search_text: search_text_for_blocks(
+            input.initial_home_page.title,
+            null,
+            [],
+          ),
+        });
         await client.query(
           `UPDATE documentation_schema.site_working_draft
              SET home_page_id=$1,version=version+1,updated_by_id=$2,updated_at=CURRENT_TIMESTAMP
