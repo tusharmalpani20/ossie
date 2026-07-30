@@ -361,6 +361,44 @@ describe("Documentation routes", () => {
     );
   });
 
+  it("rejects unsafe Page content before it reaches persistence", async () => {
+    const save_page = vi.fn();
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({ save_page }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+
+    const response = await app.inject({
+      method: "PUT",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/pages/page/content",
+      cookies: { ossie_session: "session" },
+      payload: {
+        expected_page_version: 1,
+        blocks: [
+          {
+            id: "01J00000000000000000000001",
+            kind: "link",
+            label: "Unsafe link",
+            url: "ftp://evil.example.test/payload",
+            target_block_id: null,
+            position: 1,
+            expected_version: null,
+          },
+        ],
+      },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error.type).toBe("documentation_content_unsafe");
+    expect(save_page).not.toHaveBeenCalled();
+  });
+
   it("keeps version-scoped redirects and metadata on the selected public entry", async () => {
     process.env.OSSIE_PUBLIC_WEB_URL = "https://docs.example.test";
     const app = Fastify();
@@ -627,6 +665,25 @@ describe("Documentation routes", () => {
         ],
       },
     });
+    const unsafe = await app.inject({
+      method: "PUT",
+      url: `${root}/snippets/snippet/content`,
+      cookies: { ossie_session: "session" },
+      payload: {
+        expected_snippet_version: 2,
+        blocks: [
+          {
+            id: "01J00000000000000000000003",
+            kind: "link",
+            label: "Unsafe link",
+            url: "ftp://evil.example.test/payload",
+            target_block_id: null,
+            position: 1,
+            expected_version: null,
+          },
+        ],
+      },
+    });
     await app.close();
 
     expect(created.statusCode).toBe(201);
@@ -637,6 +694,8 @@ describe("Documentation routes", () => {
       "publication",
     );
     expect(nested.statusCode).toBe(400);
+    expect(unsafe.statusCode).toBe(400);
+    expect(unsafe.json().error.type).toBe("documentation_content_unsafe");
     expect(create_snippet).toHaveBeenCalledWith(
       expect.objectContaining({
         site_id: "site",

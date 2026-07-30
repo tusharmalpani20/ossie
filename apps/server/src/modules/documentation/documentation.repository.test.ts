@@ -175,4 +175,80 @@ describe("Documentation repository", () => {
       }),
     ).rejects.toMatchObject({ code: "documentation_comment_limit_exceeded" });
   });
+
+  it("filters Capture Asset choices by lifecycle and purge eligibility", async () => {
+    const query = vi.fn(async (sql: string, values?: unknown[]) => {
+      void sql;
+      void values;
+      return { rows: [] };
+    });
+    const repository = build_documentation_repository({
+      connect: vi.fn(),
+      query,
+    } as never);
+
+    await repository.list_assets({
+      organization_id: "org",
+      project_id: "project",
+      project_version_id: "version",
+      site_id: "site",
+      source: "capture",
+      status: "archived",
+      include_archived_versions: false,
+      include_in_use: true,
+    });
+
+    const [sql, parameters] = query.mock.calls[0]!;
+    expect(sql).toContain("$4='active'");
+    expect(sql).toContain("capture_asset_purge_operation");
+    expect(sql).toContain("documentation_page_block");
+    expect(sql).toContain("documentation_snippet_block");
+    expect(parameters).toContain("archived");
+    expect(parameters).toContain("site");
+  });
+
+  it("rejects Documentation Asset upload at the Edition hard ceiling", async () => {
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes("SELECT id FROM documentation_schema.site_edition"))
+          return { rows: [{ id: "edition" }] };
+        if (sql.includes("asset_count"))
+          return { rows: [{ asset_count: 2_000 }] };
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    };
+    const repository = build_documentation_repository({
+      connect: vi.fn(async () => client),
+      query: client.query,
+    } as never);
+
+    await expect(
+      repository.create_asset({
+        organization_id: "org",
+        project_id: "project",
+        project_version_id: "version",
+        site_id: "site",
+        actor_org_user_id: "actor",
+        asset_id: "asset",
+        file_id: "file",
+        width: 1,
+        height: 1,
+        file: {
+          storage_provider: "local",
+          storage_key: "key",
+          mime_type: "image/png",
+          size_bytes: 1,
+          original_name: "image.png",
+          checksum_sha256: "digest",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "documentation_asset_limit_exceeded" });
+    expect(client.query).toHaveBeenCalledWith("ROLLBACK");
+    expect(
+      client.query.mock.calls.some(([sql]) =>
+        sql.includes("INSERT INTO file_schema.file"),
+      ),
+    ).toBe(false);
+  });
 });

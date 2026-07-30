@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DocumentationDomainError,
   build_site_revision_digest,
+  validate_documentation_revision_aggregate,
   validate_site_revision_input,
 } from "./documentation-revision-policy";
 
@@ -23,5 +24,18 @@ describe("documentation revision policy", () => {
     expect(() =>
       validate_site_revision_input({ ...input, navigation_page_ids: [] }),
     ).toThrow(DocumentationDomainError);
+  });
+
+  it("enforces the immutable Revision aggregate Asset ceiling", () => {
+    expect(() =>
+      validate_documentation_revision_aggregate({
+        blocks: Array.from({ length: 5_001 }, (_, index) => ({
+          kind: "image",
+          source: { kind: "capture_asset", id: `asset-${index}` },
+        })),
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "documentation_content_limit_exceeded" }),
+    );
   });
 });

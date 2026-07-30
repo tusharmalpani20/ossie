@@ -616,6 +616,18 @@ describe("foundation schema migrations", () => {
     expect(up).toContain(
       "UNIQUE (site_revision_id, source_kind, source_asset_id)",
     );
+    for (const constraint of [
+      "fk_documentation_page_block_linked_page",
+      "fk_documentation_page_block_documentation_asset",
+      "fk_documentation_page_block_openapi_source",
+      "fk_documentation_snippet_block_linked_page",
+      "fk_documentation_snippet_block_linked_heading",
+      "fk_documentation_snippet_block_documentation_asset",
+      "fk_documentation_snippet_block_openapi_source",
+    ])
+      expect(up).toContain(constraint);
+    expect(up).toContain("BEFORE TRUNCATE ON documentation_schema.");
+    expect(up).toContain("site_publication_no_truncate");
     expect(down).toContain(
       "Refusing to roll back populated Documentation content workflows",
     );

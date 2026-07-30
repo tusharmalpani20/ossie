@@ -42,14 +42,29 @@ ALTER TABLE documentation_schema.documentation_page_block
     OR (kind NOT IN ('guide_publication','interactive_demo_publication')
       AND published_artifact_id IS NULL AND published_artifact_type IS NULL)
   ),
+  ADD CONSTRAINT fk_documentation_page_block_linked_page FOREIGN KEY
+    (linked_page_id, site_edition_id, project_id, organization_id)
+    REFERENCES documentation_schema.documentation_page
+    (id, site_edition_id, project_id, organization_id)
+    ON DELETE RESTRICT,
   ADD CONSTRAINT fk_documentation_page_block_linked_heading FOREIGN KEY
     (linked_block_id, linked_page_id, site_edition_id, project_id, organization_id)
     REFERENCES documentation_schema.documentation_page_block
     (id, documentation_page_id, site_edition_id, project_id, organization_id)
     ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
+  ADD CONSTRAINT fk_documentation_page_block_documentation_asset FOREIGN KEY
+    (documentation_asset_id, site_edition_id, project_id, organization_id)
+    REFERENCES documentation_schema.documentation_asset
+    (id, site_edition_id, project_id, organization_id)
+    ON DELETE RESTRICT,
   ADD CONSTRAINT fk_documentation_page_block_capture_asset FOREIGN KEY
     (capture_asset_id, project_id, organization_id)
     REFERENCES capture_schema.capture_asset(id, project_id, organization_id)
+    ON DELETE RESTRICT,
+  ADD CONSTRAINT fk_documentation_page_block_openapi_source FOREIGN KEY
+    (openapi_source_id, site_edition_id, project_id, organization_id)
+    REFERENCES documentation_schema.openapi_source
+    (id, site_edition_id, project_id, organization_id)
     ON DELETE RESTRICT,
   ADD CONSTRAINT fk_documentation_page_block_publication FOREIGN KEY
     (published_artifact_id, published_artifact_type, project_id, organization_id)
@@ -225,10 +240,27 @@ CREATE TABLE documentation_schema.documentation_snippet_block (
     (documentation_snippet_id, site_edition_id, project_id, organization_id)
     REFERENCES documentation_schema.documentation_snippet
     (id, site_edition_id, project_id, organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_snippet_block_linked_page FOREIGN KEY
+    (linked_page_id, site_edition_id, project_id, organization_id)
+    REFERENCES documentation_schema.documentation_page
+    (id, site_edition_id, project_id, organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_snippet_block_linked_heading FOREIGN KEY
+    (linked_block_id, linked_page_id, site_edition_id, project_id, organization_id)
+    REFERENCES documentation_schema.documentation_page_block
+    (id, documentation_page_id, site_edition_id, project_id, organization_id)
+    ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_documentation_snippet_block_documentation_asset FOREIGN KEY
+    (documentation_asset_id, site_edition_id, project_id, organization_id)
+    REFERENCES documentation_schema.documentation_asset
+    (id, site_edition_id, project_id, organization_id) ON DELETE RESTRICT,
   CONSTRAINT fk_documentation_snippet_block_capture_asset FOREIGN KEY
     (capture_asset_id, project_id, organization_id)
     REFERENCES capture_schema.capture_asset(id, project_id, organization_id)
     ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_snippet_block_openapi_source FOREIGN KEY
+    (openapi_source_id, site_edition_id, project_id, organization_id)
+    REFERENCES documentation_schema.openapi_source
+    (id, site_edition_id, project_id, organization_id) ON DELETE RESTRICT,
   CONSTRAINT fk_documentation_snippet_block_publication FOREIGN KEY
     (published_artifact_id, published_artifact_type, project_id, organization_id)
     REFERENCES publish_schema.published_artifact
@@ -618,6 +650,52 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION
+documentation_schema.prevent_immutable_documentation_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF audit_schema.is_maintenance_bypass(TG_RELID) THEN
+    RETURN NULL;
+  END IF;
+  RAISE EXCEPTION 'immutable Documentation history cannot be changed'
+    USING ERRCODE='55000';
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE table_name TEXT;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY[
+    'site_revision','site_revision_page','site_revision_page_keyword',
+    'site_revision_page_block','site_revision_list_item',
+    'site_revision_navigation_node','site_revision_page_alias',
+    'site_revision_redirect_rule','site_revision_openapi_operation',
+    'site_revision_asset_reference','site_revision_page_table_row',
+    'site_revision_page_table_cell','site_revision_page_tab_item',
+    'site_revision_snippet','site_revision_snippet_block',
+    'site_revision_snippet_list_item','site_revision_snippet_table_row',
+    'site_revision_snippet_table_cell','site_revision_snippet_tab_item',
+    'site_revision_artifact_reference','page_slug_alias'
+  ]
+  LOOP
+    EXECUTE format(
+      'CREATE TRIGGER %I BEFORE TRUNCATE ON documentation_schema.%I
+       FOR EACH STATEMENT EXECUTE FUNCTION
+       documentation_schema.prevent_immutable_documentation_mutation()',
+      table_name || '_no_truncate', table_name
+    );
+  END LOOP;
+END;
+$$;
+CREATE TRIGGER site_publication_no_truncate
+BEFORE TRUNCATE ON publish_schema.site_publication
+FOR EACH STATEMENT EXECUTE FUNCTION
+documentation_schema.prevent_immutable_documentation_mutation();
+CREATE TRIGGER site_publication_search_no_truncate
+BEFORE TRUNCATE ON publish_schema.site_publication_search_document
+FOR EACH STATEMENT EXECUTE FUNCTION
+documentation_schema.prevent_immutable_documentation_mutation();
+
 ALTER FUNCTION audit_schema.mutation_command_policy_is_valid(
   TEXT,TEXT,TEXT,TEXT
 ) RENAME TO mutation_command_policy_is_valid_v025;
@@ -842,6 +920,11 @@ BEGIN
        ) LIMIT 1
     )
     OR EXISTS (
+      SELECT 1 FROM documentation_schema.documentation_page_block
+       WHERE linked_block_id IS NOT NULL OR capture_asset_id IS NOT NULL
+       LIMIT 1
+    )
+    OR EXISTS (
       SELECT 1 FROM documentation_schema.site_revision_artifact_reference LIMIT 1
     )
   THEN
@@ -850,6 +933,38 @@ BEGIN
   END IF;
 END;
 $$;
+
+DROP TRIGGER site_publication_search_no_truncate
+  ON publish_schema.site_publication_search_document;
+DROP TRIGGER site_publication_no_truncate
+  ON publish_schema.site_publication;
+DO $$
+DECLARE table_name TEXT;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY[
+    'site_revision','site_revision_page','site_revision_page_keyword',
+    'site_revision_page_block','site_revision_list_item',
+    'site_revision_navigation_node','site_revision_page_alias',
+    'site_revision_redirect_rule','site_revision_openapi_operation',
+    'site_revision_asset_reference','page_slug_alias'
+  ]
+  LOOP
+    EXECUTE format(
+      'DROP TRIGGER %I ON documentation_schema.%I',
+      table_name || '_no_truncate', table_name
+    );
+  END LOOP;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION
+documentation_schema.prevent_immutable_documentation_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'immutable Documentation history cannot be changed'
+    USING ERRCODE='55000';
+END;
+$$ LANGUAGE plpgsql;
 
 DROP TRIGGER capture_asset_purge_request_guard
   ON capture_schema.capture_asset_purge_operation;
@@ -935,8 +1050,11 @@ DROP TABLE documentation_schema.documentation_table_row;
 
 ALTER TABLE documentation_schema.documentation_page_block
   DROP CONSTRAINT fk_documentation_page_block_publication,
+  DROP CONSTRAINT fk_documentation_page_block_openapi_source,
   DROP CONSTRAINT fk_documentation_page_block_capture_asset,
+  DROP CONSTRAINT fk_documentation_page_block_documentation_asset,
   DROP CONSTRAINT fk_documentation_page_block_linked_heading,
+  DROP CONSTRAINT fk_documentation_page_block_linked_page,
   DROP CONSTRAINT chk_documentation_page_block_publication_type,
   DROP CONSTRAINT chk_documentation_page_block_asset_source,
   DROP CONSTRAINT chk_documentation_page_block_callout_tone,

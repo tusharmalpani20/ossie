@@ -155,6 +155,10 @@ import {
   assert_documentation_image_dimensions,
   assert_documentation_image_format,
 } from "./modules/documentation/documentation-asset.js";
+import {
+  normalize_documentation_blocks,
+  validate_documentation_snippet_blocks,
+} from "@repo/documentation-domain";
 
 type BuildOptions = FastifyServerOptions & {
   public_instance_service?: PublicInstanceRouteService;
@@ -796,6 +800,11 @@ export const build = (opts: BuildOptions = {}) => {
                 project_id: input.project_id,
                 capability: "documentation.write",
               });
+              normalize_documentation_blocks(
+                input.blocks as Parameters<
+                  typeof normalize_documentation_blocks
+                >[0],
+              );
               return repository.save_page({
                 ...input,
                 blocks: input.blocks as Array<Record<string, unknown>>,
@@ -854,6 +863,7 @@ export const build = (opts: BuildOptions = {}) => {
                 project_id: input.project_id,
                 capability: "documentation.write",
               });
+              validate_documentation_snippet_blocks(input.blocks);
               return repository.save_snippet({
                 ...input,
                 blocks: input.blocks as Array<Record<string, unknown>>,

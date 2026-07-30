@@ -3,6 +3,7 @@ import { ulid } from "ulid";
 import {
   DOCUMENTATION_COMMENT_REPLIES_PER_THREAD_MAX,
   DOCUMENTATION_COMMENT_THREADS_PER_PAGE_MAX,
+  DOCUMENTATION_ASSETS_PER_EDITION_MAX,
   DOCUMENTATION_PAGES_PER_EDITION_MAX,
   DOCUMENTATION_SNIPPETS_PER_EDITION_MAX,
 } from "@repo/constants";
@@ -12,6 +13,7 @@ import {
   inspect_openapi_document,
   normalize_documentation_asset_name,
   normalize_documentation_snippet_name,
+  validate_documentation_revision_aggregate,
   validate_documentation_navigation,
   validate_documentation_routes,
 } from "@repo/documentation-domain";
@@ -60,6 +62,301 @@ const lock_documentation_path_namespace = (
   client.query("SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))", [
     site_edition_id,
   ]);
+
+const validate_mutable_content_references = async (
+  client: Queryable,
+  input: {
+    organization_id: string;
+    project_id: string;
+    site_edition_id: string;
+    owner_id: string;
+    owner_kind: "page" | "snippet";
+    blocks: Array<Record<string, unknown>>;
+  },
+) => {
+  const table =
+    input.owner_kind === "page"
+      ? "documentation_page_block"
+      : "documentation_snippet_block";
+  const ownerColumn =
+    input.owner_kind === "page"
+      ? "documentation_page_id"
+      : "documentation_snippet_id";
+  const snippetSelect =
+    input.owner_kind === "page" ? "snippet_id" : "NULL::varchar snippet_id";
+  const previous = await client.query<{
+    id: string;
+    snippet_id: string | null;
+    documentation_asset_id: string | null;
+    capture_asset_id: string | null;
+    version: number;
+  }>(
+    `SELECT id,${snippetSelect},documentation_asset_id,capture_asset_id,version
+       FROM documentation_schema.${table}
+      WHERE ${ownerColumn}=$1 AND organization_id=$2 AND project_id=$3
+      ORDER BY id FOR SHARE`,
+    [input.owner_id, input.organization_id, input.project_id],
+  );
+  const priorByBlock = new Map(previous.rows.map((row) => [row.id, row]));
+  const snippetIds = input.blocks
+    .filter((block) => block.kind === "snippet_reference")
+    .map((block) => String(block.snippet_id));
+  const documentationAssetIds: string[] = [];
+  const captureAssetIds: string[] = [];
+  const linkedPageIds: string[] = [];
+  const openApiSourceIds: string[] = [];
+  const publicationIds: string[] = [];
+  for (const block of input.blocks) {
+    if (block.kind === "link" && block.page_id)
+      linkedPageIds.push(String(block.page_id));
+    if (block.kind === "api_reference")
+      openApiSourceIds.push(String(block.openapi_source_id));
+    if (
+      block.kind === "guide_publication" ||
+      block.kind === "interactive_demo_publication"
+    )
+      publicationIds.push(String(block.published_artifact_id));
+    if (block.kind !== "image") continue;
+    const source =
+      block.source && typeof block.source === "object"
+        ? (block.source as { kind: string; id: string })
+        : block.asset_id
+          ? { kind: "documentation_asset", id: String(block.asset_id) }
+          : null;
+    if (source?.kind === "documentation_asset")
+      documentationAssetIds.push(source.id);
+    if (source?.kind === "capture_asset") captureAssetIds.push(source.id);
+  }
+  const snippets = snippetIds.length
+    ? await client.query<{ id: string; status: "active" | "archived" }>(
+        `SELECT id,status
+           FROM documentation_schema.documentation_snippet
+          WHERE site_edition_id=$1 AND organization_id=$2 AND project_id=$3
+            AND id=ANY($4::varchar[])
+          ORDER BY id FOR SHARE`,
+        [
+          input.site_edition_id,
+          input.organization_id,
+          input.project_id,
+          snippetIds,
+        ],
+      )
+    : { rows: [] };
+  const documentationAssets = documentationAssetIds.length
+    ? await client.query<{ id: string; status: "active" | "archived" }>(
+        `SELECT id,status
+           FROM documentation_schema.documentation_asset
+          WHERE site_edition_id=$1 AND organization_id=$2 AND project_id=$3
+            AND id=ANY($4::varchar[])
+          ORDER BY id FOR SHARE`,
+        [
+          input.site_edition_id,
+          input.organization_id,
+          input.project_id,
+          documentationAssetIds,
+        ],
+      )
+    : { rows: [] };
+  const captureAssets = captureAssetIds.length
+    ? await client.query<{ id: string; status: "active" | "archived" }>(
+        `SELECT asset.id,asset.status
+           FROM capture_schema.capture_asset asset
+           JOIN file_schema.file file
+             ON file.id=asset.file_id AND file.organization_id=asset.organization_id
+          WHERE asset.organization_id=$1 AND asset.project_id=$2
+            AND asset.id=ANY($3::varchar[])
+            AND asset.is_deleted=FALSE AND file.is_deleted=FALSE
+            AND asset.asset_type IN ('screenshot','redacted_screenshot')
+            AND file.mime_type IN ('image/png','image/jpeg','image/webp')
+            AND NOT EXISTS (
+              SELECT 1
+                FROM capture_schema.capture_asset_purge_operation purge
+               WHERE purge.capture_asset_id=asset.id
+            )
+          ORDER BY asset.id FOR SHARE OF asset,file`,
+        [input.organization_id, input.project_id, captureAssetIds],
+      )
+    : { rows: [] };
+  const linkedPages = linkedPageIds.length
+    ? await client.query<{ id: string; linked_block_id: string | null }>(
+        `SELECT page.id,block.id linked_block_id
+           FROM documentation_schema.documentation_page page
+           LEFT JOIN documentation_schema.documentation_page_block block
+             ON block.documentation_page_id=page.id
+          WHERE page.site_edition_id=$1 AND page.organization_id=$2
+            AND page.project_id=$3 AND page.id=ANY($4::varchar[])
+          ORDER BY page.id,block.id FOR SHARE OF page`,
+        [
+          input.site_edition_id,
+          input.organization_id,
+          input.project_id,
+          linkedPageIds,
+        ],
+      )
+    : { rows: [] };
+  const openApiSources = openApiSourceIds.length
+    ? await client.query<{
+        id: string;
+        destination_key: string | null;
+      }>(
+        `SELECT source.id,operation.destination_key
+           FROM documentation_schema.openapi_source source
+           LEFT JOIN documentation_schema.openapi_operation operation
+             ON operation.openapi_source_id=source.id
+          WHERE source.site_edition_id=$1 AND source.organization_id=$2
+            AND source.project_id=$3 AND source.id=ANY($4::varchar[])
+          ORDER BY source.id,operation.destination_key
+          FOR SHARE OF source`,
+        [
+          input.site_edition_id,
+          input.organization_id,
+          input.project_id,
+          openApiSourceIds,
+        ],
+      )
+    : { rows: [] };
+  const publications = publicationIds.length
+    ? await client.query<{ id: string; artifact_type: string }>(
+        `SELECT id,artifact_type
+           FROM publish_schema.published_artifact
+          WHERE organization_id=$1 AND project_id=$2
+            AND id=ANY($3::varchar[])
+          ORDER BY id FOR SHARE`,
+        [input.organization_id, input.project_id, publicationIds],
+      )
+    : { rows: [] };
+  const snippetStatus = new Map(
+    snippets.rows.map((row) => [row.id, row.status]),
+  );
+  const documentationAssetStatus = new Map(
+    documentationAssets.rows.map((row) => [row.id, row.status]),
+  );
+  const captureAssetStatus = new Map(
+    captureAssets.rows.map((row) => [row.id, row.status]),
+  );
+  const linkedPageSet = new Set(linkedPages.rows.map((row) => row.id));
+  const linkedHeadingSet = new Set(
+    linkedPages.rows
+      .filter((row) => row.linked_block_id)
+      .map((row) => `${row.id}:${row.linked_block_id}`),
+  );
+  const openApiSourceSet = new Set(openApiSources.rows.map((row) => row.id));
+  const openApiOperationSet = new Set(
+    openApiSources.rows
+      .filter((row) => row.destination_key)
+      .map((row) => `${row.id}:${row.destination_key}`),
+  );
+  const publicationType = new Map(
+    publications.rows.map((row) => [row.id, row.artifact_type]),
+  );
+  for (const block of input.blocks) {
+    const prior = priorByBlock.get(String(block.id));
+    const expectedVersion =
+      typeof block.expected_version === "number"
+        ? block.expected_version
+        : null;
+    if (
+      (prior && expectedVersion !== prior.version) ||
+      (!prior && expectedVersion !== null)
+    ) {
+      const error = new Error("Documentation content changed");
+      Object.assign(error, { code: "documentation_row_version_conflict" });
+      throw error;
+    }
+    if (block.kind === "link" && block.page_id) {
+      const pageId = String(block.page_id);
+      const targetBlockId = block.target_block_id
+        ? String(block.target_block_id)
+        : null;
+      if (
+        !linkedPageSet.has(pageId) ||
+        (targetBlockId && !linkedHeadingSet.has(`${pageId}:${targetBlockId}`))
+      ) {
+        const error = new Error("Documentation internal link is broken");
+        Object.assign(error, { code: "documentation_internal_link_broken" });
+        throw error;
+      }
+    }
+    if (block.kind === "api_reference") {
+      const sourceId = String(block.openapi_source_id);
+      const operationKey = block.operation_key
+        ? String(block.operation_key)
+        : null;
+      if (
+        !openApiSourceSet.has(sourceId) ||
+        (operationKey &&
+          !openApiOperationSet.has(`${sourceId}:${operationKey}`))
+      ) {
+        const error = new Error("OpenAPI reference is unavailable");
+        Object.assign(error, { code: "documentation_revision_invalid" });
+        throw error;
+      }
+    }
+    if (
+      block.kind === "guide_publication" ||
+      block.kind === "interactive_demo_publication"
+    ) {
+      const id = String(block.published_artifact_id);
+      const expectedType =
+        block.kind === "guide_publication" ? "guide" : "interactive_demo";
+      const actualType = publicationType.get(id);
+      if (!actualType) {
+        const error = new Error("Artifact Publication was not found");
+        Object.assign(error, {
+          code: "documentation_artifact_publication_not_found",
+        });
+        throw error;
+      }
+      if (actualType !== expectedType) {
+        const error = new Error("Artifact Publication type does not match");
+        Object.assign(error, {
+          code: "documentation_artifact_publication_type_mismatch",
+        });
+        throw error;
+      }
+    }
+    if (block.kind === "snippet_reference") {
+      const id = String(block.snippet_id);
+      const status = snippetStatus.get(id);
+      if (!status) {
+        const error = new Error("Documentation Snippet is unavailable");
+        Object.assign(error, { code: "documentation_snippet_not_found" });
+        throw error;
+      }
+      if (status === "archived" && prior?.snippet_id !== id) {
+        const error = new Error("Archived Snippet cannot be introduced");
+        Object.assign(error, { code: "documentation_snippet_archived" });
+        throw error;
+      }
+    }
+    if (block.kind !== "image") continue;
+    const source =
+      block.source && typeof block.source === "object"
+        ? (block.source as { kind: string; id: string })
+        : block.asset_id
+          ? { kind: "documentation_asset", id: String(block.asset_id) }
+          : null;
+    if (!source) continue;
+    const status =
+      source.kind === "documentation_asset"
+        ? documentationAssetStatus.get(source.id)
+        : captureAssetStatus.get(source.id);
+    if (!status) {
+      const error = new Error("Asset source is unavailable");
+      Object.assign(error, { code: "documentation_asset_source_unavailable" });
+      throw error;
+    }
+    const retained =
+      source.kind === "documentation_asset"
+        ? prior?.documentation_asset_id === source.id
+        : prior?.capture_asset_id === source.id;
+    if (status === "archived" && !retained) {
+      const error = new Error("Archived Asset cannot be introduced");
+      Object.assign(error, { code: "documentation_asset_archived" });
+      throw error;
+    }
+  }
+};
 
 const command_digest = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -1065,11 +1362,6 @@ export const build_documentation_repository = (database: Database) => ({
     };
   }) =>
     with_transaction(database, async (client) => {
-      const audit = await begin_documentation_audit_context(client, {
-        ...input,
-        command: "documentation.asset.upload",
-        action: "documentation.asset.uploaded",
-      });
       const edition = await client.query<{ id: string }>(
         `SELECT id FROM documentation_schema.site_edition
           WHERE organization_id=$1 AND project_id=$2
@@ -1082,6 +1374,29 @@ export const build_documentation_repository = (database: Database) => ({
         ],
       );
       if (!edition.rows[0]) throw new Error("Documentation Site was not found");
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))",
+        [`documentation-assets:${edition.rows[0].id}`],
+      );
+      const count = await client.query<{ asset_count: number }>(
+        `SELECT COUNT(*)::integer asset_count
+           FROM documentation_schema.documentation_asset
+          WHERE site_edition_id=$1`,
+        [edition.rows[0].id],
+      );
+      if (
+        Number(count.rows[0]?.asset_count ?? 0) >=
+        DOCUMENTATION_ASSETS_PER_EDITION_MAX
+      ) {
+        const error = new Error("Documentation Asset limit has been reached");
+        Object.assign(error, { code: "documentation_asset_limit_exceeded" });
+        throw error;
+      }
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "documentation.asset.upload",
+        action: "documentation.asset.uploaded",
+      });
       await client.query(
         `INSERT INTO file_schema.file
           (id,organization_id,storage_provider,storage_key,mime_type,
@@ -1657,6 +1972,7 @@ export const build_documentation_repository = (database: Database) => ({
           snippet.status === "active" ||
           referencedSnippetIds.has(snippet.id as string),
       );
+      validate_documentation_revision_aggregate(snapshot);
       const content_digest = command_digest(snapshot);
       const existing = await client.query<{
         id: string;
@@ -4555,6 +4871,12 @@ export const build_documentation_repository = (database: Database) => ({
           blocks: [],
         });
       }
+      await validate_mutable_content_references(client, {
+        ...input,
+        site_edition_id: page.site_edition_id,
+        owner_id: input.page_id,
+        owner_kind: "page",
+      });
       const audit = await begin_documentation_audit_context(client, {
         ...input,
         command: "documentation.page.content_replace",
@@ -5378,6 +5700,12 @@ export const build_documentation_repository = (database: Database) => ({
         Object.assign(error, { code: "documentation_snippet_archived" });
         throw error;
       }
+      await validate_mutable_content_references(client, {
+        ...input,
+        site_edition_id: snippet.site_edition_id,
+        owner_id: input.snippet_id,
+        owner_kind: "snippet",
+      });
       const audit = await begin_documentation_audit_context(client, {
         ...input,
         command: "documentation.snippet.content_replace",
@@ -5579,6 +5907,7 @@ export const build_documentation_repository = (database: Database) => ({
     source: "documentation" | "capture" | "all";
     status: "active" | "archived" | "all";
     include_archived_versions: boolean;
+    include_in_use: boolean;
   }) => {
     const assets: Array<Record<string, unknown>> = [];
     if (input.source !== "capture") {
@@ -5645,13 +5974,51 @@ export const build_documentation_repository = (database: Database) => ({
             AND asset.is_deleted=FALSE AND file.is_deleted=FALSE
             AND asset.asset_type IN ('screenshot','redacted_screenshot')
             AND file.mime_type IN ('image/png','image/jpeg','image/webp')
-            AND asset.status IN ('active','archived')
+            AND NOT EXISTS (
+              SELECT 1
+                FROM capture_schema.capture_asset_purge_operation purge
+               WHERE purge.capture_asset_id=asset.id
+            )
+            AND (
+              (($4='active' OR $4='all') AND asset.status='active')
+              OR (
+                $5 AND asset.status='archived'
+                AND EXISTS (
+                  SELECT 1
+                    FROM documentation_schema.site_edition edition
+                   WHERE edition.documentation_site_id=$6
+                     AND edition.project_version_id=$7
+                     AND (
+                       EXISTS (
+                         SELECT 1
+                           FROM documentation_schema.documentation_page page
+                           JOIN documentation_schema.documentation_page_block block
+                             ON block.documentation_page_id=page.id
+                          WHERE page.site_edition_id=edition.id
+                            AND block.capture_asset_id=asset.id
+                       )
+                       OR EXISTS (
+                         SELECT 1
+                           FROM documentation_schema.documentation_snippet snippet
+                           JOIN documentation_schema.documentation_snippet_block block
+                             ON block.documentation_snippet_id=snippet.id
+                          WHERE snippet.site_edition_id=edition.id
+                            AND block.capture_asset_id=asset.id
+                       )
+                     )
+                )
+              )
+            )
             AND ($3 OR version.status='active')
           ORDER BY version.position,asset.created_at DESC,asset.id LIMIT 100`,
         [
           input.organization_id,
           input.project_id,
           input.include_archived_versions,
+          input.status,
+          input.include_in_use,
+          input.site_id,
+          input.project_version_id,
         ],
       );
       assets.push(

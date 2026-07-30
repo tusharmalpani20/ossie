@@ -25,7 +25,11 @@ import {
   DocumentationUpdateSnippetRequestSchema,
   RevokePublishLinkRequestSchema,
 } from "@repo/types";
-import { normalize_documentation_path } from "@repo/documentation-domain";
+import {
+  normalize_documentation_blocks,
+  normalize_documentation_path,
+  validate_documentation_snippet_blocks,
+} from "@repo/documentation-domain";
 import { z } from "zod";
 import { web_session_cookie_name } from "../authentication/session-cookie";
 import type { AuthContext } from "../authentication/session.service";
@@ -590,7 +594,9 @@ export const build_documentation_routes = (
         code === "documentation_table_invalid" ||
         code === "documentation_tabs_invalid" ||
         code === "documentation_asset_source_unsupported" ||
-        code === "documentation_artifact_publication_type_mismatch"
+        code === "documentation_artifact_publication_type_mismatch" ||
+        code === "documentation_content_unsafe" ||
+        code === "documentation_snippet_nested"
       )
         return reply
           .status(400)
@@ -773,6 +779,7 @@ export const build_documentation_routes = (
             );
         try {
           const scope = await authorized_scope(request, params.data);
+          validate_documentation_snippet_blocks(body.data.blocks);
           const snippet = await dependencies.documentation_service.save_snippet(
             {
               ...scope,
@@ -1443,6 +1450,7 @@ export const build_documentation_routes = (
             project_id: params.data.project_id,
             version_slug: params.data.version_slug,
           });
+          normalize_documentation_blocks(body.data.blocks);
           const result = await dependencies.documentation_service.save_page({
             organization_id: auth.organization.id,
             actor_org_user_id: auth.org_user.id,
@@ -1455,15 +1463,15 @@ export const build_documentation_routes = (
           });
           return reply.send({ page: result });
         } catch (error) {
-          if (!(error instanceof DocumentationRowVersionConflictError))
-            throw error;
-          return reply.status(409).send({
-            ...error_response(
-              "documentation_row_version_conflict",
-              "Documentation Page changed; preserve local work and reconcile",
-            ),
-            latest_page: error.latest_page,
-          });
+          if (error instanceof DocumentationRowVersionConflictError)
+            return reply.status(409).send({
+              ...error_response(
+                "documentation_row_version_conflict",
+                "Documentation Page changed; preserve local work and reconcile",
+              ),
+              latest_page: error.latest_page,
+            });
+          return documentation_error(error, reply);
         }
       },
     );
