@@ -6,13 +6,13 @@ Date expanded: 2026-07-30
 
 Date rechecked: 2026-07-30
 
-Status: Active implementation; core vertical path implemented and verified on
-2026-07-30, but child-owned access, asset, audit/access-evidence, portal-control,
-smoke, and browser-matrix gaps remain. Product Documentation
-runtime remains unimplemented and must not begin until this scoped plan
-checkpoint is committed. The mandatory dependency/adapter proof in Stage 1 may
-select the documented Ossie-native fallback; it may not change domain
-authority, routes, persistence, permissions, or public semantics.
+Status: Active implementation; the core vertical path, protected first-slice
+image flow, database-backed search, deterministic fixture, V1 smoke journey,
+and primary headless-browser workflow are implemented and verified on
+2026-07-30. Closure is intentionally withheld while the child-owned
+restricted/password viewer-session behavior, complete atomic mutation-audit
+matrix, exhaustive tenant/nested-ID/immutable-maintenance threat matrix, and
+remaining authoring controls and browser upper-bound/access passes are open.
 
 Parent plan:
 
@@ -1902,7 +1902,7 @@ against the actual child `132` result.
       a Guide/Demo `published_artifact`.
 - [x] Dependency proof and contract-preserving fallback defined.
 - [x] Independent plan recheck against Master `006` and child `131` clean.
-- [ ] Plan checkpoint committed before runtime.
+- [x] Plan checkpoint committed before runtime.
 
 ### Implementation
 
@@ -1910,22 +1910,26 @@ against the actual child `132` result.
       `yaml@2.9.0` exact pin recorded.
 - [x] Domain/constants/types implemented test-first.
 - [ ] Migration/schema/runtime grants/immutable/protected-reference rules pass
-      completely. Clean migrate and Revision/Publication immutability pass;
-      asset protection and the complete DB threat matrix remain open.
+      completely. Clean migration, runtime grants, exact Revision/Publication
+      immutability, and protected image references/delivery pass; exhaustive
+      `TRUNCATE`, maintenance-bypass, and composite-FK threat rows remain open.
 - [x] Authorized mutable API and independent Page concurrency pass for the
       implemented Site/Page/navigation/routing/comment/OpenAPI aggregates.
 - [ ] Portal editor/comments/OpenAPI/preview pass completely. Library, Page
-      autosave/conflict/read-only state, workbench, and saved preview pass;
-      comments/OpenAPI/navigation/routing controls remain open.
+      autosave/conflict/read-only state, comments, OpenAPI inspect/apply,
+      structure, routing-gone, image attach, checkpoint, publication/history/
+      rollback, workbench, and saved preview pass. Authoring every accepted
+      safe block plus alias/redirect/reorder controls remains open.
 - [x] Revision/Publication/Publish Link/public reader/search/metadata core path
       passes, including the shared Documentation family resolver.
 - [x] Failed preparation policy test and atomic rollback integration pass.
 - [x] Existing Guide/Demo/Capture/extension build and focused regressions remain
       green.
-- [ ] Deterministic Documentation fixture passes; V1 smoke integration remains
-      open.
-- [ ] Real-browser accessibility/reflow/motion/core exactness evidence passes;
-      the complete access/security/upper-bound matrix remains open.
+- [x] Deterministic Documentation fixture and the V1 Documentation smoke
+      integration pass.
+- [ ] Real-browser accessibility/reflow/motion/core exactness, protected image,
+      search, structure, routing, and mutation-contract evidence passes; the
+      complete restricted/access/security/upper-bound matrix remains open.
 - [x] Current truth and Master `006` updated only for shipped behavior.
 - [x] Scoped logical commits contain no unrelated/generated/secret material.
 
@@ -1935,8 +1939,8 @@ against the actual child `132` result.
 - [ ] Tenant/role/IDOR matrix passes.
 - [ ] Comments/drafts/private data absent from Revision, Publication, public
       search/output, cache, audit, and access evidence.
-- [ ] Publication `1` remains exact after later edits and Publication `2`.
-- [ ] Rollback repoints without immutable mutation/rebuild.
+- [x] Publication `1` remains exact after later edits and Publication `2`.
+- [x] Rollback repoints without immutable mutation/rebuild.
 - [ ] No open child-owned S1/S2 defect.
 - [ ] Implementation log, verification record, leftovers, and child `133`
       handoff complete.
@@ -1978,6 +1982,26 @@ against the actual child `132` result.
   2, and pointer-only rollback to Publication 1.
 - 2026-07-30: Agent Browser found and drove fixes for frozen metadata adapter
   mismatch, opaque SPA redirect handling, and hidden Viewer saved content.
+- 2026-07-30: Added persisted, tenant/Project/version/Site-scoped draft-search
+  documents and immutable Publication search documents. Public responses omit
+  private search projection internals and comments never enter either index.
+- 2026-07-30: Added protected image upload/validation/storage/delivery, immutable
+  Revision references, public exact-Publication authorization, required
+  per-reference alt text, and browser-visible image rendering.
+- 2026-07-30: Added portal controls for comments, OpenAPI inspect/apply,
+  Page creation, flat navigation persistence, retired-path `gone` rules,
+  checkpoints, Publication history, stable-link republish, pointer rollback,
+  and image attachment.
+- 2026-07-30: Added the Documentation V1 smoke journey and registered every
+  Documentation route in the access coverage registry. The Project capability
+  policy proves Admin/Editor/Viewer separation for Documentation routes.
+- 2026-07-30: Headless browser dogfood exposed three cross-layer defects:
+  missing `Idempotency-Key` CORS permission, browser-generated UUIDs exceeding
+  the persisted ULID width, and a raw routing response where the shared client
+  required `{ routing }`. Each received a focused regression and was rechecked.
+- 2026-07-30: Final broad verification found the corresponding stale DB routing
+  assertion. It was aligned to the response envelope; the complete DB suite
+  then passed.
 
 ## 27. Verification Record
 
@@ -2006,25 +2030,29 @@ Runtime verification completed:
 
 - `@repo/documentation-domain`: 8 files, 9 tests passed; type check passed.
 - `@repo/types` Documentation/Publish: 18 focused tests passed.
-- server Documentation/audit-coverage/Publish/storage: 8 files, 31 tests
-  passed.
-- web Documentation/routes/navigation/metadata: 11 files, 49 tests passed.
-- Documentation DB and browser-fixture DB: 2 files, 3 tests passed.
+- final focused server Documentation/policy/access/audit/CORS/fixture run:
+  8 files, 49 tests passed.
+- final focused web Documentation run: 10 files, 21 tests passed; explicit web
+  lint passed.
+- full server DB suite: 22 files, 71 tests passed.
+- V1 smoke suite: 1 file, 2 tests passed, including exact public Page/alias,
+  protected asset isolation, two Revisions/Publications, and pointer rollback.
 - migration `025` populated rollback refusal: passed; empty-database down/up
   rehearsal and foundation schema (13 tests): passed.
-- `pnpm lint`, `pnpm check-types`, and `pnpm build`: passed when run
-  sequentially. The initial parallel lint/build attempt was terminated by
-  resource pressure and was not counted.
+- final sequential `pnpm lint` (14 tasks), `pnpm check-types` (13 tasks), and
+  `pnpm build` (13 tasks): passed.
 - `git diff --check`: passed at every scoped commit boundary.
 - Agent Browser evidence: see
   `docs/ui/132-documentation-site-first-vertical-slice-browser-evidence.md`.
 
 Not yet run or not yet complete:
 
-- full `pnpm --filter server test:db`;
-- V1 smoke integration with the Documentation journey;
-- complete tenant/role/IDOR, protected asset, access-policy, audit/access
-  evidence, upper-bound performance, and browser access matrix.
+- exhaustive cross-tenant/nested-ID and upper-bound matrices;
+- restricted/password/revoked/expired Documentation viewer sessions;
+- complete atomic mutation audit and meaningful access-evidence assertions for
+  every Documentation command/outcome;
+- runtime-role `TRUNCATE` and controlled maintenance-bypass matrix;
+- Firefox/WebKit evidence; the supported headless Chrome environment was used.
 
 ## 28. Planning Leftovers And Handoff
 
@@ -2044,14 +2072,14 @@ future features remain with their reserved children.
 Current child-owned leftovers that block closure and must not be handed to
 child `133`:
 
-- complete Documentation image asset upload/delivery/protected-reference flow;
-- internal draft search projection/API and bounded database-backed public
-  search rather than snapshot string matching;
-- portal navigation/routing/comments/OpenAPI/media/publish/history/rollback
-  controls and Revision/Publication history views;
 - restricted/password/revoked/expired Documentation viewer-session behavior;
-- complete mutation audit/access-evidence matrix, tenant/role/IDOR tests, and
-  immutable `TRUNCATE`/maintenance-path verification;
-- complete V1 smoke and full DB suite integration;
-- remaining real-browser access/security/failure/upper-bound passes listed in
-  the browser evidence.
+- complete atomic audit events/guards for Site, Page, navigation, routing,
+  comments, OpenAPI apply, and manual Revision commands, plus the complete
+  meaningful access-evidence/redaction matrix;
+- exhaustive tenant/Project/version/Site/Edition/nested-ID swaps and immutable
+  `TRUNCATE`/controlled-maintenance verification;
+- portal authoring for every first-slice safe block plus alias, redirect, and
+  navigation reorder/group controls needed to make the entire 15-step journey
+  browser-driven rather than partly fixture/API-driven;
+- remaining real-browser restricted/access/security/failure/accepted
+  upper-bound passes listed in the browser evidence.

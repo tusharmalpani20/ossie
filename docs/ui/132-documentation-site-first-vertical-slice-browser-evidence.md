@@ -8,8 +8,9 @@ end are still owned by child 132.
 
 ## Environment
 
-- Repository commit exercised before documentation closeout:
-  `7db82356b8628d64e213007cf4324ed7e9357bb2`.
+- Repository commits exercised before documentation closeout: the Plan 132
+  implementation through `1ed44c1`, followed by the DB contract regression in
+  `dd2f980`.
 - API: Fastify on `http://127.0.0.1:3002`, testing configuration,
   disposable `ossie_test`.
 - Web: Vite on `http://127.0.0.1:3000`.
@@ -28,6 +29,14 @@ end are still owned by child 132.
 - The workbench rendered both stable Pages and the saved-draft checkpoint.
 - Page content autosaved through the real `PUT .../content` route and announced
   `Saved`.
+- A Page was created through the Structure panel, flat Page navigation was
+  saved, and a retired path was persisted through the routing control. The
+  final routing mutation returned HTTP `200` through the documented
+  `{ routing }` contract.
+- A protected PNG was uploaded with required alternative text, attached to the
+  Page, and saved through the editor. The fixture's independently frozen PNG
+  rendered from the exact Publication-specific protected-asset URL with its
+  natural dimensions and alt text intact.
 - Two independent Chrome sessions loaded the same Page. The first saved a
   change; the second received the conflict response, announced
   `Conflict — local work is preserved`, and retained the exact local textarea
@@ -39,6 +48,9 @@ end are still owned by child 132.
 - Public Publication 1 rendered frozen navigation, internal Page links, a
   read-only OpenAPI operation destination, safe blocks, search, canonical
   metadata, and no private comment.
+- Public search returned the frozen install Page for `install` and no result
+  for private/comment-only text. The browser response did not expose the
+  persisted search-document collection.
 - Alias `install` and redirect rule `setup` both replaced the browser URL with
   `/docs/plan132-public/install-guide`.
 - The operation deep link rendered `GET /widgets`.
@@ -51,8 +63,9 @@ end are still owned by child 132.
 - After Working Draft mutation, Revision/Publication 2, and pointer-only
   rollback, the public reader contained Publication 1 text and did not contain
   Publication 2 text.
-- Desktop and 320 CSS px public reader axe checks reported zero WCAG A/AA
-  violations and zero incomplete checks.
+- Desktop public reader axe `4.12.1` reported zero WCAG A/AA violations and
+  zero incomplete checks. The portal editor reported zero violations and one
+  indeterminate contrast check caused by an obscured textarea.
 - At 320 CSS px, `scrollWidth` and `clientWidth` were both `320`.
 - Reduced-motion emulation reported
   `matchMedia("(prefers-reduced-motion: reduce)").matches === true`.
@@ -65,18 +78,21 @@ The adapter was fixed and the browser pass repeated. A second pass exposed
 opaque Fetch redirect handling; canonical resolution was moved to the frozen
 Site snapshot while Fastify remains authoritative for direct HTTP `308`/`410`.
 A third pass exposed hidden Viewer content; the read-only renderer was added
-and rechecked.
+and rechecked. Mutation dogfood then exposed a missing `Idempotency-Key` CORS
+allowlist entry, UUID-sized browser IDs against ULID-width columns, and a raw
+routing response where the shared client expected `{ routing }`. All three
+received focused regressions; the final routing request returned `200` with no
+page error.
 
 ## Open Child-Owned Browser Matrix
 
 The following required child-132 passes are not complete and must not be
 inferred from the evidence above:
 
-- complete comments, OpenAPI inspection/apply, navigation/routing, publication,
-  and rollback workflows through portal controls rather than fixture/API setup;
-- restricted/password/revoked/expired Documentation links and protected
-  Documentation asset delivery;
+- exercise comments, OpenAPI inspect/apply, every accepted safe block, alias,
+  redirect, navigation reorder/group, and injected preparation-failure behavior
+  through portal controls rather than fixture/API setup;
+- restricted/password/revoked/expired Documentation links and viewer sessions;
 - complete Admin/Editor/Viewer and cross-tenant/IDOR browser matrix;
-- injected publication-preparation failure through a browser-visible control;
 - accepted upper-bound fixture measurements and production bundle delta;
 - Firefox/WebKit evidence (no supported executable was exercised).
