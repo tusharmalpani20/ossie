@@ -161,6 +161,49 @@ describe("Documentation routes", () => {
     );
   });
 
+  it("returns a replayed import inspection as 200 without exposing replay metadata", async () => {
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(multipart);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          inspect_import: vi.fn(async (input) => {
+            for await (const _chunk of input.stream) {
+              // Consume the authorized multipart stream before replying.
+            }
+            return {
+              id: "inspection",
+              status: "cancelled",
+              idempotent_replay: true,
+            };
+          }),
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const boundary = "documentation-import-replay-test";
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project/versions/main/documentation-import-inspections?kind=page_markdown",
+      cookies: { ossie_session: "session" },
+      headers: {
+        "idempotency-key": "inspect-replay-1",
+        "content-type": `multipart/form-data; boundary=${boundary}`,
+      },
+      payload: Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="start.md"\r\nContent-Type: text/markdown\r\n\r\n# Start\r\n--${boundary}--\r\n`,
+      ),
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      inspection: { id: "inspection", status: "cancelled" },
+    });
+  });
+
   it("applies an inspected import through the strict target contract", async () => {
     const apply_import = vi.fn(async () => ({
       id: "application",

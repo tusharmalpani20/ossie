@@ -1287,7 +1287,15 @@ export const build_documentation_routes = (
               new Error("Exactly one import File is required"),
               { code: "documentation_import_invalid" },
             );
-          return reply.status(201).send({ inspection });
+          const {
+            idempotent_replay: replayed = false,
+            ...body
+          } = inspection as Record<string, unknown> & {
+            idempotent_replay?: boolean;
+          };
+          return reply
+            .status(replayed ? 200 : 201)
+            .send({ inspection: body });
         } catch (error) {
           return documentation_error(error, reply);
         }

@@ -1855,12 +1855,18 @@ export const build = (opts: BuildOptions = {}) => {
                   };
                 if (persisted.id !== inspection_id)
                   await default_capture_file_storage.delete_best_effort(stored);
-                const { safe_report: report = safe_report, ...inspection } =
-                  persisted;
+                const {
+                  safe_report: persistedReport,
+                  created_by_id: _createdById,
+                  ...inspection
+                } = persisted;
+                const report =
+                  persistedReport ??
+                  (persisted.idempotent_replay ? null : safe_report);
                 return {
                   ...inspection,
                   format_version: input.kind === "site_package" ? 1 : null,
-                  ...report,
+                  ...(report ?? {}),
                 };
               } catch (error) {
                 await default_capture_file_storage.delete_best_effort(stored);

@@ -6868,7 +6868,50 @@ export const build_documentation_repository = (database: Database) => ({
         operation: "documentation.import.inspect",
         request_digest,
       });
-      if (replay) return replay;
+      if (replay) {
+        const replayBody = replay as Record<string, unknown>;
+        const inspectionId =
+          typeof replayBody.inspection_id === "string"
+            ? replayBody.inspection_id
+            : typeof replayBody.id === "string"
+              ? replayBody.id
+              : null;
+        if (!inspectionId)
+          throw new DocumentationIdempotencyConflictError();
+        const current = await client.query<{
+          id: string;
+          status: "ready" | "consumed" | "cancelled" | "expired";
+          kind: "page_markdown" | "site_package";
+          source_digest: string;
+          content_fingerprint: string;
+          expires_at: Date;
+          safe_report: unknown | null;
+        }>(
+          `SELECT id,status,kind,source_digest,content_fingerprint,
+                  expires_at,safe_report
+             FROM documentation_schema.documentation_import_inspection
+            WHERE id=$1 AND organization_id=$2 AND project_id=$3
+              AND project_version_id=$4 AND created_by_id=$5`,
+          [
+            inspectionId,
+            input.organization_id,
+            input.project_id,
+            input.project_version_id,
+            input.actor_org_user_id,
+          ],
+        );
+        const inspection = current.rows[0];
+        if (!inspection) throw new DocumentationIdempotencyConflictError();
+        const { safe_report: safeReport, ...currentInspection } = inspection;
+        return {
+          ...currentInspection,
+          expires_at: inspection.expires_at.toISOString(),
+          ...(inspection.status === "ready" && safeReport
+            ? { safe_report: safeReport }
+            : {}),
+          idempotent_replay: true,
+        };
+      }
       const audit = await begin_documentation_audit_context(client, {
         ...input,
         command: "documentation.import.inspect",
@@ -6975,7 +7018,7 @@ export const build_documentation_repository = (database: Database) => ({
         operation: "documentation.import.inspect",
         request_digest,
         response_status: 201,
-        response_body: result,
+        response_body: { inspection_id: input.inspection_id },
       });
       return { ...result, idempotent_replay: false };
     }),

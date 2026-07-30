@@ -148,6 +148,30 @@ describe("DB-backed Documentation repository", () => {
       idempotency_key: "cancel-1",
       inspection_id: "01K00000000000000000000010",
     });
+    const inspectReplay = await repository.create_import_inspection({
+      ...scope,
+      idempotency_key: "inspect-1",
+      inspection_id: "01K00000000000000000000012",
+      file_id: "01K00000000000000000000013",
+      kind: "page_markdown",
+      source_file: {
+        storage_provider: "local",
+        storage_key:
+          "organizations/test/projects/test/documentation-import-inspections/replay/source.md",
+        mime_type: "text/markdown",
+        size_bytes: 8,
+        checksum_sha256: "a".repeat(64),
+      },
+      content_fingerprint: "b".repeat(64),
+      safe_report: { proposal: { title: "Must not be replayed" } },
+      expires_at: new Date("2026-08-01T00:00:00.000Z"),
+    });
+    expect(inspectReplay).toMatchObject({
+      id: "01K00000000000000000000010",
+      status: "cancelled",
+      idempotent_replay: true,
+    });
+    expect(inspectReplay).not.toHaveProperty("safe_report");
     const persisted = await pool.query<{
       status: string;
       safe_report: unknown;
@@ -166,6 +190,15 @@ describe("DB-backed Documentation repository", () => {
       safe_report: null,
       version: 2,
       is_deleted: true,
+    });
+    const receipt = await pool.query<{ response_body: unknown }>(
+      `SELECT response_body
+         FROM documentation_schema.documentation_command_receipt
+        WHERE operation='documentation.import.inspect'
+          AND idempotency_key='inspect-1'`,
+    );
+    expect(receipt.rows[0]?.response_body).toEqual({
+      inspection_id: "01K00000000000000000000010",
     });
     const audit = await pool.query<{ action: string }>(
       `SELECT action FROM audit_schema.audit_event
