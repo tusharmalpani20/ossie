@@ -16,7 +16,12 @@ export type ProjectCapability =
   | "project_version.manage"
   | "revision.checkpoint_restore"
   | "revision.carry_forward"
-  | "asset.purge";
+  | "asset.purge"
+  | "documentation.read"
+  | "documentation.write"
+  | "documentation.site.manage"
+  | "documentation.comment"
+  | "documentation.checkpoint";
 
 const capabilities: Record<ProjectRole, ReadonlySet<ProjectCapability>> = {
   project_admin: new Set<ProjectCapability>([
@@ -36,6 +41,11 @@ const capabilities: Record<ProjectRole, ReadonlySet<ProjectCapability>> = {
     "revision.checkpoint_restore",
     "revision.carry_forward",
     "asset.purge",
+    "documentation.read",
+    "documentation.write",
+    "documentation.site.manage",
+    "documentation.comment",
+    "documentation.checkpoint",
   ]),
   editor: new Set<ProjectCapability>([
     "project.read",
@@ -49,12 +59,17 @@ const capabilities: Record<ProjectRole, ReadonlySet<ProjectCapability>> = {
     "publish_link.manage",
     "revision.checkpoint_restore",
     "revision.carry_forward",
+    "documentation.read",
+    "documentation.write",
+    "documentation.comment",
+    "documentation.checkpoint",
   ]),
   viewer: new Set<ProjectCapability>([
     "project.read",
     "capture.read",
     "artifact.read",
     "publication.read",
+    "documentation.read",
   ]),
 };
 
@@ -71,6 +86,10 @@ export const is_project_content_mutation = (capability: ProjectCapability) =>
   capability === "revision.checkpoint_restore" ||
   capability === "revision.carry_forward" ||
   capability === "asset.purge" ||
+  capability === "documentation.write" ||
+  capability === "documentation.site.manage" ||
+  capability === "documentation.comment" ||
+  capability === "documentation.checkpoint" ||
   capability === "project_version.manage";
 
 export const project_route_capability = (
@@ -81,6 +100,25 @@ export const project_route_capability = (
   const read = method === "GET";
   if (route_template === "/api/v1/projects/:id")
     return read ? "project.read" : "project.settings.manage";
+  if (route_template.includes("/documentation-sites")) {
+    if (route_template.includes("/publications"))
+      return read ? "publication.read" : "publication.create";
+    if (route_template.includes("/publish-links"))
+      return read ? "publication.read" : "publish_link.manage";
+    if (route_template.includes("/comments"))
+      return read ? "documentation.read" : "documentation.comment";
+    if (route_template.includes("/revisions"))
+      return read ? "documentation.read" : "documentation.checkpoint";
+    if (
+      !read &&
+      (route_template.endsWith("/documentation-sites") ||
+        route_template.endsWith("/edition"))
+    )
+      return "documentation.site.manage";
+    return read ? "documentation.read" : "documentation.write";
+  }
+  if (route_template.includes("/documentation-search"))
+    return "documentation.read";
   if (route_template.includes("/versions"))
     return read ? "project.read" : "project_version.manage";
   if (route_template.includes("/memberships"))

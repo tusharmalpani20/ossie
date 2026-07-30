@@ -23,6 +23,11 @@ const capabilities: ProjectCapability[] = [
   "revision.checkpoint_restore",
   "revision.carry_forward",
   "asset.purge",
+  "documentation.read",
+  "documentation.write",
+  "documentation.site.manage",
+  "documentation.comment",
+  "documentation.checkpoint",
 ];
 
 describe("project access policy", () => {
@@ -47,6 +52,10 @@ describe("project access policy", () => {
       "publish_link.manage",
       "revision.checkpoint_restore",
       "revision.carry_forward",
+      "documentation.read",
+      "documentation.write",
+      "documentation.comment",
+      "documentation.checkpoint",
     ] as const)
       expect(project_role_has_capability("editor", capability)).toBe(true);
     for (const capability of [
@@ -55,6 +64,7 @@ describe("project access policy", () => {
       "project.compliance.read",
       "project_version.manage",
       "asset.purge",
+      "documentation.site.manage",
     ] as const)
       expect(project_role_has_capability("editor", capability)).toBe(false);
   });
@@ -65,6 +75,7 @@ describe("project access policy", () => {
       "capture.read",
       "artifact.read",
       "publication.read",
+      "documentation.read",
     ] as const)
       expect(project_role_has_capability("viewer", capability)).toBe(true);
     for (const capability of capabilities.filter(
@@ -74,6 +85,7 @@ describe("project access policy", () => {
           "capture.read",
           "artifact.read",
           "publication.read",
+          "documentation.read",
         ].includes(value),
     ))
       expect(project_role_has_capability("viewer", capability)).toBe(false);
@@ -114,6 +126,36 @@ describe("project access policy", () => {
       "project.read",
     ],
     ["POST", "/api/v1/projects/:project_id/versions", "project_version.manage"],
+    [
+      "GET",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites",
+      "documentation.read",
+    ],
+    [
+      "POST",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites",
+      "documentation.site.manage",
+    ],
+    [
+      "PUT",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/content",
+      "documentation.write",
+    ],
+    [
+      "POST",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/comments",
+      "documentation.comment",
+    ],
+    [
+      "POST",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions",
+      "documentation.checkpoint",
+    ],
+    [
+      "POST",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publications",
+      "publication.create",
+    ],
   ])("maps %s %s to %s", (method, route, capability) => {
     expect(project_route_capability(method, route)).toBe(capability);
   });
