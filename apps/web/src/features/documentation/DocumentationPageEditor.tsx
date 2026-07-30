@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
-import { ulid } from "ulid";
-import { Textarea } from "@repo/ui/textarea";
+import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { ulid } from "ulid";
 import type { DocumentationBlock } from "@repo/types";
 import {
   getDocumentationPage,
   saveDocumentationPage,
+  updateDocumentationPage,
   uploadDocumentationAsset,
   type DocumentationPage,
 } from "../../lib/documentationApi";
+import { DocumentationBlockEditor } from "./DocumentationBlockEditor";
 import { DocumentationCommentsPanel } from "./DocumentationCommentsPanel";
 
 type Props = {
@@ -21,6 +23,7 @@ type Props = {
   loadPage?: typeof getDocumentationPage;
   savePage?: typeof saveDocumentationPage;
   uploadAsset?: typeof uploadDocumentationAsset;
+  updatePage?: typeof updateDocumentationPage;
   autosaveDelayMs?: number;
 };
 
@@ -33,6 +36,7 @@ export const DocumentationPageEditor = ({
   loadPage = getDocumentationPage,
   savePage = saveDocumentationPage,
   uploadAsset = uploadDocumentationAsset,
+  updatePage = updateDocumentationPage,
   autosaveDelayMs = 800,
 }: Props) => {
   const [page, setPage] = useState<DocumentationPage | null>(null);
@@ -43,6 +47,9 @@ export const DocumentationPageEditor = ({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageAlt, setImageAlt] = useState("");
   const [assetStatus, setAssetStatus] = useState("");
+  const [metadataTitle, setMetadataTitle] = useState("");
+  const [metadataPath, setMetadataPath] = useState("");
+  const [metadataStatus, setMetadataStatus] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -51,6 +58,8 @@ export const DocumentationPageEditor = ({
         if (active) {
           setPage(result.page);
           setBlocks(result.page.blocks);
+          setMetadataTitle(result.page.title);
+          setMetadataPath(result.page.canonical_path);
         }
       })
       .catch(() => {
@@ -89,20 +98,6 @@ export const DocumentationPageEditor = ({
   }, [autosaveDelayMs, canWrite, save, saveState]);
 
   if (!page) return <p role="status">Loading Documentation Page…</p>;
-  const paragraph = blocks.find(
-    (block): block is Extract<DocumentationBlock, { kind: "paragraph" }> =>
-      block.kind === "paragraph",
-  );
-
-  const updateParagraph = (text: string) => {
-    setBlocks((current) =>
-      current.map((block) =>
-        block.kind === "paragraph" ? { ...block, text } : block,
-      ),
-    );
-    setSaveState("unsaved");
-  };
-
   const addImage = async () => {
     if (!imageFile || !imageAlt.trim()) return;
     setAssetStatus("Uploading image…");
@@ -135,19 +130,70 @@ export const DocumentationPageEditor = ({
     }
   };
 
+  const saveMetadata = async () => {
+    if (!page || !metadataTitle.trim() || !metadataPath.trim()) return;
+    setMetadataStatus("Saving Page details…");
+    try {
+      const result = await updatePage(
+        projectId,
+        versionSlug,
+        siteId,
+        pageId,
+        {
+          expected_version: page.version,
+          title: metadataTitle.trim(),
+          canonical_path: metadataPath.trim(),
+        },
+      );
+      setPage(result.page);
+      setMetadataTitle(result.page.title);
+      setMetadataPath(result.page.canonical_path);
+      setMetadataStatus(
+        result.page.canonical_path === page.canonical_path
+          ? "Page details saved."
+          : `Page moved. ${page.canonical_path} is now a permanent alias.`,
+      );
+    } catch {
+      setMetadataStatus("Page details changed elsewhere. Reload and retry.");
+    }
+  };
+
   return (
     <main id="main-content">
       <p>Documentation Page</p>
       <h1>{page.title}</h1>
-      {canWrite && paragraph ? (
-        <>
-          <Label htmlFor="documentation-paragraph">Paragraph text</Label>
-          <Textarea
-            id="documentation-paragraph"
-            value={paragraph.text}
-            onChange={(event) => updateParagraph(event.target.value)}
+      {canWrite ? (
+        <section aria-labelledby="documentation-page-details-heading">
+          <h2 id="documentation-page-details-heading">Page details</h2>
+          <Label htmlFor="documentation-page-title">Page title</Label>
+          <Input
+            id="documentation-page-title"
+            value={metadataTitle}
+            onChange={(event) => setMetadataTitle(event.target.value)}
           />
-        </>
+          <Label htmlFor="documentation-page-path">Canonical path</Label>
+          <Input
+            id="documentation-page-path"
+            value={metadataPath}
+            onChange={(event) => setMetadataPath(event.target.value)}
+          />
+          {metadataPath !== page.canonical_path ? (
+            <p>The former path will become a permanent alias.</p>
+          ) : null}
+          <Button onClick={() => void saveMetadata()}>
+            Save Page details
+          </Button>
+          <p role="status">{metadataStatus}</p>
+        </section>
+      ) : null}
+      {canWrite ? (
+        <DocumentationBlockEditor
+          blocks={blocks}
+          onChange={(nextBlocks) => {
+            setBlocks(nextBlocks);
+            setSaveState("unsaved");
+          }}
+        />
       ) : null}
       {canWrite ? (
         <section aria-labelledby="documentation-image-heading">

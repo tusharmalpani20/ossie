@@ -120,6 +120,25 @@ export const saveDocumentationPage = (
     },
   ).then((response) => json<{ page: DocumentationPage }>(response));
 
+export const updateDocumentationPage = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  pageId: string,
+  input: {
+    expected_version: number;
+    title?: string;
+    description?: string | null;
+    canonical_path?: string;
+  },
+) =>
+  fetch(`${baseUrl()}${pagePath(projectId, versionSlug, siteId, pageId)}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }).then((response) => json<{ page: DocumentationPage }>(response));
+
 export const uploadDocumentationAsset = (
   projectId: string,
   versionSlug: string,
@@ -227,9 +246,9 @@ export const replaceDocumentationNavigation = (
     nodes: Array<{
       id: string;
       parent_id: string | null;
-      kind: "page";
-      label: null;
-      page_id: string;
+      kind: "group" | "page";
+      label: string | null;
+      page_id: string | null;
       position: number;
       expected_version: number | null;
     }>;

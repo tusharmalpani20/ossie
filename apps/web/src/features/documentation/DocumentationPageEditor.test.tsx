@@ -200,4 +200,157 @@ describe("DocumentationPageEditor", () => {
       ),
     );
   });
+
+  it("authors every non-image first-slice safe block through typed controls", async () => {
+    const savePage = vi.fn(async (_project, _version, _site, _page, input) => ({
+      page: {
+        id: "page",
+        title: "Home",
+        canonical_path: "home",
+        version: 2,
+        blocks: input.blocks,
+      },
+    }));
+    render(
+      <DocumentationPageEditor
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        pageId="page"
+        canWrite
+        autosaveDelayMs={60_000}
+        loadPage={async () => ({
+          page: {
+            id: "page",
+            title: "Home",
+            canonical_path: "home",
+            version: 1,
+            blocks: [],
+          },
+        })}
+        savePage={savePage}
+      />,
+    );
+    const kind = await screen.findByLabelText("New block type");
+    const addTextBlock = (blockKind: string, text: string, button: string) => {
+      fireEvent.change(kind, { target: { value: blockKind } });
+      fireEvent.change(
+        document.getElementById("new-documentation-block-primary")!,
+        { target: { value: text } },
+      );
+      fireEvent.click(screen.getByRole("button", { name: button }));
+    };
+    addTextBlock("paragraph", "Introduction", "Add paragraph block");
+    addTextBlock("heading", "Install", "Add heading block");
+    addTextBlock("ordered_list", "One\nTwo", "Add ordered list block");
+    addTextBlock(
+      "unordered_list",
+      "Alpha\nBeta",
+      "Add unordered list block",
+    );
+    fireEvent.change(kind, { target: { value: "code" } });
+    fireEvent.change(screen.getByLabelText("Code"), {
+      target: { value: "pnpm install" },
+    });
+    fireEvent.change(screen.getByLabelText("Code language"), {
+      target: { value: "bash" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add code block" }));
+    fireEvent.change(kind, { target: { value: "link" } });
+    fireEvent.change(screen.getByLabelText("Link label"), {
+      target: { value: "Ossie" },
+    });
+    fireEvent.change(screen.getByLabelText("Link URL"), {
+      target: { value: "https://example.test/docs" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add link block" }));
+    fireEvent.change(kind, { target: { value: "divider" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add divider block" }));
+    fireEvent.change(kind, { target: { value: "api_reference" } });
+    fireEvent.change(screen.getByLabelText("OpenAPI Source ID"), {
+      target: { value: "01K00000000000000000000000" },
+    });
+    fireEvent.change(screen.getByLabelText("Operation key (optional)"), {
+      target: { value: "list-widgets" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add api reference block" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save Page" }));
+
+    await waitFor(() => expect(savePage).toHaveBeenCalled());
+    expect(
+      savePage.mock.calls.at(-1)?.[4].blocks.map(
+        (block: { kind: string }) => block.kind,
+      ),
+    ).toEqual([
+      "paragraph",
+      "heading",
+      "ordered_list",
+      "unordered_list",
+      "code",
+      "link",
+      "divider",
+      "api_reference",
+    ]);
+  });
+
+  it("changes the canonical path with an explicit permanent-alias warning", async () => {
+    const updatePage = vi.fn(async () => ({
+      page: {
+        id: "page",
+        title: "Install",
+        canonical_path: "install-guide",
+        version: 2,
+        blocks: [],
+      },
+    }));
+    render(
+      <DocumentationPageEditor
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        pageId="page"
+        canWrite
+        loadPage={async () => ({
+          page: {
+            id: "page",
+            title: "Install",
+            canonical_path: "install",
+            version: 1,
+            blocks: [],
+          },
+        })}
+        savePage={vi.fn()}
+        updatePage={updatePage}
+      />,
+    );
+    fireEvent.change(await screen.findByLabelText("Canonical path"), {
+      target: { value: "install-guide" },
+    });
+    expect(
+      screen.getByText("The former path will become a permanent alias."),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Save Page details" }),
+    );
+    await waitFor(() =>
+      expect(updatePage).toHaveBeenCalledWith(
+        "project",
+        "main",
+        "site",
+        "page",
+        {
+          expected_version: 1,
+          title: "Install",
+          canonical_path: "install-guide",
+        },
+      ),
+    );
+    expect(
+      await screen.findByText(
+        "Page moved. install is now a permanent alias.",
+      ),
+    ).toBeInTheDocument();
+  });
 });

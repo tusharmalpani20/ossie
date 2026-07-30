@@ -59,7 +59,7 @@ describe("DocumentationStructurePanel", () => {
     await waitFor(() => expect(createPage).toHaveBeenCalled());
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Save Page navigation" }),
+      screen.getByRole("button", { name: "Save navigation" }),
     );
     await waitFor(() =>
       expect(replaceNavigation).toHaveBeenCalledWith(
@@ -85,6 +85,73 @@ describe("DocumentationStructurePanel", () => {
             expect.objectContaining({
               source_path: "old-install",
               outcome: "gone",
+            }),
+          ],
+        }),
+      ),
+    );
+  });
+
+  it("authors grouped navigation and permanent redirects", async () => {
+    const replaceNavigation = vi.fn(async (_project, _version, _site, input) => ({
+      navigation: { id: "nav", version: 2, nodes: input.nodes },
+    }));
+    const replaceRouting = vi.fn(async (_project, _version, _site, input) => ({
+      routing: { id: "routing", version: 2, rules: input.rules, aliases: [] },
+    }));
+    render(
+      <DocumentationStructurePanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canWrite
+        preview={preview}
+        replaceNavigation={replaceNavigation}
+        replaceRouting={replaceRouting}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Navigation group label"), {
+      target: { value: "Getting started" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add navigation group" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save navigation" }));
+    await waitFor(() =>
+      expect(replaceNavigation).toHaveBeenCalledWith(
+        "project",
+        "main",
+        "site",
+        expect.objectContaining({
+          nodes: [
+            expect.objectContaining({
+              kind: "group",
+              label: "Getting started",
+            }),
+          ],
+        }),
+      ),
+    );
+    fireEvent.change(screen.getByLabelText("Redirect source path"), {
+      target: { value: "setup" },
+    });
+    fireEvent.change(screen.getByLabelText("Redirect target Page"), {
+      target: { value: "page-1" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add permanent redirect" }),
+    );
+    await waitFor(() =>
+      expect(replaceRouting).toHaveBeenCalledWith(
+        "project",
+        "main",
+        "site",
+        expect.objectContaining({
+          rules: [
+            expect.objectContaining({
+              source_path: "setup",
+              outcome: "redirect",
+              target_page_id: "page-1",
             }),
           ],
         }),
