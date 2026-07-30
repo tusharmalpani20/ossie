@@ -168,7 +168,10 @@ import {
   assert_documentation_image_dimensions,
   assert_documentation_image_format,
 } from "./modules/documentation/documentation-asset.js";
-import { validate_documentation_asset_bytes } from "./modules/documentation/documentation-asset-integrity.js";
+import {
+  read_validated_documentation_asset_bytes,
+  validate_documentation_asset_bytes,
+} from "./modules/documentation/documentation-asset-integrity.js";
 import {
   canonicalize_documentation_package_json,
   export_documentation_page_markdown,
@@ -1621,27 +1624,32 @@ export const build = (opts: BuildOptions = {}) => {
                       ),
                       { code: "documentation_export_source_unavailable" },
                     );
-                  const stored = await default_capture_file_storage.get(
-                    file as { storage_key: string },
-                  );
-                  const chunks: Buffer[] = [];
-                  for await (const chunk of stored.stream as AsyncIterable<
-                    Buffer | string
-                  >)
-                    chunks.push(
-                      Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
-                    );
-                  const bytes = Buffer.concat(chunks);
-                  if (
-                    createHash("sha256").update(bytes).digest("hex") !==
-                    portableAsset.sha256
-                  )
+                  let bytes: Buffer;
+                  try {
+                    const validated =
+                      await read_validated_documentation_asset_bytes({
+                        file: {
+                          ...(file as {
+                            storage_provider: string;
+                            storage_key: string;
+                          }),
+                          mime_type: portableAsset.mime_type,
+                          size_bytes: portableAsset.size_bytes,
+                          checksum_sha256: portableAsset.sha256,
+                          width: portableAsset.width,
+                          height: portableAsset.height,
+                        },
+                        get: default_capture_file_storage.get,
+                      });
+                    bytes = validated.bytes;
+                  } catch {
                     throw Object.assign(
                       new Error(
-                        "Documentation export Asset digest is unavailable",
+                        "Documentation export Asset source is unavailable",
                       ),
                       { code: "documentation_export_source_unavailable" },
                     );
+                  }
                   entries.push({
                     path: portableAsset.path,
                     role: "asset",

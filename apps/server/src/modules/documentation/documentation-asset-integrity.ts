@@ -21,13 +21,13 @@ const unavailable = () =>
     code: "documentation_asset_source_unavailable",
   });
 
-export const validate_documentation_asset_bytes = async (input: {
+export const read_validated_documentation_asset_bytes = async (input: {
   file: ProtectedAssetFile;
   get: (input: { storage_key: string }) => Promise<{
     stream: NodeJS.ReadableStream;
     size_bytes: number;
   }>;
-}): Promise<string> => {
+}): Promise<{ bytes: Buffer; digest: string }> => {
   try {
     const expectedSize = Number(input.file.size_bytes);
     const expectedWidth = Number(input.file.width);
@@ -56,7 +56,8 @@ export const validate_documentation_asset_bytes = async (input: {
       (input.file.checksum_sha256 && digest !== input.file.checksum_sha256)
     )
       throw unavailable();
-    const metadata = await sharp(Buffer.concat(chunks), {
+    const bytes = Buffer.concat(chunks);
+    const metadata = await sharp(bytes, {
       limitInputPixels: 40_000_000,
     }).metadata();
     if (
@@ -71,8 +72,12 @@ export const validate_documentation_asset_bytes = async (input: {
       input.file.mime_type as DocumentationImageMimeType,
     );
     assert_documentation_image_dimensions(metadata.width, metadata.height);
-    return digest;
+    return { bytes, digest };
   } catch {
     throw unavailable();
   }
 };
+
+export const validate_documentation_asset_bytes = async (
+  input: Parameters<typeof read_validated_documentation_asset_bytes>[0],
+) => (await read_validated_documentation_asset_bytes(input)).digest;
