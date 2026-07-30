@@ -166,6 +166,185 @@ export const uploadDocumentationAsset = (
   );
 };
 
+export type DocumentationSnippet = {
+  id: string;
+  name: string;
+  status: "active" | "archived";
+  version: number;
+  updated_at?: string;
+  blocks: DocumentationBlock[];
+};
+
+export type DocumentationAsset = {
+  source: {
+    kind: "documentation_asset" | "capture_asset";
+    id: string;
+  };
+  name: string;
+  status: "active" | "archived";
+  version: number;
+  mime_type: "image/png" | "image/jpeg" | "image/webp";
+  width: number;
+  height: number;
+  source_project_version: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+};
+
+export type DocumentationArtifactPublication = {
+  published_artifact_id: string;
+  artifact_type: "guide" | "interactive_demo";
+  artifact_id: string;
+  edition_id: string;
+  project_version_id: string;
+  project_version_name: string;
+  project_version_slug: string;
+  publication_sequence: number;
+  revision_number: number;
+  title: string;
+  description: string | null;
+  published_at: string;
+};
+
+export const listDocumentationSnippets = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  status: "active" | "archived" | "all" = "all",
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/snippets?status=${status}`,
+    { credentials: "include" },
+  ).then((response) => json<{ snippets: DocumentationSnippet[] }>(response));
+
+export const getDocumentationSnippet = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  snippetId: string,
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/snippets/${encodeURIComponent(snippetId)}`,
+    { credentials: "include" },
+  ).then((response) => json<{ snippet: DocumentationSnippet }>(response));
+
+export const createDocumentationSnippet = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  name: string,
+) =>
+  fetch(`${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/snippets`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
+      "idempotency-key": crypto.randomUUID(),
+    },
+    body: JSON.stringify({ name }),
+  }).then((response) => json<{ snippet: DocumentationSnippet }>(response));
+
+export const saveDocumentationSnippet = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  snippetId: string,
+  expectedSnippetVersion: number,
+  blocks: DocumentationBlock[],
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/snippets/${encodeURIComponent(snippetId)}/content`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        expected_snippet_version: expectedSnippetVersion,
+        blocks,
+      }),
+    },
+  ).then((response) => json<{ snippet: DocumentationSnippet }>(response));
+
+export const transitionDocumentationSnippet = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  snippetId: string,
+  expectedVersion: number,
+  transition: "archive" | "restore",
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/snippets/${encodeURIComponent(snippetId)}/lifecycle`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        expected_version: expectedVersion,
+        transition,
+      }),
+    },
+  ).then((response) => json<{ snippet: DocumentationSnippet }>(response));
+
+export const listDocumentationAssets = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  options: {
+    source?: "documentation" | "capture" | "all";
+    status?: "active" | "archived" | "all";
+    includeArchivedVersions?: boolean;
+    includeInUse?: boolean;
+  } = {},
+) => {
+  const query = new URLSearchParams({
+    source: options.source ?? "all",
+    status: options.status ?? "all",
+    include_archived_versions: String(options.includeArchivedVersions ?? false),
+    include_in_use: String(options.includeInUse ?? true),
+  });
+  return fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/assets?${query}`,
+    { credentials: "include" },
+  ).then((response) => json<{ assets: DocumentationAsset[] }>(response));
+};
+
+export const transitionDocumentationAsset = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  assetId: string,
+  expectedVersion: number,
+  transition: "archive" | "restore",
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/assets/${encodeURIComponent(assetId)}/lifecycle`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        expected_version: expectedVersion,
+        transition,
+      }),
+    },
+  ).then((response) => json<{ asset: DocumentationAsset }>(response));
+
+export const listDocumentationArtifactPublications = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  artifactType: "guide" | "interactive_demo",
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/artifact-publications?artifact_type=${artifactType}`,
+    { credentials: "include" },
+  ).then((response) =>
+    json<{ publications: DocumentationArtifactPublication[] }>(response),
+  );
+
 export type DocumentationDraftPreview = {
   site: { id: string; name: string; description: string | null };
   working_draft: {
@@ -206,6 +385,12 @@ export type DocumentationDraftPreview = {
     method: string;
     path: string;
     summary: string | null;
+  }>;
+  snippets?: Array<{
+    id: string;
+    name: string;
+    status: "active" | "archived";
+    blocks: DocumentationBlock[];
   }>;
 };
 
@@ -339,6 +524,12 @@ export type PublicDocumentationSnapshot = {
     method: string;
     path: string;
     summary: string | null;
+  }>;
+  snippets?: Array<{
+    id: string;
+    name: string;
+    status: "active" | "archived";
+    blocks: DocumentationBlock[];
   }>;
   page: {
     id: string;

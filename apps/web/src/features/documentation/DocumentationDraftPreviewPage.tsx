@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { getDocumentationPreview, type DocumentationDraftPreview } from "../../lib/documentationApi";
+import {
+  getDocumentationPreview,
+  type DocumentationDraftPreview,
+} from "../../lib/documentationApi";
+import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
 
 type Props = {
   projectId: string;
@@ -14,7 +18,9 @@ export const DocumentationDraftPreviewPage = ({
   siteId,
   loadPreview = getDocumentationPreview,
 }: Props) => {
-  const [preview, setPreview] = useState<DocumentationDraftPreview | null>(null);
+  const [preview, setPreview] = useState<DocumentationDraftPreview | null>(
+    null,
+  );
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let active = true;
@@ -42,30 +48,21 @@ export const DocumentationDraftPreviewPage = ({
       {preview.pages.map((page) => (
         <article key={page.id}>
           <h2>{page.title}</h2>
-          {page.blocks.map((block) => {
-            if (block.kind === "paragraph") return <p key={block.id}>{block.text}</p>;
-            if (block.kind === "heading") {
-              const Heading = `h${block.level}` as "h2" | "h3" | "h4";
-              return <Heading key={block.id}>{block.text}</Heading>;
-            }
-            if (block.kind === "code")
-              return <pre key={block.id}><code>{block.code}</code></pre>;
-            if (block.kind === "link") return <p key={block.id}>{block.label}</p>;
-            if (
-              block.kind === "ordered_list" ||
-              block.kind === "unordered_list"
-            )
-              return (
-                <ul key={block.id}>
-                  {block.items.map((item) => <li key={item.id}>{item.text}</li>)}
-                </ul>
+          <DocumentationBlockRenderer
+            blocks={page.blocks}
+            snippets={preview.snippets ?? []}
+            pageUrl={(pageId, targetBlockId) => {
+              const target = preview.pages.find(
+                (candidate) => candidate.id === pageId,
               );
-            if (block.kind === "api_reference")
-              return <p key={block.id}>API operation: {block.operation_key}</p>;
-            if (block.kind === "image")
-              return <p key={block.id}>{block.caption ?? block.alt_text}</p>;
-            return <hr key={block.id} />;
-          })}
+              return target
+                ? `${target.canonical_path}${targetBlockId ? `#documentation-block-${targetBlockId}` : ""}`
+                : undefined;
+            }}
+            assetUrl={(source) =>
+              `/api/v1/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation-sites/${encodeURIComponent(siteId)}/assets/${source.kind === "capture_asset" ? "capture/" : ""}${encodeURIComponent(source.id)}/file`
+            }
+          />
         </article>
       ))}
     </main>

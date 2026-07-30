@@ -125,7 +125,9 @@ describe("DocumentationPageEditor", () => {
     );
     const text = await screen.findByLabelText("Paragraph text");
     fireEvent.change(text, { target: { value: "Unsaved local copy" } });
-    expect(await screen.findByText("Conflict — local work is preserved")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Conflict — local work is preserved"),
+    ).toBeInTheDocument();
     expect(text).toHaveValue("Unsaved local copy");
   });
 
@@ -179,7 +181,9 @@ describe("DocumentationPageEditor", () => {
     );
     await waitFor(() => expect(uploadAsset).toHaveBeenCalled());
     expect(
-      await screen.findByText("Image added. Save the Page to retain the reference."),
+      await screen.findByText(
+        "Image added. Save the Page to retain the reference.",
+      ),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save Page" }));
     await waitFor(() =>
@@ -192,7 +196,7 @@ describe("DocumentationPageEditor", () => {
           blocks: [
             expect.objectContaining({
               kind: "image",
-              asset_id: "asset",
+              source: { kind: "documentation_asset", id: "asset" },
               alt_text: "Installer dialog",
             }),
           ],
@@ -243,11 +247,7 @@ describe("DocumentationPageEditor", () => {
     addTextBlock("paragraph", "Introduction", "Add paragraph block");
     addTextBlock("heading", "Install", "Add heading block");
     addTextBlock("ordered_list", "One\nTwo", "Add ordered list block");
-    addTextBlock(
-      "unordered_list",
-      "Alpha\nBeta",
-      "Add unordered list block",
-    );
+    addTextBlock("unordered_list", "Alpha\nBeta", "Add unordered list block");
     fireEvent.change(kind, { target: { value: "code" } });
     fireEvent.change(screen.getByLabelText("Code"), {
       target: { value: "pnpm install" },
@@ -280,9 +280,9 @@ describe("DocumentationPageEditor", () => {
 
     await waitFor(() => expect(savePage).toHaveBeenCalled());
     expect(
-      savePage.mock.calls.at(-1)?.[4].blocks.map(
-        (block: { kind: string }) => block.kind,
-      ),
+      savePage.mock.calls
+        .at(-1)?.[4]
+        .blocks.map((block: { kind: string }) => block.kind),
     ).toEqual([
       "paragraph",
       "heading",
@@ -331,9 +331,7 @@ describe("DocumentationPageEditor", () => {
     expect(
       screen.getByText("The former path will become a permanent alias."),
     ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Save Page details" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Save Page details" }));
     await waitFor(() =>
       expect(updatePage).toHaveBeenCalledWith(
         "project",
@@ -348,9 +346,7 @@ describe("DocumentationPageEditor", () => {
       ),
     );
     expect(
-      await screen.findByText(
-        "Page moved. install is now a permanent alias.",
-      ),
+      await screen.findByText("Page moved. install is now a permanent alias."),
     ).toBeInTheDocument();
   });
 });

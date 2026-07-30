@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DocumentationCanonicalRedirect,
   getPublicDocumentationPage,
+  listDocumentationAssets,
+  saveDocumentationSnippet,
 } from "./documentationApi";
 
 const json = (body: unknown, status = 200, headers?: HeadersInit) =>
@@ -55,7 +57,8 @@ describe("Documentation public API adapter", () => {
           aliases: [
             { former_path: "old-install", documentation_page_id: "page" },
           ],
-        })),
+        }),
+      ),
     );
     await expect(
       getPublicDocumentationPage("product-docs", undefined, "old-install"),
@@ -103,5 +106,51 @@ describe("Documentation public API adapter", () => {
         canonical_path: "operations/get-widgets",
       },
     });
+  });
+});
+
+describe("Documentation authoring API adapter", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("requests typed Asset sources without exposing storage coordinates", async () => {
+    const fetch = vi.fn(async () => json({ assets: [] }));
+    vi.stubGlobal("fetch", fetch);
+    await listDocumentationAssets("project", "main", "site", {
+      source: "capture",
+      status: "active",
+      includeArchivedVersions: true,
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "/documentation-sites/site/assets?source=capture&status=active&include_archived_versions=true",
+      ),
+      { credentials: "include" },
+    );
+  });
+
+  it("sends the independent Snippet Row Version with its replacement", async () => {
+    const fetch = vi.fn(async () =>
+      json({
+        snippet: {
+          id: "snippet",
+          name: "Note",
+          status: "active",
+          version: 3,
+          blocks: [],
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    await saveDocumentationSnippet("project", "main", "site", "snippet", 2, []);
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/snippets/snippet/content"),
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({
+          expected_snippet_version: 2,
+          blocks: [],
+        }),
+      }),
+    );
   });
 });

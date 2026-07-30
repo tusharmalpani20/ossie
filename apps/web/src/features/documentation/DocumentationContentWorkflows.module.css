@@ -1,0 +1,58 @@
+.content {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.code {
+  overflow: auto;
+  max-width: 100%;
+}
+
+.callout {
+  border-inline-start: 0.25rem solid currentColor;
+  padding: 0.75rem 1rem;
+}
+
+.tableScroller {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table th,
+.table td {
+  border: 1px solid currentColor;
+  padding: 0.5rem;
+  text-align: start;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.publication {
+  border: 1px solid currentColor;
+  padding: 1rem;
+}
+
+.assetGrid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content *,
+  .content *::before,
+  .content *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -6,12 +6,16 @@ import { ulid } from "ulid";
 import type { DocumentationBlock } from "@repo/types";
 import {
   getDocumentationPage,
+  listDocumentationArtifactPublications,
+  listDocumentationAssets,
+  listDocumentationSnippets,
   saveDocumentationPage,
   updateDocumentationPage,
   uploadDocumentationAsset,
   type DocumentationPage,
 } from "../../lib/documentationApi";
 import { DocumentationBlockEditor } from "./DocumentationBlockEditor";
+import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
 import { DocumentationCommentsPanel } from "./DocumentationCommentsPanel";
 
 type Props = {
@@ -50,6 +54,22 @@ export const DocumentationPageEditor = ({
   const [metadataTitle, setMetadataTitle] = useState("");
   const [metadataPath, setMetadataPath] = useState("");
   const [metadataStatus, setMetadataStatus] = useState("");
+  const [snippetOptions, setSnippetOptions] = useState<
+    Array<{ id: string; label: string }>
+  >([]);
+  const [assetOptions, setAssetOptions] = useState<
+    Array<{
+      id: string;
+      kind: "documentation_asset" | "capture_asset";
+      label: string;
+    }>
+  >([]);
+  const [guidePublicationOptions, setGuidePublicationOptions] = useState<
+    Array<{ id: string; label: string }>
+  >([]);
+  const [demoPublicationOptions, setDemoPublicationOptions] = useState<
+    Array<{ id: string; label: string }>
+  >([]);
 
   useEffect(() => {
     let active = true;
@@ -70,17 +90,71 @@ export const DocumentationPageEditor = ({
     };
   }, [loadPage, pageId, projectId, siteId, versionSlug]);
 
+  useEffect(() => {
+    if (!canWrite) return;
+    let active = true;
+    Promise.all([
+      listDocumentationSnippets(projectId, versionSlug, siteId, "active"),
+      listDocumentationAssets(projectId, versionSlug, siteId, {
+        status: "active",
+      }),
+      listDocumentationArtifactPublications(
+        projectId,
+        versionSlug,
+        siteId,
+        "guide",
+      ),
+      listDocumentationArtifactPublications(
+        projectId,
+        versionSlug,
+        siteId,
+        "interactive_demo",
+      ),
+    ])
+      .then(([snippets, assets, guides, demos]) => {
+        if (!active) return;
+        setSnippetOptions(
+          snippets.snippets.map((snippet) => ({
+            id: snippet.id,
+            label: snippet.name,
+          })),
+        );
+        setAssetOptions(
+          assets.assets.map((asset) => ({
+            ...asset.source,
+            label:
+              asset.source.kind === "capture_asset"
+                ? `${asset.name} · Capture · ${asset.source_project_version?.name ?? "Unknown version"}`
+                : `${asset.name} · Documentation`,
+          })),
+        );
+        setGuidePublicationOptions(
+          guides.publications.map((publication) => ({
+            id: publication.published_artifact_id,
+            label: `${publication.title} · ${publication.project_version_name} · r${publication.revision_number} · p${publication.publication_sequence}`,
+          })),
+        );
+        setDemoPublicationOptions(
+          demos.publications.map((publication) => ({
+            id: publication.published_artifact_id,
+            label: `${publication.title} · ${publication.project_version_name} · r${publication.revision_number} · p${publication.publication_sequence}`,
+          })),
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [canWrite, projectId, siteId, versionSlug]);
+
   const save = useCallback(async () => {
     if (!page) return;
     setSaveState("saving");
     try {
-      const result = await savePage(
-        projectId,
-        versionSlug,
-        siteId,
-        pageId,
-        { expected_page_version: page.version, blocks },
-      );
+      const result = await savePage(projectId, versionSlug, siteId, pageId, {
+        expected_page_version: page.version,
+        blocks,
+      });
       setPage(result.page);
       setBlocks(result.page.blocks);
       setSaveState("saved");
@@ -113,10 +187,9 @@ export const DocumentationPageEditor = ({
         {
           id: ulid(),
           kind: "image",
-          position:
-            Math.max(0, ...current.map((block) => block.position)) + 1,
+          position: Math.max(0, ...current.map((block) => block.position)) + 1,
           expected_version: null,
-          asset_id: asset.id,
+          source: { kind: "documentation_asset", id: asset.id },
           alt_text: imageAlt.trim(),
           caption: null,
         },
@@ -134,17 +207,11 @@ export const DocumentationPageEditor = ({
     if (!page || !metadataTitle.trim() || !metadataPath.trim()) return;
     setMetadataStatus("Saving Page details…");
     try {
-      const result = await updatePage(
-        projectId,
-        versionSlug,
-        siteId,
-        pageId,
-        {
-          expected_version: page.version,
-          title: metadataTitle.trim(),
-          canonical_path: metadataPath.trim(),
-        },
-      );
+      const result = await updatePage(projectId, versionSlug, siteId, pageId, {
+        expected_version: page.version,
+        title: metadataTitle.trim(),
+        canonical_path: metadataPath.trim(),
+      });
       setPage(result.page);
       setMetadataTitle(result.page.title);
       setMetadataPath(result.page.canonical_path);
@@ -180,19 +247,21 @@ export const DocumentationPageEditor = ({
           {metadataPath !== page.canonical_path ? (
             <p>The former path will become a permanent alias.</p>
           ) : null}
-          <Button onClick={() => void saveMetadata()}>
-            Save Page details
-          </Button>
+          <Button onClick={() => void saveMetadata()}>Save Page details</Button>
           <p role="status">{metadataStatus}</p>
         </section>
       ) : null}
       {canWrite ? (
         <DocumentationBlockEditor
+          assetOptions={assetOptions}
           blocks={blocks}
+          demoPublicationOptions={demoPublicationOptions}
+          guidePublicationOptions={guidePublicationOptions}
           onChange={(nextBlocks) => {
             setBlocks(nextBlocks);
             setSaveState("unsaved");
           }}
+          snippetOptions={snippetOptions}
         />
       ) : null}
       {canWrite ? (
@@ -202,7 +271,7 @@ export const DocumentationPageEditor = ({
             Documentation image
             <input
               type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
+              accept="image/png,image/jpeg,image/webp"
               onChange={(event) =>
                 setImageFile(event.target.files?.[0] ?? null)
               }
@@ -226,38 +295,7 @@ export const DocumentationPageEditor = ({
       ) : null}
       {!canWrite ? (
         <section aria-label="Saved Page content">
-          {blocks.map((block) => {
-            if (block.kind === "paragraph") return <p key={block.id}>{block.text}</p>;
-            if (block.kind === "heading") {
-              const Heading = `h${block.level}` as "h2" | "h3" | "h4";
-              return <Heading key={block.id}>{block.text}</Heading>;
-            }
-            if (
-              block.kind === "ordered_list" ||
-              block.kind === "unordered_list"
-            ) {
-              const List = block.kind === "ordered_list" ? "ol" : "ul";
-              return (
-                <List key={block.id}>
-                  {block.items.map((item) => <li key={item.id}>{item.text}</li>)}
-                </List>
-              );
-            }
-            if (block.kind === "code")
-              return <pre key={block.id}><code>{block.code}</code></pre>;
-            if (block.kind === "link")
-              return block.url ? (
-                <p key={block.id}><a href={block.url}>{block.label}</a></p>
-              ) : (
-                <p key={block.id}>{block.label}</p>
-              );
-            if (block.kind === "divider") return <hr key={block.id} />;
-            if (block.kind === "api_reference")
-              return <p key={block.id}>API operation: {block.operation_key}</p>;
-            if (block.kind === "image")
-              return <p key={block.id}>{block.caption ?? block.alt_text}</p>;
-            return null;
-          })}
+          <DocumentationBlockRenderer blocks={blocks} />
         </section>
       ) : null}
       <p role="status">

@@ -6,7 +6,14 @@ import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
 import type { DocumentationBlock } from "@repo/types";
 
-type NewBlockKind = Exclude<DocumentationBlock["kind"], "image">;
+type NewBlockKind = DocumentationBlock["kind"];
+
+type ReferenceOption = { id: string; label: string };
+type AssetOption = {
+  id: string;
+  kind: "documentation_asset" | "capture_asset";
+  label: string;
+};
 
 const positioned = (blocks: DocumentationBlock[]) =>
   blocks.map((block, index) => ({ ...block, position: index + 1 }));
@@ -14,9 +21,17 @@ const positioned = (blocks: DocumentationBlock[]) =>
 export const DocumentationBlockEditor = ({
   blocks,
   onChange,
+  snippetOptions = [],
+  assetOptions = [],
+  guidePublicationOptions = [],
+  demoPublicationOptions = [],
 }: {
   blocks: DocumentationBlock[];
   onChange: (blocks: DocumentationBlock[]) => void;
+  snippetOptions?: ReferenceOption[];
+  assetOptions?: AssetOption[];
+  guidePublicationOptions?: ReferenceOption[];
+  demoPublicationOptions?: ReferenceOption[];
 }) => {
   const [kind, setKind] = useState<NewBlockKind>("paragraph");
   const [primary, setPrimary] = useState("");
@@ -24,7 +39,9 @@ export const DocumentationBlockEditor = ({
   const [linkTarget, setLinkTarget] = useState<"url" | "page">("url");
 
   const replace = (id: string, block: DocumentationBlock) =>
-    onChange(blocks.map((candidate) => (candidate.id === id ? block : candidate)));
+    onChange(
+      blocks.map((candidate) => (candidate.id === id ? block : candidate)),
+    );
 
   const add = () => {
     const base = {
@@ -85,6 +102,92 @@ export const DocumentationBlockEditor = ({
         openapi_source_id: primary.trim(),
         operation_key: secondary.trim() || null,
       };
+    if (kind === "quote" && primary.trim())
+      block = {
+        ...base,
+        kind,
+        text: primary,
+        attribution: secondary.trim() || null,
+      };
+    if (kind === "code_example")
+      block = {
+        ...base,
+        kind,
+        code: primary,
+        language: secondary.trim() || null,
+        title: null,
+      };
+    if (kind === "callout")
+      block = {
+        ...base,
+        kind,
+        tone: "info",
+        title: secondary.trim() || null,
+        text: primary,
+      };
+    if (kind === "tabs") {
+      const items = primary
+        .split("\n")
+        .map((line) => line.split("|", 2).map((part) => part.trim()))
+        .filter(([label, body]) => label && body)
+        .map(([label, body], index) => ({
+          id: ulid(),
+          label: label!,
+          body: body!,
+          position: index + 1,
+          expected_version: null,
+        }));
+      if (items.length >= 2) block = { ...base, kind, items };
+    }
+    if (kind === "table") {
+      const lines = primary
+        .split("\n")
+        .map((line) => line.split("\t").map((cell) => cell.trim()))
+        .filter((cells) => cells.some(Boolean));
+      if (
+        lines.length &&
+        lines.every((cells) => cells.length === lines[0]!.length)
+      )
+        block = {
+          ...base,
+          kind,
+          caption: secondary.trim() || null,
+          rows: lines.map((cells, rowIndex) => ({
+            id: ulid(),
+            position: rowIndex + 1,
+            expected_version: null,
+            cells: cells.map((text, columnIndex) => ({
+              id: ulid(),
+              column_position: columnIndex + 1,
+              expected_version: null,
+              is_header: rowIndex === 0,
+              text,
+            })),
+          })),
+        };
+    }
+    if (kind === "snippet_reference" && primary)
+      block = { ...base, kind, snippet_id: primary };
+    if (
+      (kind === "guide_publication" ||
+        kind === "interactive_demo_publication") &&
+      primary
+    )
+      block = { ...base, kind, published_artifact_id: primary };
+    if (kind === "image" && primary && secondary.trim()) {
+      const [sourceKind, id] = primary.split(":", 2);
+      if (
+        id &&
+        (sourceKind === "documentation_asset" || sourceKind === "capture_asset")
+      )
+        block = {
+          ...base,
+          kind,
+          source: { kind: sourceKind, id },
+          alt_text: secondary.trim(),
+          caption: null,
+        };
+    }
     if (!block) return;
     onChange([...blocks, block]);
     setPrimary("");
@@ -149,8 +252,7 @@ export const DocumentationBlockEditor = ({
               </select>
             </>
           ) : null}
-          {block.kind === "ordered_list" ||
-          block.kind === "unordered_list" ? (
+          {block.kind === "ordered_list" || block.kind === "unordered_list" ? (
             <>
               <Label htmlFor={`block-${block.id}-items`}>
                 List items, one per line
@@ -262,10 +364,7 @@ export const DocumentationBlockEditor = ({
               {block.caption ? ` — ${block.caption}` : ""}
             </p>
           ) : null}
-          <Button
-            disabled={index === 0}
-            onClick={() => move(index, -1)}
-          >
+          <Button disabled={index === 0} onClick={() => move(index, -1)}>
             Move {block.kind.replaceAll("_", " ")} block up
           </Button>
           <Button
@@ -299,6 +398,17 @@ export const DocumentationBlockEditor = ({
           <option value="link">Link</option>
           <option value="divider">Divider</option>
           <option value="api_reference">API reference</option>
+          <option value="quote">Quote</option>
+          <option value="table">Table</option>
+          <option value="code_example">Code example</option>
+          <option value="callout">Callout</option>
+          <option value="tabs">Tabs</option>
+          <option value="snippet_reference">Snippet</option>
+          <option value="image">Image</option>
+          <option value="guide_publication">Guide publication</option>
+          <option value="interactive_demo_publication">
+            Interactive Demo publication
+          </option>
         </select>
         {kind === "link" ? (
           <>
@@ -317,18 +427,81 @@ export const DocumentationBlockEditor = ({
             </select>
           </>
         ) : null}
-        {kind !== "divider" ? (
+        {kind === "snippet_reference" ? (
+          <>
+            <Label htmlFor="new-documentation-block-reference">
+              Reusable Snippet
+            </Label>
+            <select
+              id="new-documentation-block-reference"
+              onChange={(event) => setPrimary(event.target.value)}
+              value={primary}
+            >
+              <option value="">Select a Snippet</option>
+              {snippetOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : kind === "image" ? (
+          <>
+            <Label htmlFor="new-documentation-block-reference">Asset</Label>
+            <select
+              id="new-documentation-block-reference"
+              onChange={(event) => setPrimary(event.target.value)}
+              value={primary}
+            >
+              <option value="">Select an Asset</option>
+              {assetOptions.map((option) => (
+                <option
+                  key={`${option.kind}:${option.id}`}
+                  value={`${option.kind}:${option.id}`}
+                >
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : kind === "guide_publication" ||
+          kind === "interactive_demo_publication" ? (
+          <>
+            <Label htmlFor="new-documentation-block-reference">
+              Exact Publication
+            </Label>
+            <select
+              id="new-documentation-block-reference"
+              onChange={(event) => setPrimary(event.target.value)}
+              value={primary}
+            >
+              <option value="">Select an exact Publication</option>
+              {(kind === "guide_publication"
+                ? guidePublicationOptions
+                : demoPublicationOptions
+              ).map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : kind !== "divider" ? (
           <>
             <Label htmlFor="new-documentation-block-primary">
               {kind === "link"
                 ? "Link label"
                 : kind === "api_reference"
                   ? "OpenAPI Source ID"
-                  : kind === "ordered_list" || kind === "unordered_list"
-                    ? "List items, one per line"
-                    : kind === "code"
-                      ? "Code"
-                      : "Block text"}
+                  : kind === "tabs"
+                    ? "Tabs, one Label|Body pair per line"
+                    : kind === "table"
+                      ? "Table rows, with tab-separated cells"
+                      : kind === "ordered_list" || kind === "unordered_list"
+                        ? "List items, one per line"
+                        : kind === "code"
+                          ? "Code"
+                          : "Block text"}
             </Label>
             <Textarea
               id="new-documentation-block-primary"
@@ -337,16 +510,31 @@ export const DocumentationBlockEditor = ({
             />
           </>
         ) : null}
-        {kind === "code" || kind === "link" || kind === "api_reference" ? (
+        {kind === "code" ||
+        kind === "code_example" ||
+        kind === "link" ||
+        kind === "api_reference" ||
+        kind === "quote" ||
+        kind === "callout" ||
+        kind === "table" ||
+        kind === "image" ? (
           <>
             <Label htmlFor="new-documentation-block-secondary">
-              {kind === "code"
+              {kind === "code" || kind === "code_example"
                 ? "Code language"
-                : kind === "link"
-                  ? linkTarget === "url"
-                    ? "Link URL"
-                    : "Target Page ID"
-                  : "Operation key (optional)"}
+                : kind === "image"
+                  ? "Alternative text"
+                  : kind === "quote"
+                    ? "Attribution (optional)"
+                    : kind === "callout"
+                      ? "Callout title (optional)"
+                      : kind === "table"
+                        ? "Table caption (optional)"
+                        : kind === "link"
+                          ? linkTarget === "url"
+                            ? "Link URL"
+                            : "Target Page ID"
+                          : "Operation key (optional)"}
             </Label>
             <Input
               id="new-documentation-block-secondary"

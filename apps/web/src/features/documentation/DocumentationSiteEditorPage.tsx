@@ -6,7 +6,9 @@ import {
   type DocumentationDraftPreview,
 } from "../../lib/documentationApi";
 import { DocumentationOpenApiPanel } from "./DocumentationOpenApiPanel";
+import { DocumentationAssetLibrary } from "./DocumentationAssetLibrary";
 import { DocumentationPublishingPanel } from "./DocumentationPublishingPanel";
+import { DocumentationSnippetPanel } from "./DocumentationSnippetPanel";
 import { DocumentationStructurePanel } from "./DocumentationStructurePanel";
 
 type Props = {
@@ -28,7 +30,9 @@ export const DocumentationSiteEditorPage = ({
   loadPreview = getDocumentationPreview,
   createRevision = createDocumentationRevision,
 }: Props) => {
-  const [preview, setPreview] = useState<DocumentationDraftPreview | null>(null);
+  const [preview, setPreview] = useState<DocumentationDraftPreview | null>(
+    null,
+  );
   const [status, setStatus] = useState("Loading saved draft…");
   const [checkpointCount, setCheckpointCount] = useState(0);
 
@@ -61,7 +65,9 @@ export const DocumentationSiteEditorPage = ({
       setCheckpointCount((current) => current + 1);
       setStatus(`Revision ${revision.revision_number} is ready.`);
     } catch {
-      setStatus("Revision could not be created. The live publication was not changed.");
+      setStatus(
+        "Revision could not be created. The live publication was not changed.",
+      );
     }
   };
 
@@ -96,6 +102,18 @@ export const DocumentationSiteEditorPage = ({
         siteId={siteId}
         canWrite={canWrite}
         preview={preview}
+      />
+      <DocumentationSnippetPanel
+        canWrite={canWrite}
+        projectId={projectId}
+        siteId={siteId}
+        versionSlug={versionSlug}
+      />
+      <DocumentationAssetLibrary
+        canWrite={canWrite}
+        projectId={projectId}
+        siteId={siteId}
+        versionSlug={versionSlug}
       />
       <section aria-labelledby="checkpoint-heading">
         <h2 id="checkpoint-heading">Publish</h2>

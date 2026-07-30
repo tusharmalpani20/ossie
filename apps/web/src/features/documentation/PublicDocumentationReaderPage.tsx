@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import type { DocumentationBlock } from "@repo/types";
 import {
   DocumentationCanonicalRedirect,
   DocumentationApiError,
@@ -8,6 +7,7 @@ import {
   searchPublicDocumentation,
   type PublicDocumentationSnapshot,
 } from "../../lib/documentationApi";
+import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
 
 type SearchResult = Awaited<
   ReturnType<typeof searchPublicDocumentation>
@@ -20,87 +20,6 @@ type Props = {
   loadPage?: typeof getPublicDocumentationPage;
   search?: typeof searchPublicDocumentation;
   createViewerSession?: typeof createPublicDocumentationViewerSession;
-};
-
-const Block = ({
-  block,
-  snapshot,
-  pageBase,
-  operationBase,
-  assetBase,
-}: {
-  block: DocumentationBlock;
-  snapshot: PublicDocumentationSnapshot;
-  pageBase: string;
-  operationBase: string;
-  assetBase: string;
-}) => {
-  switch (block.kind) {
-    case "paragraph":
-      return <p>{block.text}</p>;
-    case "heading": {
-      const Heading = `h${block.level}` as "h2" | "h3" | "h4";
-      return <Heading>{block.text}</Heading>;
-    }
-    case "ordered_list":
-    case "unordered_list": {
-      const List = block.kind === "ordered_list" ? "ol" : "ul";
-      return (
-        <List>
-          {block.items.map((item) => (
-            <li key={item.id}>{item.text}</li>
-          ))}
-        </List>
-      );
-    }
-    case "code":
-      return (
-        <pre>
-          <code data-language={block.language ?? undefined}>{block.code}</code>
-        </pre>
-      );
-    case "link": {
-      const page = snapshot.pages.find(
-        (candidate) => candidate.id === block.page_id,
-      );
-      return (
-        <p>
-          <a
-            href={page ? `${pageBase}/${page.canonical_path}` : block.url}
-            rel={block.url ? "noopener noreferrer" : undefined}
-          >
-            {block.label}
-          </a>
-        </p>
-      );
-    }
-    case "api_reference": {
-      const operation = snapshot.openapi_operations.find(
-        (candidate) => candidate.destination_key === block.operation_key,
-      );
-      return operation ? (
-        <aside>
-          <a href={`${operationBase}/${operation.destination_key}`}>
-            <strong>{operation.method.toUpperCase()}</strong>{" "}
-            {operation.summary ?? operation.path}
-          </a>
-          <code>{operation.path}</code>
-        </aside>
-      ) : null;
-    }
-    case "divider":
-      return <hr />;
-    case "image":
-      return (
-        <figure>
-          <img
-            src={`${assetBase}/${encodeURIComponent(block.asset_id)}/file`}
-            alt={block.alt_text}
-          />
-          {block.caption ? <figcaption>{block.caption}</figcaption> : null}
-        </figure>
-      );
-  }
 };
 
 export const PublicDocumentationReaderPage = ({
@@ -300,16 +219,36 @@ export const PublicDocumentationReaderPage = ({
             <a href={pageBase}>Documentation</a>
           </p>
           <h1>{snapshot.page.title}</h1>
-          {snapshot.page.blocks.map((block) => (
-            <Block
-              key={block.id}
-              block={block}
-              snapshot={snapshot}
-              pageBase={pageBase}
-              operationBase={operationBase}
-              assetBase={assetBase}
-            />
-          ))}
+          <DocumentationBlockRenderer
+            assetUrl={(source) =>
+              `${assetBase}/${source.kind === "capture_asset" ? "capture/" : ""}${encodeURIComponent(source.id)}/file`
+            }
+            blocks={snapshot.page.blocks}
+            operationLabel={(operationKey) => {
+              const operation = snapshot.openapi_operations.find(
+                (candidate) => candidate.destination_key === operationKey,
+              );
+              return operation
+                ? {
+                    method: operation.method,
+                    label: operation.summary ?? operation.path,
+                    path: operation.path,
+                  }
+                : undefined;
+            }}
+            operationUrl={(operationKey) =>
+              `${operationBase}/${encodeURIComponent(operationKey)}`
+            }
+            pageUrl={(pageId, targetBlockId) => {
+              const page = snapshot.pages.find(
+                (candidate) => candidate.id === pageId,
+              );
+              return page
+                ? `${pageBase}/${page.canonical_path}${targetBlockId ? `#documentation-block-${targetBlockId}` : ""}`
+                : undefined;
+            }}
+            snippets={snapshot.snippets ?? []}
+          />
         </main>
       </div>
     </>
