@@ -2,12 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import {
-  afterEach,
-  describe,
-  expect,
-  it,
-} from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   create_documentation_site_package,
   stream_documentation_site_package,
@@ -198,7 +193,9 @@ describe("Documentation Site package", () => {
     roots.push(root);
     const filePath = path.join(root, "package.zip");
     await writeFile(filePath, corrupted);
-    await expect(inspect_documentation_site_package(filePath)).rejects.toThrow();
+    await expect(
+      inspect_documentation_site_package(filePath),
+    ).rejects.toThrow();
   });
 
   it("parses manifest-owned markdown-folder Pages into the portable graph", async () => {
@@ -332,5 +329,61 @@ describe("Documentation Site package", () => {
         },
       ],
     });
+  });
+
+  it("rejects descriptor roles that disagree with the indexed package graph", async () => {
+    const result = await create_documentation_site_package({
+      source: {
+        kind: "working_draft",
+        project_version_label: "v1",
+        revision_number: null,
+        publication_sequence: null,
+      },
+      site,
+      entries: [
+        {
+          path: "pages/page-0001.json",
+          role: "page_typed",
+          mime_type: "application/json",
+          bytes: page,
+        },
+        {
+          path: "pages/page-0001.md",
+          role: "page_markdown",
+          mime_type: "text/markdown",
+          bytes: "# Start\n\nWelcome\n",
+        },
+      ],
+    });
+    const JSZip = (await import("jszip")).default;
+    const zip = await JSZip.loadAsync(result.bytes);
+    const entries = result.manifest.entries.map((entry) =>
+      entry.path === "pages/page-0001.md"
+        ? { ...entry, role: "asset" as const }
+        : entry,
+    );
+    const manifest = {
+      ...result.manifest,
+      content_fingerprint: create_documentation_package_fingerprint({
+        site,
+        entries,
+      }),
+      entries,
+    };
+    zip.file(
+      "ossie-docs.json",
+      canonicalize_documentation_package_json(manifest),
+    );
+    const root = await mkdtemp(path.join(tmpdir(), "ossie-package-"));
+    roots.push(root);
+    const filePath = path.join(root, "package.zip");
+    await writeFile(
+      filePath,
+      await zip.generateAsync({ type: "nodebuffer", platform: "UNIX" }),
+    );
+
+    await expect(inspect_documentation_site_package(filePath)).rejects.toThrow(
+      /descriptor/iu,
+    );
   });
 });

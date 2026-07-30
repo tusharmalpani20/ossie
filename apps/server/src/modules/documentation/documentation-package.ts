@@ -163,10 +163,7 @@ export const create_documentation_site_package = async (
 };
 
 export const inspect_documentation_site_package = async (filePath: string) => {
-  const entries = new Map<
-    string,
-    { sha256: string; size_bytes: number }
-  >();
+  const entries = new Map<string, { sha256: string; size_bytes: number }>();
   let manifestBytes: Buffer | null = null;
   let siteBytes: Buffer | null = null;
   let hasReadme = false;
@@ -190,6 +187,59 @@ export const inspect_documentation_site_package = async (filePath: string) => {
   const site = DocumentationPortableSiteV1Schema.parse(
     parse_duplicate_safe_json(siteBytes),
   );
+  const expectedDescriptors = new Map<
+    string,
+    {
+      role: DocumentationPackageManifestV1["entries"][number]["role"];
+      mime_type: string;
+    }
+  >([
+    ["README.md", { role: "readme", mime_type: "text/markdown" }],
+    ["site.json", { role: "site", mime_type: "application/json" }],
+  ]);
+  for (const page of site.pages) {
+    expectedDescriptors.set(page.markdown_path, {
+      role: "page_markdown",
+      mime_type: "text/markdown",
+    });
+    if (page.typed_path)
+      expectedDescriptors.set(page.typed_path, {
+        role: "page_typed",
+        mime_type: "application/json",
+      });
+  }
+  for (const snippet of site.snippets)
+    expectedDescriptors.set(snippet.path, {
+      role: "snippet",
+      mime_type: "application/json",
+    });
+  for (const asset of site.assets)
+    expectedDescriptors.set(asset.path, {
+      role: "asset",
+      mime_type: asset.mime_type,
+    });
+  if (site.openapi)
+    expectedDescriptors.set(site.openapi.path, {
+      role: "openapi",
+      mime_type:
+        site.openapi.original_format === "json"
+          ? "application/json"
+          : "application/yaml",
+    });
+  if (
+    expectedDescriptors.size !== manifest.entries.length ||
+    manifest.entries.some((descriptor) => {
+      const expected = expectedDescriptors.get(descriptor.path);
+      return (
+        !expected ||
+        descriptor.role !== expected.role ||
+        descriptor.mime_type !== expected.mime_type
+      );
+    })
+  )
+    throw new Error(
+      "Documentation package descriptor disagrees with site.json",
+    );
   const blockingIssues: Array<{
     severity: "blocking";
     code: "relationship_unresolved";
@@ -245,8 +295,9 @@ export const inspect_documentation_site_package = async (filePath: string) => {
   if (recomputedFingerprint !== manifest.content_fingerprint)
     throw new Error("Documentation package fingerprint mismatch");
 
-  const pages: Array<ReturnType<typeof DocumentationPortablePageV1Schema.parse>> =
-    [];
+  const pages: Array<
+    ReturnType<typeof DocumentationPortablePageV1Schema.parse>
+  > = [];
   const snippets: Array<
     ReturnType<typeof DocumentationPortableSnippetV1Schema.parse>
   > = [];
@@ -267,10 +318,7 @@ export const inspect_documentation_site_package = async (filePath: string) => {
   const assetHandleByPath = Object.fromEntries(
     site.assets.map((asset) => [asset.path, asset.handle]),
   );
-  if (
-    manifest.profile === "roundtrip" &&
-    pageByPath.size !== site.pages.length
-  )
+  if (manifest.profile === "roundtrip" && pageByPath.size !== site.pages.length)
     throw new Error("roundtrip Page is missing typed content");
   await inspect_documentation_archive({
     file_path: filePath,
@@ -291,10 +339,7 @@ export const inspect_documentation_site_package = async (filePath: string) => {
         pages.push(page);
       }
       const markdownPageIndex = markdownPageByPath.get(entry.path);
-      if (
-        manifest.profile === "markdown-folder" &&
-        markdownPageIndex
-      ) {
+      if (manifest.profile === "markdown-folder" && markdownPageIndex) {
         const markdownPage = inspect_documentation_markdown(entry.bytes, {
           filename_stem: markdownPageIndex.canonical_path,
           package_path: entry.path,
