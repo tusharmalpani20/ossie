@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyPluginAsync } from "fastify";
-import { DocumentationCreateSiteRequestSchema } from "@repo/types";
+import {
+  DocumentationCreatePageRequestSchema,
+  DocumentationCreateSiteRequestSchema,
+  DocumentationPageContentRequestSchema,
+} from "@repo/types";
 import { z } from "zod";
 import { web_session_cookie_name } from "../authentication/session-cookie";
 import type { AuthContext } from "../authentication/session.service";
@@ -16,6 +20,12 @@ const IdempotencyKeySchema = z
   .min(1)
   .max(200)
   .regex(/^[\x21-\x7e]+$/u);
+const SiteParamsSchema = ParamsSchema.extend({
+  site_id: z.string().trim().min(1),
+}).strict();
+const PageParamsSchema = SiteParamsSchema.extend({
+  page_id: z.string().trim().min(1),
+}).strict();
 
 export type DocumentationRouteDependencies = {
   auth_service: {
@@ -35,6 +45,33 @@ export type DocumentationRouteDependencies = {
       actor_org_user_id: string;
       idempotency_key: string;
       data: z.infer<typeof DocumentationCreateSiteRequestSchema>;
+    }) => Promise<unknown>;
+    create_page: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      idempotency_key: string;
+      data: z.infer<typeof DocumentationCreatePageRequestSchema>;
+    }) => Promise<unknown>;
+    get_page: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      page_id: string;
+    }) => Promise<unknown>;
+    save_page: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      page_id: string;
+      expected_page_version: number;
+      blocks: unknown[];
     }) => Promise<unknown>;
   };
   resolve_project_version: (input: {
@@ -131,6 +168,141 @@ export const build_documentation_routes = (
           return reply
             .status(401)
             .send(error_response("unauthenticated", "Authentication required"));
+        }
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const body = DocumentationCreatePageRequestSchema.safeParse(request.body);
+        const key = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (!params.success || !body.success || !key.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        try {
+          const auth =
+            await dependencies.auth_service.get_current_auth_context(
+              request.cookies[web_session_cookie_name],
+            );
+          const version = await dependencies.resolve_project_version({
+            organization_id: auth.organization.id,
+            actor_org_user_id: auth.org_user.id,
+            project_id: params.data.project_id,
+            version_slug: params.data.version_slug,
+          });
+          const result = await dependencies.documentation_service.create_page({
+            organization_id: auth.organization.id,
+            actor_org_user_id: auth.org_user.id,
+            project_id: params.data.project_id,
+            project_version_id: version.id,
+            site_id: params.data.site_id,
+            idempotency_key: key.data,
+            data: body.data,
+          });
+          return reply.status(201).send({ page: result });
+        } catch {
+          return reply.status(404).send(
+            error_response(
+              "documentation_site_not_found",
+              "Documentation Site was not found",
+            ),
+          );
+        }
+      },
+    );
+
+    fastify.put(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/content",
+      async (request, reply) => {
+        const params = PageParamsSchema.safeParse(request.params);
+        const body = DocumentationPageContentRequestSchema.safeParse(request.body);
+        if (!params.success || !body.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        try {
+          const auth =
+            await dependencies.auth_service.get_current_auth_context(
+              request.cookies[web_session_cookie_name],
+            );
+          const version = await dependencies.resolve_project_version({
+            organization_id: auth.organization.id,
+            actor_org_user_id: auth.org_user.id,
+            project_id: params.data.project_id,
+            version_slug: params.data.version_slug,
+          });
+          const result = await dependencies.documentation_service.save_page({
+            organization_id: auth.organization.id,
+            actor_org_user_id: auth.org_user.id,
+            project_id: params.data.project_id,
+            project_version_id: version.id,
+            site_id: params.data.site_id,
+            page_id: params.data.page_id,
+            expected_page_version: body.data.expected_page_version,
+            blocks: body.data.blocks,
+          });
+          return reply.send({ page: result });
+        } catch {
+          return reply.status(409).send(
+            error_response(
+              "documentation_row_version_conflict",
+              "Documentation Page changed; preserve local work and reconcile",
+            ),
+          );
+        }
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id",
+      async (request, reply) => {
+        const params = PageParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply.status(400).send(
+            error_response(
+              "invalid_documentation_request",
+              "Documentation request is invalid",
+            ),
+          );
+        try {
+          const auth =
+            await dependencies.auth_service.get_current_auth_context(
+              request.cookies[web_session_cookie_name],
+            );
+          const version = await dependencies.resolve_project_version({
+            organization_id: auth.organization.id,
+            actor_org_user_id: auth.org_user.id,
+            project_id: params.data.project_id,
+            version_slug: params.data.version_slug,
+          });
+          const page = await dependencies.documentation_service.get_page({
+            organization_id: auth.organization.id,
+            actor_org_user_id: auth.org_user.id,
+            project_id: params.data.project_id,
+            project_version_id: version.id,
+            site_id: params.data.site_id,
+            page_id: params.data.page_id,
+          });
+          if (!page) throw new Error("not found");
+          return reply.send({ page });
+        } catch {
+          return reply.status(404).send(
+            error_response(
+              "documentation_page_not_found",
+              "Documentation Page was not found",
+            ),
+          );
         }
       },
     );

@@ -742,6 +742,42 @@ export const build = (opts: BuildOptions = {}) => {
               });
               return service.create_site(input);
             },
+            create_page: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.create_page(input);
+            },
+            get_page: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.get_page(input);
+            },
+            save_page: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.write",
+              });
+              return repository.save_page({
+                ...input,
+                blocks: input.blocks as Array<Record<string, unknown>>,
+              });
+            },
           };
         })(),
       resolve_project_version: async (input) => {

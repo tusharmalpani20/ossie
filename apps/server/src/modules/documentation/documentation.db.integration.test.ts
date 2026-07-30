@@ -118,6 +118,52 @@ describe("DB-backed Documentation repository", () => {
     });
     expect(list.statusCode).toBe(200);
     expect(list.json().documentation_sites).toHaveLength(1);
+    const page = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "page-create-route-1" },
+      payload: {
+        title: "Install",
+        description: null,
+        canonical_path: "install",
+      },
+    });
+    expect(page.statusCode).toBe(201);
+    const saved = await app.inject({
+      method: "PUT",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}/content`,
+      cookies: { ossie_session: scope.session_token },
+      payload: { expected_page_version: 1, blocks: [] },
+    });
+    expect(saved.statusCode).toBe(200);
+    expect(saved.json().page.version).toBe(2);
+    const secondPage = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages`,
+      cookies: { ossie_session: scope.session_token },
+      headers: { "idempotency-key": "page-create-route-2" },
+      payload: {
+        title: "Reference",
+        description: null,
+        canonical_path: "reference",
+      },
+    });
+    expect(secondPage.statusCode).toBe(201);
+    const stale = await app.inject({
+      method: "PUT",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}/content`,
+      cookies: { ossie_session: scope.session_token },
+      payload: { expected_page_version: 1, blocks: [] },
+    });
+    expect(stale.statusCode).toBe(409);
+    const independent = await app.inject({
+      method: "PUT",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${secondPage.json().page.id}/content`,
+      cookies: { ossie_session: scope.session_token },
+      payload: { expected_page_version: 1, blocks: [] },
+    });
+    expect(independent.statusCode).toBe(200);
     await app.close();
   });
 });

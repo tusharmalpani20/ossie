@@ -33,6 +33,9 @@ const build_test_app = async (overrides?: {
       },
       documentation_service: {
         list_sites: vi.fn(async () => []),
+        create_page: vi.fn(),
+        get_page: vi.fn(),
+        save_page: vi.fn(),
         create_site:
           overrides?.create_site ??
           vi.fn(async () => ({
@@ -98,6 +101,9 @@ describe("Documentation routes", () => {
             { id: "site", name: "Product docs", edition_id: "edition" },
           ]),
           create_site: vi.fn(),
+          create_page: vi.fn(),
+          get_page: vi.fn(),
+          save_page: vi.fn(),
         },
         resolve_project_version: vi.fn(async () => ({ id: "version" })),
       }),
@@ -131,5 +137,72 @@ describe("Documentation routes", () => {
     await app.close();
     expect(response.statusCode).toBe(400);
     expect(response.json().error.type).toBe("invalid_documentation_request");
+  });
+
+  it("creates and independently saves a typed Documentation Page", async () => {
+    const create_page = vi.fn(async () => ({
+      id: "page",
+      title: "Install",
+      canonical_path: "install",
+      version: 1,
+    }));
+    const save_page = vi.fn(async () => ({
+      id: "page",
+      title: "Install",
+      canonical_path: "install",
+      version: 2,
+      blocks: [],
+    }));
+    const get_page = vi.fn(async () => ({
+      id: "page",
+      title: "Install",
+      canonical_path: "install",
+      version: 2,
+      blocks: [],
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: {
+          list_sites: vi.fn(async () => []),
+          create_site: vi.fn(),
+          create_page,
+          get_page,
+          save_page,
+        },
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/pages",
+      cookies: { ossie_session: "session" },
+      headers: { "idempotency-key": "page-create-1" },
+      payload: {
+        title: "Install",
+        description: null,
+        canonical_path: "install",
+      },
+    });
+    const saved = await app.inject({
+      method: "PUT",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/pages/page/content",
+      cookies: { ossie_session: "session" },
+      payload: { expected_page_version: 1, blocks: [] },
+    });
+    const loaded = await app.inject({
+      method: "GET",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/pages/page",
+      cookies: { ossie_session: "session" },
+    });
+    await app.close();
+    expect(created.statusCode).toBe(201);
+    expect(saved.statusCode).toBe(200);
+    expect(loaded.statusCode).toBe(200);
+    expect(save_page).toHaveBeenCalledWith(
+      expect.objectContaining({ page_id: "page", expected_page_version: 1 }),
+    );
   });
 });

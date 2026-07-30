@@ -462,6 +462,8 @@ GRANT SELECT,INSERT,UPDATE ON
   documentation_schema.comment_reply,
   documentation_schema.comment_mention
 TO __OSSIE_RUNTIME_DB_ROLE__;
+GRANT DELETE ON documentation_schema.documentation_page_block
+TO __OSSIE_RUNTIME_DB_ROLE__;
 GRANT SELECT,INSERT ON
   documentation_schema.page_slug_alias,
   documentation_schema.site_revision,

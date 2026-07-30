@@ -127,6 +127,14 @@ export const DocumentationPageContentRequestSchema = z
   })
   .strict();
 
+export const DocumentationCreatePageRequestSchema = z
+  .object({
+    title: TitleSchema,
+    description: DescriptionSchema.default(null),
+    canonical_path: CanonicalPathSchema,
+  })
+  .strict();
+
 export const DocumentationPageSummarySchema = z
   .object({
     id: IdSchema,

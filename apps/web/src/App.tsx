@@ -31,6 +31,7 @@ import { InteractiveDemoRevisionPreviewPage } from "./features/artifact-revision
 import { ProjectCarryForwardPage } from "./features/artifact-carry-forward/ProjectCarryForwardPage";
 import { DesignSystemReviewPage } from "./features/design-system/DesignSystemReviewPage";
 import { ProjectDocumentationSiteListPage } from "./features/documentation/ProjectDocumentationSiteListPage";
+import { DocumentationPageEditor } from "./features/documentation/DocumentationPageEditor";
 import { shouldRenderDesignSystemReview } from "./appRouteGuards";
 import {
   getProject,
@@ -548,6 +549,32 @@ export default function App() {
               project.status === "active" &&
               selected.status === "active" &&
               project.access.role === "project_admin"
+            }
+          />
+        )}
+      </ProjectVersionRouteBoundary>
+    );
+  }
+
+  if (route.type === "documentation_page_editor") {
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+        activeSection="documentation"
+        currentLabel="Documentation Page"
+      >
+        {({ project, selected }) => (
+          <DocumentationPageEditor
+            projectId={route.projectId}
+            versionSlug={route.versionSlug}
+            siteId={route.siteId}
+            pageId={route.pageId}
+            canWrite={
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role !== "viewer"
             }
           />
         )}

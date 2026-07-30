@@ -1,4 +1,5 @@
 import type { DocumentationCreateSiteRequest } from "@repo/types";
+import type { DocumentationBlock } from "@repo/types";
 
 export type DocumentationSiteSummary = {
   id: string;
@@ -56,3 +57,46 @@ export const createDocumentationSite = (
       } | null;
     }>(response),
   );
+
+export type DocumentationPage = {
+  id: string;
+  title: string;
+  canonical_path: string;
+  version: number;
+  blocks: DocumentationBlock[];
+};
+
+const pagePath = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  pageId: string,
+) =>
+  `${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/pages/${encodeURIComponent(pageId)}`;
+
+export const getDocumentationPage = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  pageId: string,
+) =>
+  fetch(`${baseUrl()}${pagePath(projectId, versionSlug, siteId, pageId)}`, {
+    credentials: "include",
+  }).then((response) => json<{ page: DocumentationPage }>(response));
+
+export const saveDocumentationPage = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  pageId: string,
+  input: { expected_page_version: number; blocks: DocumentationBlock[] },
+) =>
+  fetch(
+    `${baseUrl()}${pagePath(projectId, versionSlug, siteId, pageId)}/content`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  ).then((response) => json<{ page: DocumentationPage }>(response));

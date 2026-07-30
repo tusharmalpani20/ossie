@@ -3,6 +3,7 @@ import {
   DocumentationBlockSchema,
   DocumentationCreateSiteRequestSchema,
   DocumentationPageContentRequestSchema,
+  DocumentationCreatePageRequestSchema,
   DocumentationPublicSearchResponseSchema,
 } from "./documentation";
 
@@ -59,6 +60,23 @@ describe("Documentation shared contracts", () => {
             position: 1,
           },
         ],
+      }),
+    ).toThrow();
+  });
+
+  it("strictly validates Page identity inputs and canonical paths", () => {
+    expect(
+      DocumentationCreatePageRequestSchema.parse({
+        title: "Install",
+        description: null,
+        canonical_path: "getting-started/install",
+      }),
+    ).toMatchObject({ title: "Install" });
+    expect(() =>
+      DocumentationCreatePageRequestSchema.parse({
+        title: "Bad",
+        description: null,
+        canonical_path: "../secret",
       }),
     ).toThrow();
   });
