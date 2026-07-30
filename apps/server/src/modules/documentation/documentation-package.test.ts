@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -12,6 +13,10 @@ import {
   stream_documentation_site_package,
   inspect_documentation_site_package,
 } from "./documentation-package";
+import {
+  canonicalize_documentation_package_json,
+  create_documentation_package_fingerprint,
+} from "@repo/documentation-domain";
 
 const roots: string[] = [];
 const site = {
@@ -243,6 +248,89 @@ describe("Documentation Site package", () => {
         },
       ],
       counts: { pages: 1, blocks: 1 },
+    });
+  });
+
+  it("returns a safe blocking issue for an integrity-valid unresolved graph", async () => {
+    const result = await create_documentation_site_package({
+      source: {
+        kind: "working_draft",
+        project_version_label: "v1",
+        revision_number: null,
+        publication_sequence: null,
+      },
+      site,
+      entries: [
+        {
+          path: "pages/page-0001.json",
+          role: "page_typed",
+          mime_type: "application/json",
+          bytes: page,
+        },
+        {
+          path: "pages/page-0001.md",
+          role: "page_markdown",
+          mime_type: "text/markdown",
+          bytes: "# Start\n\nWelcome\n",
+        },
+      ],
+    });
+    const JSZip = (await import("jszip")).default;
+    const zip = await JSZip.loadAsync(result.bytes);
+    const invalidSite = {
+      ...site,
+      navigation: [
+        {
+          ...site.navigation[0]!,
+          page_handle: "page-missing",
+        },
+      ],
+    };
+    const siteBytes = Buffer.from(
+      canonicalize_documentation_package_json(invalidSite),
+    );
+    const entries = result.manifest.entries.map((entry) =>
+      entry.path === "site.json"
+        ? {
+            ...entry,
+            size_bytes: siteBytes.length,
+            sha256: createHash("sha256").update(siteBytes).digest("hex"),
+          }
+        : entry,
+    );
+    const manifest = {
+      ...result.manifest,
+      content_fingerprint: create_documentation_package_fingerprint({
+        site: invalidSite,
+        entries,
+      }),
+      entries,
+    };
+    zip.file("site.json", siteBytes);
+    zip.file(
+      "ossie-docs.json",
+      canonicalize_documentation_package_json(manifest),
+    );
+    const invalidBytes = await zip.generateAsync({
+      type: "nodebuffer",
+      compression: "DEFLATE",
+      platform: "UNIX",
+    });
+    const root = await mkdtemp(path.join(tmpdir(), "ossie-package-"));
+    roots.push(root);
+    const filePath = path.join(root, "package.zip");
+    await writeFile(filePath, invalidBytes);
+
+    await expect(
+      inspect_documentation_site_package(filePath),
+    ).resolves.toMatchObject({
+      blocking_issues: [
+        {
+          severity: "blocking",
+          code: "relationship_unresolved",
+          location: "site.json",
+        },
+      ],
     });
   });
 });

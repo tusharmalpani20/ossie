@@ -1868,9 +1868,13 @@ export const build = (opts: BuildOptions = {}) => {
                       ),
                       required_bindings: parsed.site.external_bindings,
                     },
-                    issues: [],
-                    issue_counts: { blocking: 0, warnings: 0 },
-                    has_blocking_issues: false,
+                    issues: parsed.blocking_issues,
+                    issue_counts: {
+                      blocking: parsed.blocking_issues.length,
+                      warnings: 0,
+                    },
+                    has_blocking_issues:
+                      parsed.blocking_issues.length > 0,
                     issues_truncated: false,
                     };
                   }
@@ -1969,6 +1973,7 @@ export const build = (opts: BuildOptions = {}) => {
                     content_fingerprint: string;
                     storage_provider: string;
                     storage_key: string;
+                    safe_report?: { has_blocking_issues?: boolean } | null;
                   }
                 | null;
               if (
@@ -1985,6 +1990,14 @@ export const build = (opts: BuildOptions = {}) => {
                     : "documentation_import_not_found",
                 });
                 throw error;
+              }
+              if (inspection.safe_report?.has_blocking_issues) {
+                throw Object.assign(
+                  new Error(
+                    "Documentation import has unresolved blocking issues",
+                  ),
+                  { code: "documentation_import_not_ready" },
+                );
               }
               if (
                 input.data.content_fingerprint !==

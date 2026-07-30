@@ -190,7 +190,34 @@ export const inspect_documentation_site_package = async (filePath: string) => {
   const site = DocumentationPortableSiteV1Schema.parse(
     parse_duplicate_safe_json(siteBytes),
   );
-  validate_documentation_package_graph(site, { profile: manifest.profile });
+  const blockingIssues: Array<{
+    severity: "blocking";
+    code: "relationship_unresolved";
+    location: "site.json";
+    message: string;
+  }> = [];
+  try {
+    validate_documentation_package_graph(site, {
+      profile: manifest.profile,
+    });
+  } catch (error) {
+    if (
+      typeof error !== "object" ||
+      error === null ||
+      !("code" in error) ||
+      error.code !== "documentation_package_invalid"
+    )
+      throw error;
+    blockingIssues.push({
+      severity: "blocking",
+      code: "relationship_unresolved",
+      location: "site.json",
+      message:
+        error instanceof Error
+          ? error.message
+          : "The package graph contains an unresolved relationship.",
+    });
+  }
   const describedPaths = new Set<string>();
   for (const descriptor of manifest.entries) {
     const observed = entries.get(descriptor.path);
@@ -314,6 +341,7 @@ export const inspect_documentation_site_package = async (filePath: string) => {
     site,
     pages,
     snippets,
+    blocking_issues: blockingIssues,
     archive,
     counts: {
       pages: site.pages.length,
