@@ -33,6 +33,7 @@ import { DesignSystemReviewPage } from "./features/design-system/DesignSystemRev
 import { ProjectDocumentationSiteListPage } from "./features/documentation/ProjectDocumentationSiteListPage";
 import { DocumentationPageEditor } from "./features/documentation/DocumentationPageEditor";
 import { DocumentationSiteEditorPage } from "./features/documentation/DocumentationSiteEditorPage";
+import { canPublishDocumentation } from "./features/documentation/documentationPermissions";
 import { PublicDocumentationReaderPage } from "./features/documentation/PublicDocumentationReaderPage";
 import { DocumentationDraftPreviewPage } from "./features/documentation/DocumentationDraftPreviewPage";
 import { shouldRenderDesignSystemReview } from "./appRouteGuards";
@@ -617,7 +618,7 @@ export default function App() {
             canPublish={
               project.status === "active" &&
               selected.status === "active" &&
-              project.access.role === "project_admin"
+              canPublishDocumentation(project.access.role)
             }
           />
         )}
