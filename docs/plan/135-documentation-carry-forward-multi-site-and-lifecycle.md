@@ -6,8 +6,11 @@ Date expanded: 2026-07-30
 
 Date independently rechecked: 2026-07-30
 
-Status: Expanded, independently rechecked, and implementation-ready. No runtime
-work from this child has started.
+Date implemented and verified: 2026-07-30
+
+Status: Complete. Runtime, migration, focused/full verification, and mandatory
+headless browser evidence are implemented and recorded. Child `136` is the
+next bounded phase.
 
 Parent plan:
 
@@ -1191,15 +1194,16 @@ Child `135` is complete only when:
 - [x] Exact affected/read-only files and migration compatibility specified.
 - [x] TDD, DB, smoke, browser, accessibility, and handoff gates specified.
 - [x] Independent plan recheck completed and plan checkpoint committed.
-- [ ] Shared constants/contracts/domain policies implemented.
-- [ ] Migration `028` implemented and verified.
-- [ ] Server Carry-Forward/lifecycle routes and persistence implemented.
-- [ ] Audit/Access/Project Activity coverage implemented.
-- [ ] Portal multi-Site/Carry-Forward/lifecycle experience implemented.
-- [ ] Focused and full automated verification passed.
-- [ ] Agent-browser evidence recorded and passed.
-- [ ] Plan and Master closeout updated.
-- [ ] Scoped logical runtime/docs commits complete.
+- [x] Shared constants/contracts/domain policies implemented.
+- [x] Migration `028` implemented and verified.
+- [x] Server Carry-Forward/lifecycle routes and persistence implemented.
+- [x] Audit/Access coverage implemented; Project Activity was deliberately not
+      broadened because no new safe-label policy was required.
+- [x] Portal multi-Site/Carry-Forward/lifecycle experience implemented.
+- [x] Focused and full automated verification passed.
+- [x] Agent-browser evidence recorded and passed.
+- [x] Plan and Master closeout updated.
+- [x] Scoped logical runtime/docs commits complete.
 
 ## 17. Planning Log
 
@@ -1225,6 +1229,29 @@ Child `135` is complete only when:
   Carry-Forward source Revision creation/reuse with source Row Versions,
   required atomic published-Page retirement routing, and versioned old
   Revision projections.
+- 2026-07-30: Implemented shared hard ceilings, strict Carry-Forward/options
+  and lifecycle contracts, pure domain eligibility/effective-state/retirement
+  policies, and Admin/Editor/Viewer capability rules.
+- 2026-07-30: Added migration `028` with Edition-owned metadata, lifecycle
+  columns, Revision trigger/projection versioning, frozen Asset names,
+  immutable operation/item provenance, replay outcome provenance, Audit
+  context, runtime grants, and guarded rollback.
+- 2026-07-30: Implemented exact relational Revision loading, nested aggregate
+  counting, protected-reference verification, transactionally created/reused
+  source Revisions, stable idempotent replay, fresh target graphs, Access
+  Evidence route registration, lifecycle persistence, and typed HTTP errors.
+- 2026-07-30: Implemented the target-Version Carry-Forward route and portal,
+  Edition/Page/OpenAPI lifecycle controls, inherited Edition read-only
+  behavior, active/archived/all selectors, and deterministic two-Site browser
+  fixture.
+- 2026-07-30: Closure dogfood found and fixed wrong Carry-Forward limit status,
+  non-exact replay `source_revision_reused`, generated Asset names, nested-node
+  undercounting, archived Edition/Snippet edit affordances, lifecycle errors
+  escaping as `500`, and public relational Navigation normalization.
+- 2026-07-30: Completed clean migration and guarded down/up rehearsal, full
+  unit/DB/smoke/type/lint/build verification, and the agent-browser evidence
+  recorded in
+  `docs/ui/135-documentation-carry-forward-multi-site-and-lifecycle-browser-evidence.md`.
 
 ## 18. Planning Verification Record
 
@@ -1269,6 +1296,38 @@ This planning pass changed only this child-plan document. It did not implement
 runtime, schema, route, UI, package, dependency, ADR, Context, Master, or
 current-truth changes.
 
+Implementation verification completed with:
+
+- clean migration `001`–`028`, followed by guarded clean `028` down/up;
+- `pnpm -r --if-present test`: all completed package suites passed except the
+  initially exposed Audit coverage gaps, which were fixed before the clean
+  focused/full reruns; final server unit `112` files / `485` tests and web unit
+  `72` files / `405` tests passed;
+- `pnpm --filter server test:db`: `22` files / `77` tests passed;
+- `pnpm --filter server test:smoke`: `1` file / `2` tests passed;
+- extension regression: `19` files / `140` tests passed;
+- `pnpm check-types`: `13` successful tasks;
+- `pnpm lint`: `14` successful tasks; existing server warning baseline
+  remained non-blocking and produced no lint errors;
+- `pnpm build`: `13` successful tasks; the existing web chunk-size advisory
+  remained (`563.04 kB` raw / `152.63 kB` gzip);
+- `git diff --check`: passed;
+- live agent-browser two-Site Carry-Forward, exact created/reused result,
+  replay, target-exists/archived-target blockers, target workbench, Edition,
+  OpenAPI and Snippet archive/restore, Viewer read-only, retained public
+  Publication/assets, `320` CSS-pixel reflow, reduced motion, console/network
+  review, and axe (`0` violations on authenticated and public pages): passed.
+
+The final scoped implementation commits are:
+
+- `af5a210` shared Carry-Forward/lifecycle contracts;
+- `7689df4` server persistence, migration, routes, Audit, and tests;
+- `764bd61` portal Carry-Forward/lifecycle experience;
+- `033aeb4` closure hardening for exact provenance, projections, limits,
+  lifecycle errors, effective state, and Access Evidence;
+- `c6b9f3c` deterministic multi-Site browser fixture;
+- `a05a4da` archived read-only and immutable public-reader portal fixes.
+
 ## 19. Leftovers And Handoff To Child 136
 
 Child `136` receives:
@@ -1285,6 +1344,13 @@ Review state must be Edition/Revision scoped. It must not attach approval to a
 mutable Working Draft without an exact Revision, inherit approval through
 Carry-Forward, or reactivate approval through restore.
 
+Child `136` must also treat archived Editions and archived child resources as
+non-reviewable mutation targets, while preserving authorized inspection of
+their immutable Revisions. Carry-Forward provenance is informative lineage,
+not inherited approval. It must keep the source Revision `creation_trigger`
+unchanged when reused and must not infer review state from whether the
+Carry-Forward action created or reused that Revision.
+
 Later children retain:
 
 - child `137`: browser-direct Try It;
@@ -1292,3 +1358,13 @@ Later children retain:
   observability, and operational hardening;
 - child `139`: final Documentation V1 closeout;
 - child `140`: Git/third-party adapters and other post-V1 decisions.
+
+Accepted operational leftovers remain:
+
+- production-p75 performance evidence, configurable quotas/reporting,
+  observability, cleanup policy, and bundle splitting belong to child `138`;
+- physical removal of compatibility Site `name`/`description` columns remains
+  a later guarded migration after the response compatibility window;
+- Project Activity curation for lifecycle/Carry-Forward remains deferred until
+  an explicit safe-label policy is accepted;
+- formal review/approval begins only in child `136`.

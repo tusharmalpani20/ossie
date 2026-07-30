@@ -2,12 +2,14 @@
 
 Date: 2026-07-30
 
-Status: Active after child `134` independent close-recheck on 2026-07-30.
+Status: Active after child `135` implementation and verification on 2026-07-30.
 The first vertical slice, constrained V1 content, Edition-owned Snippets,
 protected Documentation/Capture Assets, exact artifact references, immutable
 snapshots, and inspected portability are implemented, independently
-close-rechecked, and verified. Child `135` is the next bounded reservation;
-children `135` through `140` must be re-expanded after their actual
+close-rechecked, and verified. Cross-Version Carry-Forward, multi-Site
+selection, and recoverable lifecycle are also implemented and verified. Child
+`136` is the next bounded reservation; children `136` through `140` must be
+re-expanded after their actual
 predecessors.
 
 Master plan number: 006.
@@ -2627,7 +2629,7 @@ By child `139`, the combined verification must include:
 - [x] Create, expand, recheck, implement, verify, and close child `132`.
 - [x] Create, expand, recheck, implement, verify, and close child `133`.
 - [x] Create, expand, recheck, implement, verify, and close child `134`.
-- [ ] Create, expand, recheck, implement, verify, and close child `135`.
+- [x] Create, expand, recheck, implement, verify, and close child `135`.
 - [ ] Create, expand, recheck, implement, verify, and close child `136`.
 - [ ] Create, expand, recheck, implement, verify, and close child `137`.
 - [ ] Create, expand, recheck, implement, verify, and close child `138`.
@@ -2848,10 +2850,30 @@ Child `134` implementation and close-recheck evidence includes:
   zero-violation axe evidence in
   `docs/ui/134-documentation-import-export-and-package-portability-browser-evidence.md`.
 
+Child `135` implementation evidence includes:
+
+- additive migration `028`, Edition-owned metadata, lifecycle state,
+  projection-schema versioning, immutable Carry-Forward provenance, and
+  guarded clean down/up rehearsal;
+- atomic two-Site Carry-Forward with one exact Revision reused and one created,
+  stable replay results, fresh mutable graph IDs, protected File reuse,
+  no-overwrite target blockers, and Access/Audit coverage;
+- Edition, Page, OpenAPI, Snippet, and Asset lifecycle enforcement with
+  inherited read-only state and retained immutable Publication output;
+- server unit 112 files / 485 tests, web unit 72 files / 405 tests, server DB
+  22 files / 77 tests, V1 smoke 1 file / 2 tests, and extension 19 files / 140
+  tests;
+- workspace type check, lint, and production build completed successfully;
+- headless Chromium two-Site creation/reuse Carry-Forward, exact replay,
+  target blockers, Edition/OpenAPI/Snippet archive/restore, Viewer read-only,
+  retained public output, 320-pixel reflow, reduced motion, request/console
+  review, and zero-violation axe evidence in
+  `docs/ui/135-documentation-carry-forward-multi-site-and-lifecycle-browser-evidence.md`.
+
 ## 48. Planning Leftovers And Handoff
 
-- Product Documentation children `132` through `134` are complete and
-  independently close-rechecked. Child `135` is next.
+- Product Documentation children `132` through `135` are complete and
+  verified. Child `136` is next.
 - Child `132` established the first vertical slice. Child `133` extended it
   with the complete constrained V1 block graph, Edition-owned Snippets,
   Documentation/Capture Asset sources, exact artifact Publication references,
@@ -2866,12 +2888,12 @@ Child `134` implementation and close-recheck evidence includes:
   collaboration, permanent deletion, cross-artifact search, server proxy,
   stored credentials, SDK generation, and Video remain deferred/rejected as
   recorded.
-- The next work is to expand child `135` against the closed child `134` result,
-  then recheck that implementation-ready plan before runtime work.
+- The next work is to expand child `136` against the closed child `135`
+  result, then recheck that implementation-ready plan before runtime work.
 - The measured single-chunk bundle growth, organization-configurable
   quotas/reporting, production observability, and capability-dependent
   Firefox/WebKit or production-p75 evidence remain child `138` work.
-- Child `134` must preserve the child `133` hard ceilings, exact immutable
+- Child `135` preserves the child `133` hard ceilings, exact immutable
   references, source discriminants, protected-byte/digest checks, retained
   archived-reference rules, and Edition path-namespace serialization.
   Child `138` must measure and, where needed, split public immutable snapshot
