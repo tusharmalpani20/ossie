@@ -33,7 +33,18 @@ const snapshot = {
       blocks: [],
     },
   ],
-  navigation: [],
+  navigation: {
+    nodes: [
+      {
+        id: "navigation",
+        parent_id: null,
+        kind: "page",
+        label: null,
+        page_id: "page",
+        position: 1,
+      },
+    ],
+  },
   openapi_operations: [],
 };
 
@@ -50,6 +61,7 @@ describe("Documentation public API adapter", () => {
     ).resolves.toMatchObject({
       site: { name: "Product docs", description: "Safe help" },
       revision: { primary_language: "en-US", home_page_id: "page" },
+      navigation: [{ id: "navigation", page_id: "page" }],
     });
   });
 

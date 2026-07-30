@@ -199,7 +199,7 @@ export const DocumentationSnippetPanel = ({
         <article>
           <h3>{selected.name}</h3>
           <p>{selected.status === "archived" ? "Archived" : "Active"}</p>
-          {canWrite ? (
+          {canWrite && selected.status === "active" ? (
             <>
               <Label htmlFor="selected-documentation-snippet-name">
                 Selected Snippet name
@@ -216,8 +216,13 @@ export const DocumentationSnippetPanel = ({
               />
               <Button onClick={() => void save()}>Save Snippet</Button>
               <Button onClick={() => void transition()}>
-                {selected.status === "active" ? "Archive" : "Restore"} Snippet
+                Archive Snippet
               </Button>
+            </>
+          ) : canWrite ? (
+            <>
+              <p>Archived Snippets are read-only until restored.</p>
+              <Button onClick={() => void transition()}>Restore Snippet</Button>
             </>
           ) : (
             <p>Read-only access</p>

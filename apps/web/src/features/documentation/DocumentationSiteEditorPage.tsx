@@ -116,6 +116,11 @@ export const DocumentationSiteEditorPage = ({
 
   if (!preview) return <p role="status">{status}</p>;
   const base = `/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/${encodeURIComponent(siteId)}`;
+  const editionEffectiveStatus =
+    preview.edition?.effective_status ?? preview.edition?.status ?? "active";
+  const effectiveCanWrite = canWrite && editionEffectiveStatus === "active";
+  const effectiveCanPublish =
+    canPublish && editionEffectiveStatus === "active";
   return (
     <section aria-labelledby="documentation-site-heading">
       <header>
@@ -145,12 +150,8 @@ export const DocumentationSiteEditorPage = ({
         siteId={siteId}
         title={preview.edition?.title ?? preview.site.name}
         status={preview.edition?.status ?? "active"}
-        effectiveStatus={preview.edition?.status ?? "active"}
-        readOnlyReason={
-          preview.edition?.status === "archived"
-            ? "This Documentation Site Edition is archived."
-            : null
-        }
+        effectiveStatus={editionEffectiveStatus}
+        readOnlyReason={preview.edition?.read_only_reason ?? null}
         editionVersion={preview.edition?.version ?? 1}
         canManage={canManageEdition}
         onChanged={() => setPreviewRefreshCount((current) => current + 1)}
@@ -160,23 +161,23 @@ export const DocumentationSiteEditorPage = ({
         versionSlug={versionSlug}
         siteId={siteId}
         preview={preview}
-        canWrite={canWrite}
+        canWrite={effectiveCanWrite}
       />
       <DocumentationStructurePanel
         projectId={projectId}
         versionSlug={versionSlug}
         siteId={siteId}
-        canWrite={canWrite}
+        canWrite={effectiveCanWrite}
         preview={preview}
       />
       <DocumentationSnippetPanel
-        canWrite={canWrite}
+        canWrite={effectiveCanWrite}
         projectId={projectId}
         siteId={siteId}
         versionSlug={versionSlug}
       />
       <DocumentationAssetLibrary
-        canWrite={canWrite}
+        canWrite={effectiveCanWrite}
         projectId={projectId}
         siteId={siteId}
         versionSlug={versionSlug}
@@ -281,7 +282,7 @@ export const DocumentationSiteEditorPage = ({
           siteId={siteId}
           siteVersion={preview.site.version ?? 1}
           draftVersion={preview.working_draft.version}
-          canImport={canWrite}
+          canImport={effectiveCanWrite}
           onApplied={() => setPreviewRefreshCount((current) => current + 1)}
         />
         <DocumentationPortabilityPanel
@@ -291,7 +292,7 @@ export const DocumentationSiteEditorPage = ({
           mode="page"
           siteId={siteId}
           draftVersion={preview.working_draft.version}
-          canImport={canWrite}
+          canImport={effectiveCanWrite}
           onApplied={() => setPreviewRefreshCount((current) => current + 1)}
         />
       </section>
@@ -302,7 +303,7 @@ export const DocumentationSiteEditorPage = ({
           {preview.working_draft.version}.
         </p>
         <a href={`${base}/preview`}>Preview saved draft</a>
-        {canWrite && canPublish ? (
+        {effectiveCanWrite && effectiveCanPublish ? (
           <Button onClick={() => void checkpoint()}>Create revision</Button>
         ) : (
           <p>Read-only access</p>
@@ -312,14 +313,14 @@ export const DocumentationSiteEditorPage = ({
         projectId={projectId}
         versionSlug={versionSlug}
         siteId={siteId}
-        canWrite={canWrite}
+        canWrite={effectiveCanWrite}
       />
       <DocumentationPublishingPanel
         key={checkpointCount}
         projectId={projectId}
         versionSlug={versionSlug}
         siteId={siteId}
-        canPublish={canPublish}
+        canPublish={effectiveCanPublish}
       />
       <p role="status">{status}</p>
     </section>

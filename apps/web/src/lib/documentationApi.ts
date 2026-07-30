@@ -656,6 +656,8 @@ export type DocumentationDraftPreview = {
     description: string | null;
     primary_language: string;
     status: "active" | "archived";
+    effective_status?: "active" | "read_only" | "archived";
+    read_only_reason?: string | null;
     version: number;
   };
   working_draft: {
@@ -965,7 +967,7 @@ export type PublicDocumentationSnapshot = {
 
 type RawPublicDocumentationSnapshot = Omit<
   PublicDocumentationSnapshot,
-  "site" | "revision" | "page"
+  "site" | "revision" | "page" | "navigation"
 > & {
   revision: {
     site_name: string;
@@ -974,6 +976,9 @@ type RawPublicDocumentationSnapshot = Omit<
     home_page_id: string;
   };
   page?: PublicDocumentationSnapshot["page"];
+  navigation:
+    | PublicDocumentationSnapshot["navigation"]
+    | { nodes: PublicDocumentationSnapshot["navigation"] };
   aliases?: Array<{
     former_path: string;
     documentation_page_id: string;
@@ -998,6 +1003,9 @@ const normalizePublicDocumentationSnapshot = (
     primary_language: raw.revision.primary_language,
     home_page_id: raw.revision.home_page_id,
   },
+  navigation: Array.isArray(raw.navigation)
+    ? raw.navigation
+    : raw.navigation.nodes,
   page,
 });
 

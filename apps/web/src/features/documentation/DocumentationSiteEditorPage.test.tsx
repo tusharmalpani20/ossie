@@ -80,4 +80,45 @@ describe("DocumentationSiteEditorPage", () => {
       screen.queryByRole("button", { name: "Create revision" }),
     ).not.toBeInTheDocument();
   });
+
+  it("treats an archived Edition as read-only even for an author", async () => {
+    render(
+      <DocumentationSiteEditorPage
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canWrite
+        canPublish
+        loadPreview={async () => ({
+          preview: {
+            site: { id: "site", name: "Product docs", description: null },
+            edition: {
+              id: "edition",
+              title: "Product docs",
+              description: null,
+              primary_language: "en-US",
+              status: "archived",
+              effective_status: "archived",
+              read_only_reason: "This Documentation Site Edition is archived.",
+              archived_at: "2026-07-30T00:00:00.000Z",
+              version: 2,
+            },
+            working_draft: { id: "draft", home_page_id: null, version: 1 },
+            pages: [],
+            navigation: { version: 1, nodes: [] },
+            routing: { version: 1, aliases: [], rules: [] },
+            openapi_operations: [],
+          },
+        })}
+        createRevision={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByText("This Documentation Site Edition is archived."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Create revision" }),
+    ).not.toBeInTheDocument();
+  });
 });

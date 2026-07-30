@@ -42,6 +42,15 @@ describe("DocumentationSnippetPanel", () => {
     expect(await screen.findByText("Reusable warning")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Archive Snippet" }));
     await waitFor(() => expect(transition).toHaveBeenCalled());
+    expect(
+      screen.queryByRole("button", { name: "Save Snippet" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Rename Snippet" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Restore Snippet" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /delete/i })).toBeNull();
   });
 });
