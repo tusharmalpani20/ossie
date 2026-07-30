@@ -21,6 +21,52 @@ const unavailable = () =>
     code: "documentation_asset_source_unavailable",
   });
 
+type ProtectedFile = {
+  storage_provider: string;
+  storage_key: string;
+  size_bytes: number | string;
+  checksum_sha256: string | null;
+};
+
+export const validate_documentation_protected_file_bytes = async (input: {
+  file: ProtectedFile;
+  get: (input: { storage_key: string }) => Promise<{
+    stream: NodeJS.ReadableStream;
+    size_bytes: number;
+  }>;
+}) => {
+  try {
+    const expectedSize = Number(input.file.size_bytes);
+    if (
+      input.file.storage_provider !== "local" ||
+      !Number.isSafeInteger(expectedSize) ||
+      expectedSize < 0 ||
+      expectedSize > 10 * 1024 * 1024
+    )
+      throw unavailable();
+    const stored = await input.get({ storage_key: input.file.storage_key });
+    if (stored.size_bytes !== expectedSize) throw unavailable();
+    const hash = createHash("sha256");
+    let size = 0;
+    for await (const chunk of stored.stream) {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      size += buffer.length;
+      if (size > 10 * 1024 * 1024) throw unavailable();
+      hash.update(buffer);
+    }
+    const digest = hash.digest("hex");
+    if (
+      size !== expectedSize ||
+      !input.file.checksum_sha256 ||
+      digest !== input.file.checksum_sha256
+    )
+      throw unavailable();
+    return digest;
+  } catch {
+    throw unavailable();
+  }
+};
+
 export const read_validated_documentation_asset_bytes = async (input: {
   file: ProtectedAssetFile;
   get: (input: { storage_key: string }) => Promise<{

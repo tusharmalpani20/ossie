@@ -36,7 +36,7 @@ export const DocumentationCarryForwardPage = ({
   >("idle");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<
-    Awaited<ReturnType<typeof carryForwardDocumentationSites>>["operation"] | null
+    Awaited<ReturnType<typeof carryForwardDocumentationSites>>["items"] | null
   >(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const retry = useRef<{ fingerprint: string; key: string } | null>(null);
@@ -104,14 +104,12 @@ export const DocumentationCarryForwardPage = ({
         },
         key,
       );
-      setResult(response.operation);
+      setResult(response.items);
       setState("ready");
       setMessage(
-        `${response.operation.selection_count} Site${
-          response.operation.selection_count === 1 ? "" : "s"
-        } carried forward${
-          response.operation.idempotent_replay ? " (replayed safely)" : ""
-        }.`,
+        `${response.items.length} Site${
+          response.items.length === 1 ? "" : "s"
+        } carried forward${response.replayed ? " (replayed safely)" : ""}.`,
       );
     } catch (error) {
       setMessage(
@@ -124,10 +122,15 @@ export const DocumentationCarryForwardPage = ({
   };
 
   return (
-    <section className={styles.page} aria-labelledby="documentation-carry-heading">
+    <section
+      className={styles.page}
+      aria-labelledby="documentation-carry-heading"
+    >
       <header>
         <p>Documentation lifecycle</p>
-        <h1 id="documentation-carry-heading">Carry Forward Documentation Sites</h1>
+        <h1 id="documentation-carry-heading">
+          Carry Forward Documentation Sites
+        </h1>
         <p>
           Target Project Version: <strong>{target.name}</strong>. Each selected
           Site is checkpointed exactly, then receives an independent mutable
@@ -179,7 +182,9 @@ export const DocumentationCarryForwardPage = ({
       </label>
       {state === "loading" ? <p role="status">Loading source Sites…</p> : null}
       {sourceId && state !== "loading" && options.length === 0 ? (
-        <Card>No Documentation Sites are available in this source Version.</Card>
+        <Card>
+          No Documentation Sites are available in this source Version.
+        </Card>
       ) : null}
       <div className={styles.grid}>
         {options.map((option) => {
@@ -208,17 +213,19 @@ export const DocumentationCarryForwardPage = ({
                 </span>
               </label>
               <p>
-                {option.latest_revision_number
-                  ? `Latest Revision ${option.latest_revision_number}${
-                      option.latest_revision_created_at
+                {option.latest_revision
+                  ? `Latest Revision ${option.latest_revision.revision_number}${
+                      option.latest_revision.created_at
                         ? ` · ${new Date(
-                            option.latest_revision_created_at,
+                            option.latest_revision.created_at,
                           ).toLocaleString()}`
                         : ""
                     }`
                   : "No Revision yet; success will create the exact source Revision."}
               </p>
-              {option.status === "archived" ? <p>Archived source Edition</p> : null}
+              {option.status === "archived" ? (
+                <p>Archived source Edition</p>
+              ) : null}
               {option.target_has_edition ? (
                 <p>Already present in the target Version.</p>
               ) : null}
@@ -251,7 +258,7 @@ export const DocumentationCarryForwardPage = ({
         <section aria-labelledby="documentation-carry-result">
           <h2 id="documentation-carry-result">Target workbenches</h2>
           <ul>
-            {result.items.map((item) => {
+            {result.map((item) => {
               const option = options.find(
                 (candidate) => candidate.site_id === item.site_id,
               );

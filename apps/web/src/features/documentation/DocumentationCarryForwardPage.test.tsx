@@ -11,25 +11,25 @@ const versions = [
 describe("DocumentationCarryForwardPage", () => {
   it("submits selected exact source versions only after independent-copy confirmation", async () => {
     const carry = vi.fn(async () => ({
-      operation: {
+      carry_forward: {
         id: "operation",
         source_project_version_id: "source",
         target_project_version_id: "target",
-        selection_count: 1,
-        idempotent_replay: false,
-        items: [
-          {
-            position: 1,
-            site_id: "site",
-            source_edition_id: "edition-a",
-            source_revision_id: "revision",
-            source_revision_number: 3,
-            source_revision_reused: true,
-            target_edition_id: "edition-b",
-            target_draft_id: "draft-b",
-          },
-        ],
+        created_by_id: "actor",
+        created_at: "2026-07-30T00:00:00.000Z",
       },
+      items: [
+        {
+          site_id: "site",
+          source_edition_id: "edition-a",
+          source_revision_id: "revision",
+          source_revision_number: 3,
+          source_revision_reused: true,
+          target_edition_id: "edition-b",
+          target_working_draft_id: "draft-b",
+        },
+      ],
+      replayed: false,
     }));
     render(
       <DocumentationCarryForwardPage
@@ -38,7 +38,7 @@ describe("DocumentationCarryForwardPage", () => {
         versions={versions}
         canCarry
         loadOptions={async () => ({
-          source_project_version_id: "source",
+          source_project_version: versions[0],
           target_project_version_id: "target",
           sites: [
             {
@@ -51,10 +51,16 @@ describe("DocumentationCarryForwardPage", () => {
               effective_status: "active",
               read_only_reason: null,
               source_edition_version: 2,
+              source_working_draft_id: "draft-a",
               source_draft_version: 5,
-              latest_revision_number: 3,
-              latest_revision_created_at: "2026-07-30T00:00:00.000Z",
+              latest_revision: {
+                id: "revision",
+                revision_number: 3,
+                creation_trigger: "manual_checkpoint",
+                created_at: "2026-07-30T00:00:00.000Z",
+              },
               target_has_edition: false,
+              blocker_code: null,
             },
           ],
         })}
@@ -67,9 +73,13 @@ describe("DocumentationCarryForwardPage", () => {
     expect(await screen.findByText("Product docs")).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText(/Product docs/u));
     expect(screen.getByRole("status")).toHaveTextContent("1 Site selected");
-    expect(screen.getByRole("button", { name: "Carry Forward Sites" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Carry Forward Sites" }),
+    ).toBeDisabled();
     fireEvent.click(screen.getByLabelText(/independent mutable copies/u));
-    fireEvent.click(screen.getByRole("button", { name: "Carry Forward Sites" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Carry Forward Sites" }),
+    );
     await waitFor(() =>
       expect(carry).toHaveBeenCalledWith(
         "project",
@@ -86,8 +96,12 @@ describe("DocumentationCarryForwardPage", () => {
         expect.any(String),
       ),
     );
-    expect(await screen.findByText(/Revision 3 \(reused\)/u)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open Product docs" })).toHaveAttribute(
+    expect(
+      await screen.findByText(/Revision 3 \(reused\)/u),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open Product docs" }),
+    ).toHaveAttribute(
       "href",
       "/projects/project/versions/v2/documentation/site",
     );
@@ -101,7 +115,7 @@ describe("DocumentationCarryForwardPage", () => {
         versions={versions}
         canCarry
         loadOptions={async () => ({
-          source_project_version_id: "source",
+          source_project_version: versions[0],
           target_project_version_id: "target",
           sites: [
             {
@@ -114,10 +128,11 @@ describe("DocumentationCarryForwardPage", () => {
               effective_status: "active",
               read_only_reason: null,
               source_edition_version: 2,
+              source_working_draft_id: "draft-a",
               source_draft_version: 5,
-              latest_revision_number: null,
-              latest_revision_created_at: null,
+              latest_revision: null,
               target_has_edition: false,
+              blocker_code: null,
             },
           ],
         })}
@@ -136,7 +151,9 @@ describe("DocumentationCarryForwardPage", () => {
     await screen.findByText("Product docs");
     fireEvent.click(screen.getByLabelText(/Product docs/u));
     fireEvent.click(screen.getByLabelText(/independent mutable copies/u));
-    fireEvent.click(screen.getByRole("button", { name: "Carry Forward Sites" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Carry Forward Sites" }),
+    );
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveFocus();
     expect(screen.getByLabelText(/Product docs/u)).toBeChecked();

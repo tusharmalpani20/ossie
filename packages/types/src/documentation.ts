@@ -1309,9 +1309,7 @@ export const DocumentationCarryForwardRequestSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    if (
-      value.source_project_version_id === value.target_project_version_id
-    ) {
+    if (value.source_project_version_id === value.target_project_version_id) {
       context.addIssue({
         code: "custom",
         path: ["target_project_version_id"],
@@ -1330,49 +1328,45 @@ export const DocumentationCarryForwardRequestSchema = z
 
 const DocumentationCarryForwardItemSchema = z
   .object({
-    position: PositiveIntSchema,
     site_id: IdSchema,
     source_edition_id: IdSchema,
     source_revision_id: IdSchema,
     source_revision_number: PositiveIntSchema,
     source_revision_reused: z.boolean(),
     target_edition_id: IdSchema,
-    target_draft_id: IdSchema,
+    target_working_draft_id: IdSchema,
   })
   .strict();
 
 export const DocumentationCarryForwardResponseSchema = z
   .object({
-    operation: z
+    carry_forward: z
       .object({
         id: IdSchema,
         source_project_version_id: IdSchema,
         target_project_version_id: IdSchema,
-        selection_count: PositiveIntSchema.max(
-          DOCUMENTATION_CARRY_FORWARD_MAX_SELECTIONS,
-        ),
-        idempotent_replay: z.boolean(),
-        items: z
-          .array(DocumentationCarryForwardItemSchema)
-          .min(1)
-          .max(DOCUMENTATION_CARRY_FORWARD_MAX_SELECTIONS),
+        created_by_id: IdSchema,
+        created_at: IsoDateTimeStringSchema,
       })
-      .strict()
-      .superRefine((value, context) => {
-        if (value.selection_count !== value.items.length) {
-          context.addIssue({
-            code: "custom",
-            path: ["selection_count"],
-            message: "Selection count must equal the ordered item count",
-          });
-        }
-      }),
+      .strict(),
+    items: z
+      .array(DocumentationCarryForwardItemSchema)
+      .min(1)
+      .max(DOCUMENTATION_CARRY_FORWARD_MAX_SELECTIONS),
+    replayed: z.boolean(),
   })
   .strict();
 
 export const DocumentationCarryForwardOptionsResponseSchema = z
   .object({
-    source_project_version_id: IdSchema,
+    source_project_version: z
+      .object({
+        id: IdSchema,
+        slug: z.string().trim().min(1).max(160),
+        name: TitleSchema,
+        status: DocumentationLifecycleStatusSchema,
+      })
+      .strict(),
     target_project_version_id: IdSchema,
     sites: z.array(
       z
@@ -1386,10 +1380,21 @@ export const DocumentationCarryForwardOptionsResponseSchema = z
           effective_status: DocumentationEffectiveStatusSchema,
           read_only_reason: z.string().max(500).nullable(),
           source_edition_version: PositiveIntSchema,
+          source_working_draft_id: IdSchema,
           source_draft_version: PositiveIntSchema,
-          latest_revision_number: PositiveIntSchema.nullable(),
-          latest_revision_created_at: IsoDateTimeStringSchema.nullable(),
+          latest_revision: z
+            .object({
+              id: IdSchema,
+              revision_number: PositiveIntSchema,
+              creation_trigger: DocumentationRevisionTriggerSchema,
+              created_at: IsoDateTimeStringSchema,
+            })
+            .strict()
+            .nullable(),
           target_has_edition: z.boolean(),
+          blocker_code: z
+            .literal("documentation_carry_forward_target_exists")
+            .nullable(),
         })
         .strict(),
     ),

@@ -26,6 +26,7 @@ import {
   DocumentationImportApplyRequestSchema,
   DocumentationCarryForwardRequestSchema,
   DocumentationCarryForwardResponseSchema,
+  DocumentationCarryForwardOptionsResponseSchema,
   DocumentationEditionLifecycleRequestSchema,
   DocumentationEditionUpdateRequestSchema,
   DocumentationPageLifecycleRequestSchema,
@@ -620,34 +621,73 @@ describe("Documentation carry-forward and lifecycle contracts", () => {
 
   it("returns ordered provenance without exposing graph content", () => {
     const response = {
-      operation: {
+      carry_forward: {
         id: "01J00000000000000000000004",
         source_project_version_id: sourceVersionId,
         target_project_version_id: targetVersionId,
-        selection_count: 1,
-        idempotent_replay: false,
-        items: [
-          {
-            position: 1,
-            site_id: siteId,
-            source_edition_id: "01J00000000000000000000005",
-            source_revision_id: "01J00000000000000000000006",
-            source_revision_number: 2,
-            source_revision_reused: true,
-            target_edition_id: "01J00000000000000000000007",
-            target_draft_id: "01J00000000000000000000008",
-          },
-        ],
+        created_by_id: "01J00000000000000000000009",
+        created_at: "2026-07-30T00:00:00.000Z",
       },
+      items: [
+        {
+          site_id: siteId,
+          source_edition_id: "01J00000000000000000000005",
+          source_revision_id: "01J00000000000000000000006",
+          source_revision_number: 2,
+          source_revision_reused: true,
+          target_edition_id: "01J00000000000000000000007",
+          target_working_draft_id: "01J00000000000000000000008",
+        },
+      ],
+      replayed: false,
     };
     expect(DocumentationCarryForwardResponseSchema.parse(response)).toEqual(
       response,
     );
     expect(
       DocumentationCarryForwardResponseSchema.safeParse({
-        operation: { ...response.operation, page_content: "secret" },
+        ...response,
+        carry_forward: { ...response.carry_forward, page_content: "secret" },
       }).success,
     ).toBe(false);
+  });
+
+  it("returns only safe, exact carry-forward selector metadata", () => {
+    const response = {
+      source_project_version: {
+        id: sourceVersionId,
+        slug: "v1",
+        name: "Version 1",
+        status: "archived",
+      },
+      target_project_version_id: targetVersionId,
+      sites: [
+        {
+          site_id: siteId,
+          source_edition_id: "01J00000000000000000000005",
+          title: "Product docs",
+          description: null,
+          primary_language: "en-US",
+          status: "active",
+          effective_status: "read_only",
+          read_only_reason: "The source Project Version is archived.",
+          source_edition_version: 2,
+          source_working_draft_id: "01J00000000000000000000008",
+          source_draft_version: 4,
+          latest_revision: {
+            id: "01J00000000000000000000006",
+            revision_number: 2,
+            creation_trigger: "manual_checkpoint",
+            created_at: "2026-07-30T00:00:00.000Z",
+          },
+          target_has_edition: false,
+          blocker_code: null,
+        },
+      ],
+    };
+    expect(
+      DocumentationCarryForwardOptionsResponseSchema.parse(response),
+    ).toEqual(response);
   });
 
   it("keeps lifecycle concurrency fields resource-specific", () => {

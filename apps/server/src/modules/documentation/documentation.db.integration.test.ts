@@ -152,18 +152,14 @@ describe("DB-backed Documentation repository", () => {
     const carried = await repository.carry_forward(input);
     const replay = await repository.carry_forward(input);
     expect(carried).toMatchObject({
-      operation: {
-        selection_count: 1,
-        idempotent_replay: false,
-        items: [{ site_id: source.site.id, source_revision_reused: false }],
-      },
+      carry_forward: { created_by_id: scope.actor_org_user_id },
+      items: [{ site_id: source.site.id, source_revision_reused: false }],
+      replayed: false,
     });
     expect(replay).toMatchObject({
-      operation: {
-        id: carried.operation.id,
-        idempotent_replay: true,
-        items: [{ source_revision_reused: false }],
-      },
+      carry_forward: { id: carried.carry_forward.id },
+      items: [{ source_revision_reused: false }],
+      replayed: true,
       idempotent_replay: true,
     });
     const target = await repository.list_sites({
@@ -199,6 +195,110 @@ describe("DB-backed Documentation repository", () => {
       items: "1",
       target_pages: "1",
       source_revisions: "1",
+    });
+  });
+
+  it("serializes concurrent identical carry keys into one immutable result", async () => {
+    const scope = await establish_project();
+    const app = build({ logger: false });
+    const targetResponse = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions`,
+      cookies: { ossie_session: scope.session_token },
+      payload: { name: "Concurrent replay target" },
+    });
+    await app.close();
+    const repository = build_documentation_repository(pool);
+    const source = (await repository.create_site({
+      ...scope,
+      idempotency_key: "concurrent-replay-source",
+      name: "Concurrent replay docs",
+      description: null,
+      primary_language: "en-US",
+      initial_home_page: { title: "Home", path: "home" },
+    })) as unknown as {
+      site: { id: string };
+      edition: { version: number };
+      working_draft: { version: number };
+    };
+    const input = {
+      organization_id: scope.organization_id,
+      project_id: scope.project_id,
+      actor_org_user_id: scope.actor_org_user_id,
+      idempotency_key: "same-concurrent-key",
+      source_project_version_id: scope.project_version_id,
+      target_project_version_id: targetResponse.json().project_version
+        .id as string,
+      selections: [
+        {
+          site_id: source.site.id,
+          expected_source_edition_version: source.edition.version,
+          expected_source_draft_version: source.working_draft.version,
+        },
+      ],
+    };
+
+    const [first, second] = await Promise.all([
+      repository.carry_forward(input),
+      repository.carry_forward(input),
+    ]);
+
+    expect(first.carry_forward.id).toBe(second.carry_forward.id);
+    expect([first.replayed, second.replayed].sort()).toEqual([false, true]);
+  });
+
+  it("serializes different carry keys for one Site and returns a typed target conflict", async () => {
+    const scope = await establish_project();
+    const app = build({ logger: false });
+    const targetResponse = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions`,
+      cookies: { ossie_session: scope.session_token },
+      payload: { name: "Concurrent conflict target" },
+    });
+    await app.close();
+    const repository = build_documentation_repository(pool);
+    const source = (await repository.create_site({
+      ...scope,
+      idempotency_key: "concurrent-conflict-source",
+      name: "Concurrent conflict docs",
+      description: null,
+      primary_language: "en-US",
+      initial_home_page: { title: "Home", path: "home" },
+    })) as unknown as {
+      site: { id: string };
+      edition: { version: number };
+      working_draft: { version: number };
+    };
+    const base = {
+      organization_id: scope.organization_id,
+      project_id: scope.project_id,
+      actor_org_user_id: scope.actor_org_user_id,
+      source_project_version_id: scope.project_version_id,
+      target_project_version_id: targetResponse.json().project_version
+        .id as string,
+      selections: [
+        {
+          site_id: source.site.id,
+          expected_source_edition_version: source.edition.version,
+          expected_source_draft_version: source.working_draft.version,
+        },
+      ],
+    };
+
+    const results = await Promise.allSettled([
+      repository.carry_forward({ ...base, idempotency_key: "different-key-a" }),
+      repository.carry_forward({ ...base, idempotency_key: "different-key-b" }),
+    ]);
+
+    expect(results.filter(({ status }) => status === "fulfilled")).toHaveLength(
+      1,
+    );
+    expect(results.filter(({ status }) => status === "rejected")).toHaveLength(
+      1,
+    );
+    expect(results.find(({ status }) => status === "rejected")).toMatchObject({
+      reason: { code: "documentation_carry_forward_target_exists" },
     });
   });
 
@@ -1438,10 +1538,7 @@ describe("DB-backed Documentation repository", () => {
         confirm: true,
       },
     });
-    expect(
-      packageApplication.statusCode,
-      packageApplication.body,
-    ).toBe(201);
+    expect(packageApplication.statusCode, packageApplication.body).toBe(201);
     expect(packageApplication.json().application).toMatchObject({
       counts: { pages: inspectedPackage.summary.pages },
     });
@@ -1485,8 +1582,7 @@ describe("DB-backed Documentation repository", () => {
           mode: "empty_site",
           site_id: placeholderSite.json().site.id,
           expected_site_version: placeholderSite.json().site.version,
-          expected_draft_version:
-            placeholderSite.json().working_draft.version,
+          expected_draft_version: placeholderSite.json().working_draft.version,
           apply_primary_language: false,
         },
         external_bindings: [],

@@ -116,13 +116,15 @@ describe("Documentation routes", () => {
   it("carries selected Sites into the route target Version and returns replay status", async () => {
     const targetVersionId = "01J00000000000000000000002";
     const carry_forward = vi.fn(async () => ({
-      operation: {
+      carry_forward: {
         id: "01J00000000000000000000004",
         source_project_version_id: "01J00000000000000000000001",
         target_project_version_id: targetVersionId,
-        selection_count: 1,
-        items: [],
+        created_by_id: auth.org_user.id,
+        created_at: "2026-07-30T00:00:00.000Z",
       },
+      items: [],
+      replayed: false,
       idempotent_replay: false,
     }));
     const app = Fastify();

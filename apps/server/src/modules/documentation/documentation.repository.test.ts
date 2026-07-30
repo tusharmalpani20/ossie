@@ -176,6 +176,66 @@ describe("Documentation repository", () => {
     ).rejects.toMatchObject({ code: "documentation_comment_limit_exceeded" });
   });
 
+  it("blocks new comment mutation when the owning Page is archived", async () => {
+    const client = {
+      query: vi.fn(async (sql: string) => {
+        if (sql.includes("FROM documentation_schema.documentation_page page"))
+          return {
+            rows: [
+              {
+                site_edition_id: "edition",
+                page_status: "archived",
+                edition_status: "active",
+              },
+            ],
+          };
+        if (sql.includes("FROM documentation_schema.comment_thread thread"))
+          return {
+            rows: [
+              {
+                site_edition_id: "edition",
+                page_status: "archived",
+                edition_status: "active",
+              },
+            ],
+          };
+        return { rows: [] };
+      }),
+      release: vi.fn(),
+    };
+    const repository = build_documentation_repository({
+      connect: vi.fn(async () => client),
+      query: client.query,
+    } as never);
+    const scope = {
+      organization_id: "org",
+      project_id: "project",
+      project_version_id: "version",
+      site_id: "site",
+      actor_org_user_id: "actor",
+    };
+
+    await expect(
+      repository.create_comment_thread({
+        ...scope,
+        page_id: "page",
+        idempotency_key: "thread-key",
+        body: "Body",
+        block_anchor_id: null,
+        mentioned_project_membership_ids: [],
+      }),
+    ).rejects.toMatchObject({ code: "documentation_read_only" });
+    await expect(
+      repository.create_comment_reply({
+        ...scope,
+        thread_id: "thread",
+        idempotency_key: "reply-key",
+        body: "Body",
+        mentioned_project_membership_ids: [],
+      }),
+    ).rejects.toMatchObject({ code: "documentation_read_only" });
+  });
+
   it("filters Capture Asset choices by lifecycle and purge eligibility", async () => {
     const query = vi.fn(async (sql: string, values?: unknown[]) => {
       void sql;

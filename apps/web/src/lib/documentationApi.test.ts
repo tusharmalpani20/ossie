@@ -132,14 +132,15 @@ describe("Documentation authoring API adapter", () => {
   it("uses the target Version route and exact source concurrency tokens for Carry-Forward", async () => {
     const fetch = vi.fn(async () =>
       json({
-        operation: {
+        carry_forward: {
           id: "operation",
           source_project_version_id: "source",
           target_project_version_id: "target",
-          selection_count: 1,
-          idempotent_replay: false,
-          items: [],
+          created_by_id: "actor",
+          created_at: "2026-07-30T00:00:00.000Z",
         },
+        items: [],
+        replayed: false,
       }),
     );
     vi.stubGlobal("fetch", fetch);
@@ -177,9 +178,7 @@ describe("Documentation authoring API adapter", () => {
         headers: expect.objectContaining({
           "idempotency-key": "stable-retry-key",
         }),
-        body: expect.stringContaining(
-          '"expected_source_edition_version":2',
-        ),
+        body: expect.stringContaining('"expected_source_edition_version":2'),
       }),
     );
   });
@@ -228,13 +227,16 @@ describe("Documentation authoring API adapter", () => {
 
   it("uploads one actor-scoped portability inspection with idempotency", async () => {
     const fetch = vi.fn(async () =>
-      json({
-        inspection: {
-          id: "inspection",
-          kind: "page_markdown",
-          status: "ready",
+      json(
+        {
+          inspection: {
+            id: "inspection",
+            kind: "page_markdown",
+            status: "ready",
+          },
         },
-      }, 201),
+        201,
+      ),
     );
     vi.stubGlobal("fetch", fetch);
     await inspectDocumentationImport(
@@ -261,12 +263,7 @@ describe("Documentation authoring API adapter", () => {
   it("lists external binding candidates without requiring an existing Site", async () => {
     const fetch = vi.fn(async () => json({ publications: [] }));
     vi.stubGlobal("fetch", fetch);
-    await listDocumentationArtifactPublications(
-      "project",
-      "main",
-      "",
-      "guide",
-    );
+    await listDocumentationArtifactPublications("project", "main", "", "guide");
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining(
         "/versions/main/documentation-artifact-publications?artifact_type=guide",

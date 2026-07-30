@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   read_validated_documentation_asset_bytes,
   validate_documentation_asset_bytes,
+  validate_documentation_protected_file_bytes,
 } from "./documentation-asset-integrity";
 
 const png = await sharp({
@@ -97,5 +98,24 @@ describe("Documentation Asset byte integrity", () => {
     ).rejects.toMatchObject({
       code: "documentation_asset_source_unavailable",
     });
+  });
+
+  it("validates bounded non-image protected files such as OpenAPI sources", async () => {
+    const bytes = Buffer.from('{"openapi":"3.1.0"}');
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    await expect(
+      validate_documentation_protected_file_bytes({
+        file: {
+          storage_provider: "local",
+          storage_key: "openapi.json",
+          size_bytes: bytes.length,
+          checksum_sha256: digest,
+        },
+        get: vi.fn(async () => ({
+          stream: Readable.from(bytes),
+          size_bytes: bytes.length,
+        })),
+      }),
+    ).resolves.toBe(digest);
   });
 });

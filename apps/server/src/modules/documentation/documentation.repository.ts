@@ -2537,17 +2537,28 @@ export const build_documentation_repository = (database: Database) => {
               source.version,source.status,
               CASE
                 WHEN source.status='archived' THEN 'archived'
-                WHEN edition.status='archived' THEN 'read_only'
+                WHEN edition.status='archived'
+                  OR project.status='archived'
+                  OR version.status='archived' THEN 'read_only'
                 ELSE 'active'
               END effective_status,
               CASE
                 WHEN source.status='archived' THEN 'This OpenAPI Source is archived.'
                 WHEN edition.status='archived' THEN 'This Documentation Site Edition is archived.'
+                WHEN version.status='archived' THEN 'This Project Version is archived.'
+                WHEN project.status='archived' THEN 'This Project is archived.'
                 ELSE NULL
               END read_only_reason
          FROM documentation_schema.openapi_source source
          JOIN documentation_schema.site_edition edition
            ON edition.id=source.site_edition_id
+         JOIN project_schema.project project
+           ON project.id=source.project_id
+          AND project.organization_id=source.organization_id
+         JOIN project_schema.project_version version
+           ON version.id=edition.project_version_id
+          AND version.project_id=edition.project_id
+          AND version.organization_id=edition.organization_id
         WHERE source.organization_id=$1 AND source.project_id=$2
           AND edition.project_version_id=$3
           AND edition.documentation_site_id=$4`,
@@ -5459,8 +5470,13 @@ export const build_documentation_repository = (database: Database) => {
         request_digest,
       });
       if (replay) return replay;
-      const page = await client.query<{ site_edition_id: string }>(
-        `SELECT page.site_edition_id
+      const page = await client.query<{
+        site_edition_id: string;
+        page_status: "active" | "archived";
+        edition_status: "active" | "archived";
+      }>(
+        `SELECT page.site_edition_id,page.status page_status,
+                edition.status edition_status
            FROM documentation_schema.documentation_page page
            JOIN documentation_schema.site_edition edition
              ON edition.id=page.site_edition_id
@@ -5477,6 +5493,14 @@ export const build_documentation_repository = (database: Database) => {
         ],
       );
       if (!page.rows[0]) throw new Error("Documentation Page was not found");
+      if (
+        page.rows[0].page_status === "archived" ||
+        page.rows[0].edition_status === "archived"
+      )
+        throw Object.assign(
+          new Error("Documentation comments are read-only"),
+          { code: "documentation_read_only" },
+        );
       const thread_count = await client.query<{ thread_count: number }>(
         `SELECT COUNT(*)::integer thread_count
            FROM documentation_schema.comment_thread
@@ -5595,11 +5619,19 @@ export const build_documentation_repository = (database: Database) => {
         request_digest,
       });
       if (replay) return replay;
-      const thread = await client.query<{ site_edition_id: string }>(
-        `SELECT thread.site_edition_id
+      const thread = await client.query<{
+        site_edition_id: string;
+        page_status: "active" | "archived";
+        edition_status: "active" | "archived";
+      }>(
+        `SELECT thread.site_edition_id,page.status page_status,
+                edition.status edition_status
            FROM documentation_schema.comment_thread thread
            JOIN documentation_schema.site_edition edition
              ON edition.id=thread.site_edition_id
+           JOIN documentation_schema.documentation_page page
+             ON page.id=thread.documentation_page_id
+            AND page.site_edition_id=thread.site_edition_id
           WHERE thread.id=$1 AND edition.documentation_site_id=$2
             AND thread.organization_id=$3 AND thread.project_id=$4
             AND edition.project_version_id=$5
@@ -5613,6 +5645,14 @@ export const build_documentation_repository = (database: Database) => {
         ],
       );
       if (!thread.rows[0]) throw new Error("Comment thread was not found");
+      if (
+        thread.rows[0].page_status === "archived" ||
+        thread.rows[0].edition_status === "archived"
+      )
+        throw Object.assign(
+          new Error("Documentation comments are read-only"),
+          { code: "documentation_read_only" },
+        );
       const reply_count = await client.query<{ reply_count: number }>(
         `SELECT COUNT(*)::integer reply_count
            FROM documentation_schema.comment_reply
@@ -5697,11 +5737,17 @@ export const build_documentation_repository = (database: Database) => {
         id: string;
         state: "open" | "resolved";
         version: number;
+        page_status: "active" | "archived";
+        edition_status: "active" | "archived";
       }>(
-        `SELECT thread.id,thread.state,thread.version
+        `SELECT thread.id,thread.state,thread.version,
+                page.status page_status,edition.status edition_status
            FROM documentation_schema.comment_thread thread
            JOIN documentation_schema.site_edition edition
              ON edition.id=thread.site_edition_id
+           JOIN documentation_schema.documentation_page page
+             ON page.id=thread.documentation_page_id
+            AND page.site_edition_id=thread.site_edition_id
           WHERE thread.id=$1 AND edition.documentation_site_id=$2
             AND thread.organization_id=$3 AND thread.project_id=$4
             AND edition.project_version_id=$5
@@ -5716,6 +5762,14 @@ export const build_documentation_repository = (database: Database) => {
       );
       const thread = result.rows[0];
       if (!thread) throw new Error("Comment thread was not found");
+      if (
+        thread.page_status === "archived" ||
+        thread.edition_status === "archived"
+      )
+        throw Object.assign(
+          new Error("Documentation comments are read-only"),
+          { code: "documentation_read_only" },
+        );
       if (thread.version !== input.expected_version) {
         const error = new Error("Comment changed; reload and retry");
         Object.assign(error, { code: "documentation_row_version_conflict" });
@@ -6292,15 +6346,26 @@ export const build_documentation_repository = (database: Database) => {
       primary_language: string;
       edition_version: number;
       updated_at: Date;
+      project_status: "active" | "archived";
+      project_version_status: "active" | "archived";
     }>(
       `SELECT site.id,edition.title name,edition.description,site.version,
               edition.id edition_id,edition.status,edition.primary_language,
-              edition.version edition_version,edition.updated_at
+              edition.version edition_version,edition.updated_at,
+              project.status project_status,
+              project_version.status project_version_status
          FROM documentation_schema.documentation_site site
+         JOIN project_schema.project project
+           ON project.id=site.project_id
+          AND project.organization_id=site.organization_id
          JOIN documentation_schema.site_edition edition
            ON edition.documentation_site_id=site.id
           AND edition.project_id=site.project_id
           AND edition.organization_id=site.organization_id
+         JOIN project_schema.project_version project_version
+           ON project_version.id=edition.project_version_id
+          AND project_version.project_id=edition.project_id
+          AND project_version.organization_id=edition.organization_id
         WHERE site.organization_id=$1 AND site.project_id=$2
           AND edition.project_version_id=$3
           AND ($4='all' OR edition.status=$4)
@@ -6315,11 +6380,20 @@ export const build_documentation_repository = (database: Database) => {
     return result.rows.map((row) => ({
       ...row,
       effective_status:
-        row.status === "archived" ? ("archived" as const) : ("active" as const),
+        row.status === "archived"
+          ? ("archived" as const)
+          : row.project_status === "archived" ||
+              row.project_version_status === "archived"
+            ? ("read_only" as const)
+            : ("active" as const),
       read_only_reason:
         row.status === "archived"
           ? "This Documentation Site Edition is archived."
-          : null,
+          : row.project_version_status === "archived"
+            ? "This Project Version is archived."
+            : row.project_status === "archived"
+              ? "This Project is archived."
+              : null,
       updated_at: row.updated_at.toISOString(),
     }));
   },
@@ -6332,12 +6406,19 @@ export const build_documentation_repository = (database: Database) => {
   }) => {
     const versions = await database.query<{
       id: string;
+      name: string;
+      slug: string;
       status: "active" | "archived";
+      project_status: "active" | "archived";
     }>(
-      `SELECT id,status
-         FROM project_schema.project_version
-        WHERE organization_id=$1 AND project_id=$2
-          AND id=ANY($3::varchar[])`,
+      `SELECT version.id,version.name,version.slug,version.status,
+              project.status project_status
+         FROM project_schema.project_version version
+         JOIN project_schema.project project
+           ON project.id=version.project_id
+          AND project.organization_id=version.organization_id
+        WHERE version.organization_id=$1 AND version.project_id=$2
+          AND version.id=ANY($3::varchar[])`,
       [
         input.organization_id,
         input.project_id,
@@ -6366,16 +6447,26 @@ export const build_documentation_repository = (database: Database) => {
       primary_language: string;
       status: "active" | "archived";
       source_edition_version: number;
+      source_working_draft_id: string;
       source_draft_version: number;
+      latest_revision_id: string | null;
       latest_revision_number: number | null;
+      latest_revision_creation_trigger:
+        | "manual_checkpoint"
+        | "publication"
+        | "carry_forward"
+        | null;
       latest_revision_created_at: Date | null;
       target_has_edition: boolean;
     }>(
       `SELECT site.id site_id,edition.id source_edition_id,
               edition.title,edition.description,edition.primary_language,
               edition.status,edition.version source_edition_version,
+              draft.id source_working_draft_id,
               draft.version source_draft_version,
+              latest.id latest_revision_id,
               latest.revision_number latest_revision_number,
+              latest.creation_trigger latest_revision_creation_trigger,
               latest.created_at latest_revision_created_at,
               EXISTS (
                 SELECT 1 FROM documentation_schema.site_edition target
@@ -6392,9 +6483,10 @@ export const build_documentation_repository = (database: Database) => {
          JOIN documentation_schema.site_working_draft draft
            ON draft.site_edition_id=edition.id
          LEFT JOIN LATERAL (
-           SELECT revision_number,created_at
+           SELECT id,revision_number,creation_trigger,created_at
              FROM documentation_schema.site_revision revision
             WHERE revision.site_edition_id=edition.id
+              AND revision.snapshot_schema_version=2
             ORDER BY revision_number DESC LIMIT 1
          ) latest ON TRUE
         WHERE site.organization_id=$1 AND site.project_id=$2
@@ -6407,19 +6499,54 @@ export const build_documentation_repository = (database: Database) => {
         input.target_project_version_id,
       ],
     );
+    const sourceVersion = versions.rows.find(
+      ({ id }) => id === input.source_project_version_id,
+    )!;
     return {
-      source_project_version_id: input.source_project_version_id,
+      source_project_version: {
+        id: sourceVersion.id,
+        name: sourceVersion.name,
+        slug: sourceVersion.slug,
+        status: sourceVersion.status,
+      },
       target_project_version_id: input.target_project_version_id,
       sites: result.rows.map((site) => ({
-        ...site,
+        site_id: site.site_id,
+        source_edition_id: site.source_edition_id,
+        title: site.title,
+        description: site.description,
+        primary_language: site.primary_language,
+        status: site.status,
         effective_status:
-          site.status === "archived" ? ("archived" as const) : ("active" as const),
+          site.status === "archived"
+            ? ("archived" as const)
+            : sourceVersion.status === "archived" ||
+                sourceVersion.project_status === "archived"
+              ? ("read_only" as const)
+              : ("active" as const),
         read_only_reason:
           site.status === "archived"
             ? "This Documentation Site Edition is archived."
-            : null,
-        latest_revision_created_at:
-          site.latest_revision_created_at?.toISOString() ?? null,
+            : sourceVersion.status === "archived"
+              ? "This Project Version is archived."
+              : sourceVersion.project_status === "archived"
+                ? "This Project is archived."
+                : null,
+        source_edition_version: site.source_edition_version,
+        source_working_draft_id: site.source_working_draft_id,
+        source_draft_version: site.source_draft_version,
+        latest_revision: site.latest_revision_id
+          ? {
+              id: site.latest_revision_id,
+              revision_number: site.latest_revision_number!,
+              creation_trigger: site.latest_revision_creation_trigger!,
+              created_at: site.latest_revision_created_at!.toISOString(),
+            }
+          : null,
+        target_has_edition: site.target_has_edition,
+        blocker_code: site.target_has_edition
+          ? ("documentation_carry_forward_target_exists" as const)
+          : null,
       })),
     };
   },
@@ -6432,6 +6559,7 @@ export const build_documentation_repository = (database: Database) => {
     source_project_version_id: string;
     target_project_version_id: string;
     verified_asset_digests?: Record<string, Record<string, string>>;
+    verified_openapi_digests?: Record<string, string>;
     selections: Array<{
       site_id: string;
       expected_source_edition_version: number;
@@ -6447,15 +6575,26 @@ export const build_documentation_repository = (database: Database) => {
         target_project_version_id: input.target_project_version_id,
         selections: input.selections,
       });
+      await client.query(
+        `SELECT pg_advisory_xact_lock(hashtextextended($1::text,0))`,
+        [[
+          "documentation-carry-forward",
+          input.organization_id,
+          input.project_id,
+          input.actor_org_user_id,
+          idempotencyKeyHash,
+        ].join(":")],
+      );
       const replay = await client.query<{
         id: string;
         request_digest: string;
         source_project_version_id: string;
         target_project_version_id: string;
-        selection_count: number;
+        created_by_id: string;
+        created_at: Date;
       }>(
         `SELECT id,request_digest,source_project_version_id,
-                target_project_version_id,selection_count
+                target_project_version_id,created_by_id,created_at
            FROM documentation_schema.documentation_carry_forward
           WHERE organization_id=$1 AND project_id=$2 AND created_by_id=$3
             AND idempotency_key_hash=$4`,
@@ -6475,15 +6614,15 @@ export const build_documentation_repository = (database: Database) => {
           source_revision_number: number;
           source_revision_reused: boolean;
           target_edition_id: string;
-          target_draft_id: string;
+          target_working_draft_id: string;
         }>(
-          `SELECT item.position,item.documentation_site_id site_id,
+          `SELECT item.documentation_site_id site_id,
                   item.source_site_edition_id source_edition_id,
                   item.source_site_revision_id source_revision_id,
                   revision.revision_number source_revision_number,
                   item.source_revision_reused,
                   item.target_site_edition_id target_edition_id,
-                  item.target_site_working_draft_id target_draft_id
+                  item.target_site_working_draft_id target_working_draft_id
              FROM documentation_schema.documentation_carry_forward_item item
              JOIN documentation_schema.site_revision revision
                ON revision.id=item.source_site_revision_id
@@ -6498,16 +6637,17 @@ export const build_documentation_repository = (database: Database) => {
           throw new DocumentationIdempotencyConflictError();
         const items = await loadItems(replay.rows[0].id);
         return {
-          operation: {
+          carry_forward: {
             id: replay.rows[0].id,
             source_project_version_id:
               replay.rows[0].source_project_version_id,
             target_project_version_id:
               replay.rows[0].target_project_version_id,
-            selection_count: replay.rows[0].selection_count,
-            idempotent_replay: true,
-            items,
+            created_by_id: replay.rows[0].created_by_id,
+            created_at: replay.rows[0].created_at.toISOString(),
           },
+          items,
+          replayed: true,
           idempotent_replay: true,
         };
       }
@@ -6517,7 +6657,8 @@ export const build_documentation_repository = (database: Database) => {
       }>(
         `SELECT id,status FROM project_schema.project_version
           WHERE organization_id=$1 AND project_id=$2
-            AND id=ANY($3::varchar[]) FOR SHARE`,
+            AND id=ANY($3::varchar[])
+          ORDER BY id FOR SHARE`,
         [
           input.organization_id,
           input.project_id,
@@ -6543,6 +6684,21 @@ export const build_documentation_repository = (database: Database) => {
           code: "documentation_read_only",
         });
 
+      const selectedSiteIds = [
+        ...new Set(input.selections.map(({ site_id }) => site_id)),
+      ].sort();
+      const lockedSites = await client.query<{ id: string }>(
+        `SELECT id FROM documentation_schema.documentation_site
+          WHERE organization_id=$1 AND project_id=$2
+            AND id=ANY($3::varchar[])
+          ORDER BY id FOR UPDATE`,
+        [input.organization_id, input.project_id, selectedSiteIds],
+      );
+      if (lockedSites.rows.length !== selectedSiteIds.length)
+        throw Object.assign(
+          new Error("Source Documentation Site was not found"),
+          { code: "documentation_carry_forward_invalid" },
+        );
       const selected: Array<{
         selection: (typeof input.selections)[number];
         edition_id: string;
@@ -6554,9 +6710,9 @@ export const build_documentation_repository = (database: Database) => {
         edition_version: number;
         draft_version: number;
       }> = [];
-      for (const selection of input.selections) {
-        const source = await client.query<{
+      const lockedSources = await client.query<{
           edition_id: string;
+          site_id: string;
           draft_id: string;
           title: string;
           description: string | null;
@@ -6565,7 +6721,9 @@ export const build_documentation_repository = (database: Database) => {
           edition_version: number;
           draft_version: number;
         }>(
-          `SELECT edition.id edition_id,draft.id draft_id,edition.title,
+          `SELECT edition.id edition_id,
+                  edition.documentation_site_id site_id,draft.id draft_id,
+                  edition.title,
                   edition.description,edition.primary_language,edition.status,
                   edition.version edition_version,draft.version draft_version
              FROM documentation_schema.site_edition edition
@@ -6573,24 +6731,28 @@ export const build_documentation_repository = (database: Database) => {
                ON draft.site_edition_id=edition.id
             WHERE edition.organization_id=$1 AND edition.project_id=$2
               AND edition.project_version_id=$3
-              AND edition.documentation_site_id=$4
+              AND edition.documentation_site_id=ANY($4::varchar[])
+            ORDER BY edition.documentation_site_id
             FOR UPDATE OF edition,draft`,
           [
             input.organization_id,
             input.project_id,
             input.source_project_version_id,
-            selection.site_id,
+            selectedSiteIds,
           ],
         );
-        if (!source.rows[0])
+      const sourceBySiteId = new Map(
+        lockedSources.rows.map((source) => [source.site_id, source]),
+      );
+      for (const selection of input.selections) {
+        const source = sourceBySiteId.get(selection.site_id);
+        if (!source)
           throw Object.assign(new Error("Source Documentation Site was not found"), {
             code: "documentation_carry_forward_invalid",
           });
         if (
-          source.rows[0].edition_version !==
-            selection.expected_source_edition_version ||
-          source.rows[0].draft_version !==
-            selection.expected_source_draft_version
+          source.edition_version !== selection.expected_source_edition_version ||
+          source.draft_version !== selection.expected_source_draft_version
         )
           throw Object.assign(new Error("Source Documentation changed"), {
             code: "documentation_row_version_conflict",
@@ -6612,7 +6774,7 @@ export const build_documentation_repository = (database: Database) => {
             new Error("Target Documentation Site Edition already exists"),
             { code: "documentation_carry_forward_target_exists" },
           );
-        selected.push({ selection, ...source.rows[0] });
+        selected.push({ selection, ...source });
       }
 
       const snapshots: Array<{
@@ -6664,6 +6826,15 @@ export const build_documentation_repository = (database: Database) => {
           throw Object.assign(new Error("Source Revision was not found"), {
             code: "documentation_carry_forward_invalid",
           });
+        if (
+          snapshot.openapi_source &&
+          input.verified_openapi_digests?.[source.selection.site_id] !==
+            snapshot.openapi_source.digest
+        )
+          throw Object.assign(
+            new Error("Documentation OpenAPI source bytes are unavailable"),
+            { code: "documentation_asset_source_unavailable" },
+          );
         const contentBlocks = [
           ...snapshot.pages.flatMap(
             (page: Record<string, any>) => page.blocks ?? [],
@@ -6692,6 +6863,7 @@ export const build_documentation_repository = (database: Database) => {
           content_node_count: contentNodeCount,
           protected_reference_count:
             snapshot.assets.length +
+            (snapshot.openapi_source ? 1 : 0) +
             contentBlocks.filter(
               (block: Record<string, any>) =>
                 block.kind === "guide_publication" ||
@@ -6740,12 +6912,13 @@ export const build_documentation_repository = (database: Database) => {
             after: { version: revision.revision_number },
           })),
       ];
-      await client.query(
+      const operation = await client.query<{ created_at: Date }>(
         `INSERT INTO documentation_schema.documentation_carry_forward
           (id,organization_id,project_id,source_project_version_id,
            target_project_version_id,created_by_id,idempotency_key_hash,
            request_digest,selection_count)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         RETURNING created_at`,
         [
           operationId,
           input.organization_id,
@@ -6870,14 +7043,13 @@ export const build_documentation_repository = (database: Database) => {
           after: { version: 1 },
         });
         items.push({
-          position: index + 1,
           site_id: carried.source.selection.site_id,
           source_edition_id: carried.source.edition_id,
           source_revision_id: carried.revision.id,
           source_revision_number: carried.revision.revision_number,
           source_revision_reused: carried.revision.idempotent_replay,
           target_edition_id: targetEditionId,
-          target_draft_id: targetDraftId,
+          target_working_draft_id: targetDraftId,
         });
       }
       const auditEvent = build_entity_audit_event({
@@ -6897,14 +7069,15 @@ export const build_documentation_repository = (database: Database) => {
       });
       if (auditEvent) await write_audit_event(client, auditEvent);
       return {
-        operation: {
+        carry_forward: {
           id: operationId,
           source_project_version_id: input.source_project_version_id,
           target_project_version_id: input.target_project_version_id,
-          selection_count: items.length,
-          idempotent_replay: false,
-          items,
+          created_by_id: input.actor_org_user_id,
+          created_at: operation.rows[0]!.created_at.toISOString(),
         },
+        items,
+        replayed: false,
         idempotent_replay: false,
       };
     }),
@@ -7095,13 +7268,23 @@ export const build_documentation_repository = (database: Database) => {
       archived_at: Date | null;
       updated_at: Date;
       edition_status: "active" | "archived";
+      project_status: "active" | "archived";
+      project_version_status: "active" | "archived";
     }>(
       `SELECT page.id,page.title,page.description,page.canonical_path,
               page.status,page.version,page.archived_at,page.updated_at,
-              edition.status edition_status
+              edition.status edition_status,project.status project_status,
+              project_version.status project_version_status
          FROM documentation_schema.documentation_page page
          JOIN documentation_schema.site_edition edition
            ON edition.id=page.site_edition_id
+         JOIN project_schema.project project
+           ON project.id=page.project_id
+          AND project.organization_id=page.organization_id
+         JOIN project_schema.project_version project_version
+           ON project_version.id=edition.project_version_id
+          AND project_version.project_id=edition.project_id
+          AND project_version.organization_id=edition.organization_id
         WHERE page.organization_id=$1 AND page.project_id=$2
           AND edition.project_version_id=$3
           AND page.documentation_site_id=$4
@@ -7120,7 +7303,9 @@ export const build_documentation_repository = (database: Database) => {
       effective_status:
         page.status === "archived"
           ? ("archived" as const)
-          : page.edition_status === "archived"
+          : page.edition_status === "archived" ||
+              page.project_status === "archived" ||
+              page.project_version_status === "archived"
             ? ("read_only" as const)
             : ("active" as const),
       read_only_reason:
@@ -7128,7 +7313,11 @@ export const build_documentation_repository = (database: Database) => {
           ? "This Documentation Page is archived."
           : page.edition_status === "archived"
             ? "This Documentation Site Edition is archived."
-            : null,
+            : page.project_version_status === "archived"
+              ? "This Project Version is archived."
+              : page.project_status === "archived"
+                ? "This Project is archived."
+                : null,
       archived_at: page.archived_at?.toISOString() ?? null,
       updated_at: page.updated_at.toISOString(),
     }));

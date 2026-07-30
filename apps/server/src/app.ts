@@ -171,6 +171,7 @@ import {
 import {
   read_validated_documentation_asset_bytes,
   validate_documentation_asset_bytes,
+  validate_documentation_protected_file_bytes,
 } from "./modules/documentation/documentation-asset-integrity.js";
 import {
   canonicalize_documentation_package_json,
@@ -894,10 +895,17 @@ export const build = (opts: BuildOptions = {}) => {
                   actor_org_user_id: input.actor_org_user_id,
                 },
                 project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
                 capability: "documentation.carry_forward",
               });
-              const verified_asset_digests = Object.fromEntries(
-                await Promise.all(
+              const prepared = await Promise.all(
                   input.selections.map(async (selection) => {
                     const source = await repository.get_preview({
                       organization_id: input.organization_id,
@@ -915,7 +923,29 @@ export const build = (opts: BuildOptions = {}) => {
                       snippets: Array<{
                         blocks: Array<Record<string, unknown>>;
                       }>;
+                      openapi_source: null | { version: number };
                     };
+                    const openapiFile = snapshot.openapi_source
+                      ? await repository.get_openapi_export_file({
+                          organization_id: input.organization_id,
+                          project_id: input.project_id,
+                          project_version_id:
+                            input.source_project_version_id,
+                          site_id: selection.site_id,
+                          source: "draft",
+                          expected_source_version:
+                            snapshot.openapi_source.version,
+                        })
+                      : null;
+                    const openapiDigest = openapiFile
+                      ? await validate_documentation_protected_file_bytes({
+                          file: {
+                            ...openapiFile,
+                            checksum_sha256: openapiFile.digest,
+                          },
+                          get: default_capture_file_storage.get,
+                        })
+                      : null;
                     return [
                       selection.site_id,
                       await validate_referenced_asset_bytes(
@@ -931,13 +961,22 @@ export const build = (opts: BuildOptions = {}) => {
                           ...snapshot.snippets.flatMap(({ blocks }) => blocks),
                         ],
                       ),
+                      openapiDigest,
                     ] as const;
                   }),
+                );
+              const verified_asset_digests = Object.fromEntries(
+                prepared.map(([siteId, digests]) => [siteId, digests]),
+              );
+              const verified_openapi_digests = Object.fromEntries(
+                prepared.flatMap(([siteId, , digest]) =>
+                  digest ? [[siteId, digest] as const] : [],
                 ),
               );
               return repository.carry_forward({
                 ...input,
                 verified_asset_digests,
+                verified_openapi_digests,
               });
             },
             update_edition: async (input) => {

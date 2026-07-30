@@ -158,8 +158,7 @@ export const cancelDocumentationImport = (
       headers: { "idempotency-key": crypto.randomUUID() },
     },
   ).then((response) => {
-    if (!response.ok)
-      return json<never>(response);
+    if (!response.ok) return json<never>(response);
     return undefined;
   });
 
@@ -832,10 +831,16 @@ export type DocumentationCarryForwardOption = {
   effective_status: "active" | "read_only" | "archived";
   read_only_reason: string | null;
   source_edition_version: number;
+  source_working_draft_id: string;
   source_draft_version: number;
-  latest_revision_number: number | null;
-  latest_revision_created_at: string | null;
+  latest_revision: {
+    id: string;
+    revision_number: number;
+    creation_trigger: "manual_checkpoint" | "publication" | "carry_forward";
+    created_at: string;
+  } | null;
   target_has_edition: boolean;
+  blocker_code: "documentation_carry_forward_target_exists" | null;
 };
 
 export const listDocumentationCarryForwardOptions = (
@@ -848,7 +853,12 @@ export const listDocumentationCarryForwardOptions = (
     { credentials: "include" },
   ).then((response) =>
     json<{
-      source_project_version_id: string;
+      source_project_version: {
+        id: string;
+        slug: string;
+        name: string;
+        status: "active" | "archived";
+      };
       target_project_version_id: string;
       sites: DocumentationCarryForwardOption[];
     }>(response),
@@ -868,33 +878,36 @@ export const carryForwardDocumentationSites = (
   },
   idempotencyKey: string,
 ) =>
-  fetch(`${baseUrl()}${sitesPath(projectId, targetVersionSlug)}/carry-forward`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "content-type": "application/json",
-      "idempotency-key": idempotencyKey,
+  fetch(
+    `${baseUrl()}${sitesPath(projectId, targetVersionSlug)}/carry-forward`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": idempotencyKey,
+      },
+      body: JSON.stringify(input),
     },
-    body: JSON.stringify(input),
-  }).then((response) =>
+  ).then((response) =>
     json<{
-      operation: {
+      carry_forward: {
         id: string;
         source_project_version_id: string;
         target_project_version_id: string;
-        selection_count: number;
-        idempotent_replay: boolean;
-        items: Array<{
-          position: number;
-          site_id: string;
-          source_edition_id: string;
-          source_revision_id: string;
-          source_revision_number: number;
-          source_revision_reused: boolean;
-          target_edition_id: string;
-          target_draft_id: string;
-        }>;
+        created_by_id: string;
+        created_at: string;
       };
+      items: Array<{
+        site_id: string;
+        source_edition_id: string;
+        source_revision_id: string;
+        source_revision_number: number;
+        source_revision_reused: boolean;
+        target_edition_id: string;
+        target_working_draft_id: string;
+      }>;
+      replayed: boolean;
     }>(response),
   );
 
