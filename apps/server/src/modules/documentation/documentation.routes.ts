@@ -685,7 +685,9 @@ export const build_documentation_routes = (
               data: body.data,
             });
           const command = unwrap_idempotent_result(result);
-          return reply.status(command.replayed ? 200 : 201).send(command.body);
+          return reply
+            .status(command.replayed ? 200 : 201)
+            .send({ snippet: command.body });
         } catch (error) {
           return documentation_error(error, reply);
         }

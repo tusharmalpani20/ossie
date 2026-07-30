@@ -732,15 +732,19 @@ describe("v1 dogfood smoke workflow", () => {
       expect(public_page.json()).toMatchObject({
         publication: { id: fixture.publication_id },
         page: { title: "Install" },
+        snippets: [
+          expect.objectContaining({
+            id: fixture.snippet_id,
+            name: "Reusable safety note",
+          }),
+        ],
       });
       const alias = await app.inject({
         method: "GET",
         url: "/api/v1/public/publish-links/plan132-public/documentation/pages/install",
       });
       expect(alias.statusCode).toBe(308);
-      expect(alias.headers.location).toBe(
-        "/docs/plan132-public/install-guide",
-      );
+      expect(alias.headers.location).toBe("/docs/plan132-public/install-guide");
       const image = await app.inject({
         method: "GET",
         url: `/api/v1/public/publish-links/plan132-public/documentation/assets/${fixture.asset_id}/file`,
@@ -748,6 +752,13 @@ describe("v1 dogfood smoke workflow", () => {
       });
       expect(image.statusCode, image.body).toBe(200);
       expect(image.headers["content-type"]).toBe("image/png");
+      const capture_image = await app.inject({
+        method: "GET",
+        url: `/api/v1/public/publish-links/plan132-public/documentation/assets/capture/${fixture.capture_asset_id}/file`,
+        headers: { "x-ossie-access-surface": "public_reader" },
+      });
+      expect(capture_image.statusCode, capture_image.body).toBe(200);
+      expect(capture_image.headers["content-type"]).toBe("image/png");
       const foreign_image = await app.inject({
         method: "GET",
         url: "/api/v1/public/publish-links/plan132-public/documentation/assets/01K00000000000000000000000/file",

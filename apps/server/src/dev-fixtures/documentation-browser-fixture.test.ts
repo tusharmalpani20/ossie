@@ -11,8 +11,12 @@ describe("Documentation browser fixture", () => {
       "project_admin",
       "viewer",
     ]);
-    expect(fixture.routes.list).toContain("/versions/summer-release/documentation");
-    expect(fixture.routes.public_reader).toBe("/docs/plan132-public/install-guide");
+    expect(fixture.routes.list).toContain(
+      "/versions/summer-release/documentation",
+    );
+    expect(fixture.routes.public_reader).toBe(
+      "/docs/plan132-public/install-guide",
+    );
     expect(fixture.cases).toEqual(
       expect.arrayContaining([
         "page_conflict",
@@ -20,10 +24,13 @@ describe("Documentation browser fixture", () => {
         "openapi_reference",
         "publication_immutability",
         "rollback",
+        "snippet_conflict",
+        "asset_archive_protection",
+        "expanded_content",
       ]),
     );
-    expect(documentation_browser_fixture_cli_summary(fixture)).not.toHaveProperty(
-      "session_token",
-    );
+    expect(
+      documentation_browser_fixture_cli_summary(fixture),
+    ).not.toHaveProperty("session_token");
   });
 });

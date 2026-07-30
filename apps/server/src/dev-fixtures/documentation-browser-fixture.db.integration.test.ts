@@ -30,6 +30,13 @@ describe("Documentation browser fixture database seed", () => {
         pages: await count("documentation_schema.documentation_page"),
         comments: await count("documentation_schema.comment_thread"),
         operations: await count("documentation_schema.openapi_operation"),
+        snippets: await count("documentation_schema.documentation_snippet"),
+        revision_snippets: await count(
+          "documentation_schema.site_revision_snippet",
+        ),
+        revision_assets: await count(
+          "documentation_schema.site_revision_asset_reference",
+        ),
         revisions: await count("documentation_schema.site_revision"),
         publications: await count("publish_schema.site_publication"),
         link: link.rows[0],
@@ -41,6 +48,9 @@ describe("Documentation browser fixture database seed", () => {
       pages: 2,
       comments: 1,
       operations: 1,
+      snippets: 1,
+      revision_snippets: 2,
+      revision_assets: 2,
       revisions: 2,
       publications: 2,
       link: {

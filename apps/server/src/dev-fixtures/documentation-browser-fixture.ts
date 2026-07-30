@@ -10,11 +10,7 @@ import {
   seed_capture_portal_browser_fixture,
 } from "./capture-portal-browser-fixture";
 
-const multipart_file = (
-  filename: string,
-  mime_type: string,
-  bytes: Buffer,
-) => {
+const multipart_file = (filename: string, mime_type: string, bytes: Buffer) => {
   const boundary = "ossie-documentation-browser-fixture";
   return {
     headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
@@ -47,6 +43,7 @@ export const build_documentation_browser_fixture = () => {
   return {
     organization_id: capture.organization_id,
     project_id: capture.project_id,
+    capture_asset_id: capture.screenshot_asset_id,
     version_slug: "summer-release",
     users,
     cases: [
@@ -55,6 +52,9 @@ export const build_documentation_browser_fixture = () => {
       "openapi_reference",
       "publication_immutability",
       "rollback",
+      "snippet_conflict",
+      "asset_archive_protection",
+      "expanded_content",
     ] as const,
     routes: {
       list: `/projects/${capture.project_id}/versions/summer-release/documentation`,
@@ -335,6 +335,38 @@ export const seed_documentation_browser_fixture = async () => {
       "apply OpenAPI",
     );
     const source = applied.source as { id: string };
+    const snippet = require_success(
+      await app.inject({
+        method: "POST",
+        url: `${siteRoot}/snippets`,
+        cookies: cookie,
+        headers: { "idempotency-key": "plan133-snippet" },
+        payload: { name: "Reusable safety note" },
+      }),
+      "create Documentation Snippet",
+    ).snippet as { id: string; version: number };
+    require_success(
+      await app.inject({
+        method: "PUT",
+        url: `${siteRoot}/snippets/${snippet.id}/content`,
+        cookies: cookie,
+        payload: {
+          expected_snippet_version: snippet.version,
+          blocks: [
+            {
+              id: "01K13300000000000000000001",
+              kind: "callout",
+              position: 1,
+              expected_version: null,
+              tone: "warning",
+              title: "Before you continue",
+              text: "Back up your configuration before changing production.",
+            },
+          ],
+        },
+      }),
+      "save Documentation Snippet",
+    );
     require_success(
       await app.inject({
         method: "PUT",
@@ -363,7 +395,7 @@ export const seed_documentation_browser_fixture = async () => {
               kind: "image",
               position: 3,
               expected_version: 1,
-              asset_id: image.id,
+              source: { kind: "documentation_asset", id: image.id },
               alt_text: "One-pixel Documentation fixture image",
               caption: "Synthetic fixture image.",
             },
@@ -374,6 +406,106 @@ export const seed_documentation_browser_fixture = async () => {
               expected_version: null,
               openapi_source_id: source.id,
               operation_key: "get-widgets-listwidgets",
+            },
+            {
+              id: "01K13300000000000000000002",
+              kind: "quote",
+              position: 5,
+              expected_version: null,
+              text: "Small, exact releases are easier to trust.",
+              attribution: "Ossie docs",
+            },
+            {
+              id: "01K13300000000000000000003",
+              kind: "tabs",
+              position: 6,
+              expected_version: null,
+              items: [
+                {
+                  id: "01K13300000000000000000004",
+                  position: 1,
+                  expected_version: null,
+                  label: "Linux",
+                  body: "Run `ossie install`.",
+                },
+                {
+                  id: "01K13300000000000000000005",
+                  position: 2,
+                  expected_version: null,
+                  label: "macOS",
+                  body: "Run `brew install ossie`.",
+                },
+              ],
+            },
+            {
+              id: "01K13300000000000000000006",
+              kind: "table",
+              position: 7,
+              expected_version: null,
+              caption: "Default ports",
+              rows: [
+                {
+                  id: "01K13300000000000000000007",
+                  position: 1,
+                  expected_version: null,
+                  cells: [
+                    {
+                      id: "01K13300000000000000000008",
+                      column_position: 1,
+                      expected_version: null,
+                      is_header: true,
+                      text: "Service",
+                    },
+                    {
+                      id: "01K13300000000000000000009",
+                      column_position: 2,
+                      expected_version: null,
+                      is_header: true,
+                      text: "Port",
+                    },
+                  ],
+                },
+                {
+                  id: "01K13300000000000000000010",
+                  position: 2,
+                  expected_version: null,
+                  cells: [
+                    {
+                      id: "01K13300000000000000000011",
+                      column_position: 1,
+                      expected_version: null,
+                      is_header: false,
+                      text: "Web",
+                    },
+                    {
+                      id: "01K13300000000000000000012",
+                      column_position: 2,
+                      expected_version: null,
+                      is_header: false,
+                      text: "3000",
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              id: "01K13300000000000000000013",
+              kind: "snippet_reference",
+              position: 8,
+              expected_version: null,
+              snippet_id: snippet.id,
+            },
+            {
+              id: "01K13300000000000000000014",
+              kind: "image",
+              position: 9,
+              expected_version: null,
+              source: {
+                kind: "capture_asset",
+                id: base.capture_asset_id,
+              },
+              alt_text: "Synthetic captured dashboard",
+              caption: "Capture Asset reused from this Project.",
             },
           ],
         },
@@ -555,6 +687,8 @@ export const seed_documentation_browser_fixture = async () => {
       site_id: site.id,
       page_ids: { home: home.id, reference: reference.id },
       asset_id: image.id,
+      capture_asset_id: base.capture_asset_id,
+      snippet_id: snippet.id,
       revision_id: revision.id,
       revision_two_id: revisionTwo.id,
       publication_id: publicationOne.id,
