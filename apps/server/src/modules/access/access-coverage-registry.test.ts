@@ -57,4 +57,39 @@ describe("Access route coverage", () => {
       access_route_registration("GET", "/api/v1/public/instance")?.policy,
     ).toBe("excluded_transport");
   });
+
+  it("classifies Documentation authoring and public reader access explicitly", () => {
+    expect(
+      access_route_registration(
+        "GET",
+        "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id",
+      ),
+    ).toMatchObject({
+      policy: "meaningful_read",
+      root_resource_type: "documentation_page",
+      root_parameter: "page_id",
+      authorization_type: "project_role",
+    });
+    expect(
+      access_route_registration(
+        "PUT",
+        "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/content",
+      ),
+    ).toMatchObject({
+      policy: "extension_conditional",
+      root_resource_type: "documentation_page",
+      root_parameter: "page_id",
+      authorization_type: "project_role",
+    });
+    expect(
+      access_route_registration(
+        "GET",
+        "/api/v1/public/publish-links/:slug/documentation/pages/:*",
+      ),
+    ).toMatchObject({
+      policy: "public_access",
+      root_resource_type: "publish_link",
+      authorization_type: "public_link",
+    });
+  });
 });

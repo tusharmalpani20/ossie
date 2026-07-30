@@ -173,6 +173,96 @@ const mutations = mutation_registrations.map((item) => {
   };
 });
 
+const documentation_mutation = (
+  route: string,
+  action: string,
+  root_resource_type: string,
+  root_parameter: string | null,
+) =>
+  registration(route, {
+    action,
+    denied_action: `${root_resource_type}.access_denied`,
+    root_resource_type,
+    root_parameter,
+    project_parameter: "project_id",
+    policy: "extension_conditional",
+    surface: "portal",
+    authorization_type: "project_role",
+    atomic_commands: [],
+  });
+
+// Documentation mutations that do not yet write audit-guarded tables still
+// require explicit access classification. Their audit commands are registered
+// independently as each table is brought under the atomic audit guard.
+const documentation_mutations: AccessRouteRegistration[] = [
+  documentation_mutation(
+    "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites",
+    "documentation_site.created",
+    "project",
+    "project_id",
+  ),
+  documentation_mutation(
+    "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/sources",
+    "documentation_openapi.applied",
+    "documentation_site",
+    "site_id",
+  ),
+  documentation_mutation(
+    "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages",
+    "documentation_page.created",
+    "documentation_site",
+    "site_id",
+  ),
+  documentation_mutation(
+    "PUT /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/content",
+    "documentation_page.content_saved",
+    "documentation_page",
+    "page_id",
+  ),
+  documentation_mutation(
+    "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id",
+    "documentation_page.updated",
+    "documentation_page",
+    "page_id",
+  ),
+  documentation_mutation(
+    "PUT /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/navigation",
+    "documentation_navigation.replaced",
+    "documentation_site",
+    "site_id",
+  ),
+  documentation_mutation(
+    "PUT /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/routing",
+    "documentation_routing.replaced",
+    "documentation_site",
+    "site_id",
+  ),
+  documentation_mutation(
+    "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/comments",
+    "documentation_comment.created",
+    "documentation_page",
+    "page_id",
+  ),
+  documentation_mutation(
+    "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/comments/:thread_id/replies",
+    "documentation_comment.replied",
+    "documentation_comment",
+    "thread_id",
+  ),
+  documentation_mutation(
+    "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/comments/:thread_id",
+    "documentation_comment.updated",
+    "documentation_comment",
+    "thread_id",
+  ),
+  documentation_mutation(
+    "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions",
+    "documentation_revision.created",
+    "documentation_site",
+    "site_id",
+  ),
+];
+
 const read = (
   route: string,
   action: string,
@@ -413,7 +503,68 @@ const reads: AccessRouteRegistration[] = [
     "interactive_demo",
     "interactive_demo_id",
   ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites",
+    "documentation_site.list_viewed",
+    "project",
+    "project_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/source",
+    "documentation_openapi.viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id",
+    "documentation_page.viewed",
+    "documentation_page",
+    "page_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/pages/:page_id/comments",
+    "documentation_comment.list_viewed",
+    "documentation_page",
+    "page_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/preview",
+    "documentation_preview.viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions",
+    "documentation_revision.list_viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/revisions/:revision_id",
+    "documentation_revision.viewed",
+    "documentation_revision",
+    "revision_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/search",
+    "documentation_search.viewed",
+    "documentation_site",
+    "site_id",
+  ),
 ];
+
+const public_documentation_read = (route: string, action: string) =>
+  registration(route, {
+    action,
+    denied_action: "publish_link.view_denied",
+    root_resource_type: "publish_link",
+    root_parameter: null,
+    project_parameter: null,
+    policy: "public_access",
+    surface: "api",
+    authorization_type: "public_link",
+    atomic_commands: [],
+  });
 
 const public_routes: AccessRouteRegistration[] = [
   registration("GET /api/v1/public/invites/:token", {
@@ -477,6 +628,35 @@ const public_routes: AccessRouteRegistration[] = [
     authorization_type: "system",
     atomic_commands: [],
   }),
+  ...[
+    "",
+    "/versions/:version_slug",
+  ].flatMap((version_prefix) => [
+    public_documentation_read(
+      `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation`,
+      "documentation_publication.viewed",
+    ),
+    public_documentation_read(
+      `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation/pages/:*`,
+      "documentation_publication.page_viewed",
+    ),
+    public_documentation_read(
+      `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation/search`,
+      "documentation_publication.search_viewed",
+    ),
+    public_documentation_read(
+      `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation/operations/:operation_key`,
+      "documentation_publication.operation_viewed",
+    ),
+    public_documentation_read(
+      `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation/sitemap.xml`,
+      "documentation_publication.sitemap_viewed",
+    ),
+    public_documentation_read(
+      `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation/robots.txt`,
+      "documentation_publication.robots_viewed",
+    ),
+  ]),
 ];
 
 const compliance_routes: AccessRouteRegistration[] = [
@@ -525,6 +705,7 @@ const compliance_routes: AccessRouteRegistration[] = [
 
 export const ACCESS_ROUTE_COVERAGE_REGISTRY = [
   ...mutations,
+  ...documentation_mutations,
   ...reads,
   ...public_routes,
   ...compliance_routes,
