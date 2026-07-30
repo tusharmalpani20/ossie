@@ -2680,6 +2680,7 @@ implementation verification completed:
 - web unit: 70 files / 396 tests;
 - server DB: 22 files / 74 tests;
 - V1 smoke: 1 file / 2 tests;
+- extension: 19 files / 140 tests, plus lint, type check, and production build;
 - focused package Apply into both a newly created Site and a Site containing
   only its generated placeholder Home Page;
 - clean migration `001`–`027` with runtime Audit-schema verification;

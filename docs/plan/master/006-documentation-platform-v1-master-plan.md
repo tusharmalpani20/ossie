@@ -2828,7 +2828,8 @@ Child `133` runtime evidence includes:
 Child `134` implementation-checkpoint evidence includes:
 
 - server unit 111 files / 468 tests, web unit 70 files / 396 tests, server DB
-  22 files / 74 tests, and V1 smoke 1 file / 2 tests;
+  22 files / 74 tests, V1 smoke 1 file / 2 tests, and extension 19 files / 140
+  tests;
 - clean migration `001`–`027`, guarded placeholder-Home deletion, protected
   Documentation/Capture media export, exact OpenAPI sources, and package
   create-Site/empty-Site round trips;
