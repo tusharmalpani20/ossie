@@ -41,6 +41,39 @@ type CreateSiteInput = {
 };
 
 export const build_documentation_repository = (database: Database) => ({
+  list_sites: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+  }) => {
+    const result = await database.query<{
+      id: string;
+      name: string;
+      description: string | null;
+      version: number;
+      edition_id: string;
+      primary_language: string;
+      edition_version: number;
+      updated_at: Date;
+    }>(
+      `SELECT site.id,site.name,site.description,site.version,
+              edition.id edition_id,edition.primary_language,
+              edition.version edition_version,edition.updated_at
+         FROM documentation_schema.documentation_site site
+         JOIN documentation_schema.site_edition edition
+           ON edition.documentation_site_id=site.id
+          AND edition.project_id=site.project_id
+          AND edition.organization_id=site.organization_id
+        WHERE site.organization_id=$1 AND site.project_id=$2
+          AND edition.project_version_id=$3
+        ORDER BY edition.updated_at DESC,site.id`,
+      [input.organization_id, input.project_id, input.project_version_id],
+    );
+    return result.rows.map((row) => ({
+      ...row,
+      updated_at: row.updated_at.toISOString(),
+    }));
+  },
   create_site: async (input: CreateSiteInput) =>
     with_transaction(database, async (client) => {
       const site_id = ulid();

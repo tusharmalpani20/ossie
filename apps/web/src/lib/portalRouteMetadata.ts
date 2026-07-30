@@ -14,7 +14,8 @@ export type PortalRouteSection =
   | "project_settings"
   | "capture_sessions"
   | "guides"
-  | "interactive_demos";
+  | "interactive_demos"
+  | "documentation";
 
 export type PortalRouteMetadata = {
   section: PortalRouteSection | null;
@@ -80,6 +81,36 @@ const metadataByType: Partial<
     usesPortalShell: true,
     label: "Interactive demos",
   },
+  documentation_site_list: {
+    section: "documentation",
+    usesPortalShell: true,
+    label: "Documentation",
+  },
+  documentation_site_editor: {
+    section: "documentation",
+    usesPortalShell: true,
+    label: "Documentation Site",
+  },
+  documentation_page_editor: {
+    section: "documentation",
+    usesPortalShell: true,
+    label: "Documentation Page",
+  },
+  documentation_draft_preview: {
+    section: "documentation",
+    usesPortalShell: true,
+    label: "Documentation draft preview",
+  },
+  documentation_revision_preview: {
+    section: "documentation",
+    usesPortalShell: true,
+    label: "Site Revision",
+  },
+  documentation_publication_preview: {
+    section: "documentation",
+    usesPortalShell: true,
+    label: "Site Publication",
+  },
 };
 
 /** Returns shell metadata for a parsed portal route. */
@@ -113,6 +144,13 @@ const documentLabelByType: Record<PortalRoute["type"], string> = {
   project_interactive_demo_list: "Interactive demos",
   interactive_demo_detail: "Interactive demo editor",
   interactive_demo_preview: "Interactive demo preview",
+  documentation_site_list: "Documentation",
+  documentation_site_editor: "Documentation Site",
+  documentation_page_editor: "Documentation Page editor",
+  documentation_draft_preview: "Documentation draft preview",
+  documentation_revision_preview: "Site Revision",
+  documentation_publication_preview: "Site Publication",
+  public_documentation_reader: "Documentation",
   public_guide_reader: "Guide",
   public_guide_embed: "Guide",
   public_interactive_demo_reader: "Interactive demo",

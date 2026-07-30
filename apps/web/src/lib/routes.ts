@@ -99,6 +99,40 @@ export type PortalRoute =
       versionSlug?: string;
     }
   | {
+      type: "documentation_site_list";
+      projectId: string;
+      versionSlug: string;
+    }
+  | {
+      type: "documentation_site_editor";
+      projectId: string;
+      versionSlug: string;
+      siteId: string;
+    }
+  | {
+      type: "documentation_page_editor";
+      projectId: string;
+      versionSlug: string;
+      siteId: string;
+      pageId: string;
+    }
+  | {
+      type:
+        | "documentation_draft_preview"
+        | "documentation_revision_preview"
+        | "documentation_publication_preview";
+      projectId: string;
+      versionSlug: string;
+      siteId: string;
+      sequence?: number;
+    }
+  | {
+      type: "public_documentation_reader";
+      slug: string;
+      versionSlug?: string;
+      pagePath?: string;
+    }
+  | {
       type: "public_guide_reader";
       slug: string;
       versionSlug?: string;
@@ -241,7 +275,80 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
           revisionNumber: Number(rest[3]),
         };
     }
+    if (rest[0] === "documentation") {
+      if (rest.length === 1)
+        return { type: "documentation_site_list", projectId, versionSlug };
+      if (rest.length === 2 && rest[1])
+        return {
+          type: "documentation_site_editor",
+          projectId,
+          versionSlug,
+          siteId: decodeURIComponent(rest[1]),
+        };
+      if (
+        rest.length === 4 &&
+        rest[1] &&
+        rest[2] === "pages" &&
+        rest[3]
+      )
+        return {
+          type: "documentation_page_editor",
+          projectId,
+          versionSlug,
+          siteId: decodeURIComponent(rest[1]),
+          pageId: decodeURIComponent(rest[3]),
+        };
+      if (rest.length === 3 && rest[1] && rest[2] === "preview")
+        return {
+          type: "documentation_draft_preview",
+          projectId,
+          versionSlug,
+          siteId: decodeURIComponent(rest[1]),
+        };
+      if (
+        rest.length === 4 &&
+        rest[1] &&
+        (rest[2] === "revisions" || rest[2] === "publications") &&
+        /^\d+$/u.test(rest[3] ?? "")
+      )
+        return {
+          type:
+            rest[2] === "revisions"
+              ? "documentation_revision_preview"
+              : "documentation_publication_preview",
+          projectId,
+          versionSlug,
+          siteId: decodeURIComponent(rest[1]),
+          sequence: Number(rest[3]),
+        };
+    }
     return { type: "unsupported" };
+  }
+
+  if (segments[0] === "docs" && segments[1]) {
+    const slug = decodeURIComponent(segments[1]);
+    if (segments[2] === "versions") {
+      if (!segments[3]) return { type: "unsupported" };
+      const pagePath = segments
+        .slice(4)
+        .map((segment) => decodeURIComponent(segment))
+        .join("/");
+      return {
+        type: "public_documentation_reader",
+        slug,
+        versionSlug: decodeURIComponent(segments[3]),
+        ...(pagePath ? { pagePath } : {}),
+      };
+    }
+    const pagePath = segments
+      .slice(2)
+      .map((segment) => decodeURIComponent(segment))
+      .join("/");
+    return {
+      type: "public_documentation_reader",
+      slug,
+      ...(pagePath ? { pagePath } : {}),
+    };
   }
 
   if (segments.length === 1 && segments[0] === "login") {

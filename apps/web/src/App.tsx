@@ -30,6 +30,7 @@ import { GuideRevisionPreviewPage } from "./features/artifact-revision/GuideRevi
 import { InteractiveDemoRevisionPreviewPage } from "./features/artifact-revision/InteractiveDemoRevisionPreviewPage";
 import { ProjectCarryForwardPage } from "./features/artifact-carry-forward/ProjectCarryForwardPage";
 import { DesignSystemReviewPage } from "./features/design-system/DesignSystemReviewPage";
+import { ProjectDocumentationSiteListPage } from "./features/documentation/ProjectDocumentationSiteListPage";
 import { shouldRenderDesignSystemReview } from "./appRouteGuards";
 import {
   getProject,
@@ -62,6 +63,12 @@ const setupGuardedRouteTypes = new Set<PortalRoute["type"]>([
   "project_carry_forward",
   "artifact_revision_history",
   "artifact_revision_preview",
+  "documentation_site_list",
+  "documentation_site_editor",
+  "documentation_page_editor",
+  "documentation_draft_preview",
+  "documentation_revision_preview",
+  "documentation_publication_preview",
 ]);
 
 const shouldCheckSetup = (route: PortalRoute) =>
@@ -518,6 +525,30 @@ export default function App() {
               project.access.role !== "viewer"
             }
             renderShell={false}
+          />
+        )}
+      </ProjectVersionRouteBoundary>
+    );
+  }
+
+  if (route.type === "documentation_site_list") {
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+        activeSection="documentation"
+        currentLabel="Documentation"
+      >
+        {({ project, selected }) => (
+          <ProjectDocumentationSiteListPage
+            projectId={route.projectId}
+            versionSlug={route.versionSlug}
+            canManage={
+              project.status === "active" &&
+              selected.status === "active" &&
+              project.access.role === "project_admin"
+            }
           />
         )}
       </ProjectVersionRouteBoundary>

@@ -105,13 +105,19 @@ describe("DB-backed Documentation repository", () => {
         initial_home_page: { title: "Home", path: "home" },
       },
     });
-    await app.close();
-
     expect(response.statusCode).toBe(201);
     expect(response.json()).toMatchObject({
       site: { name: "Product docs" },
       edition: { primary_language: "en-US" },
       home_page: { canonical_path: "home" },
     });
+    const list = await app.inject({
+      method: "GET",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites`,
+      cookies: { ossie_session: scope.session_token },
+    });
+    expect(list.statusCode).toBe(200);
+    expect(list.json().documentation_sites).toHaveLength(1);
+    await app.close();
   });
 });

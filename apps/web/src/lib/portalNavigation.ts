@@ -114,6 +114,11 @@ export const buildPortalNavigation = ({
       active: activeSection === "interactive_demos",
     },
     {
+      label: "Documentation",
+      href: projectUrl(project, "/documentation", projectVersion),
+      active: activeSection === "documentation",
+    },
+    {
       label: "Activity",
       href: `/projects/${encodeURIComponent(project.id)}/activity`,
       active: activeSection === "project_activity",

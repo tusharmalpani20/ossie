@@ -32,6 +32,7 @@ const build_test_app = async (overrides?: {
         }),
       },
       documentation_service: {
+        list_sites: vi.fn(async () => []),
         create_site:
           overrides?.create_site ??
           vi.fn(async () => ({
@@ -84,6 +85,35 @@ describe("Documentation routes", () => {
         idempotency_key: "site-create-1",
       }),
     );
+  });
+
+  it("lists authorized Sites in the selected Project Version", async () => {
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: {
+          list_sites: vi.fn(async () => [
+            { id: "site", name: "Product docs", edition_id: "edition" },
+          ]),
+          create_site: vi.fn(),
+        },
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/projects/project/versions/main/documentation-sites",
+      cookies: { ossie_session: "session" },
+    });
+    await app.close();
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      documentation_sites: [
+        { id: "site", name: "Product docs", edition_id: "edition" },
+      ],
+    });
   });
 
   it("rejects unknown fields and missing idempotency keys", async () => {

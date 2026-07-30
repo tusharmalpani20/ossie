@@ -33,10 +33,10 @@ describe("portalNavigation", () => {
       "/projects/project%201/versions/spring-2026/guides",
       true,
     ]);
-    expect(labels).not.toContainEqual([
+    expect(labels).toContainEqual([
       "Documentation",
-      expect.any(String),
-      expect.any(Boolean),
+      "/projects/project%201/versions/spring-2026/documentation",
+      false,
     ]);
   });
 

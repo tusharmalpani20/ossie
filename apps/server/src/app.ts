@@ -710,8 +710,9 @@ export const build = (opts: BuildOptions = {}) => {
           const unavailable = async () => {
             throw new Error("Documentation operation is not available");
           };
+          const repository = build_documentation_repository(pool);
           const service = build_documentation_service({
-            ...build_documentation_repository(pool),
+            ...repository,
             save_page: unavailable,
             create_revision: unavailable,
             prepare_publication: unavailable,
@@ -719,6 +720,17 @@ export const build = (opts: BuildOptions = {}) => {
             rollback_publication: unavailable,
           });
           return {
+            list_sites: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.list_sites(input);
+            },
             create_site: async (input) => {
               await project_access_service.authorize({
                 auth: {

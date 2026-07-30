@@ -96,6 +96,37 @@ describe("parsePortalRoute", () => {
     });
   });
 
+  it("parses Documentation authoring and multi-segment public Page routes", () => {
+    expect(
+      parsePortalRoute(
+        "/projects/project_1/versions/main/documentation/site_1/pages/page_1",
+      ),
+    ).toEqual({
+      type: "documentation_page_editor",
+      projectId: "project_1",
+      versionSlug: "main",
+      siteId: "site_1",
+      pageId: "page_1",
+    });
+    expect(parsePortalRoute("/docs/public-docs/getting-started/install")).toEqual(
+      {
+        type: "public_documentation_reader",
+        slug: "public-docs",
+        pagePath: "getting-started/install",
+      },
+    );
+    expect(
+      parsePortalRoute(
+        "/docs/public-docs/versions/v2/getting-started/install",
+      ),
+    ).toEqual({
+      type: "public_documentation_reader",
+      slug: "public-docs",
+      versionSlug: "v2",
+      pagePath: "getting-started/install",
+    });
+  });
+
   it("parses Project Version Carry-Forward and immutable Revision routes", () => {
     expect(
       parsePortalRoute("/projects/project_1/versions/q3/carry-forward"),
