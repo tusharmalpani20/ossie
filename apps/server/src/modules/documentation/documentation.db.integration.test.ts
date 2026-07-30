@@ -531,6 +531,27 @@ describe("DB-backed Documentation repository", () => {
         })
       ).statusCode,
     ).toBe(200);
+    const revokedPublication = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/publish-links/${passwordPublication.json().link.id}/revoke`,
+      cookies: { ossie_session: scope.session_token },
+      payload: {
+        expected_link_version: passwordPublication.json().link.version,
+      },
+    });
+    expect(revokedPublication.statusCode).toBe(200);
+    expect(revokedPublication.json().publish_link).toMatchObject({
+      status: "revoked",
+      version: passwordPublication.json().link.version + 1,
+    });
+    expect(
+      (
+        await app.inject({
+          url: "/api/v1/public/publish-links/protected-product-docs/documentation/pages/install-guide",
+          cookies: { ossie_public_viewer: viewerToken ?? "" },
+        })
+      ).statusCode,
+    ).toBe(404);
     const restrictedPublication = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/publications`,
@@ -724,6 +745,7 @@ describe("DB-backed Documentation repository", () => {
         "documentation.publish_link.created",
         "documentation.publish_link.manifest_updated",
         "documentation.publish_link.entry_rolled_back",
+        "documentation.publish_link.revoked",
       ]),
     );
     const auditPayload = await pool.query<{ payload: string }>(

@@ -758,6 +758,7 @@ RETURNS BOOLEAN AS $$
       ('publish.documentation_link.create','documentation.publish_link.created'),
       ('publish.documentation_link.manifest_update','documentation.publish_link.manifest_updated'),
       ('publish.documentation_link.entry_rollback','documentation.publish_link.entry_rolled_back'),
+      ('publish.documentation_link.revoke','documentation.publish_link.revoked'),
       ('documentation.openapi.inspect','documentation.openapi.inspected'),
       ('documentation.asset.upload','documentation.asset.uploaded'),
       ('documentation.site.create','documentation.site_created'),
@@ -790,6 +791,8 @@ DROP TRIGGER publish_link_entry_i_audit_ctx ON publish_schema.publish_link_entry
 DROP TRIGGER publish_link_entry_i_audit_evd ON publish_schema.publish_link_entry;
 DROP TRIGGER publish_link_entry_u_audit_ctx ON publish_schema.publish_link_entry;
 DROP TRIGGER publish_link_entry_u_audit_evd ON publish_schema.publish_link_entry;
+DROP TRIGGER public_publish_viewer_session_u_audit_ctx ON publish_schema.public_publish_viewer_session;
+DROP TRIGGER public_publish_viewer_session_u_audit_evd ON publish_schema.public_publish_viewer_session;
 DROP TRIGGER file_i_audit_ctx ON file_schema.file;
 DROP TRIGGER file_i_audit_evd ON file_schema.file;
 
@@ -806,12 +809,12 @@ CREATE CONSTRAINT TRIGGER publish_link_i_audit_evd AFTER INSERT ON publish_schem
 CREATE TRIGGER publish_link_u_audit_ctx BEFORE UPDATE ON publish_schema.publish_link
   FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
     'publish_link','direct',
-    'publish.guide,publish.interactive_demo,publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.guide_link.revoke,publish.interactive_demo_link.revoke'
+    'publish.guide,publish.interactive_demo,publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.documentation_link.revoke,publish.guide_link.revoke,publish.interactive_demo_link.revoke'
   );
 CREATE CONSTRAINT TRIGGER publish_link_u_audit_evd AFTER UPDATE ON publish_schema.publish_link
   DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
     'publish_link','direct',
-    'publish.guide,publish.interactive_demo,publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.guide_link.revoke,publish.interactive_demo_link.revoke'
+    'publish.guide,publish.interactive_demo,publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.guide_link.manifest_update,publish.interactive_demo_link.manifest_update,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.documentation_link.revoke,publish.guide_link.revoke,publish.interactive_demo_link.revoke'
   );
 CREATE TRIGGER publish_link_entry_i_audit_ctx BEFORE INSERT ON publish_schema.publish_link_entry
   FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
@@ -832,6 +835,18 @@ CREATE CONSTRAINT TRIGGER publish_link_entry_u_audit_evd AFTER UPDATE ON publish
   DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
     'publish_link_entry','direct',
     'publish.guide,publish.interactive_demo,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback,publish.documentation_link.manifest_update,publish.documentation_link.entry_rollback'
+  );
+CREATE TRIGGER public_publish_viewer_session_u_audit_ctx BEFORE UPDATE ON publish_schema.public_publish_viewer_session
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'public_publish_viewer_session','viewer',
+    'publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.documentation_link.revoke,publish.guide_link.revoke,publish.interactive_demo_link.revoke,publish.viewer_session.touch'
+  );
+CREATE CONSTRAINT TRIGGER public_publish_viewer_session_u_audit_evd
+  AFTER UPDATE ON publish_schema.public_publish_viewer_session
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'public_publish_viewer_session','viewer',
+    'publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.documentation_link.revoke,publish.guide_link.revoke,publish.interactive_demo_link.revoke,publish.viewer_session.touch'
   );
 CREATE TRIGGER file_i_audit_ctx BEFORE INSERT ON file_schema.file
   FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
@@ -1101,6 +1116,8 @@ DROP TRIGGER publish_link_entry_i_audit_ctx ON publish_schema.publish_link_entry
 DROP TRIGGER publish_link_entry_i_audit_evd ON publish_schema.publish_link_entry;
 DROP TRIGGER publish_link_entry_u_audit_ctx ON publish_schema.publish_link_entry;
 DROP TRIGGER publish_link_entry_u_audit_evd ON publish_schema.publish_link_entry;
+DROP TRIGGER public_publish_viewer_session_u_audit_ctx ON publish_schema.public_publish_viewer_session;
+DROP TRIGGER public_publish_viewer_session_u_audit_evd ON publish_schema.public_publish_viewer_session;
 DROP TRIGGER file_i_audit_ctx ON file_schema.file;
 DROP TRIGGER file_i_audit_evd ON file_schema.file;
 DROP FUNCTION audit_schema.mutation_command_policy_is_valid(TEXT,TEXT,TEXT,TEXT);
@@ -1157,6 +1174,18 @@ CREATE CONSTRAINT TRIGGER publish_link_entry_u_audit_evd AFTER UPDATE ON publish
   DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
     'publish_link_entry','direct',
     'publish.guide,publish.interactive_demo,publish.guide_link.entry_rollback,publish.interactive_demo_link.entry_rollback'
+  );
+CREATE TRIGGER public_publish_viewer_session_u_audit_ctx BEFORE UPDATE ON publish_schema.public_publish_viewer_session
+  FOR EACH ROW EXECUTE FUNCTION audit_schema.require_mutation_context(
+    'public_publish_viewer_session','viewer',
+    'publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.guide_link.revoke,publish.interactive_demo_link.revoke,publish.viewer_session.touch'
+  );
+CREATE CONSTRAINT TRIGGER public_publish_viewer_session_u_audit_evd
+  AFTER UPDATE ON publish_schema.public_publish_viewer_session
+  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+  EXECUTE FUNCTION audit_schema.verify_mutation_evidence(
+    'public_publish_viewer_session','viewer',
+    'publish.guide_link.settings_update,publish.interactive_demo_link.settings_update,publish.guide_link.revoke,publish.interactive_demo_link.revoke,publish.viewer_session.touch'
   );
 
 ALTER TABLE publish_schema.publish_link_entry

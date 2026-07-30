@@ -679,6 +679,8 @@ export type DocumentationPublishLinkSummary = {
   id: string;
   name: string;
   slug: string;
+  status: "active" | "revoked";
+  version: number;
   entries: Array<{
     id: string;
     version: number;
@@ -799,4 +801,25 @@ export const rollbackDocumentationPublication = (
       link: { id: string; slug: string };
       entry: { id: string; version: number; site_publication_id: string };
     }>(response),
+  );
+
+export const revokeDocumentationPublishLink = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  linkId: string,
+  expectedLinkVersion: number,
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/publish-links/${encodeURIComponent(linkId)}/revoke`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        expected_link_version: expectedLinkVersion,
+      }),
+    },
+  ).then((response) =>
+    json<{ publish_link: DocumentationPublishLinkSummary }>(response),
   );

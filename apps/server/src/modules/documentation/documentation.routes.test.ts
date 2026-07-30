@@ -40,6 +40,7 @@ const documentation_service_stubs = (
   list_revisions: vi.fn(async () => []),
   list_publications: vi.fn(async () => []),
   list_publish_links: vi.fn(async () => []),
+  revoke_publish_link: vi.fn(),
   get_revision: vi.fn(),
   create_revision: vi.fn(),
   create_publication: vi.fn(),
@@ -195,6 +196,42 @@ describe("Documentation routes", () => {
     expect(list_publications).toHaveBeenCalledWith(
       expect.objectContaining({ site_id: "site", project_version_id: "version" }),
     );
+  });
+
+  it("revokes a version-matched Documentation Publish Link", async () => {
+    const revoke_publish_link = vi.fn(async () => ({
+      publish_link: { id: "link", status: "revoked", version: 4 },
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          revoke_publish_link,
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/publish-links/link/revoke",
+      cookies: { ossie_session: "session" },
+      payload: { expected_link_version: 3 },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().publish_link.status).toBe("revoked");
+    expect(revoke_publish_link).toHaveBeenCalledWith({
+      organization_id: "org",
+      project_id: "project",
+      project_version_id: "version",
+      actor_org_user_id: "actor",
+      site_id: "site",
+      link_id: "link",
+      expected_link_version: 3,
+    });
   });
 
   it("rejects unknown fields and missing idempotency keys", async () => {

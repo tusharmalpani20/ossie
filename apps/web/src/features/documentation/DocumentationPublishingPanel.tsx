@@ -8,6 +8,7 @@ import {
   listDocumentationPublishLinks,
   listDocumentationRevisions,
   rollbackDocumentationPublication,
+  revokeDocumentationPublishLink,
   type DocumentationPublicationSummary,
   type DocumentationPublishLinkSummary,
   type DocumentationRevisionSummary,
@@ -23,6 +24,7 @@ type Props = {
   loadPublishLinks?: typeof listDocumentationPublishLinks;
   publish?: typeof createDocumentationPublication;
   rollback?: typeof rollbackDocumentationPublication;
+  revoke?: typeof revokeDocumentationPublishLink;
 };
 
 export const DocumentationPublishingPanel = ({
@@ -35,6 +37,7 @@ export const DocumentationPublishingPanel = ({
   loadPublishLinks = listDocumentationPublishLinks,
   publish = createDocumentationPublication,
   rollback = rollbackDocumentationPublication,
+  revoke = revokeDocumentationPublishLink,
 }: Props) => {
   const [revisions, setRevisions] = useState<DocumentationRevisionSummary[]>([]);
   const [publications, setPublications] = useState<
@@ -199,6 +202,29 @@ export const DocumentationPublishingPanel = ({
     }
   };
 
+  const revokeLink = async () => {
+    const link = publishLinks[0];
+    if (!link || link.status !== "active") return;
+    setStatus("Revoking Publish Link…");
+    try {
+      const result = await revoke(
+        projectId,
+        versionSlug,
+        siteId,
+        link.id,
+        link.version,
+      );
+      setPublishLinks((current) =>
+        current.map((candidate) =>
+          candidate.id === link.id ? result.publish_link : candidate,
+        ),
+      );
+      setStatus("Publish Link revoked.");
+    } catch {
+      setStatus("Publish Link could not be revoked. Reload and retry.");
+    }
+  };
+
   const existingLink = publishLinks[0];
   const existingEntry = existingLink?.entries[0];
   const livePublication = publications.find(
@@ -224,6 +250,9 @@ export const DocumentationPublishingPanel = ({
             Live: Publication{" "}
             {livePublication?.publication_sequence ?? "not in this history"}
           </p>
+          {canPublish && existingLink.status === "active" ? (
+            <Button onClick={() => void revokeLink()}>Revoke link</Button>
+          ) : null}
           {canPublish && revisions[0] ? (
             <Button onClick={() => void publishToExisting()}>
               Publish Revision {revisions[0].revision_number} to existing link

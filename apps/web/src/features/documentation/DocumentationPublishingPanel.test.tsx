@@ -107,6 +107,8 @@ describe("DocumentationPublishingPanel", () => {
               id: "link",
               slug: "product-docs",
               name: "Product docs",
+              status: "active",
+              version: 1,
               entries: [
                 {
                   id: "entry",
@@ -154,5 +156,60 @@ describe("DocumentationPublishingPanel", () => {
         3,
       ),
     );
+  });
+
+  it("revokes an active Documentation Publish Link with its current version", async () => {
+    const revoke = vi.fn(async () => ({
+      publish_link: {
+        id: "link",
+        slug: "product-docs",
+        name: "Product docs",
+        status: "revoked" as const,
+        version: 4,
+        entries: [],
+      },
+    }));
+    render(
+      <DocumentationPublishingPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canPublish
+        loadRevisions={async () => ({ revisions: [] })}
+        loadPublications={async () => ({ publications: [] })}
+        loadPublishLinks={async () => ({
+          publish_links: [
+            {
+              id: "link",
+              slug: "product-docs",
+              name: "Product docs",
+              status: "active",
+              version: 3,
+              entries: [
+                {
+                  id: "entry",
+                  version: 1,
+                  site_publication_id: "publication",
+                },
+              ],
+            },
+          ],
+        })}
+        revoke={revoke}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Revoke link" }));
+    await waitFor(() =>
+      expect(revoke).toHaveBeenCalledWith(
+        "project",
+        "main",
+        "site",
+        "link",
+        3,
+      ),
+    );
+    expect(await screen.findByText("Publish Link revoked.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Revoke link" })).not.toBeInTheDocument();
   });
 });

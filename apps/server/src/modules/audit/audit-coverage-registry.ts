@@ -1167,6 +1167,14 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [U.link_entry_update()],
   ),
   command(
+    "publish.documentation_link.revoke",
+    "documentation.publish_link.revoked",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/revoke",
+    ],
+    [U.link_update(), U.viewer_update()],
+  ),
+  command(
     "publish.guide_link.revoke",
     "guide.publish_link.revoked",
     [

@@ -8,10 +8,10 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(97);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(98);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(97);
+    ).toBe(98);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
@@ -382,6 +382,11 @@ describe("audit coverage registry", () => {
       ["publish_link", "UPDATE", "publish_link_u_audit_ctx"],
       ["publish_link_entry", "INSERT", "publish_link_entry_i_audit_ctx"],
       ["publish_link_entry", "UPDATE", "publish_link_entry_u_audit_ctx"],
+      [
+        "public_publish_viewer_session",
+        "UPDATE",
+        "public_publish_viewer_session_u_audit_ctx",
+      ],
       ["file", "INSERT", "file_i_audit_ctx"],
       [
         "documentation_asset",

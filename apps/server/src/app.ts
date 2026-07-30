@@ -990,6 +990,17 @@ export const build = (opts: BuildOptions = {}) => {
               });
               return repository.rollback_publication(input);
             },
+            revoke_publish_link: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.site.manage",
+              });
+              return repository.revoke_publish_link(input);
+            },
             resolve_public_site: async (input) => {
               await documentation_public_access_service.authorize_public_documentation(
                 {

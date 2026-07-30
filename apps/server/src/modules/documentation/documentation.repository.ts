@@ -2176,6 +2176,130 @@ export const build_documentation_repository = (database: Database) => ({
       return { ...result, idempotent_replay: false };
     }),
 
+  revoke_publish_link: async (input: {
+    organization_id: string;
+    project_id: string;
+    project_version_id: string;
+    site_id: string;
+    actor_org_user_id: string;
+    link_id: string;
+    expected_link_version: number;
+  }) =>
+    with_transaction(database, async (client) => {
+      const selected = await client.query<{
+        id: string;
+        name: string;
+        slug: string;
+        status: "active" | "revoked";
+        version: number;
+      }>(
+        `SELECT link.id,link.name,link.slug,link.status,link.version
+           FROM publish_schema.publish_link link
+          WHERE link.id=$1 AND link.organization_id=$2 AND link.project_id=$3
+            AND link.documentation_site_id=$4
+            AND link.resource_family='documentation_site'
+            AND EXISTS (
+              SELECT 1 FROM publish_schema.publish_link_entry entry
+               WHERE entry.publish_link_id=link.id
+                 AND entry.project_version_id=$5
+            )
+          FOR UPDATE`,
+        [
+          input.link_id,
+          input.organization_id,
+          input.project_id,
+          input.site_id,
+          input.project_version_id,
+        ],
+      );
+      const link = selected.rows[0];
+      if (!link) {
+        const error = new Error("Documentation Publish Link was not found");
+        Object.assign(error, { code: "publish_link_not_found" });
+        throw error;
+      }
+      if (
+        link.status !== "active" ||
+        link.version !== input.expected_link_version
+      ) {
+        const error = new Error("Documentation Publish Link changed");
+        Object.assign(error, { code: "documentation_row_version_conflict" });
+        throw error;
+      }
+      const sessions = await client.query<{
+        id: string;
+        revoked_at: Date | null;
+      }>(
+        `SELECT id,revoked_at
+           FROM publish_schema.public_publish_viewer_session
+          WHERE publish_link_id=$1 AND revoked_at IS NULL
+          FOR UPDATE`,
+        [input.link_id],
+      );
+      const audit = await begin_documentation_audit_context(client, {
+        ...input,
+        command: "publish.documentation_link.revoke",
+        action: "documentation.publish_link.revoked",
+      });
+      const revokedAt = new Date();
+      await client.query(
+        `UPDATE publish_schema.publish_link
+            SET status='revoked',version=version+1,revoked_by_id=$1,
+                revoked_at=$2,updated_at=$2
+          WHERE id=$3`,
+        [input.actor_org_user_id, revokedAt, input.link_id],
+      );
+      await client.query(
+        `UPDATE publish_schema.public_publish_viewer_session
+            SET revoked_at=$1
+          WHERE publish_link_id=$2 AND revoked_at IS NULL`,
+        [revokedAt, input.link_id],
+      );
+      const auditEvent = build_entity_audit_event({
+        id: audit.event_id,
+        organization_id: input.organization_id,
+        project_id: input.project_id,
+        root_resource_type: "documentation_site",
+        root_resource_id: input.site_id,
+        action: "documentation.publish_link.revoked",
+        actor_org_user_id: input.actor_org_user_id,
+        actor_label: audit.actor_label,
+        source_type: audit.source_type,
+        occurred_at: audit.occurred_at,
+        before_row_version: link.version,
+        after_row_version: link.version + 1,
+        changes: [
+          {
+            entity_type: "publish_link",
+            entity_id: link.id,
+            parent_entity_type: "documentation_site",
+            parent_entity_id: input.site_id,
+            before: { version: link.version },
+            after: { version: link.version + 1 },
+            safe_fields: { version: "integer" },
+          },
+          ...sessions.rows.map((session) => ({
+            entity_type: "public_publish_viewer_session",
+            entity_id: session.id,
+            parent_entity_type: "publish_link",
+            parent_entity_id: link.id,
+            before: { revoked_at: session.revoked_at },
+            after: { revoked_at: revokedAt },
+            safe_fields: { revoked_at: "timestamp" as const },
+          })),
+        ],
+      });
+      if (auditEvent) await write_audit_event(client, auditEvent);
+      return {
+        publish_link: {
+          ...link,
+          status: "revoked" as const,
+          version: link.version + 1,
+          revoked_at: revokedAt.toISOString(),
+        },
+      };
+    }),
+
   get_asset_file_record: async (input: {
     organization_id: string;
     project_id: string;

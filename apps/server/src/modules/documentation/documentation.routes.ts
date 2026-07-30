@@ -17,6 +17,7 @@ import {
   DocumentationCreateRevisionRequestSchema,
   DocumentationRollbackPublicationRequestSchema,
   DocumentationApplyOpenApiRequestSchema,
+  RevokePublishLinkRequestSchema,
 } from "@repo/types";
 import { normalize_documentation_path } from "@repo/documentation-domain";
 import { z } from "zod";
@@ -58,6 +59,9 @@ const AssetParamsSchema = SiteParamsSchema.extend({
 const PublicationEntryParamsSchema = SiteParamsSchema.extend({
   link_id: z.string().trim().min(1),
   entry_id: z.string().trim().min(1),
+}).strict();
+const PublicationLinkParamsSchema = SiteParamsSchema.extend({
+  link_id: z.string().trim().min(1),
 }).strict();
 const PublicDocumentationParamsSchema = z
   .object({
@@ -278,6 +282,15 @@ export type DocumentationRouteDependencies = {
       idempotency_key: string;
       site_publication_id: string;
       expected_entry_version: number;
+    }) => Promise<unknown>;
+    revoke_publish_link: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      link_id: string;
+      expected_link_version: number;
     }) => Promise<unknown>;
     resolve_public_site: (input: {
       slug: string;
@@ -1464,6 +1477,34 @@ export const build_documentation_routes = (
             });
           const command = unwrap_idempotent_result(result);
           return reply.send(command.body);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/revoke",
+      async (request, reply) => {
+        const params = PublicationLinkParamsSchema.safeParse(request.params);
+        const body = RevokePublishLinkRequestSchema.safeParse(request.body);
+        if (!params.success || !body.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Documentation request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          return await dependencies.documentation_service.revoke_publish_link({
+            ...scope,
+            site_id: params.data.site_id,
+            link_id: params.data.link_id,
+            expected_link_version: body.data.expected_link_version,
+          });
         } catch (error) {
           return documentation_error(error, reply);
         }
