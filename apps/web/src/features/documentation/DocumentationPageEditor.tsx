@@ -165,7 +165,6 @@ export const DocumentationPageEditor = ({
   }, [canWrite, loadOptions, projectId, siteId, versionSlug]);
 
   useEffect(() => {
-    if (!canWrite) return;
     let active = true;
     loadOptions(projectId, versionSlug, siteId)
       .then(({ preview }) => {

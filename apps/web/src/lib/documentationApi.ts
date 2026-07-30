@@ -167,6 +167,21 @@ export const documentationPackageExportUrl = (
 ) =>
   `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/export/package.zip?source=draft&expected_site_version=${siteVersion}&expected_draft_version=${draftVersion}`;
 
+export const documentationFrozenPackageExportUrl = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  selection:
+    | { source: "revision"; revision_number: number }
+    | { source: "publication"; site_publication_id: string },
+) => {
+  const query =
+    selection.source === "revision"
+      ? `source=revision&revision_number=${selection.revision_number}`
+      : `source=publication&site_publication_id=${encodeURIComponent(selection.site_publication_id)}`;
+  return `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/export/package.zip?${query}`;
+};
+
 export const documentationPageMarkdownExportUrl = (
   projectId: string,
   versionSlug: string,

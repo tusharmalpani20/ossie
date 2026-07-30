@@ -5,6 +5,11 @@ import {
   getDocumentationPreview,
   type DocumentationDraftPreview,
   documentationPackageExportUrl,
+  documentationFrozenPackageExportUrl,
+  listDocumentationPublications,
+  listDocumentationRevisions,
+  type DocumentationPublicationSummary,
+  type DocumentationRevisionSummary,
 } from "../../lib/documentationApi";
 import { DocumentationOpenApiPanel } from "./DocumentationOpenApiPanel";
 import { DocumentationAssetLibrary } from "./DocumentationAssetLibrary";
@@ -37,6 +42,10 @@ export const DocumentationSiteEditorPage = ({
   );
   const [status, setStatus] = useState("Loading saved draft…");
   const [checkpointCount, setCheckpointCount] = useState(0);
+  const [revisions, setRevisions] = useState<DocumentationRevisionSummary[]>([]);
+  const [publications, setPublications] = useState<
+    DocumentationPublicationSummary[]
+  >([]);
 
   useEffect(() => {
     let active = true;
@@ -53,6 +62,23 @@ export const DocumentationSiteEditorPage = ({
       active = false;
     };
   }, [loadPreview, projectId, siteId, versionSlug]);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      listDocumentationRevisions(projectId, versionSlug, siteId),
+      listDocumentationPublications(projectId, versionSlug, siteId),
+    ])
+      .then(([revisionResult, publicationResult]) => {
+        if (!active) return;
+        setRevisions(revisionResult.revisions);
+        setPublications(publicationResult.publications);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [checkpointCount, projectId, siteId, versionSlug]);
 
   const checkpoint = async () => {
     if (!preview) return;
@@ -135,6 +161,50 @@ export const DocumentationSiteEditorPage = ({
         >
           Export saved draft ZIP
         </a>
+        {revisions.length ? (
+          <ul>
+            {revisions.map((revision) => (
+              <li key={revision.id}>
+                <a
+                  href={documentationFrozenPackageExportUrl(
+                    projectId,
+                    versionSlug,
+                    siteId,
+                    {
+                      source: "revision",
+                      revision_number: revision.revision_number,
+                    },
+                  )}
+                  download
+                >
+                  Export Revision {revision.revision_number} ZIP
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {publications.length ? (
+          <ul>
+            {publications.map((publication) => (
+              <li key={publication.id}>
+                <a
+                  href={documentationFrozenPackageExportUrl(
+                    projectId,
+                    versionSlug,
+                    siteId,
+                    {
+                      source: "publication",
+                      site_publication_id: publication.id,
+                    },
+                  )}
+                  download
+                >
+                  Export Publication {publication.publication_sequence} ZIP
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <DocumentationPortabilityPanel
           projectId={projectId}
           versionSlug={versionSlug}

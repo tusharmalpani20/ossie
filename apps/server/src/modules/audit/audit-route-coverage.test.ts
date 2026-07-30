@@ -70,6 +70,7 @@ describe("Audit mutation entry-point coverage", () => {
       "authentication.session.touch",
       "capture_asset.purge.fail",
       "capture_asset.purge.complete",
+      "documentation.import.expire",
     ]);
   });
 });
