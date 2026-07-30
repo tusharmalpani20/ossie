@@ -69,3 +69,65 @@ export const DOCUMENTATION_TAB_LABEL_MAX = 100;
 export const DOCUMENTATION_SHORT_LABEL_MAX = 200;
 export const DOCUMENTATION_TABLE_CAPTION_MAX = 1_000;
 export const DOCUMENTATION_CONTROLLED_MARKDOWN_SCALAR_MAX_BYTES = 256 * 1024;
+
+export const DOCUMENTATION_PACKAGE_FORMAT = "ossie.documentation-site";
+export const DOCUMENTATION_PACKAGE_FORMAT_VERSION = 1;
+export const DOCUMENTATION_PACKAGE_PROFILES = [
+  "roundtrip",
+  "markdown-folder",
+] as const;
+export const DOCUMENTATION_PACKAGE_SOURCE_KINDS = [
+  "working_draft",
+  "site_revision",
+  "site_publication",
+] as const;
+export const DOCUMENTATION_IMPORT_KINDS = [
+  "page_markdown",
+  "site_package",
+] as const;
+export const DOCUMENTATION_IMPORT_STATUSES = [
+  "ready",
+  "consumed",
+  "cancelled",
+  "expired",
+] as const;
+export const DOCUMENTATION_IMPORT_ISSUE_SEVERITIES = [
+  "blocking",
+  "warning",
+] as const;
+export const DOCUMENTATION_IMPORT_ISSUE_CODES = [
+  "archive_entry_unsafe",
+  "archive_limit_exceeded",
+  "archive_integrity_mismatch",
+  "manifest_invalid",
+  "package_version_unsupported",
+  "package_profile_invalid",
+  "content_unsupported",
+  "markdown_invalid",
+  "openapi_invalid",
+  "media_invalid",
+  "identity_duplicate",
+  "relationship_unresolved",
+] as const;
+
+export const DOCUMENTATION_MARKDOWN_UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
+export const DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
+export const DOCUMENTATION_PACKAGE_EXPANDED_MAX_BYTES = 128 * 1024 * 1024;
+export const DOCUMENTATION_PACKAGE_ENTRIES_MAX = 10_000;
+export const DOCUMENTATION_PACKAGE_NON_MEDIA_ENTRY_MAX_BYTES = 10 * 1024 * 1024;
+export const DOCUMENTATION_PACKAGE_MANIFEST_MAX_BYTES = 2 * 1024 * 1024;
+export const DOCUMENTATION_IMPORT_SAFE_REPORT_MAX_BYTES = 4 * 1024 * 1024;
+export const DOCUMENTATION_PACKAGE_PATH_MAX_BYTES = 240;
+export const DOCUMENTATION_PACKAGE_PATH_SEGMENTS_MAX = 8;
+export const DOCUMENTATION_PACKAGE_PATH_SEGMENT_MAX_BYTES = 80;
+export const DOCUMENTATION_PACKAGE_COMPRESSION_RATIO_MAX = 100;
+export const DOCUMENTATION_IMPORT_NESTING_MAX = 100;
+export const DOCUMENTATION_MARKDOWN_AST_NODES_MAX = 50_000;
+export const DOCUMENTATION_IMPORT_ISSUES_MAX = 500;
+export const DOCUMENTATION_EXTERNAL_BINDINGS_MAX = 1_000;
+export const DOCUMENTATION_READY_IMPORTS_PER_ACTOR_MAX = 10;
+export const DOCUMENTATION_IMPORT_PARSERS_PER_PROCESS_MAX = 2;
+export const DOCUMENTATION_IMPORT_PARSERS_PER_ACTOR_MAX = 1;
+export const DOCUMENTATION_IMPORT_ATTEMPTS_PER_WINDOW_MAX = 20;
+export const DOCUMENTATION_IMPORT_ATTEMPT_WINDOW_MS = 10 * 60 * 1_000;
+export const DOCUMENTATION_IMPORT_LIFETIME_MS = 60 * 60 * 1_000;

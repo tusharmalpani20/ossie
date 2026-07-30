@@ -38,6 +38,14 @@ import {
   DOCUMENTATION_COMMENT_STATES,
   DOCUMENTATION_NAVIGATION_KINDS,
   DOCUMENTATION_ROUTING_OUTCOMES,
+  DOCUMENTATION_PACKAGE_FORMAT,
+  DOCUMENTATION_PACKAGE_FORMAT_VERSION,
+  DOCUMENTATION_PACKAGE_PROFILES,
+  DOCUMENTATION_IMPORT_ISSUE_CODES,
+  DOCUMENTATION_IMPORT_ISSUES_MAX,
+  DOCUMENTATION_MARKDOWN_UPLOAD_MAX_BYTES,
+  DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
+  DOCUMENTATION_PACKAGE_EXPANDED_MAX_BYTES,
   PUBLISH_RESOURCE_FAMILIES,
   PUBLISH_ARTIFACT_TYPES,
   PUBLISH_LINK_ENTRY_MAX,
@@ -118,6 +126,22 @@ describe("@repo/constants", () => {
     ]);
     expect(PUBLISH_ARTIFACT_TYPES).toEqual(["guide", "interactive_demo"]);
     expect(DOCUMENTATION_BLOCK_KINDS).toContain("api_reference");
+  });
+
+  it("exports the frozen Documentation portability identity and safety ceilings", () => {
+    expect(DOCUMENTATION_PACKAGE_FORMAT).toBe("ossie.documentation-site");
+    expect(DOCUMENTATION_PACKAGE_FORMAT_VERSION).toBe(1);
+    expect(DOCUMENTATION_PACKAGE_PROFILES).toEqual([
+      "roundtrip",
+      "markdown-folder",
+    ]);
+    expect(DOCUMENTATION_IMPORT_ISSUE_CODES).toContain(
+      "archive_integrity_mismatch",
+    );
+    expect(DOCUMENTATION_IMPORT_ISSUES_MAX).toBe(500);
+    expect(DOCUMENTATION_MARKDOWN_UPLOAD_MAX_BYTES).toBe(4 * 1024 * 1024);
+    expect(DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES).toBe(32 * 1024 * 1024);
+    expect(DOCUMENTATION_PACKAGE_EXPANDED_MAX_BYTES).toBe(128 * 1024 * 1024);
   });
 
   it("keeps public instance mode defaults representable by exported constants", () => {

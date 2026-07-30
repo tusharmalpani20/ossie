@@ -18,9 +18,221 @@ import {
   DocumentationCreateSnippetRequestSchema,
   DocumentationAssetSourceSchema,
   DocumentationAssetLifecycleRequestSchema,
+  DocumentationPackageManifestV1Schema,
+  DocumentationPortableSiteV1Schema,
+  DocumentationPortablePageV1Schema,
+  DocumentationPortableSnippetV1Schema,
+  DocumentationImportInspectionResponseSchema,
+  DocumentationImportApplyRequestSchema,
 } from "./documentation";
 
 describe("Documentation shared contracts", () => {
+  const manifest = {
+    format: "ossie.documentation-site",
+    format_version: 1,
+    profile: "roundtrip",
+    source: {
+      kind: "working_draft",
+      project_version_label: "v1",
+      revision_number: null,
+      publication_sequence: null,
+    },
+    content_fingerprint: "a".repeat(64),
+    site_path: "site.json",
+    readme_path: "README.md",
+    entries: [
+      {
+        path: "README.md",
+        role: "readme",
+        mime_type: "text/markdown",
+        size_bytes: 12,
+        sha256: "b".repeat(64),
+      },
+    ],
+  } as const;
+
+  it("strictly freezes the version-one package manifest", () => {
+    expect(DocumentationPackageManifestV1Schema.parse(manifest)).toEqual(
+      manifest,
+    );
+    expect(
+      DocumentationPackageManifestV1Schema.safeParse({
+        ...manifest,
+        format_version: 2,
+      }).success,
+    ).toBe(false);
+    expect(
+      DocumentationPackageManifestV1Schema.safeParse({
+        ...manifest,
+        storage_key: "private/path",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("uses package-local handles for the complete portable Site graph", () => {
+    const page = {
+      schema_version: 1,
+      handle: "page-0001",
+      title: "Start",
+      description: null,
+      canonical_path: "start",
+      keywords: ["intro"],
+      blocks: [
+        {
+          handle: "block-0001",
+          kind: "paragraph",
+          position: 1,
+          text: "Welcome",
+        },
+        {
+          handle: "block-0002",
+          kind: "image",
+          position: 2,
+          asset_handle: "asset-0001",
+          alt_text: "Dashboard",
+          caption: null,
+        },
+      ],
+    } as const;
+    expect(DocumentationPortablePageV1Schema.parse(page)).toEqual(page);
+    expect(
+      DocumentationPortableSnippetV1Schema.safeParse({
+        schema_version: 1,
+        handle: "snippet-0001",
+        name: "Shared note",
+        status: "active",
+        blocks: [
+          {
+            handle: "block-0001",
+            kind: "snippet_reference",
+            position: 1,
+            snippet_handle: "snippet-0002",
+          },
+        ],
+      }).success,
+    ).toBe(false);
+
+    const site = {
+      schema_version: 1,
+      site: {
+        name: "Docs",
+        description: null,
+        primary_language: "en-US",
+      },
+      home_page_handle: "page-0001",
+      pages: [
+        {
+          handle: "page-0001",
+          title: "Start",
+          description: null,
+          canonical_path: "start",
+          keywords: ["intro"],
+          typed_path: "pages/page-0001.json",
+          markdown_path: "pages/page-0001.md",
+        },
+      ],
+      snippets: [],
+      assets: [
+        {
+          handle: "asset-0001",
+          path: "assets/asset-0001.png",
+          name: "Dashboard",
+          status: "active",
+          mime_type: "image/png",
+          size_bytes: 100,
+          width: 10,
+          height: 10,
+          sha256: "c".repeat(64),
+        },
+      ],
+      navigation: [
+        {
+          handle: "nav-0001",
+          parent_handle: null,
+          kind: "page",
+          label: null,
+          page_handle: "page-0001",
+          position: 1,
+        },
+      ],
+      aliases: [],
+      routes: [],
+      openapi: null,
+      external_bindings: [],
+    } as const;
+    expect(DocumentationPortableSiteV1Schema.parse(site)).toEqual(site);
+  });
+
+  it("keeps inspection reports bounded and Apply targets explicit", () => {
+    const response = {
+      inspection: {
+        id: "01J00000000000000000000001",
+        kind: "page_markdown",
+        status: "ready",
+        format_version: null,
+        source_digest: "d".repeat(64),
+        content_fingerprint: "e".repeat(64),
+        expires_at: "2026-07-30T18:00:00.000Z",
+        summary: {
+          pages: 1,
+          snippets: 0,
+          assets: 0,
+          openapi_sources: 0,
+          external_bindings: 0,
+          expanded_bytes: 42,
+        },
+        proposal: {
+          package_profile: null,
+          claimed_source_kind: null,
+          title: "Start",
+          canonical_path: "start",
+          site_name: null,
+          site_description: null,
+          primary_language: null,
+          home_page_handle: null,
+          pages: [],
+          required_bindings: [],
+        },
+        issues: [],
+        issue_counts: { blocking: 0, warnings: 0 },
+        has_blocking_issues: false,
+        issues_truncated: false,
+      },
+    } as const;
+    expect(DocumentationImportInspectionResponseSchema.parse(response)).toEqual(
+      response,
+    );
+    expect(
+      DocumentationImportApplyRequestSchema.safeParse({
+        content_fingerprint: "e".repeat(64),
+        target: {
+          mode: "page",
+          site_id: "01J00000000000000000000002",
+          expected_draft_version: 1,
+          title: "Imported",
+          canonical_path: "imported",
+          set_as_home: false,
+        },
+        external_bindings: [],
+        confirm: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      DocumentationImportApplyRequestSchema.safeParse({
+        content_fingerprint: "e".repeat(64),
+        target: {
+          mode: "empty_site",
+          site_id: "01J00000000000000000000002",
+          expected_site_version: 1,
+          expected_draft_version: 1,
+          apply_primary_language: false,
+        },
+        external_bindings: [],
+        confirm: false,
+      }).success,
+    ).toBe(false);
+  });
+
   it("requires explicit row versions on mutable Documentation aggregates", () => {
     expect(
       DocumentationPageUpdateRequestSchema.safeParse({

@@ -14,6 +14,8 @@ export type DocumentationDomainErrorCode =
   | "documentation_artifact_publication_type_mismatch"
   | "documentation_navigation_invalid"
   | "documentation_openapi_invalid"
+  | "documentation_package_invalid"
+  | "documentation_markdown_invalid"
   | "documentation_path_invalid"
   | "documentation_redirect_cycle"
   | "documentation_revision_invalid"

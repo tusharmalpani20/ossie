@@ -21,6 +21,15 @@ import {
   DOCUMENTATION_TABLE_ROWS_MAX,
   DOCUMENTATION_TAB_LABEL_MAX,
   DOCUMENTATION_TABS_MAX,
+  DOCUMENTATION_EXTERNAL_BINDINGS_MAX,
+  DOCUMENTATION_IMPORT_ISSUE_CODES,
+  DOCUMENTATION_IMPORT_ISSUES_MAX,
+  DOCUMENTATION_IMPORT_ISSUE_SEVERITIES,
+  DOCUMENTATION_PACKAGE_ENTRIES_MAX,
+  DOCUMENTATION_PACKAGE_FORMAT,
+  DOCUMENTATION_PACKAGE_FORMAT_VERSION,
+  DOCUMENTATION_PACKAGE_PROFILES,
+  DOCUMENTATION_PACKAGE_SOURCE_KINDS,
 } from "@repo/constants";
 import { z } from "zod";
 import { IdSchema, IsoDateTimeStringSchema, PositiveIntSchema } from "./common";
@@ -685,4 +694,533 @@ export const DocumentationPublicSearchResponseSchema = z
 export type DocumentationBlock = z.infer<typeof DocumentationBlockSchema>;
 export type DocumentationCreateSiteRequest = z.infer<
   typeof DocumentationCreateSiteRequestSchema
+>;
+
+const DocumentationPackageHandleSchema = z
+  .string()
+  .regex(/^[a-z][a-z0-9-]{0,63}$/u);
+const DocumentationPackagePathSchema = z
+  .string()
+  .min(1)
+  .max(240)
+  .refine(
+    (value) =>
+      !value.startsWith("/") &&
+      !value.includes("\\") &&
+      !value.split("/").some((segment) => !segment || segment === ".."),
+    { message: "Package path is unsafe" },
+  );
+const Sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
+const NonNegativeIntSchema = z.number().int().nonnegative();
+
+export const DocumentationPackageManifestEntryV1Schema = z
+  .object({
+    path: DocumentationPackagePathSchema,
+    role: z.enum([
+      "readme",
+      "site",
+      "page_typed",
+      "page_markdown",
+      "snippet",
+      "asset",
+      "openapi",
+    ]),
+    mime_type: z.string().trim().min(1).max(200),
+    size_bytes: NonNegativeIntSchema,
+    sha256: Sha256Schema,
+  })
+  .strict();
+
+export const DocumentationPackageManifestV1Schema = z
+  .object({
+    format: z.literal(DOCUMENTATION_PACKAGE_FORMAT),
+    format_version: z.literal(DOCUMENTATION_PACKAGE_FORMAT_VERSION),
+    profile: z.enum(DOCUMENTATION_PACKAGE_PROFILES),
+    source: z
+      .object({
+        kind: z.enum(DOCUMENTATION_PACKAGE_SOURCE_KINDS),
+        project_version_label: z.string().min(1).max(200),
+        revision_number: PositiveIntSchema.nullable(),
+        publication_sequence: PositiveIntSchema.nullable(),
+      })
+      .strict(),
+    content_fingerprint: Sha256Schema,
+    site_path: z.literal("site.json"),
+    readme_path: z.literal("README.md"),
+    entries: z
+      .array(DocumentationPackageManifestEntryV1Schema)
+      .max(DOCUMENTATION_PACKAGE_ENTRIES_MAX),
+  })
+  .strict();
+
+const PortablePositionedBase = {
+  handle: DocumentationPackageHandleSchema,
+  position: PositiveIntSchema,
+} as const;
+const PortableListItemSchema = z
+  .object({
+    handle: DocumentationPackageHandleSchema,
+    position: PositiveIntSchema,
+    text: ControlledMarkdownSchema.min(1),
+  })
+  .strict();
+const PortableTableCellSchema = z
+  .object({
+    handle: DocumentationPackageHandleSchema,
+    position: PositiveIntSchema,
+    is_header: z.boolean(),
+    text: ControlledMarkdownSchema,
+  })
+  .strict();
+const PortableTableRowSchema = z
+  .object({
+    handle: DocumentationPackageHandleSchema,
+    position: PositiveIntSchema,
+    cells: z.array(PortableTableCellSchema).min(1).max(20),
+  })
+  .strict();
+const PortableTabSchema = z
+  .object({
+    handle: DocumentationPackageHandleSchema,
+    position: PositiveIntSchema,
+    label: z.string().trim().min(1).max(DOCUMENTATION_TAB_LABEL_MAX),
+    body: ControlledMarkdownSchema,
+  })
+  .strict();
+
+const portableBlockSchemas = [
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("paragraph"),
+      text: ControlledMarkdownSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("heading"),
+      level: z.union([z.literal(2), z.literal(3), z.literal(4)]),
+      text: ControlledMarkdownSchema.min(1),
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("ordered_list"),
+      items: z.array(PortableListItemSchema).min(1).max(500),
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("unordered_list"),
+      items: z.array(PortableListItemSchema).min(1).max(500),
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("code"),
+      code: z.string().max(1_048_576),
+      language: z.string().trim().max(40).nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("link"),
+      label: z.string().trim().min(1),
+      url: z.string().url().optional(),
+      page_handle: DocumentationPackageHandleSchema.optional(),
+      target_block_handle:
+        DocumentationPackageHandleSchema.nullable().optional(),
+    })
+    .strict()
+    .refine((value) => Boolean(value.url) !== Boolean(value.page_handle), {
+      message: "Portable link must target exactly one URL or Page",
+    })
+    .refine(
+      (value) => !value.target_block_handle || Boolean(value.page_handle),
+      { message: "A target block requires a target Page" },
+    ),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("image"),
+      asset_handle: DocumentationPackageHandleSchema,
+      alt_text: z.string().trim().min(1).max(1_000),
+      caption: z.string().trim().max(1_000).nullable(),
+    })
+    .strict(),
+  z.object({ ...PortablePositionedBase, kind: z.literal("divider") }).strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("api_reference"),
+      operation_destination_key: z.string().trim().min(1).nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("quote"),
+      text: ControlledMarkdownSchema.min(1),
+      attribution: z
+        .string()
+        .trim()
+        .max(DOCUMENTATION_SHORT_LABEL_MAX)
+        .nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("table"),
+      caption: z
+        .string()
+        .trim()
+        .max(DOCUMENTATION_TABLE_CAPTION_MAX)
+        .nullable(),
+      rows: z
+        .array(PortableTableRowSchema)
+        .min(1)
+        .max(DOCUMENTATION_TABLE_ROWS_MAX),
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("code_example"),
+      code: z.string().max(1_048_576),
+      language: z.string().trim().max(40).nullable(),
+      title: z.string().trim().max(DOCUMENTATION_SHORT_LABEL_MAX).nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("callout"),
+      tone: z.enum(DOCUMENTATION_CALLOUT_TONES),
+      title: z.string().trim().max(DOCUMENTATION_SHORT_LABEL_MAX).nullable(),
+      text: ControlledMarkdownSchema.min(1),
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("tabs"),
+      items: z.array(PortableTabSchema).min(1).max(DOCUMENTATION_TABS_MAX),
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("snippet_reference"),
+      snippet_handle: DocumentationPackageHandleSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("guide_publication"),
+      external_binding_handle: DocumentationPackageHandleSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...PortablePositionedBase,
+      kind: z.literal("interactive_demo_publication"),
+      external_binding_handle: DocumentationPackageHandleSchema,
+    })
+    .strict(),
+] as const;
+
+export const DocumentationPortableBlockV1Schema = z.discriminatedUnion(
+  "kind",
+  portableBlockSchemas,
+);
+export const DocumentationPortableSnippetBlockV1Schema =
+  DocumentationPortableBlockV1Schema.refine(
+    (block) => block.kind !== "snippet_reference",
+    { message: "Portable Snippets cannot reference Snippets" },
+  );
+
+export const DocumentationPortablePageV1Schema = z
+  .object({
+    schema_version: z.literal(1),
+    handle: DocumentationPackageHandleSchema,
+    title: TitleSchema,
+    description: DescriptionSchema,
+    canonical_path: CanonicalPathSchema,
+    keywords: z.array(z.string().trim().min(1).max(DOCUMENTATION_KEYWORD_MAX)),
+    blocks: z.array(DocumentationPortableBlockV1Schema),
+  })
+  .strict();
+
+export const DocumentationPortableSnippetV1Schema = z
+  .object({
+    schema_version: z.literal(1),
+    handle: DocumentationPackageHandleSchema,
+    name: z.string().trim().min(1).max(200),
+    status: z.enum(DOCUMENTATION_SNIPPET_STATUSES),
+    blocks: z.array(DocumentationPortableSnippetBlockV1Schema),
+  })
+  .strict();
+
+const PortableExternalBindingSchema = z
+  .object({
+    handle: DocumentationPackageHandleSchema,
+    kind: z.enum(["guide_publication", "interactive_demo_publication"]),
+    display: z
+      .object({
+        title: z.string().trim().min(1).max(200),
+        description: DescriptionSchema,
+        project_version_label: z.string().trim().min(1).max(200),
+        revision_number: PositiveIntSchema,
+        publication_sequence: PositiveIntSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+export const DocumentationPortableSiteV1Schema = z
+  .object({
+    schema_version: z.literal(1),
+    site: z
+      .object({
+        name: z.string().trim().min(1).max(200),
+        description: DescriptionSchema,
+        primary_language: z.string().trim().min(2).max(35),
+      })
+      .strict(),
+    home_page_handle: DocumentationPackageHandleSchema.nullable(),
+    pages: z.array(
+      z
+        .object({
+          handle: DocumentationPackageHandleSchema,
+          title: TitleSchema,
+          description: DescriptionSchema,
+          canonical_path: CanonicalPathSchema,
+          keywords: z.array(
+            z.string().trim().min(1).max(DOCUMENTATION_KEYWORD_MAX),
+          ),
+          typed_path: DocumentationPackagePathSchema.nullable(),
+          markdown_path: DocumentationPackagePathSchema,
+        })
+        .strict(),
+    ),
+    snippets: z.array(
+      z
+        .object({
+          handle: DocumentationPackageHandleSchema,
+          path: DocumentationPackagePathSchema,
+        })
+        .strict(),
+    ),
+    assets: z.array(
+      z
+        .object({
+          handle: DocumentationPackageHandleSchema,
+          path: DocumentationPackagePathSchema,
+          name: z.string().trim().min(1).max(200),
+          status: z.enum(DOCUMENTATION_ASSET_STATUSES),
+          mime_type: z.enum(["image/png", "image/jpeg", "image/webp"]),
+          size_bytes: PositiveIntSchema,
+          width: PositiveIntSchema,
+          height: PositiveIntSchema,
+          sha256: Sha256Schema,
+        })
+        .strict(),
+    ),
+    navigation: z.array(
+      z
+        .object({
+          handle: DocumentationPackageHandleSchema,
+          parent_handle: DocumentationPackageHandleSchema.nullable(),
+          kind: z.enum(["group", "page"]),
+          label: z.string().trim().min(1).max(200).nullable(),
+          page_handle: DocumentationPackageHandleSchema.nullable(),
+          position: PositiveIntSchema,
+        })
+        .strict(),
+    ),
+    aliases: z.array(
+      z
+        .object({
+          page_handle: DocumentationPackageHandleSchema,
+          former_path: CanonicalPathSchema,
+        })
+        .strict(),
+    ),
+    routes: z.array(
+      z
+        .object({
+          source_path: CanonicalPathSchema,
+          outcome: z.enum(["redirect", "gone"]),
+          target_page_handle: DocumentationPackageHandleSchema.nullable(),
+        })
+        .strict(),
+    ),
+    openapi: z
+      .object({
+        path: DocumentationPackagePathSchema,
+        original_format: z.enum(["json", "yaml"]),
+        sha256: Sha256Schema,
+      })
+      .strict()
+      .nullable(),
+    external_bindings: z
+      .array(PortableExternalBindingSchema)
+      .max(DOCUMENTATION_EXTERNAL_BINDINGS_MAX),
+  })
+  .strict();
+
+export const DocumentationImportIssueSchema = z
+  .object({
+    severity: z.enum(DOCUMENTATION_IMPORT_ISSUE_SEVERITIES),
+    code: z.enum(DOCUMENTATION_IMPORT_ISSUE_CODES),
+    location: DocumentationPackagePathSchema.nullable(),
+    line: PositiveIntSchema.nullable(),
+    column: PositiveIntSchema.nullable(),
+    message: z.string().min(1).max(500),
+  })
+  .strict();
+
+export const DocumentationImportCountsSchema = z
+  .object({
+    pages: NonNegativeIntSchema,
+    snippets: NonNegativeIntSchema,
+    assets: NonNegativeIntSchema,
+    openapi_sources: z.union([z.literal(0), z.literal(1)]),
+    external_bindings: NonNegativeIntSchema,
+    navigation_nodes: NonNegativeIntSchema,
+    aliases: NonNegativeIntSchema,
+    routes: NonNegativeIntSchema,
+    blocks: NonNegativeIntSchema,
+  })
+  .strict();
+
+const RequiredBindingSchema = PortableExternalBindingSchema;
+const ImportInspectionSchema = z
+  .object({
+    id: IdSchema,
+    kind: z.enum(["page_markdown", "site_package"]),
+    status: z.literal("ready"),
+    format_version: z.literal(1).nullable(),
+    source_digest: Sha256Schema,
+    content_fingerprint: Sha256Schema,
+    expires_at: IsoDateTimeStringSchema,
+    summary: z
+      .object({
+        pages: NonNegativeIntSchema,
+        snippets: NonNegativeIntSchema,
+        assets: NonNegativeIntSchema,
+        openapi_sources: z.union([z.literal(0), z.literal(1)]),
+        external_bindings: NonNegativeIntSchema,
+        expanded_bytes: NonNegativeIntSchema,
+      })
+      .strict(),
+    proposal: z
+      .object({
+        package_profile: z.enum(DOCUMENTATION_PACKAGE_PROFILES).nullable(),
+        claimed_source_kind: z
+          .enum(DOCUMENTATION_PACKAGE_SOURCE_KINDS)
+          .nullable(),
+        title: TitleSchema.nullable(),
+        canonical_path: CanonicalPathSchema.nullable(),
+        site_name: z.string().trim().min(1).max(200).nullable(),
+        site_description: DescriptionSchema,
+        primary_language: z.string().trim().min(2).max(35).nullable(),
+        home_page_handle: DocumentationPackageHandleSchema.nullable(),
+        pages: z.array(
+          z
+            .object({
+              handle: DocumentationPackageHandleSchema,
+              title: TitleSchema,
+              canonical_path: CanonicalPathSchema,
+            })
+            .strict(),
+        ),
+        required_bindings: z
+          .array(RequiredBindingSchema)
+          .max(DOCUMENTATION_EXTERNAL_BINDINGS_MAX),
+      })
+      .strict(),
+    issues: z
+      .array(DocumentationImportIssueSchema)
+      .max(DOCUMENTATION_IMPORT_ISSUES_MAX),
+    issue_counts: z
+      .object({
+        blocking: NonNegativeIntSchema,
+        warnings: NonNegativeIntSchema,
+      })
+      .strict(),
+    has_blocking_issues: z.boolean(),
+    issues_truncated: z.boolean(),
+  })
+  .strict();
+
+export const DocumentationImportInspectionResponseSchema = z
+  .object({ inspection: ImportInspectionSchema })
+  .strict();
+
+export const DocumentationImportApplyRequestSchema = z
+  .object({
+    content_fingerprint: Sha256Schema,
+    target: z.discriminatedUnion("mode", [
+      z
+        .object({
+          mode: z.literal("page"),
+          site_id: IdSchema,
+          expected_draft_version: PositiveIntSchema,
+          title: TitleSchema,
+          canonical_path: CanonicalPathSchema,
+          set_as_home: z.boolean(),
+        })
+        .strict(),
+      z
+        .object({
+          mode: z.literal("create_site"),
+          name: z.string().trim().min(1).max(200).nullable(),
+        })
+        .strict(),
+      z
+        .object({
+          mode: z.literal("empty_site"),
+          site_id: IdSchema,
+          expected_site_version: PositiveIntSchema,
+          expected_draft_version: PositiveIntSchema,
+          apply_primary_language: z.boolean(),
+        })
+        .strict(),
+    ]),
+    external_bindings: z
+      .array(
+        z
+          .object({
+            handle: DocumentationPackageHandleSchema,
+            published_artifact_id: IdSchema,
+          })
+          .strict(),
+      )
+      .max(DOCUMENTATION_EXTERNAL_BINDINGS_MAX),
+    confirm: z.literal(true),
+  })
+  .strict();
+
+export type DocumentationPortableBlockV1 = z.infer<
+  typeof DocumentationPortableBlockV1Schema
+>;
+export type DocumentationPortablePageV1 = z.infer<
+  typeof DocumentationPortablePageV1Schema
+>;
+export type DocumentationPortableSnippetV1 = z.infer<
+  typeof DocumentationPortableSnippetV1Schema
+>;
+export type DocumentationPortableSiteV1 = z.infer<
+  typeof DocumentationPortableSiteV1Schema
+>;
+export type DocumentationPackageManifestV1 = z.infer<
+  typeof DocumentationPackageManifestV1Schema
 >;

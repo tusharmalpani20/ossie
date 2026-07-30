@@ -12,3 +12,5 @@ export * from "./policies/documentation-site-policy";
 export * from "./policies/documentation-snippet-policy";
 export * from "./policies/documentation-asset-policy";
 export * from "./policies/documentation-artifact-reference-policy";
+export * from "./policies/documentation-package-policy";
+export * from "./policies/documentation-markdown-policy";
