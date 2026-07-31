@@ -3036,13 +3036,14 @@ Child `137` implementation evidence includes:
 
 Child `138` independent close-recheck evidence includes:
 
-- commits `d1db672`, `5b0b884`, and `845e1a6` for shared CSP/origin authority,
-  server operational corrections, and Organization Owner recovery resolution;
+- commits `d1db672`, `5b0b884`, `845e1a6`, and `a40b938` for shared CSP/origin
+  authority, server operational corrections, Organization Owner recovery
+  resolution, and a truthful workspace lint gate;
 - final complete server unit `126` files / `546` tests, web `83` / `442`,
   Documentation domain `19` / `50`, and V1 PostgreSQL smoke `1` file / `2`
   tests;
 - server/web/domain type checks and production builds, real maintenance
-  dry-run, and scoped lint with no errors;
+  dry-run, and the complete 14-package workspace lint gate;
 - red/green proof for digest parity, bounded initial HTML, literal/path/Page-ID
   search, multi-batch maintenance, shared Vite CSP, and permission resolution;
 - headless Chromium actual Owner rebuild, Viewer denial, public identifier

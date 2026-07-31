@@ -2088,6 +2088,10 @@ pre-existing worktree content.
   Owner authority from project-access provenance. The publishing workbench now
   resolves the existing Organization operations permission and still keeps
   recovery absent for non-Owners.
+- Independent close-recheck commit `a40b938` preserved the existing
+  plain-review-reason control-character boundary while removing the final
+  Documentation warnings that made the workspace lint command contradict its
+  recorded pass.
 
 No runtime cache, queue, customer-content purge, analytics, rate-limit redesign,
 or deferred Documentation product feature was introduced.
@@ -2208,8 +2212,9 @@ Independent implemented-work close-recheck on 2026-07-31:
   `83` / `442`, and Documentation domain passed `19` / `50`;
 - PostgreSQL V1 smoke passed `2` tests, including literal wildcard,
   canonical-path, and Page-ID searches; server/web/domain type checks and
-  production builds passed; scoped lint has no errors (the repository file
-  retains pre-existing explicit-`any` warnings outside the changed lines);
+  production builds passed; the complete 14-package workspace lint gate passed
+  with no errors (the server package continues to report its accepted
+  non-failing legacy warnings);
 - headless Chromium proved the actual Owner-only draft rebuild (`200`, two
   documents verified), Viewer control absence, public canonical-path search,
   320-pixel reflow without overflow, reduced-motion media, clean page errors,
