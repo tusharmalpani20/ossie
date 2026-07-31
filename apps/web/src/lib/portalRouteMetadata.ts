@@ -8,6 +8,7 @@ export type PortalRouteSection =
   | "projects"
   | "organization_members"
   | "organization_compliance"
+  | "organization_documentation"
   | "project_workspace"
   | "project_activity"
   | "project_compliance"
@@ -40,6 +41,11 @@ const metadataByType: Partial<
     section: "organization_compliance",
     usesPortalShell: true,
     label: "Compliance timeline",
+  },
+  organization_documentation: {
+    section: "organization_documentation",
+    usesPortalShell: true,
+    label: "Documentation operations",
   },
   project_workspace: {
     section: "project_workspace",
@@ -137,6 +143,7 @@ const documentLabelByType: Record<PortalRoute["type"], string> = {
   project_list: "Projects",
   organization_members: "Organization members",
   organization_compliance: "Organization compliance",
+  organization_documentation: "Documentation operations",
   organization_invite_accept: "Accept invitation",
   project_workspace: "Project workspace",
   project_version_workspace: "Project Version workspace",

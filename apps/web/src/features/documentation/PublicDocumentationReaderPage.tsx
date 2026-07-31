@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DocumentationCanonicalRedirect,
   DocumentationApiError,
@@ -12,7 +12,8 @@ import {
   reportPublicDocumentationTryItAttempt,
 } from "../../lib/documentationTryItApi";
 import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
-import { DocumentationApiOperationExperience } from "./DocumentationApiOperationExperience";
+import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiOperationExperience";
+import { readDocumentationInitialDocument } from "../../lib/documentationInitialDocument";
 
 type SearchResult = Awaited<
   ReturnType<typeof searchPublicDocumentation>
@@ -35,9 +36,14 @@ export const PublicDocumentationReaderPage = ({
   search = searchPublicDocumentation,
   createViewerSession = createPublicDocumentationViewerSession,
 }: Props) => {
+  const initialSnapshot =
+    loadPage === getPublicDocumentationPage
+      ? readDocumentationInitialDocument({ slug, versionSlug, pagePath })
+      : null;
   const [snapshot, setSnapshot] = useState<PublicDocumentationSnapshot | null>(
-    null,
+    initialSnapshot,
   );
+  const skipInitialLoad = useRef(initialSnapshot !== null);
   const [unavailable, setUnavailable] = useState(false);
   const [passwordRequired, setPasswordRequired] = useState(false);
   const [password, setPassword] = useState("");
@@ -55,6 +61,10 @@ export const PublicDocumentationReaderPage = ({
   );
 
   useEffect(() => {
+    if (skipInitialLoad.current) {
+      skipInitialLoad.current = false;
+      return;
+    }
     let active = true;
     loadPage(slug, versionSlug, pagePath)
       .then((loaded) => {
@@ -88,23 +98,33 @@ export const PublicDocumentationReaderPage = ({
     if (!snapshot) return;
     document.title = `${snapshot.page.title} · ${snapshot.site.name}`;
     document.documentElement.lang = snapshot.revision.primary_language;
-    const canonical = document.createElement("link");
+    const existingCanonical = document.querySelector<HTMLLinkElement>(
+      'link[rel="canonical"]',
+    );
+    const canonical = existingCanonical ?? document.createElement("link");
     canonical.rel = "canonical";
     canonical.href = new URL(
       `${pageBase}/${snapshot.page.canonical_path}`,
       window.location.origin,
     ).toString();
-    canonical.dataset.documentationMetadata = "true";
-    document.head.append(canonical);
-    const description = document.createElement("meta");
+    if (!existingCanonical) {
+      canonical.dataset.documentationMetadata = "true";
+      document.head.append(canonical);
+    }
+    const existingDescription = document.querySelector<HTMLMetaElement>(
+      'meta[name="description"]',
+    );
+    const description = existingDescription ?? document.createElement("meta");
     description.name = "description";
     description.content =
       snapshot.page.description ?? snapshot.site.description ?? "";
-    description.dataset.documentationMetadata = "true";
-    document.head.append(description);
+    if (!existingDescription) {
+      description.dataset.documentationMetadata = "true";
+      document.head.append(description);
+    }
     return () => {
-      canonical.remove();
-      description.remove();
+      if (!existingCanonical) canonical.remove();
+      if (!existingDescription) description.remove();
     };
   }, [pageBase, snapshot]);
 
@@ -256,7 +276,7 @@ export const PublicDocumentationReaderPage = ({
           />
           {snapshot.current_operation?.descriptor_version === 1 &&
           snapshot.current_operation.request_descriptor ? (
-            <DocumentationApiOperationExperience
+            <LazyDocumentationApiOperationExperience
               descriptor={snapshot.current_operation.request_descriptor}
               loadConfiguration={() =>
                 getPublicDocumentationTryItConfiguration(

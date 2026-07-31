@@ -334,6 +334,7 @@ export const DocumentationSiteEditorPage = ({
         siteId={siteId}
         canPublish={effectiveCanPublish}
         canOverrideReview={canManageReview}
+        canManageDiscovery={canManageEdition}
       />
       <p role="status">{status}</p>
     </section>

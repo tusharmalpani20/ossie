@@ -8,7 +8,7 @@ import {
   getDocumentationTryItConfiguration,
   reportDocumentationTryItAttempt,
 } from "../../lib/documentationTryItApi";
-import { DocumentationApiOperationExperience } from "./DocumentationApiOperationExperience";
+import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiOperationExperience";
 
 type Props = {
   projectId: string;
@@ -106,7 +106,7 @@ export const DocumentationRevisionPreviewPage = ({
             </select>
           </label>
           {selected?.request_descriptor ? (
-            <DocumentationApiOperationExperience
+            <LazyDocumentationApiOperationExperience
               key={selected.destination_key}
               descriptor={selected.request_descriptor}
               loadConfiguration={() =>

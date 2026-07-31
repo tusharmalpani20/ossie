@@ -19,6 +19,9 @@ export type PortalRoute =
       type: "organization_compliance";
     }
   | {
+      type: "organization_documentation";
+    }
+  | {
       type: "organization_invite_accept";
       token: string;
     }
@@ -307,12 +310,7 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
           versionSlug,
           siteId: decodeURIComponent(rest[1]),
         };
-      if (
-        rest.length === 4 &&
-        rest[1] &&
-        rest[2] === "pages" &&
-        rest[3]
-      )
+      if (rest.length === 4 && rest[1] && rest[2] === "pages" && rest[3])
         return {
           type: "documentation_page_editor",
           projectId,
@@ -402,6 +400,14 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
     segments[1] === "compliance"
   ) {
     return { type: "organization_compliance" };
+  }
+
+  if (
+    segments.length === 2 &&
+    segments[0] === "organization" &&
+    segments[1] === "documentation"
+  ) {
+    return { type: "organization_documentation" };
   }
 
   if (segments.length === 2 && segments[0] === "invites") {

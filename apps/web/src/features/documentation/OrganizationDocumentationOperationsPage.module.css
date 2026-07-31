@@ -1,0 +1,44 @@
+.page {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.eyebrow {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+
+.cardTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.metric {
+  font-size: 1.75rem;
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.form fieldset {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}

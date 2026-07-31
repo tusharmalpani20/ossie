@@ -16,7 +16,7 @@ import {
   putDocumentationTryItPolicy,
   reportDocumentationTryItAttempt,
 } from "../../lib/documentationTryItApi";
-import { DocumentationApiOperationExperience } from "./DocumentationApiOperationExperience";
+import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiOperationExperience";
 
 type Props = {
   projectId: string;
@@ -518,7 +518,7 @@ export const DocumentationOpenApiPanel = ({
                 This request uses the current server-saved OpenAPI source. It is
                 not a frozen Revision.
               </p>
-              <DocumentationApiOperationExperience
+              <LazyDocumentationApiOperationExperience
                 descriptor={selectedRequestOperation.request_descriptor}
                 loadConfiguration={() =>
                   loadTryItConfiguration(

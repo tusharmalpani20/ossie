@@ -2,7 +2,14 @@
  * @fileoverview Ossie web app route entry point.
  */
 
-import { useEffect, useState } from "react";
+import {
+  lazy,
+  Component,
+  Suspense,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
 import { OssieBrand } from "./components/OssieBrand";
 import { CaptureSessionDetailPage } from "./features/capture-session/CaptureSessionDetailPage";
@@ -30,14 +37,7 @@ import { GuideRevisionPreviewPage } from "./features/artifact-revision/GuideRevi
 import { InteractiveDemoRevisionPreviewPage } from "./features/artifact-revision/InteractiveDemoRevisionPreviewPage";
 import { ProjectCarryForwardPage } from "./features/artifact-carry-forward/ProjectCarryForwardPage";
 import { DesignSystemReviewPage } from "./features/design-system/DesignSystemReviewPage";
-import { ProjectDocumentationSiteListPage } from "./features/documentation/ProjectDocumentationSiteListPage";
-import { DocumentationPageEditor } from "./features/documentation/DocumentationPageEditor";
-import { DocumentationSiteEditorPage } from "./features/documentation/DocumentationSiteEditorPage";
 import { canPublishDocumentation } from "./features/documentation/documentationPermissions";
-import { PublicDocumentationReaderPage } from "./features/documentation/PublicDocumentationReaderPage";
-import { DocumentationDraftPreviewPage } from "./features/documentation/DocumentationDraftPreviewPage";
-import { DocumentationRevisionPreviewPage } from "./features/documentation/DocumentationRevisionPreviewPage";
-import { DocumentationCarryForwardPage } from "./features/documentation/DocumentationCarryForwardPage";
 import {
   canCarryForwardDocumentation,
   canDecideDocumentationReview,
@@ -45,7 +45,6 @@ import {
   canManageDocumentationReview,
   canRequestDocumentationReview,
 } from "./features/documentation/documentationPermissions";
-import { DocumentationReviewInboxPage } from "./features/documentation/DocumentationReviewInboxPage";
 import { shouldRenderDesignSystemReview } from "./appRouteGuards";
 import {
   getProject,
@@ -56,12 +55,99 @@ import { portalDocumentTitle } from "./lib/portalRouteMetadata";
 import { parsePortalRoute, type PortalRoute } from "./lib/routes";
 import styles from "./App.module.css";
 
+const LazyOrganizationDocumentationOperationsPage = lazy(() =>
+  import("./features/documentation/OrganizationDocumentationOperationsPage").then(
+    (module) => ({
+      default: module.OrganizationDocumentationOperationsPage,
+    }),
+  ),
+);
+const LazyProjectDocumentationSiteListPage = lazy(() =>
+  import("./features/documentation/ProjectDocumentationSiteListPage").then(
+    (module) => ({ default: module.ProjectDocumentationSiteListPage }),
+  ),
+);
+const LazyDocumentationPageEditor = lazy(() =>
+  import("./features/documentation/DocumentationPageEditor").then((module) => ({
+    default: module.DocumentationPageEditor,
+  })),
+);
+const LazyDocumentationSiteEditorPage = lazy(() =>
+  import("./features/documentation/DocumentationSiteEditorPage").then(
+    (module) => ({ default: module.DocumentationSiteEditorPage }),
+  ),
+);
+const LazyPublicDocumentationReaderPage = lazy(() =>
+  import("./features/documentation/PublicDocumentationReaderPage").then(
+    (module) => ({ default: module.PublicDocumentationReaderPage }),
+  ),
+);
+const LazyDocumentationDraftPreviewPage = lazy(() =>
+  import("./features/documentation/DocumentationDraftPreviewPage").then(
+    (module) => ({ default: module.DocumentationDraftPreviewPage }),
+  ),
+);
+const LazyDocumentationRevisionPreviewPage = lazy(() =>
+  import("./features/documentation/DocumentationRevisionPreviewPage").then(
+    (module) => ({ default: module.DocumentationRevisionPreviewPage }),
+  ),
+);
+const LazyDocumentationCarryForwardPage = lazy(() =>
+  import("./features/documentation/DocumentationCarryForwardPage").then(
+    (module) => ({ default: module.DocumentationCarryForwardPage }),
+  ),
+);
+const LazyDocumentationReviewInboxPage = lazy(() =>
+  import("./features/documentation/DocumentationReviewInboxPage").then(
+    (module) => ({ default: module.DocumentationReviewInboxPage }),
+  ),
+);
+
+const DocumentationSuspense = ({ children }: { children: ReactNode }) => (
+  <DocumentationRouteErrorBoundary>
+    <Suspense
+      fallback={
+        <main className={styles.main} aria-busy="true">
+          Loading Documentation…
+        </main>
+      }
+    >
+      {children}
+    </Suspense>
+  </DocumentationRouteErrorBoundary>
+);
+
+class DocumentationRouteErrorBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    if (this.state.failed)
+      return (
+        <main className={styles.main} role="alert">
+          <p>The Documentation interface could not be loaded.</p>
+          <button type="button" onClick={() => window.location.reload()}>
+            Retry Documentation
+          </button>
+        </main>
+      );
+    return this.props.children;
+  }
+}
+
 type SetupGateState = "checking" | "ready" | "setup_required" | "error";
 
 const setupGuardedRouteTypes = new Set<PortalRoute["type"]>([
   "project_list",
   "organization_members",
   "organization_compliance",
+  "organization_documentation",
   "project_workspace",
   "project_version_workspace",
   "project_settings",
@@ -253,11 +339,13 @@ export default function App() {
 
   if (route.type === "public_documentation_reader") {
     return (
-      <PublicDocumentationReaderPage
-        slug={route.slug}
-        versionSlug={route.versionSlug}
-        pagePath={route.pagePath}
-      />
+      <DocumentationSuspense>
+        <LazyPublicDocumentationReaderPage
+          slug={route.slug}
+          versionSlug={route.versionSlug}
+          pagePath={route.pagePath}
+        />
+      </DocumentationSuspense>
     );
   }
 
@@ -321,6 +409,22 @@ export default function App() {
 
   if (route.type === "organization_compliance") {
     return <ComplianceTimelinePage currentPath={currentPath} />;
+  }
+
+  if (route.type === "organization_documentation") {
+    return (
+      <Suspense
+        fallback={
+          <main className={styles.main} aria-busy="true">
+            Loading Documentation operations…
+          </main>
+        }
+      >
+        <LazyOrganizationDocumentationOperationsPage
+          currentPath={currentPath}
+        />
+      </Suspense>
+    );
   }
 
   if (route.type === "project_workspace") {
@@ -568,29 +672,31 @@ export default function App() {
         currentLabel="Documentation"
       >
         {({ project, selected }) => (
-          <ProjectDocumentationSiteListPage
-            projectId={route.projectId}
-            versionSlug={route.versionSlug}
-            canManage={
-              project.status === "active" &&
-              selected.status === "active" &&
-              project.access.role === "project_admin"
-            }
-            canCarry={
-              project.status === "active" &&
-              selected.status === "active" &&
-              canCarryForwardDocumentation(project.access.role)
-            }
-            importUnavailableReason={
-              selected.status !== "active"
-                ? "This Project Version is archived. Documentation import and Site creation are unavailable."
-                : project.status !== "active"
-                  ? "This Project is archived. Documentation import and Site creation are unavailable."
-                  : project.access.role !== "project_admin"
-                    ? "Your Project role is read-only. Documentation import and Site creation require Project Admin access."
-                    : undefined
-            }
-          />
+          <DocumentationSuspense>
+            <LazyProjectDocumentationSiteListPage
+              projectId={route.projectId}
+              versionSlug={route.versionSlug}
+              canManage={
+                project.status === "active" &&
+                selected.status === "active" &&
+                project.access.role === "project_admin"
+              }
+              canCarry={
+                project.status === "active" &&
+                selected.status === "active" &&
+                canCarryForwardDocumentation(project.access.role)
+              }
+              importUnavailableReason={
+                selected.status !== "active"
+                  ? "This Project Version is archived. Documentation import and Site creation are unavailable."
+                  : project.status !== "active"
+                    ? "This Project is archived. Documentation import and Site creation are unavailable."
+                    : project.access.role !== "project_admin"
+                      ? "Your Project role is read-only. Documentation import and Site creation require Project Admin access."
+                      : undefined
+              }
+            />
+          </DocumentationSuspense>
         )}
       </ProjectVersionRouteBoundary>
     );
@@ -606,16 +712,18 @@ export default function App() {
         currentLabel="Carry Forward Documentation"
       >
         {({ project, selected, versions }) => (
-          <DocumentationCarryForwardPage
-            projectId={route.projectId}
-            target={selected}
-            versions={versions}
-            canCarry={
-              project.status === "active" &&
-              selected.status === "active" &&
-              canCarryForwardDocumentation(project.access.role)
-            }
-          />
+          <DocumentationSuspense>
+            <LazyDocumentationCarryForwardPage
+              projectId={route.projectId}
+              target={selected}
+              versions={versions}
+              canCarry={
+                project.status === "active" &&
+                selected.status === "active" &&
+                canCarryForwardDocumentation(project.access.role)
+              }
+            />
+          </DocumentationSuspense>
         )}
       </ProjectVersionRouteBoundary>
     );
@@ -631,17 +739,19 @@ export default function App() {
         currentLabel="Documentation Page"
       >
         {({ project, selected }) => (
-          <DocumentationPageEditor
-            projectId={route.projectId}
-            versionSlug={route.versionSlug}
-            siteId={route.siteId}
-            pageId={route.pageId}
-            canWrite={
-              project.status === "active" &&
-              selected.status === "active" &&
-              project.access.role !== "viewer"
-            }
-          />
+          <DocumentationSuspense>
+            <LazyDocumentationPageEditor
+              projectId={route.projectId}
+              versionSlug={route.versionSlug}
+              siteId={route.siteId}
+              pageId={route.pageId}
+              canWrite={
+                project.status === "active" &&
+                selected.status === "active" &&
+                project.access.role !== "viewer"
+              }
+            />
+          </DocumentationSuspense>
         )}
       </ProjectVersionRouteBoundary>
     );
@@ -657,29 +767,35 @@ export default function App() {
         currentLabel="Documentation Site"
       >
         {({ project, selected }) => (
-          <DocumentationSiteEditorPage
-            projectId={route.projectId}
-            versionSlug={route.versionSlug}
-            siteId={route.siteId}
-            canWrite={
-              project.status === "active" &&
-              selected.status === "active" &&
-              project.access.role !== "viewer"
-            }
-            canPublish={
-              project.status === "active" &&
-              selected.status === "active" &&
-              canPublishDocumentation(project.access.role)
-            }
-            canManageEdition={canManageDocumentationEdition(
-              project.access.role,
-            )}
-            canRequestReview={canRequestDocumentationReview(
-              project.access.role,
-            )}
-            canManageReview={canManageDocumentationReview(project.access.role)}
-            canDecideReview={canDecideDocumentationReview(project.access.role)}
-          />
+          <DocumentationSuspense>
+            <LazyDocumentationSiteEditorPage
+              projectId={route.projectId}
+              versionSlug={route.versionSlug}
+              siteId={route.siteId}
+              canWrite={
+                project.status === "active" &&
+                selected.status === "active" &&
+                project.access.role !== "viewer"
+              }
+              canPublish={
+                project.status === "active" &&
+                selected.status === "active" &&
+                canPublishDocumentation(project.access.role)
+              }
+              canManageEdition={canManageDocumentationEdition(
+                project.access.role,
+              )}
+              canRequestReview={canRequestDocumentationReview(
+                project.access.role,
+              )}
+              canManageReview={canManageDocumentationReview(
+                project.access.role,
+              )}
+              canDecideReview={canDecideDocumentationReview(
+                project.access.role,
+              )}
+            />
+          </DocumentationSuspense>
         )}
       </ProjectVersionRouteBoundary>
     );
@@ -695,10 +811,12 @@ export default function App() {
         currentLabel="Review inbox"
       >
         {() => (
-          <DocumentationReviewInboxPage
-            projectId={route.projectId}
-            versionSlug={route.versionSlug}
-          />
+          <DocumentationSuspense>
+            <LazyDocumentationReviewInboxPage
+              projectId={route.projectId}
+              versionSlug={route.versionSlug}
+            />
+          </DocumentationSuspense>
         )}
       </ProjectVersionRouteBoundary>
     );
@@ -714,11 +832,13 @@ export default function App() {
         currentLabel="Documentation preview"
       >
         {() => (
-          <DocumentationDraftPreviewPage
-            projectId={route.projectId}
-            versionSlug={route.versionSlug}
-            siteId={route.siteId}
-          />
+          <DocumentationSuspense>
+            <LazyDocumentationDraftPreviewPage
+              projectId={route.projectId}
+              versionSlug={route.versionSlug}
+              siteId={route.siteId}
+            />
+          </DocumentationSuspense>
         )}
       </ProjectVersionRouteBoundary>
     );
@@ -734,12 +854,14 @@ export default function App() {
         currentLabel="Documentation Revision"
       >
         {() => (
-          <DocumentationRevisionPreviewPage
-            projectId={route.projectId}
-            versionSlug={route.versionSlug}
-            siteId={route.siteId}
-            revisionNumber={route.sequence!}
-          />
+          <DocumentationSuspense>
+            <LazyDocumentationRevisionPreviewPage
+              projectId={route.projectId}
+              versionSlug={route.versionSlug}
+              siteId={route.siteId}
+              revisionNumber={route.sequence!}
+            />
+          </DocumentationSuspense>
         )}
       </ProjectVersionRouteBoundary>
     );

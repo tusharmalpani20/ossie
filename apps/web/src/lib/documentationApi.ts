@@ -29,6 +29,7 @@ export class DocumentationApiError extends Error {
     readonly status: number,
     readonly type: string,
     message: string,
+    readonly details?: unknown,
   ) {
     super(message);
     this.name = "DocumentationApiError";
@@ -225,6 +226,7 @@ export const documentationFrozenOpenApiExportUrl = (
 const json = async <Result>(response: Response): Promise<Result> => {
   const body = (await response.json().catch(() => null)) as {
     error?: { type?: string; message?: string };
+    latest?: unknown;
   } | null;
   if (!response.ok) {
     throw new DocumentationApiError(
@@ -232,10 +234,105 @@ const json = async <Result>(response: Response): Promise<Result> => {
       body?.error?.type ?? "documentation_request_failed",
       body?.error?.message ??
         `Documentation request failed (${response.status})`,
+      body?.latest,
     );
   }
   return body as Result;
 };
+
+export type DocumentationOperationsSummary = {
+  limits: {
+    active_sites_limit: number | null;
+    active_pages_limit: number | null;
+    version: number;
+    updated_at: string | null;
+  };
+  usage: {
+    active_sites: number;
+    active_pages: number;
+    retained_file_bytes: number;
+    retained_revisions: number;
+    retained_publications: number;
+    active_import_inspections: number;
+    open_review_requests: number;
+  };
+  states: Array<{
+    dimension: "active_sites" | "active_pages" | "retained_file_bytes";
+    usage: number;
+    limit: number | null;
+    state: "within_limit" | "at_limit" | "over_limit";
+  }>;
+  permissions: { can_manage_limits: boolean };
+  generated_at: string;
+};
+
+export const getDocumentationOperations = () =>
+  fetch(`${baseUrl()}/api/v1/organization/documentation/operations`, {
+    credentials: "include",
+  }).then((response) => json<DocumentationOperationsSummary>(response));
+
+export const updateDocumentationLimits = (input: {
+  active_sites_limit: number | null;
+  active_pages_limit: number | null;
+  expected_version: number;
+}) =>
+  fetch(`${baseUrl()}/api/v1/organization/documentation/limits`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }).then((response) =>
+    json<Pick<DocumentationOperationsSummary, "limits" | "usage" | "states">>(
+      response,
+    ),
+  );
+
+export type DocumentationDiscoveryPolicy = {
+  publish_link_id: string;
+  indexing_enabled: boolean;
+  is_primary_canonical: boolean;
+  effective_indexing: boolean;
+  effective_reason:
+    | "enabled"
+    | "disabled"
+    | "not_primary"
+    | "restricted"
+    | "revoked"
+    | "expired";
+  version: number;
+};
+
+export const getDocumentationDiscoveryPolicy = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  linkId: string,
+) =>
+  fetch(
+    `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/publish-links/${encodeURIComponent(linkId)}/discovery-policy`,
+    { credentials: "include" },
+  ).then((response) => json<DocumentationDiscoveryPolicy>(response));
+
+export const updateDocumentationDiscoveryPolicy = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  linkId: string,
+  input: {
+    expected_version: number;
+    indexing_enabled: boolean;
+    is_primary_canonical: boolean;
+  },
+) =>
+  fetch(
+    `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/publish-links/${encodeURIComponent(linkId)}/discovery-policy`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  ).then((response) => json<DocumentationDiscoveryPolicy>(response));
 
 export const listDocumentationSites = (
   projectId: string,
@@ -993,7 +1090,7 @@ export type PublicDocumentationSnapshot = {
   };
 };
 
-type RawPublicDocumentationSnapshot = Omit<
+export type RawPublicDocumentationSnapshot = Omit<
   PublicDocumentationSnapshot,
   "site" | "revision" | "page" | "navigation"
 > & {
@@ -1018,7 +1115,7 @@ type RawPublicDocumentationSnapshot = Omit<
   }>;
 };
 
-const normalizePublicDocumentationSnapshot = (
+export const normalizePublicDocumentationSnapshot = (
   raw: RawPublicDocumentationSnapshot,
   page: PublicDocumentationSnapshot["page"],
 ): PublicDocumentationSnapshot => ({
@@ -1418,6 +1515,8 @@ export type DocumentationPublishLinkSummary = {
   id: string;
   name: string;
   slug: string;
+  visibility?: "public" | "restricted";
+  expires_at?: string | null;
   status: "active" | "revoked";
   version: number;
   entries: Array<{

@@ -43,6 +43,9 @@ export default defineConfig(({ mode }) => {
     ]),
   ].join("; ");
   return {
+    build: {
+      manifest: true,
+    },
     define: {
       __OSSIE_DOCUMENTATION_TRY_IT_ORIGIN_SET_DIGEST__: JSON.stringify(
         tryItOrigins.digest,

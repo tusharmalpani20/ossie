@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DocumentationCanonicalRedirect,
+  getDocumentationOperations,
+  updateDocumentationLimits,
   documentationFrozenOpenApiExportUrl,
   getPublicDocumentationPage,
   inspectDocumentationImport,
@@ -123,6 +125,75 @@ describe("Documentation public API adapter", () => {
         canonical_path: "operations/get-widgets",
       },
     });
+  });
+});
+
+describe("Documentation operations API adapter", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("reads usage and sends nullable versioned limits", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        json({
+          limits: {
+            active_sites_limit: null,
+            active_pages_limit: null,
+            version: 0,
+            updated_at: null,
+          },
+          usage: {
+            active_sites: 0,
+            active_pages: 0,
+            retained_file_bytes: 0,
+            retained_revisions: 0,
+            retained_publications: 0,
+            active_import_inspections: 0,
+            open_review_requests: 0,
+          },
+          states: [],
+          permissions: { can_manage_limits: true },
+          generated_at: "2026-07-31T00:00:00.000Z",
+        }),
+      )
+      .mockResolvedValueOnce(
+        json({
+          limits: {
+            active_sites_limit: 2,
+            active_pages_limit: null,
+            version: 1,
+            updated_at: "2026-07-31T00:00:00.000Z",
+          },
+          usage: {},
+          states: [],
+        }),
+      );
+    vi.stubGlobal("fetch", fetch);
+
+    await getDocumentationOperations();
+    await updateDocumentationLimits({
+      active_sites_limit: 2,
+      active_pages_limit: null,
+      expected_version: 0,
+    });
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      "/api/v1/organization/documentation/operations",
+      { credentials: "include" },
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      "/api/v1/organization/documentation/limits",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({
+          active_sites_limit: 2,
+          active_pages_limit: null,
+          expected_version: 0,
+        }),
+      }),
+    );
   });
 });
 

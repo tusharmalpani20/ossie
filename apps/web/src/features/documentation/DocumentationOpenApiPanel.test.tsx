@@ -177,7 +177,7 @@ describe("DocumentationOpenApiPanel", () => {
       ),
     ).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("button", { name: "Open request builder" }),
+      await screen.findByRole("button", { name: "Open request builder" }),
     );
     await waitFor(() => expect(loadTryItConfiguration).toHaveBeenCalled());
     expect(await screen.findByText(/Target:/)).toHaveTextContent(

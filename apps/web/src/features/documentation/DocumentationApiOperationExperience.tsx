@@ -22,7 +22,7 @@ type AttemptOutcome =
   | "response_blocked"
   | "client_validation_blocked";
 
-type Props = {
+export type DocumentationApiOperationExperienceProps = {
   descriptor: DocumentationTryItRequestDescriptor;
   loadConfiguration: () => Promise<DocumentationTryItConfiguration>;
   reportAttempt: (
@@ -164,7 +164,7 @@ export const DocumentationApiOperationExperience = ({
   descriptor,
   loadConfiguration,
   reportAttempt,
-}: Props) => {
+}: DocumentationApiOperationExperienceProps) => {
   const headingId = useId();
   const errorId = `${headingId}-error`;
   const [configuration, setConfiguration] =

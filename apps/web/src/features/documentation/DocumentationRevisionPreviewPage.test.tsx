@@ -70,7 +70,7 @@ describe("DocumentationRevisionPreviewPage", () => {
       }),
     ).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("button", { name: /open request builder/i }),
+      await screen.findByRole("button", { name: /open request builder/i }),
     );
 
     await waitFor(() =>

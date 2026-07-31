@@ -46,6 +46,12 @@ describe("parsePortalRoute", () => {
     });
   });
 
+  it("parses the organization Documentation operations route", () => {
+    expect(parsePortalRoute("/organization/documentation")).toEqual({
+      type: "organization_documentation",
+    });
+  });
+
   it("parses organization invite acceptance routes", () => {
     expect(parsePortalRoute("/invites/plain-token")).toEqual({
       type: "organization_invite_accept",
@@ -126,17 +132,15 @@ describe("parsePortalRoute", () => {
       siteId: "site_1",
       pageId: "page_1",
     });
-    expect(parsePortalRoute("/docs/public-docs/getting-started/install")).toEqual(
-      {
-        type: "public_documentation_reader",
-        slug: "public-docs",
-        pagePath: "getting-started/install",
-      },
-    );
     expect(
-      parsePortalRoute(
-        "/docs/public-docs/versions/v2/getting-started/install",
-      ),
+      parsePortalRoute("/docs/public-docs/getting-started/install"),
+    ).toEqual({
+      type: "public_documentation_reader",
+      slug: "public-docs",
+      pagePath: "getting-started/install",
+    });
+    expect(
+      parsePortalRoute("/docs/public-docs/versions/v2/getting-started/install"),
     ).toEqual({
       type: "public_documentation_reader",
       slug: "public-docs",

@@ -4,11 +4,13 @@ import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import {
   createDocumentationPublication,
+  getDocumentationDiscoveryPolicy,
   listDocumentationPublications,
   listDocumentationPublishLinks,
   listDocumentationRevisions,
   rollbackDocumentationPublication,
   revokeDocumentationPublishLink,
+  updateDocumentationDiscoveryPolicy,
   type DocumentationPublicationSummary,
   type DocumentationPublishLinkSummary,
   type DocumentationRevisionSummary,
@@ -25,6 +27,7 @@ type Props = {
   siteId: string;
   canPublish: boolean;
   canOverrideReview?: boolean;
+  canManageDiscovery?: boolean;
   loadRevisions?: typeof listDocumentationRevisions;
   loadPublications?: typeof listDocumentationPublications;
   loadPublishLinks?: typeof listDocumentationPublishLinks;
@@ -40,6 +43,7 @@ export const DocumentationPublishingPanel = ({
   siteId,
   canPublish,
   canOverrideReview = false,
+  canManageDiscovery = false,
   loadRevisions = listDocumentationRevisions,
   loadPublications = listDocumentationPublications,
   loadPublishLinks = listDocumentationPublishLinks,
@@ -74,6 +78,9 @@ export const DocumentationPublishingPanel = ({
   const [overrideConfirmed, setOverrideConfirmed] = useState(false);
   const [linkTryItPolicy, setLinkTryItPolicy] = useState<Awaited<
     ReturnType<typeof getDocumentationPublishLinkTryItPolicy>
+  > | null>(null);
+  const [discoveryPolicy, setDiscoveryPolicy] = useState<Awaited<
+    ReturnType<typeof getDocumentationDiscoveryPolicy>
   > | null>(null);
 
   useEffect(() => {
@@ -160,6 +167,25 @@ export const DocumentationPublishingPanel = ({
       })
       .catch(() => {
         if (active) setLinkTryItPolicy(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [projectId, publishLinks, siteId, versionSlug]);
+
+  useEffect(() => {
+    const link = publishLinks[0];
+    if (!link) {
+      setDiscoveryPolicy(null);
+      return;
+    }
+    let active = true;
+    getDocumentationDiscoveryPolicy(projectId, versionSlug, siteId, link.id)
+      .then((policy) => {
+        if (active) setDiscoveryPolicy(policy);
+      })
+      .catch(() => {
+        if (active) setDiscoveryPolicy(null);
       });
     return () => {
       active = false;
@@ -411,8 +437,48 @@ export const DocumentationPublishingPanel = ({
     }
   };
 
+  const makePrimaryDiscoveryLink = async () => {
+    const link = publishLinks[0];
+    if (
+      !link ||
+      !discoveryPolicy ||
+      typeof discoveryPolicy.effective_reason !== "string"
+    )
+      return;
+    if (
+      !window.confirm(
+        `Make ${link.name} the primary canonical, indexable Documentation link? Other links serving duplicate content will become noindex.`,
+      )
+    )
+      return;
+    setStatus("Updating the primary Documentation discovery link…");
+    try {
+      const policy = await updateDocumentationDiscoveryPolicy(
+        projectId,
+        versionSlug,
+        siteId,
+        link.id,
+        {
+          expected_version: discoveryPolicy.version,
+          indexing_enabled: true,
+          is_primary_canonical: true,
+        },
+      );
+      setDiscoveryPolicy(policy);
+      setStatus("Primary Documentation discovery link updated.");
+    } catch {
+      setStatus(
+        "Discovery policy was not changed. Reload the current link state.",
+      );
+    }
+  };
+
   const existingLink = publishLinks[0];
   const existingEntry = existingLink?.entries[0];
+  const effectiveDiscoveryPolicy =
+    discoveryPolicy && typeof discoveryPolicy.effective_reason === "string"
+      ? discoveryPolicy
+      : null;
   const livePublication = publications.find(
     (publication) => publication.id === existingEntry?.site_publication_id,
   );
@@ -484,6 +550,29 @@ export const DocumentationPublishingPanel = ({
           </p>
           {canPublish && existingLink.status === "active" ? (
             <Button onClick={() => void revokeLink()}>Revoke link</Button>
+          ) : null}
+          {effectiveDiscoveryPolicy ? (
+            <section aria-labelledby="documentation-discovery-heading">
+              <h4 id="documentation-discovery-heading">Search discovery</h4>
+              <p>
+                {effectiveDiscoveryPolicy.is_primary_canonical
+                  ? "Primary canonical link."
+                  : "Not the primary canonical link."}{" "}
+                Effective indexing:{" "}
+                {effectiveDiscoveryPolicy.effective_indexing
+                  ? "enabled"
+                  : `disabled (${effectiveDiscoveryPolicy.effective_reason.replaceAll("_", " ")})`}
+                .
+              </p>
+              {!effectiveDiscoveryPolicy.is_primary_canonical &&
+              canManageDiscovery &&
+              existingLink.status === "active" &&
+              existingLink.visibility === "public" ? (
+                <Button onClick={() => void makePrimaryDiscoveryLink()}>
+                  Make primary and indexable
+                </Button>
+              ) : null}
+            </section>
           ) : null}
           {linkTryItPolicy ? (
             <section aria-labelledby="documentation-link-try-it-heading">

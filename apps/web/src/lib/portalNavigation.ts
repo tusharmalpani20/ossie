@@ -87,6 +87,12 @@ export const buildPortalNavigation = ({
       active: activeSection === "organization_compliance",
       ariaLabel: "Portal compliance",
     },
+    {
+      label: "Documentation operations",
+      href: "/organization/documentation",
+      active: activeSection === "organization_documentation",
+      ariaLabel: "Portal Documentation operations",
+    },
   ];
 
   if (!project) return items;
