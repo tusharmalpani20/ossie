@@ -20,7 +20,11 @@ partial component adoption, or native-editor modernization.
 ## Required expansion scope
 
 - exact affected authoring files and dependency result from child `141`;
-- complete existing block/mark/identity conversion and round-trip contract;
+- exact child-`141` selected adapter surface: prose-field-only, named partial
+  primitives, whole-graph adapter, or native; untouched block kinds remain
+  native and must not be coerced into generic rich text;
+- complete selected block/mark/identity conversion and round-trip contract for
+  both `DocumentationPageEditor.tsx` and `DocumentationSnippetPanel.tsx`;
 - toolbar, insertion, selection, reorder, paste/drop, keyboard, focus, save,
   autosave, error, conflict, local recovery, comment-anchor, and preview rules;
 - server authorization and Row-Version behavior unchanged;
@@ -33,6 +37,8 @@ partial component adoption, or native-editor modernization.
 ## Hard boundaries
 
 - Existing shared block schemas and relational persistence remain authority.
+- Existing stable block/list/table/tab identities remain comment, concurrency,
+  import/export, checkpoint, Revision, Publication, and search anchors.
 - Unknown/executable nodes fail closed.
 - Tiptap collaboration/cloud, AI, offline mutation, and simultaneous editing
   remain out of scope.

@@ -25,9 +25,18 @@ Python, and Go through an extensible versioned language registry.
 
 - exact accepted OpenAPI descriptor input and unsupported-feature behavior;
 - language ID/display/syntax/version contracts;
+- exact runtime/library contract per language (including distinct browser Fetch
+  and Node.js output) with no generated dependency-install promise;
 - deterministic escaping, path/query/header/body/auth placeholder generation;
-- zero credential/Try-It-memory/request/response flow into examples;
+- documented OpenAPI example/default selection and placeholder policy;
+- zero credential/Try-It-memory/form-value/private-origin/operator-config/
+  request/response flow into examples, proven by tests that mutate each source
+  without changing generated output;
 - draft, Revision, Publication, search, export, and historical compatibility;
+- an explicit immutable generator selection contract: either descriptor versions
+  permanently route to their original generators or the smallest additive
+  Revision/Publication metadata pins the generator; legacy Publications never
+  inherit a latest-registry default;
 - UI selection/copy/download, failure, unsupported, keyboard, focus, narrow
   viewport, and screen-reader behavior;
 - output/count/time bounds and malicious-input fixtures;
@@ -41,6 +50,9 @@ Python, and Go through an extensible versioned language registry.
   generated archive, registry publication, or SDK support promise.
 - Placeholders only; no entered credentials or private configuration.
 - Existing Try-It authority remains separate under ADR `0033`.
+- Default to a client/shared pure generator over the accepted returned
+  descriptor. A new endpoint requires separate explicit acceptance and cannot
+  perform target transport.
 
 ## Exit gate
 

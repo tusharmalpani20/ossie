@@ -6,6 +6,12 @@ Status: Planned and accepted. No child is implementation-ready. Child `141`
 must be rewritten/expanded and independently rechecked before any prototype,
 dependency, or runtime change.
 
+Independent reservation re-audit: completed 2026-07-31 against Master `006`,
+child `140`, ADRs `0027`–`0034`, the current caller graph, current package
+manifests, and all children `141`–`146`. The re-audit tightened ownership,
+proof mechanics, adapter boundaries, historical example reproducibility, and
+cross-browser evidence without authorizing implementation.
+
 Master plan number: 007.
 
 Predecessor:
@@ -128,6 +134,34 @@ examples shipped with child `137`, not the accepted multi-language registry.
 Neither Tiptap JSON nor Fumadocs/MDX content may become persistence or
 publication authority. The proof may not write a parallel source of truth.
 
+### 4.1 Current module and caller map
+
+Child expansion must begin from the current product graph rather than treating
+"the editor" or "the reader" as one component:
+
+- `apps/web/src/App.tsx` owns a custom route parser/switch. The product does not
+  currently use React Router, and Product Documentation remains in `apps/web`,
+  not the contributor-facing `apps/docs` application.
+- `DocumentationPageEditor.tsx` and `DocumentationSnippetPanel.tsx` both call
+  `DocumentationBlockEditor.tsx`; authoring conversion and identity tests must
+  cover Pages and reusable snippets.
+- `DocumentationPageEditor.tsx` also calls `DocumentationBlockRenderer.tsx` for
+  preview, while `DocumentationDraftPreviewPage.tsx` renders an authorized
+  mutable draft through the renderer.
+- `PublicDocumentationReaderPage.tsx` consumes the serialized initial document,
+  public snapshot, navigation/search, block renderer, and API-operation
+  experience for one exact authorized Publication.
+- `DocumentationRevisionPreviewPage.tsx`, `DocumentationOpenApiPanel.tsx`, and
+  the public reader call `DocumentationApiOperationExperience.tsx`, which in
+  turn calls `apps/web/src/lib/documentationTryItExamples.ts`.
+- `apps/server/src/modules/documentation/documentation.routes.ts` owns initial
+  crawler HTML, canonical/redirect/gone behavior, CSP, representation headers,
+  and public route composition. `apps/web/src/lib/documentationInitialDocument.ts`
+  validates and normalizes the browser bootstrap payload.
+
+An expanded child may narrow this graph, but it cannot omit a direct caller
+whose behavior or contract changes.
+
 ## 5. Experience Adoption Gates
 
 ### 5.1 Tiptap gate
@@ -147,6 +181,19 @@ Tiptap may be adopted only when the proof demonstrates:
 - no data migration is needed merely to adopt the adapter;
 - a tested native fallback and rollback path exists.
 
+The proof must compare two bounded shapes instead of presuming that Tiptap owns
+the whole Page graph:
+
+1. use Tiptap only inside selected prose-bearing fields while Ossie's ordered,
+   typed block graph, IDs, references, and reorder state stay native; and
+2. adapt the complete in-scope Page/snippet graph through a lossless transient
+   Tiptap document.
+
+`partial-adopt` is preferred when it improves prose editing without duplicating
+or weakening typed reference, asset, table, tabs, API, Guide, Demo, or snippet
+semantics. A selected scope must enumerate every handled block/mark; unselected
+block kinds remain native rather than being coerced into generic rich text.
+
 ### 5.2 Fumadocs gate
 
 Fumadocs may be adopted only when the proof demonstrates:
@@ -163,6 +210,19 @@ Fumadocs may be adopted only when the proof demonstrates:
 - accessibility, SEO, browser, dependency, bundle, and performance evidence is
   equal or better than the native reader;
 - a tested native fallback and rollback path exists.
+
+The proof must validate the exact package subset against the current React 19,
+Vite, Tailwind, and custom `App.tsx` routing composition. It may not assume the
+official React Router setup, introduce React Router/Next.js merely to satisfy a
+framework guide, or move Product Documentation into `apps/docs`. Because the
+Fumadocs Loader API is server-side, any source/page-tree use must remain a
+derived projection on the correct side of the server/browser boundary; direct
+rendering primitives may be evaluated independently.
+
+Public Publication rendering, authenticated mutable-draft preview, and exact
+Revision preview are separate input classes. Only the public surface may use an
+already-authorized Publication adapter, and no public-reader assumption may
+silently broaden draft or Revision access.
 
 ### 5.3 Gate outcomes
 
@@ -193,6 +253,15 @@ ADR `0034` governs this feature.
   bodies/auth placeholders, escaping, Unicode, and unsupported cases.
 - Publication/export behavior must preserve exact output or enough pinned
   generator metadata to reproduce it.
+- The child must explicitly choose and test the historical contract: either an
+  immutable example-contract/generator version is stored in the existing exact
+  Revision/Publication descriptor path, or every historical descriptor version
+  remains permanently routed to its original generator. A current registry
+  default may never silently change old Publication output.
+- Generation uses documented OpenAPI examples/defaults and explicit
+  environment/auth placeholders only. It is independent of mutable Try-It form
+  values, approved private origins, credentials, browser memory, request/response
+  bodies, and operator configuration.
 - Full SDK packages remain outside this master.
 
 ## 7. Behavior Rules
@@ -231,20 +300,20 @@ cannot broaden scope based on client state.
 
 ## 9. Security And Threat Model
 
-| Threat                                        | Required control                                                                       |
-| --------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Tiptap/Fumadocs becomes a second authority    | One-way adapters over Ossie contracts; no framework-owned persistence                  |
-| Unknown editor nodes or paste execute content | Exhaustive schema, sanitization, protocol allowlists, unsupported-node rejection       |
-| Stored/reflected XSS                          | Constrained blocks, escaped rendering, CSP, safe code text, negative fixtures          |
-| Reader leaks draft/private state              | Authorization before load/projection/cache; exact Publication inputs only              |
-| Route/cache confusion                         | Preserve canonical routes; key by Publication and access-policy context                |
-| Generated example contains credentials        | Placeholder-only generation isolated from Try-It component memory                      |
-| Generated example performs work               | No eval, subprocess, network, package install, template hooks, or registry publish     |
-| Malicious OpenAPI exhausts generator          | Existing descriptor bounds plus per-language output/time/operation ceilings            |
-| Supply-chain compromise                       | Pin exact reviewed dependencies; license/advisory/transitive/build review              |
-| Adapter failure corrupts draft                | Existing Row Versions, validation, atomic mutation, conflict recovery, native rollback |
-| Accessibility regression                      | Automated and manual keyboard/focus/zoom/reflow/motion plus available AT proof         |
-| Browser-specific behavior                     | Chromium, Firefox, WebKit matrix where supported; honest capability record             |
+| Threat                                        | Required control                                                                           |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Tiptap/Fumadocs becomes a second authority    | One-way adapters over Ossie contracts; no framework-owned persistence                      |
+| Unknown editor nodes or paste execute content | Exhaustive schema, sanitization, protocol allowlists, unsupported-node rejection           |
+| Stored/reflected XSS                          | Constrained blocks, escaped rendering, CSP, safe code text, negative fixtures              |
+| Public reader leaks draft/private state       | Authorization before load/projection/cache; public adapter receives exact Publication only |
+| Route/cache confusion                         | Preserve canonical routes; key by Publication and access-policy context                    |
+| Generated example contains credentials        | Placeholder-only generation isolated from Try-It component memory                          |
+| Generated example performs work               | No eval, subprocess, network, package install, template hooks, or registry publish         |
+| Malicious OpenAPI exhausts generator          | Existing descriptor bounds plus per-language output/time/operation ceilings                |
+| Supply-chain compromise                       | Pin exact reviewed dependencies; license/advisory/transitive/build review                  |
+| Adapter failure corrupts draft                | Existing Row Versions, validation, atomic mutation, conflict recovery, native rollback     |
+| Accessibility regression                      | Automated and manual keyboard/focus/zoom/reflow/motion plus available AT proof             |
+| Browser-specific behavior                     | Chromium, Firefox, WebKit matrix where supported; honest capability record                 |
 
 No customer content, generated code, credentials, request bodies, response
 bodies, or raw queries enter Audit/Access Evidence.
@@ -278,8 +347,10 @@ Exact names are reserved for child expansion, but implementation must prefer:
 
 The adapter proof adds no production route. Authoring and reader modernization
 should reuse existing endpoints and route shapes. Request example generation
-should be client-side or server-local pure computation over an already-returned
-accepted operation unless an expanded child proves a bounded API is necessary.
+defaults to a client/shared pure function over an already-returned accepted
+operation. It must not add an endpoint merely to generate text. If an expanded
+child proves server ownership unavoidable, the new API needs separate explicit
+acceptance before implementation.
 
 Any proposed new endpoint must be versioned, authorized before data load,
 bounded, no-store when private, covered by Audit/Access policy, and separately
@@ -290,10 +361,11 @@ accepted during child expansion. No server-side target transport is allowed.
 - Child `141` must require no migration.
 - Children `142` and `143` should require no content migration because adapters
   operate over existing schemas.
-- Child `144` should require no migration when examples are deterministic
-  projections. If exact Publication preservation requires persisted generator
-  metadata, the expanded child must justify the smallest additive migration,
-  default old Publications safely, and preserve rollback/read compatibility.
+- Child `144` must make historical reproduction explicit before implementation.
+  Prefer the existing immutable descriptor version when it can permanently pin
+  generation semantics. Otherwise justify the smallest additive metadata and
+  migration, backfill legacy rows safely, and preserve rollback/read
+  compatibility. "Use the latest generator" is not an accepted fallback.
 - No migration may rewrite immutable Revisions/Publications or convert content
   into Tiptap/Fumadocs-owned blobs.
 
@@ -305,7 +377,10 @@ Authoring candidates:
 
 - `apps/web/src/features/documentation/DocumentationBlockEditor.tsx`
 - `apps/web/src/features/documentation/DocumentationPageEditor.tsx`
+- `apps/web/src/features/documentation/DocumentationSnippetPanel.tsx`
 - `apps/web/src/features/documentation/DocumentationSiteEditorPage.tsx`
+- `apps/web/src/features/documentation/DocumentationCommentsPanel.tsx` and
+  comment-anchor tests when selection/identity behavior changes;
 - matching tests and Documentation CSS modules;
 - new adapter files under `apps/web/src/features/documentation/` only.
 
@@ -316,13 +391,22 @@ Reader candidates:
 - `apps/web/src/features/documentation/DocumentationRevisionPreviewPage.tsx`
 - `apps/web/src/features/documentation/DocumentationBlockRenderer.tsx`
 - `apps/web/src/features/documentation/DocumentationApiOperationExperience.tsx`
-- matching tests/styles and route composition only where proven necessary.
+- `apps/web/src/lib/documentationInitialDocument.ts`
+- `apps/web/src/App.tsx`, `apps/web/src/main.tsx`, global styles, Tailwind/Vite
+  configuration, and matching tests only where the selected package subset
+  proves they are necessary;
+- `apps/server/src/modules/documentation/documentation.routes.ts` and focused
+  initial-HTML/public-route tests when reader output or bootstrap changes.
 
 Example candidates:
 
 - `apps/web/src/lib/documentationTryItExamples.ts`
 - `apps/web/src/lib/documentationTryItExamples.test.ts`
 - `apps/web/src/features/documentation/DocumentationApiOperationExperience.tsx`
+- `apps/web/src/features/documentation/DocumentationOpenApiPanel.tsx`
+- `apps/web/src/features/documentation/DocumentationRevisionPreviewPage.tsx`
+- public-reader/API-operation tests proving typed Try-It values and private
+  configuration cannot affect generated output;
 - shared constants/types/domain policy only when cross-adapter contracts truly
   require them.
 
@@ -335,6 +419,11 @@ the need.
 - Child `141` owns fresh official-version/license/advisory/transitive/bundle
   research for exact Tiptap and Fumadocs packages.
 - Proof dependencies must be isolated and removable.
+- Child `141` must record the disposition of every proof dependency. Rejected
+  packages are removed from manifests and lockfile before closure; adopted or
+  partially adopted packages remain only when the proof plan explicitly
+  justifies their test/dev placement or the next production child needs the
+  exact pin immediately.
 - Do not adopt Fumadocs MDX as customer content authority.
 - Do not adopt Tiptap Collaboration/Cloud, Fumadocs hosted services, AI, or
   unrelated extension bundles.
@@ -346,7 +435,11 @@ the need.
 ## 13. Accessibility, Browser, Motion, And Performance
 
 Every frontend child requires agent-browser validation on the existing
-Documentation fixture; no parallel harness may be created.
+Documentation fixture; no parallel product/browser harness may be created.
+Child `141` may expose the proof only through a test/development-only adapter
+seam attached to that fixture. It must be excluded from production routing and
+removed at closure unless deliberately carried into the selected production
+child. Unit/jsdom fixtures alone are insufficient for a browser-visible gate.
 
 Required combined coverage:
 
@@ -358,8 +451,10 @@ Required combined coverage:
 - reduced-motion preference;
 - loading, empty, unsupported, error, denied, conflict, offline/error, and
   recovery paths;
-- Chromium required; Firefox and WebKit required where installed/supported,
-  with honest limitation wording otherwise;
+- Chromium agent-browser evidence is required. Firefox and WebKit use the
+  existing repository browser tooling when installed/supported; missing engine
+  binaries are installed in the headless environment when feasible, and any
+  genuine platform/tooling limit is recorded instead of reported as a pass;
 - automated axe plus available accessibility-tree and real assistive-
   technology evidence; never relabel unavailable AT evidence as passed;
 - console/network failure review and no sensitive evidence capture;
@@ -468,6 +563,8 @@ No reservation below is authorization to skip a stage.
       boundaries are recorded.
 - [x] Children `141`–`146` are dependency ordered and bounded.
 - [x] Accepted-later/deferred/separate work is outside the checklist.
+- [x] Master and child reservations were independently re-audited against the
+      current code/dependency graph on 2026-07-31.
 - [ ] Expand and independently recheck child `141`.
 
 ### Implementation
@@ -496,3 +593,29 @@ Rewrite/expand child `141` against this master, the complete child-`140` grill,
 Master `006`, ADRs `0027`–`0034`, current dependencies, current Documentation
 code, and any uncommitted work. Do not install Tiptap/Fumadocs or implement a
 prototype until that expanded plan is independently rechecked and authorized.
+
+## 21. Planning Re-Audit Record
+
+The 2026-07-31 re-audit checked all six reservations, accepted ADRs, the current
+web/server/type ownership graph, and current official integration guidance. It
+fixed these planning defects without changing runtime scope:
+
+- included the snippet editor and stable comment/block identities in authoring;
+- separated prose-only Tiptap adoption from unsafe whole-graph assumptions;
+- made the custom Vite route composition, initial crawler HTML, and
+  server/browser Fumadocs boundary explicit;
+- separated public Publication, draft, and Revision reader inputs;
+- prohibited generated examples from inheriting mutable Try-It values or
+  private approved origins and required reproducible historical generators;
+- reconciled browser-visible proof with the no-production-route/no-new-harness
+  boundary and clarified proof dependency cleanup;
+- made Chromium versus Firefox/WebKit evidence ownership truthful.
+
+Verification completed:
+
+- current paths and direct imports/callers inspected with `rg`;
+- all master/child/ADR Markdown read and cross-checked;
+- current official Tiptap React/Vite, Fumadocs manual/headless/source, and
+  Playwright browser guidance reviewed;
+- formatting, local-path, whitespace, and scoped-diff checks passed for this
+  docs-only re-audit.
