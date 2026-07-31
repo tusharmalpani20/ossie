@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q7 are provisionally recorded and Q8 is open
+Status: In progress. Q1 through Q8 are provisionally recorded and Q9 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -155,8 +155,8 @@ Inference and preference must not be written as shipped fact.
 | Q5       | Custom domains                                                  | Answered   | `accept-later`: verified domain  | Provisional     |
 | Q6       | Public feedback                                                 | Answered   | `accept-later`: structured only  | Provisional     |
 | Q7       | Public analytics                                                | Answered   | `accept-later`: aggregate only   | Provisional     |
-| Q8       | External reviewer access                                        | Open       | Pending                          | Pending         |
-| Q9       | Realtime collaboration and presence                             | Not opened | None                             | Pending         |
+| Q8       | External reviewer access                                        | Answered   | `accept-later`: exact review     | Provisional     |
+| Q9       | Realtime collaboration and presence                             | Open       | Pending                          | Pending         |
 | Q10      | Offline editing and merge                                       | Not opened | None                             | Pending         |
 | Q11      | Governed permanent deletion and retention                       | Not opened | None                             | Pending         |
 | Q12      | Cross-artifact and Organization-wide search                     | Not opened | None                             | Pending         |
@@ -1411,7 +1411,9 @@ excluded from the first slice.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-later` for verified, expiring access to one exact Revision with private
+comments only. Project membership, editing, approval, export, Try It, and
+publication authority are not accepted.
 
 ### Simple decision requested
 
@@ -1421,13 +1423,176 @@ Recommended answer: **Yes, later—but external reviewers should only see one
 exact draft and leave private comments. They should not become Project members
 or approve/publish anything.**
 
-## 16. Questions Not Yet Opened
+### User answer
 
-Q9 through Q17 remain unmade. Their full implementation-safe question
+> Yes, I agree.
+
+Recorded interpretation:
+
+- preserve external draft review as an accepted-later capability;
+- bind one verified external identity to one exact Review Request/Revision;
+- allow temporary read access and private review comments only;
+- grant no Project membership, Working Draft access, editing, approval,
+  export, Try It, or publication permission;
+- require expiration, immediate revocation, protected resources, and Access
+  Evidence;
+- do not select external review as `accept-next` before cross-question
+  reconciliation.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 16. Q9 — Should Authors See And Edit With Each Other In Real Time?
+
+### Why this question is open
+
+When two authors work on the same Page, they may want to see each other's
+presence and eventually edit together like a shared document. Presence is a
+small awareness feature. Simultaneous editing is a much larger change to
+Ossie's document authority, conflict, persistence, reconnect, undo, review,
+and checkpoint model.
+
+### Shipped V1 facts
+
+- PostgreSQL relational Working Draft resources are authoritative.
+- Page saves use Row Versions and preserve local work on stale-write conflict.
+- Tiptap is an editor adapter; its browser state is not authority.
+- Constrained blocks, server validation, limits, comments, Review, immutable
+  Revisions, and Publication operate on persisted relational state.
+- No WebSocket endpoint, presence room, CRDT/OT document, collaboration server,
+  operation log, reconnect queue, or horizontal realtime infrastructure exists.
+- No demonstrated simultaneous-editing demand or concurrency telemetry is
+  recorded.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- WebSocket provides a persistent two-way client/server channel, includes an
+  origin-based browser security model, and requires explicit handling of
+  authentication, origin, limits, invalid data, and abnormal closure:
+  [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455).
+- Yjs describes a CRDT shared-data model whose concurrent changes merge and
+  which supports rich-text bindings, offline editing, snapshots, undo/redo,
+  and shared cursors. Its networking and persistence are separate provider
+  responsibilities:
+  [Yjs repository and documentation](https://github.com/yjs/yjs).
+- Yjs lists a Tiptap/ProseMirror binding and notes that providers manage client
+  communication, awareness, and offline storage; provider selection still
+  determines authentication, persistence, scaling, and operational ownership:
+  [Yjs providers](https://github.com/yjs/yjs#providers).
+- Hocuspocus is Tiptap's extensible Yjs WebSocket backend and therefore one
+  possible adapter, not an automatic authority decision:
+  [Hocuspocus repository](https://github.com/ueberdosis/hocuspocus).
+
+### Inference
+
+Adding cursors is not equivalent to making collaborative edits durable.
+Presence can remain ephemeral and advisory. Shared editing requires a durable
+mapping between a collaboration document and Ossie's constrained relational
+Page, plus deterministic validation and checkpoint behavior.
+
+A library can merge text operations, but it cannot decide Ossie's permissions,
+block constraints, revoked-user behavior, Page deletion, asset ownership,
+Review state, or immutable Revision rules. Those remain product/server
+responsibilities.
+
+### Recommendation
+
+Keep realtime collaboration as an **accepted-later** direction, split into two
+gates:
+
+1. **Presence first:** authorized Project members can see who else currently
+   has the same editable Page open. Presence is ephemeral, coarse, optional,
+   and not retained as authoring history.
+2. **Shared editing later:** do not accept simultaneous mutation until real
+   demand and a dedicated ADR define the authoritative CRDT/operation model,
+   persistence, validation, reconnect, revocation, undo, checkpoint, Review,
+   and scaling semantics.
+
+The presence slice must not claim that it prevents Row Version conflicts.
+
+### Alternatives
+
+- **Defer all realtime work:** keep current stale-write recovery until demand
+  proves presence or shared editing is valuable.
+- **Presence only permanently:** show viewers/editors while retaining ordinary
+  single-author saves and Row Versions.
+- **Accept shared editing next:** requires a dedicated master and ADR after the
+  full candidate review; it cannot be a small editor-only patch.
+
+### Rejected shortcuts
+
+- storing authoritative edits only in browser/Tiptap/Yjs memory;
+- assuming CRDT merge makes server validation unnecessary;
+- running an unauthenticated or cross-tenant WebSocket room;
+- checking authorization only during initial connection;
+- allowing a revoked user to continue sending accepted operations;
+- treating presence as Audit, approval, or durable authorship evidence;
+- replacing Row Versions before a compatibility/migration decision;
+- auto-checkpointing or publishing collaboration state;
+- bundling offline mutation into the first presence slice;
+- selecting a hosted collaboration provider without privacy, region,
+  credential, retention, and failure ownership.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- Presence is visible only to authorized Project members on the same resource
+  and contains the minimum display identity already available to them.
+- Permission, tenant, origin, connection, room, and message checks fail closed;
+  authorization is refreshed and revocation disconnects promptly.
+- Presence expires automatically on disconnect/timeout and is not retained in
+  Audit or Access Evidence as behavioral history.
+- PostgreSQL relational Working Drafts remain authority during presence-only.
+- A future shared-editing model must persist server-authorized state durably
+  before acknowledging it and project validated relational content for Review,
+  Revision, Publication, search, export, and Carry-Forward.
+- Tokens, raw operation payloads, cursor positions, and connection content do
+  not enter logs, Audit, or Access Evidence.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. Presence would require additive ephemeral room/
+connection contracts, authenticated realtime transport, UI, deployment and
+scaling configuration, and security/browser tests without changing current
+save APIs. Shared editing would require a separate schema/authority/API/editor/
+migration/compatibility plan and preservation of existing Page JSON, Row
+Versions, revisions, and offline/error recovery until deliberately replaced.
+
+### Reversibility
+
+Presence-only is comparatively reversible because it does not own content.
+Shared editing is difficult to reverse after CRDT state becomes authoritative,
+so it must not be inferred from accepting presence or from Tiptap/Yjs library
+availability.
+
+### Evidence gaps
+
+- no concurrent-author demand or measured conflict frequency;
+- no accepted presence privacy preference;
+- no durable realtime transport/scaling owner;
+- no CRDT/OT and relational projection ADR;
+- no revoked-user, reconnect, validation, undo, or checkpoint model;
+- no provider region, retention, outage, or cost decision.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should we keep realtime author collaboration as a possible later feature?
+
+Recommended answer: **Yes, later—but first only show who is viewing the same
+Page. Decide simultaneous editing separately when users actually need it.**
+
+## 17. Questions Not Yet Opened
+
+Q10 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 17. Session Log
+## 18. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -1456,8 +1621,12 @@ at a time with current primary-source research only when opened.
   as an `accept-later` possibility that counts pages, not people. Persistent
   identifiers, personal details, and third-party tracking remain excluded.
   Opened exact-scope external review as Q8.
+- 2026-07-31: the user accepted exact-Revision external review as an
+  `accept-later` possibility with verified, expiring read/comment access only.
+  Project membership and decision/publication authority remain excluded.
+  Opened realtime presence and collaboration as Q9.
 
-## 18. Verification Record
+## 19. Verification Record
 
 Initial checkpoint verification:
 
@@ -1474,7 +1643,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 19. Current Handoff
+## 20. Current Handoff
 
-Awaiting explicit user/product authority for Q8. Do not open Q9 until Q8 is
+Awaiting explicit user/product authority for Q9. Do not open Q10 until Q9 is
 recorded.
