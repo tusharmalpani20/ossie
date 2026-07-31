@@ -17,3 +17,4 @@ export * from "./policies/documentation-markdown-policy";
 export * from "./policies/documentation-carry-forward-policy";
 export * from "./policies/documentation-lifecycle-policy";
 export * from "./policies/documentation-review-policy";
+export * from "./policies/documentation-try-it-policy";

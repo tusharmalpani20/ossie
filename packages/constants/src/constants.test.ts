@@ -67,6 +67,14 @@ import {
   DOCUMENTATION_REVIEW_REASON_MAX,
   DOCUMENTATION_REVIEW_INBOX_PAGE_MAX,
   DOCUMENTATION_REVIEW_REQUESTS_PER_EDITION_HARD_MAX,
+  DOCUMENTATION_TRY_IT_ALLOWED_METHODS,
+  DOCUMENTATION_TRY_IT_ATTEMPT_OUTCOMES,
+  DOCUMENTATION_TRY_IT_CREDENTIAL_MODES,
+  DOCUMENTATION_TRY_IT_CONFIGURATION_LEASE_MS,
+  DOCUMENTATION_TRY_IT_ATTEMPT_TOKEN_LIFETIME_MS,
+  DOCUMENTATION_TRY_IT_REQUEST_BODY_MAX_BYTES,
+  DOCUMENTATION_TRY_IT_RESPONSE_BODY_MAX_BYTES,
+  DOCUMENTATION_TRY_IT_OPERATION_ALLOWANCES_MAX,
   PUBLISH_RESOURCE_FAMILIES,
   PUBLISH_ARTIFACT_TYPES,
   PUBLISH_LINK_ENTRY_MAX,
@@ -220,6 +228,34 @@ describe("@repo/constants", () => {
     expect(DOCUMENTATION_REVIEW_REASON_MAX).toBe(1_000);
     expect(DOCUMENTATION_REVIEW_INBOX_PAGE_MAX).toBe(50);
     expect(DOCUMENTATION_REVIEW_REQUESTS_PER_EDITION_HARD_MAX).toBe(10_000);
+  });
+
+  it("exports the browser-direct Try-It methods, outcomes, and safety ceilings", () => {
+    expect(DOCUMENTATION_TRY_IT_ALLOWED_METHODS).toEqual([
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+    ]);
+    expect(DOCUMENTATION_TRY_IT_CREDENTIAL_MODES).toEqual([
+      "none",
+      "bearer",
+      "api_key_header",
+    ]);
+    expect(DOCUMENTATION_TRY_IT_ATTEMPT_OUTCOMES).toEqual([
+      "completed",
+      "browser_network_blocked",
+      "timed_out",
+      "aborted",
+      "response_blocked",
+      "client_validation_blocked",
+    ]);
+    expect(DOCUMENTATION_TRY_IT_CONFIGURATION_LEASE_MS).toBe(60_000);
+    expect(DOCUMENTATION_TRY_IT_ATTEMPT_TOKEN_LIFETIME_MS).toBe(300_000);
+    expect(DOCUMENTATION_TRY_IT_REQUEST_BODY_MAX_BYTES).toBe(256 * 1024);
+    expect(DOCUMENTATION_TRY_IT_RESPONSE_BODY_MAX_BYTES).toBe(1024 * 1024);
+    expect(DOCUMENTATION_TRY_IT_OPERATION_ALLOWANCES_MAX).toBe(500);
   });
 
   it("keeps public instance mode defaults representable by exported constants", () => {

@@ -28,7 +28,20 @@ export type DocumentationDomainErrorCode =
   | "documentation_review_gate_unsatisfied"
   | "documentation_review_approval_required"
   | "documentation_review_approval_invalidated"
-  | "documentation_review_override_invalid";
+  | "documentation_review_override_invalid"
+  | "documentation_try_it_invalid"
+  | "documentation_try_it_disabled"
+  | "documentation_try_it_stale_source"
+  | "documentation_try_it_origin_invalid"
+  | "documentation_try_it_origin_not_allowed"
+  | "documentation_try_it_origin_resolution_unsafe"
+  | "documentation_try_it_operation_not_allowed"
+  | "documentation_try_it_operation_unsupported"
+  | "documentation_try_it_policy_conflict"
+  | "documentation_try_it_link_incompatible"
+  | "documentation_try_it_configuration_expired"
+  | "documentation_try_it_attempt_invalid"
+  | "documentation_try_it_unavailable";
 
 export class DocumentationDomainError extends Error {
   readonly code: DocumentationDomainErrorCode;

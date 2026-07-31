@@ -37,6 +37,10 @@ import {
   DocumentationReviewCancelRequestSchema,
   DocumentationPublicationReviewOverrideSchema,
   DocumentationReviewRequestDetailResponseSchema,
+  DocumentationUpsertTryItPolicyRequestSchema,
+  DocumentationTryItAttemptReportRequestSchema,
+  DocumentationTryItConfigurationSchema,
+  PublicDocumentationOperationSchema,
 } from "./documentation";
 
 describe("Documentation shared contracts", () => {
@@ -63,6 +67,135 @@ describe("Documentation shared contracts", () => {
       },
     ],
   } as const;
+
+  it("strictly validates disabled and enabled Try-It policy writes", () => {
+    expect(
+      DocumentationUpsertTryItPolicyRequestSchema.parse({
+        expected_policy_version: null,
+        status: "disabled",
+        approved_origin: null,
+        base_path: null,
+        allow_bearer: false,
+        api_key_header_name: null,
+        operation_destination_keys: [],
+      }),
+    ).toMatchObject({ status: "disabled" });
+
+    expect(
+      DocumentationUpsertTryItPolicyRequestSchema.safeParse({
+        expected_policy_version: null,
+        status: "enabled",
+        approved_origin: "https://api.example.com",
+        base_path: "/v1",
+        allow_bearer: true,
+        api_key_header_name: "X-Api-Key",
+        operation_destination_keys: ["get-pets-listpets"],
+        leaked_secret: "no",
+      }).success,
+    ).toBe(false);
+    expect(
+      DocumentationUpsertTryItPolicyRequestSchema.safeParse({
+        expected_policy_version: null,
+        status: "enabled",
+        approved_origin: null,
+        base_path: null,
+        allow_bearer: false,
+        api_key_header_name: null,
+        operation_destination_keys: [],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts only content-free Try-It attempt reports", () => {
+    expect(
+      DocumentationTryItAttemptReportRequestSchema.parse({
+        attempt_token: "opaque-token",
+        outcome: "completed",
+      }),
+    ).toEqual({ attempt_token: "opaque-token", outcome: "completed" });
+    expect(
+      DocumentationTryItAttemptReportRequestSchema.safeParse({
+        attempt_token: "opaque-token",
+        outcome: "completed",
+        status_code: 200,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("keeps effective Try-It configurations secret-free and strict", () => {
+    const configuration = {
+      configuration_id: "01J00000000000000000000001",
+      policy_identity: "p".repeat(43),
+      configuration_expires_at: "2026-07-31T12:01:00.000Z",
+      attempt_token_expires_at: "2026-07-31T12:05:00.000Z",
+      surface: "public",
+      operation: {
+        descriptor_version: 1,
+        destination_key: "get-pets-listpets",
+        method: "GET",
+        path: "/pets",
+        summary: "List pets",
+        parameters: [],
+        request_body: null,
+        security: { bearer: true, api_key_header_names: [] },
+        unsupported_reasons: [],
+      },
+      approved_origin: "https://api.example.com",
+      base_path: "/v1",
+      allowed_credential_modes: ["none", "bearer"],
+      api_key_header_name: null,
+      request_limits: {
+        url_bytes: 8192,
+        body_bytes: 262144,
+        timeout_ms: 15000,
+      },
+      response_limits: { body_bytes: 1048576, headers: 100 },
+      operator_origin_set_digest: "a".repeat(64),
+      attempt_token: "opaque-token",
+    } as const;
+    expect(DocumentationTryItConfigurationSchema.parse(configuration)).toEqual(
+      configuration,
+    );
+    expect(
+      DocumentationTryItConfigurationSchema.safeParse({
+        ...configuration,
+        bearer_token: "secret",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("preserves the read-only public operation contract while adding a safe descriptor", () => {
+    expect(
+      PublicDocumentationOperationSchema.parse({
+        destination_key: "get-pets",
+        method: "get",
+        path: "/pets",
+        summary: "List pets",
+        descriptor_version: 1,
+        request_descriptor: {
+          descriptor_version: 1,
+          destination_key: "get-pets",
+          method: "GET",
+          path: "/pets",
+          summary: "List pets",
+          parameters: [],
+          request_body: null,
+          security: { bearer: false, api_key_header_names: [] },
+          unsupported_reasons: [],
+        },
+      }),
+    ).toMatchObject({ method: "get", descriptor_version: 1 });
+    expect(
+      PublicDocumentationOperationSchema.safeParse({
+        destination_key: "get-pets",
+        method: "get",
+        path: "/pets",
+        summary: null,
+        descriptor_version: 0,
+        file_id: "private",
+      }).success,
+    ).toBe(false);
+  });
 
   it("strictly freezes the version-one package manifest", () => {
     expect(DocumentationPackageManifestV1Schema.parse(manifest)).toEqual(

@@ -44,6 +44,14 @@ import {
   DOCUMENTATION_REVIEWERS_MAX,
   DOCUMENTATION_REVIEW_MAINTAINERS_MAX,
   DOCUMENTATION_REVIEW_REASON_MAX,
+  DOCUMENTATION_TRY_IT_ALLOWED_METHODS,
+  DOCUMENTATION_TRY_IT_ATTEMPT_OUTCOMES,
+  DOCUMENTATION_TRY_IT_BASE_PATH_MAX_LENGTH,
+  DOCUMENTATION_TRY_IT_CREDENTIAL_MODES,
+  DOCUMENTATION_TRY_IT_HEADER_NAME_MAX_LENGTH,
+  DOCUMENTATION_TRY_IT_OPERATION_ALLOWANCES_MAX,
+  DOCUMENTATION_TRY_IT_ORIGIN_MAX_LENGTH,
+  DOCUMENTATION_TRY_IT_POLICY_STATUSES,
 } from "@repo/constants";
 import { z } from "zod";
 import { IdSchema, IsoDateTimeStringSchema, PositiveIntSchema } from "./common";
@@ -1722,6 +1730,309 @@ export const DocumentationCarryForwardOptionsResponseSchema = z
     ),
   })
   .strict();
+
+const DocumentationTryItStatusSchema = z.enum(
+  DOCUMENTATION_TRY_IT_POLICY_STATUSES,
+);
+const DocumentationTryItMethodSchema = z.enum(
+  DOCUMENTATION_TRY_IT_ALLOWED_METHODS,
+);
+const DocumentationTryItCredentialModeSchema = z.enum(
+  DOCUMENTATION_TRY_IT_CREDENTIAL_MODES,
+);
+const DocumentationTryItOriginSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(DOCUMENTATION_TRY_IT_ORIGIN_MAX_LENGTH);
+const DocumentationTryItBasePathSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(DOCUMENTATION_TRY_IT_BASE_PATH_MAX_LENGTH);
+const DocumentationTryItHeaderNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(DOCUMENTATION_TRY_IT_HEADER_NAME_MAX_LENGTH)
+  .regex(/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/u);
+
+export const DocumentationTryItParameterDescriptorSchema = z
+  .object({
+    name: z.string().trim().min(1).max(256),
+    location: z.enum(["path", "query", "header"]),
+    required: z.boolean(),
+    value_type: z.enum(["string", "number", "integer", "boolean"]),
+    is_array: z.boolean(),
+    explode: z.boolean(),
+    sensitive: z.boolean(),
+    description: z.string().max(8_192).nullable().optional(),
+    example: z
+      .union([z.string(), z.number(), z.boolean()])
+      .nullable()
+      .optional(),
+  })
+  .strict();
+
+export const DocumentationTryItJsonSchemaSchema: z.ZodType = z.lazy(() =>
+  z
+    .object({
+      type: z
+        .enum(["object", "array", "string", "number", "integer", "boolean"])
+        .nullable(),
+      nullable: z.boolean(),
+      sensitive: z.boolean(),
+      properties: z
+        .record(z.string(), DocumentationTryItJsonSchemaSchema)
+        .optional(),
+      items: DocumentationTryItJsonSchemaSchema.optional(),
+      required: z.array(z.string()).optional(),
+      enum: z
+        .array(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+        .optional(),
+    })
+    .strict(),
+);
+
+export const DocumentationTryItSecurityDescriptorSchema = z
+  .object({
+    bearer: z.boolean(),
+    api_key_header_names: z.array(DocumentationTryItHeaderNameSchema).max(20),
+  })
+  .strict();
+
+const DocumentationTryItRequestBodyDescriptorSchema = z
+  .object({
+    required: z.boolean(),
+    media_type: z.string().trim().min(1).max(256),
+    schema: DocumentationTryItJsonSchemaSchema.nullable(),
+    example: z.unknown().optional(),
+  })
+  .strict();
+
+export const DocumentationTryItRequestDescriptorSchema = z
+  .object({
+    descriptor_version: z.literal(1),
+    destination_key: z.string().trim().min(1).max(512),
+    method: DocumentationTryItMethodSchema,
+    path: z.string().trim().min(1).max(8_192),
+    summary: z.string().max(8_192).nullable(),
+    parameters: z.array(DocumentationTryItParameterDescriptorSchema).max(100),
+    request_body: DocumentationTryItRequestBodyDescriptorSchema.nullable(),
+    security: DocumentationTryItSecurityDescriptorSchema,
+    unsupported_reasons: z.array(z.string().max(500)).max(100),
+  })
+  .strict();
+
+const DocumentationTryItPolicyValueSchema = z
+  .object({
+    id: IdSchema,
+    version: PositiveIntSchema,
+    status: DocumentationTryItStatusSchema,
+    approved_origin: DocumentationTryItOriginSchema.nullable(),
+    base_path: DocumentationTryItBasePathSchema.nullable(),
+    allow_bearer: z.boolean(),
+    api_key_header_name: DocumentationTryItHeaderNameSchema.nullable(),
+    operation_destination_keys: z
+      .array(z.string().trim().min(1).max(512))
+      .max(DOCUMENTATION_TRY_IT_OPERATION_ALLOWANCES_MAX),
+    source_version: PositiveIntSchema,
+    effective_status: z.enum([
+      "disabled",
+      "enabled",
+      "stale_source",
+      "operator_disallowed",
+      "origin_resolution_unsafe",
+      "archived",
+    ]),
+    operation_count: z.number().int().min(0),
+  })
+  .strict();
+
+export const DocumentationTryItPolicySchema =
+  DocumentationTryItPolicyValueSchema;
+export const DocumentationTryItPolicyResponseSchema = z
+  .object({ policy: DocumentationTryItPolicyValueSchema.nullable() })
+  .strict();
+
+export const DocumentationUpsertTryItPolicyRequestSchema = z
+  .object({
+    expected_policy_version: PositiveIntSchema.nullable(),
+    status: DocumentationTryItStatusSchema,
+    approved_origin: DocumentationTryItOriginSchema.nullable(),
+    base_path: DocumentationTryItBasePathSchema.nullable(),
+    allow_bearer: z.boolean(),
+    api_key_header_name: DocumentationTryItHeaderNameSchema.nullable(),
+    operation_destination_keys: z
+      .array(z.string().trim().min(1).max(512))
+      .max(DOCUMENTATION_TRY_IT_OPERATION_ALLOWANCES_MAX),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const unique = new Set(value.operation_destination_keys);
+    if (unique.size !== value.operation_destination_keys.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["operation_destination_keys"],
+        message: "Try-It operation allowances must be unique",
+      });
+    }
+    if (
+      value.status === "enabled" &&
+      (!value.approved_origin || value.operation_destination_keys.length === 0)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Enabled Try-It policy requires an origin and operation",
+      });
+    }
+    if (
+      value.status === "disabled" &&
+      (value.approved_origin !== null ||
+        value.base_path !== null ||
+        value.allow_bearer ||
+        value.api_key_header_name !== null ||
+        value.operation_destination_keys.length > 0)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Disabled Try-It policy cannot retain request authority",
+      });
+    }
+  });
+
+const DocumentationPublishLinkTryItPolicyValueSchema = z
+  .object({
+    id: IdSchema,
+    version: PositiveIntSchema,
+    enabled: z.boolean(),
+  })
+  .strict();
+
+export const DocumentationPublishLinkTryItPolicySchema =
+  DocumentationPublishLinkTryItPolicyValueSchema;
+export const DocumentationPublishLinkTryItPolicyResponseSchema = z
+  .object({
+    policy: DocumentationPublishLinkTryItPolicyValueSchema.nullable(),
+    effective_status: z.enum([
+      "off",
+      "available",
+      "partially_available",
+      "unavailable",
+      "revoked",
+    ]),
+    entries: z.array(
+      z
+        .object({
+          entry_id: IdSchema,
+          project_version_slug: z.string().trim().min(1).max(160),
+          project_version_label: z.string().trim().min(1).max(200),
+          is_default: z.boolean(),
+          effective_status: z.enum(["available", "unavailable"]),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+
+export const DocumentationUpdatePublishLinkTryItPolicyRequestSchema = z
+  .object({
+    expected_policy_version: PositiveIntSchema.nullable(),
+    expected_link_version: PositiveIntSchema,
+    enabled: z.boolean(),
+  })
+  .strict();
+
+export const DocumentationTryItConfigurationSchema = z
+  .object({
+    configuration_id: IdSchema,
+    policy_identity: z.string().min(32).max(128),
+    configuration_expires_at: IsoDateTimeStringSchema,
+    attempt_token_expires_at: IsoDateTimeStringSchema,
+    surface: z.enum(["internal", "public"]),
+    operation: DocumentationTryItRequestDescriptorSchema,
+    approved_origin: DocumentationTryItOriginSchema,
+    base_path: DocumentationTryItBasePathSchema,
+    allowed_credential_modes: z.array(DocumentationTryItCredentialModeSchema),
+    api_key_header_name: DocumentationTryItHeaderNameSchema.nullable(),
+    request_limits: z
+      .object({
+        url_bytes: PositiveIntSchema,
+        body_bytes: PositiveIntSchema,
+        timeout_ms: PositiveIntSchema,
+      })
+      .strict(),
+    response_limits: z
+      .object({
+        body_bytes: PositiveIntSchema,
+        headers: PositiveIntSchema,
+      })
+      .strict(),
+    operator_origin_set_digest: z.string().regex(/^[a-f0-9]{64}$/u),
+    attempt_token: z.string().min(1).max(8_192),
+  })
+  .strict();
+
+export const DocumentationTryItAttemptReportRequestSchema = z
+  .object({
+    attempt_token: z.string().min(1).max(8_192),
+    outcome: z.enum(DOCUMENTATION_TRY_IT_ATTEMPT_OUTCOMES),
+  })
+  .strict();
+
+const PublicDocumentationOperationBase = {
+  destination_key: z.string().trim().min(1).max(512),
+  method: z.string().trim().min(1).max(10),
+  path: z.string().trim().min(1).max(8_192),
+  summary: z.string().max(8_192).nullable(),
+} as const;
+export const PublicDocumentationOperationSchema = z.discriminatedUnion(
+  "descriptor_version",
+  [
+    z
+      .object({
+        ...PublicDocumentationOperationBase,
+        descriptor_version: z.literal(0),
+      })
+      .strict(),
+    z
+      .object({
+        ...PublicDocumentationOperationBase,
+        descriptor_version: z.literal(1),
+        request_descriptor: DocumentationTryItRequestDescriptorSchema,
+      })
+      .strict(),
+  ],
+);
+
+export const PublicDocumentationSiteSnapshotSchema = z
+  .object({
+    site: z.unknown(),
+    edition: z.unknown(),
+    revision: z.unknown(),
+    publication: z.unknown(),
+    pages: z.array(z.unknown()),
+    navigation: z.array(z.unknown()),
+    snippets: z.array(z.unknown()),
+    artifact_publications: z.array(z.unknown()),
+    documentation_assets: z.array(z.unknown()),
+    capture_assets: z.array(z.unknown()),
+    openapi_operations: z.array(PublicDocumentationOperationSchema),
+  })
+  .strict();
+
+export type DocumentationTryItPolicy = z.infer<
+  typeof DocumentationTryItPolicySchema
+>;
+export type DocumentationTryItRequestDescriptor = z.infer<
+  typeof DocumentationTryItRequestDescriptorSchema
+>;
+export type DocumentationTryItParameterDescriptor = z.infer<
+  typeof DocumentationTryItParameterDescriptorSchema
+>;
+export type DocumentationTryItConfiguration = z.infer<
+  typeof DocumentationTryItConfigurationSchema
+>;
 
 export type DocumentationPortableBlockV1 = z.infer<
   typeof DocumentationPortableBlockV1Schema
