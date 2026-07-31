@@ -76,15 +76,19 @@ describe("Audit schema verification", () => {
     });
   });
 
-  it("ignores guards owned by pending migrations without weakening head verification", async () => {
+  it("ignores the current guard registry for historical baselines without weakening head verification", async () => {
     const missing_operational_guard = {
       issue:
         "guard:documentation_schema.organization_documentation_limits:INSERT",
     };
     const pool = {
-      query: vi.fn(async (_sql: string, values?: unknown[]) => ({
-        rows: values?.[3] === false ? [] : [missing_operational_guard],
-      })),
+      query: vi.fn(async (_sql: string, values?: unknown[]) => {
+        const expected_guards = JSON.parse(String(values?.[2] ?? "[]")) as
+          | unknown[];
+        return {
+          rows: expected_guards.length ? [missing_operational_guard] : [],
+        };
+      }),
     };
     const verify = Reflect.get(verification, "verify_audit_schema");
     const roles = {
@@ -94,7 +98,7 @@ describe("Audit schema verification", () => {
 
     await expect(
       verify(pool as never, roles, {
-        allow_missing_guard_tables: true,
+        skip_current_guard_registry: true,
       }),
     ).resolves.toEqual({ status: "ready" });
     await expect(verify(pool as never, roles)).rejects.toThrow(
