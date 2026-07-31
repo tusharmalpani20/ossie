@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q13 are provisionally recorded and Q14 is open
+Status: In progress. Q1 through Q14 are provisionally recorded and Q15 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -161,8 +161,8 @@ Inference and preference must not be written as shipped fact.
 | Q11      | Governed permanent deletion and retention                       | Answered   | `defer`; archive only now        | Provisional     |
 | Q12      | Cross-artifact and Organization-wide search                     | Answered   | `accept-later`: metadata first   | Provisional     |
 | Q13      | Rich interactive components                                     | Answered   | `accept-later`: disclosure only  | Provisional     |
-| Q14      | SDK generation                                                  | Open       | Pending                          | Pending         |
-| Q15      | Advanced publication distribution                               | Not opened | None                             | Pending         |
+| Q14      | Request examples and SDK generation                             | Answered   | Examples next; SDKs deferred     | Provisional     |
+| Q15      | Advanced publication distribution                               | Open       | Pending                          | Pending         |
 | Q16      | Tooling and operational follow-up                               | Not opened | None                             | Pending         |
 | Q17      | Final prioritization, next-master ownership, and child sequence | Not opened | None                             | Pending         |
 
@@ -2470,24 +2470,215 @@ which is why they remain deferred.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-next-candidate` for safe deterministic request snippets, subject to
+the Q17 cross-candidate prioritization. The first implementation sequence must
+cover at least curl, browser JavaScript `fetch`, Node.js, Python, and Go and
+must use an extensible, versioned language registry so additional languages
+can be added without changing the Publication authority model.
+
+Full generated SDK archives, package-registry publication, and an implied SDK
+support promise remain `defer`.
+
+### User answer
+
+> We can have these now itself, right? Not just those but a lot more: fetch,
+> curl, Go, Node, Python, etc. Why not do it now itself?
+
+After clarifying that child `140` is a documentation-only decision gate and
+that implementation can begin only in a following child sequence, the user
+accepted this revised recommendation:
+
+> I agree with you.
 
 ### Simple decision requested
 
 Should Ossie later generate copyable API request examples while postponing
 full SDK packages?
 
-Recommended answer: **Yes. Later add safe examples for curl, JavaScript, and
-Python. Defer full SDK generation until users ask for specific languages and
-we can support them properly.**
+Recommended answer: **Yes. Make safe request-example generation a candidate
+for the next implementation sequence, beginning with curl, browser fetch,
+Node.js, Python, and Go and allowing more languages to be added. Defer full SDK
+packages until users request exact languages and Ossie can maintain them
+safely.**
 
-## 22. Questions Not Yet Opened
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
 
-Q15 through Q17 remain unmade. Their full implementation-safe question
+## 22. Q15 — Should Ossie Export A Static Site Or Deploy It For Customers?
+
+### Why this question is open
+
+V1 can export a deterministic Documentation package, but it does not build a
+standalone static website or deploy customer content to object storage/CDNs.
+Those are separate capabilities. A portable static artifact is useful without
+giving Ossie access to customer infrastructure; direct deployment adds cloud
+credentials, provider APIs, partial-failure recovery, cache invalidation, and
+operational ownership.
+
+### Shipped V1 facts
+
+- One exact immutable Site Publication is authoritative.
+- Existing package export preserves data portability; it is not a standalone
+  reader deployment bundle.
+- Public, restricted-password, and internal reader access are enforced by the
+  Ossie reader adapter. A plain static host cannot automatically preserve
+  those server-side access rules.
+- Publication preparation completes before a live Publish Link changes, and
+  rollback selects another existing immutable Publication.
+- Ossie has no object-storage/CDN adapter, deployment credential store, deploy
+  hook, environment-promotion model, signed delivery artifact, cache-purge
+  integration, or background publication worker.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- AWS documents static sites as files in durable object storage delivered
+  through a CDN and recommends keeping the bucket private behind CloudFront
+  origin access control:
+  [Secure static website](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/getting-started-secure-static-website-cloudformation-template.html).
+- AWS warns that directly public S3 website hosting requires disabling Block
+  Public Access and recommends CloudFront when the bucket should remain
+  private:
+  [S3 access control](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-management.html).
+- GitHub deployment environments illustrate that production deployment needs
+  explicit environment permissions, reviewer gates, branch restrictions, and
+  secrets that are withheld until protection rules pass:
+  [Managing deployment environments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments).
+- GitHub also treats deployment concurrency and environment protection as
+  separate controls, reinforcing that external delivery needs serialized,
+  auditable state transitions rather than an unguarded upload hook:
+  [Controlling deployments](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/control-deployments).
+
+### Inference
+
+A deterministic static artifact can be produced from an exact public
+Publication without changing database authority. It is portable and lets a
+customer choose its own hosting. Direct provider deployment has a much larger
+trust and operations surface and is not necessary to prove the value of
+static distribution.
+
+Restricted-password or internal Documentation must not be exported as a
+public static site: static files alone cannot reproduce Ossie's authorization,
+revocation, expiry, Access Evidence, or password-attempt protections.
+
+### Recommendation
+
+Split the direction:
+
+1. **Accept later: deterministic static-site export for public Publications.**
+   An authorized operator downloads a bounded artifact for one exact
+   Publication and deploys it using customer-owned tooling.
+2. **Defer Ossie-managed deployment adapters** for S3/CDNs, deploy hooks,
+   scheduled promotion, cache purge, and custom domains until real demand and
+   provider/credential/operations ownership are established.
+
+Static-export rules:
+
+- only an exact immutable `public` Publication may be exported;
+- the manifest names the Publication, format version, build version, file
+  digests, canonical-path assumptions, and creation time;
+- output is deterministic apart from explicitly normalized metadata;
+- files are inert HTML/CSS/JavaScript/assets with no authoring controls,
+  secrets, internal IDs, unpublished content, or server-only Try-It authority;
+- links, search data, assets, API references, code examples, sitemap, robots,
+  canonical metadata, not-found behavior, and base-path hosting are verified;
+- the export does not mutate the live Publish Link and does not claim the
+  externally hosted copy was deployed, revoked, purged, or rolled back;
+- customer infrastructure credentials never enter the export or Audit/Access
+  Evidence.
+
+### Alternatives
+
+- **Defer all advanced distribution:** retain package export and Ossie-hosted
+  readers only.
+- **Build direct deployment now:** requires a dedicated provider adapter,
+  secret-management, jobs, promotion, reconciliation, rollback, and support
+  sequence.
+- **Customer webhook only:** still creates outbound-network, signing,
+  replay/idempotency, secret, and delivery-status ownership and is therefore
+  not a shortcut.
+
+### Rejected shortcuts
+
+- exporting drafts, restricted-password content, internal content, or mutable
+  live state as a public bundle;
+- copying customer cloud keys into a Site, Publication, export, log, audit row,
+  browser bundle, or repository;
+- treating an upload as successful before every object and manifest digest is
+  verified;
+- overwriting one mutable external prefix without atomic pointer/version
+  semantics;
+- claiming Ossie rollback/revocation controls an independently hosted copy;
+- provider-specific URLs or cache behavior in the canonical Publication;
+- executing customer-supplied deployment scripts or hooks in the web process;
+- making a bucket public merely because the exported content is public;
+- coupling custom-domain acceptance to one cloud/CDN provider.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- PostgreSQL and the exact Publication remain authoritative; the exported site
+  is a derived immutable copy.
+- Export requires the existing privileged Publication export authority and is
+  denied for non-public access modes.
+- Export creation records bounded metadata and artifact digest without content
+  bodies, secrets, query strings, or credentials in Audit/Access Evidence.
+- Archive/revocation/rollback in Ossie cannot retract customer-hosted bytes;
+  the UI and manifest must say so plainly.
+- A future managed adapter needs least-privilege short-lived credentials,
+  environment-scoped approval, idempotent jobs, retry/reconciliation, partial
+  failure records, digest verification, and explicit external deletion policy.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. A future static-export child would add a versioned
+build/manifest contract, asynchronous or bounded artifact generation, download
+authorization and expiry, deterministic renderer, base-path configuration,
+and focused unit/integration/browser fixtures. It must not change existing
+Publication or reader URLs. Direct provider APIs, credentials, custom domains,
+cache invalidation, scheduled publication, and environment promotion remain a
+separate later decision.
+
+### Reversibility
+
+Generating an immutable static artifact is reversible inside Ossie because it
+does not change the live link and can expire from Ossie-managed download
+storage. Copies already downloaded or deployed by a customer cannot be
+recalled; this limitation must be explicit. Provider-managed deployment is
+harder to reverse because external caches, aliases, credentials, and partial
+state can outlive a failed operation.
+
+### Evidence gaps
+
+- no user demand distinguishes download-only export from direct deployment;
+- no required host, CDN, base path, artifact size, or build-time envelope;
+- no accepted handling for restricted/private static access;
+- no external artifact retention or signing authority;
+- no provider credential, job, retry, reconciliation, or support owner;
+- no accepted SLA for deploy, cache purge, rollback, or revocation;
+- no evidence that a provider adapter is more valuable than a portable static
+  bundle plus customer-owned CI.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should Ossie later provide a downloadable static website for public
+Documentation while leaving deployment to the customer's own hosting tools?
+
+Recommended answer: **Yes. Add a safe, portable static-site export later.
+Defer direct S3/CDN deployment, deploy hooks, and stored cloud credentials until
+customers clearly need them and Ossie has the required operational model.**
+
+## 23. Questions Not Yet Opened
+
+Q16 and Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 23. Session Log
+## 24. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -2540,8 +2731,13 @@ at a time with current primary-source research only when opened.
   `accept-later` possibility while preserving the rejection of arbitrary
   executable/remote component escape hatches. Opened request examples and SDK
   generation as Q14.
+- 2026-07-31: the user accepted generated request examples as a candidate for
+  the next implementation sequence, beginning with curl, browser fetch,
+  Node.js, Python, and Go through an extensible language registry. Full SDK
+  package generation remains deferred. Opened static export and managed
+  publication distribution as Q15.
 
-## 24. Verification Record
+## 25. Verification Record
 
 Initial checkpoint verification:
 
@@ -2558,7 +2754,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 25. Current Handoff
+## 26. Current Handoff
 
-Awaiting explicit user/product authority for Q14. Do not open Q15 until Q14 is
+Awaiting explicit user/product authority for Q15. Do not open Q16 until Q15 is
 recorded.
