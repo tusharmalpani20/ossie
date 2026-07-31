@@ -14,6 +14,7 @@ type ProjectionTarget = {
   publication_id: string | null;
   output_digest: string | null;
   projection: "draft_search" | "publication_search";
+  ordering_id: string;
 };
 
 export type ProjectionMaintenanceOptions =
@@ -50,10 +51,11 @@ export const parse_projection_maintenance_args = (
   return { mode: "dry_run", publication_id: null };
 };
 
-const read_targets = async (
+const read_target_page = async (
   database: QueryableDatabase,
   options: ProjectionMaintenanceOptions,
   batch_size: number,
+  cursor: Pick<ProjectionTarget, "projection" | "ordering_id"> | null = null,
 ): Promise<ProjectionTarget[]> => {
   if (options.publication_id) {
     const result = await database.query<ProjectionTarget>(
@@ -61,7 +63,8 @@ const read_targets = async (
               project_version.slug project_version_slug,
               publication.documentation_site_id site_id,
               publication.id publication_id,publication.output_digest,
-              'publication_search'::text projection
+              'publication_search'::text projection,
+              publication.id ordering_id
          FROM publish_schema.site_publication publication
          JOIN documentation_schema.site_edition edition
            ON edition.id=publication.site_edition_id
@@ -101,11 +104,52 @@ const read_targets = async (
         WHERE generation.status='requires_rebuild'
      )
      SELECT organization_id,project_id,project_version_slug,site_id,
-            publication_id,output_digest,projection
-       FROM candidates ORDER BY projection,ordering_id LIMIT $1`,
-    [batch_size],
+            publication_id,output_digest,projection,ordering_id
+       FROM candidates
+      WHERE ($1::text IS NULL OR (projection,ordering_id)>($1,$2))
+      ORDER BY projection,ordering_id LIMIT $3`,
+    [cursor?.projection ?? null, cursor?.ordering_id ?? null, batch_size],
   );
   return result.rows;
+};
+
+async function* iterate_projection_maintenance_target_pages(
+  database: QueryableDatabase,
+  options: ProjectionMaintenanceOptions,
+  batch_size: number,
+) {
+  if (options.publication_id) {
+    yield await read_target_page(database, options, batch_size);
+    return;
+  }
+  let cursor: Pick<ProjectionTarget, "projection" | "ordering_id"> | null =
+    null;
+  while (true) {
+    const page = await read_target_page(database, options, batch_size, cursor);
+    if (!page.length) return;
+    yield page;
+    const last = page.at(-1)!;
+    cursor = {
+      projection: last.projection,
+      ordering_id: last.ordering_id,
+    };
+  }
+}
+
+export const read_projection_maintenance_targets = async (
+  database: QueryableDatabase,
+  options: ProjectionMaintenanceOptions,
+  batch_size: number,
+) => {
+  const targets: ProjectionTarget[] = [];
+  for await (const page of iterate_projection_maintenance_target_pages(
+    database,
+    options,
+    batch_size,
+  )) {
+    targets.push(...page);
+  }
+  return targets;
 };
 
 export const run_documentation_projection_maintenance = async (input: {
@@ -116,17 +160,18 @@ export const run_documentation_projection_maintenance = async (input: {
 }) => {
   const options = parse_projection_maintenance_args(input.argv);
   const output = input.output ?? console.info;
-  const targets = await read_targets(
-    input.database,
-    options,
+  const batch_size =
     input.batch_size ??
-      get_documentation_operations_config().rebuild_batch_size,
-  );
+    get_documentation_operations_config().rebuild_batch_size;
+  const targets =
+    options.mode === "dry_run"
+      ? await read_target_page(input.database, options, batch_size)
+      : null;
   const counts = {
-    draft_search: targets.filter(
+    draft_search: (targets ?? []).filter(
       (target) => target.projection === "draft_search",
     ).length,
-    publication_search: targets.filter(
+    publication_search: (targets ?? []).filter(
       (target) => target.projection === "publication_search",
     ).length,
   };
@@ -136,34 +181,39 @@ export const run_documentation_projection_maintenance = async (input: {
         mode: "dry_run",
         candidates: counts,
         truncated:
-          targets.length ===
-          (input.batch_size ??
-            get_documentation_operations_config().rebuild_batch_size),
+          targets!.length === batch_size,
       }),
     );
     return { processed: 0, candidates: counts };
   }
   const repository = build_documentation_operations_repository(input.database);
   let processed = 0;
-  for (const target of targets) {
-    const request =
-      target.projection === "publication_search"
-        ? {
-            projection: "publication_search" as const,
-            publication_id: target.publication_id as string,
-            expected_output_digest: target.output_digest ?? undefined,
-          }
-        : { projection: "draft_search" as const };
-    await repository.rebuild_projection({
-      organization_id: target.organization_id,
-      actor_org_user_id: null,
-      actor_type: "system",
-      project_id: target.project_id,
-      project_version_slug: target.project_version_slug,
-      site_id: target.site_id,
-      request,
-    });
-    processed += 1;
+  for await (const page of iterate_projection_maintenance_target_pages(
+    input.database,
+    options,
+    batch_size,
+  )) {
+    for (const target of page) {
+      const request =
+        target.projection === "publication_search"
+          ? {
+              projection: "publication_search" as const,
+              publication_id: target.publication_id as string,
+              expected_output_digest: target.output_digest ?? undefined,
+            }
+          : { projection: "draft_search" as const };
+      await repository.rebuild_projection({
+        organization_id: target.organization_id,
+        actor_org_user_id: null,
+        actor_type: "system",
+        project_id: target.project_id,
+        project_version_slug: target.project_version_slug,
+        site_id: target.site_id,
+        request,
+      });
+      counts[target.projection] += 1;
+      processed += 1;
+    }
   }
   output(
     JSON.stringify({

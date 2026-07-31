@@ -1099,6 +1099,63 @@ describe("Documentation routes", () => {
     delete process.env.OSSIE_PUBLIC_WEB_URL;
   });
 
+  it("falls back to a bounded noindex shell when route-specific HTML is oversized", async () => {
+    process.env.OSSIE_PUBLIC_WEB_URL = "https://docs.example.test";
+    const oversizedMarker = `private-${"x".repeat(4_000)}`;
+    const resolve_public_site = vi.fn(async () => ({
+      link: { visibility: "public", slug: "product-docs" },
+      site: { id: "site", name: "Product docs", description: "Safe docs" },
+      edition: { primary_language: "en-US" },
+      revision: { primary_language: "en-US" },
+      working_draft: { home_page_id: "page" },
+      publication: { output_digest: "a".repeat(64) },
+      pages: [
+        {
+          id: "page",
+          title: `Install ${"T".repeat(4_000)}`,
+          description: "Install safely",
+          canonical_path: "install",
+          blocks: [{ kind: "paragraph", text: oversizedMarker }],
+        },
+      ],
+      aliases: [],
+      redirects: [],
+      openapi_operations: [],
+      _discovery: { effective_indexing: true, primary_slug: "product-docs" },
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        initial_html_max_bytes: 2_000,
+        public_assets: {
+          scripts: ["/assets/app.js"],
+          styles: [],
+          asset_base: "/",
+          production: true,
+        },
+        auth_service: {} as never,
+        documentation_service: documentation_service_stubs({
+          resolve_public_site,
+        }),
+        resolve_project_version: vi.fn(),
+      }),
+    );
+
+    const response = await app.inject({ url: "/docs/product-docs/install" });
+    await app.close();
+
+    expect(response.statusCode).toBe(200);
+    expect(Buffer.byteLength(response.body, "utf8")).toBeLessThanOrEqual(2_000);
+    expect(response.body).toContain(
+      '<meta name="robots" content="noindex,nofollow">',
+    );
+    expect(response.body).toContain("Content loads in the application.");
+    expect(response.body).toContain(`"output_digest":"${"a".repeat(64)}"`);
+    expect(response.body).not.toContain(oversizedMarker);
+    delete process.env.OSSIE_PUBLIC_WEB_URL;
+  });
+
   it("searches only safe saved-draft fields after authorization", async () => {
     const app = Fastify();
     await app.register(cookie);

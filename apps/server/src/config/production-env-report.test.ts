@@ -27,6 +27,8 @@ const valid_production_env = {
   OSSIE_PUBLIC_WEB_URL: "https://demo.example.com",
   OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS:
     "https://b.example.com,https://a.example.com",
+  OSSIE_DOCUMENTATION_TRY_IT_WEB_ORIGIN_SET_DIGEST:
+    "e96b711517dc37d3a33252840dec0eb1455295d1bfe702c095a4fe654fd0b398",
   OSSIE_DOCUMENTATION_WEB_MANIFEST_PATH:
     "/opt/ossie/apps/web/dist/.vite/manifest.json",
   OSSIE_DOCUMENTATION_WEB_ASSET_BASE: "/assets/",
@@ -105,7 +107,13 @@ describe("production env report", () => {
       },
       documentation_try_it: {
         allowed_origins_count: 2,
-        dns_validation: "all_addresses_must_be_public",
+        origin_set_digest:
+          "e96b711517dc37d3a33252840dec0eb1455295d1bfe702c095a4fe654fd0b398",
+        web_origin_set_digest:
+          "e96b711517dc37d3a33252840dec0eb1455295d1bfe702c095a4fe654fd0b398",
+        origin_set_status: "match",
+        reload_required_after_change: true,
+        dns_validation: "uncached_on_policy_and_configuration",
         dns_timeout_ms: 4000,
       },
       documentation: {
@@ -134,6 +142,22 @@ describe("production env report", () => {
     expect(report.documentation_try_it.origin_set_digest).toMatch(
       /^[a-f0-9]{64}$/u,
     );
+  });
+
+  it("reports mismatched and unavailable web-build Try-It origin digests", () => {
+    process.env = {
+      ...original_env,
+      ...valid_production_env,
+      OSSIE_DOCUMENTATION_TRY_IT_WEB_ORIGIN_SET_DIGEST: "b".repeat(64),
+    };
+    expect(
+      build_production_env_report().documentation_try_it.origin_set_status,
+    ).toBe("mismatch");
+
+    delete process.env.OSSIE_DOCUMENTATION_TRY_IT_WEB_ORIGIN_SET_DIGEST;
+    const unavailable = build_production_env_report().documentation_try_it;
+    expect(unavailable.web_origin_set_digest).toBeNull();
+    expect(unavailable.origin_set_status).toBe("unavailable");
   });
 
   it("fails through startup validation when production config is invalid", () => {

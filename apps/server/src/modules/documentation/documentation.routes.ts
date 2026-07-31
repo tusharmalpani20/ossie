@@ -3976,7 +3976,12 @@ export const build_documentation_routes = (
         const needle = query.data.q.toLocaleLowerCase();
         const results = site.search_documents
           .filter((document) =>
-            document.search_text.toLocaleLowerCase().includes(needle),
+            [
+              document.title,
+              document.search_text,
+              document.canonical_path,
+              document.page_id,
+            ].some((value) => value.toLocaleLowerCase().includes(needle)),
           )
           .slice(0, 50)
           .map((document) => ({
@@ -4396,6 +4401,7 @@ export const build_documentation_routes = (
         version_slug: string | null;
         page_path: string | null;
         operation_key: string | null;
+        minimal?: boolean;
       },
     ) => {
       const pages = Array.isArray(site.pages)
@@ -4421,17 +4427,24 @@ export const build_documentation_routes = (
       const edition = (site.edition ?? {}) as Record<string, unknown>;
       const revision = (site.revision ?? {}) as Record<string, unknown>;
       const discovery = (site._discovery ?? {}) as Record<string, unknown>;
-      const title = operation
+      const fullTitle = operation
         ? `${operation.summary ?? operation.destination_key} · ${siteState.name}`
         : page
           ? `${page.title} · ${siteState.name}`
           : String(siteState.name ?? "Documentation");
-      const description = String(
+      const fullDescription = String(
         (operation?.summary ??
           page?.description ??
           siteState.description ??
           edition.description ??
           "") as unknown,
+      );
+      const title = input.minimal ? fullTitle.slice(0, 120) : fullTitle;
+      const description = input.minimal
+        ? fullDescription.slice(0, 160)
+        : fullDescription;
+      const heading = String(
+        operation?.summary ?? page?.title ?? siteState.name ?? "Documentation",
       );
       const primarySlug =
         typeof discovery.primary_slug === "string"
@@ -4453,7 +4466,7 @@ export const build_documentation_routes = (
         `${origin}/docs/${encodeURIComponent(primarySlug)}` +
         `${versionSuffix}${routeSuffix}`;
       const noindex = discovery.effective_indexing !== true;
-      const blocks = Array.isArray(page?.blocks)
+      const blocks = !input.minimal && Array.isArray(page?.blocks)
         ? (page.blocks as Array<Record<string, unknown>>)
         : [];
       const blockHtml = blocks
@@ -4476,7 +4489,7 @@ export const build_documentation_routes = (
           return `<${tag}>${escape_html(text)}</${tag}>`;
         })
         .join("");
-      const operationHtml = operation
+      const operationHtml = operation && !input.minimal
         ? `<p><strong>${escape_html(
             String(operation.method ?? "").toUpperCase(),
           )}</strong> <code>${escape_html(operation.path)}</code></p>`
@@ -4494,12 +4507,34 @@ export const build_documentation_routes = (
             `<script type="module" src="${escape_html(src)}"></script>`,
         )
         .join("");
-      const initialData =
-        !operation && page
+      const serialize_initial_data = (value: unknown) =>
+        JSON.stringify(value)
+          .replaceAll("&", "\\u0026")
+          .replaceAll("<", "\\u003c")
+          .replaceAll(">", "\\u003e")
+          .replaceAll("\u2028", "\\u2028")
+          .replaceAll("\u2029", "\\u2029");
+      const initialData = input.minimal
+        ? serialize_initial_data({
+            slug: input.slug,
+            version_slug: input.version_slug,
+            page_path: input.page_path,
+            publication: {
+              output_digest: (
+                (site.publication ?? {}) as Record<string, unknown>
+              ).output_digest,
+            },
+          })
+        : !operation && page
           ? JSON.stringify({
               ...public_site_response(site),
               page,
-            }).replaceAll("<", "\\u003c")
+            })
+              .replaceAll("&", "\\u0026")
+              .replaceAll("<", "\\u003c")
+              .replaceAll(">", "\\u003e")
+              .replaceAll("\u2028", "\\u2028")
+              .replaceAll("\u2029", "\\u2029")
           : null;
       const initialDataElement = initialData
         ? `<script id="ossie-documentation-initial-data" type="application/json" data-slug="${escape_html(
@@ -4522,7 +4557,7 @@ export const build_documentation_routes = (
         '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
         `<title>${escape_html(title)}</title>` +
         `<meta name="description" content="${escape_html(description)}">` +
-        `<meta name="robots" content="${noindex ? "noindex,nofollow" : "index,follow"}">` +
+        `<meta name="robots" content="${noindex || input.minimal ? "noindex,nofollow" : "index,follow"}">` +
         `<link rel="canonical" href="${escape_html(canonical)}">` +
         `<meta property="og:title" content="${escape_html(title)}">` +
         `<meta property="og:description" content="${escape_html(description)}">` +
@@ -4533,9 +4568,13 @@ export const build_documentation_routes = (
         `<meta name="twitter:description" content="${escape_html(description)}">` +
         `${styles}</head><body><a href="#main-content">Skip to content</a>` +
         `<div id="root"><main id="main-content"><h1>${escape_html(
-          operation?.summary ?? page?.title ?? siteState.name,
+          input.minimal ? heading.slice(0, 120) : heading,
         )}</h1>${description ? `<p>${escape_html(description)}</p>` : ""}` +
-        `${operationHtml}${blockHtml}</main></div>${initialDataElement}${scripts}</body></html>`
+        `${operationHtml}${blockHtml}${
+          input.minimal
+            ? '<p role="status">Content loads in the application.</p>'
+            : ""
+        }</main></div>${initialDataElement}${scripts}</body></html>`
       );
     };
 
@@ -4609,16 +4648,23 @@ export const build_documentation_routes = (
           return reply.status(308).header("location", location).send();
         }
       }
-      const html = public_initial_document(site, {
+      const documentInput = {
         slug: params.slug ?? "",
         version_slug: input.versioned ? (params.version_slug ?? null) : null,
         page_path: pagePath,
         operation_key: input.operation ? (params.operation_key ?? null) : null,
-      });
+      };
+      let html = public_initial_document(site, documentInput);
       if (!html) return reply.status(404).type("text/html").send("");
       const maximum = dependencies.initial_html_max_bytes ?? 16 * 1024 * 1024;
-      if (Buffer.byteLength(html, "utf8") > maximum)
-        return reply.status(500).type("text/html").send("");
+      if (Buffer.byteLength(html, "utf8") > maximum) {
+        html = public_initial_document(site, {
+          ...documentInput,
+          minimal: true,
+        });
+      }
+      if (!html || Buffer.byteLength(html, "utf8") > maximum)
+        return reply.status(503).type("text/html").send("");
       const deployment = get_documentation_try_it_origin_config();
       reply
         .header(

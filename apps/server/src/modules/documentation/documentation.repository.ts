@@ -3793,8 +3793,18 @@ export const build_documentation_repository = (
          FROM documentation_schema.documentation_draft_search_document
         WHERE organization_id=$1 AND project_id=$2
           AND project_version_id=$3 AND documentation_site_id=$4
-          AND search_vector @@ plainto_tsquery('simple',$5)
-        ORDER BY ts_rank(search_vector,plainto_tsquery('simple',$5)) DESC,
+          AND (
+            search_vector @@ plainto_tsquery('simple',$5)
+            OR strpos(lower(canonical_path),lower($5))>0
+            OR strpos(lower(documentation_page_id),lower($5))>0
+          )
+        ORDER BY CASE
+                   WHEN lower(title)=lower($5) THEN 0
+                   WHEN strpos(lower(title),lower($5))=1 THEN 1
+                   WHEN strpos(lower(title),lower($5))>0 THEN 2
+                   ELSE 3
+                 END,
+                 ts_rank(search_vector,plainto_tsquery('simple',$5)) DESC,
                  canonical_path,page_id
         LIMIT 50`,
         [
@@ -6702,9 +6712,18 @@ export const build_documentation_repository = (
             AND (
               $2::varchar IS NULL
               OR document.ranking_vector @@ websearch_to_tsquery('simple',$2)
-              OR document.search_text ILIKE '%' || $2 || '%'
+              OR strpos(lower(document.search_text),lower($2))>0
+              OR strpos(lower(document.canonical_path),lower($2))>0
+              OR strpos(lower(document.source_page_id),lower($2))>0
             )
           ORDER BY
+            CASE
+              WHEN $2::varchar IS NULL THEN 0
+              WHEN lower(document.title)=lower($2) THEN 0
+              WHEN strpos(lower(document.title),lower($2))=1 THEN 1
+              WHEN strpos(lower(document.title),lower($2))>0 THEN 2
+              ELSE 3
+            END,
             CASE WHEN $2::varchar IS NULL THEN 0
               ELSE ts_rank_cd(document.ranking_vector,
                 websearch_to_tsquery('simple',$2)) END DESC,

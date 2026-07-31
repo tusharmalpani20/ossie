@@ -899,6 +899,27 @@ describe("v1 dogfood smoke workflow", () => {
       expect(snippet_search.json().results).toEqual([
         expect.objectContaining({ page_id: fixture.page_ids.home }),
       ]);
+      const literal_wildcard_search = await app.inject({
+        method: "GET",
+        url: "/api/v1/public/publish-links/plan132-public/documentation/search?q=%25",
+        headers: { "x-ossie-access-surface": "public_reader" },
+      });
+      expect(
+        literal_wildcard_search.statusCode,
+        literal_wildcard_search.body,
+      ).toBe(200);
+      expect(literal_wildcard_search.json().results).toEqual([]);
+      for (const query of ["install-guide", fixture.page_ids.home]) {
+        const identifier_search = await app.inject({
+          method: "GET",
+          url: `/api/v1/public/publish-links/plan132-public/documentation/search?q=${encodeURIComponent(query)}`,
+          headers: { "x-ossie-access-surface": "public_reader" },
+        });
+        expect(identifier_search.statusCode, identifier_search.body).toBe(200);
+        expect(identifier_search.json().results, query).toEqual([
+          expect.objectContaining({ page_id: fixture.page_ids.home }),
+        ]);
+      }
       const alias = await app.inject({
         method: "GET",
         url: "/api/v1/public/publish-links/plan132-public/documentation/pages/install",

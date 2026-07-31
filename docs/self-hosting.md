@@ -152,14 +152,20 @@ origins for the API and web build:
 ```bash
 OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS=https://api.example.com
 VITE_OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS=https://api.example.com
+OSSIE_DOCUMENTATION_TRY_IT_WEB_ORIGIN_SET_DIGEST=<web-build-origin-set-sha256>
 ```
 
 Values must be origins only: no wildcard, credentials, path, query, fragment,
 HTTP, localhost, or private-network target. The API re-resolves every configured
 target before issuing short-lived authority and rejects mixed public/private
 answers. Changing the set requires rebuilding/redeploying the web app as well
-as reloading the server. Production environment reporting exposes only the
-origin count and deterministic digest.
+as reloading the server. Supply the exact digest embedded in that web build as
+`OSSIE_DOCUMENTATION_TRY_IT_WEB_ORIGIN_SET_DIGEST`. Production environment
+reporting exposes only the origin count, server digest, supplied web-build
+digest, `match | mismatch | unavailable` status, reload requirement, and
+uncached DNS-validation mode. It never exposes configured origins. Treat
+`mismatch` or `unavailable` as a deployment failure and keep Send disabled until
+the web build and server configuration agree.
 
 The SPA response must carry the repository-generated restrictive CSP as an HTTP
 header. If an existing reverse-proxy policy is used, merge only the exact Ossie

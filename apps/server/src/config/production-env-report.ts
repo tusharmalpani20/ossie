@@ -65,7 +65,10 @@ export type ProductionEnvReport = {
   documentation_try_it: {
     allowed_origins_count: number;
     origin_set_digest: string;
-    dns_validation: "all_addresses_must_be_public";
+    web_origin_set_digest: string | null;
+    origin_set_status: "match" | "mismatch" | "unavailable";
+    reload_required_after_change: true;
+    dns_validation: "uncached_on_policy_and_configuration";
     dns_timeout_ms: number;
   };
   documentation: {
@@ -107,6 +110,17 @@ export const build_production_env_report = (): ProductionEnvReport => {
   const local_storage_root = process.env.OSSIE_LOCAL_STORAGE_ROOT || "";
   const rate_limit = get_rate_limit_config();
   const documentation_try_it = get_documentation_try_it_origin_config();
+  const documentation_try_it_web_digest =
+    process.env.OSSIE_DOCUMENTATION_TRY_IT_WEB_ORIGIN_SET_DIGEST?.trim() ||
+    null;
+  if (
+    documentation_try_it_web_digest &&
+    !/^[a-f0-9]{64}$/u.test(documentation_try_it_web_digest)
+  ) {
+    throw new Error(
+      "OSSIE_DOCUMENTATION_TRY_IT_WEB_ORIGIN_SET_DIGEST must be a lowercase SHA-256 digest",
+    );
+  }
   const documentation_operations = get_documentation_operations_config();
 
   return {
@@ -160,7 +174,14 @@ export const build_production_env_report = (): ProductionEnvReport => {
     documentation_try_it: {
       allowed_origins_count: documentation_try_it.origins.length,
       origin_set_digest: documentation_try_it.digest,
-      dns_validation: "all_addresses_must_be_public",
+      web_origin_set_digest: documentation_try_it_web_digest,
+      origin_set_status: documentation_try_it_web_digest
+        ? documentation_try_it_web_digest === documentation_try_it.digest
+          ? "match"
+          : "mismatch"
+        : "unavailable",
+      reload_required_after_change: true,
+      dns_validation: "uncached_on_policy_and_configuration",
       dns_timeout_ms: documentation_operations.try_it_dns_timeout_ms,
     },
     documentation: {
