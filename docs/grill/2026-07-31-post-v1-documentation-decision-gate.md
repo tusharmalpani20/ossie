@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q11 are provisionally recorded and Q12 is open
+Status: In progress. Q1 through Q12 are provisionally recorded and Q13 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -159,8 +159,8 @@ Inference and preference must not be written as shipped fact.
 | Q9       | Realtime collaboration and presence                             | Answered   | Presence later; editing deferred | Provisional     |
 | Q10      | Offline editing and merge                                       | Answered   | Read later; editing deferred     | Provisional     |
 | Q11      | Governed permanent deletion and retention                       | Answered   | `defer`; archive only now        | Provisional     |
-| Q12      | Cross-artifact and Organization-wide search                     | Open       | Pending                          | Pending         |
-| Q13      | Rich interactive components                                     | Not opened | None                             | Pending         |
+| Q12      | Cross-artifact and Organization-wide search                     | Answered   | `accept-later`: metadata first   | Provisional     |
+| Q13      | Rich interactive components                                     | Open       | Pending                          | Pending         |
 | Q14      | SDK generation                                                  | Not opened | None                             | Pending         |
 | Q15      | Advanced publication distribution                               | Not opened | None                             | Pending         |
 | Q16      | Tooling and operational follow-up                               | Not opened | None                             | Pending         |
@@ -2121,7 +2121,9 @@ harder to unwind and is excluded from the first slice.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-later` as Knowledge Platform work for permission-filtered Organization
+metadata discovery. Cross-artifact body/full-text search and cross-Organization
+search remain deferred.
 
 ### Simple decision requested
 
@@ -2131,13 +2133,182 @@ Recommended answer: **Yes, later—but first search only safe titles and basic
 details for content the person already has permission to see. Defer searching
 inside every artifact.**
 
-## 20. Questions Not Yet Opened
+### User answer
 
-Q13 through Q17 remain unmade. Their full implementation-safe question
+> Yes, I agree with you.
+
+Recorded interpretation:
+
+- preserve Organization-wide metadata discovery as an accepted-later
+  Knowledge Platform capability;
+- search safe titles/basic details only for already-authorized content in the
+  first slice;
+- filter permissions before disclosing results, counts, facets, snippets, or
+  ranking and reauthorize at the target;
+- keep indexes derived and public/local searches unchanged;
+- defer cross-artifact body search and all cross-Organization search;
+- do not create a Documentation-owned sequence or select search as
+  `accept-next` before cross-question reconciliation.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 20. Q13 — Should Ossie Add More Interactive Documentation Blocks?
+
+### Why this question is open
+
+Useful documentation can include expandable explanations and other small
+interactions. Ossie already has several constrained rich blocks. A generic
+custom-code or embed feature would let customer content execute in readers'
+browsers, contact third parties, change after Publication, weaken CSP, break
+accessibility, and escape deterministic import/export.
+
+### Shipped V1 facts
+
+- Documentation already supports typed paragraphs, headings, lists, code,
+  links, images, dividers, quotes, tables, code examples, callouts, tabs,
+  Snippet references, API references, and exact published Guide/Interactive
+  Demo bindings.
+- Blocks use strict schemas, bounds, controlled Markdown, server validation,
+  immutable Revision/Publication snapshots, reader rendering, search text, and
+  Package portability.
+- Content is database-authoritative, constrained, and non-executable.
+- Customer-authored MDX, JavaScript, React, raw HTML, arbitrary iframes, and
+  arbitrary executable code are rejected.
+- Try It is a separately governed browser-direct operation surface.
+- No demand evidence identifies a missing component family.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- The HTML `details`/`summary` elements provide a native disclosure widget and
+  current browser support. The standard warns that exclusive accordions can
+  frustrate users and requires semantically correct grouping:
+  [HTML details element](https://html.spec.whatwg.org/multipage/interactive-elements.html#the-details-element).
+- WAI-ARIA's accordion pattern documents keyboard and accessibility semantics
+  when a custom accordion is needed:
+  [WAI-ARIA accordion pattern](https://www.w3.org/WAI/ARIA/apg/patterns/accordion/).
+- CSP defines controls for executable script, frames, network destinations,
+  and other resource loading, but it is defense in depth rather than a reason
+  to accept arbitrary customer code:
+  [Content Security Policy Level 3](https://www.w3.org/TR/CSP3/).
+- OWASP explains that third-party JavaScript executes with the hosting page's
+  privileges and introduces loss-of-control, data, change, availability, and
+  supply-chain risks:
+  [Third-Party JavaScript Management](https://cheatsheetseries.owasp.org/cheatsheets/Third_Party_Javascript_Management_Cheat_Sheet.html).
+
+### Inference
+
+Ossie can safely add useful interaction only as named, Ossie-owned block types
+with bounded declarative configuration. Each block needs its own schema,
+renderer, no-JavaScript representation, accessibility behavior, search text,
+snapshot semantics, CSP impact, and Package representation.
+
+The smallest genuinely new candidate is an expandable disclosure/accordion
+for optional detail or FAQs. Native `details`/`summary` can provide a useful
+baseline without customer scripts or remote dependencies. Existing tabs,
+callouts, code, API, Guide, and Demo blocks should not be relabeled as future
+features.
+
+### Recommendation
+
+Keep additional interactive blocks as an **accepted-later** direction, but
+accept only one initial component family:
+
+1. a typed **disclosure group** containing bounded items;
+2. each item has a stable child identity/version, short summary, controlled
+   Markdown body, position, and optional initially-open state;
+3. render with semantic `details`/`summary` where compatible;
+4. all text remains server-rendered/searchable and available without custom
+   JavaScript;
+5. keyboard, focus, screen-reader, reduced-motion, print, mobile, and
+   multi-open behavior are tested;
+6. the exact content/configuration is captured in Revision/Publication and
+   Package import/export;
+7. it makes no network request and loads no remote executable dependency.
+
+Every other component family must reopen with concrete demand and its own
+schema/threat/accessibility/portability contract.
+
+### Alternatives
+
+- **Defer:** use current headings, tabs, callouts, and links until authors
+  identify a missing interaction.
+- **Reject all new interactions:** preserve the current block allowlist
+  permanently.
+- **Accept another named block later:** evaluate it independently; acceptance
+  of disclosure is not a generic framework promise.
+
+### Rejected shortcuts
+
+- custom MDX, JavaScript, React, raw HTML, script tags, or arbitrary CSS;
+- arbitrary iframes or embed URLs;
+- third-party widgets, packages, trackers, or mutable remote configuration;
+- customer-uploaded executable assets;
+- a “custom component” name/props escape hatch;
+- using CSP or iframe sandbox as the only trust control;
+- client-only content with no server/no-JavaScript/search/print fallback;
+- changing component behavior for an existing immutable Publication;
+- accepting all future component types under one schema or ADR.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- PostgreSQL block rows/configuration and protected Files remain authority.
+- Existing Site author permissions control component authoring; readers gain no
+  mutation or network authority.
+- Strict server schemas allowlist type, fields, sizes, children, nesting, and
+  references; unknown configuration fails closed.
+- Renderers escape/sanitize controlled content and introduce no new origin,
+  credential, cookie, Try-It, or tenant boundary.
+- CSP stays restrictive; the disclosure block needs no customer/third-party
+  script or network access.
+- Archive, Carry-Forward, Review, Revision, Publication, search, export/import,
+  and retention follow normal Page lifecycle.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. A future disclosure implementation would require one
+additive block/child schema and migration, shared types, repository/service/API
+validation, editor controls, reader/export/search renderer, Package V1
+compatibility decision, tests, and browser/accessibility verification. Existing
+blocks, Pages, Publications, routes, CSP, and imports remain compatible.
+
+### Reversibility
+
+An additive typed block is reversible only while readers/importers understand
+its schema or a deterministic static fallback exists. Package and immutable
+Publication support make type removal a compatibility event, so versioning and
+deprecation must be explicit. A generic executable component system would be
+far harder to reverse and remains rejected.
+
+### Evidence gaps
+
+- no observed author/reader demand for disclosure or another component;
+- no accepted item count/body/nesting limits;
+- no Package schema-version compatibility decision;
+- no non-Chromium or real screen-reader evidence for the future block;
+- no demonstrated need for third-party embeds or executable components.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should we keep safe, built-in interactive blocks as a possible later feature?
+
+Recommended answer: **Yes, later. Start only with expandable sections. Never
+allow customers to add arbitrary JavaScript, HTML, React components, or
+iframes.**
+
+## 21. Questions Not Yet Opened
+
+Q14 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 21. Session Log
+## 22. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -2182,8 +2353,12 @@ at a time with current primary-source research only when opened.
   destructive lifecycle and deferred permanent deletion to a governed
   cross-product Knowledge Platform project. Opened Organization-wide
   cross-artifact discovery as Q12.
+- 2026-07-31: the user accepted permission-filtered Organization metadata
+  discovery as an `accept-later` Knowledge Platform capability and deferred
+  body/full-text and cross-Organization search. Opened additional constrained
+  Documentation components as Q13.
 
-## 22. Verification Record
+## 23. Verification Record
 
 Initial checkpoint verification:
 
@@ -2200,7 +2375,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 23. Current Handoff
+## 24. Current Handoff
 
-Awaiting explicit user/product authority for Q12. Do not open Q13 until Q12 is
+Awaiting explicit user/product authority for Q13. Do not open Q14 until Q13 is
 recorded.
