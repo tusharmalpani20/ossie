@@ -1311,6 +1311,7 @@ export const getDocumentationOpenApiSource = async (
       status?: "active" | "archived";
       effective_status?: "active" | "read_only" | "archived";
       read_only_reason?: string | null;
+      server_candidates?: string[];
     };
     operations: DocumentationOpenApiOperation[];
   }>(response);
@@ -1396,6 +1397,16 @@ export type DocumentationRevisionSummary = {
   created_at: string;
 };
 
+export type DocumentationRevisionSnapshot = {
+  site: {
+    id: string;
+    name: string;
+    description: string | null;
+  };
+  revision: DocumentationRevisionSummary;
+  openapi_operations: DocumentationOpenApiOperation[];
+};
+
 export type DocumentationPublicationSummary = {
   id: string;
   publication_sequence: number;
@@ -1425,6 +1436,19 @@ export const listDocumentationRevisions = (
     credentials: "include",
   }).then((response) =>
     json<{ revisions: DocumentationRevisionSummary[] }>(response),
+  );
+
+export const getDocumentationRevision = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  revisionNumber: number,
+) =>
+  fetch(
+    `${baseUrl()}${sitePath(projectId, versionSlug, siteId)}/revisions/${revisionNumber}`,
+    { credentials: "include", cache: "no-store" },
+  ).then((response) =>
+    json<{ revision: DocumentationRevisionSnapshot }>(response),
   );
 
 export const listDocumentationPublications = (

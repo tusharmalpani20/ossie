@@ -48,6 +48,9 @@ const ACTIVE_CONTENT_TYPES = [
   "application/javascript",
   "text/javascript",
 ];
+const isJsonContentType = (value: string) =>
+  value === "application/json" || value.endsWith("+json");
+const isTextContentType = (value: string) => value.startsWith("text/");
 const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
 const FORBIDDEN_HEADERS = new Set([
   "cookie",
@@ -108,7 +111,14 @@ const boundedBody = async (response: Response, limit: number) => {
     body.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  return new TextDecoder("utf-8", { fatal: false }).decode(body);
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(body);
+  } catch {
+    throw new DocumentationTryItClientError(
+      "response_unreadable",
+      "The target response was not valid UTF-8 text.",
+    );
+  }
 };
 
 export const executeDocumentationTryItRequest = async (input: ClientInput) => {
@@ -168,11 +178,9 @@ export const executeDocumentationTryItRequest = async (input: ClientInput) => {
       throw validationError("The JSON request body is invalid.");
     }
   }
-  if (input.secrets.some((secret) => secret.length > 0 && secret.length < 4))
-    return {
-      kind: "blocked" as const,
-      reason: "A credential is too short to redact safely.",
-    };
+  const hasShortSensitiveValue = input.secrets.some(
+    (secret) => secret.length > 0 && [...secret].length < 4,
+  );
 
   const controller = new AbortController();
   const onAbort = () => controller.abort(input.signal?.reason);
@@ -208,11 +216,34 @@ export const executeDocumentationTryItRequest = async (input: ClientInput) => {
   }
 
   const headers = [...response.headers.entries()];
-  if (headers.length > input.configuration.response_limits.headers)
+  if (
+    headers.length > input.configuration.response_limits.headers ||
+    headers.reduce(
+      (total, [name, value]) => total + bytes(name) + bytes(value),
+      0,
+    ) >
+      32 * 1024
+  )
     throw new DocumentationTryItClientError(
       "response_headers_too_large",
-      "The target returned too many headers to display safely.",
+      "The target returned too many response headers to display safely.",
     );
+  const safeHeaders = Object.fromEntries(
+    headers.map(([name, value]) => [name, redact(value, input.secrets)]),
+  );
+  const safeStatusText = redact(response.statusText, input.secrets);
+  const declaredLength = response.headers.get("content-length");
+  if (
+    response.status === 204 ||
+    response.status === 205 ||
+    declaredLength === "0"
+  )
+    return {
+      kind: "empty" as const,
+      status: response.status,
+      statusText: safeStatusText,
+      headers: safeHeaders,
+    };
   const contentType = (response.headers.get("content-type") ?? "text/plain")
     .split(";", 1)[0]!
     .trim()
@@ -221,32 +252,72 @@ export const executeDocumentationTryItRequest = async (input: ClientInput) => {
     return {
       kind: "blocked" as const,
       status: response.status,
+      statusText: safeStatusText,
+      headers: safeHeaders,
       reason: "Active response content is not rendered.",
     };
-  const rawText = await boundedBody(
-    response,
-    input.configuration.response_limits.body_bytes,
-  );
+  if (!isJsonContentType(contentType) && !isTextContentType(contentType))
+    return {
+      kind: "blocked" as const,
+      status: response.status,
+      statusText: safeStatusText,
+      headers: safeHeaders,
+      reason: "This response media type is not safe to display.",
+    };
+  if (hasShortSensitiveValue) {
+    await response.body?.cancel().catch(() => undefined);
+    return {
+      kind: "blocked" as const,
+      status: response.status,
+      statusText: safeStatusText,
+      reason: "A sensitive value is too short to redact safely.",
+    };
+  }
+  let rawText: string;
+  try {
+    rawText = await boundedBody(
+      response,
+      input.configuration.response_limits.body_bytes,
+    );
+  } catch (error) {
+    if (
+      error instanceof DocumentationTryItClientError &&
+      error.code === "response_unreadable"
+    )
+      return {
+        kind: "blocked" as const,
+        status: response.status,
+        statusText: safeStatusText,
+        headers: safeHeaders,
+        reason: error.message,
+      };
+    throw error;
+  }
   const safeText = redact(rawText, input.secrets);
-  const safeHeaders = Object.fromEntries(
-    headers.map(([name, value]) => [name, redact(value, input.secrets)]),
-  );
-  if (contentType === "application/json" || contentType.endsWith("+json")) {
+  if (isJsonContentType(contentType)) {
     try {
       const parsed = JSON.parse(safeText);
       return {
         kind: "json" as const,
         status: response.status,
+        statusText: safeStatusText,
         headers: safeHeaders,
         text: JSON.stringify(parsed, null, 2),
       };
     } catch {
-      // Invalid JSON remains inert text.
+      return {
+        kind: "blocked" as const,
+        status: response.status,
+        statusText: response.statusText,
+        headers: safeHeaders,
+        reason: "The target declared JSON but returned malformed content.",
+      };
     }
   }
   return {
     kind: "text" as const,
     status: response.status,
+    statusText: safeStatusText,
     headers: safeHeaders,
     text: safeText,
   };

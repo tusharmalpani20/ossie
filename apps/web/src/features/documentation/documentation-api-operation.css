@@ -30,8 +30,10 @@
   overflow: auto;
 }
 
-.documentation-api-operation button + button {
-  margin-inline-start: 0.5rem;
+.documentation-api-operation__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .documentation-api-operation__confirmation {

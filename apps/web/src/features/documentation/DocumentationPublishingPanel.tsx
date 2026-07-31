@@ -372,6 +372,13 @@ export const DocumentationPublishingPanel = ({
   const setLinkTryItEnabled = async (enabled: boolean) => {
     const link = publishLinks[0];
     if (!link) return;
+    if (
+      enabled &&
+      !window.confirm(
+        `Enable browser-direct Try It for ${link.name}? Link access does not grant target API access.`,
+      )
+    )
+      return;
     setStatus(`${enabled ? "Enabling" : "Disabling"} Try It for this link…`);
     try {
       await patchDocumentationPublishLinkTryItPolicy(
@@ -483,6 +490,10 @@ export const DocumentationPublishingPanel = ({
               <h4 id="documentation-link-try-it-heading">Published Try It</h4>
               <p>
                 Status: {linkTryItPolicy.effective_status.replaceAll("_", " ")}
+              </p>
+              <p>
+                Publish Link access does not grant access to the target API.
+                Readers must provide their own target authorization.
               </p>
               <ul>
                 {linkTryItPolicy.entries.map((entry) => (

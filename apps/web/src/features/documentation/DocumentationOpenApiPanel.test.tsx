@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DocumentationOpenApiPanel } from "./DocumentationOpenApiPanel";
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("DocumentationOpenApiPanel", () => {
   it("inspects a bounded File and applies the recognized source", async () => {
@@ -180,6 +182,98 @@ describe("DocumentationOpenApiPanel", () => {
     await waitFor(() => expect(loadTryItConfiguration).toHaveBeenCalled());
     expect(await screen.findByText(/Target:/)).toHaveTextContent(
       "https://api.example.com/widgets",
+    );
+  });
+
+  it("bounds operation selection, supports filtering, labels imported servers unapproved, and confirms policy authority", async () => {
+    const operations = Array.from({ length: 150 }, (_, index) => ({
+      destination_key: `get-widget-${index}`,
+      method: "get",
+      path: `/widgets/${index}`,
+      summary: `Widget ${index}`,
+      descriptor_version: 1 as const,
+      request_descriptor: {
+        descriptor_version: 1 as const,
+        destination_key: `get-widget-${index}`,
+        method: "GET" as const,
+        path: `/widgets/${index}`,
+        summary: `Widget ${index}`,
+        parameters: [],
+        request_body: null,
+        security: { bearer: false, api_key_header_names: [] },
+        unsupported_reasons: [],
+      },
+    }));
+    const requests: RequestInit[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+        requests.push(init ?? {});
+        if (init?.method === "PUT")
+          return new Response(
+            JSON.stringify({
+              policy: { version: 1 },
+            }),
+            { headers: { "content-type": "application/json" } },
+          );
+        return new Response(JSON.stringify({ policy: null }), {
+          headers: { "content-type": "application/json" },
+        });
+      }),
+    );
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(
+      <DocumentationOpenApiPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canWrite
+        canManageTryIt
+        loadSource={async () => ({
+          source: {
+            id: "source",
+            version: 3,
+            server_candidates: ["https://imported.example.com/v1"],
+          },
+          operations,
+        })}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        "https://imported.example.com/v1 (imported suggestion — not approved)",
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Enable for the next revision" }),
+    );
+    fireEvent.change(screen.getByLabelText("Approved exact HTTPS origin"), {
+      target: { value: "https://api.example.com" },
+    });
+    expect(
+      screen.getAllByRole("checkbox", { name: /GET \/widgets\// }).length,
+    ).toBeLessThanOrEqual(100);
+    fireEvent.change(screen.getByLabelText("Filter allowed operations"), {
+      target: { value: "/widgets/149" },
+    });
+    fireEvent.click(
+      await screen.findByRole("checkbox", { name: "GET /widgets/149" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save Try It policy" }));
+    expect(confirm).toHaveBeenCalledWith(
+      "Approve https://api.example.com for 1 selected operation?",
+    );
+    expect(requests.filter((request) => request.method === "PUT")).toHaveLength(
+      0,
+    );
+
+    confirm.mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "Save Try It policy" }));
+    await waitFor(() =>
+      expect(
+        requests.filter((request) => request.method === "PUT"),
+      ).toHaveLength(1),
     );
   });
 });

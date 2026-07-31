@@ -80,6 +80,7 @@ export const DocumentationOpenApiPanel = ({
   const [sourceStatus, setSourceStatus] = useState<"active" | "archived">(
     "active",
   );
+  const [serverCandidates, setServerCandidates] = useState<string[]>([]);
   const [tryItVersion, setTryItVersion] = useState<number | null>(null);
   const [tryItEnabled, setTryItEnabled] = useState(false);
   const [approvedOrigin, setApprovedOrigin] = useState("");
@@ -87,6 +88,10 @@ export const DocumentationOpenApiPanel = ({
   const [allowBearer, setAllowBearer] = useState(false);
   const [apiKeyHeaderName, setApiKeyHeaderName] = useState("");
   const [allowedOperations, setAllowedOperations] = useState<string[]>([]);
+  const [operationFilter, setOperationFilter] = useState("");
+  const [operationPage, setOperationPage] = useState(0);
+  const [selectedRequestOperationKey, setSelectedRequestOperationKey] =
+    useState("");
 
   useEffect(() => {
     let active = true;
@@ -95,7 +100,11 @@ export const DocumentationOpenApiPanel = ({
         if (!active || !result) return;
         setSourceVersion(result.source.version);
         setSourceStatus(result.source.status ?? "active");
+        setServerCandidates(result.source.server_candidates ?? []);
         setOperations(result.operations);
+        setSelectedRequestOperationKey(
+          (current) => current || result.operations[0]?.destination_key || "",
+        );
       })
       .catch(() => undefined);
     return () => {
@@ -156,6 +165,13 @@ export const DocumentationOpenApiPanel = ({
   };
 
   const saveTryItPolicy = async () => {
+    if (
+      tryItEnabled &&
+      !window.confirm(
+        `Approve ${approvedOrigin.trim()} for ${allowedOperations.length} selected ${allowedOperations.length === 1 ? "operation" : "operations"}?`,
+      )
+    )
+      return;
     setStatus("Saving browser-direct request policy…");
     try {
       const enabled = tryItEnabled;
@@ -195,6 +211,36 @@ export const DocumentationOpenApiPanel = ({
       );
     }
   };
+  const normalizedOperationFilter = operationFilter.trim().toLowerCase();
+  const filteredOperations = operations.filter((operation) =>
+    `${operation.method} ${operation.path} ${operation.summary ?? ""}`
+      .toLowerCase()
+      .includes(normalizedOperationFilter),
+  );
+  const operationPageCount = Math.max(
+    1,
+    Math.ceil(filteredOperations.length / 100),
+  );
+  const visibleOperations = filteredOperations.slice(
+    operationPage * 100,
+    operationPage * 100 + 100,
+  );
+  const executableOperations = visibleOperations.filter(
+    (
+      operation,
+    ): operation is DocumentationOpenApiOperation & {
+      descriptor_version: 1;
+      request_descriptor: NonNullable<
+        DocumentationOpenApiOperation["request_descriptor"]
+      >;
+    } =>
+      operation.descriptor_version === 1 &&
+      Boolean(operation.request_descriptor),
+  );
+  const selectedRequestOperation =
+    executableOperations.find(
+      (operation) => operation.destination_key === selectedRequestOperationKey,
+    ) ?? executableOperations[0];
 
   return (
     <section aria-labelledby="documentation-openapi-heading">
@@ -250,7 +296,7 @@ export const DocumentationOpenApiPanel = ({
             </a>
           ) : null}
           <ul>
-            {operations.map((operation) => (
+            {visibleOperations.map((operation) => (
               <li key={operation.destination_key}>
                 {operation.method.toUpperCase()} {operation.path}
               </li>
@@ -301,6 +347,18 @@ export const DocumentationOpenApiPanel = ({
             Administrators approve one exact HTTPS origin and the operations
             readers may call. The Ossie server never proxies target requests.
           </p>
+          {serverCandidates.length ? (
+            <>
+              <p>Imported server suggestions are display-only:</p>
+              <ul>
+                {serverCandidates.map((candidate) => (
+                  <li key={candidate}>
+                    {candidate} (imported suggestion — not approved)
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
           {canManageTryIt ? (
             <>
               <label>
@@ -351,7 +409,23 @@ export const DocumentationOpenApiPanel = ({
                   />
                   <fieldset>
                     <legend>Allowed operations</legend>
-                    {operations.map((operation) => (
+                    <Label htmlFor="documentation-try-it-operation-filter">
+                      Filter allowed operations
+                    </Label>
+                    <input
+                      id="documentation-try-it-operation-filter"
+                      type="search"
+                      value={operationFilter}
+                      onChange={(event) => {
+                        setOperationFilter(event.target.value);
+                        setOperationPage(0);
+                      }}
+                    />
+                    <p role="status">
+                      Showing {visibleOperations.length} of{" "}
+                      {filteredOperations.length} matching operations.
+                    </p>
+                    {visibleOperations.map((operation) => (
                       <label key={operation.destination_key}>
                         <input
                           type="checkbox"
@@ -371,6 +445,33 @@ export const DocumentationOpenApiPanel = ({
                         {operation.method.toUpperCase()} {operation.path}
                       </label>
                     ))}
+                    {operationPageCount > 1 ? (
+                      <div>
+                        <Button
+                          disabled={operationPage === 0}
+                          onClick={() =>
+                            setOperationPage((current) =>
+                              Math.max(0, current - 1),
+                            )
+                          }
+                        >
+                          Previous operations
+                        </Button>
+                        <span>
+                          Page {operationPage + 1} of {operationPageCount}
+                        </span>
+                        <Button
+                          disabled={operationPage + 1 >= operationPageCount}
+                          onClick={() =>
+                            setOperationPage((current) =>
+                              Math.min(operationPageCount - 1, current + 1),
+                            )
+                          }
+                        >
+                          Next operations
+                        </Button>
+                      </div>
+                    ) : null}
                   </fieldset>
                 </>
               ) : null}
@@ -383,44 +484,59 @@ export const DocumentationOpenApiPanel = ({
           )}
         </section>
       ) : null}
-      {operations
-        .filter(
-          (
-            operation,
-          ): operation is DocumentationOpenApiOperation & {
-            descriptor_version: 1;
-            request_descriptor: NonNullable<
-              DocumentationOpenApiOperation["request_descriptor"]
-            >;
-          } =>
-            operation.descriptor_version === 1 &&
-            Boolean(operation.request_descriptor),
-        )
-        .map((operation) => (
-          <article key={`request-${operation.destination_key}`}>
-            <h3>
-              Draft API request: {operation.method.toUpperCase()}{" "}
-              {operation.path}
-            </h3>
-            <p>
-              This request uses the current server-saved OpenAPI source. It is
-              not a frozen Revision.
-            </p>
-            <DocumentationApiOperationExperience
-              descriptor={operation.request_descriptor}
-              loadConfiguration={() =>
-                loadTryItConfiguration(operation.destination_key)
-              }
-              reportAttempt={(attemptToken, outcome) =>
-                reportTryItAttempt(
-                  operation.destination_key,
-                  attemptToken,
-                  outcome,
-                )
-              }
-            />
-          </article>
-        ))}
+      {executableOperations.length ? (
+        <section aria-labelledby="documentation-draft-operation-heading">
+          <h3 id="documentation-draft-operation-heading">Draft API request</h3>
+          <Label htmlFor="documentation-draft-request-operation">
+            Exact operation
+          </Label>
+          <select
+            id="documentation-draft-request-operation"
+            value={selectedRequestOperation?.destination_key}
+            onChange={(event) =>
+              setSelectedRequestOperationKey(event.target.value)
+            }
+          >
+            {executableOperations.map((operation) => (
+              <option
+                key={operation.destination_key}
+                value={operation.destination_key}
+              >
+                {operation.method.toUpperCase()} {operation.path}
+              </option>
+            ))}
+          </select>
+          {selectedRequestOperation ? (
+            <article
+              key={`request-${selectedRequestOperation.destination_key}`}
+            >
+              <h3>
+                {selectedRequestOperation.method.toUpperCase()}{" "}
+                {selectedRequestOperation.path}
+              </h3>
+              <p>
+                This request uses the current server-saved OpenAPI source. It is
+                not a frozen Revision.
+              </p>
+              <DocumentationApiOperationExperience
+                descriptor={selectedRequestOperation.request_descriptor}
+                loadConfiguration={() =>
+                  loadTryItConfiguration(
+                    selectedRequestOperation.destination_key,
+                  )
+                }
+                reportAttempt={(attemptToken, outcome) =>
+                  reportTryItAttempt(
+                    selectedRequestOperation.destination_key,
+                    attemptToken,
+                    outcome,
+                  )
+                }
+              />
+            </article>
+          ) : null}
+        </section>
+      ) : null}
       <p role="status">{status}</p>
     </section>
   );

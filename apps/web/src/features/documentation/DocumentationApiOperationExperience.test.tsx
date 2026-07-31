@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DocumentationTryItConfiguration } from "@repo/types";
 import { DocumentationApiOperationExperience } from "./DocumentationApiOperationExperience";
@@ -74,7 +80,9 @@ describe("DocumentationApiOperationExperience", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     expect(
-      screen.getByRole("dialog", { name: "Confirm target API request" }),
+      await screen.findByRole("dialog", {
+        name: "Confirm target API request",
+      }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Confirm and send" }));
 
@@ -113,7 +121,9 @@ describe("DocumentationApiOperationExperience", () => {
       screen.getByRole("button", { name: "Open request builder" }),
     );
     fireEvent.click(await screen.findByRole("button", { name: "Send" }));
-    const confirm = screen.getByRole("button", { name: "Confirm and send" });
+    const confirm = await screen.findByRole("button", {
+      name: "Confirm and send",
+    });
     expect(confirm).toBeDisabled();
     fireEvent.click(
       screen.getByRole("checkbox", {
@@ -122,5 +132,154 @@ describe("DocumentationApiOperationExperience", () => {
     );
     expect(confirm).toBeEnabled();
     expect(targetFetch).not.toHaveBeenCalled();
+  });
+
+  it("keeps examples inert, copies all languages, and exposes separate clear controls", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const bodyDescriptor = {
+      ...descriptor,
+      destination_key: "post-pets",
+      method: "POST" as const,
+      path: "/pets",
+      parameters: [],
+      request_body: {
+        required: false,
+        media_type: "application/json",
+        schema: {
+          type: "object" as const,
+          nullable: false,
+          sensitive: false,
+          properties: {
+            password: {
+              type: "string" as const,
+              nullable: false,
+              sensitive: true,
+            },
+          },
+        },
+        example: { password: "must-not-be-prefilled" },
+      },
+    };
+    render(
+      <DocumentationApiOperationExperience
+        descriptor={bodyDescriptor}
+        loadConfiguration={async () => ({
+          ...configuration,
+          operation: bodyDescriptor,
+        })}
+        reportAttempt={async () => undefined}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open request builder" }),
+    );
+    expect(await screen.findByLabelText("JSON request body")).toHaveValue("");
+    for (const label of [
+      "Copy cURL example",
+      "Copy JavaScript fetch example",
+      "Copy Python urllib example",
+    ]) {
+      fireEvent.click(screen.getByRole("button", { name: label }));
+    }
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(3));
+    expect(writeText.mock.calls.flat().join("\n")).not.toContain(
+      "must-not-be-prefilled",
+    );
+    expect(
+      screen.getByRole("button", { name: "Clear credentials" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Clear response" }),
+    ).toBeInTheDocument();
+  });
+
+  it("refreshes short-lived authority before every confirmation and reports with the fresh token", async () => {
+    const operation = { ...descriptor, parameters: [], path: "/pets" };
+    const loadConfiguration = vi
+      .fn<() => Promise<DocumentationTryItConfiguration>>()
+      .mockResolvedValueOnce({ ...configuration, operation })
+      .mockResolvedValueOnce({
+        ...configuration,
+        operation,
+        attempt_token: "fresh-token-1",
+      })
+      .mockResolvedValueOnce({
+        ...configuration,
+        operation,
+        attempt_token: "fresh-token-2",
+      });
+    const reportAttempt = vi.fn(async () => undefined);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(null, {
+            status: 204,
+          }),
+      ),
+    );
+    render(
+      <DocumentationApiOperationExperience
+        descriptor={operation}
+        loadConfiguration={loadConfiguration}
+        reportAttempt={reportAttempt}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open request builder" }),
+    );
+    await screen.findByRole("button", { name: "Send" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    const firstDialog = await screen.findByRole("dialog");
+    fireEvent.click(
+      within(firstDialog).getByRole("button", { name: "Confirm and send" }),
+    );
+    await waitFor(() =>
+      expect(reportAttempt).toHaveBeenCalledWith("fresh-token-1", "completed"),
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 1_010));
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    const secondDialog = await screen.findByRole("dialog");
+    fireEvent.click(
+      within(secondDialog).getByRole("button", { name: "Confirm and send" }),
+    );
+    await waitFor(() =>
+      expect(reportAttempt).toHaveBeenCalledWith("fresh-token-2", "completed"),
+    );
+    expect(loadConfiguration).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps keyboard focus inside confirmation and restores it when cancelled", async () => {
+    const operation = { ...descriptor, parameters: [], path: "/pets" };
+    render(
+      <DocumentationApiOperationExperience
+        descriptor={operation}
+        loadConfiguration={async () => ({ ...configuration, operation })}
+        reportAttempt={async () => undefined}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open request builder" }),
+    );
+    const send = await screen.findByRole("button", { name: "Send" });
+    fireEvent.click(send);
+    const dialog = await screen.findByRole("dialog");
+    const confirm = within(dialog).getByRole("button", {
+      name: "Confirm and send",
+    });
+    const cancel = within(dialog).getByRole("button", { name: "Cancel" });
+    await waitFor(() => expect(confirm).toHaveFocus());
+    cancel.focus();
+    fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(confirm).toHaveFocus();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(send).toHaveFocus();
   });
 });

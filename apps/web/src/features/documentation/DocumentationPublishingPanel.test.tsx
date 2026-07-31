@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DocumentationPublishingPanel } from "./DocumentationPublishingPanel";
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("DocumentationPublishingPanel", () => {
   it("refreshes the selected Revision gate after review state changes", async () => {
@@ -280,5 +282,72 @@ describe("DocumentationPublishingPanel", () => {
     expect(
       screen.queryByRole("button", { name: "Revoke link" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("requires explicit confirmation before enabling Try It for a Publish Link", async () => {
+    const requests: RequestInit[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+        requests.push(init ?? {});
+        return new Response(
+          JSON.stringify({
+            policy: null,
+            effective_status: "off",
+            entries: [
+              {
+                entry_id: "01J00000000000000000000001",
+                project_version_slug: "main",
+                project_version_label: "Main",
+                is_default: true,
+                effective_status: "available",
+              },
+            ],
+          }),
+          { headers: { "content-type": "application/json" } },
+        );
+      }),
+    );
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(
+      <DocumentationPublishingPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canPublish
+        canOverrideReview
+        loadRevisions={async () => ({ revisions: [] })}
+        loadPublications={async () => ({ publications: [] })}
+        loadPublishLinks={async () => ({
+          publish_links: [
+            {
+              id: "link",
+              slug: "product-docs",
+              name: "Product docs",
+              status: "active",
+              version: 3,
+              entries: [
+                {
+                  id: "entry",
+                  version: 1,
+                  site_publication_id: "publication",
+                },
+              ],
+            },
+          ],
+        })}
+      />,
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Enable published Try It",
+      }),
+    );
+    expect(confirm).toHaveBeenCalledWith(
+      "Enable browser-direct Try It for Product docs? Link access does not grant target API access.",
+    );
+    expect(
+      requests.filter((request) => request.method === "PATCH"),
+    ).toHaveLength(0);
   });
 });

@@ -176,6 +176,94 @@ describe("Documentation Try-It browser client", () => {
     ).resolves.toMatchObject({ kind: "blocked" });
   });
 
+  it("accepts an empty response without attempting an unbounded body read", async () => {
+    await expect(
+      executeDocumentationTryItRequest({
+        configuration,
+        web_origin_set_digest: "a".repeat(64),
+        request: {
+          url: "https://api.example.com/no-content",
+          method: "GET",
+          headers: {},
+          body: null,
+        },
+        secrets: [],
+        timeout_ms: 15_000,
+        fetchImpl: vi.fn(
+          async () =>
+            new Response(null, {
+              status: 204,
+              headers: { "x-request-id": "safe-id" },
+            }),
+        ),
+      }),
+    ).resolves.toMatchObject({
+      kind: "empty",
+      status: 204,
+      headers: { "x-request-id": "safe-id" },
+    });
+  });
+
+  it("blocks binary, unknown, malformed JSON, and invalid UTF-8 response bodies", async () => {
+    const cases = [
+      new Response(new Uint8Array([0, 1, 2]), {
+        headers: { "content-type": "application/octet-stream" },
+      }),
+      new Response("opaque", {
+        headers: { "content-type": "application/x-unknown" },
+      }),
+      new Response("{broken", {
+        headers: { "content-type": "application/json" },
+      }),
+      new Response(new Uint8Array([0xc3, 0x28]), {
+        headers: { "content-type": "text/plain" },
+      }),
+    ];
+    for (const response of cases) {
+      await expect(
+        executeDocumentationTryItRequest({
+          configuration,
+          web_origin_set_digest: "a".repeat(64),
+          request: {
+            url: "https://api.example.com/unsafe",
+            method: "GET",
+            headers: {},
+            body: null,
+          },
+          secrets: [],
+          timeout_ms: 15_000,
+          fetchImpl: vi.fn(async () => response),
+        }),
+      ).resolves.toMatchObject({ kind: "blocked" });
+    }
+  });
+
+  it("blocks response header text above the safe aggregate limit", async () => {
+    await expect(
+      executeDocumentationTryItRequest({
+        configuration,
+        web_origin_set_digest: "a".repeat(64),
+        request: {
+          url: "https://api.example.com/headers",
+          method: "GET",
+          headers: {},
+          body: null,
+        },
+        secrets: [],
+        timeout_ms: 15_000,
+        fetchImpl: vi.fn(
+          async () =>
+            new Response("ok", {
+              headers: {
+                "content-type": "text/plain",
+                "x-large": "x".repeat(33 * 1024),
+              },
+            }),
+        ),
+      }),
+    ).rejects.toMatchObject({ code: "response_headers_too_large" });
+  });
+
   it("refuses oversized URLs/bodies and malformed JSON before target fetch", async () => {
     const fetchImpl = vi.fn();
     const boundedConfiguration = {

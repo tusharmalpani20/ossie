@@ -3386,7 +3386,7 @@ export const build_documentation_repository = (database: Database) => {
     }) => {
       const source = await database.query<Record<string, unknown>>(
         `SELECT source.id,source.digest,source.openapi_version,source.title,
-              source.version,source.status,
+              source.version,source.status,source.server_candidates,
               CASE
                 WHEN source.status='archived' THEN 'archived'
                 WHEN edition.status='archived'
