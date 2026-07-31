@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q5 are provisionally recorded and Q6 is open
+Status: In progress. Q1 through Q6 are provisionally recorded and Q7 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -153,8 +153,8 @@ Inference and preference must not be written as shipped fact.
 | Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Answered   | `defer` until Git is selected    | Provisional     |
 | Q4       | Translation identity, fallback, and workflow                    | Answered   | `accept-later`: human-first      | Provisional     |
 | Q5       | Custom domains                                                  | Answered   | `accept-later`: verified domain  | Provisional     |
-| Q6       | Public feedback                                                 | Open       | Pending                          | Pending         |
-| Q7       | Public analytics                                                | Not opened | None                             | Pending         |
+| Q6       | Public feedback                                                 | Answered   | `accept-later`: structured only  | Provisional     |
+| Q7       | Public analytics                                                | Open       | Pending                          | Pending         |
 | Q8       | External reviewer access                                        | Not opened | None                             | Pending         |
 | Q9       | Realtime collaboration and presence                             | Not opened | None                             | Pending         |
 | Q10      | Offline editing and merge                                       | Not opened | None                             | Pending         |
@@ -1070,7 +1070,9 @@ harder to reverse because it creates moderation and privacy obligations.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-later` for opt-in Helpful/Not helpful feedback with fixed reasons and
+an exact Publication/Page anchor. Public comments, open text, and reader
+identity are not accepted.
 
 ### Simple decision requested
 
@@ -1080,13 +1082,178 @@ possible later capability?
 Recommended answer: **Yes, later—but start with buttons and fixed reasons, not
 public comments or open text.**
 
-## 14. Questions Not Yet Opened
+### User answer
 
-Q7 through Q17 remain unmade. Their full implementation-safe question
+> I agree with your recommendation.
+
+Recorded interpretation:
+
+- preserve structured reader feedback as an accepted-later capability;
+- begin with Helpful/Not helpful and fixed reasons;
+- collect no public comments, open text, reader names, or email addresses;
+- attach feedback to the exact Publication/Page shown;
+- require opt-in enablement, spam protection, minimized data, and a retention
+  policy;
+- do not select feedback as `accept-next` before cross-question
+  reconciliation.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 14. Q7 — Should Documentation Include Reader Analytics?
+
+### Why this question is open
+
+Simple analytics can tell authors which published pages are used and where
+readers encounter missing routes. Conventional analytics can also create
+cross-page identifiers, cookies, fingerprints, detailed logs, third-party
+data sharing, and legal/privacy obligations. This is separate from Q6's
+explicit Helpful/Not helpful signal and from V1 security Access Evidence.
+
+### Shipped V1 facts
+
+- Public reads produce content-free Access Evidence for security and
+  operations, not product analytics.
+- V1 does not expose reader identities, page-view dashboards, visitor
+  profiles, referrer reports, geography, sessions, funnels, or tracking IDs.
+- Public search queries, Try-It requests, credentials, and content remain
+  excluded from Audit/Access Evidence.
+- Public output can be public, restricted, or password protected.
+- No analytics processor, consent system, lawful/privacy owner, retention
+  schedule, bot policy, or customer demand is recorded.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- The European Commission explains privacy by design/default as building
+  safeguards in from the beginning and, by default, processing only necessary
+  data with short storage and limited access:
+  [Data protection by design and by default](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/obligations/what-does-data-protection-design-and-default-mean_en).
+- The European Data Protection Board describes privacy by design/default as a
+  continuous process whose defaults protect personal data:
+  [Privacy by design and by default](https://www.edpb.europa.eu/topics/ai-and-technology/privacy-by-design-and-by-default_en).
+- NIST's Privacy Framework treats privacy risk as an enterprise risk to manage
+  across data processing and the data lifecycle:
+  [NIST Privacy Framework](https://www.nist.gov/privacy-framework/privacy-framework).
+- OWASP recommends transparency about collected information and warns about IP
+  address leakage and privacy threats:
+  [User Privacy Protection Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html).
+
+### Inference
+
+Ossie can answer a few useful Documentation questions without tracking a
+person. Exact aggregate counters can show page demand and broken routes while
+avoiding cookies, stable visitor IDs, IP retention, fingerprinting, and an
+external analytics processor.
+
+“Unique visitors,” sessions, journeys, geography, and detailed referrers would
+require substantially more identifying or linkable data. They should not be
+hidden inside a basic page-view feature.
+
+### Recommendation
+
+Keep analytics as an **accepted-later** capability, limited initially to
+first-party, privacy-minimized aggregates:
+
+1. an Organization or Project explicitly enables analytics for a Publish
+   Link;
+2. count page views against an exact Publication/Page and day;
+3. count public not-found/gone outcomes and redirect use without storing the
+   requested free-form path beyond what is safely predefined;
+4. separate public, restricted, and password-link aggregates;
+5. expose only thresholded aggregate counts to authorized Project members;
+6. collect no cookies, persistent visitor IDs, fingerprints, IP addresses,
+   user agents, raw referrers, geography, raw search queries, or Try-It data;
+7. use no third-party analytics scripts or processor in the first slice;
+8. define short retention and deletion for any temporary operational buffer,
+   then retain only bounded aggregates.
+
+Do not claim unique visitors, sessions, conversion funnels, or user journeys
+in the first slice.
+
+### Alternatives
+
+- **Defer:** wait until authors identify a concrete question that current
+  feedback and operations cannot answer.
+- **Reject:** provide no product analytics and allow customers to operate an
+  external proxy under their own policy.
+- **Accept-next:** select the minimal aggregate model only if it is the
+  strongest evidenced problem after the full candidate review.
+- **Richer analytics later:** requires separate legal/privacy authority,
+  consent/defaults, processor review, identifier model, retention, deletion,
+  and data-subject handling.
+
+### Rejected shortcuts
+
+- repurposing Audit or Access Evidence as analytics;
+- loading a third-party tracking script by default;
+- setting tracking cookies or building browser fingerprints;
+- retaining raw IP addresses, user agents, referrers, search terms, or Try-It
+  request details;
+- combining readers across Organizations, Sites, Publish Links, or access
+  policies;
+- calling an IP/hash/device key anonymous when it remains linkable;
+- enabling analytics retroactively or silently;
+- using analytics to weaken search or publication access isolation.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- PostgreSQL remains authority for aggregate analytics state.
+- Only an authorized Admin enables collection; authorized Project members see
+  their tenant's aggregates only.
+- Public readers gain no Project permission and receive no stable identifier.
+- Restricted/password access identities and credentials never enter analytics.
+- Raw event buffers, if operationally unavoidable, are minimized, access
+  controlled, short lived, and excluded from Audit/Access Evidence and author
+  exports.
+- Publication/Page identity and access class are explicit aggregate keys.
+- Disabling or deleting analytics does not alter Documentation, immutable
+  history, security evidence, or feedback.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. A future implementation would require additive
+policy and aggregate records, bounded ingestion and rollup operations,
+API/types/portal dashboards, quotas/retention/deletion, bot and cache behavior,
+and privacy/security/browser verification. Existing Publish Links remain
+analytics-disabled by default.
+
+### Reversibility
+
+An opt-in aggregate-only model is comparatively reversible: collection can be
+disabled and aggregates deleted without changing published content. Tracking
+identifiers, external processors, and detailed raw events would be harder to
+reverse and are excluded from the first slice.
+
+### Evidence gaps
+
+- no concrete author question or success measure;
+- no legal/privacy authority or target deployment regions;
+- no accepted retention duration or minimum reporting threshold;
+- no bot/cache counting policy;
+- no durable event/rollup infrastructure beyond current in-process limits;
+- no decision for richer authenticated-reader analytics.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should we keep basic, privacy-friendly page statistics as a possible later
+feature?
+
+Recommended answer: **Yes, later—but count pages, not people. Do not use
+tracking cookies or collect personal reader details.**
+
+## 15. Questions Not Yet Opened
+
+Q8 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 15. Session Log
+## 16. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -1108,8 +1275,11 @@ at a time with current primary-source research only when opened.
 - 2026-07-31: the user accepted verified custom domains with managed HTTPS as
   an `accept-later` possibility. No next implementation or infrastructure
   owner was selected. Opened bounded public feedback as Q6.
+- 2026-07-31: the user accepted structured Helpful/Not helpful feedback as an
+  `accept-later` possibility, with fixed reasons and no public comments, open
+  text, or reader identity. Opened privacy-minimized public analytics as Q7.
 
-## 16. Verification Record
+## 17. Verification Record
 
 Initial checkpoint verification:
 
@@ -1126,7 +1296,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 17. Current Handoff
+## 18. Current Handoff
 
-Awaiting explicit user/product authority for Q6. Do not open Q7 until Q6 is
+Awaiting explicit user/product authority for Q7. Do not open Q8 until Q7 is
 recorded.
