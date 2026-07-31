@@ -524,6 +524,10 @@ export type DocumentationRouteDependencies = {
       slug: string;
       version_slug: string | null;
       viewer_token?: string;
+      representation?: "full" | "page" | "search" | "operation" | "metadata";
+      page_path?: string;
+      operation_key?: string;
+      search_query?: string;
     }) => Promise<unknown>;
     authorize_portability: (input: {
       organization_id: string;
@@ -3588,6 +3592,12 @@ export const build_documentation_routes = (
       params: unknown,
       reply: FastifyReply,
       viewer_token?: string,
+      projection?: {
+        representation?: "full" | "page" | "search" | "operation" | "metadata";
+        page_path?: string;
+        operation_key?: string;
+        search_query?: string;
+      },
     ) => {
       const parsed = PublicDocumentationParamsSchema.safeParse(params);
       if (!parsed.success) return null;
@@ -3597,6 +3607,7 @@ export const build_documentation_routes = (
             slug: parsed.data.slug,
             version_slug: parsed.data.version_slug ?? null,
             viewer_token,
+            ...projection,
           });
         return { params: parsed.data, site };
       } catch (error) {
@@ -3817,10 +3828,25 @@ export const build_documentation_routes = (
 
     const register_public_page = (path: string) =>
       fastify.get(path, async (request, reply) => {
+        const rawParams = request.params as Record<string, string | undefined>;
+        let requestedPath: string;
+        try {
+          requestedPath = normalize_documentation_path(rawParams["*"] ?? "");
+        } catch {
+          return reply
+            .status(404)
+            .send(
+              error_response(
+                "documentation_page_not_found",
+                "Documentation Page was not found",
+              ),
+            );
+        }
         const result = await public_site(
           request.params,
           reply,
           request.cookies?.[public_viewer_cookie_name],
+          { representation: "page", page_path: requestedPath },
         );
         if (reply.sent) return reply;
         if (!result?.site)
@@ -3832,21 +3858,6 @@ export const build_documentation_routes = (
                 "Publish Link was not found",
               ),
             );
-        let requestedPath: string;
-        try {
-          requestedPath = normalize_documentation_path(
-            result.params["*"] ?? "",
-          );
-        } catch {
-          return reply
-            .status(404)
-            .send(
-              error_response(
-                "documentation_page_not_found",
-                "Documentation Page was not found",
-              ),
-            );
-        }
         const site = result.site as {
           pages: Array<{
             id: string;
@@ -3935,6 +3946,9 @@ export const build_documentation_routes = (
           request.params,
           reply,
           request.cookies?.[public_viewer_cookie_name],
+          query.success
+            ? { representation: "search", search_query: query.data.q }
+            : undefined,
         );
         if (reply.sent) return reply;
         if (!query.success || !result?.site)
@@ -3998,6 +4012,8 @@ export const build_documentation_routes = (
             slug: params.data.slug,
             version_slug: params.data.version_slug ?? null,
             viewer_token: request.cookies?.[public_viewer_cookie_name],
+            representation: "operation",
+            operation_key: params.data.operation_key,
           });
         } catch (error) {
           documentation_error(error, reply);
@@ -4316,6 +4332,7 @@ export const build_documentation_routes = (
           request.params,
           reply,
           request.cookies?.[public_viewer_cookie_name],
+          { representation: "metadata" },
         );
         if (reply.sent) return reply;
         if (!result?.site) return reply.status(404).send();
@@ -4536,17 +4553,6 @@ export const build_documentation_routes = (
       },
     ) => {
       const params = request.params as Record<string, string | undefined>;
-      const result = await public_site(
-        {
-          slug: params.slug,
-          ...(input.versioned ? { version_slug: params.version_slug } : {}),
-        },
-        reply,
-        request.cookies?.[public_viewer_cookie_name],
-      );
-      if (reply.sent) return reply;
-      if (!result?.site) return reply.status(404).type("text/html").send("");
-      const site = result.site as Record<string, unknown>;
       let pagePath: string | null = null;
       if (input.page) {
         try {
@@ -4554,6 +4560,27 @@ export const build_documentation_routes = (
         } catch {
           return reply.status(404).type("text/html").send("");
         }
+      }
+      const result = await public_site(
+        {
+          slug: params.slug,
+          ...(input.versioned ? { version_slug: params.version_slug } : {}),
+        },
+        reply,
+        request.cookies?.[public_viewer_cookie_name],
+        input.operation
+          ? {
+              representation: "operation",
+              operation_key: params.operation_key ?? "",
+            }
+          : input.page
+            ? { representation: "page", page_path: pagePath ?? "" }
+            : undefined,
+      );
+      if (reply.sent) return reply;
+      if (!result?.site) return reply.status(404).type("text/html").send("");
+      const site = result.site as Record<string, unknown>;
+      if (input.page) {
         const redirects = Array.isArray(site.redirects)
           ? (site.redirects as Array<Record<string, unknown>>)
           : [];

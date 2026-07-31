@@ -1681,6 +1681,9 @@ export const load_revision_snapshot = async (
     project_id?: string;
     project_version_id?: string;
     site_id?: string;
+    representation?: "full" | "page" | "operation" | "metadata";
+    page_path?: string;
+    operation_key?: string;
   },
 ) => {
   const values: unknown[] = [input.site_revision_id];
@@ -1726,14 +1729,33 @@ export const load_revision_snapshot = async (
   );
   const root = revision.rows[0];
   if (!root) return null;
-  const pages = await db.query<Record<string, unknown>>(
-    `SELECT id,source_page_id,title,description,canonical_path,content_text
+  const representation = input.representation ?? "full";
+  const needsPages =
+    representation === "full" ||
+    representation === "page" ||
+    representation === "metadata";
+  const pages = needsPages
+    ? await db.query<Record<string, unknown>>(
+        `SELECT id,source_page_id,title,description,canonical_path
        FROM documentation_schema.site_revision_page
       WHERE site_revision_id=$1 ORDER BY canonical_path,id`,
-    [root.id],
-  );
+        [root.id],
+      )
+    : { rows: [] };
   const pageRowIds = pages.rows.map((page) => page.id as string);
-  const blocks = pageRowIds.length
+  const selectedPageRowIds =
+    representation === "page"
+      ? pages.rows
+          .filter((page) =>
+            input.page_path
+              ? page.canonical_path === input.page_path
+              : page.source_page_id === root.home_page_id,
+          )
+          .map((page) => page.id as string)
+      : pageRowIds;
+  const blocks =
+    (representation === "full" || representation === "page") &&
+    selectedPageRowIds.length
     ? await db.query<Record<string, unknown>>(
         `SELECT block.id,block.site_revision_page_id,
                 block.source_block_id id,block.kind,block.position,
@@ -1805,46 +1827,81 @@ export const load_revision_snapshot = async (
                 ) artifact_reference
            FROM documentation_schema.site_revision_page_block block
           WHERE block.site_revision_id=$1
+            AND block.site_revision_page_id=ANY($2::varchar[])
           ORDER BY block.site_revision_page_id,block.position,block.id`,
-        [root.id],
+        [root.id, selectedPageRowIds],
       )
     : { rows: [] };
-  const keywords = await db.query<Record<string, unknown>>(
-    `SELECT site_revision_page_id,keyword,position
+  const keywords = needsPages
+    ? await db.query<Record<string, unknown>>(
+        `SELECT site_revision_page_id,keyword,position
        FROM documentation_schema.site_revision_page_keyword
-      WHERE site_revision_id=$1 ORDER BY site_revision_page_id,position,id`,
-    [root.id],
-  );
-  const navigation = await db.query<Record<string, unknown>>(
-    `SELECT source_navigation_node_id id,
+      WHERE site_revision_id=$1
+        AND site_revision_page_id=ANY($2::varchar[])
+      ORDER BY site_revision_page_id,position,id`,
+        [root.id, pageRowIds],
+      )
+    : { rows: [] };
+  const navigation = needsPages
+    ? await db.query<Record<string, unknown>>(
+        `SELECT source_navigation_node_id id,
             parent_source_navigation_node_id parent_id,kind,label,
             source_page_id page_id,position
        FROM documentation_schema.site_revision_navigation_node
       WHERE site_revision_id=$1 ORDER BY parent_source_navigation_node_id NULLS FIRST,position,id`,
-    [root.id],
-  );
-  const aliases = await db.query<Record<string, unknown>>(
-    `SELECT source_page_id documentation_page_id,former_path
+        [root.id],
+      )
+    : { rows: [] };
+  const aliases = needsPages
+    ? await db.query<Record<string, unknown>>(
+        `SELECT source_page_id documentation_page_id,former_path
        FROM documentation_schema.site_revision_page_alias
       WHERE site_revision_id=$1 ORDER BY former_path,id`,
-    [root.id],
-  );
-  const redirects = await db.query<Record<string, unknown>>(
-    `SELECT source_path,outcome,target_source_page_id target_page_id
+        [root.id],
+      )
+    : { rows: [] };
+  const redirects = needsPages
+    ? await db.query<Record<string, unknown>>(
+        `SELECT source_path,outcome,target_source_page_id target_page_id
        FROM documentation_schema.site_revision_redirect_rule
       WHERE site_revision_id=$1 ORDER BY source_path,id`,
-    [root.id],
-  );
-  const operations = await db.query<Record<string, unknown>>(
-    `SELECT source_openapi_operation_id id,method,path,operation_id,
+        [root.id],
+      )
+    : { rows: [] };
+  const selectedOperationKeys =
+    representation === "page"
+      ? blocks.rows
+          .map((block) => block.operation_key)
+          .filter((value): value is string => typeof value === "string")
+      : [];
+  const operations =
+    representation === "full" ||
+    representation === "operation" ||
+    selectedOperationKeys.length
+      ? await db.query<Record<string, unknown>>(
+          `SELECT source_openapi_operation_id id,method,path,operation_id,
             destination_key,summary,request_descriptor,descriptor_version,
             descriptor_digest
        FROM documentation_schema.site_revision_openapi_operation
-      WHERE site_revision_id=$1 ORDER BY destination_key,id`,
-    [root.id],
-  );
-  const assets = await db.query<Record<string, unknown>>(
-    `SELECT reference.source_asset_id id,reference.source_kind,
+      WHERE site_revision_id=$1
+        AND (
+          $2::varchar='full'
+          OR ($2::varchar='operation' AND destination_key=$3)
+          OR ($2::varchar='page' AND destination_key=ANY($4::varchar[]))
+        )
+      ORDER BY destination_key,id`,
+          [
+            root.id,
+            representation,
+            input.operation_key ?? "",
+            selectedOperationKeys,
+          ],
+        )
+      : { rows: [] };
+  const assets =
+    representation === "full" || representation === "page"
+      ? await db.query<Record<string, unknown>>(
+          `SELECT reference.source_asset_id id,reference.source_kind,
             reference.file_id,reference.mime_type,
             reference.byte_size,reference.width,reference.height,
             reference.digest,reference.frozen_name name,
@@ -1855,11 +1912,25 @@ export const load_revision_snapshot = async (
          ON file.id=reference.file_id
         AND file.organization_id=reference.organization_id
       WHERE reference.site_revision_id=$1 AND file.is_deleted=FALSE
+        AND (
+          $2::boolean
+          OR EXISTS (
+            SELECT 1
+              FROM documentation_schema.site_revision_page_block block
+             WHERE block.site_revision_id=reference.site_revision_id
+               AND block.site_revision_page_id=ANY($3::varchar[])
+               AND block.source_asset_id=reference.source_asset_id
+               AND block.source_kind=reference.source_kind
+          )
+        )
       ORDER BY reference.source_kind,reference.source_asset_id`,
-    [root.id],
-  );
-  const openapiSource = await db.query<Record<string, unknown>>(
-    `SELECT frozen.source_openapi_source_id id,frozen.file_id,frozen.digest,
+          [root.id, representation === "full", selectedPageRowIds],
+        )
+      : { rows: [] };
+  const openapiSource =
+    representation === "full"
+      ? await db.query<Record<string, unknown>>(
+          `SELECT frozen.source_openapi_source_id id,frozen.file_id,frozen.digest,
             frozen.original_format,frozen.openapi_version,frozen.title,
             frozen.server_candidates,
             file.mime_type,file.storage_provider,file.storage_key,
@@ -1869,14 +1940,23 @@ export const load_revision_snapshot = async (
          ON file.id=frozen.file_id
         AND file.organization_id=frozen.organization_id
       WHERE frozen.site_revision_id=$1 AND file.is_deleted=FALSE`,
-    [root.id],
-  );
-  const snippets = await db.query<Record<string, unknown>>(
-    `SELECT id,source_snippet_id,name,source_status
+          [root.id],
+        )
+      : { rows: [] };
+  const selectedSnippetIds = blocks.rows
+    .map((block) => block.snippet_id)
+    .filter((value): value is string => typeof value === "string");
+  const snippets =
+    representation === "full" || selectedSnippetIds.length
+      ? await db.query<Record<string, unknown>>(
+          `SELECT id,source_snippet_id,name,source_status
        FROM documentation_schema.site_revision_snippet
-      WHERE site_revision_id=$1 ORDER BY lower(name),source_snippet_id`,
-    [root.id],
-  );
+      WHERE site_revision_id=$1
+        AND ($2::boolean OR source_snippet_id=ANY($3::varchar[]))
+      ORDER BY lower(name),source_snippet_id`,
+          [root.id, representation === "full", selectedSnippetIds],
+        )
+      : { rows: [] };
   const snippetRowIds = snippets.rows.map((snippet) => snippet.id as string);
   const snippetBlocks = snippetRowIds.length
     ? await db.query<Record<string, unknown>>(
@@ -6540,6 +6620,10 @@ export const build_documentation_repository = (
     resolve_public_site: async (input: {
       slug: string;
       version_slug: string | null;
+      representation?: "full" | "page" | "search" | "operation" | "metadata";
+      page_path?: string;
+      operation_key?: string;
+      search_query?: string;
     }) => {
       const selection = await database.query<{
         link_id: string;
@@ -6589,8 +6673,15 @@ export const build_documentation_repository = (
         (selected.expires_at && selected.expires_at.getTime() <= Date.now())
       )
         return null;
+      const representation = input.representation ?? "full";
       const snapshot = await load_revision_snapshot(database, {
         site_revision_id: selected.site_revision_id,
+        representation:
+          representation === "search" ? "operation" : representation,
+        ...(input.page_path ? { page_path: input.page_path } : {}),
+        ...(input.operation_key
+          ? { operation_key: input.operation_key }
+          : {}),
       });
       if (!snapshot) return null;
       const search_documents = await database.query<{
@@ -6608,8 +6699,22 @@ export const build_documentation_repository = (
              ON document.search_generation_id=selection.search_generation_id
             AND document.site_publication_id=selection.site_publication_id
           WHERE selection.site_publication_id=$1
-          ORDER BY document.canonical_path,document.source_page_id`,
-        [selected.site_publication_id],
+            AND (
+              $2::varchar IS NULL
+              OR document.ranking_vector @@ websearch_to_tsquery('simple',$2)
+              OR document.search_text ILIKE '%' || $2 || '%'
+            )
+          ORDER BY
+            CASE WHEN $2::varchar IS NULL THEN 0
+              ELSE ts_rank_cd(document.ranking_vector,
+                websearch_to_tsquery('simple',$2)) END DESC,
+            document.canonical_path,document.source_page_id
+          LIMIT $3`,
+        [
+          selected.site_publication_id,
+          representation === "search" ? (input.search_query ?? "") : null,
+          representation === "search" ? 50 : 10_000,
+        ],
       );
       const discovery =
         await database.query<

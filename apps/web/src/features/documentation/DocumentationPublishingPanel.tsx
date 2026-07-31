@@ -9,6 +9,7 @@ import {
   listDocumentationPublishLinks,
   listDocumentationRevisions,
   rollbackDocumentationPublication,
+  rebuildDocumentationProjection,
   revokeDocumentationPublishLink,
   updateDocumentationDiscoveryPolicy,
   type DocumentationPublicationSummary,
@@ -28,6 +29,7 @@ type Props = {
   canPublish: boolean;
   canOverrideReview?: boolean;
   canManageDiscovery?: boolean;
+  canRebuildProjections?: boolean;
   loadRevisions?: typeof listDocumentationRevisions;
   loadPublications?: typeof listDocumentationPublications;
   loadPublishLinks?: typeof listDocumentationPublishLinks;
@@ -35,6 +37,7 @@ type Props = {
   rollback?: typeof rollbackDocumentationPublication;
   revoke?: typeof revokeDocumentationPublishLink;
   loadReviewGate?: typeof getDocumentationReviewGate;
+  rebuildProjection?: typeof rebuildDocumentationProjection;
 };
 
 export const DocumentationPublishingPanel = ({
@@ -44,6 +47,7 @@ export const DocumentationPublishingPanel = ({
   canPublish,
   canOverrideReview = false,
   canManageDiscovery = false,
+  canRebuildProjections = false,
   loadRevisions = listDocumentationRevisions,
   loadPublications = listDocumentationPublications,
   loadPublishLinks = listDocumentationPublishLinks,
@@ -51,6 +55,7 @@ export const DocumentationPublishingPanel = ({
   rollback = rollbackDocumentationPublication,
   revoke = revokeDocumentationPublishLink,
   loadReviewGate = getDocumentationReviewGate,
+  rebuildProjection = rebuildDocumentationProjection,
 }: Props) => {
   const [revisions, setRevisions] = useState<DocumentationRevisionSummary[]>(
     [],
@@ -473,6 +478,36 @@ export const DocumentationPublishingPanel = ({
     }
   };
 
+  const rebuildProjectionTarget = async (
+    target:
+      | { projection: "draft_search" }
+      | { projection: "publication_search"; publication_id: string },
+    label: string,
+  ) => {
+    if (
+      !window.confirm(
+        `Rebuild the ${label} search projection from its exact immutable source? The current valid projection remains available if rebuilding fails.`,
+      )
+    )
+      return;
+    setStatus(`Rebuilding the ${label} search projection…`);
+    try {
+      const receipt = await rebuildProjection(
+        projectId,
+        versionSlug,
+        siteId,
+        target,
+      );
+      setStatus(
+        `${label} search projection ${receipt.outcome}; ${receipt.documents} documents verified.`,
+      );
+    } catch {
+      setStatus(
+        `${label} search projection rebuild failed. The prior valid projection remains selected.`,
+      );
+    }
+  };
+
   const existingLink = publishLinks[0];
   const existingEntry = existingLink?.entries[0];
   const effectiveDiscoveryPolicy =
@@ -640,6 +675,44 @@ export const DocumentationPublishingPanel = ({
               </li>
             ))}
           </ul>
+        </section>
+      ) : null}
+      {canRebuildProjections ? (
+        <section aria-labelledby="documentation-projection-rebuild-heading">
+          <h3 id="documentation-projection-rebuild-heading">
+            Search projection recovery
+          </h3>
+          <p>
+            Owner-only corrective action. Rebuilds are derived from the exact
+            saved draft or immutable Publication and do not alter live-link
+            selection.
+          </p>
+          <Button
+            onClick={() =>
+              void rebuildProjectionTarget(
+                { projection: "draft_search" },
+                "draft",
+              )
+            }
+          >
+            Rebuild draft search
+          </Button>
+          {publications.map((publication) => (
+            <Button
+              key={`rebuild-${publication.id}`}
+              onClick={() =>
+                void rebuildProjectionTarget(
+                  {
+                    projection: "publication_search",
+                    publication_id: publication.id,
+                  },
+                  `Publication ${publication.publication_sequence}`,
+                )
+              }
+            >
+              Rebuild Publication {publication.publication_sequence} search
+            </Button>
+          ))}
         </section>
       ) : null}
       {canPublish && revisions.length && !existingLink ? (

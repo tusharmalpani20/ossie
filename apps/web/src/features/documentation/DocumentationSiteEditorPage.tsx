@@ -34,6 +34,7 @@ type Props = {
   canRequestReview?: boolean;
   canManageReview?: boolean;
   canDecideReview?: boolean;
+  canRebuildProjections?: boolean;
   loadPreview?: typeof getDocumentationPreview;
   createRevision?: typeof createDocumentationRevision;
 };
@@ -48,6 +49,7 @@ export const DocumentationSiteEditorPage = ({
   canRequestReview = false,
   canManageReview = false,
   canDecideReview = false,
+  canRebuildProjections = false,
   loadPreview = getDocumentationPreview,
   createRevision = createDocumentationRevision,
 }: Props) => {
@@ -335,6 +337,7 @@ export const DocumentationSiteEditorPage = ({
         canPublish={effectiveCanPublish}
         canOverrideReview={canManageReview}
         canManageDiscovery={canManageEdition}
+        canRebuildProjections={canRebuildProjections}
       />
       <p role="status">{status}</p>
     </section>

@@ -287,6 +287,39 @@ export const updateDocumentationLimits = (input: {
     ),
   );
 
+export type DocumentationProjectionRebuildReceipt = {
+  projection: "draft_search" | "publication_search";
+  site_id: string;
+  publication_id: string | null;
+  output_digest: string | null;
+  documents: number;
+  outcome: "rebuilt" | "unchanged";
+};
+
+export const rebuildDocumentationProjection = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  input:
+    | { projection: "draft_search" }
+    | {
+        projection: "publication_search";
+        publication_id: string;
+        expected_output_digest?: string;
+      },
+) =>
+  fetch(
+    `${baseUrl()}${sitesPath(projectId, versionSlug)}/${encodeURIComponent(siteId)}/projections/rebuild`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  ).then((response) =>
+    json<DocumentationProjectionRebuildReceipt>(response),
+  );
+
 export type DocumentationDiscoveryPolicy = {
   publish_link_id: string;
   indexing_enabled: boolean;

@@ -972,20 +972,21 @@ describe("Documentation routes", () => {
 
   it("keeps version-scoped redirects and metadata on the selected public entry", async () => {
     process.env.OSSIE_PUBLIC_WEB_URL = "https://docs.example.test";
+    const resolve_public_site = vi.fn(async () => ({
+      pages: [{ id: "page", canonical_path: "install" }],
+      aliases: [
+        { former_path: "old-install", documentation_page_id: "page" },
+      ],
+      redirects: [],
+      openapi_operations: [],
+      _discovery: { effective_indexing: true },
+    }));
     const app = Fastify();
     await app.register(
       build_documentation_routes({
         auth_service: {} as never,
         documentation_service: documentation_service_stubs({
-          resolve_public_site: vi.fn(async () => ({
-            pages: [{ id: "page", canonical_path: "install" }],
-            aliases: [
-              { former_path: "old-install", documentation_page_id: "page" },
-            ],
-            redirects: [],
-            openapi_operations: [],
-            _discovery: { effective_indexing: true },
-          })),
+          resolve_public_site,
         }),
         resolve_project_version: vi.fn(),
       }),
@@ -1008,6 +1009,15 @@ describe("Documentation routes", () => {
       "<loc>https://docs.example.test/docs/product-docs/versions/v2/install</loc>",
     );
     expect(robots.statusCode).toBe(200);
+    expect(resolve_public_site).toHaveBeenCalledWith(
+      expect.objectContaining({
+        representation: "page",
+        page_path: "old-install",
+      }),
+    );
+    expect(resolve_public_site).toHaveBeenCalledWith(
+      expect.objectContaining({ representation: "metadata" }),
+    );
     delete process.env.OSSIE_PUBLIC_WEB_URL;
   });
 
@@ -1080,6 +1090,12 @@ describe("Documentation routes", () => {
     expect(response.body).not.toContain("<script>alert");
     expect(notModified.statusCode).toBe(304);
     expect(resolve_public_site).toHaveBeenCalledTimes(2);
+    expect(resolve_public_site).toHaveBeenCalledWith(
+      expect.objectContaining({
+        representation: "page",
+        page_path: "install",
+      }),
+    );
     delete process.env.OSSIE_PUBLIC_WEB_URL;
   });
 

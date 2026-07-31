@@ -5,6 +5,79 @@ import { DocumentationPublishingPanel } from "./DocumentationPublishingPanel";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("DocumentationPublishingPanel", () => {
+  it("lets only an explicitly authorized Owner confirm exact projection rebuilds", async () => {
+    const rebuildProjection = vi.fn(async () => ({
+      projection: "publication_search" as const,
+      site_id: "site",
+      publication_id: "publication",
+      output_digest: "a".repeat(64),
+      documents: 3,
+      outcome: "rebuilt" as const,
+    }));
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { rerender } = render(
+      <DocumentationPublishingPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canPublish
+        canRebuildProjections
+        loadRevisions={async () => ({ revisions: [] })}
+        loadPublications={async () => ({
+          publications: [
+            {
+              id: "publication",
+              publication_sequence: 2,
+              revision_number: 4,
+              published_at: "2026-07-31T00:00:00.000Z",
+            },
+          ],
+        })}
+        loadPublishLinks={async () => ({ publish_links: [] })}
+        rebuildProjection={rebuildProjection}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Rebuild Publication 2 search",
+      }),
+    );
+    await waitFor(() =>
+      expect(rebuildProjection).toHaveBeenCalledWith(
+        "project",
+        "main",
+        "site",
+        {
+          projection: "publication_search",
+          publication_id: "publication",
+        },
+      ),
+    );
+    expect(confirm).toHaveBeenCalled();
+    expect(
+      await screen.findByText(
+        "Publication 2 search projection rebuilt; 3 documents verified.",
+      ),
+    ).toBeInTheDocument();
+
+    rerender(
+      <DocumentationPublishingPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canPublish
+        loadRevisions={async () => ({ revisions: [] })}
+        loadPublications={async () => ({ publications: [] })}
+        loadPublishLinks={async () => ({ publish_links: [] })}
+        rebuildProjection={rebuildProjection}
+      />,
+    );
+    expect(
+      screen.queryByRole("heading", { name: "Search projection recovery" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("refreshes the selected Revision gate after review state changes", async () => {
     const loadReviewGate = vi
       .fn()
