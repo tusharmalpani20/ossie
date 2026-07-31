@@ -4,9 +4,10 @@ Date reserved: 2026-07-30
 
 Date expanded: 2026-07-30
 
-Status: Complete and verified on 2026-07-30. Exact-Revision internal review,
-optional Publication gating, private in-product notifications, immutable
-Publication Review Evidence, and the authorized Admin override are implemented.
+Status: Complete and independently close-rechecked on 2026-07-31.
+Exact-Revision internal review, current-policy Publication gating, private
+in-product notifications, immutable Publication Review Evidence, and the
+authorized Admin override are implemented and verified.
 
 Parent plan:
 
@@ -2073,6 +2074,24 @@ Child `136` is complete only when:
 - 2026-07-30: Recorded the accepted domain language, ADR `0032`, decision
   boundary, dogfood/browser evidence, truthful leftovers, and child `137`
   handoff.
+- 2026-07-31: Independently close-rechecked the implementation against this
+  child and Master `006`. The recheck found and repaired current-policy gate
+  enforcement, unnecessary-override acceptance, ignored list cursors, a
+  placeholder change summary, actor-specific cancel rendering, stale
+  cross-panel gate state, rollback-target gate selection, reason retention,
+  and incomplete tenant/history database guards.
+- 2026-07-31: Added signed scope/filter-bound cursors, canonical immutable
+  Revision summaries, strict detail schemas and typed gate errors, current
+  Project/Edition lifecycle checks, composite tenant FKs, transition/no-
+  truncate guards, table ownership comments, portal history/inbox pagination,
+  structural summary/Revision links, explicit Admin confirmation, and
+  on-demand closable evidence details.
+- 2026-07-31: Re-ran the clean database chain, full unit/portal/extension
+  suites, workspace type/build/smoke checks, and headless browser closure
+  journeys. The browser rerun proved policy tightening invalidation, blocked
+  publication, reasoned publication and rollback overrides, reason-free list
+  state, Viewer-only decision controls, public privacy, reflow, reduced motion,
+  and zero axe violations.
 
 ## 22. Planning Verification Record
 
@@ -2141,6 +2160,35 @@ Implementation verification:
 - final formatting, Markdown/link checks, scoped status, and `git diff --check`
   passed before the closure commit.
 
+Independent close-previous verification on 2026-07-31:
+
+- clean sequential migrations and the complete DB integration registry: 23
+  files, 81 tests passed;
+- clean migration `029` down/up succeeded; the same down command refused after
+  deterministic Review Requests/evidence were seeded;
+- full server non-DB suite: 117 files, 511 tests passed;
+- full web suite: 75 files, 413 tests passed;
+- full extension suite: 19 files, 140 tests passed;
+- Documentation domain: 16 files, 41 tests passed;
+- strict shared types: 18 files, 89 tests passed;
+- workspace `pnpm check-types`, production `pnpm build`, and V1 smoke (1 file,
+  2 tests): passed;
+- server lint completed with the existing warning-only baseline; web lint
+  remained non-zero only for the pre-existing
+  `documentationPermissions.ts` unused-parameter warning;
+- `git diff --check`: passed;
+- headless Chromium verified the Admin, Viewer, rollback, evidence-detail, and
+  public/privacy paths against the deterministic DB fixture;
+- Admin and Viewer authenticated pages plus the unchanged public reader each
+  returned zero WCAG 2 A/AA axe violations; the Admin page retained the known
+  two-textarea indeterminate contrast result outside the review controls;
+- `320` CSS-pixel inspection returned `scrollWidth === innerWidth`, reduced
+  motion matched, and all three browser sessions had no page errors;
+- closure screenshot:
+  `docs/ui/136-documentation-review-and-approval-workflow-closure.png`;
+- updated browser record:
+  `docs/ui/136-documentation-review-and-approval-workflow-browser-evidence.md`.
+
 ## 23. Leftovers And Handoff To Child 137
 
 Child `137` receives:
@@ -2154,6 +2202,13 @@ Child `137` receives:
 - no server-side proxy, stored credential, or review-derived authorization;
 - a Publication gate that must remain independent from browser-direct Try It
   enablement and request execution.
+- typed current-policy failure outcomes
+  (`documentation_review_approval_required`,
+  `documentation_review_approval_invalidated`, and
+  `documentation_review_override_invalid`) that API Try It must neither catch
+  nor reinterpret as execution authorization;
+- signed review pagination cursors and private change-summary/evidence
+  contracts that remain outside all public API-example projections.
 
 API Try It must not:
 

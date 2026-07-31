@@ -2,6 +2,8 @@
 
 Date: 2026-07-30
 
+Independent closure rerun: 2026-07-31
+
 Environment:
 
 - deterministic `documentation-browser-fixture` in the disposable testing
@@ -48,6 +50,47 @@ Environment:
 ## Captured Artifact
 
 - `docs/ui/136-documentation-review-and-approval-workflow.png`
+- `docs/ui/136-documentation-review-and-approval-workflow-closure.png`
+
+## Independent Closure Rerun
+
+The closure rerun used a freshly seeded deterministic fixture after applying
+migrations `001` through `029`.
+
+- Admin loaded the exact Revision 2 request and inspected the canonical
+  structural summary against Revision 1 plus its immutable Revision-preview
+  link.
+- Viewer opened the assigned request from the content-free inbox, saw decision
+  controls without cancellation controls, and approved the exact Revision.
+- Admin tightened the current policy from optional/one approval to required/two
+  approvals. Request history changed to `invalidated`, the selected Revision
+  gate changed to `invalidated`, and ordinary publication became disabled.
+- Admin entered a 20-plus-character plain-text reason, explicitly confirmed
+  the exact-Revision override, and published atomically. The reason field and
+  confirmation cleared after success. Reloaded list evidence showed
+  `publication: overridden` without the reason.
+- Admin selected rollback Publication 1. The UI first selected and loaded that
+  Publication's Revision 1 gate (`approval missing`), required a second
+  explicit confirmation, then rolled back atomically with a separate immutable
+  `rollback: overridden` evidence row.
+- Admin explicitly opened that evidence detail, observed the private reason,
+  closed it, and confirmed the reason was removed from rendered list state.
+- The unchanged public reader contained no review, reviewer, approval,
+  override, inbox, comment, or reason state.
+
+Closure quality checks:
+
+- authenticated Admin axe: zero violations; two existing unrelated textarea
+  contrast checks remained indeterminate because axe could not determine the
+  obscured background;
+- authenticated Viewer axe: zero violations;
+- public reader axe: zero violations;
+- Admin page at `320` CSS pixels: `scrollWidth === innerWidth`;
+- reduced-motion media query: matched;
+- Admin, Viewer, and public browser page-error logs: empty;
+- ordinary evidence responses and rendered timelines: reason-free;
+- successful publication/rollback confirmation: did not echo either private
+  reason.
 
 ## Capability Boundary
 

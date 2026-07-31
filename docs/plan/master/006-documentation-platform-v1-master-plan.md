@@ -2230,6 +2230,10 @@ in-product notifications, deterministic supersession/cancellation, atomic
 Publication and rollback gates, Admin-only reasoned override, and immutable
 Publication Review Evidence. Comments remain separate private authoring state;
 review is not authorization and no public contract contains review state.
+The 2026-07-31 independent closure additionally enforces the current policy at
+Publication time, signs scope/filter-bound cursors, derives the safe structural
+summary from immutable Revision projections, hardens tenant/history database
+invariants, and validates exact rollback-target gates in the portal.
 
 ## 34. Child 137: Documentation API Try-It And Example Experience
 
@@ -2789,6 +2793,13 @@ follows the same close-predecessor rule.
   optional Publication/rollback gating, atomic Admin override, immutable review
   evidence, portal workflows, ADR `0032`, and browser evidence. Child `137` is
   now the active handoff.
+- 2026-07-31: independently close-rechecked child `136`. Repaired
+  current-policy invalidation and unnecessary-override handling, cursor
+  pagination/signing, structural change summaries, actor-specific controls,
+  cross-panel/rollback gate state, tenant-scoped migration guards, and private
+  evidence-detail lifecycle. Clean DB, full server/web/extension, type/build/
+  smoke, and headless Admin/Viewer/public closure verification passed. Child
+  `137` remains the next active handoff.
 
 ## 47. Master Planning Verification Record
 
@@ -2913,6 +2924,28 @@ Child `136` implementation evidence includes:
   approval, required-policy gate, evidence history, and zero-violation axe
   evidence in
   `docs/ui/136-documentation-review-and-approval-workflow-browser-evidence.md`.
+
+The 2026-07-31 independent closure supersedes the earlier aggregate counts:
+
+- clean DB registry 23 files / 81 tests;
+- migration `029` clean down/up passed and populated down refused;
+- server 117 files / 511 tests, web 75 files / 413 tests, extension 19 files /
+  140 tests;
+- Documentation domain 16 files / 41 tests and strict types 18 files / 89
+  tests;
+- workspace type check, production build, V1 smoke, and `git diff --check`
+  passed;
+- signed cursor tamper/scope/filter checks, current-policy publication and
+  rollback gates, strict detail/error contracts, lifecycle enforcement,
+  immutable summary/evidence boundaries, and tenant-scoped database guards
+  passed focused verification;
+- headless Chromium verified current-policy invalidation, blocked ordinary
+  publication without an override, confirmed Admin publication/rollback override,
+  Viewer assignment-only decision controls, reason-free list/public output,
+  closable Admin-only evidence detail, `320px` reflow, reduced motion, clean
+  page errors, and zero axe violations on Admin, Viewer, and public pages;
+- closure screenshot:
+  `docs/ui/136-documentation-review-and-approval-workflow-closure.png`.
 
 ## 48. Planning Leftovers And Handoff
 
