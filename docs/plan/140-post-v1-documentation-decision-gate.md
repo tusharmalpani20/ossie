@@ -5,8 +5,8 @@ Date reserved: 2026-07-30
 Date expanded: 2026-07-31
 
 Status: In progress. The documentation-only decision session began on
-2026-07-31 from clean commit `df409d0`. Q1 through Q6 are provisionally
-recorded and Q7 is open for explicit user/product authority. Product
+2026-07-31 from clean commit `df409d0`. Q1 through Q7 are provisionally
+recorded and Q8 is open for explicit user/product authority. Product
 Documentation V1 remains implemented and independently close-rechecked through
 child `139`; this child authorizes no runtime, schema, route, dependency, or
 browser-visible implementation.
@@ -1593,9 +1593,13 @@ Child `140` may close only when:
   Helpful/Not helpful capability with fixed reasons and exact Publication/Page
   anchors. Public comments, open text, and reader identity remain excluded.
   Privacy-minimized public analytics opened as Q7.
+- 2026-07-31: the user provisionally accepted Q7 as an `accept-later`,
+  first-party aggregate capability that counts pages rather than people.
+  Persistent reader identifiers, personal details, and third-party tracking
+  remain excluded. Exact-scope external review opened as Q8.
 
 The expansion itself made no decision. At the current execution checkpoint Q1
-through Q6 are provisionally recorded, Q7 is open, and final cross-question
+through Q7 are provisionally recorded, Q8 is open, and final cross-question
 acceptance remains pending.
 
 ## 25. Expansion Verification Record

@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q6 are provisionally recorded and Q7 is open
+Status: In progress. Q1 through Q7 are provisionally recorded and Q8 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -154,8 +154,8 @@ Inference and preference must not be written as shipped fact.
 | Q4       | Translation identity, fallback, and workflow                    | Answered   | `accept-later`: human-first      | Provisional     |
 | Q5       | Custom domains                                                  | Answered   | `accept-later`: verified domain  | Provisional     |
 | Q6       | Public feedback                                                 | Answered   | `accept-later`: structured only  | Provisional     |
-| Q7       | Public analytics                                                | Open       | Pending                          | Pending         |
-| Q8       | External reviewer access                                        | Not opened | None                             | Pending         |
+| Q7       | Public analytics                                                | Answered   | `accept-later`: aggregate only   | Provisional     |
+| Q8       | External reviewer access                                        | Open       | Pending                          | Pending         |
 | Q9       | Realtime collaboration and presence                             | Not opened | None                             | Pending         |
 | Q10      | Offline editing and merge                                       | Not opened | None                             | Pending         |
 | Q11      | Governed permanent deletion and retention                       | Not opened | None                             | Pending         |
@@ -1237,7 +1237,9 @@ reverse and are excluded from the first slice.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-later` for opt-in, first-party, exact-Page aggregate counts that do not
+track people. Persistent identifiers, personal details, third-party scripts,
+and richer journey analytics are not accepted.
 
 ### Simple decision requested
 
@@ -1247,13 +1249,185 @@ feature?
 Recommended answer: **Yes, later—but count pages, not people. Do not use
 tracking cookies or collect personal reader details.**
 
-## 15. Questions Not Yet Opened
+### User answer
 
-Q8 through Q17 remain unmade. Their full implementation-safe question
+> Yes, I agree.
+
+Recorded interpretation:
+
+- preserve privacy-minimized Documentation analytics as an accepted-later
+  capability;
+- count page demand and bounded routing outcomes, not people;
+- use no tracking cookies, persistent visitor IDs, fingerprints, IP storage,
+  personal reader details, or third-party scripts in the first slice;
+- separate tenants, Publish Links, exact Publications/Pages, and access
+  classes;
+- leave richer analytics to a separate future privacy/legal decision;
+- do not select analytics as `accept-next` before cross-question
+  reconciliation.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 15. Q8 — Should People Outside A Project Be Invited To Review A Draft?
+
+### Why this question is open
+
+Documentation teams may need a customer, lawyer, partner, or subject expert to
+review one draft without making that person a full Project member. This can
+reduce account/permission overhead, but an invitation link could expose a
+confidential draft if it is forwarded, guessed, retained too long, or scoped
+too broadly.
+
+### Shipped V1 facts
+
+- V1 review is available only to authorized internal Project members.
+- A Review Request targets one exact immutable Site Revision.
+- Review approval is separate from permission to publish.
+- Private review comments and decisions remain inside the Project boundary.
+- Public/password Publish Links expose Publications, not draft Review
+  Requests.
+- No external reviewer identity, invitation, email delivery, token lifecycle,
+  or conversion-to-membership model exists.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- OWASP recommends least privilege, deny by default, permission checks on every
+  request, protection of static resources, safe failure, and authorization
+  tests:
+  [Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
+- OWASP's token guidance recommends cryptographically random, sufficiently
+  long, securely stored, single-use, expiring tokens, with rate limiting and
+  no trust in a request Host header when constructing links:
+  [Forgot Password Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html).
+- NIST SP 800-63B distinguishes authentication from session management and
+  requires session secrets to be protected against prediction, disclosure,
+  and unauthorized reuse:
+  [NIST SP 800-63B](https://pages.nist.gov/800-63-4/sp800-63b.html).
+- OWASP recommends unpredictable session identifiers, secure cookie handling,
+  server-side expiration, logout invalidation, and reauthentication for risky
+  events:
+  [Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html).
+
+### Inference
+
+A bare shareable URL is not enough for confidential review. The person who
+opens the invitation should verify the invited email identity, and every
+request should check that the invitation is active and limited to the exact
+Review Request/Revision.
+
+External review need not grant Project membership, working-draft access,
+approval authority, or publication authority. Starting with read-only preview
+and private comments gives useful review value with a narrower trust boundary.
+
+### Recommendation
+
+Keep external review as an **accepted-later** capability with a small first
+slice:
+
+1. an authorized Project Admin or Review Request owner invites one email
+   address to one exact Review Request/Revision;
+2. the invitation expires quickly, can be revoked, and cannot be reused to
+   create new access after acceptance;
+3. the reviewer must verify control of the invited email and receives a
+   short-lived review session;
+4. the reviewer can read the exact Revision and leave private review comments;
+5. the reviewer cannot see the Working Draft, other Reviews, Project library,
+   members, settings, assets outside the Revision, or internal comments;
+6. the reviewer cannot approve, reject, checkpoint, edit, publish, export, or
+   use Try It in the first slice;
+7. closing, expiring, or revoking the Review removes access immediately;
+8. Access Evidence records the invited external identity and allowed/denied
+   review access without storing token or comment content.
+
+Approval authority can be considered later only with explicit threshold,
+self-review, identity, legal-signoff, and audit semantics.
+
+### Alternatives
+
+- **Defer:** require external people to become normal Project members until
+  demand and notification infrastructure exist.
+- **Reject:** export a Package/PDF-like snapshot outside Ossie under the
+  customer's own process.
+- **Accept-next:** choose read/comment external review only if it is the
+  strongest evidenced problem after the full candidate review.
+- **External approval later:** requires a separate high-assurance decision and
+  must still never grant publication authority.
+
+### Rejected shortcuts
+
+- reusing a public/password Publish Link as a review invitation;
+- granting implicit Project membership;
+- using a permanent or reusable bearer link without identity verification;
+- allowing a forwarded link to change the invited identity;
+- targeting the mutable Working Draft instead of an exact Revision;
+- exposing unrelated protected Files or Project resources;
+- allowing external approval/publish in the first slice;
+- constructing invitation URLs from an untrusted Host header;
+- placing invitation tokens, private comments, email content, or draft content
+  in Audit/Access Evidence or logs.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- PostgreSQL remains authority for Review, invitation, identity binding,
+  expiry, revocation, and comment state.
+- Protected Files remain accessible only through the exact authorized Revision
+  projection.
+- The invitation is a narrow relationship, not a role or membership.
+- Issuer permission and invitation status are revalidated on every request.
+- Tokens are random, hashed at rest, single purpose, short lived, rate limited,
+  and redacted everywhere.
+- Email delivery is an external processor/infrastructure prerequisite with
+  bounce, retry, abuse, privacy, and domain configuration ownership.
+- Closing the Review or revoking the invitation invalidates sessions without
+  rewriting immutable history.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. A future implementation would require additive
+external invitation/identity/session records, email delivery, exact-review
+authorization, API/types, reviewer preview/comment UI, Project management UI,
+Access Evidence, expiry/revocation operations, and security/browser tests.
+Existing internal Review Requests and Publish Links remain unchanged.
+
+### Reversibility
+
+An exact, expiring invitation is reversible: revoke it or close the Review and
+future access ends without changing the Revision or Project membership.
+Comments already accepted need an explicit retention/deletion policy. Broad
+membership or external approval authority would be harder to reverse and is
+excluded from the first slice.
+
+### Evidence gaps
+
+- no recorded customer/expert review demand;
+- no accepted email provider, sender-domain, retry, or bounce owner;
+- no external identity/account model;
+- no accepted invitation/session duration;
+- no comment retention or external-reviewer data-subject workflow;
+- no accepted future external approval requirement.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should we keep invited external draft review as a possible later feature?
+
+Recommended answer: **Yes, later—but external reviewers should only see one
+exact draft and leave private comments. They should not become Project members
+or approve/publish anything.**
+
+## 16. Questions Not Yet Opened
+
+Q9 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 16. Session Log
+## 17. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -1278,8 +1452,12 @@ at a time with current primary-source research only when opened.
 - 2026-07-31: the user accepted structured Helpful/Not helpful feedback as an
   `accept-later` possibility, with fixed reasons and no public comments, open
   text, or reader identity. Opened privacy-minimized public analytics as Q7.
+- 2026-07-31: the user accepted first-party aggregate Documentation analytics
+  as an `accept-later` possibility that counts pages, not people. Persistent
+  identifiers, personal details, and third-party tracking remain excluded.
+  Opened exact-scope external review as Q8.
 
-## 17. Verification Record
+## 18. Verification Record
 
 Initial checkpoint verification:
 
@@ -1296,7 +1474,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 18. Current Handoff
+## 19. Current Handoff
 
-Awaiting explicit user/product authority for Q7. Do not open Q8 until Q7 is
+Awaiting explicit user/product authority for Q8. Do not open Q9 until Q8 is
 recorded.
