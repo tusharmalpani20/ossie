@@ -2,10 +2,10 @@
 
 Date: 2026-07-30
 
-Status: Active after Product Documentation V1 implementation closeout in child
-`139` on 2026-07-31. Children `132` through `139` are independently
-close-rechecked and verified. Child `140` remains a decision-only reservation
-and is the only open child.
+Status: Complete. Product Documentation V1 was implemented and independently
+close-rechecked through child `139`; child `140` then completed the
+documentation-only post-V1 decision gate on 2026-07-31. The accepted next
+experience sequence is separately owned by Master Plan `007`.
 
 Master plan number: 006.
 
@@ -2687,7 +2687,7 @@ By child `139`, the combined verification must include:
 - [x] Create, expand, recheck, implement, verify, and close child `137`.
 - [x] Create, expand, recheck, implement, verify, and close child `138`.
 - [x] Create, expand, recheck, implement, verify, and close child `139`.
-- [ ] Create, conduct, document, accept, and close child `140`.
+- [x] Create, conduct, document, accept, and close child `140`.
 
 ### Final Closure
 
@@ -2704,7 +2704,7 @@ By child `139`, the combined verification must include:
       handoff.
 - [x] Active documentation reflects shipped V1 accurately.
 - [x] Commits contain only scoped work.
-- [ ] Post-V1 decisions are accepted/deferred/rejected without accidental
+- [x] Post-V1 decisions are accepted/deferred/rejected without accidental
       runtime expansion.
 
 ## 44. Master Completion Criteria
@@ -2732,10 +2732,10 @@ proposals without another accepted plan.
 
 ## 45. Immediate Next Action
 
-Product Documentation V1 is implemented and final-closeout verified through
-child `139`. The next activity is to rewrite/expand child `140` as a
-decision-only post-V1 gate against the shipped evidence. Child `140` must not
-implement proposals or serve as a place to finish V1 defects.
+Master `006` is closed. Rewrite/expand child `141` under
+`docs/plan/master/007-documentation-post-v1-master-plan.md`, then independently
+recheck that plan before installing adapter dependencies or implementing a
+prototype. Master `007` planning is not runtime authorization.
 
 ## 46. Planning And Recheck Log
 
@@ -2867,6 +2867,12 @@ implement proposals or serve as a place to finish V1 defects.
   `024`, removed-guard rejection, restored `031`, server 126/547, database
   24/88, V1 smoke 1/2, docs 4/12, workspace types, and scoped-diff
   verification passed. Child `140` remains decision-only.
+- 2026-07-31: completed child `140` as a documentation-only decision gate. The
+  user finally accepted all Q1–Q17 dispositions, selected the Documentation
+  experience Master `007` with children `141`–`146`, and kept every
+  accepted-later, deferred, rejected, maintenance, operations, and Knowledge
+  Platform item outside that implementation checklist. No Product
+  Documentation runtime, schema, route, migration, or dependency changed.
 
 ## 47. Master Planning Verification Record
 
@@ -3098,9 +3104,11 @@ Child `139` implementation evidence includes:
 
 ## 48. Planning Leftovers And Handoff
 
-- Product Documentation children `132` through `139` are complete and
-  independently close-rechecked and verified. Child `140` is next and remains
-  decision-only.
+- Product Documentation children `132` through `140` are complete. Children
+  `132`–`139` are independently close-rechecked runtime work; child `140` is a
+  completed documentation-only decision gate.
+- Master `007` reserves children `141`–`146`. Child `141` is next but is not
+  implementation-ready until rewritten/expanded and independently rechecked.
 - Child `132` established the first vertical slice. Child `133` extended it
   with the complete constrained V1 block graph, Edition-owned Snippets,
   Documentation/Capture Asset sources, exact artifact Publication references,
@@ -3111,10 +3119,14 @@ Child `139` implementation evidence includes:
 - Child `138` replaced first-slice-only ceilings with Organization-owned
   nullable active-Site/active-Page limits beneath hard safety ceilings and
   exact usage/health reporting.
-- Git/GitHub, translation, custom domains, public feedback/analytics, realtime
-  collaboration, permanent deletion, cross-artifact search, server proxy,
-  stored credentials, SDK generation, and Video remain deferred/rejected as
-  recorded.
+- Child `140` selected bounded Tiptap/Fumadocs adapter proofs and deterministic
+  multi-language request examples next. Git proposals, translation, custom
+  domains, public feedback/analytics, exact external review, presence, offline
+  read-only, typed disclosure, static export, and Organization metadata
+  discovery remain accepted later under their recorded owners/triggers.
+- Bidirectional Git, simultaneous/offline editing, permanent deletion, full SDK
+  packages, direct provider deployment, server proxy, stored credentials, and
+  Video remain deferred/rejected as recorded.
 - Child `138` preserved exact Publication/link access, the browser-direct and
   memory-only credential boundary, matching origin-set/CSP authority, and the
   separation between review evidence and API request authority.

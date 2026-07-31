@@ -1,6 +1,6 @@
 # Roadmap
 
-Last reviewed: 2026-07-29
+Last reviewed: 2026-07-31
 
 Ossie is alpha software. This roadmap separates shipped behavior from accepted
 direction and intentionally deferred work; it does not promise dates.
@@ -25,6 +25,10 @@ direction and intentionally deferred work; it does not promise dates.
   authoring, Revisions, Carry-Forward, scene/hotspot editing, immutable
   publishing, multi-version Publish Links, password access, embeds, and public
   viewing.
+- Product Documentation Sites with version-scoped relational authoring,
+  constrained content/snippets/assets/OpenAPI, comments and review, inspected
+  portability, Carry-Forward, immutable Revisions/Publications, public/password
+  readers and search, and governed browser-direct Try It.
 - Local PostgreSQL/file storage operations, health/readiness endpoints,
   production configuration validation, and DB-backed alpha smoke coverage.
 - A compact `apps/docs` repository documentation hub with safe historical alpha
@@ -60,16 +64,17 @@ for gates and exact child ordering.
 
 ## Documentation Next
 
-Child `131` accepted Product Documentation's identity, hierarchy, navigation,
-authoring, rendering, Project Version, Publication, access, search, comments,
-security, and site-configuration semantics. The target model and ordered
-children `132` through `140` are recorded in
-`docs/documentation-domain-decisions.md` and Master Plan `006`.
+Master Plan `006` and children `132`–`140` are complete. Children `132`–`139`
+shipped and independently close-rechecked Product Documentation V1; child `140`
+then reviewed every post-V1 candidate and accepted one next experience
+objective.
 
-Child `132`, the end-to-end Documentation Site first vertical slice, is
-expanded and rechecked. Product Documentation runtime remains unimplemented;
-the next activity after the scoped plan checkpoint is to implement child `132`
-under its recorded gate.
+Master Plan `007` reserves children `141`–`146` to test Tiptap authoring and
+Fumadocs reading behind non-authoritative adapter gates, modernize the selected
+authoring/reader paths, add deterministic curl/Fetch/Node.js/Python/Go request
+examples, harden the integrated browser/accessibility/performance experience,
+and perform final closeout. Child `141` must be expanded and rechecked before
+any prototype or dependency change.
 
 Product Documentation is not another name for Guides and is not `apps/docs`,
 which remains repository documentation for contributors and operators.
@@ -83,6 +88,11 @@ which remains repository documentation for contributors and operators.
 - Analytics, view tracking, lead capture, sales workflows, and custom branding.
 - Additional export destinations such as PDF, DOCX, Confluence, Notion, or
   GitHub.
+- Human-first Documentation translations, verified custom domains, structured
+  public feedback, privacy-minimized aggregate analytics, exact-Revision
+  external review, ephemeral presence, offline read-only snapshots, a typed
+  disclosure component, and public static-site export remain accepted later
+  rather than scheduled in Master `007`.
 - Object storage, shared multi-instance rate limiting, and one-command
   production packaging.
 - Chrome Web Store distribution.

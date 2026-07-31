@@ -1,19 +1,23 @@
 # Project Zoom-Out Status
 
-Last reviewed: 2026-07-30
+Last reviewed: 2026-07-31
 
 ## Product Intent
 
 Ossie is a self-hosted open-source product for capturing browser workflows and
 turning them into polished walkthrough artifacts. Its implemented foundation is
 a project-organized, Project Version-aware internal knowledge platform for the
-current Guide and Interactive Demo artifact families. Product Documentation now
-has an accepted target model but no runtime; Video remains later and unmodeled.
+current Guide, Interactive Demo, and Product Documentation artifact families.
+Product Documentation V1 is shipped and close-rechecked; its next experience
+sequence is planning-only. Video remains later and unmodeled.
 
-The current alpha has two authored output families:
+The current alpha has three authored output families:
 
 - Scribe-style Guides: vertical process documentation with ordered steps, screenshots, instructions, tips, alerts, headers, paragraphs, dividers, and screenshot annotations.
 - Storylane-style interactive demos: screen-by-screen walkthroughs with scenes, screenshots, hotspots, publishable links, and embeddable public viewers.
+- Product Documentation Sites: version-aware multi-page knowledge bases with
+  constrained blocks, snippets, assets, OpenAPI references, private review,
+  immutable publication, public/password readers, and search.
 
 The current direction remains:
 
@@ -84,6 +88,10 @@ a distinct evidence class.
 - Guide creation from capture sessions, guide editing, guide blocks, guide steps, screenshot selection, direct step screenshot upload, annotations, Markdown export, HTML ZIP export, and guide detail read models.
 - Interactive demo creation from capture sessions, demo metadata, scenes, ordering, hotspots, and archive behavior.
 - Revision-backed immutable Publications and independent multi-Project-Version Publish Link manifests for guides and interactive demos, with stable slugs, public/restricted access, expiry, password protection, viewer sessions, embeds, and exact-Revision Asset streaming.
+- Product Documentation Site/Edition/Page/navigation/snippet/asset/OpenAPI,
+  comment/review, import/export, Carry-Forward/lifecycle, Revision/Publication,
+  reader/search, Try-It, quota, and operations APIs backed by migrations
+  `025`–`031`.
 - Health and readiness endpoints.
 - Production config hardening around CORS, cookie secrets, body/upload limits, and sensitive route rate limits.
 - Unit, route, app integration, DB integration, and v1 smoke coverage.
@@ -101,6 +109,10 @@ a distinct evidence class.
 - Guide list, guide editor, guide preview, screenshot viewer, screenshot selection, direct screenshot upload, rectangle annotations, block insertion/editing/reorder/delete, Markdown export, HTML ZIP export, publish controls, password controls, embed-copy controls, and public-link status labels.
 - Public guide reader and guide embed route.
 - Interactive demo list, interactive demo editor, scene management, hotspot management, publish controls, password controls, public demo viewer, and demo embed route.
+- Product Documentation Site management, Page/block authoring, snippets/assets/
+  OpenAPI, comments and review, portability, Carry-Forward/lifecycle,
+  checkpoint/publish/rollback, authenticated previews, public/password reader,
+  search, API references, and governed browser-direct Try It.
 - Focused page, route, API, and app tests.
 
 ### Chrome Extension
@@ -141,24 +153,19 @@ a distinct evidence class.
 
 ## Recommended Next Direction
 
-Master Plan `005` has completed children `109` through `131`: repository
-workflow, naming/documentation truth, Audit and Access Evidence, Project
-Membership, Project Versions, Version-owned Captures, Guide/Demo
-Artifacts/Editions/Working Drafts/Revisions, Carry-Forward, protected Assets,
-revision-backed Publications, multi-version Publish Links, the design system,
-current workflow modernization, cross-product browser closeout, and the
-Documentation domain grill.
+Master Plan `005` completed the shared knowledge-platform/UI foundation. Master
+Plan `006` and children `132`–`140` completed Product Documentation V1 and its
+post-V1 decision gate. The accepted decisions are recorded in `CONTEXT.md`,
+ADRs `0021`–`0034`, the completed grill records, and
+`docs/documentation-domain-decisions.md`.
 
-Child `132`, the complete Documentation Site first vertical slice, is expanded
-and rechecked. The next activity after its scoped plan checkpoint is runtime
-implementation under that plan's exact migration, contract, permission,
-threat, verification, and agent-browser requirements.
+Master Plan `007` is the next planning sequence. Child `141` must first expand
+and recheck isolated Tiptap-authoring and Fumadocs-reader adapter proofs. Only
+evidence-backed parts may be adopted; PostgreSQL, existing schemas,
+permissions, Publications, APIs, and URLs remain authoritative. Later children
+own authoring/reader modernization, deterministic multi-language request
+examples, integrated hardening, and final closeout.
 
-The accepted Project Version and Artifact Edition decisions are recorded in
-`CONTEXT.md`, ADRs `0021` through `0030`, the completed grill records,
-`docs/documentation-domain-decisions.md`, and their child plans. The existing
-foundation and modernized current product are implemented and verified.
-
-Product Documentation runtime is not yet implemented. Its accepted plan sequence
-is `132` through `140`; Loom-style Video remains a later direction with no
+Accepted-later Documentation ideas and cross-product operations/maintenance
+remain outside Master `007`. Loom-style Video remains a later direction with no
 accepted runtime model.

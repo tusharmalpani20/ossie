@@ -440,8 +440,8 @@ implemented and verified Product Documentation V1; child `140` was a
 documentation-only post-V1 decision gate. The implementation
 uses additive migrations `025`–`031`, Ossie-owned typed authoring and reader
 adapters, PostgreSQL search projections, exact immutable Publications, and the
-accepted permission/evidence boundaries. Child `140` remains a decision-only
-gate and does not inherit implementation authority from this closure.
+accepted permission/evidence boundaries. Child `140` was a decision-only gate
+and implemented no post-V1 capability.
 
 ## 10. Handoff Invariants
 

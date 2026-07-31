@@ -19,18 +19,20 @@ export const productCapabilities = [
   "Project Membership, Audit and Access Evidence, and explicit Project Version release contexts beginning with Main.",
   "Version-scoped Guide and Interactive Demo Editions, relational Working Drafts, immutable Revisions, Carry-Forward, and protected shared assets.",
   "Revision-backed Publications and independent multi-version Publish Links with exact-version public routes.",
+  "Product Documentation V1 with Sites, Pages, constrained content, snippets, assets, OpenAPI, comments and review, portability, Carry-Forward, immutable publishing, reader search, and governed browser-direct Try It.",
 ];
 
 export const nextPlatformDirection = {
   status:
-    "Master Plan 005's foundation and Documentation domain grill are complete; Product Documentation runtime is not yet implemented.",
+    "Master Plans 005 and 006 are complete; Product Documentation V1 is shipped and Master Plan 007 is a planning-only next experience sequence.",
   items: [
-    "The accepted Product Documentation model settles its content, source-of-truth, publication, access, URL, search, comments, security, and rendering boundaries.",
-    "The next activity is to expand and recheck child 132, the end-to-end Documentation Site first vertical slice, before implementation.",
+    "Product Documentation V1 ships the accepted content, source-of-truth, publication, access, URL, search, comments, review, portability, lifecycle, security, and API experience boundaries.",
+    "The next activity is to expand and recheck child 141, an isolated Tiptap/Fumadocs adapter proof and adoption gate, before any dependency or runtime change.",
+    "Later selected children modernize authoring and reading, add deterministic multi-language API request examples, harden the combined experience, and perform final closeout.",
     "Loom-style Video later; its recording, storage, playback, and collaboration model remains deliberately unplanned.",
   ],
   docsAppBoundary:
-    "This Docs App is repository documentation for contributors and operators. It is not the future customer-authored Product Documentation experience.",
+    "This Docs App is repository documentation for contributors and operators. It is not the customer-authored Product Documentation experience.",
 };
 
 export const docsLinks = [

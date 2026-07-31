@@ -64,14 +64,14 @@ describe("docs content", () => {
     );
   });
 
-  it("separates the shipped foundation from the remaining platform direction", () => {
+  it("separates shipped Documentation from the planning-only next direction", () => {
     expect(nextPlatformDirection.status).toContain(
-      "Documentation domain grill are complete",
+      "Product Documentation V1 is shipped",
     );
     expect(nextPlatformDirection.items).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("accepted Product Documentation model"),
-        expect.stringContaining("child 132"),
+        expect.stringContaining("Documentation V1 ships"),
+        expect.stringContaining("child 141"),
         expect.stringContaining("Product Documentation"),
         expect.stringContaining("Video"),
       ]),
@@ -91,6 +91,7 @@ describe("docs content", () => {
         expect.stringContaining("Scribe-style guides"),
         expect.stringContaining("Storylane-style interactive demos"),
         expect.stringContaining("multi-version Publish Links"),
+        expect.stringContaining("Product Documentation V1"),
       ]),
     );
     expect(evidenceItems.map((item) => item.src)).toEqual(

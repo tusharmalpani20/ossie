@@ -71,11 +71,10 @@ The product intentionally keeps guides and interactive demos separate. A capture
 
 ## Next Platform Direction
 
-Master Plan `005` has closed its version/governance foundation, current-product
-UI modernization, and Documentation domain grill. Product Documentation has an
-accepted target model. Children `132` and `133` have shipped the vertical slice
-and content/snippet/asset deepening; children `134` through `140` own the
-remaining ordered sequence:
+Master Plan `005` closed the version/governance and UI foundation. Master Plan
+`006` and children `132`–`140` completed Product Documentation V1 and its
+post-V1 decision gate. Master Plan `007` now reserves the next Documentation
+experience sequence:
 
 ```text
 Organization
@@ -84,7 +83,7 @@ Organization
       -> Capture Sessions
       -> Guide Editions
       -> Interactive Demo Editions
-      -> Product Documentation Sites (content/snippet/asset workflows shipped)
+      -> Product Documentation Sites (V1 shipped and close-rechecked)
       -> Video (later and not yet modeled)
 ```
 
@@ -92,10 +91,10 @@ This diagram is navigation context, while the Capture, Guide, Interactive Demo, 
 
 Product Documentation means customer-authored documentation sites and knowledge
 bases. It is different from `apps/docs`, which is this repository's
-contributor/operator documentation hub. Children `132` through `138` have
-shipped the first slice, content/assets, portability, lifecycle,
-review/approval, browser-direct API Try It, and V1 operational hardening.
-Child `139` owns final V1 closeout; child `140` is the post-V1 decision gate.
+contributor/operator documentation hub. V1 is complete through child `139`, and
+child `140` accepted bounded Tiptap/Fumadocs adapter proofs plus deterministic
+multi-language API request examples as the next sequence. Child `141` must be
+expanded and rechecked before implementation.
 
 ## Intentionally Deferred
 
@@ -111,8 +110,9 @@ Child `139` owns final V1 closeout; child `140` is the post-V1 decision gate.
 - Chrome Web Store packaging remains pending. Current extension evidence uses a
   real unpacked Manifest V3 toolbar action with synthetic data; direct-page
   automation remains a separate evidence class.
-- Product Documentation V1 final closeout and the post-V1 decision gate remain
-  sequenced in children `139` and `140`.
+- Direct Documentation Git sync, translations, custom domains, feedback,
+  analytics, collaboration, offline editing, permanent deletion, full SDKs,
+  and managed cloud deployment remain outside the selected next sequence.
 - Loom-style Video recording, storage, playback, transcription, and collaboration are later work and have no accepted runtime model yet.
 
 ## Quick Local Path
