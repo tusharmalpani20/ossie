@@ -8,7 +8,7 @@
 
 **Expanded:** 2026-07-31
 
-**Status:** Completed and verified on 2026-07-31
+**Status:** Completed, independently close-rechecked, and verified on 2026-07-31
 
 ## 1. Sequence Gate
 
@@ -730,8 +730,8 @@ OSSIE_DOCUMENTATION_REBUILD_BATCH_SIZE
 OSSIE_DOCUMENTATION_INITIAL_HTML_MAX_BYTES
 OSSIE_DOCUMENTATION_TRY_IT_DNS_TIMEOUT_MS
 OSSIE_DOCUMENTATION_TRY_IT_WEB_ORIGIN_SET_DIGEST
-OSSIE_WEB_ASSET_MANIFEST_PATH
-OSSIE_WEB_ASSET_BASE_URL
+OSSIE_DOCUMENTATION_WEB_MANIFEST_PATH
+OSSIE_DOCUMENTATION_WEB_ASSET_BASE
 ```
 
 Accepted defaults and compiled bounds:
@@ -2075,6 +2075,19 @@ pre-existing worktree content.
 - Operator, self-hosting, readiness, fixture, top-level status, browser
   evidence, this child, and Master `006` were updated in the closure docs
   commit.
+- Independent close-recheck commit `d1db672` removed the split Vite/Fastify
+  Try-It origin parser and made both surfaces consume the same exact-public-
+  HTTPS origin policy and CSP builder without weakening localhost/private/
+  reserved-host rejection.
+- Independent close-recheck commit `5b0b884` repaired five runtime gaps found
+  by plan-to-code traceability: truthful server/web digest comparison,
+  bounded noindex HTML fallback instead of an empty `500`, exact/prefix and
+  literal-safe search including canonical path/Page ID, stable keyset
+  pagination for every `--all-legacy` batch, and matching operator guidance.
+- Independent close-recheck commit `845e1a6` stopped inferring Organization
+  Owner authority from project-access provenance. The publishing workbench now
+  resolves the existing Organization operations permission and still keeps
+  recovery absent for non-Owners.
 
 No runtime cache, queue, customer-content purge, analytics, rate-limit redesign,
 or deferred Documentation product feature was introduced.
@@ -2167,6 +2180,47 @@ Implementation verification on 2026-07-31:
   `304`; alias `308`, gone `410`, unknown `404`, robots, and sitemap passed;
 - no S1/S2 Documentation defect remained after the close-implementation audit.
 
+Independent implemented-work close-recheck on 2026-07-31:
+
+- started from clean `d123d82`, mapped the plan/master exit criteria through
+  callers, repositories, routes, UI, tests, operator docs, and the child `139`
+  handoff, and confirmed every resulting edit was child-`138` scoped;
+- wrote failing regression tests before each repair for web-build digest
+  diagnostics, oversized initial HTML, all-legacy pagination, Organization
+  Owner recovery permission, shared Vite CSP parity, and literal/identifier
+  search behavior;
+- production diagnostics now report the server digest, supplied web-build
+  digest, `match | mismatch | unavailable`, reload requirement, uncached
+  policy/configuration DNS mode, and timeout without exposing an origin;
+- over-ceiling initial documents return a bounded `200` noindex shell with
+  truncated safe metadata, a content-loading status, exact route identity and
+  Publication digest; JSON bootstrap escaping covers `&`, `<`, `>`, U+2028,
+  and U+2029;
+- public and draft search now preserve exact/prefix title priority, weighted
+  title/heading/description/body rank, canonical-path/Page-ID fallback, stable
+  ties, the 50-result ceiling, and literal `%`/`_` semantics;
+- the maintenance command's real PostgreSQL dry-run selected two draft
+  candidates in one bounded page, while unit proof traversed three keyset
+  pages; mutation mode processes each page before reading the next and stops
+  immediately on rebuild failure;
+- focused server regression passed `36` tests plus the 29-route suite; the
+  final complete server unit suite passed `126` files / `546` tests, web passed
+  `83` / `442`, and Documentation domain passed `19` / `50`;
+- PostgreSQL V1 smoke passed `2` tests, including literal wildcard,
+  canonical-path, and Page-ID searches; server/web/domain type checks and
+  production builds passed; scoped lint has no errors (the repository file
+  retains pre-existing explicit-`any` warnings outside the changed lines);
+- headless Chromium proved the actual Owner-only draft rebuild (`200`, two
+  documents verified), Viewer control absence, public canonical-path search,
+  320-pixel reflow without overflow, reduced-motion media, clean page errors,
+  and zero WCAG A/AA axe violations on public and Viewer surfaces. The Owner
+  authoring surface also had zero violations, with two explicitly incomplete
+  contrast checks where axe could not determine obscured textarea backgrounds;
+- reconciled the implemented asset environment names to
+  `OSSIE_DOCUMENTATION_WEB_MANIFEST_PATH` and
+  `OSSIE_DOCUMENTATION_WEB_ASSET_BASE`; no schema, migration, public API, or
+  backward-compatibility change was required by the close-recheck.
+
 ## 29. Leftovers and Handoff to Child 139
 
 Accepted non-blocking limitations handed to child `139`:
@@ -2195,6 +2249,9 @@ Child `139` receives:
 - complete regression counts above;
 - known non-S1/S2 limitations;
 - scoped commit list above plus the final closure-doc commit.
+- the independent close-recheck commits and evidence above, including the
+  bounded-shell, search-identifier, keyset-maintenance, shared-CSP, and
+  permission-resolution regressions that final closeout must retain.
 
 Child `139` is final closeout, not a place to finish missing child `138`
 features. Any closure-blocking defect found here must be fixed and reverified

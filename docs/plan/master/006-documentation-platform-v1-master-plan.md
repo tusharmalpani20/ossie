@@ -2337,7 +2337,11 @@ ETag/cache behavior, truthful operational diagnostics, Organization operations
 and recovery UI, measured lazy boundaries, dependency remediation, backup/
 restore rehearsal, and headless browser evidence are shipped. Per-process
 admission, production p75 telemetry, and Firefox/WebKit proof remain documented
-non-blocking deployment/capability limitations.
+non-blocking deployment/capability limitations. The independent close-recheck
+also closed server/web origin-digest parity, over-ceiling noindex-shell,
+literal/identifier search, multi-batch maintenance, shared CSP-policy, and
+Organization Owner recovery-authority gaps without changing migration `031` or
+expanding V1 scope.
 
 ## 36. Child 139: Documentation V1 Final Closeout
 
@@ -2846,6 +2850,12 @@ follows the same close-predecessor rule.
   representations, Fastify initial documents and production asset-manifest
   checks, operations/recovery UI, diagnostics, measured lazy boundaries,
   backup/restore proof, dependency remediation, and headless Chromium evidence.
+- 2026-07-31: independently close-rechecked child `138`. Repaired the
+  server/web Try-It digest report, bounded noindex fallback document,
+  deterministic literal/path/Page-ID search, keyset-paginated all-legacy
+  maintenance, shared Vite/Fastify CSP origin policy, and Owner recovery
+  permission resolution; repeated unit/type/build/PostgreSQL smoke and
+  headless Chromium Owner/Viewer/public verification before handoff to `139`.
 
 ## 47. Master Planning Verification Record
 
@@ -3024,6 +3034,23 @@ Child `137` implementation evidence includes:
   violations. Closure evidence includes
   `docs/ui/137-documentation-api-try-it-and-example-experience-revision.png`.
 
+Child `138` independent close-recheck evidence includes:
+
+- commits `d1db672`, `5b0b884`, and `845e1a6` for shared CSP/origin authority,
+  server operational corrections, and Organization Owner recovery resolution;
+- final complete server unit `126` files / `546` tests, web `83` / `442`,
+  Documentation domain `19` / `50`, and V1 PostgreSQL smoke `1` file / `2`
+  tests;
+- server/web/domain type checks and production builds, real maintenance
+  dry-run, and scoped lint with no errors;
+- red/green proof for digest parity, bounded initial HTML, literal/path/Page-ID
+  search, multi-batch maintenance, shared Vite CSP, and permission resolution;
+- headless Chromium actual Owner rebuild, Viewer denial, public identifier
+  search, 320-pixel/reduced-motion behavior, clean page errors, and zero axe
+  violations on public and Viewer surfaces;
+- no migration, schema, public contract, tenant boundary, or accepted V1 scope
+  expansion.
+
 ## 48. Planning Leftovers And Handoff
 
 - Product Documentation children `132` through `138` are complete and
@@ -3045,6 +3072,10 @@ Child `137` implementation evidence includes:
 - Child `138` preserved exact Publication/link access, the browser-direct and
   memory-only credential boundary, matching origin-set/CSP authority, and the
   separation between review evidence and API request authority.
+- Child `138` close-recheck made matching origin-set authority operationally
+  observable, preserved exact-public-HTTPS/private-host rejection in the
+  shared parser, and proved the Owner recovery control from Organization
+  authority rather than project-access provenance.
 - Child `138` added measured lazy boundaries, production diagnostics,
   Organization quota/reporting, and local Chromium evidence. Firefox/WebKit
   and production-p75 evidence remain capability/deployment-owned limitations,
