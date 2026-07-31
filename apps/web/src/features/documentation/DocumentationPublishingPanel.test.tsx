@@ -5,6 +5,65 @@ import { DocumentationPublishingPanel } from "./DocumentationPublishingPanel";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("DocumentationPublishingPanel", () => {
+  it("discovers Organization Owner recovery permission independently of project access source", async () => {
+    render(
+      <DocumentationPublishingPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canPublish
+        loadOperations={async () => ({
+          limits: {
+            active_sites_limit: null,
+            active_pages_limit: null,
+            version: 0,
+            updated_at: null,
+          },
+          usage: {
+            active_sites: 1,
+            active_pages: 1,
+            retained_file_bytes: 0,
+            retained_revisions: 0,
+            retained_publications: 0,
+            active_import_inspections: 0,
+            open_review_requests: 0,
+          },
+          states: [
+            {
+              dimension: "active_sites",
+              usage: 1,
+              limit: null,
+              state: "within_limit",
+            },
+            {
+              dimension: "active_pages",
+              usage: 1,
+              limit: null,
+              state: "within_limit",
+            },
+            {
+              dimension: "retained_file_bytes",
+              usage: 0,
+              limit: null,
+              state: "within_limit",
+            },
+          ],
+          permissions: { can_manage_limits: true },
+          generated_at: "2026-07-31T00:00:00.000Z",
+        })}
+        loadRevisions={async () => ({ revisions: [] })}
+        loadPublications={async () => ({ publications: [] })}
+        loadPublishLinks={async () => ({ publish_links: [] })}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Search projection recovery",
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("lets only an explicitly authorized Owner confirm exact projection rebuilds", async () => {
     const rebuildProjection = vi.fn(async () => ({
       projection: "publication_search" as const,
@@ -67,6 +126,7 @@ describe("DocumentationPublishingPanel", () => {
         versionSlug="main"
         siteId="site"
         canPublish
+        canRebuildProjections={false}
         loadRevisions={async () => ({ revisions: [] })}
         loadPublications={async () => ({ publications: [] })}
         loadPublishLinks={async () => ({ publish_links: [] })}

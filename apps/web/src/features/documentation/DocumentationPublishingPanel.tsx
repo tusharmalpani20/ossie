@@ -4,6 +4,7 @@ import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import {
   createDocumentationPublication,
+  getDocumentationOperations,
   getDocumentationDiscoveryPolicy,
   listDocumentationPublications,
   listDocumentationPublishLinks,
@@ -30,6 +31,7 @@ type Props = {
   canOverrideReview?: boolean;
   canManageDiscovery?: boolean;
   canRebuildProjections?: boolean;
+  loadOperations?: typeof getDocumentationOperations;
   loadRevisions?: typeof listDocumentationRevisions;
   loadPublications?: typeof listDocumentationPublications;
   loadPublishLinks?: typeof listDocumentationPublishLinks;
@@ -47,7 +49,8 @@ export const DocumentationPublishingPanel = ({
   canPublish,
   canOverrideReview = false,
   canManageDiscovery = false,
-  canRebuildProjections = false,
+  canRebuildProjections,
+  loadOperations = getDocumentationOperations,
   loadRevisions = listDocumentationRevisions,
   loadPublications = listDocumentationPublications,
   loadPublishLinks = listDocumentationPublishLinks,
@@ -87,6 +90,27 @@ export const DocumentationPublishingPanel = ({
   const [discoveryPolicy, setDiscoveryPolicy] = useState<Awaited<
     ReturnType<typeof getDocumentationDiscoveryPolicy>
   > | null>(null);
+  const [ownerCanRebuild, setOwnerCanRebuild] = useState(
+    canRebuildProjections ?? false,
+  );
+
+  useEffect(() => {
+    if (canRebuildProjections !== undefined) {
+      setOwnerCanRebuild(canRebuildProjections);
+      return;
+    }
+    let active = true;
+    loadOperations()
+      .then((result) => {
+        if (active) setOwnerCanRebuild(result.permissions.can_manage_limits);
+      })
+      .catch(() => {
+        if (active) setOwnerCanRebuild(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [canRebuildProjections, loadOperations]);
 
   useEffect(() => {
     let active = true;
@@ -677,7 +701,7 @@ export const DocumentationPublishingPanel = ({
           </ul>
         </section>
       ) : null}
-      {canRebuildProjections ? (
+      {ownerCanRebuild ? (
         <section aria-labelledby="documentation-projection-rebuild-heading">
           <h3 id="documentation-projection-rebuild-heading">
             Search projection recovery

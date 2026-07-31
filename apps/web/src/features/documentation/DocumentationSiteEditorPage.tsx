@@ -49,7 +49,7 @@ export const DocumentationSiteEditorPage = ({
   canRequestReview = false,
   canManageReview = false,
   canDecideReview = false,
-  canRebuildProjections = false,
+  canRebuildProjections,
   loadPreview = getDocumentationPreview,
   createRevision = createDocumentationRevision,
 }: Props) => {

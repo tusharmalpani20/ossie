@@ -794,9 +794,6 @@ export default function App() {
               canDecideReview={canDecideDocumentationReview(
                 project.access.role,
               )}
-              canRebuildProjections={
-                project.access.source === "organization_owner"
-              }
             />
           </DocumentationSuspense>
         )}
