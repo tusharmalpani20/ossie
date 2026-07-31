@@ -19,8 +19,14 @@ export const normalize_documentation_review_reason = (
   minimumCodePoints = 0,
 ) => {
   const value = input.replace(/\r\n?/gu, "\n").normalize("NFC").trim();
+  const has_disallowed_control = [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return (
+      code <= 8 || code === 11 || code === 12 || (code >= 14 && code <= 31)
+    );
+  });
   if (
-    /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value) ||
+    has_disallowed_control ||
     Array.from(value).length < minimumCodePoints ||
     Array.from(value).length > DOCUMENTATION_REVIEW_REASON_MAX
   )

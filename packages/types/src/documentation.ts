@@ -663,9 +663,18 @@ const DocumentationExistingLinkSelectionSchema = z
 export const PlainReviewReasonSchema = z
   .string()
   .transform((value) => value.replace(/\r\n?/gu, "\n").normalize("NFC").trim())
-  .refine((value) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value), {
-    message: "Reason contains a disallowed control character",
-  })
+  .refine(
+    (value) =>
+      ![...value].some((character) => {
+        const code = character.charCodeAt(0);
+        return (
+          code <= 8 || code === 11 || code === 12 || (code >= 14 && code <= 31)
+        );
+      }),
+    {
+      message: "Reason contains a disallowed control character",
+    },
+  )
   .refine(
     (value) => Array.from(value).length <= DOCUMENTATION_REVIEW_REASON_MAX,
     { message: "Reason exceeds the accepted limit" },

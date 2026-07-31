@@ -12,7 +12,10 @@ export const canManageDocumentationEdition = (role: ProjectRole) =>
 export const canRequestDocumentationReview = (role: ProjectRole) =>
   role === "project_admin" || role === "editor";
 
-export const canDecideDocumentationReview = (_role: ProjectRole) => true;
+export const canDecideDocumentationReview = (role: ProjectRole) => {
+  void role;
+  return true;
+};
 
 export const canManageDocumentationReview = (role: ProjectRole) =>
   role === "project_admin";
