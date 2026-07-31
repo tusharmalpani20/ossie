@@ -5,8 +5,8 @@ Date reserved: 2026-07-30
 Date expanded: 2026-07-31
 
 Status: In progress. The documentation-only decision session began on
-2026-07-31 from clean commit `df409d0`. Q1 through Q14 are provisionally
-recorded and Q15 is open for explicit user/product authority. Product
+2026-07-31 from clean commit `df409d0`. Q1 through Q15 are provisionally
+recorded and Q16 is open for explicit user/product authority. Product
 Documentation V1 remains implemented and independently close-rechecked through
 child `139`; this child authorizes no runtime, schema, route, dependency, or
 browser-visible implementation.
@@ -1628,9 +1628,14 @@ Child `140` may close only when:
   reconciliation must decide actual sequence priority. Full SDK archives and
   package publication remain deferred. Advanced publication distribution
   opened as Q15.
+- 2026-07-31: the user provisionally accepted Q15 as `accept-later` for a
+  deterministic portable static site derived from one exact public
+  Publication and deployed through customer-owned tools. Direct provider
+  deployment, hooks, cloud credentials, cache purge, and environment promotion
+  remain deferred. Tooling and operational ownership opened as Q16.
 
 The expansion itself made no decision. At the current execution checkpoint Q1
-through Q14 are provisionally recorded, Q15 is open, and final cross-question
+through Q15 are provisionally recorded, Q16 is open, and final cross-question
 acceptance remains pending.
 
 ## 25. Expansion Verification Record

@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q14 are provisionally recorded and Q15 is open
+Status: In progress. Q1 through Q15 are provisionally recorded and Q16 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -162,8 +162,8 @@ Inference and preference must not be written as shipped fact.
 | Q12      | Cross-artifact and Organization-wide search                     | Answered   | `accept-later`: metadata first   | Provisional     |
 | Q13      | Rich interactive components                                     | Answered   | `accept-later`: disclosure only  | Provisional     |
 | Q14      | Request examples and SDK generation                             | Answered   | Examples next; SDKs deferred     | Provisional     |
-| Q15      | Advanced publication distribution                               | Open       | Pending                          | Pending         |
-| Q16      | Tooling and operational follow-up                               | Not opened | None                             | Pending         |
+| Q15      | Advanced publication distribution                               | Answered   | Static export; deploy deferred   | Provisional     |
+| Q16      | Tooling and operational follow-up                               | Open       | Pending                          | Pending         |
 | Q17      | Final prioritization, next-master ownership, and child sequence | Not opened | None                             | Pending         |
 
 ## 8. Q1 — What Problem Should The First Post-V1 Slice Solve?
@@ -2661,7 +2661,14 @@ state can outlive a failed operation.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-later` for a deterministic, portable static-site artifact derived from
+one exact public Publication. Ossie-managed provider deployment, deploy hooks,
+cloud credential storage, cache purge, and environment promotion remain
+`defer` until demand and operational ownership exist.
+
+### User answer
+
+> Yes, I agree with you.
 
 ### Simple decision requested
 
@@ -2672,13 +2679,180 @@ Recommended answer: **Yes. Add a safe, portable static-site export later.
 Defer direct S3/CDN deployment, deploy hooks, and stored cloud credentials until
 customers clearly need them and Ossie has the required operational model.**
 
-## 23. Questions Not Yet Opened
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
 
-Q16 and Q17 remain unmade. Their full implementation-safe question
+## 23. Q16 — Should Product Features And Engineering Follow-Up Be One Project?
+
+### Why this question is open
+
+The V1 closeout recorded several honest engineering and deployment limits:
+only Chromium was locally proven, real assistive-technology testing and
+production p75 data were unavailable, PostgreSQL emits a future compatibility
+warning, server lint has warning debt, and admission limits, publication work,
+and File storage are single-process/local. It also left Tiptap and Fumadocs
+unadopted.
+
+These do not all describe one Documentation feature. Combining them with the
+post-V1 product roadmap would make ownership unclear and could force broad
+infrastructure or editor replacement without evidence.
+
+### Shipped V1 facts
+
+- The Ossie-native editor and reader passed the accepted V1 functional,
+  accessibility automation, Chromium, security, and performance checks.
+- PostgreSQL remains authoritative; adopting another editor or reader library
+  cannot change the constrained content or Publication model.
+- Chromium is locally proven. Firefox/WebKit and a supported real screen
+  reader were unavailable, so no claim was made for them.
+- Local lab vitals passed, but no production traffic exists from which to
+  calculate a production p75.
+- The `pg` warning belongs to dependency compatibility, and the 89 configured
+  server lint warnings are cross-server maintenance debt.
+- Per-process admission/rate limits, synchronous publication, and local File
+  storage are accepted deployment limits, not unimplemented UI behavior.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- Playwright supports Chromium, Firefox, and WebKit projects and pins browser
+  binaries to the Playwright release, making repeatable cross-browser evidence
+  a focused QA task rather than a product redesign:
+  [Playwright browsers](https://playwright.dev/docs/browsers).
+- W3C recommends WCAG 2.2 and distinguishes standards-based evaluation from
+  actual accessibility-supported technology use; its conformance guidance
+  recommends involving users with disabilities in usability testing:
+  [WCAG overview](https://www.w3.org/WAI/standards-guidelines/wcag/),
+  [Understanding conformance](https://www.w3.org/WAI/WCAG22/Understanding/conformance).
+- Tiptap is a headless ProseMirror-based editor with its own strict schema and
+  JSON document model. Content outside that schema may be lost, so adoption
+  would require an explicit lossless adapter proof against Ossie's existing
+  constrained blocks:
+  [Tiptap concepts](https://tiptap.dev/docs/editor/core-concepts/introduction),
+  [Tiptap FAQ](https://tiptap.dev/docs/guides/faq).
+- Fumadocs is a composable React documentation framework whose content source
+  may be a CMS, but its default capabilities include UI, search, routing, and
+  MDX-oriented layers already owned by Ossie's reader contracts:
+  [What is Fumadocs](https://www.fumadocs.dev/docs/what-is-fumadocs).
+- Prometheus documents that production percentiles require measured
+  distributions and that histograms permit aggregation across instances;
+  local one-off timings cannot be relabeled as production p75:
+  [Histograms and summaries](https://prometheus.io/docs/practices/histograms/).
+
+### Inference
+
+No current evidence justifies replacing the working editor or reader. A
+Tiptap/Fumadocs spike would be useful only if a selected feature exposes a
+specific measurable gap that the native implementation cannot reasonably
+solve.
+
+Browser and assistive-technology coverage, dependency compatibility, and lint
+cleanup can improve confidence independently. Production telemetry and shared
+rate-limit/job/File infrastructure require a real deployment topology and are
+cross-product operational capabilities, not Documentation-only scope.
+
+### Recommendation
+
+Do not combine these items into the next Documentation feature master. Classify
+and track them separately:
+
+1. **QA/maintenance:** install and run Firefox/WebKit coverage where supported;
+   arrange real assistive-technology testing; resolve the `pg` compatibility
+   warning before upgrading to `pg` 9; reduce server lint warnings in scoped
+   maintenance changes.
+2. **Operations/cross-product infrastructure:** add production telemetry,
+   distributed admission/rate limiting, durable background jobs, and non-local
+   File storage only when the deployment topology requires them.
+3. **No editor/reader replacement now:** keep the Ossie-native implementation.
+   Permit a bounded Tiptap or Fumadocs adapter proof only when a selected
+   feature has explicit acceptance criteria and a measured native gap.
+
+Ownership must remain explicit. Maintenance work must not silently create
+Master `007`, and cross-product infrastructure must not be hidden inside a
+Documentation child.
+
+### Alternatives
+
+- **Bundle everything into the next master:** rejected because unrelated risk,
+  ownership, and completion criteria would block valuable product slices.
+- **Ignore every limitation:** rejected because browser, accessibility,
+  dependency, lint, and deployment readiness still need visible owners and
+  triggers.
+- **Adopt Tiptap/Fumadocs immediately:** rejected absent a demonstrated gap and
+  lossless adapter evidence.
+
+### Rejected shortcuts
+
+- claiming Firefox, Safari/WebKit, screen-reader, or production-percentile
+  support without corresponding evidence;
+- treating automated axe results as complete real assistive-technology proof;
+- changing authoritative content to Tiptap JSON, MDX, or Fumadocs source;
+- allowing Tiptap/Fumadocs to bypass constrained schemas, sanitization,
+  permissions, exact Publication snapshots, or public-access filtering;
+- calling local lab timings production p75;
+- upgrading `pg` while ignoring the recorded compatibility warning;
+- disabling lint rules merely to reduce the warning count;
+- describing per-process rate limits as distributed protection;
+- adding a queue or object store only for Documentation when the abstraction is
+  plainly cross-product;
+- turning an accepted operational limitation into a fake completed feature.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+Child `140` changes none. Any future adapter proof is disposable and cannot
+write authoritative content until it proves lossless conversion, permission
+equivalence, sanitization, accessibility, and Publication fidelity. Production
+telemetry must exclude customer content and sensitive cardinality. Shared
+admission, jobs, and File storage require tenant isolation, least privilege,
+failure recovery, and Audit/Access Evidence decisions at their actual owner.
+
+### Migration, API, UI, URL, and compatibility impact
+
+None in child `140`. QA and maintenance should preserve all contracts and URLs.
+An editor/reader adapter cannot require a data migration merely to run a proof.
+Shared infrastructure changes need their own compatibility, rollout, rollback,
+and self-hosted deployment plan before implementation.
+
+### Reversibility
+
+Additional test coverage and scoped lint/dependency repairs are reversible.
+Disposable adapters are reversible only if they never become authority.
+Telemetry, queues, distributed limiters, and non-local storage create durable
+operational state and therefore require dedicated migration and rollback plans.
+
+### Evidence gaps
+
+- no Firefox/WebKit CI result or supported real screen-reader session;
+- no production traffic, topology, SLO, or p75 dataset;
+- no accepted `pg` 9 upgrade window;
+- no lint-warning burn-down owner or priority;
+- no multi-instance load/admission evidence;
+- no publication latency/throughput requiring a queue;
+- no File durability/scale requirement exceeding local storage;
+- no measured editor/reader deficiency that Tiptap or Fumadocs would solve.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should Ossie keep the working native Documentation editor/reader and track
+browser, accessibility, dependency, lint, telemetry, rate-limit, job, and File
+work under their proper QA, maintenance, or operations owners?
+
+Recommended answer: **Yes. Keep the current editor and reader. Improve testing
+and maintenance separately, and build shared production infrastructure only
+when deployment needs it.**
+
+## 24. Questions Not Yet Opened
+
+Q17 remains unmade. Its full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 24. Session Log
+## 25. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -2736,8 +2910,13 @@ at a time with current primary-source research only when opened.
   Node.js, Python, and Go through an extensible language registry. Full SDK
   package generation remains deferred. Opened static export and managed
   publication distribution as Q15.
+- 2026-07-31: the user accepted deterministic static-site export for exact
+  public Publications as `accept-later`, with customer-owned deployment.
+  Ossie-managed deployment adapters, hooks, cloud credentials, cache purge,
+  and environment promotion remain deferred. Opened tooling and operational
+  ownership classification as Q16.
 
-## 25. Verification Record
+## 26. Verification Record
 
 Initial checkpoint verification:
 
@@ -2754,7 +2933,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 26. Current Handoff
+## 27. Current Handoff
 
-Awaiting explicit user/product authority for Q15. Do not open Q16 until Q15 is
+Awaiting explicit user/product authority for Q16. Do not open Q17 until Q16 is
 recorded.
