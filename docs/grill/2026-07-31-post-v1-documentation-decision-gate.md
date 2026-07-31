@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q12 are provisionally recorded and Q13 is open
+Status: In progress. Q1 through Q13 are provisionally recorded and Q14 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -160,8 +160,8 @@ Inference and preference must not be written as shipped fact.
 | Q10      | Offline editing and merge                                       | Answered   | Read later; editing deferred     | Provisional     |
 | Q11      | Governed permanent deletion and retention                       | Answered   | `defer`; archive only now        | Provisional     |
 | Q12      | Cross-artifact and Organization-wide search                     | Answered   | `accept-later`: metadata first   | Provisional     |
-| Q13      | Rich interactive components                                     | Open       | Pending                          | Pending         |
-| Q14      | SDK generation                                                  | Not opened | None                             | Pending         |
+| Q13      | Rich interactive components                                     | Answered   | `accept-later`: disclosure only  | Provisional     |
+| Q14      | SDK generation                                                  | Open       | Pending                          | Pending         |
 | Q15      | Advanced publication distribution                               | Not opened | None                             | Pending         |
 | Q16      | Tooling and operational follow-up                               | Not opened | None                             | Pending         |
 | Q17      | Final prioritization, next-master ownership, and child sequence | Not opened | None                             | Pending         |
@@ -2292,7 +2292,10 @@ far harder to reverse and remains rejected.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-later` for one new Ossie-owned typed disclosure-group block. Every
+other component family requires a separate decision. Arbitrary executable
+content, HTML, React, iframe, and third-party widget escape hatches remain
+rejected.
 
 ### Simple decision requested
 
@@ -2302,13 +2305,189 @@ Recommended answer: **Yes, later. Start only with expandable sections. Never
 allow customers to add arbitrary JavaScript, HTML, React components, or
 iframes.**
 
-## 21. Questions Not Yet Opened
+### User answer
 
-Q14 through Q17 remain unmade. Their full implementation-safe question
+> Yes, I agree with you.
+
+Recorded interpretation:
+
+- preserve additional safe built-in components as an accepted-later direction;
+- accept only a typed disclosure/expandable-section group as the initial new
+  component family;
+- require server/no-JavaScript/search/print/accessibility and Package/
+  Publication support;
+- allow no remote network or executable dependency;
+- keep arbitrary JavaScript, raw HTML, React/MDX, iframes, custom components,
+  and third-party widgets rejected;
+- do not select disclosure as `accept-next` before cross-question
+  reconciliation.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 21. Q14 — Should Ossie Generate API Code Examples Or Full SDKs?
+
+### Why this question is open
+
+API readers benefit from copyable examples in familiar languages. A full SDK
+is a maintained software product with generator versions, templates,
+dependencies, security updates, language/runtime compatibility, package
+publishing, provenance, and support promises. These must not be treated as the
+same feature.
+
+### Shipped V1 facts
+
+- Documentation can store bounded OpenAPI Sources, render API references, and
+  provide browser-direct Try It under strict origin/credential rules.
+- Descriptor-v0 is a constrained non-executable representation; Ossie does not
+  proxy target APIs or store target credentials.
+- Code-example blocks are authored static content, not generated SDKs.
+- Exact Site Revisions/Publications snapshot OpenAPI/API-reference state.
+- No language generator, template sandbox, dependency resolver, archive store,
+  package registry, signing/provenance, release, compatibility, or support
+  policy exists.
+- No user demand identifies a target language or SDK purpose.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- OpenAPI 3.2.0 is the current published specification. It describes a
+  language-agnostic HTTP API interface and explicitly identifies code
+  generation as one tooling use, while also documenting version,
+  implementation-defined, external-resource, security-filtering, reference,
+  and sanitization concerns:
+  [OpenAPI Specification](https://spec.openapis.org/oas/latest.html).
+- OpenAPI Generator exposes many configuration, template, validation,
+  generation, and customization options rather than one universal output:
+  [OpenAPI Generator usage](https://openapi-generator.tech/docs/usage/).
+- OpenAPI Generator lists many client/server generators with different
+  stability levels and language-specific options, showing that “support SDKs”
+  needs an explicit language/version matrix:
+  [Generator list](https://openapi-generator.tech/docs/generators/).
+- SLSA defines supply-chain levels and build provenance for trustworthy build
+  artifacts, relevant if Ossie ever distributes generated packages:
+  [SLSA specification](https://slsa.dev/spec/v1.2/).
+
+### Inference
+
+Deterministic copyable request snippets can be derived from one exact,
+validated API operation without executing or publishing generated software.
+Full SDK generation can ingest complex schemas and templates, consume
+significant resources, produce dependency trees, and create an ongoing promise
+that generated libraries are safe and compatible.
+
+The current constrained descriptor may not preserve every OpenAPI feature a
+general SDK generator expects. Claiming full generation without an explicit
+supported subset would produce incorrect clients.
+
+### Recommendation
+
+Split the direction:
+
+1. **Accept later: generated request examples** for a small explicit language
+   set, initially `curl`, JavaScript `fetch`, and Python `requests`.
+2. **Defer full SDK generation and package publication** until real demand,
+   target languages, a complete supported OpenAPI subset, generator/template
+   ownership, sandbox/resource controls, provenance, and long-term support
+   policy exist.
+
+Request-example first-slice rules:
+
+- generate deterministically from one exact immutable API operation;
+- use only documented server, method, path, parameter, header, and example
+  values from the accepted descriptor subset;
+- display credential/environment placeholders, never real secrets;
+- perform no network request and execute no generated code;
+- include a warning when required information is unsupported or absent instead
+  of inventing a valid client;
+- copy/download plain text only and preserve exact output in the Publication;
+- keep Try It separate.
+
+### Alternatives
+
+- **Defer all generation:** retain authored code examples and Try It until
+  demand identifies useful languages.
+- **Accept full SDKs next:** requires a dedicated implementation sequence after
+  the complete candidate review, with explicit artifact/security/support
+  ownership.
+- **External generator link:** readers download the inspected OpenAPI source
+  and use their own tool; Ossie makes no generated-code support promise.
+
+### Rejected shortcuts
+
+- calling snippets a supported SDK;
+- generating from uninspected, unresolved, or unsupported OpenAPI content;
+- executing generated code, templates, hooks, or package-install scripts;
+- including real credentials, tokens, cookies, or Try-It memory values;
+- server-side network resolution of arbitrary external references;
+- publishing packages to registries automatically;
+- claiming every listed generator/language is supported;
+- floating generator/template/dependency versions;
+- returning unbounded generated archives synchronously;
+- treating generator success as proof the client is correct or secure.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- Exact inspected OpenAPI state in PostgreSQL/Publication remains authority.
+- Existing Site and exact-Publication read permissions control access to
+  examples; generation grants no API origin or credential authority.
+- Examples are inert escaped text and never execute in Ossie.
+- Inputs, output size, operation count, language set, and generation time are
+  bounded; unsupported input fails closed.
+- No credentials, raw Try-It requests/responses, or generated bodies enter
+  Audit/Access Evidence.
+- A future full generator must be isolated, resource limited, version pinned,
+  provenance producing, dependency reviewed, and unable to fetch arbitrary
+  network content.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. A future snippet implementation would require a
+versioned example-language/output contract, deterministic generator library,
+API-reference UI/copy controls, exact Publication/search/export behavior, and
+unit/browser fixtures. Full SDKs would require separate job, artifact, File,
+retention, download, provenance, registry, versioning, and support contracts.
+Existing OpenAPI, API reference, code blocks, Try It, and URLs remain unchanged.
+
+### Reversibility
+
+Versioned plain-text examples are reversible if an immutable Publication keeps
+its exact output or generator version. Distributed SDK archives/packages are
+not fully reversible after download and become support/supply-chain artifacts,
+which is why they remain deferred.
+
+### Evidence gaps
+
+- no target users, languages, runtimes, or usage metrics;
+- no accepted OpenAPI version/subset beyond current descriptor behavior;
+- no generator/template/dependency owner;
+- no expected correctness, compatibility, vulnerability, or support SLO;
+- no sandbox/background-job/artifact-retention infrastructure decision;
+- no signing/provenance or package-registry authority;
+- no evidence that full SDKs add more value than examples plus exported
+  OpenAPI.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should Ossie later generate copyable API request examples while postponing
+full SDK packages?
+
+Recommended answer: **Yes. Later add safe examples for curl, JavaScript, and
+Python. Defer full SDK generation until users ask for specific languages and
+we can support them properly.**
+
+## 22. Questions Not Yet Opened
+
+Q15 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 22. Session Log
+## 23. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -2357,8 +2536,12 @@ at a time with current primary-source research only when opened.
   discovery as an `accept-later` Knowledge Platform capability and deferred
   body/full-text and cross-Organization search. Opened additional constrained
   Documentation components as Q13.
+- 2026-07-31: the user accepted one typed disclosure-group component as an
+  `accept-later` possibility while preserving the rejection of arbitrary
+  executable/remote component escape hatches. Opened request examples and SDK
+  generation as Q14.
 
-## 23. Verification Record
+## 24. Verification Record
 
 Initial checkpoint verification:
 
@@ -2375,7 +2558,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 24. Current Handoff
+## 25. Current Handoff
 
-Awaiting explicit user/product authority for Q13. Do not open Q14 until Q13 is
+Awaiting explicit user/product authority for Q14. Do not open Q15 until Q14 is
 recorded.
