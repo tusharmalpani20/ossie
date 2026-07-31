@@ -3423,7 +3423,8 @@ export const build_documentation_repository = (database: Database) => {
       );
       if (!source.rows[0]) return null;
       const operations = await database.query<Record<string, unknown>>(
-        `SELECT id,method,path,operation_id,destination_key,summary
+        `SELECT id,method,path,operation_id,destination_key,summary,
+                request_descriptor,descriptor_version
          FROM documentation_schema.openapi_operation
         WHERE openapi_source_id=$1 AND organization_id=$2 AND project_id=$3
         ORDER BY destination_key,id`,
@@ -6054,6 +6055,8 @@ export const build_documentation_repository = (database: Database) => {
     }) => {
       const selection = await database.query<{
         link_id: string;
+        organization_id: string;
+        project_id: string;
         name: string;
         slug: string;
         visibility: "public" | "restricted";
@@ -6067,7 +6070,8 @@ export const build_documentation_repository = (database: Database) => {
         site_revision_id: string;
         output_digest: string;
       }>(
-        `SELECT link.id link_id,link.name,link.slug,link.visibility,
+        `SELECT link.id link_id,link.organization_id,link.project_id,
+              link.name,link.slug,link.visibility,
               link.expires_at,link.status,entry.id entry_id,
               version.name project_version_name,
               version.slug project_version_slug,
@@ -6142,6 +6146,8 @@ export const build_documentation_repository = (database: Database) => {
         resource_family: "documentation_site" as const,
         link: {
           id: selected.link_id,
+          organization_id: selected.organization_id,
+          project_id: selected.project_id,
           name: selected.name,
           slug: selected.slug,
           visibility: selected.visibility,

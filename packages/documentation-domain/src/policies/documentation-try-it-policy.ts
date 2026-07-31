@@ -63,10 +63,15 @@ const forbidden_hostname = (hostname: string): boolean => {
 };
 
 const validate_safe_path = (path: string, label: string): void => {
+  const has_control_character = [...path].some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || code === 127;
+  });
   if (
     !path.startsWith("/") ||
     path.startsWith("//") ||
-    /[\\?#\u0000-\u001f\u007f]/u.test(path) ||
+    /[\\?#]/u.test(path) ||
+    has_control_character ||
     /(?:^|\/)(?:\.{1,2}|%2e(?:%2e)?)(?:\/|$)/iu.test(path) ||
     /%2f|%5c/iu.test(path)
   )
@@ -384,7 +389,12 @@ export const build_documentation_try_it_request = (
         values.forEach((entry) => query.append(parameter.name, String(entry)));
     } else {
       const header_value = values.map(String).join(",");
-      if (/[\r\n\u0000]/u.test(header_value)) fail("Try-It header is invalid");
+      if (
+        [...header_value].some((character) =>
+          [0, 10, 13].includes(character.charCodeAt(0)),
+        )
+      )
+        fail("Try-It header is invalid");
       headers[parameter.name] = header_value;
     }
   }
@@ -539,7 +549,7 @@ export const generate_documentation_try_it_examples = (input: {
     `    headers=${JSON.stringify(safe_headers)},`,
     ...(input.body === null
       ? []
-      : [`    data=${JSON.stringify(input.body)}.encode(\"utf-8\"),`]),
+      : [`    data=${JSON.stringify(input.body)}.encode("utf-8"),`]),
     ")",
     `with urllib.request.urlopen(request, timeout=${Math.ceil(input.timeout_ms / 1_000)}) as response:`,
     "    print(response.read())",

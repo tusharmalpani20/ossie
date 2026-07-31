@@ -40,6 +40,9 @@ TO __OSSIE_RUNTIME_DB_ROLE__;`,
   `GRANT SELECT,INSERT,DELETE ON
   documentation_schema.documentation_review_maintainer
 TO __OSSIE_RUNTIME_DB_ROLE__;`,
+  `GRANT SELECT,INSERT,DELETE ON
+  documentation_schema.openapi_try_it_operation_allowance
+TO __OSSIE_RUNTIME_DB_ROLE__;`,
 ] as const;
 
 const without_approved_runtime_delete_grants = (sql: string) =>
@@ -662,9 +665,7 @@ describe("foundation schema migrations", () => {
     );
 
     expect(inspection).toContain("created_by_id VARCHAR(26) NOT NULL");
-    expect(inspection).toContain(
-      "status VARCHAR(20) NOT NULL DEFAULT 'ready'",
-    );
+    expect(inspection).toContain("status VARCHAR(20) NOT NULL DEFAULT 'ready'");
     expect(inspection).toContain("safe_report JSONB DEFAULT NULL");
     expect(inspection).toContain("octet_length(safe_report::TEXT)");
     expect(application).toContain("inspection_id VARCHAR(26) NOT NULL");

@@ -1,4 +1,3 @@
-import { isIP } from "node:net";
 import { promises as dns } from "node:dns";
 import { normalize_documentation_try_it_target } from "@repo/documentation-domain";
 
@@ -54,10 +53,11 @@ const ipv6_is_public = (address: string): boolean => {
 };
 
 const address_is_public = (answer: DocumentationTryItDnsAnswer) => {
-  const family = isIP(answer.address);
-  return family === 4
+  return answer.family === 4
     ? ipv4_is_public(answer.address)
-    : family === 6
+    : answer.family === 6 &&
+        answer.address.includes(":") &&
+        /^[0-9a-f:]+$/iu.test(answer.address.replace(/^\[|\]$/gu, ""))
       ? ipv6_is_public(answer.address)
       : false;
 };

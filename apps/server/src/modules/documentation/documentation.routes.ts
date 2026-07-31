@@ -851,7 +851,7 @@ export const build_documentation_routes = (
         );
       const id = ulid();
       try {
-        await dependencies.access_event_writer.append({
+        const event = {
           id,
           organization_id: input.organization_id,
           project_id: input.project_id,
@@ -862,7 +862,7 @@ export const build_documentation_routes = (
           actor_type: context?.auth ? "org_user" : "anonymous",
           actor_org_user_id: context?.auth?.org_user_id ?? null,
           actor_label: context?.auth?.actor_label ?? "anonymous",
-          request_id: context?.request_id ?? null,
+          request_id: null,
           http_method: null,
           route_template: null,
           access_surface: input.public_surface
@@ -879,7 +879,8 @@ export const build_documentation_routes = (
           reason_code: null,
           response_bytes: null,
           occurred_at: new Date().toISOString(),
-        });
+        } as const;
+        await dependencies.access_event_writer.append(event);
       } catch {
         throw Object.assign(
           new Error("Try-It Access Evidence is unavailable"),
@@ -3208,8 +3209,7 @@ export const build_documentation_routes = (
                   allowed_origins: deployment.origin_set,
                 });
               } catch {
-                result.policy.effective_status =
-                  "origin_resolution_unsafe";
+                result.policy.effective_status = "origin_resolution_unsafe";
               }
           }
           return reply
@@ -3513,6 +3513,10 @@ export const build_documentation_routes = (
         source.revision && typeof source.revision === "object"
           ? (source.revision as Record<string, unknown>)
           : {};
+      const publication =
+        source.publication && typeof source.publication === "object"
+          ? (source.publication as Record<string, unknown>)
+          : {};
       const assets = Array.isArray(source.assets)
         ? source.assets.map((asset) => {
             const row =
@@ -3563,6 +3567,11 @@ export const build_documentation_routes = (
             revision.home_page_id ?? workingDraft.home_page_id ?? null,
           revision_number: revision.revision_number,
           created_at: revision.created_at,
+        },
+        publication: {
+          id: publication.id,
+          publication_sequence: publication.publication_sequence,
+          output_digest: publication.output_digest,
         },
         pages: Array.isArray(source.pages) ? source.pages : [],
         navigation: source.navigation ?? { nodes: [] },

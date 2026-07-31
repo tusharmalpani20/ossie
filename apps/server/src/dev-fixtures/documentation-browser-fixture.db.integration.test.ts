@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
+import { pool } from "../config/database.config";
+import { build_documentation_repository } from "../modules/documentation/documentation.repository";
 import { with_maintenance_client } from "../test-support/database";
 import { seed_documentation_browser_fixture } from "./documentation-browser-fixture";
 
 describe("Documentation browser fixture database seed", () => {
   it("creates mutable, private, immutable, and exact-publication state", async () => {
     const fixture = await seed_documentation_browser_fixture();
+    const publicSite = await build_documentation_repository(
+      pool,
+    ).resolve_public_site({
+      slug: "plan132-public",
+      version_slug: null,
+    });
     const result = await with_maintenance_client(async (client) => {
       const count = async (table: string) => {
         const value = await client.query<{ count: number }>(
@@ -58,5 +66,27 @@ describe("Documentation browser fixture database seed", () => {
         selected_publication_id: fixture.publication_id,
       },
     });
+    expect(publicSite?.link).toMatchObject({
+      id: fixture.link_id,
+      organization_id: fixture.organization_id,
+      project_id: fixture.project_id,
+    });
+    expect(publicSite?._try_it).toMatchObject({
+      approved_origin: "https://api.github.com",
+      allow_bearer: true,
+      api_key_header_name: "X-Ossie-Fixture-Key",
+    });
+    expect(publicSite?.openapi_operations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          request_descriptor: expect.objectContaining({
+            security: {
+              bearer: true,
+              api_key_header_names: ["X-Ossie-Fixture-Key"],
+            },
+          }),
+        }),
+      ]),
+    );
   });
 });

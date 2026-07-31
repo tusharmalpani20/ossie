@@ -316,11 +316,22 @@ export const seed_documentation_browser_fixture = async () => {
             JSON.stringify({
               openapi: "3.1.0",
               info: { title: "Widget API", version: "1.0.0" },
+              components: {
+                securitySchemes: {
+                  bearerAuth: { type: "http", scheme: "bearer" },
+                  fixtureApiKey: {
+                    type: "apiKey",
+                    in: "header",
+                    name: "X-Ossie-Fixture-Key",
+                  },
+                },
+              },
               paths: {
                 "/widgets": {
                   get: {
                     operationId: "listWidgets",
                     summary: "List widgets",
+                    security: [{ bearerAuth: [] }, { fixtureApiKey: [] }],
                     responses: { "200": { description: "OK" } },
                   },
                 },
@@ -356,8 +367,8 @@ export const seed_documentation_browser_fixture = async () => {
           status: "enabled",
           approved_origin: "https://api.github.com",
           base_path: "/",
-          allow_bearer: false,
-          api_key_header_name: null,
+          allow_bearer: true,
+          api_key_header_name: "X-Ossie-Fixture-Key",
           operation_destination_keys: ["get-widgets-listwidgets"],
         },
       }),

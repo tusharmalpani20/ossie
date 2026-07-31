@@ -1239,6 +1239,12 @@ describe("Documentation routes", () => {
               file_id: "private-file",
               content_digest: "private-digest",
             },
+            publication: {
+              id: "publication",
+              publication_sequence: 2,
+              output_digest: "public-output-digest",
+              internal_note: "private publication note",
+            },
             pages: [],
             navigation: { nodes: [] },
             routing: { aliases: [], rules: [] },
@@ -1289,6 +1295,14 @@ describe("Documentation routes", () => {
     expect(root.body).not.toContain("private-digest");
     expect(root.body).not.toContain("unapproved.example.com");
     expect(root.body).not.toContain("api.example.com");
+    expect(root.body).not.toContain("private publication note");
+    expect(root.json()).toMatchObject({
+      publication: {
+        id: "publication",
+        publication_sequence: 2,
+        output_digest: "public-output-digest",
+      },
+    });
     expect(operation.statusCode).toBe(200);
     expect(operation.json()).toEqual({
       operation: {
@@ -1400,6 +1414,7 @@ describe("Documentation routes", () => {
     expect(append_access_event).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "documentation.try_it.attempt_completed",
+        request_id: null,
         http_method: null,
         route_template: null,
       }),
