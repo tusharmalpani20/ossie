@@ -10,6 +10,7 @@ import {
 import { assert_public_web_url_config } from "./public-web-url.config";
 import { is_production_runtime } from "./runtime.config";
 import { get_documentation_try_it_origin_config } from "./documentation-try-it.config";
+import { get_documentation_operations_config } from "./documentation-operations.config";
 
 const required_database_env = [
   "DB_HOST",
@@ -126,4 +127,5 @@ export const validate_server_startup_config = () => {
   get_max_screenshot_upload_bytes();
   get_rate_limit_config();
   get_documentation_try_it_origin_config();
+  get_documentation_operations_config();
 };

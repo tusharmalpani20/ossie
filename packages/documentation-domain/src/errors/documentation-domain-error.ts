@@ -41,7 +41,14 @@ export type DocumentationDomainErrorCode =
   | "documentation_try_it_link_incompatible"
   | "documentation_try_it_configuration_expired"
   | "documentation_try_it_attempt_invalid"
-  | "documentation_try_it_unavailable";
+  | "documentation_try_it_unavailable"
+  | "documentation_organization_quota_exceeded"
+  | "documentation_publication_capacity_exceeded"
+  | "documentation_publication_timed_out"
+  | "documentation_rebuild_capacity_exceeded"
+  | "documentation_projection_rebuild_invalid"
+  | "documentation_projection_rebuild_failed"
+  | "documentation_discovery_policy_invalid";
 
 export class DocumentationDomainError extends Error {
   readonly code: DocumentationDomainErrorCode;

@@ -52,6 +52,10 @@ import {
   DOCUMENTATION_TRY_IT_OPERATION_ALLOWANCES_MAX,
   DOCUMENTATION_TRY_IT_ORIGIN_MAX_LENGTH,
   DOCUMENTATION_TRY_IT_POLICY_STATUSES,
+  DOCUMENTATION_LIMIT_STATES,
+  DOCUMENTATION_PROJECTION_KINDS,
+  DOCUMENTATION_PROJECTION_REBUILD_OUTCOMES,
+  DOCUMENTATION_QUOTA_DIMENSIONS,
 } from "@repo/constants";
 import { z } from "zod";
 import { IdSchema, IsoDateTimeStringSchema, PositiveIntSchema } from "./common";
@@ -1730,6 +1734,138 @@ export const DocumentationCarryForwardOptionsResponseSchema = z
     ),
   })
   .strict();
+
+const NonNegativeSafeIntSchema = z
+  .number()
+  .int()
+  .min(0)
+  .max(Number.MAX_SAFE_INTEGER);
+const PositiveSafeIntSchema = z
+  .number()
+  .int()
+  .positive()
+  .max(Number.MAX_SAFE_INTEGER);
+export const DocumentationOrganizationLimitsSchema = z
+  .object({
+    active_sites_limit: PositiveSafeIntSchema.nullable(),
+    active_pages_limit: PositiveSafeIntSchema.nullable(),
+    version: NonNegativeSafeIntSchema,
+    updated_at: IsoDateTimeStringSchema.nullable(),
+  })
+  .strict();
+
+export const DocumentationOrganizationUsageSchema = z
+  .object({
+    active_sites: NonNegativeSafeIntSchema,
+    active_pages: NonNegativeSafeIntSchema,
+    retained_file_bytes: NonNegativeSafeIntSchema,
+    retained_revisions: NonNegativeSafeIntSchema,
+    retained_publications: NonNegativeSafeIntSchema,
+    active_import_inspections: NonNegativeSafeIntSchema,
+    open_review_requests: NonNegativeSafeIntSchema,
+  })
+  .strict();
+
+export const DocumentationLimitStateSchema = z
+  .object({
+    dimension: z.enum(DOCUMENTATION_QUOTA_DIMENSIONS),
+    usage: NonNegativeSafeIntSchema,
+    limit: PositiveSafeIntSchema.nullable(),
+    state: z.enum(DOCUMENTATION_LIMIT_STATES),
+  })
+  .strict();
+
+export const DocumentationOperationsSummarySchema = z
+  .object({
+    limits: DocumentationOrganizationLimitsSchema,
+    usage: DocumentationOrganizationUsageSchema,
+    states: z.array(DocumentationLimitStateSchema).length(3),
+    permissions: z
+      .object({
+        can_manage_limits: z.boolean(),
+      })
+      .strict(),
+    generated_at: IsoDateTimeStringSchema,
+  })
+  .strict();
+
+export const UpdateDocumentationOrganizationLimitsRequestSchema = z
+  .object({
+    expected_version: NonNegativeSafeIntSchema,
+    active_sites_limit: PositiveSafeIntSchema.nullable(),
+    active_pages_limit: PositiveSafeIntSchema.nullable(),
+  })
+  .strict();
+
+export const DocumentationProjectionRebuildRequestSchema = z
+  .object({
+    projection: z.enum(DOCUMENTATION_PROJECTION_KINDS),
+    publication_id: IdSchema.optional(),
+    expected_output_digest: Sha256Schema.optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      value.projection === "draft_search" &&
+      (value.publication_id !== undefined ||
+        value.expected_output_digest !== undefined)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Draft search rebuild cannot select a Publication",
+      });
+    }
+    if (
+      value.projection === "publication_search" &&
+      value.publication_id === undefined
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["publication_id"],
+        message: "Publication search rebuild requires a Publication",
+      });
+    }
+  });
+
+export const DocumentationProjectionRebuildReceiptSchema = z
+  .object({
+    projection: z.enum(DOCUMENTATION_PROJECTION_KINDS),
+    site_id: IdSchema,
+    publication_id: IdSchema.nullable(),
+    output_digest: Sha256Schema.nullable(),
+    documents: NonNegativeSafeIntSchema,
+    outcome: z.enum(DOCUMENTATION_PROJECTION_REBUILD_OUTCOMES),
+  })
+  .strict();
+
+export const DocumentationDiscoveryPolicySchema = z
+  .object({
+    publish_link_id: IdSchema,
+    indexing_enabled: z.boolean(),
+    is_primary_canonical: z.boolean(),
+    effective_indexing: z.boolean(),
+    effective_reason: z.enum([
+      "enabled",
+      "disabled",
+      "not_primary",
+      "restricted",
+      "revoked",
+      "expired",
+    ]),
+    version: PositiveIntSchema,
+  })
+  .strict();
+
+export const UpdateDocumentationDiscoveryPolicyRequestSchema = z
+  .object({
+    expected_version: PositiveIntSchema,
+    indexing_enabled: z.boolean(),
+    is_primary_canonical: z.boolean(),
+  })
+  .strict()
+  .refine((value) => !value.indexing_enabled || value.is_primary_canonical, {
+    message: "Only a primary canonical link can enable indexing",
+  });
 
 const DocumentationTryItStatusSchema = z.enum(
   DOCUMENTATION_TRY_IT_POLICY_STATUSES,

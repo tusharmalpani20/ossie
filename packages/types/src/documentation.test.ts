@@ -41,6 +41,14 @@ import {
   DocumentationTryItAttemptReportRequestSchema,
   DocumentationTryItConfigurationSchema,
   PublicDocumentationOperationSchema,
+  DocumentationOrganizationLimitsSchema,
+  DocumentationOrganizationUsageSchema,
+  DocumentationOperationsSummarySchema,
+  UpdateDocumentationOrganizationLimitsRequestSchema,
+  DocumentationProjectionRebuildRequestSchema,
+  DocumentationProjectionRebuildReceiptSchema,
+  DocumentationDiscoveryPolicySchema,
+  UpdateDocumentationDiscoveryPolicyRequestSchema,
 } from "./documentation";
 
 describe("Documentation shared contracts", () => {
@@ -67,6 +75,118 @@ describe("Documentation shared contracts", () => {
       },
     ],
   } as const;
+
+  it("validates strict Organization Documentation operations contracts", () => {
+    const limits = {
+      active_sites_limit: null,
+      active_pages_limit: 100,
+      version: 0,
+      updated_at: null,
+    };
+    const usage = {
+      active_sites: 2,
+      active_pages: 100,
+      retained_file_bytes: 1024,
+      retained_revisions: 3,
+      retained_publications: 2,
+      active_import_inspections: 1,
+      open_review_requests: 4,
+    };
+
+    expect(DocumentationOrganizationLimitsSchema.parse(limits)).toEqual(limits);
+    expect(DocumentationOrganizationUsageSchema.parse(usage)).toEqual(usage);
+    expect(
+      DocumentationOperationsSummarySchema.parse({
+        limits,
+        usage,
+        states: [
+          {
+            dimension: "active_sites",
+            usage: 2,
+            limit: null,
+            state: "within_limit",
+          },
+          {
+            dimension: "active_pages",
+            usage: 100,
+            limit: 100,
+            state: "at_limit",
+          },
+          {
+            dimension: "retained_file_bytes",
+            usage: 1024,
+            limit: null,
+            state: "within_limit",
+          },
+        ],
+        permissions: { can_manage_limits: true },
+        generated_at: "2026-07-31T00:00:00.000Z",
+      }).usage,
+    ).toEqual(usage);
+    expect(
+      UpdateDocumentationOrganizationLimitsRequestSchema.parse({
+        expected_version: 0,
+        active_sites_limit: null,
+        active_pages_limit: 50,
+      }),
+    ).toMatchObject({ expected_version: 0 });
+    expect(
+      UpdateDocumentationOrganizationLimitsRequestSchema.safeParse({
+        expected_version: 0,
+        active_sites_limit: 0,
+        active_pages_limit: null,
+      }).success,
+    ).toBe(false);
+    expect(
+      DocumentationOrganizationLimitsSchema.safeParse({
+        ...limits,
+        customer_slug: "private",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates strict projection rebuild and discovery contracts", () => {
+    expect(
+      DocumentationProjectionRebuildRequestSchema.parse({
+        projection: "publication_search",
+        publication_id: "01J00000000000000000000001",
+        expected_output_digest: "a".repeat(64),
+      }),
+    ).toMatchObject({ projection: "publication_search" });
+    expect(
+      DocumentationProjectionRebuildRequestSchema.safeParse({
+        projection: "draft_search",
+        publication_id: "01J00000000000000000000001",
+      }).success,
+    ).toBe(false);
+    expect(
+      DocumentationProjectionRebuildReceiptSchema.parse({
+        projection: "draft_search",
+        site_id: "01J00000000000000000000001",
+        publication_id: null,
+        output_digest: null,
+        documents: 3,
+        outcome: "rebuilt",
+      }).documents,
+    ).toBe(3);
+
+    const policy = {
+      publish_link_id: "01J00000000000000000000001",
+      indexing_enabled: true,
+      is_primary_canonical: true,
+      effective_indexing: true,
+      effective_reason: "enabled",
+      version: 1,
+    };
+    expect(DocumentationDiscoveryPolicySchema.parse(policy)).toEqual(policy);
+    expect(
+      UpdateDocumentationDiscoveryPolicyRequestSchema.parse({
+        expected_version: 1,
+        indexing_enabled: false,
+        is_primary_canonical: false,
+      }),
+    ).toMatchObject({ expected_version: 1 });
+  });
 
   it("strictly validates disabled and enabled Try-It policy writes", () => {
     expect(
