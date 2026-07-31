@@ -82,6 +82,33 @@ export const DocumentationReviewInboxPage = ({
           </li>
         ))}
       </ul>
+      {inbox?.next_cursor ? (
+        <Button
+          onClick={() => {
+            setStatus("Loading more review notifications…");
+            void loadInbox(
+              projectId,
+              versionSlug,
+              filter,
+              inbox.next_cursor ?? undefined,
+            )
+              .then((loaded) => {
+                setInbox({
+                  ...loaded,
+                  items: [...inbox.items, ...loaded.items],
+                });
+                setStatus(
+                  `${loaded.unread_count} unread review notifications.`,
+                );
+              })
+              .catch(() =>
+                setStatus("More review notifications could not be loaded."),
+              );
+          }}
+        >
+          Load more notifications
+        </Button>
+      ) : null}
     </main>
   );
 };

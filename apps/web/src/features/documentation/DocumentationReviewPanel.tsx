@@ -18,6 +18,13 @@ import {
 } from "../../lib/documentationReviewApi";
 import styles from "./DocumentationReview.module.css";
 
+const announceGateChange = (siteId: string) =>
+  window.dispatchEvent(
+    new CustomEvent("documentation-review-gate-changed", {
+      detail: { siteId, source: "review" },
+    }),
+  );
+
 type Props = {
   projectId: string;
   versionSlug: string;
@@ -62,6 +69,9 @@ export const DocumentationReviewPanel = ({
     [],
   );
   const [requests, setRequests] = useState<DocumentationReviewRequest[]>([]);
+  const [requestStatus, setRequestStatus] = useState("all");
+  const [requestParticipation, setRequestParticipation] = useState("all");
+  const [requestCursor, setRequestCursor] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [detail, setDetail] = useState<DocumentationReviewDetail | null>(null);
   const [decisionReason, setDecisionReason] = useState("");
@@ -81,7 +91,13 @@ export const DocumentationReviewPanel = ({
   const refresh = async () => {
     const [loadedPolicy, loadedRequests, loadedEvidence] = await Promise.all([
       loadPolicy(projectId, versionSlug, siteId),
-      loadRequests(projectId, versionSlug, siteId, "all"),
+      loadRequests(
+        projectId,
+        versionSlug,
+        siteId,
+        requestStatus,
+        requestParticipation,
+      ),
       loadEvidence(projectId, versionSlug, siteId).catch(() => ({
         evidence: [],
         next_cursor: null,
@@ -89,6 +105,7 @@ export const DocumentationReviewPanel = ({
     ]);
     setPolicy(loadedPolicy);
     setRequests(loadedRequests.review_requests);
+    setRequestCursor(loadedRequests.next_cursor);
     setEvidence(loadedEvidence.evidence);
     setRequiredApprovals(loadedPolicy.required_approvals);
     setRequireMaintainer(loadedPolicy.require_maintainer_approval);
@@ -110,7 +127,34 @@ export const DocumentationReviewPanel = ({
     );
     // Inputs identify the complete route scope.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, versionSlug, siteId]);
+  }, [projectId, versionSlug, siteId, requestStatus, requestParticipation]);
+
+  useEffect(() => {
+    const handleGateChange = (event: Event) => {
+      const selected = event as CustomEvent<{
+        siteId?: string;
+        source?: string;
+      }>;
+      if (
+        selected.detail?.siteId === siteId &&
+        selected.detail.source === "publishing"
+      )
+        void refresh().catch(() =>
+          setStatus("Review workflow could not be refreshed."),
+        );
+    };
+    window.addEventListener(
+      "documentation-review-gate-changed",
+      handleGateChange,
+    );
+    return () =>
+      window.removeEventListener(
+        "documentation-review-gate-changed",
+        handleGateChange,
+      );
+    // Refresh uses the same route-scope inputs as the primary effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteId]);
 
   const requestReview = async () => {
     if (!policy || !latestRevision || !selected.length) return;
@@ -121,6 +165,7 @@ export const DocumentationReviewPanel = ({
         expected_policy_version: policy.version,
         reviewer_org_user_ids: selected,
       });
+      announceGateChange(siteId);
       setSelected([]);
       await refresh();
       setStatus(`Revision ${latestRevision.revision_number} is in review.`);
@@ -141,6 +186,8 @@ export const DocumentationReviewPanel = ({
         maintainer_org_user_ids: maintainers,
       });
       setPolicy(updated);
+      announceGateChange(siteId);
+      await refresh();
       setStatus("Review policy updated.");
     } catch {
       setStatus("Review policy changed. Reload and retry.");
@@ -175,6 +222,7 @@ export const DocumentationReviewPanel = ({
           reason: decisionReason.trim() || null,
         },
       );
+      announceGateChange(siteId);
       setDecisionReason("");
       setDetail(
         await loadDetail(
@@ -205,6 +253,7 @@ export const DocumentationReviewPanel = ({
         detail.review_request.version,
         cancelReason.trim(),
       );
+      announceGateChange(siteId);
       setCancelReason("");
       setDetail(
         await loadDetail(
@@ -317,6 +366,34 @@ export const DocumentationReviewPanel = ({
         </fieldset>
       ) : null}
       <ul className={styles.requestList} aria-label="Review Request history">
+        <li>
+          <label>
+            Request status
+            <select
+              value={requestStatus}
+              onChange={(event) => setRequestStatus(event.target.value)}
+            >
+              <option value="all">All statuses</option>
+              <option value="open">Open</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="canceled">Canceled</option>
+              <option value="superseded">Superseded</option>
+              <option value="invalidated">Invalidated</option>
+            </select>
+          </label>
+          <label>
+            Participation
+            <select
+              value={requestParticipation}
+              onChange={(event) => setRequestParticipation(event.target.value)}
+            >
+              <option value="all">All requests</option>
+              <option value="assigned_to_me">Assigned to me</option>
+              <option value="requested_by_me">Requested by me</option>
+            </select>
+          </label>
+        </li>
         {requests.map((request) => (
           <li key={request.id}>
             Request {request.request_number}: Revision {request.revision_number}{" "}
@@ -327,6 +404,34 @@ export const DocumentationReviewPanel = ({
           </li>
         ))}
       </ul>
+      {requestCursor ? (
+        <Button
+          onClick={() => {
+            setStatus("Loading more Review Requests…");
+            void loadRequests(
+              projectId,
+              versionSlug,
+              siteId,
+              requestStatus,
+              requestParticipation,
+              requestCursor,
+            )
+              .then((loaded) => {
+                setRequests((current) => [
+                  ...current,
+                  ...loaded.review_requests,
+                ]);
+                setRequestCursor(loaded.next_cursor);
+                setStatus("More Review Requests loaded.");
+              })
+              .catch(() =>
+                setStatus("More Review Requests could not be loaded."),
+              );
+          }}
+        >
+          Load more Review Requests
+        </Button>
+      ) : null}
       {detail ? (
         <section aria-labelledby="documentation-review-detail-heading">
           <h3 id="documentation-review-detail-heading">
@@ -337,6 +442,75 @@ export const DocumentationReviewPanel = ({
             {detail.review_request.revision_number}. Comments are separate and
             unresolved comments do not block approval.
           </p>
+          <p>
+            The Working Draft may contain changes created after this immutable
+            Revision.
+          </p>
+          <p>
+            <a
+              href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/${encodeURIComponent(siteId)}/revisions/${detail.review_request.revision_number}`}
+            >
+              Open immutable Revision {detail.review_request.revision_number}
+            </a>
+          </p>
+          <section aria-labelledby="documentation-review-change-summary-heading">
+            <h4 id="documentation-review-change-summary-heading">
+              Structural change summary
+            </h4>
+            <p>
+              Baseline:{" "}
+              {detail.change_summary.baseline_revision_number === null
+                ? "First Revision"
+                : `Revision ${detail.change_summary.baseline_revision_number}`}
+            </p>
+            <ul>
+              <li>
+                Pages: {detail.change_summary.pages.added} added,{" "}
+                {detail.change_summary.pages.changed} changed,{" "}
+                {detail.change_summary.pages.removed} removed
+              </li>
+              <li>
+                Snippets: {detail.change_summary.snippets.added} added,{" "}
+                {detail.change_summary.snippets.changed} changed,{" "}
+                {detail.change_summary.snippets.removed} removed
+              </li>
+              <li>
+                Assets: {detail.change_summary.assets.added} added,{" "}
+                {detail.change_summary.assets.changed} changed,{" "}
+                {detail.change_summary.assets.removed} removed
+              </li>
+              <li>
+                Metadata:{" "}
+                {detail.change_summary.metadata_changed
+                  ? "changed"
+                  : "unchanged"}
+              </li>
+              <li>
+                Navigation:{" "}
+                {detail.change_summary.navigation_changed
+                  ? "changed"
+                  : "unchanged"}
+              </li>
+              <li>
+                Routing:{" "}
+                {detail.change_summary.routing_changed
+                  ? "changed"
+                  : "unchanged"}
+              </li>
+              <li>
+                OpenAPI:{" "}
+                {detail.change_summary.openapi_changed
+                  ? "changed"
+                  : "unchanged"}
+              </li>
+              <li>
+                Artifact references:{" "}
+                {detail.change_summary.artifact_references_changed
+                  ? "changed"
+                  : "unchanged"}
+              </li>
+            </ul>
+          </section>
           <ul aria-label="Review assignments">
             {detail.assignments.map((assignment) => (
               <li key={assignment.id}>
@@ -363,7 +537,8 @@ export const DocumentationReviewPanel = ({
               <Button onClick={() => void decide("reject")}>Reject</Button>
             </fieldset>
           ) : null}
-          {detail.review_request.status === "open" && canRequest ? (
+          {detail.review_request.status === "open" &&
+          detail.actor_can_cancel ? (
             <fieldset>
               <legend>Cancel request</legend>
               <label htmlFor="documentation-review-cancel-reason">
@@ -418,10 +593,15 @@ export const DocumentationReviewPanel = ({
                       View evidence details
                     </Button>
                     {evidenceDetail?.id === item.id ? (
-                      <p>
-                        Override reason:{" "}
-                        {evidenceDetail.override_reason ?? "Not overridden"}
-                      </p>
+                      <div>
+                        <p>
+                          Override reason:{" "}
+                          {evidenceDetail.override_reason ?? "Not overridden"}
+                        </p>
+                        <Button onClick={() => setEvidenceDetail(null)}>
+                          Close evidence details
+                        </Button>
+                      </div>
                     ) : null}
                   </>
                 ) : null}

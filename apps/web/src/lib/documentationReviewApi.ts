@@ -74,8 +74,29 @@ export type DocumentationReviewDetail = {
   review_request: DocumentationReviewRequest;
   assignments: DocumentationReviewAssignment[];
   actor_can_decide: boolean;
-  change_summary: Record<string, number | boolean>;
-  cancellation: { reason: string } | null;
+  actor_can_cancel: boolean;
+  change_summary: {
+    baseline_revision_id: string | null;
+    baseline_revision_number: number | null;
+    metadata_changed: boolean;
+    home_page_changed: boolean;
+    pages: { added: number; removed: number; changed: number };
+    navigation_changed: boolean;
+    routing_changed: boolean;
+    snippets: { added: number; removed: number; changed: number };
+    assets: { added: number; removed: number; changed: number };
+    openapi_changed: boolean;
+    artifact_references_changed: boolean;
+  };
+  publication_gate: {
+    outcome:
+      | "not_required"
+      | "approval_missing"
+      | "approval_pending"
+      | "approved"
+      | "invalidated";
+  };
+  cancellation: { reason: string; canceled_at: string } | null;
 };
 
 export const getDocumentationReviewPolicy = (
@@ -109,13 +130,16 @@ export const listDocumentationReviewCandidates = (
   projectId: string,
   versionSlug: string,
   siteId: string,
+  cursor?: string,
 ) =>
-  fetch(`${sitePath(projectId, versionSlug, siteId)}/review-candidates`, {
-    credentials: "include",
-  }).then((response) =>
-    json<{ candidates: DocumentationReviewCandidate[]; next_cursor: null }>(
-      response,
-    ),
+  fetch(
+    `${sitePath(projectId, versionSlug, siteId)}/review-candidates${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
+    { credentials: "include" },
+  ).then((response) =>
+    json<{
+      candidates: DocumentationReviewCandidate[];
+      next_cursor: string | null;
+    }>(response),
   );
 
 export const createDocumentationReviewRequest = (
@@ -163,14 +187,17 @@ export const listDocumentationReviewRequests = (
   versionSlug: string,
   siteId: string,
   status = "all",
+  participation = "all",
+  cursor?: string,
 ) =>
   fetch(
-    `${sitePath(projectId, versionSlug, siteId)}/reviews?status=${status}&participation=all`,
+    `${sitePath(projectId, versionSlug, siteId)}/reviews?status=${encodeURIComponent(status)}&participation=${encodeURIComponent(participation)}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
     { credentials: "include" },
   ).then((response) =>
-    json<{ review_requests: DocumentationReviewRequest[]; next_cursor: null }>(
-      response,
-    ),
+    json<{
+      review_requests: DocumentationReviewRequest[];
+      next_cursor: string | null;
+    }>(response),
   );
 
 export const decideDocumentationReview = (
@@ -219,9 +246,10 @@ export const listDocumentationPublicationReviewEvidence = (
   projectId: string,
   versionSlug: string,
   siteId: string,
+  cursor?: string,
 ) =>
   fetch(
-    `${sitePath(projectId, versionSlug, siteId)}/review-publication-evidence?outcome=all`,
+    `${sitePath(projectId, versionSlug, siteId)}/review-publication-evidence?outcome=all${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
     { credentials: "include" },
   ).then((response) =>
     json<{
@@ -232,7 +260,7 @@ export const listDocumentationPublicationReviewEvidence = (
         outcome: "not_required" | "approved" | "overridden";
         created_at: string;
       }>;
-      next_cursor: null;
+      next_cursor: string | null;
     }>(response),
   );
 
@@ -262,9 +290,10 @@ export const listDocumentationReviewInbox = (
   projectId: string,
   versionSlug: string,
   status: "unread" | "read" | "all" = "unread",
+  cursor?: string,
 ) =>
   fetch(
-    `${versionPath(projectId, versionSlug)}/documentation-review-inbox?status=${status}`,
+    `${versionPath(projectId, versionSlug)}/documentation-review-inbox?status=${status}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
     { credentials: "include" },
   ).then((response) =>
     json<{
@@ -284,7 +313,7 @@ export const listDocumentationReviewInbox = (
         };
       }>;
       unread_count: number;
-      next_cursor: null;
+      next_cursor: string | null;
     }>(response),
   );
 

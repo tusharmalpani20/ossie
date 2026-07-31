@@ -3,6 +3,61 @@ import { describe, expect, it, vi } from "vitest";
 import { DocumentationPublishingPanel } from "./DocumentationPublishingPanel";
 
 describe("DocumentationPublishingPanel", () => {
+  it("refreshes the selected Revision gate after review state changes", async () => {
+    const loadReviewGate = vi
+      .fn()
+      .mockResolvedValueOnce({
+        site_revision_id: "revision",
+        policy_mode: "optional",
+        policy_version: 1,
+        outcome: "not_required",
+        override_available_to_actor: false,
+      })
+      .mockResolvedValue({
+        site_revision_id: "revision",
+        policy_mode: "approval_required",
+        policy_version: 2,
+        outcome: "invalidated",
+        override_available_to_actor: true,
+      });
+    render(
+      <DocumentationPublishingPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canPublish
+        canOverrideReview
+        loadRevisions={async () => ({
+          revisions: [
+            {
+              id: "revision",
+              revision_number: 1,
+              created_at: "2026-07-30T00:00:00.000Z",
+            },
+          ],
+        })}
+        loadPublications={async () => ({ publications: [] })}
+        loadPublishLinks={async () => ({ publish_links: [] })}
+        loadReviewGate={loadReviewGate}
+      />,
+    );
+
+    expect(
+      await screen.findByText("Review gate: not required"),
+    ).toBeInTheDocument();
+    window.dispatchEvent(
+      new CustomEvent("documentation-review-gate-changed", {
+        detail: { siteId: "site" },
+      }),
+    );
+    expect(
+      await screen.findByText("Review gate: invalidated"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Admin override reason (at least 20 characters)"),
+    ).toBeInTheDocument();
+  });
+
   it("publishes an exact Revision to a new stable link", async () => {
     const publish = vi.fn(async () => ({
       publication: { id: "publication", publication_sequence: 1 },
@@ -21,7 +76,11 @@ describe("DocumentationPublishingPanel", () => {
         canPublish
         loadRevisions={async () => ({
           revisions: [
-            { id: "revision", revision_number: 1, created_at: "2026-07-30T00:00:00.000Z" },
+            {
+              id: "revision",
+              revision_number: 1,
+              created_at: "2026-07-30T00:00:00.000Z",
+            },
           ],
         })}
         loadPublications={async () => ({ publications: [] })}
@@ -56,10 +115,9 @@ describe("DocumentationPublishingPanel", () => {
         },
       ),
     );
-    expect(await screen.findByRole("link", { name: "Open published Documentation" })).toHaveAttribute(
-      "href",
-      "/docs/product-docs",
-    );
+    expect(
+      await screen.findByRole("link", { name: "Open published Documentation" }),
+    ).toHaveAttribute("href", "/docs/product-docs");
   });
 
   it("repoints an existing entry and rolls it back to an exact Publication", async () => {
@@ -88,6 +146,11 @@ describe("DocumentationPublishingPanel", () => {
               id: "revision-2",
               revision_number: 2,
               created_at: "2026-07-30T00:00:00.000Z",
+            },
+            {
+              id: "revision-1",
+              revision_number: 1,
+              created_at: "2026-07-29T00:00:00.000Z",
             },
           ],
         })}
@@ -126,7 +189,9 @@ describe("DocumentationPublishingPanel", () => {
 
     expect(await screen.findByText("Live: Publication 1")).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("button", { name: "Publish Revision 2 to existing link" }),
+      screen.getByRole("button", {
+        name: "Publish Revision 2 to existing link",
+      }),
     );
     await waitFor(() =>
       expect(publish).toHaveBeenCalledWith(
@@ -142,6 +207,12 @@ describe("DocumentationPublishingPanel", () => {
         },
       ),
     );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Roll back to Publication 1" }),
+    );
+    expect(
+      await screen.findByText(/Review gate loaded for rollback Publication 1/),
+    ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "Roll back to Publication 1" }),
     );
@@ -201,15 +272,13 @@ describe("DocumentationPublishingPanel", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Revoke link" }));
     await waitFor(() =>
-      expect(revoke).toHaveBeenCalledWith(
-        "project",
-        "main",
-        "site",
-        "link",
-        3,
-      ),
+      expect(revoke).toHaveBeenCalledWith("project", "main", "site", "link", 3),
     );
-    expect(await screen.findByText("Publish Link revoked.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Revoke link" })).not.toBeInTheDocument();
+    expect(
+      await screen.findByText("Publish Link revoked."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Revoke link" }),
+    ).not.toBeInTheDocument();
   });
 });
