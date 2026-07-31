@@ -282,6 +282,9 @@ importers:
       '@repo/constants':
         specifier: workspace:*
         version: link:../../packages/constants
+      '@repo/documentation-domain':
+        specifier: workspace:*
+        version: link:../../packages/documentation-domain
       '@repo/types':
         specifier: workspace:*
         version: link:../../packages/types

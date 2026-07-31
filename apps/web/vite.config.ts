@@ -2,8 +2,8 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vitest/config";
 import { loadEnv } from "vite";
+import { build_documentation_csp } from "@repo/documentation-domain/policies/documentation-csp-policy";
 import {
-  buildDocumentationConnectSrc,
   parseDocumentationTryItConnectOrigins,
 } from "./src/lib/documentationCsp";
 
@@ -25,23 +25,13 @@ export default defineConfig(({ mode }) => {
       return null;
     }
   })();
-  const csp = [
-    "default-src 'self'",
-    "base-uri 'self'",
-    "frame-ancestors 'none'",
-    "form-action 'self'",
-    "object-src 'none'",
-    mode === "development"
-      ? "script-src 'self' 'unsafe-inline'"
-      : "script-src 'self'",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
-    "font-src 'self' data:",
-    buildDocumentationConnectSrc([
-      ...tryItOrigins.origins,
-      ...(apiOrigin ? [apiOrigin] : []),
-    ]),
-  ].join("; ");
+  const csp = build_documentation_csp({
+    ...(apiOrigin ? { api_origin: apiOrigin } : {}),
+    try_it_origins: tryItOrigins.origins,
+    ...(mode === "development"
+      ? { development_script_origin: "'unsafe-inline'" }
+      : {}),
+  });
   return {
     build: {
       manifest: true,

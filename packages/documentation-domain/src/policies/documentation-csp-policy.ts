@@ -1,4 +1,6 @@
-const normalize_origin = (candidate: string) => {
+import { is_forbidden_documentation_public_hostname } from "@repo/documentation-domain/policies/documentation-origin-policy";
+
+export const normalize_documentation_connect_origin = (candidate: string) => {
   if (candidate.includes("*")) throw new Error("Wildcards are not allowed");
   const url = new URL(candidate);
   if (
@@ -7,10 +9,11 @@ const normalize_origin = (candidate: string) => {
     url.password ||
     url.pathname !== "/" ||
     url.search ||
-    url.hash
+    url.hash ||
+    is_forbidden_documentation_public_hostname(url.hostname)
   ) {
     throw new Error(
-      "Documentation connect origins must be exact HTTPS origins",
+      "Documentation connect origins must be exact public HTTPS origins",
     );
   }
   return url.origin;
@@ -25,7 +28,7 @@ export const parse_documentation_connect_origins = (
         .split(",")
         .map((value) => value.trim())
         .filter(Boolean)
-        .map(normalize_origin),
+        .map(normalize_documentation_connect_origin),
     ),
   ].sort();
 

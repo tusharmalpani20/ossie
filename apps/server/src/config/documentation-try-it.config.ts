@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { normalize_documentation_try_it_target } from "@repo/documentation-domain";
+import { parse_documentation_connect_origins } from "@repo/documentation-domain";
 
 export type DocumentationTryItOriginConfig = {
   origins: string[];
@@ -10,18 +10,7 @@ export type DocumentationTryItOriginConfig = {
 export const parse_documentation_try_it_origins = (
   raw_value: string | undefined,
 ): DocumentationTryItOriginConfig => {
-  const origins = [
-    ...new Set(
-      (raw_value ?? "")
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean)
-        .map(
-          (value) =>
-            normalize_documentation_try_it_target(value, "/").approved_origin,
-        ),
-    ),
-  ].sort();
+  const origins = parse_documentation_connect_origins(raw_value);
   const digest = createHash("sha256").update(origins.join("\n")).digest("hex");
   return { origins, origin_set: new Set(origins), digest };
 };

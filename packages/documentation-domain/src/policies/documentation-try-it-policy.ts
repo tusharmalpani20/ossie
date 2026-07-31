@@ -16,6 +16,7 @@ import type {
   DocumentationTryItRequestDescriptor,
 } from "@repo/types";
 import { DocumentationDomainError } from "../errors/documentation-domain-error";
+import { is_forbidden_documentation_public_hostname } from "./documentation-origin-policy";
 
 export { DocumentationDomainError };
 
@@ -26,40 +27,6 @@ const encoder = new TextEncoder();
 const byte_length = (value: string) => encoder.encode(value).byteLength;
 const fail = (message: string): never => {
   throw new DocumentationDomainError("documentation_try_it_invalid", message);
-};
-
-const forbidden_hostname = (hostname: string): boolean => {
-  const host = hostname.toLowerCase().replace(/\.$/u, "");
-  if (
-    host === "localhost" ||
-    host.includes("*") ||
-    !host.includes(".") ||
-    host.endsWith(".localhost") ||
-    host.endsWith(".local") ||
-    host.endsWith(".test") ||
-    host.endsWith(".invalid") ||
-    host.endsWith(".example")
-  )
-    return true;
-  if (host === "::1" || host === "[::1]" || host === "0:0:0:0:0:0:0:1")
-    return true;
-  const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/u.exec(host);
-  if (!match) return host.includes(":");
-  const octets = match.slice(1).map(Number);
-  if (octets.some((part) => part > 255)) return true;
-  const [a, b] = octets;
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 100 && (b ?? 0) >= 64 && (b ?? 0) <= 127) ||
-    (a === 169 && b === 254) ||
-    (a === 172 && (b ?? 0) >= 16 && (b ?? 0) <= 31) ||
-    (a === 192 && b === 0) ||
-    (a === 192 && b === 168) ||
-    a === 198 ||
-    (a ?? 0) >= 224
-  );
 };
 
 const validate_safe_path = (path: string, label: string): void => {
@@ -96,7 +63,7 @@ export const normalize_documentation_try_it_target = (
     url.pathname !== "/" ||
     url.search ||
     url.hash ||
-    forbidden_hostname(url.hostname)
+    is_forbidden_documentation_public_hostname(url.hostname)
   )
     fail("Try-It origin must be a public exact HTTPS origin");
   const approved_origin = url.origin;

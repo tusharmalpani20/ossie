@@ -19,11 +19,11 @@ describe("Documentation CSP policy", () => {
     ).toThrow();
     expect(
       build_documentation_csp({
-        api_origin: "https://api.ossie.example",
-        try_it_origins: ["https://customer-api.example"],
+        api_origin: "https://api.ossie.example.com",
+        try_it_origins: ["https://customer-api.example.com"],
       }),
     ).toContain(
-      "connect-src 'self' https://api.ossie.example https://customer-api.example",
+      "connect-src 'self' https://api.ossie.example.com https://customer-api.example.com",
     );
   });
 });
