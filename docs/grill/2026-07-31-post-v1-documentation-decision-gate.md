@@ -2,9 +2,10 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 is provisionally recorded and Q2 is open for explicit
-user/product authority. No post-V1 capability, Master `007`, child `141`, ADR,
-runtime change, or roadmap commitment is finally accepted by this record yet.
+Status: In progress. Q1 and Q2 are provisionally recorded and Q3 is open for
+explicit user/product authority. No post-V1 capability, Master `007`, child
+`141`, ADR, runtime change, or roadmap commitment is finally accepted by this
+record yet.
 
 Parent:
 
@@ -148,8 +149,8 @@ Inference and preference must not be written as shipped fact.
 | Question | Candidate                                                       | State      | Provisional disposition          | Final authority |
 | -------- | --------------------------------------------------------------- | ---------- | -------------------------------- | --------------- |
 | Q1       | First post-V1 problem and priority                              | Answered   | Review first; no immediate build | Provisional     |
-| Q2       | GitHub App proposals and export automation                      | Open       | Pending                          | Pending         |
-| Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Not opened | None                             | Pending         |
+| Q2       | GitHub App proposals and export automation                      | Answered   | `accept-later`: one-way proposal | Provisional     |
+| Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Open       | Pending                          | Pending         |
 | Q4       | Translation identity, fallback, and workflow                    | Not opened | None                             | Pending         |
 | Q5       | Custom domains                                                  | Not opened | None                             | Pending         |
 | Q6       | Public feedback                                                 | Not opened | None                             | Pending         |
@@ -415,7 +416,9 @@ harder to reverse and remains Q3.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-later` for the narrow one-way proposal adapter described above. This
+does not select it as the next implementation and does not accept
+bidirectional synchronization.
 
 ### Simple decision requested
 
@@ -425,13 +428,173 @@ feature?
 Recommended answer: **Yes, later—but GitHub should only receive proposals.
 Ossie stays the main source, and nothing syncs or publishes automatically.**
 
-## 10. Questions Not Yet Opened
+### User answer
 
-Q3 through Q17 remain unmade. Their full implementation-safe question
+> I agree with your recommendation here.
+
+Recorded interpretation:
+
+- retain the one-way export-to-pull-request capability as an accepted-later
+  possibility;
+- Ossie remains authoritative;
+- no GitHub action automatically imports, applies, checkpoints, publishes, or
+  deletes Ossie content;
+- do not select this capability as `accept-next` before the complete candidate
+  review;
+- decide broad bidirectional synchronization separately in Q3.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 10. Q3 — Should Ossie And GitHub Synchronize Both Ways?
+
+### Why this question is open
+
+Q2 preserves a safe one-way proposal copy. Two-way synchronization is a
+different capability: both Ossie and GitHub could change the same content, so
+the product would need durable rules for identity, conflicts, history
+rewrites, renames, deletions, and publication.
+
+### Shipped V1 facts
+
+- PostgreSQL and protected Files are authoritative.
+- Site Revisions and Publications are immutable exact snapshots.
+- Mutable Page, Snippet, Asset, Navigation, OpenAPI, and settings resources use
+  stable Ossie identities and Row Versions.
+- Existing import requires Inspect followed by explicit Apply and cannot
+  overwrite a non-empty Site automatically.
+- Git branches, paths, commits, pull requests, and authors have no accepted
+  identity mapping to Ossie resources.
+- No Git sync engine, webhook consumer, Git credential, repository mapping, or
+  conflict store exists.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- Git normally refuses a push that would replace remote history with a
+  non-fast-forward update. A forced push disables that protection and can
+  cause the remote repository to lose commits:
+  [Git push documentation](https://git-scm.com/docs/git-push).
+- A Git merge can stop with conflicts and requires the caller to resolve,
+  continue, or abort the operation:
+  [Git merge documentation](https://git-scm.com/docs/git-merge).
+- GitHub branch protection can require pull requests, approvals, status
+  checks, signed commits, linear history, and restricted or disabled force
+  pushes. Rules vary by repository and branch:
+  [About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches).
+- GitHub distinguishes line conflicts, which may be resolved in its web
+  editor, from more complex conflicts that require local Git resolution:
+  [Merge conflicts](https://docs.github.com/en/pull-requests/reference/merge-conflicts).
+
+### Inference
+
+Two editable authorities cannot be made safe by periodically copying files.
+The system would have to decide which change wins when:
+
+- the same content changes in both places;
+- a file is renamed on one side and deleted on the other;
+- a pull request is closed, reopened, reverted, or merged after Ossie changed;
+- a branch is rebased or force-pushed;
+- generated Markdown cannot preserve an Ossie resource identity;
+- a Git change targets content already captured in an immutable Revision or
+  Publication.
+
+Without separately accepted rules for every case, automatic synchronization
+could lose work, duplicate resources, revive deleted content, or misrepresent
+what was published.
+
+### Recommendation
+
+**Reject broad two-way synchronization.**
+
+Keep the Q2 boundary:
+
+- Ossie may later send an exact snapshot to a GitHub proposal branch and pull
+  request;
+- GitHub does not automatically change Ossie;
+- any future inbound content must use explicit Inspect and Apply;
+- an immutable Revision or Publication is never rewritten.
+
+This rejects the broad sync model, not the ability to reconsider one narrowly
+defined inbound proposal workflow after real user demand exists.
+
+### Alternatives
+
+- **Defer:** leave two-way sync undecided until a concrete workflow and
+  conflict model exist. This preserves optionality but leaves an unsafe idea
+  appearing viable.
+- **Accept:** build a full synchronization engine. This would require a
+  dedicated ADR, authoritative identity manifest, branch/version rules,
+  conflict UI, deletion tombstones, durable webhook/jobs, and explicit
+  recovery semantics before implementation could begin.
+
+### Rejected shortcuts
+
+- last-write-wins;
+- GitHub always wins;
+- Ossie always wins while still calling the result “two-way”;
+- matching resources only by path or slug;
+- treating missing files as automatic deletion;
+- treating a merged PR as automatic Apply, checkpoint, or publish;
+- silently resolving conflicts;
+- rewriting an immutable Revision or Publication after a Git change;
+- trusting force-pushed history as a complete event record.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+Rejecting broad synchronization preserves the shipped V1 trust boundary:
+
+- PostgreSQL and protected Files remain authority;
+- existing Site and Project permissions remain the only mutation authority;
+- GitHub credentials and webhooks cannot become ambient write authority;
+- Git repository deletion, branch deletion, or force-push cannot delete Ossie
+  content;
+- immutable Revision and Publication history remains unchanged;
+- no new credential, webhook, background-job, tenant-mapping, Audit, Access
+  Evidence, or retention surface is created by child `140`.
+
+### Migration, API, UI, URL, and compatibility impact
+
+None. This is a planning decision only. Existing Package/Markdown export and
+Inspect/Apply import remain compatible. Existing public URLs, Sites,
+Revisions, Publications, and Git-independent deployments are unchanged.
+
+### Reversibility
+
+Rejecting broad synchronization is highly reversible at the planning level. A
+future proposal can reopen it only with demonstrated demand and independently
+accepted identity, conflict, deletion, credential, publication, and recovery
+semantics.
+
+### Evidence gaps
+
+- no recorded user demand for editing the same content in both systems;
+- no accepted identity manifest or Git repository layout;
+- no accepted branch-to-Project-Version mapping;
+- no conflict-resolution owner or UI;
+- no accepted rename/delete/tombstone rules;
+- no accepted force-push, PR lifecycle, or recovery model;
+- no durable webhook/background-work infrastructure decision.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should Ossie and GitHub automatically synchronize changes in both directions?
+
+Recommended answer: **No. Keep the safer one-way Ossie-to-GitHub pull-request
+proposal.**
+
+## 11. Questions Not Yet Opened
+
+Q4 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 11. Session Log
+## 12. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -440,8 +603,11 @@ at a time with current primary-source research only when opened.
 - 2026-07-31: opened Q1. No provisional or final disposition has been recorded.
 - 2026-07-31: the user chose the review-first Q1 direction. Recorded a
   provisional defer of immediate implementation and opened Q2.
+- 2026-07-31: the user accepted the narrow Q2 recommendation. Recorded
+  one-way Ossie-to-GitHub pull-request proposals as `accept-later`, preserved
+  Ossie authority and explicit import/apply boundaries, and opened Q3.
 
-## 12. Verification Record
+## 13. Verification Record
 
 Initial checkpoint verification:
 
@@ -458,7 +624,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 13. Current Handoff
+## 14. Current Handoff
 
-Awaiting explicit user/product authority for Q2. Do not open Q3 until Q2 is
+Awaiting explicit user/product authority for Q3. Do not open Q4 until Q3 is
 recorded.

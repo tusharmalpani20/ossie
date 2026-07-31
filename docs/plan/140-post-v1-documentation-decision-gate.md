@@ -5,10 +5,10 @@ Date reserved: 2026-07-30
 Date expanded: 2026-07-31
 
 Status: In progress. The documentation-only decision session began on
-2026-07-31 from clean commit `df409d0`. Q1 is provisionally recorded and Q2 is
-open for explicit user/product authority. Product Documentation V1 remains
-implemented and independently close-rechecked through child `139`; this child
-authorizes no runtime, schema, route, dependency, or browser-visible
+2026-07-31 from clean commit `df409d0`. Q1 and Q2 are provisionally recorded
+and Q3 is open for explicit user/product authority. Product Documentation V1
+remains implemented and independently close-rechecked through child `139`;
+this child authorizes no runtime, schema, route, dependency, or browser-visible
 implementation.
 
 Parent plan:
@@ -1570,10 +1570,16 @@ Child `140` may close only when:
   assess shipped V1, list and evaluate possible next capabilities, and only
   then select and deeply plan an implementation. This authorizes no immediate
   Master `007` or runtime work. Q2 opened next.
+- 2026-07-31: the user provisionally accepted Q2 as an `accept-later` one-way
+  proposal adapter: an exact Ossie Revision/Publication may later be exported
+  to a dedicated GitHub branch and pull request, while Ossie remains authority
+  and GitHub cannot automatically import, apply, checkpoint, publish, or
+  delete content. Q3 opened separately to decide broad bidirectional
+  synchronization.
 
 The expansion itself made no decision. At the current execution checkpoint Q1
-is provisionally recorded, Q2 is open, and final cross-question acceptance
-remains pending.
+and Q2 are provisionally recorded, Q3 is open, and final cross-question
+acceptance remains pending.
 
 ## 25. Expansion Verification Record
 
