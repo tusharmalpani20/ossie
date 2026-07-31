@@ -313,8 +313,27 @@ _Avoid_: Remote specification URL, API credential, executable API client
 
 **API Reference Block**:
 An Ossie-owned typed Page block that renders an authorized OpenAPI Source. It is
-read-only in the first slice.
+read-only when no exact effective request policy exists.
 _Avoid_: Arbitrary widget, server-side API proxy
+
+**Documentation Try-It Policy**:
+An independently mutable Site Edition policy that pins one exact active OpenAPI
+Source version and digest, one operator-permitted HTTPS origin, an optional base
+path, supported header credential modes, and explicit operation allowances. A
+Site Revision freezes its effective policy; it never stores credential values.
+_Avoid_: API environment, proxy configuration, authorization grant
+
+**Documentation Try-It Configuration**:
+A short-lived, private/no-store browser authority projection for one exact
+descriptor-v1 operation and effective mutable or frozen policy. It includes a
+scoped attempt token but no credential or target response data.
+_Avoid_: Saved request, target session, public search document
+
+**Documentation Try-It Attempt**:
+One confirmed browser-direct request to the exact configured HTTPS target.
+Ossie receives only a signed scoped token and content-free outcome for Access
+Evidence; the browser owns request and response transport.
+_Avoid_: Ossie API proxy, request history, analytics payload
 
 **Page Slug Alias**:
 A permanent former Page slug within one Site Edition. It redirects to the Page's

@@ -2,7 +2,7 @@
 
 Date accepted: 2026-07-30
 
-Status: Accepted target model, implemented through child `136` review.
+Status: Accepted target model, implemented through child `137` API experience.
 
 Sources:
 
@@ -11,11 +11,11 @@ Sources:
 - `docs/plan/131-documentation-domain-grill.md`
 - `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 - `CONTEXT.md`
-- ADRs `0021` through `0032`
+- ADRs `0021` through `0033`
 
 This document consolidates the final answers from the 32-question Documentation
 domain grill. It remains the decision authority for the Documentation runtime
-implemented through child `136`; later child plans must preserve or explicitly
+implemented through child `137`; later child plans must preserve or explicitly
 supersede these accepted boundaries.
 
 ## 1. Accepted Domain Model
@@ -48,16 +48,18 @@ or Interactive Demo schemas.
 
 ## 2. Source Of Truth And Ownership
 
-| Concern                                                               | Authority                                                  | Derived or interchange forms         |
-| --------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------ |
-| Site and Edition identity/lifecycle                                   | Relational database                                        | None                                 |
-| Pages, navigation, snippets, redirects, settings, block relationships | Explicit relational records                                | Tiptap editor state, Markdown export |
-| Immutable Site Revision manifest and contents                         | Relational immutable records                               | Render/search inputs                 |
-| Assets and OpenAPI source files                                       | Protected File storage plus relational metadata/references | Validated parser representation      |
-| Publication and stable-link selection                                 | Relational database                                        | Reader cache, search index, sitemap  |
-| Permissions and membership                                            | Existing Org User and Project Membership records           | Request-local authorization result   |
-| Comments, replies, mentions, resolution state                         | Relational private authoring records                       | Notification deliveries later        |
-| Audit and access evidence                                             | Existing append-only relational evidence                   | Operational reporting                |
+| Concern                                                               | Authority                                                                        | Derived or interchange forms         |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------ |
+| Site and Edition identity/lifecycle                                   | Relational database                                                              | None                                 |
+| Pages, navigation, snippets, redirects, settings, block relationships | Explicit relational records                                                      | Tiptap editor state, Markdown export |
+| Immutable Site Revision manifest and contents                         | Relational immutable records                                                     | Render/search inputs                 |
+| Assets and OpenAPI source files                                       | Protected File storage plus relational metadata/references                       | Validated parser representation      |
+| Publication and stable-link selection                                 | Relational database                                                              | Reader cache, search index, sitemap  |
+| Permissions and membership                                            | Existing Org User and Project Membership records                                 | Request-local authorization result   |
+| Comments, replies, mentions, resolution state                         | Relational private authoring records                                             | Notification deliveries later        |
+| Audit and access evidence                                             | Existing append-only relational evidence                                         | Operational reporting                |
+| Browser-direct API request authority                                  | Operator origin ceiling, mutable Site/Link policy, and immutable Revision policy | Short-lived private configuration    |
+| Target request, credential, and response                              | Reader browser memory and target API                                             | Content-free attempt outcome only    |
 
 The database and protected File storage are authoritative. Search indexes,
 Fumadocs page trees, rendered output, caches, sitemaps, and social metadata are
@@ -230,21 +232,22 @@ through `024`. The implementation plan must:
 
 ## 6. Security And Threat Model
 
-| Threat / trust boundary                            | Required control                                                                                                                                                                  |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cross-tenant or cross-Project ID substitution      | Resolve Organization and Project scope server-side; authorize every parent and referenced resource; fail closed before reads and writes.                                          |
-| Stored XSS or code execution                       | No customer MDX/JS/React/raw HTML; parse constrained blocks; sanitize output; allowlist URL/media protocols and block types; use restrictive CSP; never execute OpenAPI examples. |
-| SSRF and external-content drift                    | No server-side arbitrary remote import or proxy in V1; OpenAPI is uploaded and self-contained; remote media is allowlisted/constrained and never publication authority.           |
-| ZIP path traversal, archive bombs, oversized input | Inspect before apply; reject absolute/parent paths, links, duplicate entries, excessive counts/sizes/depth/expansion, and unsupported files; commit atomically.                   |
-| Malicious or cyclic OpenAPI                        | Parse with bounded resources; reject unresolved remote references, cycles that exceed limits, unsupported schemes, and oversized documents; render read-only.                     |
-| Draft/comment/search leakage                       | Authorize before load, cache, index, and return; keep public and private projections separate; never include comments in Publications.                                            |
-| Comment privacy and mention abuse                  | Project-members only; validate mentions against authorized members; audit state changes without copying comment bodies into evidence; rate/size limits.                           |
-| Partial or stale publication                       | Prepare before atomic switch; serialize and idempotently retry; exact Publication cache keys; failed build leaves live output unchanged.                                          |
-| Asset purge breaks immutable output                | Reference protection across working state, Revisions, Publications, comments where applicable, and retained evidence.                                                             |
-| Credential exposure                                | No V1 Git credentials, API proxy, or stored Try-It credentials; redact secrets from errors/logs/evidence.                                                                         |
-| Dependency or adapter lock-in                      | Pin reviewed compatible versions; isolate Tiptap/Fumadocs adapters; test safe serialization and authorization outside framework internals.                                        |
-| Denial of service                                  | Organization-owned quotas plus non-bypassable safety ceilings for Pages, blocks, Sites, assets, imports, OpenAPI, searches, and publication duration/concurrency.                 |
-| Cache/access-policy confusion                      | Key by exact Publication and policy context; invalidate on explicit link-policy or selected-entry changes; never serve draft caches publicly.                                     |
+| Threat / trust boundary                            | Required control                                                                                                                                                                     |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Cross-tenant or cross-Project ID substitution      | Resolve Organization and Project scope server-side; authorize every parent and referenced resource; fail closed before reads and writes.                                             |
+| Stored XSS or code execution                       | No customer MDX/JS/React/raw HTML; parse constrained blocks; sanitize output; allowlist URL/media protocols and block types; use restrictive CSP; never execute OpenAPI examples.    |
+| SSRF and external-content drift                    | No server-side arbitrary remote import or proxy in V1; OpenAPI is uploaded and self-contained; remote media is allowlisted/constrained and never publication authority.              |
+| ZIP path traversal, archive bombs, oversized input | Inspect before apply; reject absolute/parent paths, links, duplicate entries, excessive counts/sizes/depth/expansion, and unsupported files; commit atomically.                      |
+| Malicious or cyclic OpenAPI                        | Parse with bounded resources; reject unresolved remote references, cycles that exceed limits, unsupported schemes, and oversized documents; render read-only.                        |
+| Draft/comment/search leakage                       | Authorize before load, cache, index, and return; keep public and private projections separate; never include comments in Publications.                                               |
+| Comment privacy and mention abuse                  | Project-members only; validate mentions against authorized members; audit state changes without copying comment bodies into evidence; rate/size limits.                              |
+| Partial or stale publication                       | Prepare before atomic switch; serialize and idempotently retry; exact Publication cache keys; failed build leaves live output unchanged.                                             |
+| Asset purge breaks immutable output                | Reference protection across working state, Revisions, Publications, comments where applicable, and retained evidence.                                                                |
+| Credential exposure                                | No V1 Git credentials, API proxy, or stored Try-It credentials; component-memory password controls, placeholder examples, exact-value response redaction, and content-free evidence. |
+| Browser request to an unsafe target                | Exact HTTPS origin under operator and Project Admin control, all-address public DNS validation, immutable Revision freeze, link opt-in, matching CSP digest, and no redirects.       |
+| Dependency or adapter lock-in                      | Pin reviewed compatible versions; isolate Tiptap/Fumadocs adapters; test safe serialization and authorization outside framework internals.                                           |
+| Denial of service                                  | Organization-owned quotas plus non-bypassable safety ceilings for Pages, blocks, Sites, assets, imports, OpenAPI, searches, and publication duration/concurrency.                    |
+| Cache/access-policy confusion                      | Key by exact Publication and policy context; invalidate on explicit link-policy or selected-entry changes; never serve draft caches publicly.                                        |
 
 Preview is an authenticated read of mutable state and is never a Publication.
 Errors must not reveal whether an unauthorized resource exists. Access Evidence
@@ -260,7 +263,7 @@ raw search queries.
 | Tiptap adapter proof with relational persistence and safe Markdown interchange                                               | Markdown Page and validated ZIP Site import/export                                                        | Custom domains                                         | Page-level ACLs                                                |
 | Row-Version autosave and recoverable conflict                                                                                | Carry-Forward whole Sites from exact Revision                                                             | Public feedback and analytics                          | Public comments in V1                                          |
 | Private Page comment thread/reply/mention/resolve/reopen with stable-block fallback                                          | Review requests, approval states, notifications, maintainers, optional approval gate and audited override | Realtime collaborative editing and offline-first merge | Mandatory approval gate in first slice                         |
-| Upload and validate one self-contained OpenAPI file; read-only reference block with operation deep links                     | Browser-direct Try It after CORS/auth/security proof and without stored credentials                       | Rich interactive components and SDK generation         | Server-side arbitrary API proxy or stored customer credentials |
+| Upload and validate one self-contained OpenAPI file; read-only reference block with operation deep links                     | Shipped in child `137`: browser-direct Try It and placeholder examples without stored credentials         | Rich interactive components and SDK generation         | Server-side arbitrary API proxy or stored customer credentials |
 | Authenticated preview, manual checkpoint, immutable whole-Site Revision                                                      | Richer change summaries and authoring history UI                                                          | Governed permanent deletion                            | Per-Page publication                                           |
 | Stable Publish Link backed by exact immutable Publication; second publish and rollback                                       | Validated archive/restore and export operations                                                           | Cross-artifact/Organization search                     | Moving `/latest` alias                                         |
 | Exact-publication public reader, navigation, canonical routes, redirects/gone behavior, metadata, sitemap/robots/social tags | Expanded code-example and API reference ergonomics                                                        | External reviewer tokens                               | Live snippets shared across Sites/Editions                     |
@@ -307,6 +310,35 @@ Child `136` implements the accepted internal review slice under ADR `0032`.
 Review is Documentation-only. It does not establish external reviewers,
 email/webhook delivery, Page-level approval, a general cross-artifact workflow,
 or authorization by approval.
+
+## 7.2 Shipped Browser-Direct API Experience
+
+Child `137` implements the accepted API request slice under ADR `0033`.
+
+- Existing descriptor-v0 references remain readable and never become
+  executable. Descriptor-v1 data is relationally derived from a bounded,
+  self-contained OpenAPI Source and frozen into an exact Site Revision.
+- The deployment operator owns the exact HTTPS-origin ceiling. A Project Admin
+  owns mutable Site and Publish Link opt-in policy. Review approval remains
+  unrelated and cannot grant target authority.
+- Internal draft configuration follows Project read access; policy writes
+  require Project Admin. Public configuration follows the exact authorized
+  Publish Link entry and immutable Publication.
+- Target transport is browser-direct with omitted ambient credentials,
+  forbidden redirects, explicit confirmation, mutation acknowledgement,
+  request/response ceilings, Abort/timeout, local rate limits, inert response
+  rendering, and placeholder-only generated examples.
+- Credential values live only in the open request component and target request.
+  They are absent from Ossie APIs, persistence, Audit, Access Evidence, URLs,
+  search, examples, storage, and screenshots.
+- Attempt evidence records only an allowlisted outcome under a signed,
+  short-lived, scope-bound token. It cannot reconstruct target URL, headers,
+  body, credential, response, or status.
+- CSP is a deployment defense in depth. The server/web origin-set digest must
+  match before Send; target CORS and network policy remain authoritative.
+
+Stored environments, proxying, OAuth, arbitrary requests, target cookies,
+private-network origins, mock servers, and SDK generation remain outside V1.
 
 ## Shipped portability boundary
 

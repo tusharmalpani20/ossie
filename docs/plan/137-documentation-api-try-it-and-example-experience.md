@@ -4,7 +4,7 @@ Date reserved: 2026-07-30
 
 Date expanded: 2026-07-31
 
-Status: Implementation-ready and independently rechecked on 2026-07-31.
+Status: Complete and verified on 2026-07-31.
 Runtime implementation has not started.
 
 Parent plan:
@@ -1866,16 +1866,16 @@ Child `137` is complete only when:
 
 ### Implementation
 
-- [ ] Shared contracts/domain policy implemented test-first.
-- [ ] Migration `030` implemented and rehearsed.
-- [ ] Site/link policy and exact configuration routes implemented.
-- [ ] CSP/operator configuration implemented.
-- [ ] Safe examples/request client/response renderer implemented.
-- [ ] Portal policy/link/operation UX implemented.
-- [ ] Audit/Access/tenant/concurrency/privacy coverage passed.
-- [ ] Agent-browser evidence passed.
-- [ ] Context/ADR/decision/master/docs updated.
-- [ ] Scoped logical commits complete.
+- [x] Shared contracts/domain policy implemented test-first.
+- [x] Migration `030` implemented and rehearsed.
+- [x] Site/link policy and exact configuration routes implemented.
+- [x] CSP/operator configuration implemented.
+- [x] Safe examples/request client/response renderer implemented.
+- [x] Portal policy/link/operation UX implemented.
+- [x] Audit/Access/tenant/concurrency/privacy coverage passed.
+- [x] Agent-browser evidence passed.
+- [x] Context/ADR/decision/master/docs updated.
+- [x] Scoped logical commits complete.
 
 ## 24. Planning Log
 
@@ -1908,6 +1908,24 @@ Child `137` is complete only when:
   reflected-secret redaction, cookie omission, URL/template encoding,
   no-stream/decompression response bounds, and truthful CORS/CSP failure
   classification.
+- 2026-07-31: Implemented descriptor-v1 derivation, mutable and frozen
+  origin/credential/operation policy, independent Publish Link opt-in,
+  short-lived configuration/attempt tokens, exact public/internal projections,
+  Audit/Access coverage, and migration `030`.
+- 2026-07-31: Implemented strict production CSP/digest matching, on-demand
+  internal/public request builders, placeholder curl/Fetch/Python examples,
+  memory-only credentials, confirmation and mutation acknowledgement,
+  Abort/timeout/local rate limits, request validation, inert bounded response
+  rendering, and content-free reporting.
+- 2026-07-31: Agent-browser exposed and implementation repaired two integration
+  defects: Vite development bootstrap was blocked by the production script
+  policy, and public attempt evidence lacked tenant scope because the internal
+  public-link projection omitted Organization/Project IDs. Production CSP
+  remains strict and public projections remain schema-filtered.
+- 2026-07-31: Final browser recheck added the missing Viewer-accessible draft
+  operation experience while preserving Admin-only policy controls, then proved
+  one confirmed direct target request, one `204` report, credential teardown,
+  reflow/reduced-motion, and zero axe violations on public/Viewer surfaces.
 
 ## 25. Planning Verification Record
 
@@ -1955,6 +1973,38 @@ Independent recheck verification:
   covered without expanding to proxy/OAuth/storage/SDK/framework scope;
 - Prettier, Markdown structure inspection, exact scoped status, and
   `git diff --check` passed before the planning checkpoint commit.
+
+### Implementation Verification Record
+
+Verified on 2026-07-31:
+
+- shared constants: 1 file / 9 tests;
+- shared strict types: 18 files / 93 tests;
+- Documentation domain: 17 files / 45 tests;
+- server non-DB: 120 files / 526 tests;
+- web: 79 files / 424 tests;
+- extension regression: 19 files / 140 tests;
+- workspace type check: 13 successful tasks;
+- focused changed-file lint: zero warnings; the workspace-wide lint command is
+  still blocked by unrelated pre-existing control-regex/unused-variable
+  warnings in child `136` and earlier files;
+- production web build passed; the existing single-chunk warning remains
+  (`728.80 kB` JavaScript raw in the Child 137 production build) and is handed
+  to child `138` for measurement/splitting;
+- migration `001`–`030`, full DB suite, and V1 smoke passed; populated/guarded
+  rollback behavior remains covered by the migration and foundation suites;
+- agent-browser Admin, Viewer, public, confirmation, privacy, CSP, response,
+  320px reflow, 200% zoom, reduced-motion, console, and axe proof is recorded in
+  `docs/ui/137-documentation-api-try-it-and-example-experience-browser-evidence.md`;
+- `git diff --check` and focused documentation checks passed before closeout.
+
+The full non-DB regression initially exposed three scoped omissions and the
+final run is the authoritative result: migration `030`'s audited allowance
+delete grant was absent from the explicit foundation allowlist, the no-target-
+transport assertion conservatively rejected `node:net` used only for `isIP`,
+and the Vite config test still assumed a static config object. The fixes retain
+the security intent, remove the transport-module import, and exercise the
+environment-resolved config.
 
 ## 26. Leftovers And Handoff To Child 138
 

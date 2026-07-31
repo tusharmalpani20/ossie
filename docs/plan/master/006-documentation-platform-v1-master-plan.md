@@ -2276,6 +2276,12 @@ credential store.
 - no impact on read-only reference when Try It disabled;
 - child `138` receives operational metrics/limits.
 
+Status: completed and verified on 2026-07-31. ADR `0033`, migration `030`,
+internal/public descriptor-v1 operation experiences, independently governed
+Site/Publish Link policy, strict CSP, content-free evidence, and headless
+Admin/Viewer/public privacy proof are shipped. Descriptor-v0 references remain
+read-only.
+
 ## 35. Child 138: Documentation V1 Operational Hardening
 
 ### Goal
@@ -2645,7 +2651,7 @@ By child `139`, the combined verification must include:
 - [x] Create, expand, recheck, implement, verify, and close child `134`.
 - [x] Create, expand, recheck, implement, verify, and close child `135`.
 - [x] Create, expand, recheck, implement, verify, and close child `136`.
-- [ ] Create, expand, recheck, implement, verify, and close child `137`.
+- [x] Create, expand, recheck, implement, verify, and close child `137`.
 - [ ] Create, expand, recheck, implement, verify, and close child `138`.
 - [ ] Create, expand, recheck, verify, and close child `139`.
 - [ ] Create, conduct, document, accept, and close child `140`.
@@ -2800,6 +2806,17 @@ follows the same close-predecessor rule.
   evidence-detail lifecycle. Clean DB, full server/web/extension, type/build/
   smoke, and headless Admin/Viewer/public closure verification passed. Child
   `137` remains the next active handoff.
+- 2026-07-31: implemented and closed child `137`. Added migration `030`,
+  descriptor-v1 request contracts, exact operator/Admin Site policy,
+  immutable Revision freezing, independent Publish Link opt-in, short-lived
+  private configuration/report routes, browser-memory credentials, confirmed
+  browser-direct requests, bounded inert responses, placeholder examples, ADR
+  `0033`, deployment CSP guidance, and Admin/Viewer/public browser evidence.
+- 2026-07-31: final verification repaired public attempt-evidence tenant scope,
+  preserved the safe public Publication identity contract, exposed the internal
+  draft builder to Viewers without policy mutation authority, kept production
+  CSP strict while allowing Vite's development bootstrap, and passed full
+  shared/server/web/extension/DB/smoke regression.
 
 ## 47. Master Planning Verification Record
 
@@ -2947,10 +2964,28 @@ The 2026-07-31 independent closure supersedes the earlier aggregate counts:
 - closure screenshot:
   `docs/ui/136-documentation-review-and-approval-workflow-closure.png`.
 
+Child `137` implementation evidence includes:
+
+- additive migration `030`, mutable Site/Publish Link policy, explicit
+  operation allowances, immutable Revision policy/descriptors, guarded grants,
+  and clean full DB coverage (23 files / 83 tests);
+- shared constants 1 file / 9 tests, strict types 18 files / 93 tests,
+  Documentation domain 17 files / 45 tests, server 120 files / 526 tests, web
+  79 files / 424 tests, extension 19 files / 140 tests, and V1 smoke 1 file / 2
+  tests;
+- workspace type check and production build passed; scoped changed-file lint
+  is warning-free while unrelated pre-existing workspace lint warnings remain
+  recorded in child `137`;
+- headless Chromium exact Admin policy/link state, Viewer internal draft use,
+  public confirmation and one-request/one-report behavior, unique-secret
+  teardown, strict production CSP, reflow/zoom/reduced-motion, clean console,
+  and zero public/Viewer axe violations in
+  `docs/ui/137-documentation-api-try-it-and-example-experience-browser-evidence.md`.
+
 ## 48. Planning Leftovers And Handoff
 
-- Product Documentation children `132` through `136` are complete and
-  verified. Child `137` is next.
+- Product Documentation children `132` through `137` are complete and
+  verified. Child `138` is next.
 - Child `132` established the first vertical slice. Child `133` extended it
   with the complete constrained V1 block graph, Edition-owned Snippets,
   Documentation/Capture Asset sources, exact artifact Publication references,
@@ -2965,11 +3000,9 @@ The 2026-07-31 independent closure supersedes the earlier aggregate counts:
   collaboration, permanent deletion, cross-artifact search, server proxy,
   stored credentials, SDK generation, and Video remain deferred/rejected as
   recorded.
-- The next work is to expand child `137` against the closed child `136`
-  result, then recheck that implementation-ready plan before runtime work.
-- Child `137` must preserve exact Publication/link access, keep credentials in
-  browser memory only, and treat review approval strictly as Publication
-  evidence rather than authority to execute an API request.
+- Child `138` must preserve exact Publication/link access, the browser-direct
+  and memory-only credential boundary, matching origin-set/CSP authority, and
+  the separation between review evidence and API request authority.
 - The measured single-chunk bundle growth, organization-configurable
   quotas/reporting, production observability, and capability-dependent
   Firefox/WebKit or production-p75 evidence remain child `138` work.

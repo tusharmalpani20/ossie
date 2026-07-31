@@ -457,6 +457,33 @@ Do not use production accounts, customer systems, private URLs, or private scree
   - public guide and interactive demo Revision graphs intentionally omit internal source event IDs while preserving exact-Revision protected Assets
 - Follow-up plans/issues: none recorded yet
 
+### 2026-07-31 Documentation Browser-Direct Try-It Slice
+
+- Plan: `docs/plan/137-documentation-api-try-it-and-example-experience.md`
+- Environment: disposable `testing` database; API `http://localhost:4021`;
+  production Vite preview `http://localhost:3000`; exact synthetic public
+  target `https://api.github.com`
+- Browser: installed `agent-browser` with isolated Admin, Viewer, and public
+  Chromium sessions
+- Automated coverage: shared/domain/server/web unit suites, focused DB
+  integration, migration chain, type checks, builds, and scoped lint
+- Browser flows passed:
+  - Admin exact-origin/credential/operation policy and independent Publish Link
+    opt-in
+  - Viewer read-only policy with authenticated draft request builder
+  - public immutable operation, on-demand authority, confirmation, exactly one
+    target fetch, inert response, and `204` content-free report
+  - unique synthetic credential marker confined to the password control and
+    target request, then synchronously cleared
+  - strict production CSP, 320px reflow, 200% zoom simulation, reduced motion,
+    and zero axe A/AA violations on public and Viewer surfaces
+- Evidence:
+  `docs/ui/137-documentation-api-try-it-and-example-experience-browser-evidence.md`
+- Known baseline: Admin axe returned two indeterminate contrast checks on
+  pre-existing partially obscured authoring textareas and no violations; the
+  workspace lint gate retains unrelated pre-existing warnings documented in
+  the child verification record.
+
 Use this template for future smoke runs:
 
 ```text

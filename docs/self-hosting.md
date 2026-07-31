@@ -143,6 +143,35 @@ containing pre-`016` writers is intentionally unsupported. Rollback likewise
 stops writers before `016` DOWN and the prior server deployment; retained Audit
 Evidence is not deleted.
 
+## Documentation Browser-Direct Try It
+
+Try It is disabled unless the deployment operator and a Project Admin both
+approve it. Configure the same comma-separated set of exact public HTTPS
+origins for the API and web build:
+
+```bash
+OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS=https://api.example.com
+VITE_OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS=https://api.example.com
+```
+
+Values must be origins only: no wildcard, credentials, path, query, fragment,
+HTTP, localhost, or private-network target. The API re-resolves every configured
+target before issuing short-lived authority and rejects mixed public/private
+answers. Changing the set requires rebuilding/redeploying the web app as well
+as reloading the server. Production environment reporting exposes only the
+origin count and deterministic digest.
+
+The SPA response must carry the repository-generated restrictive CSP as an HTTP
+header. If an existing reverse-proxy policy is used, merge only the exact Ossie
+API origin and configured target origins into `connect-src`; do not add `*`,
+`https:`, or a relay. Multiple CSP policies intersect, so a stricter operator
+policy intentionally leaves Send unavailable. The meta policy is a static-host
+fallback and cannot replace header-only directives such as `frame-ancestors`.
+
+Ossie never proxies the target request. Browser CORS, TLS, DNS,
+authentication, and target rate limits remain authoritative. Credentials are
+entered per open request panel and are not stored.
+
 ## Run
 
 Server:
