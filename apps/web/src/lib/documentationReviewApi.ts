@@ -236,6 +236,28 @@ export const listDocumentationPublicationReviewEvidence = (
     }>(response),
   );
 
+export const getDocumentationPublicationReviewEvidence = (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  evidenceId: string,
+) =>
+  fetch(
+    `${sitePath(projectId, versionSlug, siteId)}/review-publication-evidence/${encodeURIComponent(evidenceId)}`,
+    { credentials: "include" },
+  ).then((response) =>
+    json<{
+      evidence: {
+        id: string;
+        site_revision_id: string;
+        operation: "publication" | "rollback";
+        outcome: "not_required" | "approved" | "overridden";
+        created_at: string;
+      };
+      override_reason: string | null;
+    }>(response),
+  );
+
 export const listDocumentationReviewInbox = (
   projectId: string,
   versionSlug: string,

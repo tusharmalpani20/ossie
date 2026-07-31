@@ -4,6 +4,7 @@ import {
   createDocumentationReviewRequest,
   cancelDocumentationReview,
   decideDocumentationReview,
+  getDocumentationPublicationReviewEvidence,
   getDocumentationReviewPolicy,
   getDocumentationReviewRequest,
   listDocumentationPublicationReviewEvidence,
@@ -34,6 +35,7 @@ type Props = {
   decideReview?: typeof decideDocumentationReview;
   cancelReview?: typeof cancelDocumentationReview;
   loadEvidence?: typeof listDocumentationPublicationReviewEvidence;
+  loadEvidenceDetail?: typeof getDocumentationPublicationReviewEvidence;
 };
 
 export const DocumentationReviewPanel = ({
@@ -53,6 +55,7 @@ export const DocumentationReviewPanel = ({
   decideReview = decideDocumentationReview,
   cancelReview = cancelDocumentationReview,
   loadEvidence = listDocumentationPublicationReviewEvidence,
+  loadEvidenceDetail = getDocumentationPublicationReviewEvidence,
 }: Props) => {
   const [policy, setPolicy] = useState<DocumentationReviewPolicy | null>(null);
   const [candidates, setCandidates] = useState<DocumentationReviewCandidate[]>(
@@ -69,6 +72,10 @@ export const DocumentationReviewPanel = ({
   const [evidence, setEvidence] = useState<
     Awaited<ReturnType<typeof loadEvidence>>["evidence"]
   >([]);
+  const [evidenceDetail, setEvidenceDetail] = useState<{
+    id: string;
+    override_reason: string | null;
+  } | null>(null);
   const [status, setStatus] = useState("Loading review workflow…");
 
   const refresh = async () => {
@@ -382,6 +389,42 @@ export const DocumentationReviewPanel = ({
               <li key={item.id}>
                 {item.operation}: {item.outcome} —{" "}
                 {new Date(item.created_at).toLocaleString()}
+                {canManagePolicy ? (
+                  <>
+                    {" "}
+                    <Button
+                      onClick={() => {
+                        setStatus("Loading publication review evidence…");
+                        void loadEvidenceDetail(
+                          projectId,
+                          versionSlug,
+                          siteId,
+                          item.id,
+                        )
+                          .then((loaded) => {
+                            setEvidenceDetail({
+                              id: item.id,
+                              override_reason: loaded.override_reason,
+                            });
+                            setStatus("Publication review evidence loaded.");
+                          })
+                          .catch(() =>
+                            setStatus(
+                              "Publication review evidence could not be loaded.",
+                            ),
+                          );
+                      }}
+                    >
+                      View evidence details
+                    </Button>
+                    {evidenceDetail?.id === item.id ? (
+                      <p>
+                        Override reason:{" "}
+                        {evidenceDetail.override_reason ?? "Not overridden"}
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
               </li>
             ))}
           </ul>
