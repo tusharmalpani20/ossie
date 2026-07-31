@@ -2221,6 +2221,16 @@ default or external reviewers.
 - no notification leaks content;
 - child `137` receives stable public policy configuration.
 
+### Implemented result
+
+Child `136` is complete. It ships Edition-owned optional-by-default policy,
+exact immutable Revision Review Requests, frozen assignments/thresholds,
+current-member eligibility checks, immutable decisions, content-free
+in-product notifications, deterministic supersession/cancellation, atomic
+Publication and rollback gates, Admin-only reasoned override, and immutable
+Publication Review Evidence. Comments remain separate private authoring state;
+review is not authorization and no public contract contains review state.
+
 ## 34. Child 137: Documentation API Try-It And Example Experience
 
 ### Goal
@@ -2630,7 +2640,7 @@ By child `139`, the combined verification must include:
 - [x] Create, expand, recheck, implement, verify, and close child `133`.
 - [x] Create, expand, recheck, implement, verify, and close child `134`.
 - [x] Create, expand, recheck, implement, verify, and close child `135`.
-- [ ] Create, expand, recheck, implement, verify, and close child `136`.
+- [x] Create, expand, recheck, implement, verify, and close child `136`.
 - [ ] Create, expand, recheck, implement, verify, and close child `137`.
 - [ ] Create, expand, recheck, implement, verify, and close child `138`.
 - [ ] Create, expand, recheck, verify, and close child `139`.
@@ -2773,6 +2783,12 @@ follows the same close-predecessor rule.
   safe blocking inspections, and corrected portal refresh/read-only/focus/
   landmark behavior. The actual portability result now hands off to child
   `135`.
+- 2026-07-30: implemented and verified child `136` from the independently
+  rechecked plan. Added exact-Revision review policy/requests/assignments/
+  decisions, content-free inbox notifications, current-eligibility evaluation,
+  optional Publication/rollback gating, atomic Admin override, immutable review
+  evidence, portal workflows, ADR `0032`, and browser evidence. Child `137` is
+  now the active handoff.
 
 ## 47. Master Planning Verification Record
 
@@ -2878,10 +2894,30 @@ Child `135` implementation evidence includes:
   library, lifecycle workbench, source lifecycle grouping, retained immutable
   public reader, safe `gone` output, and clean browser console.
 
+Child `136` implementation evidence includes:
+
+- additive migration `029`, optional-by-default Edition policy, exact Revision
+  requests, assignments, immutable decisions, content-free inbox
+  notifications, immutable Publication Review Evidence, guarded rollback, and
+  clean `001`–`029` rehearsal;
+- current active-member/role and self-review enforcement, deterministic
+  new-Revision supersession, rejection/cancellation, idempotent mutation
+  receipts, serialized Publication/rollback gate evaluation, and Admin-only
+  reasoned override;
+- full server non-DB suite 115 files / 501 tests, full web suite 75 files / 410
+  tests, relevant DB suite 3 files / 12 tests, final review panel 1 file / 2
+  tests, and server/web type checks;
+- Audit/Access/authorization/reset/fixture coverage and private/public response
+  boundaries;
+- headless Chromium Admin/Viewer policy, request, inbox read state, exact
+  approval, required-policy gate, evidence history, and zero-violation axe
+  evidence in
+  `docs/ui/136-documentation-review-and-approval-workflow-browser-evidence.md`.
+
 ## 48. Planning Leftovers And Handoff
 
-- Product Documentation children `132` through `135` are complete and
-  verified. Child `136` is next.
+- Product Documentation children `132` through `136` are complete and
+  verified. Child `137` is next.
 - Child `132` established the first vertical slice. Child `133` extended it
   with the complete constrained V1 block graph, Edition-owned Snippets,
   Documentation/Capture Asset sources, exact artifact Publication references,
@@ -2896,12 +2932,11 @@ Child `135` implementation evidence includes:
   collaboration, permanent deletion, cross-artifact search, server proxy,
   stored credentials, SDK generation, and Video remain deferred/rejected as
   recorded.
-- The next work is to expand child `136` against the closed child `135`
+- The next work is to expand child `137` against the closed child `136`
   result, then recheck that implementation-ready plan before runtime work.
-- Child `136` must use the final separate `carry_forward` plus ordered `items`
-  response, exact selector Working Draft/Revision identities, and typed target
-  blocker. It must preserve archived Page comments as read-only history and
-  never treat Carry-Forward provenance as inherited review approval.
+- Child `137` must preserve exact Publication/link access, keep credentials in
+  browser memory only, and treat review approval strictly as Publication
+  evidence rather than authority to execute an API request.
 - The measured single-chunk bundle growth, organization-configurable
   quotas/reporting, production observability, and capability-dependent
   Firefox/WebKit or production-p75 evidence remain child `138` work.

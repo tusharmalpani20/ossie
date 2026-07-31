@@ -2,7 +2,7 @@
 
 Date accepted: 2026-07-30
 
-Status: Accepted target model, implemented through child `134` portability.
+Status: Accepted target model, implemented through child `136` review.
 
 Sources:
 
@@ -11,11 +11,11 @@ Sources:
 - `docs/plan/131-documentation-domain-grill.md`
 - `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 - `CONTEXT.md`
-- ADRs `0021` through `0031`
+- ADRs `0021` through `0032`
 
 This document consolidates the final answers from the 32-question Documentation
 domain grill. It remains the decision authority for the Documentation runtime
-implemented through child `134`; later child plans must preserve or explicitly
+implemented through child `136`; later child plans must preserve or explicitly
 supersede these accepted boundaries.
 
 ## 1. Accepted Domain Model
@@ -270,6 +270,43 @@ raw search queries.
 
 The primary language uses a standard language tag in V1. Translation state and
 fallback are deliberately later.
+
+## 7.1 Shipped Review And Approval Boundary
+
+Child `136` implements the accepted internal review slice under ADR `0032`.
+
+- Each Site Edition owns one Review Policy. Existing and newly created
+  Editions default to `optional`; only an authorized Project Admin may change
+  policy, approval threshold, maintainer requirement, or maintainers.
+- Review Requests target exact immutable Site Revisions. The request freezes
+  its threshold and assignments, while decision and Publication evaluation
+  still require current active Project access and role eligibility.
+- Assigned active internal Viewers, Editors, and Admins may decide. A requester
+  cannot approve their own request. Organization Owner status supplies ordinary
+  implicit Project Admin access but does not bypass exact-target or
+  self-review rules.
+- The newest request for an exact Revision governs. A newer Revision
+  supersedes older open requests; later mutable draft edits cannot change the
+  already frozen target.
+- Rejection makes the request terminal. Cancellation is explicit and reasoned.
+  Decisions, evidence, and historical requests are immutable.
+- Publication and rollback remain ordinary authorized commands. When policy is
+  required they must prove the current exact Revision has enough currently
+  valid approvals, including a valid maintainer approval when configured.
+- Project Admin override is explicit, reasoned, serialized with the link
+  switch, and represented by immutable Publication Review Evidence. Summary
+  evidence is available to Project members; the override reason detail remains
+  Admin-only.
+- In-product notifications contain identifiers and safe display context only.
+  Comment bodies, decision reasons, override reasons, draft content, secrets,
+  and public review metadata are excluded.
+- Existing pre-migration Publications remain readable and existing Editions
+  remain publishable because their backfilled policy is optional. Historical
+  pre-migration link switches have no fabricated evidence.
+
+Review is Documentation-only. It does not establish external reviewers,
+email/webhook delivery, Page-level approval, a general cross-artifact workflow,
+or authorization by approval.
 
 ## Shipped portability boundary
 

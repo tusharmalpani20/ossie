@@ -249,17 +249,12 @@ _Avoid_: Artifact revision number, row version, project version
 A stable shareable access route for one authored output. The implemented Guide/Interactive Demo form belongs to one Artifact and exposes explicitly selected Artifact Editions through immutable Published Artifact entries. The accepted Documentation form belongs to one Documentation Site and exposes explicitly selected Site Editions through immutable Site Publication entries. Each link has one explicit default version and one link-wide access policy.
 _Avoid_: Draft link
 
-## Documentation Language: Shipped Through Child 133 And Accepted V1
+## Documentation Language: Shipped Through Child 136 And Accepted V1
 
-Documentation Site, Site Edition, Site Working Draft, Documentation Page,
-Navigation Tree, redirect/alias rules, OpenAPI Source, Documentation Asset,
-private comments, Site Revision, Site Publication, and Documentation Publish
-Link were implemented by child `132`. Child `133` adds Edition-owned reusable
-snippets, the complete constrained V1 content block set, exact Guide and
-Interactive Demo Publication reference cards, a Documentation Asset library,
-and authorized same-Project Capture Asset reuse. Carry-Forward and later
-review/lifecycle extensions below remain accepted V1 target language and must
-not be described as shipped yet.
+Documentation Site through private comments and Publication shipped in child
+`132`; content/assets, portability, multi-Site lifecycle/Carry-Forward, and
+review/approval followed in children `133` through `136`. The terms below now
+describe shipped runtime through child `136` unless explicitly marked later.
 
 The terms below are accepted by child `131` for implementation beginning at
 `132`. They describe the target domain and do not claim shipped tables, routes,
@@ -361,6 +356,42 @@ _Avoid_: Public feedback, published annotation, approval gate
 An authenticated view of current mutable Site Working Draft state. It is not an
 immutable Revision or a public Publication.
 _Avoid_: Publish Link, Site Publication
+
+**Documentation Review Policy**:
+The independently mutable policy owned by one Site Edition. It is `optional` by
+default and may require a frozen approval count and, optionally, at least one
+current maintainer approval before a future Publication link switch.
+_Avoid_: Project Membership, public access policy, mandatory global gate
+
+**Documentation Review Request**:
+A numbered, immutable-target request for review of one exact Site Revision.
+Only the newest request for that Revision governs Publication; a newer Revision
+supersedes open requests for older content.
+_Avoid_: Comment thread, mutable draft approval, authorization grant
+
+**Documentation Review Assignment**:
+The frozen assignment of an active internal Project member to one Review
+Request. Current membership and role eligibility are rechecked when a decision
+or Publication gate is evaluated.
+_Avoid_: external reviewer token, permanent reviewer role
+
+**Documentation Review Decision**:
+One immutable approve or reject decision by an assigned eligible reviewer for
+an exact Review Request. It records an optional private reason and never changes
+the underlying Site Revision.
+_Avoid_: Publication authorization, public endorsement, comment
+
+**Documentation Review Notification**:
+A private, content-free in-product inbox item for an internal Project member.
+Read state is recipient-owned; no email, webhook, or push delivery is implied.
+_Avoid_: public activity feed, content copy, external delivery receipt
+
+**Publication Review Evidence**:
+An immutable record created atomically for every post-review-workflow
+Publication or rollback link switch. It records whether review was not
+required, satisfied, or overridden; an override requires a Project Admin and a
+reason whose detail remains Admin-only.
+_Avoid_: mutable policy snapshot, public metadata, Audit Event replacement
 
 ## Relationships
 
@@ -504,8 +535,16 @@ _Avoid_: Publish Link, Site Publication
   it does not overwrite a Page or preserve the complete typed Site graph
 - Accepted V1 Documentation Carry-Forward will copy one selected whole
   Documentation Site from an exact Site Revision into an independent missing
-  target Site Edition; it does not live-link later edits and is not shipped by
-  child `132`
+  target Site Edition; it does not live-link later edits
+- Every **Site Edition** owns exactly one **Documentation Review Policy**
+- A **Documentation Review Request** targets exactly one immutable Site
+  Revision and owns frozen Review Assignments and immutable Review Decisions
+- Review approval never grants Project access or Publication capability; the
+  current actor must still pass ordinary authorization
+- Every successful post-child-`136` Publication or rollback link switch writes
+  exactly one immutable **Publication Review Evidence** row atomically
+- Documentation review notifications are private, content-free, in-product
+  inbox records and are never part of public output
 
 ## Example Dialogue
 

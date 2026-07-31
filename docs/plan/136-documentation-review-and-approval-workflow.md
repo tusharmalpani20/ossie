@@ -4,9 +4,9 @@ Date reserved: 2026-07-30
 
 Date expanded: 2026-07-30
 
-Status: Expanded, independently rechecked, and implementation-ready; not
-implemented. The child `135` sequence gate is satisfied, and the docs-only
-checkpoint is complete.
+Status: Complete and verified on 2026-07-30. Exact-Revision internal review,
+optional Publication gating, private in-product notifications, immutable
+Publication Review Evidence, and the authorized Admin override are implemented.
 
 Parent plan:
 
@@ -2006,16 +2006,16 @@ Child `136` is complete only when:
 
 ### Implementation
 
-- [ ] Shared constants/contracts/domain policy implemented test-first.
-- [ ] Migration `029` implemented and rehearsed.
-- [ ] Review repository/service/routes implemented.
-- [ ] Publication and rollback gate/override implemented atomically.
-- [ ] Audit/Access/reset/authorization coverage implemented.
-- [ ] Portal review panel/inbox/publishing integration implemented.
-- [ ] Deterministic browser fixture implemented.
-- [ ] Focused/full/agent-browser verification passed.
-- [ ] Context/ADR/decision/master/docs updated.
-- [ ] Scoped logical commits complete.
+- [x] Shared constants/contracts/domain policy implemented test-first.
+- [x] Migration `029` implemented and rehearsed.
+- [x] Review repository/service/routes implemented.
+- [x] Publication and rollback gate/override implemented atomically.
+- [x] Audit/Access/reset/authorization coverage implemented.
+- [x] Portal review panel/inbox/publishing integration implemented.
+- [x] Deterministic browser fixture implemented.
+- [x] Focused/full/agent-browser verification passed.
+- [x] Context/ADR/decision/master/docs updated.
+- [x] Scoped logical commits complete.
 
 ## 21. Planning Log
 
@@ -2053,6 +2053,26 @@ Child `136` is complete only when:
   default-policy parent Audit evidence, missing-policy fail-closed behavior,
   exact existing Documentation service ownership, and browser/DB verification
   explicit.
+- 2026-07-30: Implemented shared review constants, strict request/response
+  contracts, frozen-threshold/current-eligibility policy evaluation, and domain
+  tests before repository wiring (`8b16d47`).
+- 2026-07-30: Added migration `029`, policy/request/assignment/decision/inbox/
+  evidence persistence, application services/routes, Audit and Access
+  registries, authorization coverage, reset/fixture integration, and atomic
+  Publication/rollback gates (`1758108`).
+- 2026-07-30: Rehearsed a clean `001`–`029` database, then repaired the issues
+  found by actual DB/browser execution: typed nullable SQL parameters,
+  current-assignee decision projection, and inbox Access Evidence rooting
+  after Project Version resolution (`d55ffe0`).
+- 2026-07-30: Added the Documentation review workbench, policy controls,
+  candidate assignment, request history/detail/actions, Project-Version inbox,
+  exact Publishing gate/override state, and Publication evidence history
+  (`34fa074`).
+- 2026-07-30: Completed the final Admin-only on-demand evidence-detail UI so an
+  override reason is never fetched by the ordinary member list path.
+- 2026-07-30: Recorded the accepted domain language, ADR `0032`, decision
+  boundary, dogfood/browser evidence, truthful leftovers, and child `137`
+  handoff.
 
 ## 22. Planning Verification Record
 
@@ -2095,6 +2115,32 @@ Independent recheck verification:
   no-inherited-review handoff were reconciled;
 - Prettier and `git diff --check` passed after the recheck edits.
 
+Implementation verification:
+
+- clean test database migration `001` through `029`: passed;
+- guarded migration/reset and relevant Documentation DB integration: 3 files,
+  12 tests passed;
+- full server non-DB suite: 115 files, 501 tests passed;
+- full web suite before the final evidence-detail closure: 75 files, 410 tests
+  passed;
+- final focused review-panel suite: 1 file, 2 tests passed;
+- server and web TypeScript checks: passed;
+- Audit mutation coverage, Access coverage/rooting, project authorization,
+  review domain/service/route, Publication gate, reset, and fixture focused
+  checks: passed;
+- headless Chromium Admin/Viewer workflow: policy, candidate/request history,
+  unread/read inbox, exact request navigation, assigned Viewer approval,
+  required-policy approved gate, and evidence history passed;
+- agent-browser WCAG 2 A/AA axe scan: zero violations, with one explicitly
+  recorded indeterminate textarea contrast check;
+- privacy inspection confirmed no comment/page content, decision/override
+  reason, credentials, or review state entered public output or ordinary inbox/
+  evidence summaries;
+- browser record:
+  `docs/ui/136-documentation-review-and-approval-workflow-browser-evidence.md`;
+- final formatting, Markdown/link checks, scoped status, and `git diff --check`
+  passed before the closure commit.
+
 ## 23. Leftovers And Handoff To Child 137
 
 Child `137` receives:
@@ -2105,6 +2151,9 @@ Child `137` receives:
 - atomic Admin override provenance;
 - private review state that is never public;
 - unchanged self-contained OpenAPI source and public operation routes.
+- no server-side proxy, stored credential, or review-derived authorization;
+- a Publication gate that must remain independent from browser-direct Try It
+  enablement and request execution.
 
 API Try It must not:
 

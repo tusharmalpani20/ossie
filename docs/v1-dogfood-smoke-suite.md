@@ -30,6 +30,12 @@ Child `133` then added and verified the constrained V1 content, reusable
 Snippet, Documentation/Capture Asset, exact artifact Publication reference,
 immutable snapshot, public reader, and search workflows. Its evidence is
 `docs/ui/133-documentation-content-snippets-and-asset-workflows-browser-evidence.md`.
+Children `134` and `135` then shipped inspected package portability and
+multi-Site lifecycle/Carry-Forward. Child `136` shipped exact-Revision internal
+review, private inbox notifications, optional approval gating, immutable
+Publication Review Evidence, and Admin-only reasoned override. Its current
+browser record is
+`docs/ui/136-documentation-review-and-approval-workflow-browser-evidence.md`.
 The original entries below remain unchanged.
 
 ## Prerequisites
