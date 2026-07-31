@@ -4,14 +4,13 @@ Date reserved: 2026-07-30
 
 Date expanded: 2026-07-31
 
-Status: Closing. The documentation-only decision session began on 2026-07-31
+Status: Complete. The documentation-only decision session began on 2026-07-31
 from clean commit `df409d0`, and the user finally accepted the complete Q1–Q17
 ledger plus the Documentation-owned Master `007` sequence on 2026-07-31.
-Canonical synchronization, planning reservations, verification, and scoped
-commits remain before this child is complete. Product Documentation V1 remains
-implemented and independently close-rechecked through child `139`; this child
-authorizes no runtime, schema, route, dependency, or browser-visible
-implementation.
+Canonical decisions/current truth are synchronized, Master `006` is complete,
+and planning-only Master `007` with bounded children `141`–`146` is reserved.
+This child made no Product Documentation runtime, schema, route, migration,
+dependency, or browser-visible change.
 
 Parent plan:
 
@@ -1529,20 +1528,20 @@ Child `140` may close only when:
 - [x] Freeze execution HEAD/worktree and reconcile drift.
 - [x] Create the dated grill record.
 - [x] Record shipped facts, evidence gaps, and current limitations.
-- [ ] Conduct Q1–Q16 one consequential question at a time.
-- [ ] Reconcile cross-question conflicts and dependencies.
-- [ ] Complete Q17 final prioritization and sequence.
-- [ ] Obtain explicit user acceptance of the complete disposition ledger.
-- [ ] Mark every opened answer finally accepted/deferred/rejected.
-- [ ] Update Documentation decisions and feature matrix.
-- [ ] Update Context only for accepted canonical language.
-- [ ] Create only justified accepted ADRs.
-- [ ] Create exactly one correctly owned Master `007` and bounded reservations
+- [x] Conduct Q1–Q16 one consequential question at a time.
+- [x] Reconcile cross-question conflicts and dependencies.
+- [x] Complete Q17 final prioritization and sequence.
+- [x] Obtain explicit user acceptance of the complete disposition ledger.
+- [x] Mark every opened answer finally accepted/deferred/rejected.
+- [x] Update Documentation decisions and feature matrix.
+- [x] Update Context only for accepted canonical language.
+- [x] Create only justified accepted ADRs.
+- [x] Create exactly one correctly owned Master `007` and bounded reservations
       only if authorized.
-- [ ] Close Master `006`.
-- [ ] Run focused documentation verification.
-- [ ] Complete this child's decision log, verification, leftovers, and handoff.
-- [ ] Commit only scoped documentation/plan/ADR changes.
+- [x] Close Master `006`.
+- [x] Run focused documentation verification.
+- [x] Complete this child's decision log, verification, leftovers, and handoff.
+- [x] Commit only scoped documentation/plan/ADR changes.
 
 ## 24. Planning Log
 
@@ -1647,10 +1646,15 @@ Child `140` may close only when:
   Selected the Documentation-owned Master `007` objective and ordered children
   `141`–`146`; accepted-later, deferred, rejected, maintenance, operations, and
   Knowledge Platform items remain outside that implementation checklist.
+- 2026-07-31: synchronized Context, Documentation decisions/feature matrix,
+  ADR `0034`, README, roadmap, zoom-out status, and repository docs content;
+  closed Master `006`; created only the selected Documentation Master `007`
+  and bounded children `141`–`146`; and verified the documentation-only scope.
+  Commits `c234b90`, `df7c58e`, and `512fa6c` contain the accepted decisions,
+  next sequence, and V1-master/current-truth closure respectively.
 
-The expansion itself made no decision. The execution session now has final
-user authority for Q1–Q17; canonical synchronization and closeout remain in
-progress.
+The expansion itself made no decision. The completed execution session has
+final user authority for Q1–Q17 and made no runtime change.
 
 ## 25. Expansion Verification Record
 
@@ -1708,25 +1712,53 @@ Independent implementation-readiness recheck:
 - only this plan changed; no runtime test, migration, browser session, or
   dependency operation was needed.
 
+Final decision-session and closure verification on 2026-07-31:
+
+- complete grill ledger: 17 questions / 17 final dispositions;
+- selected planning ownership: exactly one Master `007`, the Documentation
+  variant; the Knowledge Platform alternative is absent;
+- bounded reservations: exactly six children, `141`–`146`;
+- accepted durable ADR: `0034`; no speculative ADR was created for deferred or
+  merely accepted-later work;
+- Context, Documentation decisions/feature matrix, README, roadmap, zoom-out
+  status, docs hub, Master `006`, Master `007`, and child reservations agree;
+- stale active claims that Product Documentation is unimplemented or child
+  `132` is next: absent from current-truth surfaces;
+- docs package tests: 4 files / 12 tests passed;
+- docs lint: passed with zero warnings;
+- docs type-check and Next route type generation: passed;
+- Prettier over all changed Markdown/TypeScript documentation surfaces: passed;
+- `git diff --check`: passed;
+- baseline-to-closeout scoped-path check: no `apps/server`, `apps/web`,
+  `apps/extension`, `packages`, migration, root package-manifest, or lockfile
+  change;
+- required Master/child/ADR paths and one-master/six-child counts: passed;
+- no dependency install, migration, runtime test, seed, browser fixture, or
+  agent-browser session was required because child `140` changed no executable
+  Product Documentation behavior.
+
 ## 26. Leftovers And Handoff
 
-The next prompt-chain step is execution of this decision gate: create the dated
-grill record and conduct Q1–Q17 one consequential question at a time with
-explicit user authority. Executing child `140` means conducting and recording
-the decision session. It still does not mean implementing an accepted
-candidate.
+Completed result:
 
-Possible final handoffs:
+- Product Documentation V1 remains shipped and independently close-rechecked
+  through child `139` with migration head `031`.
+- The full Q1–Q17 ledger is final.
+- Master `006` is complete.
+- Exactly one next master exists:
+  `docs/plan/master/007-documentation-post-v1-master-plan.md`.
+- Children `141`–`146` are bounded reservations, not implementation-ready
+  plans.
+- No Knowledge Platform Master `007` alternative was created.
 
-- one or more `accept-next` decisions:
-  the correctly owned Master `007` plus bounded child reservations, followed
-  by the normal rewrite/recheck/implement/recheck chain;
-- no `accept-next` decision:
-  Master `006` closes with explicit accepted-later/deferred/rejected records and
-  no active Documentation implementation plan;
-- unresolved critical authority:
-  child `140` remains in progress with the exact blocked question and required
-  user/external evidence;
-- newly discovered V1 defect:
-  stop the decision gate and create a separately scoped V1 repair; do not hide
-  it in future scope.
+Accepted-later, deferred, rejected, maintenance, operations, and Knowledge
+Platform candidates remain in the final feature matrix with their owners and
+reopen triggers. In particular, static export is later; direct cloud deployment
+and full SDK packages are deferred; archive/soft delete remains the only current
+destructive lifecycle.
+
+The next prompt-chain step is to rewrite/expand child `141` against Master
+`007`, this child/grill, Master `006`, ADRs `0027`–`0034`, current dependencies,
+current Documentation code, and worktree state. Then independently recheck that
+plan. Do not install Tiptap/Fumadocs or implement a prototype before those two
+planning gates pass.

@@ -3096,25 +3096,29 @@ None. Q1–Q17 are finally answered.
 
 ## 27. Verification Record
 
-Initial checkpoint verification:
+Initial checkpoint verification passed before Q1 opened. Final closure
+verification on 2026-07-31 established:
 
-- Prettier over the grill record and child `140`: passed;
-- `git diff --check`: passed;
-- scoped path check: passed; only the grill record and child `140` changed;
-- baseline drift check: passed; no commit exists after the independently
-  rechecked plan checkpoint;
-- candidate ledger: all Q1–Q17 entries present, with only the current question
-  open;
-- no Master `007`, child `141`, ADR, runtime, schema, route, dependency, or
-  browser artifact was created.
+- 17 questions / 17 final dispositions;
+- exactly one selected Documentation Master `007` and six bounded children
+  `141`–`146`;
+- accepted ADR `0034`, with no ADR implying implementation of accepted-later or
+  deferred work;
+- synchronized Context, Documentation decisions/feature matrix, README,
+  roadmap, zoom-out status, docs hub, and Master `006`/`007` planning truth;
+- docs package 4 files / 12 tests, zero-warning lint, and type-check passed;
+- Prettier and `git diff --check` passed;
+- no server, web product, extension, shared package, migration, dependency,
+  fixture, seed, or browser artifact changed from the decision-session
+  baseline.
 
 No runtime tests, migrations, dependency operations, or agent-browser sessions
-are required for this documentation-only checkpoint.
+were required for this documentation-only decision gate.
 
 ## 28. Current Handoff
 
-Final authority is recorded. Create the selected Documentation Master `007`
-and bounded children `141`–`146`, synchronize canonical decision/current-truth
-documents, close child `140` and Master `006`, verify the documentation-only
-change set, and hand off to expansion/recheck of child `141`. Do not implement
-runtime behavior in this closeout.
+Child `140` and Master `006` are complete. Master `007` and bounded children
+`141`–`146` are planning-only. Rewrite/expand child `141`, then independently
+recheck it against the master, this grill, accepted ADRs, current dependencies,
+current code, and worktree before installing Tiptap/Fumadocs or implementing a
+prototype.

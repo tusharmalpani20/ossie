@@ -61,6 +61,12 @@ export const docsLinks = [
       "Current alpha, the accepted platform foundation, Documentation next, and intentionally deferred areas.",
   },
   {
+    label: "Documentation post-V1 plan",
+    href: `${repositoryBaseUrl}/docs/plan/master/007-documentation-post-v1-master-plan.md`,
+    description:
+      "Planning-only adapter, experience modernization, request-example, hardening, and closeout sequence.",
+  },
+  {
     label: "Contributor guide",
     href: `${repositoryBaseUrl}/docs/contributor-guide.md`,
     description:

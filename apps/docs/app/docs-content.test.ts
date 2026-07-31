@@ -45,6 +45,12 @@ describe("docs content", () => {
           href: expect.stringContaining("/docs/roadmap.md"),
         }),
         expect.objectContaining({
+          label: "Documentation post-V1 plan",
+          href: expect.stringContaining(
+            "/docs/plan/master/007-documentation-post-v1-master-plan.md",
+          ),
+        }),
+        expect.objectContaining({
           label: "Contributor guide",
           href: expect.stringContaining("/docs/contributor-guide.md"),
         }),

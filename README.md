@@ -73,8 +73,8 @@ The product intentionally keeps guides and interactive demos separate. A capture
 
 Master Plan `005` closed the version/governance and UI foundation. Master Plan
 `006` and children `132`–`140` completed Product Documentation V1 and its
-post-V1 decision gate. Master Plan `007` now reserves the next Documentation
-experience sequence:
+post-V1 decision gate. [Master Plan `007`](docs/plan/master/007-documentation-post-v1-master-plan.md)
+now reserves the next Documentation experience sequence:
 
 ```text
 Organization
