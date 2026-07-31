@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q4 are provisionally recorded and Q5 is open
+Status: In progress. Q1 through Q5 are provisionally recorded and Q6 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -152,8 +152,8 @@ Inference and preference must not be written as shipped fact.
 | Q2       | GitHub App proposals and export automation                      | Answered   | `accept-later`: one-way proposal | Provisional     |
 | Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Answered   | `defer` until Git is selected    | Provisional     |
 | Q4       | Translation identity, fallback, and workflow                    | Answered   | `accept-later`: human-first      | Provisional     |
-| Q5       | Custom domains                                                  | Open       | Pending                          | Pending         |
-| Q6       | Public feedback                                                 | Not opened | None                             | Pending         |
+| Q5       | Custom domains                                                  | Answered   | `accept-later`: verified domain  | Provisional     |
+| Q6       | Public feedback                                                 | Open       | Pending                          | Pending         |
 | Q7       | Public analytics                                                | Not opened | None                             | Pending         |
 | Q8       | External reviewer access                                        | Not opened | None                             | Pending         |
 | Q9       | Realtime collaboration and presence                             | Not opened | None                             | Pending         |
@@ -915,7 +915,9 @@ closed.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-later` for one verified subdomain with managed HTTPS when supported by
+real demand and an accepted deployment/operator model. Do not select it as the
+next implementation from this answer alone.
 
 ### Simple decision requested
 
@@ -925,13 +927,166 @@ feature?
 Recommended answer: **Yes, later—but start with one verified subdomain and
 automatic HTTPS.**
 
-## 13. Questions Not Yet Opened
+### User answer
 
-Q6 through Q17 remain unmade. Their full implementation-safe question
+> Yes, later we should have these.
+
+Recorded interpretation:
+
+- preserve branded custom domains as an accepted-later possibility;
+- begin with one verified subdomain per Publish Link;
+- require proof of domain control and automatically managed HTTPS;
+- preserve the exact Publication and Publish Link access policy as authority;
+- do not select custom domains as `accept-next` before cross-question
+  reconciliation and deployment ownership are resolved.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 13. Q6 — Should Public Readers Be Able To Leave Documentation Feedback?
+
+### Why this question is open
+
+Reader feedback can show authors which published pages are unclear or
+unhelpful. Public input also creates spam, abuse, privacy, moderation,
+retention, and notification responsibilities. It must remain separate from V1
+private Page comments, which are an internal authoring workspace.
+
+### Shipped V1 facts
+
+- Page comments are private to authorized Project members.
+- A public reader never becomes a Project member by opening a Publish Link.
+- Public readers cannot mutate an immutable Publication.
+- Audit and Access Evidence are content-free operational/security records, not
+  product-feedback stores.
+- No public feedback, moderation queue, spam control, notification, retention,
+  consent, or data-subject workflow exists.
+- No reader-feedback demand or desired success measure is recorded.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- OWASP recommends identifying concrete feature-abuse cases and turning the
+  selected risks into security requirements and tests. Its examples include
+  hostile input in comment fields:
+  [Abuse Case Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Abuse_Case_Cheat_Sheet.html).
+- OWASP recommends syntactic and semantic input validation as early as
+  possible, with allowlists and explicit size/range limits where practical:
+  [Input Validation Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html).
+- The NIST Privacy Framework is a voluntary risk-management framework for
+  identifying and managing privacy risk while building products and services:
+  [NIST Privacy Framework](https://www.nist.gov/privacy-framework).
+
+### Inference
+
+A public free-text comment box would collect untrusted and potentially
+personal content before Ossie has accepted owners for moderation, abuse,
+retention, deletion, export, or notification. A small structured signal can
+answer whether a page helped while collecting much less data and creating a
+smaller attack surface.
+
+Feedback must be anchored to the exact Publication and Page the reader saw;
+otherwise later edits would make the signal ambiguous.
+
+### Recommendation
+
+Keep public feedback as an **accepted-later** capability, but make its first
+slice structured and minimal:
+
+1. an Organization or Project explicitly enables feedback for a Publish Link;
+2. a reader chooses “Helpful” or “Not helpful” on one exact Publication/Page;
+3. an optional bounded reason uses a fixed list, not free text;
+4. no account, email address, name, public profile, or public comment thread is
+   created;
+5. submissions are rate-limited and deduplicated with privacy-preserving,
+   short-lived abuse controls;
+6. authorized Project members see aggregate counts and fixed reasons;
+7. retention and deletion are configurable and documented;
+8. feedback never changes, comments on, or republishes Documentation.
+
+Do not add public free-form comments in the first slice.
+
+### Alternatives
+
+- **Defer:** wait for evidence that authors need reader feedback and define the
+  exact product question first.
+- **Reject:** direct readers to an external support or issue channel.
+- **Accept-next:** choose structured feedback only if it is the strongest
+  evidenced problem after the full candidate review.
+- **Free text later:** reconsider only with accepted moderation, abuse,
+  identity, retention, deletion/export, and notification ownership.
+
+### Rejected shortcuts
+
+- exposing V1 private Page comments publicly;
+- accepting unlimited anonymous free text;
+- storing feedback text in Audit or Access Evidence;
+- collecting email, IP address, full user agent, referrer, or stable tracking
+  identity without an explicit need and privacy authority;
+- showing raw feedback publicly;
+- allowing feedback to mutate a Page or Publication;
+- silently retaining submissions forever;
+- relying on client-side validation or rate limiting alone.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- PostgreSQL remains authority for feedback state; the exact Publication/Page
+  anchor is immutable.
+- Public readers may submit only when the Publish Link enables the feature;
+  they receive no Project read or write permission.
+- Project members need an explicit permission to view aggregates; only an
+  authorized Admin controls enablement and retention.
+- Fixed values are allowlisted and bounded; server-side rate, replay,
+  duplicate, and tenant checks fail closed.
+- Raw network identifiers, if temporarily required for abuse prevention, must
+  be minimized, protected, time-limited, and excluded from author-facing data,
+  Audit, and Access Evidence.
+- Deleting feedback never changes an immutable Publication.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. A future implementation would require additive
+feedback policy and exact-anchor records, public submission and member
+aggregate APIs, shared types, public-reader and portal UI, quotas/rate limits,
+privacy/retention operations, and browser/security tests. Existing Publish
+Links remain feedback-disabled by default.
+
+### Reversibility
+
+The structured, opt-in model is reversible: disabling it stops collection
+without changing Documentation. Collected records still require an accepted
+retention/deletion policy. Free-form or identity-bearing feedback would be
+harder to reverse because it creates moderation and privacy obligations.
+
+### Evidence gaps
+
+- no recorded author or reader demand;
+- no product question or success measure;
+- no accepted retention duration or legal/privacy authority;
+- no rate-limit infrastructure beyond the current in-process baseline;
+- no moderation/notification owner;
+- no decision on authenticated versus anonymous future feedback.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should we keep a simple “Helpful / Not helpful” reader-feedback feature as a
+possible later capability?
+
+Recommended answer: **Yes, later—but start with buttons and fixed reasons, not
+public comments or open text.**
+
+## 14. Questions Not Yet Opened
+
+Q7 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 14. Session Log
+## 15. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -950,8 +1105,11 @@ at a time with current primary-source research only when opened.
 - 2026-07-31: the user accepted human-first, locale-separated translation as
   an `accept-later` possibility subject to real demand. No machine translation
   or next implementation was selected. Opened custom domains as Q5.
+- 2026-07-31: the user accepted verified custom domains with managed HTTPS as
+  an `accept-later` possibility. No next implementation or infrastructure
+  owner was selected. Opened bounded public feedback as Q6.
 
-## 15. Verification Record
+## 16. Verification Record
 
 Initial checkpoint verification:
 
@@ -968,7 +1126,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 16. Current Handoff
+## 17. Current Handoff
 
-Awaiting explicit user/product authority for Q5. Do not open Q6 until Q5 is
+Awaiting explicit user/product authority for Q6. Do not open Q7 until Q6 is
 recorded.

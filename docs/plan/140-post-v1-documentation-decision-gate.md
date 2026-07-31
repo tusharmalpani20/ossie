@@ -5,8 +5,8 @@ Date reserved: 2026-07-30
 Date expanded: 2026-07-31
 
 Status: In progress. The documentation-only decision session began on
-2026-07-31 from clean commit `df409d0`. Q1 through Q4 are provisionally
-recorded and Q5 is open for explicit user/product authority. Product
+2026-07-31 from clean commit `df409d0`. Q1 through Q5 are provisionally
+recorded and Q6 is open for explicit user/product authority. Product
 Documentation V1 remains implemented and independently close-rechecked through
 child `139`; this child authorizes no runtime, schema, route, dependency, or
 browser-visible implementation.
@@ -1585,9 +1585,13 @@ Child `140` may close only when:
   human-authored, locale-separated translation capability triggered by real
   user demand. It is not selected as the next implementation, and machine
   translation is excluded from its first slice. Custom domains opened as Q5.
+- 2026-07-31: the user provisionally accepted Q5 as an `accept-later` managed
+  custom-domain capability beginning with one verified subdomain and automatic
+  HTTPS. It is not selected as the next implementation, and deployment/ACME
+  ownership remains a prerequisite. Structured public feedback opened as Q6.
 
 The expansion itself made no decision. At the current execution checkpoint Q1
-through Q4 are provisionally recorded, Q5 is open, and final cross-question
+through Q5 are provisionally recorded, Q6 is open, and final cross-question
 acceptance remains pending.
 
 ## 25. Expansion Verification Record
