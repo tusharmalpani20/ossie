@@ -2,10 +2,7 @@
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
-    "paths": {
-      "sharp": ["./node_modules/sharp/lib/index.d.ts"]
-    }
+    "rootDir": "src"
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
