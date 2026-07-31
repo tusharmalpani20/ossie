@@ -2,7 +2,8 @@
 
 Date accepted: 2026-07-30
 
-Status: Accepted target model, implemented through child `137` API experience.
+Status: Accepted target model, implemented and V1-closeout verified through
+child `139` on 2026-07-31.
 
 Sources:
 
@@ -15,7 +16,7 @@ Sources:
 
 This document consolidates the final answers from the 32-question Documentation
 domain grill. It remains the decision authority for the Documentation runtime
-implemented through child `137`; later child plans must preserve or explicitly
+implemented through child `139`; later child plans must preserve or explicitly
 supersede these accepted boundaries.
 
 ## 1. Accepted Domain Model
@@ -86,9 +87,10 @@ Ownership is Project-scoped:
 
 ### Tiptap
 
-The preferred authoring engine is Tiptap after child `132` proves its keyboard,
-screen-reader, serialization, sanitization, bundle, and lifecycle behavior.
-Adoption is replaceable:
+Tiptap was evaluated as a replaceable authoring adapter but was not adopted in
+V1. Child `132` selected Ossie's typed React controls because the first-slice
+proof did not justify adding another runtime or persistence boundary. Any later
+adoption remains optional and must preserve these boundaries:
 
 - Ossie owns commands, allowed block types, validation, relational persistence,
   autosave, Row Version conflicts, comments, permissions, and publication.
@@ -101,9 +103,11 @@ Adoption is replaceable:
 
 ### Fumadocs
 
-Fumadocs Core and selected Fumadocs UI pieces are the preferred reader/search/
-OpenAPI toolkit after a focused proof. Fumadocs is not the domain model,
-database, permission service, editor, or publication authority.
+Fumadocs Core/UI/OpenAPI were evaluated as replaceable reader adapters but were
+not adopted in V1. The shipped reader, search, initial-document, and OpenAPI
+experience are Ossie-owned React/Fastify/PostgreSQL adapters. Any later
+Fumadocs proof cannot make it the domain model, database, permission service,
+editor, or publication authority.
 
 Ossie owns authorized loading of one exact Site Publication, URL construction,
 canonical and redirect behavior, access policy, security filtering, search
@@ -114,10 +118,9 @@ views.
 
 On 2026-07-30, package-registry verification recorded `fumadocs-core` and
 `fumadocs-ui` `16.13.0`, `fumadocs-openapi` `11.2.2`, and Tiptap packages
-`3.29.2`, all under MIT licenses. These are research snapshots, not dependency
-pins. Child `132` must select exact compatible versions through the repository
-package manager, review transitive packages, and prove the adapter before
-adoption.
+`3.29.2`, all under MIT licenses. These remain historical research snapshots,
+not dependency pins. The V1 production dependency graph contains neither
+toolkit.
 
 ## 4. URL, Access, Search, And Publication Decisions
 
@@ -218,17 +221,22 @@ existing target Edition, and creates no live synchronization.
 
 ### Migration
 
-The current repository has no Documentation runtime state and migrations end at
-the pre-Documentation baseline. Child `132` therefore starts with additive
-migrations after the current sequence; it must not rewrite migrations `001`
-through `024`. The implementation plan must:
+The historical pre-Documentation baseline ended at migration `024`.
+Documentation V1 is now implemented by additive migrations `025` through `031`;
+the current head is
+`031_documentation_v1_operational_hardening.sql`. Migrations `001` through
+`031` remain immutable history.
 
-- add explicit relational tables, constraints, indexes, grants, audit guards,
-  reset/reseed support, and rollback notes;
-- preserve existing Guide/Demo/API/public-link behavior;
-- define an idempotent clean-install and upgrade path;
-- add no synthetic legacy Documentation backfill because none exists;
-- treat package adoption and routes as additive compatibility work.
+- Clean install and verified `024 -> 031` and `030 -> 031` upgrades are
+  supported.
+- There was no legacy Documentation state to backfill.
+- Migration `031` refuses populated rollback because removing operational
+  guards/projections would weaken shipped state.
+- Empty/historical migration status and upgrade verification tolerate
+  not-yet-installed current guard definitions while head verification remains
+  strict.
+- Guide, Demo, Capture, shared Publish Link, Audit/Access, and protected File
+  compatibility remains covered by database, smoke, and workspace suites.
 
 ## 6. Security And Threat Model
 
@@ -260,7 +268,7 @@ raw search queries.
 | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------- |
 | Create one Site and Edition in a Project Version                                                                             | Multiple-Site management polish and quotas                                                                | GitHub App import proposals and export automation      | Git or bidirectional sync as V1 authority                      |
 | Two constrained Pages with stable IDs, slugs, aliases, navigation, and internal links                                        | Edition-owned reusable snippets                                                                           | Translation workflows and locale fallback              | Arbitrary MDX, JavaScript, React, raw HTML, or iframes         |
-| Tiptap adapter proof with relational persistence and safe Markdown interchange                                               | Markdown Page and validated ZIP Site import/export                                                        | Custom domains                                         | Page-level ACLs                                                |
+| Ossie typed-block editor with relational persistence and safe Markdown interchange                                           | Markdown Page and validated ZIP Site import/export                                                        | Optional Tiptap adapter proof                          | Page-level ACLs                                                |
 | Row-Version autosave and recoverable conflict                                                                                | Carry-Forward whole Sites from exact Revision                                                             | Public feedback and analytics                          | Public comments in V1                                          |
 | Private Page comment thread/reply/mention/resolve/reopen with stable-block fallback                                          | Review requests, approval states, notifications, maintainers, optional approval gate and audited override | Realtime collaborative editing and offline-first merge | Mandatory approval gate in first slice                         |
 | Upload and validate one self-contained OpenAPI file; read-only reference block with operation deep links                     | Shipped in child `137`: browser-direct Try It and placeholder examples without stored credentials         | Rich interactive components and SDK generation         | Server-side arbitrary API proxy or stored customer credentials |
@@ -423,26 +431,25 @@ operational hardening from final certification.
    and collaboration as separate evidence-backed proposals; do not inherit them
    automatically into V1.
 
-Child `132` was expanded and rechecked on 2026-07-30 against the current
-codebase. It now names exact planned migrations, schemas, API routes, frontend
-routes/components, permissions, audits, tests, browser journeys, reset/reseed
-behavior, a mandatory dependency-pin proof, and rollback/compatibility
-handling. Runtime remains gated on committing that plan checkpoint and then
-following its test-first implementation stages.
+Children `132` through `139` are implemented and verified. The implementation
+uses additive migrations `025`–`031`, Ossie-owned typed authoring and reader
+adapters, PostgreSQL search projections, exact immutable Publications, and the
+accepted permission/evidence boundaries. Child `140` remains a decision-only
+gate and does not inherit implementation authority from this closure.
 
 ## 10. Handoff Invariants
 
 - Child `131` closes decisions only; no runtime or package change belongs to it.
 - Master Plan `006` owns the refined implementation sequence `132` through
   `140`.
-- Child `132` may refine implementation mechanics but may not reopen these
-  semantics without a new ADR and explicit user decision.
-- The Question 31 private Page comments boundary is part of child `132`.
-- Fumadocs and Tiptap adoption remains conditional on focused proofs; failure of
-  either proof requires a replaceable adapter alternative, not a domain-model
-  rewrite.
-- Documentation remains absent from operational navigation until a real,
-  authorized route ships.
+- Shipped adapters may not reopen these semantics without a new ADR and
+  explicit user decision.
+- The accepted Question 31 private Page comments boundary is shipped and
+  remains outside immutable/public output.
+- Fumadocs and Tiptap are absent from V1. Any later adoption remains
+  conditional on focused proof and cannot rewrite the domain model.
+- Documentation appears in operational and Project navigation only through its
+  authorized shipped routes.
 - Video, Git sync, translations, custom domains, public feedback/analytics,
   permanent deletion, realtime collaboration, and arbitrary executable content
   stay outside the first implementation slice.

@@ -249,13 +249,14 @@ _Avoid_: Artifact revision number, row version, project version
 A stable shareable access route for one authored output. The implemented Guide/Interactive Demo form belongs to one Artifact and exposes explicitly selected Artifact Editions through immutable Published Artifact entries. The accepted Documentation form belongs to one Documentation Site and exposes explicitly selected Site Editions through immutable Site Publication entries. Each link has one explicit default version and one link-wide access policy.
 _Avoid_: Draft link
 
-## Documentation Language: Shipped Through Child 137 And Accepted V1
+## Documentation Language: Shipped And V1-Verified Through Child 139
 
 Documentation Site through private comments and Publication shipped in child
 `132`; content/assets, portability, multi-Site lifecycle/Carry-Forward,
-review/approval, and the governed browser-direct API experience followed in
-children `133` through `137`. The terms below describe shipped runtime through
-child `137` unless explicitly marked as deferred or later work.
+review/approval, the governed browser-direct API experience, operational
+hardening, and final V1 closure followed in children `133` through `139`. The
+terms below describe the shipped and final-closeout-verified V1 runtime unless
+explicitly marked as deferred or later work.
 
 Child `131` accepted these terms for implementation beginning at `132`;
 completed children now provide the corresponding tables, routes, contracts,
