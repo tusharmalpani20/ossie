@@ -36,6 +36,7 @@ import {
   DocumentationReviewDecisionRequestSchema,
   DocumentationReviewCancelRequestSchema,
   DocumentationPublicationReviewOverrideSchema,
+  DocumentationReviewRequestDetailResponseSchema,
 } from "./documentation";
 
 describe("Documentation shared contracts", () => {
@@ -661,6 +662,71 @@ describe("Documentation review contracts", () => {
         },
       }).review_override,
     ).toBeNull();
+  });
+
+  it("requires the complete safe structural review detail contract", () => {
+    const detail = {
+      review_request: {
+        id,
+        site_id: id,
+        site_edition_id: id,
+        site_revision_id: id,
+        revision_number: 2,
+        request_number: 1,
+        status: "open",
+        effective_status: "open",
+        required_approvals: 1,
+        require_maintainer_approval: false,
+        valid_approval_count: 0,
+        valid_maintainer_approval_count: 0,
+        created_by_id: id,
+        created_by_display_name: "Reviewer",
+        version: 1,
+        created_at: "2026-07-31T00:00:00.000Z",
+        closed_at: null,
+        superseded_by_revision_id: null,
+        superseded_at: null,
+      },
+      assignments: [],
+      actor_can_decide: false,
+      actor_can_cancel: true,
+      change_summary: {
+        baseline_revision_id: id,
+        baseline_revision_number: 1,
+        metadata_changed: false,
+        home_page_changed: false,
+        pages: { added: 0, removed: 0, changed: 1 },
+        navigation_changed: false,
+        routing_changed: false,
+        snippets: { added: 0, removed: 0, changed: 0 },
+        assets: { added: 0, removed: 0, changed: 0 },
+        openapi_changed: false,
+        artifact_references_changed: false,
+      },
+      publication_gate: {
+        site_revision_id: id,
+        policy_mode: "optional",
+        policy_version: 1,
+        outcome: "not_required",
+        governing_review_request_id: id,
+        required_approvals: 1,
+        valid_approval_count: 0,
+        require_maintainer_approval: false,
+        valid_maintainer_approval_count: 0,
+        override_available_to_actor: true,
+      },
+      cancellation: null,
+    };
+
+    expect(
+      DocumentationReviewRequestDetailResponseSchema.parse(detail),
+    ).toEqual(detail);
+    expect(
+      DocumentationReviewRequestDetailResponseSchema.safeParse({
+        ...detail,
+        change_summary: { pages_added: 0 },
+      }).success,
+    ).toBe(false);
   });
 });
 

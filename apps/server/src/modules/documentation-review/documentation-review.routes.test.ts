@@ -70,4 +70,53 @@ describe("documentation review routes", () => {
     expect(service.decide).not.toHaveBeenCalled();
     await app.close();
   });
+
+  it("uses the typed review error envelope for malformed requests", async () => {
+    const { app } = await build();
+    const response = await app.inject({
+      method: "PATCH",
+      url: "/api/v1/projects/project/versions/v1/documentation-sites/site/review-policy",
+      headers: { "idempotency-key": "key" },
+      payload: {
+        expected_policy_version: 1,
+        mode: "optional",
+        required_approvals: 1,
+        require_maintainer_approval: false,
+        maintainer_org_user_ids: [],
+        unexpected: true,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error.type).toBe(
+      "invalid_documentation_review_request",
+    );
+    await app.close();
+  });
+
+  it("maps invariant and gate failures to their planned status classes", async () => {
+    const { app, service } = await build();
+    service.get_policy.mockRejectedValueOnce(
+      Object.assign(new Error("missing"), {
+        code: "documentation_review_policy_missing",
+      }),
+    );
+    const invariant = await app.inject({
+      method: "GET",
+      url: "/api/v1/projects/project/versions/v1/documentation-sites/site/review-policy",
+    });
+    expect(invariant.statusCode).toBe(500);
+
+    service.get_policy.mockRejectedValueOnce(
+      Object.assign(new Error("approval"), {
+        code: "documentation_review_approval_required",
+      }),
+    );
+    const gate = await app.inject({
+      method: "GET",
+      url: "/api/v1/projects/project/versions/v1/documentation-sites/site/review-policy",
+    });
+    expect(gate.statusCode).toBe(409);
+    await app.close();
+  });
 });

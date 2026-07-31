@@ -151,27 +151,39 @@ export const build_documentation_review_routes =
           if (error instanceof z.ZodError)
             return reply
               .status(400)
-              .send(error_response("invalid_request", "Invalid request"));
+              .send(
+                error_response(
+                  "invalid_documentation_review_request",
+                  "Invalid Documentation review request",
+                ),
+              );
           const code =
             error && typeof error === "object" && "code" in error
               ? String(error.code)
               : "documentation_review_failed";
           const status =
-            code.endsWith("_not_found") || code.endsWith("_missing")
-              ? 404
-              : code.includes("candidate") ||
-                  code.includes("self_assignment") ||
-                  code.includes("policy_invalid") ||
-                  code.includes("limit_exceeded")
-                ? 422
-                : code.includes("forbidden") ||
-                    code.includes("assignment_required")
-                  ? 403
-                  : code.includes("conflict") ||
-                      code.includes("not_latest") ||
-                      code.includes("read_only")
-                    ? 409
-                    : 400;
+            code === "documentation_review_policy_missing"
+              ? 500
+              : code.endsWith("_not_found")
+                ? 404
+                : code.includes("candidate") ||
+                    code.includes("self_assignment") ||
+                    code.includes("policy_invalid") ||
+                    code.includes("limit_exceeded")
+                  ? 422
+                  : code.includes("forbidden") ||
+                      code.includes("assignment_required")
+                    ? 403
+                    : code.includes("conflict") ||
+                        code.includes("not_latest") ||
+                        code.includes("read_only") ||
+                        code.includes("open_request_exists") ||
+                        code.includes("approval_required") ||
+                        code.includes("approval_invalidated") ||
+                        code.includes("override_invalid") ||
+                        code.includes("gate_unsatisfied")
+                      ? 409
+                      : 400;
           return reply
             .status(status)
             .send(error_response(code, "Documentation review request failed"));

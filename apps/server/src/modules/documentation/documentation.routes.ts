@@ -776,10 +776,7 @@ export const build_documentation_routes = (
         project_version_id: version.id,
       };
     };
-    const documentation_error = (
-      error: unknown,
-      reply: FastifyReply,
-    ) => {
+    const documentation_error = (error: unknown, reply: FastifyReply) => {
       const code =
         typeof error === "object" &&
         error !== null &&
@@ -829,7 +826,10 @@ export const build_documentation_routes = (
         code === "documentation_carry_forward_target_exists" ||
         code === "documentation_review_version_conflict" ||
         code === "documentation_review_revision_not_latest" ||
-        code === "documentation_review_gate_unsatisfied"
+        code === "documentation_review_gate_unsatisfied" ||
+        code === "documentation_review_approval_required" ||
+        code === "documentation_review_approval_invalidated" ||
+        code === "documentation_review_override_invalid"
       )
         return reply
           .status(409)
@@ -1254,8 +1254,7 @@ export const build_documentation_routes = (
                 organization_id: auth.organization.id,
                 actor_org_user_id: auth.org_user.id,
                 project_id: params.data.project_id,
-                source_project_version_id:
-                  query.data.source_project_version_id,
+                source_project_version_id: query.data.source_project_version_id,
                 target_project_version_id: target.id,
               },
             );
@@ -1597,15 +1596,11 @@ export const build_documentation_routes = (
               new Error("Exactly one import File is required"),
               { code: "documentation_import_invalid" },
             );
-          const {
-            idempotent_replay: replayed = false,
-            ...body
-          } = inspection as Record<string, unknown> & {
-            idempotent_replay?: boolean;
-          };
-          return reply
-            .status(replayed ? 200 : 201)
-            .send({ inspection: body });
+          const { idempotent_replay: replayed = false, ...body } =
+            inspection as Record<string, unknown> & {
+              idempotent_replay?: boolean;
+            };
+          return reply.status(replayed ? 200 : 201).send({ inspection: body });
         } catch (error) {
           return documentation_error(error, reply);
         }
@@ -1644,10 +1639,7 @@ export const build_documentation_routes = (
       }
       return reply
         .header("Content-Type", download.mime_type)
-        .header(
-          "Content-Length",
-          String(sizeBytes),
-        )
+        .header("Content-Length", String(sizeBytes))
         .header(
           "Content-Disposition",
           `attachment; filename="${download.filename.replace(/["\\\r\n]/gu, "-")}"`,

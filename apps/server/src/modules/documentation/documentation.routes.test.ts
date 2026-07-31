@@ -632,6 +632,63 @@ describe("Documentation routes", () => {
     );
   });
 
+  it("returns typed conflicts for required and invalidated review gates", async () => {
+    const create_publication = vi
+      .fn()
+      .mockRejectedValueOnce(
+        Object.assign(new Error("required"), {
+          code: "documentation_review_approval_required",
+        }),
+      )
+      .mockRejectedValueOnce(
+        Object.assign(new Error("invalidated"), {
+          code: "documentation_review_approval_invalidated",
+        }),
+      );
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          create_publication,
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const request = {
+      method: "POST" as const,
+      url: "/api/v1/projects/project/versions/main/documentation-sites/site/publications",
+      cookies: { ossie_session: "session" },
+      headers: { "idempotency-key": "review-gate" },
+      payload: {
+        revision_id: "revision",
+        link: {
+          mode: "existing",
+          link_id: "link",
+          entry_id: "entry",
+          expected_entry_version: 1,
+        },
+      },
+    };
+
+    const required = await app.inject(request);
+    const invalidated = await app.inject({
+      ...request,
+      headers: { "idempotency-key": "review-gate-invalidated" },
+    });
+    await app.close();
+
+    expect(required.statusCode).toBe(409);
+    expect(required.json().error.type).toBe(
+      "documentation_review_approval_required",
+    );
+    expect(invalidated.statusCode).toBe(409);
+    expect(invalidated.json().error.type).toBe(
+      "documentation_review_approval_invalidated",
+    );
+  });
+
   it("revokes a version-matched Documentation Publish Link", async () => {
     const revoke_publish_link = vi.fn(async () => ({
       publish_link: { id: "link", status: "revoked", version: 4 },

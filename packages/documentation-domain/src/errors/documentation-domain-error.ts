@@ -25,7 +25,10 @@ export type DocumentationDomainErrorCode =
   | "documentation_rollback_invalid"
   | "documentation_review_invalid"
   | "documentation_review_transition_invalid"
-  | "documentation_review_gate_unsatisfied";
+  | "documentation_review_gate_unsatisfied"
+  | "documentation_review_approval_required"
+  | "documentation_review_approval_invalidated"
+  | "documentation_review_override_invalid";
 
 export class DocumentationDomainError extends Error {
   readonly code: DocumentationDomainErrorCode;

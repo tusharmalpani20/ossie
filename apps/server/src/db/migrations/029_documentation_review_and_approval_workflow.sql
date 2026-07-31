@@ -21,6 +21,8 @@ CREATE TABLE documentation_schema.documentation_review_policy (
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT uq_documentation_review_policy_edition UNIQUE (site_edition_id),
+  CONSTRAINT uq_documentation_review_policy_tenant UNIQUE
+    (id,project_id,organization_id),
   CONSTRAINT uq_documentation_review_policy_scope UNIQUE
     (id,site_edition_id,documentation_site_id,project_version_id,project_id,organization_id),
   CONSTRAINT fk_documentation_review_policy_edition FOREIGN KEY
@@ -56,11 +58,15 @@ CREATE TABLE documentation_schema.documentation_review_maintainer (
   CONSTRAINT uq_documentation_review_maintainer UNIQUE
     (review_policy_id,maintainer_org_user_id),
   CONSTRAINT fk_documentation_review_maintainer_policy FOREIGN KEY
-    (review_policy_id)
-    REFERENCES documentation_schema.documentation_review_policy(id)
+    (review_policy_id,project_id,organization_id)
+    REFERENCES documentation_schema.documentation_review_policy
+    (id,project_id,organization_id)
     ON DELETE RESTRICT,
   CONSTRAINT fk_documentation_review_maintainer_user FOREIGN KEY
     (maintainer_org_user_id,organization_id)
+    REFERENCES organization_schema.org_user(id,organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_review_maintainer_creator FOREIGN KEY
+    (created_by_id,organization_id)
     REFERENCES organization_schema.org_user(id,organization_id) ON DELETE RESTRICT
 );
 
@@ -91,10 +97,26 @@ CREATE TABLE documentation_schema.documentation_review_request (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT uq_documentation_review_request_scope UNIQUE
     (id,site_revision_id,site_edition_id,project_version_id,project_id,organization_id),
+  CONSTRAINT uq_documentation_review_request_tenant UNIQUE
+    (id,project_id,organization_id),
   CONSTRAINT uq_documentation_review_request_number UNIQUE
     (site_edition_id,request_number),
   CONSTRAINT fk_documentation_review_request_revision FOREIGN KEY
     (site_revision_id,site_edition_id,project_version_id,project_id,organization_id)
+    REFERENCES documentation_schema.site_revision
+    (id,site_edition_id,project_version_id,project_id,organization_id)
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_review_request_creator FOREIGN KEY
+    (created_by_id,organization_id)
+    REFERENCES organization_schema.org_user(id,organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_review_request_canceler FOREIGN KEY
+    (canceled_by_org_user_id,organization_id)
+    REFERENCES organization_schema.org_user(id,organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_review_request_superseding_actor FOREIGN KEY
+    (superseded_by_org_user_id,organization_id)
+    REFERENCES organization_schema.org_user(id,organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_review_request_superseding_revision FOREIGN KEY
+    (superseded_by_revision_id,site_edition_id,project_version_id,project_id,organization_id)
     REFERENCES documentation_schema.site_revision
     (id,site_edition_id,project_version_id,project_id,organization_id)
     ON DELETE RESTRICT,
@@ -137,8 +159,9 @@ CREATE TABLE documentation_schema.documentation_review_assignment (
   CONSTRAINT uq_documentation_review_assignment_scope UNIQUE
     (id,review_request_id,organization_id),
   CONSTRAINT fk_documentation_review_assignment_request FOREIGN KEY
-    (review_request_id) REFERENCES
-    documentation_schema.documentation_review_request(id) ON DELETE RESTRICT,
+    (review_request_id,project_id,organization_id) REFERENCES
+    documentation_schema.documentation_review_request(id,project_id,organization_id)
+    ON DELETE RESTRICT,
   CONSTRAINT fk_documentation_review_assignment_reviewer FOREIGN KEY
     (reviewer_org_user_id,organization_id)
     REFERENCES organization_schema.org_user(id,organization_id) ON DELETE RESTRICT
@@ -160,6 +183,13 @@ CREATE TABLE documentation_schema.documentation_review_decision (
     (review_assignment_id,review_request_id,organization_id)
     REFERENCES documentation_schema.documentation_review_assignment
     (id,review_request_id,organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_review_decision_request FOREIGN KEY
+    (review_request_id,project_id,organization_id)
+    REFERENCES documentation_schema.documentation_review_request
+    (id,project_id,organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_review_decision_actor FOREIGN KEY
+    (decided_by_id,organization_id)
+    REFERENCES organization_schema.org_user(id,organization_id) ON DELETE RESTRICT,
   CONSTRAINT chk_documentation_review_rejection_reason CHECK
     (decision<>'reject' OR reason IS NOT NULL)
 );
@@ -184,6 +214,17 @@ CREATE TABLE documentation_schema.documentation_review_notification (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT uq_documentation_review_notification_delivery UNIQUE
     (source_audit_event_id,recipient_org_user_id,type),
+  CONSTRAINT fk_documentation_review_notification_recipient FOREIGN KEY
+    (recipient_org_user_id,organization_id)
+    REFERENCES organization_schema.org_user(id,organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_review_notification_request FOREIGN KEY
+    (review_request_id,project_id,organization_id)
+    REFERENCES documentation_schema.documentation_review_request
+    (id,project_id,organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_review_notification_audit FOREIGN KEY
+    (source_audit_event_id,organization_id)
+    REFERENCES audit_schema.audit_event(id,organization_id) ON DELETE RESTRICT
+    DEFERRABLE INITIALLY DEFERRED,
   CONSTRAINT chk_documentation_review_notification_read CHECK
     ((status='unread' AND read_at IS NULL) OR (status='read' AND read_at IS NOT NULL))
 );
@@ -224,8 +265,53 @@ CREATE TABLE publish_schema.documentation_publication_review_evidence (
     OR (outcome='approved' AND review_request_id IS NOT NULL
       AND override_reason IS NULL)
     OR (outcome='overridden' AND override_reason IS NOT NULL)
-  )
+  ),
+  CONSTRAINT fk_documentation_publication_review_evidence_revision FOREIGN KEY
+    (site_revision_id,site_edition_id,project_version_id,project_id,organization_id)
+    REFERENCES documentation_schema.site_revision
+    (id,site_edition_id,project_version_id,project_id,organization_id)
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_publication_review_evidence_request FOREIGN KEY
+    (review_request_id,site_revision_id,site_edition_id,project_version_id,project_id,organization_id)
+    REFERENCES documentation_schema.documentation_review_request
+    (id,site_revision_id,site_edition_id,project_version_id,project_id,organization_id)
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_publication_review_evidence_publication FOREIGN KEY
+    (site_publication_id,documentation_site_id,site_edition_id,project_version_id,project_id,organization_id)
+    REFERENCES publish_schema.site_publication
+    (id,documentation_site_id,site_edition_id,project_version_id,project_id,organization_id)
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_publication_review_evidence_link FOREIGN KEY
+    (publish_link_id,project_id,organization_id)
+    REFERENCES publish_schema.publish_link(id,project_id,organization_id)
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_publication_review_evidence_entry FOREIGN KEY
+    (publish_link_entry_id,publish_link_id,project_id,organization_id)
+    REFERENCES publish_schema.publish_link_entry
+    (id,publish_link_id,project_id,organization_id) ON DELETE RESTRICT,
+  CONSTRAINT fk_documentation_publication_review_evidence_audit FOREIGN KEY
+    (source_audit_event_id,organization_id)
+    REFERENCES audit_schema.audit_event(id,organization_id) ON DELETE RESTRICT
+    DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT fk_documentation_publication_review_evidence_creator FOREIGN KEY
+    (created_by_id,organization_id)
+    REFERENCES organization_schema.org_user(id,organization_id) ON DELETE RESTRICT
 );
+
+COMMENT ON TABLE documentation_schema.documentation_review_policy IS
+  'Private Edition-owned Documentation review policy; never part of public projections.';
+COMMENT ON TABLE documentation_schema.documentation_review_maintainer IS
+  'Private current maintainer assignment for one Documentation review policy.';
+COMMENT ON TABLE documentation_schema.documentation_review_request IS
+  'Private exact-Revision Documentation Review Request and terminal provenance.';
+COMMENT ON TABLE documentation_schema.documentation_review_assignment IS
+  'Private immutable reviewer assignment history.';
+COMMENT ON TABLE documentation_schema.documentation_review_decision IS
+  'Private immutable formal review decision history.';
+COMMENT ON TABLE documentation_schema.documentation_review_notification IS
+  'Private content-free in-product review notification.';
+COMMENT ON TABLE publish_schema.documentation_publication_review_evidence IS
+  'Private immutable publication gate evidence; override reasons are Admin-only.';
 
 CREATE FUNCTION documentation_schema.validate_documentation_review_assignment()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
@@ -287,22 +373,101 @@ documentation_schema.validate_documentation_review_decision();
 CREATE FUNCTION documentation_schema.prevent_documentation_review_history_mutation()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
+  IF audit_schema.is_maintenance_bypass(TG_RELID) THEN
+    RETURN COALESCE(NEW,OLD);
+  END IF;
   RAISE EXCEPTION 'Documentation review history is immutable'
     USING ERRCODE='55000';
 END;
 $$;
 
+CREATE FUNCTION documentation_schema.enforce_documentation_review_request_transition()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF OLD.organization_id IS DISTINCT FROM NEW.organization_id
+    OR OLD.project_id IS DISTINCT FROM NEW.project_id
+    OR OLD.project_version_id IS DISTINCT FROM NEW.project_version_id
+    OR OLD.documentation_site_id IS DISTINCT FROM NEW.documentation_site_id
+    OR OLD.site_edition_id IS DISTINCT FROM NEW.site_edition_id
+    OR OLD.site_revision_id IS DISTINCT FROM NEW.site_revision_id
+    OR OLD.request_number IS DISTINCT FROM NEW.request_number
+    OR OLD.required_approvals IS DISTINCT FROM NEW.required_approvals
+    OR OLD.require_maintainer_approval IS DISTINCT FROM NEW.require_maintainer_approval
+    OR OLD.created_by_id IS DISTINCT FROM NEW.created_by_id
+    OR OLD.created_at IS DISTINCT FROM NEW.created_at
+  THEN
+    RAISE EXCEPTION 'Documentation Review Request identity is immutable'
+      USING ERRCODE='23514',
+        CONSTRAINT='documentation_review_request_identity_immutable';
+  END IF;
+  IF OLD.status <> 'open' THEN
+    RAISE EXCEPTION 'Terminal Documentation Review Request provenance is immutable'
+      USING ERRCODE='23514',
+        CONSTRAINT='documentation_review_request_terminal_immutable';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE FUNCTION documentation_schema.enforce_documentation_review_notification_update()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF OLD.status <> 'unread' OR NEW.status <> 'read'
+    OR OLD.organization_id IS DISTINCT FROM NEW.organization_id
+    OR OLD.project_id IS DISTINCT FROM NEW.project_id
+    OR OLD.project_version_id IS DISTINCT FROM NEW.project_version_id
+    OR OLD.documentation_site_id IS DISTINCT FROM NEW.documentation_site_id
+    OR OLD.recipient_org_user_id IS DISTINCT FROM NEW.recipient_org_user_id
+    OR OLD.review_request_id IS DISTINCT FROM NEW.review_request_id
+    OR OLD.site_revision_id IS DISTINCT FROM NEW.site_revision_id
+    OR OLD.source_audit_event_id IS DISTINCT FROM NEW.source_audit_event_id
+    OR OLD.type IS DISTINCT FROM NEW.type
+    OR OLD.created_at IS DISTINCT FROM NEW.created_at
+  THEN
+    RAISE EXCEPTION 'Only the unread-to-read notification transition is allowed'
+      USING ERRCODE='23514',
+        CONSTRAINT='documentation_review_notification_transition';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER documentation_review_request_transition
+BEFORE UPDATE ON documentation_schema.documentation_review_request
+FOR EACH ROW EXECUTE FUNCTION
+documentation_schema.enforce_documentation_review_request_transition();
+CREATE TRIGGER documentation_review_request_no_truncate
+BEFORE TRUNCATE ON documentation_schema.documentation_review_request
+FOR EACH STATEMENT EXECUTE FUNCTION
+documentation_schema.prevent_documentation_review_history_mutation();
+CREATE TRIGGER documentation_review_notification_transition
+BEFORE UPDATE ON documentation_schema.documentation_review_notification
+FOR EACH ROW EXECUTE FUNCTION
+documentation_schema.enforce_documentation_review_notification_update();
+
 CREATE TRIGGER documentation_review_assignment_immutable
 BEFORE UPDATE OR DELETE ON documentation_schema.documentation_review_assignment
 FOR EACH ROW EXECUTE FUNCTION
+documentation_schema.prevent_documentation_review_history_mutation();
+CREATE TRIGGER documentation_review_assignment_no_truncate
+BEFORE TRUNCATE ON documentation_schema.documentation_review_assignment
+FOR EACH STATEMENT EXECUTE FUNCTION
 documentation_schema.prevent_documentation_review_history_mutation();
 CREATE TRIGGER documentation_review_decision_immutable
 BEFORE UPDATE OR DELETE ON documentation_schema.documentation_review_decision
 FOR EACH ROW EXECUTE FUNCTION
 documentation_schema.prevent_documentation_review_history_mutation();
+CREATE TRIGGER documentation_review_decision_no_truncate
+BEFORE TRUNCATE ON documentation_schema.documentation_review_decision
+FOR EACH STATEMENT EXECUTE FUNCTION
+documentation_schema.prevent_documentation_review_history_mutation();
 CREATE TRIGGER documentation_publication_review_evidence_immutable
 BEFORE UPDATE OR DELETE ON publish_schema.documentation_publication_review_evidence
 FOR EACH ROW EXECUTE FUNCTION
+documentation_schema.prevent_documentation_review_history_mutation();
+CREATE TRIGGER documentation_publication_review_evidence_no_truncate
+BEFORE TRUNCATE ON publish_schema.documentation_publication_review_evidence
+FOR EACH STATEMENT EXECUTE FUNCTION
 documentation_schema.prevent_documentation_review_history_mutation();
 
 ALTER FUNCTION audit_schema.mutation_command_policy_is_valid(
@@ -493,6 +658,9 @@ TO __OSSIE_RUNTIME_DB_ROLE__;
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM documentation_schema.documentation_review_request)
+    OR EXISTS (SELECT 1 FROM documentation_schema.documentation_review_assignment)
+    OR EXISTS (SELECT 1 FROM documentation_schema.documentation_review_decision)
+    OR EXISTS (SELECT 1 FROM documentation_schema.documentation_review_notification)
     OR EXISTS (SELECT 1 FROM documentation_schema.documentation_review_maintainer)
     OR EXISTS (SELECT 1 FROM publish_schema.documentation_publication_review_evidence)
     OR EXISTS (
@@ -508,6 +676,8 @@ END;
 $$;
 
 DROP TRIGGER documentation_publication_review_evidence_immutable
+  ON publish_schema.documentation_publication_review_evidence;
+DROP TRIGGER documentation_publication_review_evidence_no_truncate
   ON publish_schema.documentation_publication_review_evidence;
 DROP TRIGGER documentation_publication_review_evidence_i_audit_evd
   ON publish_schema.documentation_publication_review_evidence;
@@ -561,6 +731,8 @@ ALTER FUNCTION audit_schema.mutation_command_policy_is_valid_v028(
 ) RENAME TO mutation_command_policy_is_valid;
 DROP TRIGGER documentation_review_decision_immutable
   ON documentation_schema.documentation_review_decision;
+DROP TRIGGER documentation_review_decision_no_truncate
+  ON documentation_schema.documentation_review_decision;
 DROP TRIGGER documentation_review_decision_actor
   ON documentation_schema.documentation_review_decision;
 DROP FUNCTION documentation_schema.validate_documentation_review_decision();
@@ -569,6 +741,16 @@ DROP TRIGGER documentation_review_assignment_threshold
 DROP FUNCTION documentation_schema.validate_documentation_review_assignment();
 DROP TRIGGER documentation_review_assignment_immutable
   ON documentation_schema.documentation_review_assignment;
+DROP TRIGGER documentation_review_assignment_no_truncate
+  ON documentation_schema.documentation_review_assignment;
+DROP TRIGGER documentation_review_notification_transition
+  ON documentation_schema.documentation_review_notification;
+DROP FUNCTION documentation_schema.enforce_documentation_review_notification_update();
+DROP TRIGGER documentation_review_request_no_truncate
+  ON documentation_schema.documentation_review_request;
+DROP TRIGGER documentation_review_request_transition
+  ON documentation_schema.documentation_review_request;
+DROP FUNCTION documentation_schema.enforce_documentation_review_request_transition();
 DROP FUNCTION documentation_schema.prevent_documentation_review_history_mutation();
 DROP TABLE publish_schema.documentation_publication_review_evidence;
 DROP TABLE documentation_schema.documentation_review_notification;

@@ -42,10 +42,9 @@ describe("documentation review service", () => {
   it("uses the narrow decision capability for assigned viewers", async () => {
     const authorize = vi.fn().mockResolvedValue({ role: "viewer" });
     const decide = vi.fn().mockResolvedValue({ status: "approved" });
-    const service = build_documentation_review_service(
-      { decide } as never,
-      { authorize },
-    );
+    const service = build_documentation_review_service({ decide } as never, {
+      authorize,
+    });
     await service.decide({
       ...scope,
       review_request_id: "request",
@@ -74,6 +73,33 @@ describe("documentation review service", () => {
     expect(authorize).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ capability: "documentation.review.override" }),
+    );
+  });
+
+  it("projects Admin cancellation and override availability into authorized reads", async () => {
+    const authorize = vi
+      .fn()
+      .mockResolvedValue({
+        role: "project_admin",
+        source: "project_membership",
+      });
+    const get_request = vi.fn().mockResolvedValue({ id: "request" });
+    const preview_gate = vi
+      .fn()
+      .mockResolvedValue({ outcome: "approval_pending" });
+    const service = build_documentation_review_service(
+      { get_request, preview_gate } as never,
+      { authorize },
+    );
+
+    await service.get_request({ ...scope, review_request_id: "request" });
+    await service.preview_gate({ ...scope, revision_id: "revision" });
+
+    expect(get_request).toHaveBeenCalledWith(
+      expect.objectContaining({ actor_is_admin: true }),
+    );
+    expect(preview_gate).toHaveBeenCalledWith(
+      expect.objectContaining({ actor_can_override: true }),
     );
   });
 });

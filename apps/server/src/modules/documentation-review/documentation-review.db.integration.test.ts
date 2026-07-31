@@ -1,7 +1,11 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
-import { reset_test_database } from "../../test-support/database";
+import {
+  reset_test_database,
+  with_maintenance_client,
+} from "../../test-support/database";
+import { seed_documentation_browser_fixture } from "../../dev-fixtures/documentation-browser-fixture";
 
 describe("DB-backed Documentation review workflow", () => {
   beforeEach(reset_test_database);
@@ -73,5 +77,58 @@ describe("DB-backed Documentation review workflow", () => {
       version: 2,
     });
     await app.close();
+  });
+
+  it("enforces tenant-scoped relationships and immutable review history", async () => {
+    const fixture = await seed_documentation_browser_fixture();
+    const constraints = await with_maintenance_client((client) =>
+      client.query<{ conname: string }>(
+        `SELECT conname
+           FROM pg_constraint
+          WHERE conname=ANY($1::text[])
+          ORDER BY conname`,
+        [
+          [
+            "fk_documentation_review_assignment_request",
+            "fk_documentation_review_decision_actor",
+            "fk_documentation_review_notification_audit",
+            "fk_documentation_publication_review_evidence_entry",
+            "fk_documentation_publication_review_evidence_request",
+          ],
+        ],
+      ),
+    );
+    expect(constraints.rows.map(({ conname }) => conname)).toHaveLength(5);
+
+    await expect(
+      with_maintenance_client(async (client) => {
+        await client.query(
+          "SELECT set_config('ossie.maintenance_mode', 'off', true)",
+        );
+        return client.query(
+          `UPDATE documentation_schema.documentation_review_assignment
+              SET project_id='01K99999999999999999999999'
+            WHERE review_request_id=$1`,
+          [fixture.review_request_id],
+        );
+      }),
+    ).rejects.toSatisfy(
+      (error: { code?: string }) =>
+        error.code === "55000" || error.code === "0A000",
+    );
+
+    await expect(
+      with_maintenance_client(async (client) => {
+        await client.query(
+          "SELECT set_config('ossie.maintenance_mode', 'off', true)",
+        );
+        return client.query(
+          "TRUNCATE documentation_schema.documentation_review_assignment",
+        );
+      }),
+    ).rejects.toSatisfy(
+      (error: { code?: string }) =>
+        error.code === "55000" || error.code === "0A000",
+    );
   });
 });

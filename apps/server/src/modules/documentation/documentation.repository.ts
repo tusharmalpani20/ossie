@@ -19,7 +19,7 @@ import {
   validate_documentation_revision_aggregate,
   validate_documentation_navigation,
   validate_documentation_routes,
-  documentation_review_threshold_satisfied,
+  resolve_documentation_publication_review_gate,
 } from "@repo/documentation-domain";
 import {
   DocumentationIdempotencyConflictError,
@@ -261,27 +261,12 @@ const evaluate_documentation_publication_review_gate = async (
     request.valid_maintainer_approval_count =
       counts.rows[0]?.valid_maintainer_approval_count ?? 0;
   }
-  const approved =
-    request?.status === "approved" &&
-    documentation_review_threshold_satisfied({
-      required_approvals: request.required_approvals,
-      require_maintainer_approval: request.require_maintainer_approval,
-      valid_approval_count: request.valid_approval_count,
-      valid_maintainer_approval_count: request.valid_maintainer_approval_count,
-    });
-  const outcome =
-    policy.mode === "optional"
-      ? ("not_required" as const)
-      : approved
-        ? ("approved" as const)
-        : input.review_override
-          ? ("overridden" as const)
-          : null;
-  if (!outcome) {
-    const error = new Error("Documentation approval is required");
-    Object.assign(error, { code: "documentation_review_gate_unsatisfied" });
-    throw error;
-  }
+  const resolved = resolve_documentation_publication_review_gate({
+    policy,
+    governing_request: request ?? null,
+    has_override: Boolean(input.review_override),
+  });
+  const outcome = resolved.outcome;
   return {
     policy_mode: policy.mode,
     policy_version: policy.version,
@@ -294,8 +279,7 @@ const evaluate_documentation_publication_review_gate = async (
         ? 0
         : (request?.valid_maintainer_approval_count ?? 0),
     outcome,
-    review_request_id:
-      outcome === "not_required" ? null : (request?.id ?? null),
+    review_request_id: resolved.review_request_id,
     override_reason:
       outcome === "overridden" ? input.review_override!.reason : null,
   };
@@ -1580,7 +1564,7 @@ const load_draft_snapshot = async (
   };
 };
 
-const load_revision_snapshot = async (
+export const load_revision_snapshot = async (
   db: Queryable,
   input: {
     site_revision_id: string;

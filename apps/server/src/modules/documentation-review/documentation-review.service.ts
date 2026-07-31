@@ -29,7 +29,7 @@ type Access = {
     auth: { organization_id: string; actor_org_user_id: string };
     project_id: string;
     capability: ProjectCapability;
-  }): Promise<unknown>;
+  }): Promise<{ role: "project_admin" | "editor" | "viewer" }>;
 };
 
 const authorize = (
@@ -71,8 +71,11 @@ export const build_documentation_review_service = (
     return repository.list_requests(input);
   },
   async get_request(input: Scope & Record<string, unknown>) {
-    await authorize(access, input, "documentation.read");
-    return repository.get_request(input);
+    const actor = await authorize(access, input, "documentation.read");
+    return repository.get_request({
+      ...input,
+      actor_is_admin: actor.role === "project_admin",
+    });
   },
   async decide(input: Scope & Record<string, unknown>) {
     await authorize(access, input, "documentation.review.decide");
@@ -83,8 +86,11 @@ export const build_documentation_review_service = (
     return repository.cancel(input);
   },
   async preview_gate(input: Scope & Record<string, unknown>) {
-    await authorize(access, input, "documentation.read");
-    return repository.preview_gate(input);
+    const actor = await authorize(access, input, "documentation.read");
+    return repository.preview_gate({
+      ...input,
+      actor_can_override: actor.role === "project_admin",
+    });
   },
   async list_inbox(input: Scope & Record<string, unknown>) {
     await authorize(access, input, "documentation.review.inbox");

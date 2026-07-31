@@ -676,9 +676,8 @@ export const DocumentationCreatePublicationRequestSchema = z
       DocumentationCreateLinkSelectionSchema,
       DocumentationExistingLinkSelectionSchema,
     ]),
-    review_override: DocumentationPublicationReviewOverrideSchema.nullable().default(
-      null,
-    ),
+    review_override:
+      DocumentationPublicationReviewOverrideSchema.nullable().default(null),
   })
   .strict();
 
@@ -686,9 +685,8 @@ export const DocumentationRollbackPublicationRequestSchema = z
   .object({
     site_publication_id: IdSchema,
     expected_entry_version: PositiveIntSchema,
-    review_override: DocumentationPublicationReviewOverrideSchema.nullable().default(
-      null,
-    ),
+    review_override:
+      DocumentationPublicationReviewOverrideSchema.nullable().default(null),
   })
   .strict();
 
@@ -706,7 +704,11 @@ export const DocumentationReviewPolicySchema = z
     site_id: IdSchema,
     site_edition_id: IdSchema,
     mode: DocumentationReviewPolicyModeSchema,
-    required_approvals: z.number().int().min(1).max(DOCUMENTATION_REVIEWERS_MAX),
+    required_approvals: z
+      .number()
+      .int()
+      .min(1)
+      .max(DOCUMENTATION_REVIEWERS_MAX),
     require_maintainer_approval: z.boolean(),
     maintainer_org_user_ids: z
       .array(IdSchema)
@@ -720,7 +722,11 @@ export const DocumentationReviewPolicyUpdateRequestSchema = z
   .object({
     expected_policy_version: PositiveIntSchema,
     mode: DocumentationReviewPolicyModeSchema,
-    required_approvals: z.number().int().min(1).max(DOCUMENTATION_REVIEWERS_MAX),
+    required_approvals: z
+      .number()
+      .int()
+      .min(1)
+      .max(DOCUMENTATION_REVIEWERS_MAX),
     require_maintainer_approval: z.boolean(),
     maintainer_org_user_ids: z
       .array(IdSchema)
@@ -752,7 +758,10 @@ export const DocumentationReviewRequestCreateRequestSchema = z
   .object({
     site_revision_id: IdSchema,
     expected_policy_version: PositiveIntSchema,
-    reviewer_org_user_ids: z.array(IdSchema).min(1).max(DOCUMENTATION_REVIEWERS_MAX),
+    reviewer_org_user_ids: z
+      .array(IdSchema)
+      .min(1)
+      .max(DOCUMENTATION_REVIEWERS_MAX),
   })
   .strict()
   .refine((value) => unique_ids(value.reviewer_org_user_ids), {
@@ -873,6 +882,57 @@ export const DocumentationReviewGatePreviewSchema = z
     require_maintainer_approval: z.boolean(),
     valid_maintainer_approval_count: z.number().int().min(0),
     override_available_to_actor: z.boolean(),
+  })
+  .strict();
+export const DocumentationReviewChangeSummarySchema = z
+  .object({
+    baseline_revision_id: IdSchema.nullable(),
+    baseline_revision_number: PositiveIntSchema.nullable(),
+    metadata_changed: z.boolean(),
+    home_page_changed: z.boolean(),
+    pages: z
+      .object({
+        added: z.number().int().min(0),
+        removed: z.number().int().min(0),
+        changed: z.number().int().min(0),
+      })
+      .strict(),
+    navigation_changed: z.boolean(),
+    routing_changed: z.boolean(),
+    snippets: z
+      .object({
+        added: z.number().int().min(0),
+        removed: z.number().int().min(0),
+        changed: z.number().int().min(0),
+      })
+      .strict(),
+    assets: z
+      .object({
+        added: z.number().int().min(0),
+        removed: z.number().int().min(0),
+        changed: z.number().int().min(0),
+      })
+      .strict(),
+    openapi_changed: z.boolean(),
+    artifact_references_changed: z.boolean(),
+  })
+  .strict();
+export const DocumentationReviewRequestDetailResponseSchema = z
+  .object({
+    review_request: DocumentationReviewRequestSchema,
+    assignments: z.array(DocumentationReviewAssignmentSchema),
+    actor_can_decide: z.boolean(),
+    actor_can_cancel: z.boolean(),
+    change_summary: DocumentationReviewChangeSummarySchema,
+    publication_gate: DocumentationReviewGatePreviewSchema,
+    cancellation: z
+      .object({
+        canceled_by_org_user_id: IdSchema,
+        canceled_at: IsoDateTimeStringSchema,
+        reason: z.string().min(1),
+      })
+      .strict()
+      .nullable(),
   })
   .strict();
 export const DocumentationReviewNotificationSchema = z
