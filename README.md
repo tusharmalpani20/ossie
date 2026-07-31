@@ -92,10 +92,10 @@ This diagram is navigation context, while the Capture, Guide, Interactive Demo, 
 
 Product Documentation means customer-authored documentation sites and knowledge
 bases. It is different from `apps/docs`, which is this repository's
-contributor/operator documentation hub. Child `132` shipped the complete first
-vertical slice and child `133` shipped the constrained V1 content, snippet,
-asset, and exact artifact-reference workflows. Children `134` through `140`
-own the remaining accepted V1 work.
+contributor/operator documentation hub. Children `132` through `138` have
+shipped the first slice, content/assets, portability, lifecycle,
+review/approval, browser-direct API Try It, and V1 operational hardening.
+Child `139` owns final V1 closeout; child `140` is the post-V1 decision gate.
 
 ## Intentionally Deferred
 
@@ -111,9 +111,8 @@ own the remaining accepted V1 work.
 - Chrome Web Store packaging remains pending. Current extension evidence uses a
   real unpacked Manifest V3 toolbar action with synthetic data; direct-page
   automation remains a separate evidence class.
-- Remaining Product Documentation portability, Carry-Forward and broader
-  lifecycle, review, API try-it, and operational hardening are sequenced in
-  children `134` through `140`.
+- Product Documentation V1 final closeout and the post-V1 decision gate remain
+  sequenced in children `139` and `140`.
 - Loom-style Video recording, storage, playback, transcription, and collaboration are later work and have no accepted runtime model yet.
 
 ## Quick Local Path

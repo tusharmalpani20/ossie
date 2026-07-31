@@ -8,7 +8,7 @@
 
 **Expanded:** 2026-07-31
 
-**Status:** Implementation-ready; not implemented
+**Status:** Completed and verified on 2026-07-31
 
 ## 1. Sequence Gate
 
@@ -2011,56 +2011,73 @@ Child `138` is complete only when:
       seams mapped.
 - [x] Exact scope, non-scope, files, contracts, routes, permissions, migration,
       tests, browser proof, and handoff defined.
-- [ ] Recheck this expanded plan against current code immediately before
+- [x] Recheck this expanded plan against current code immediately before
       implementation.
 
 ### Runtime
 
-- [ ] Shared constants/types/domain policy implemented test-first.
-- [ ] Migration `031`, constraints, grants, audit guard, and rollback implemented.
-- [ ] Organization limits/usage/rebuild routes implemented.
-- [ ] Quota checks cover every growth path and race.
-- [ ] Publication admission/busy/timeout/failure behavior hardened.
-- [ ] Search ranking/digests/rebuild implemented.
-- [ ] Route-specific public read models remove whole-Publication over-fetch.
-- [ ] Discovery policy and single-primary canonical behavior implemented.
-- [ ] Public ETag/cache/access policy hardened.
-- [ ] Fastify initial document and Vite manifest boundary implemented.
-- [ ] Organization operations UI implemented.
-- [ ] Documentation/Try-It code splitting implemented from measurement.
-- [ ] Health/readiness/env diagnostics implemented without sensitive fields.
-- [ ] Try-It DNS revalidation and deployment digest diagnostics implemented.
-- [ ] Fixture/smoke/failure injection updated.
-- [ ] Operator/deployment/backup/upgrade docs updated.
+- [x] Shared constants/types/domain policy implemented test-first.
+- [x] Migration `031`, constraints, grants, audit guard, and rollback implemented.
+- [x] Organization limits/usage/rebuild routes implemented.
+- [x] Quota checks cover every growth path and race.
+- [x] Publication admission/busy/timeout/failure behavior hardened.
+- [x] Search ranking/digests/rebuild implemented.
+- [x] Route-specific public read models remove whole-Publication over-fetch.
+- [x] Discovery policy and single-primary canonical behavior implemented.
+- [x] Public ETag/cache/access policy hardened.
+- [x] Fastify initial document and Vite manifest boundary implemented.
+- [x] Organization operations UI implemented.
+- [x] Documentation/Try-It code splitting implemented from measurement.
+- [x] Health/readiness/env diagnostics implemented without sensitive fields.
+- [x] Try-It DNS revalidation and deployment digest diagnostics implemented.
+- [x] Fixture/smoke/failure injection updated.
+- [x] Operator/deployment/backup/upgrade docs updated.
 
 ### Verification and closure
 
-- [ ] Focused package/server/web tests pass.
-- [ ] DB/migration/reset/reseed/rollback tests pass.
-- [ ] Backup/restore rehearsal passes.
-- [ ] Full workspace/extension/smoke/build matrix passes.
-- [ ] Dependency/version/license review complete.
-- [ ] Agent-browser authenticated/public/failure/accessibility matrix passes.
-- [ ] Performance and bundle evidence recorded.
-- [ ] Threat-model rows closed.
-- [ ] No unrelated worktree changes included.
-- [ ] Implementation log, verification record, leftovers, and handoff completed.
-- [ ] Master `006` updated only for genuinely completed child `138` items.
-- [ ] Scoped logical commits created.
+- [x] Focused package/server/web tests pass.
+- [x] DB/migration/reset/reseed/rollback tests pass.
+- [x] Backup/restore rehearsal passes.
+- [x] Full workspace/extension/smoke/build matrix passes.
+- [x] Dependency/version/license review complete.
+- [x] Agent-browser authenticated/public/failure/accessibility matrix passes.
+- [x] Performance and bundle evidence recorded.
+- [x] Threat-model rows closed.
+- [x] No unrelated worktree changes included.
+- [x] Implementation log, verification record, leftovers, and handoff completed.
+- [x] Master `006` updated only for genuinely completed child `138` items.
+- [x] Scoped logical commits created.
 
 ## 27. Implementation Log
 
-Not started.
+Implementation completed from clean migration head `030`, while preserving
+pre-existing worktree content.
 
-When implementation begins, record:
+- `b823a30` added shared Documentation operational constants, nullable limit,
+  usage, rebuild, discovery, and production-diagnostic contracts test-first.
+- `31cc302` added migration `031`, race-safe Organization quota enforcement,
+  immutable publication search generations/selectors, deterministic draft and
+  Publication rebuilds, weighted search, discovery rules, heavy-work admission,
+  publication timeout/failure protection, initial HTML/CSP/ETag behavior,
+  truthful readiness/reporting, and the bounded maintenance command.
+- `814c958` added the Organization operations UI and measured lazy boundaries
+  for Documentation routes and the request-builder experience.
+- `5878370` extended the DB smoke workflow through Owner limit mutation,
+  Viewer denial, draft rebuild, initial HTML, and conditional ETag behavior;
+  that proof found and fixed a PostgreSQL text/varchar parameter ambiguity.
+- `c6ccae0` closed the final implementation audit gaps: Page/search/operation/
+  metadata initial-document reads now select bounded representations and the
+  existing publishing workbench exposes confirmation-gated Owner-only draft
+  and exact-Publication recovery.
+- `3cec21b` upgraded Next.js, Fastify, JWT, cookie/CORS/websocket, Umzug, and
+  their lockfile graph after the production audit exposed one critical and
+  multiple high advisories. The repeated production audit is clean.
+- Operator, self-hosting, readiness, fixture, top-level status, browser
+  evidence, this child, and Master `006` were updated in the closure docs
+  commit.
 
-- baseline commit/worktree and migration head;
-- red-green-refactor stages;
-- exact schema/API/UI decisions and deviations from this plan;
-- dependency changes and rationale;
-- migration/upgrade/rollback/restore results;
-- browser/performance/accessibility evidence;
-- commit hashes.
+No runtime cache, queue, customer-content purge, analytics, rate-limit redesign,
+or deferred Documentation product feature was introduced.
 
 ## 28. Verification Record
 
@@ -2114,11 +2131,45 @@ Independent implementation-readiness recheck on 2026-07-31:
 - reconciled exact affected files, tests, migration/down refusal, upgrade
   order, browser proof, and child `139` handoff.
 
-Runtime verification has not started.
+Implementation verification on 2026-07-31:
+
+- migration `031` clean up/status/down/up/reset/reseed passed; focused migration
+  tests cover the unsafe derived-generation rollback guard;
+- Documentation and operations DB suites passed (`17` focused tests), the full
+  DB matrix passed, and smoke passed (`2` tests);
+- server unit suite passed (`126` files, `543` tests);
+- web suite passed (`83` files, `441` tests after the Owner recovery test);
+- audit-domain passed (`6` files, `49` tests); all remaining workspace package,
+  docs, and extension tests passed through `pnpm -r test`;
+- workspace typecheck, lint, and production build passed; changed-file lint is
+  clean;
+- Fastify route tests prove Page/metadata representation selection; DB smoke
+  proves the bounded Page representation still contains only referenced
+  Snippets/Assets/operations and renders correctly;
+- a PostgreSQL custom-format dump restored into isolated
+  `ossie_test_restore_138`; two Documentation Sites were read from the restored
+  database before that temporary database was dropped;
+- `pnpm audit --prod --audit-level high` initially found one critical and
+  multiple high advisories, drove the scoped dependency upgrade, then passed
+  with no reported advisory;
+- production license inventory contains permissive licenses, dual-license
+  `jszip` (MIT selected), `caniuse-lite` attribution, and dynamically linked
+  Sharp/libvips LGPL artifacts; no incompatible new license was introduced;
+- headless Chromium Owner/Viewer/public/operation/accessibility/failure proof
+  and exact bundle measurements are recorded in
+  `docs/ui/138-documentation-v1-operational-hardening-browser-evidence.md`;
+- public Page JSON selected two Page summaries, nine current blocks, one
+  referenced Snippet, two referenced Assets, and one referenced operation;
+  weighted search returned the expected API reference with its `50` result
+  ceiling;
+- direct initial HTML returned route-specific content, strict CSP,
+  `Vary: Cookie`, public revalidation, stable digest/representation ETag, and
+  `304`; alias `308`, gone `410`, unknown `404`, robots, and sitemap passed;
+- no S1/S2 Documentation defect remained after the close-implementation audit.
 
 ## 29. Leftovers and Handoff to Child 139
 
-At planning time, expected acceptable limitations after this child are:
+Accepted non-blocking limitations handed to child `139`:
 
 - production p75 telemetry may remain operator-owned; local lab evidence must
   not be labeled production p75;
@@ -2131,8 +2182,7 @@ At planning time, expected acceptable limitations after this child are:
 - no custom-domain/Git/translation/public-feedback/realtime scope exists;
 - no automatic whole-Organization projection rebuild scheduler exists.
 
-The final implementation handoff must replace this forecast with actual facts.
-It must give child `139`:
+Child `139` receives:
 
 - migration `031` result and rollback boundary;
 - exact limits/usage/enforcement matrix;
@@ -2142,9 +2192,9 @@ It must give child `139`:
 - migration/backup/restore evidence;
 - dependency/license disposition;
 - accessibility/performance/browser evidence;
-- complete regression counts;
+- complete regression counts above;
 - known non-S1/S2 limitations;
-- scoped commit list.
+- scoped commit list above plus the final closure-doc commit.
 
 Child `139` is final closeout, not a place to finish missing child `138`
 features. Any closure-blocking defect found here must be fixed and reverified

@@ -7,7 +7,9 @@ This guide covers the operational basics for a self-hosted Ossie alpha instance.
 ## Health Checks
 
 - `GET /healthz` is a liveness check. It does not touch PostgreSQL.
-- `GET /readyz` is a readiness check. It returns `200` only when the API can reach PostgreSQL.
+- `GET /readyz` is a readiness check. It returns `200` only when the API can
+  reach PostgreSQL. In production it also verifies migration `031`, the
+  configured File-storage root, and the validated Documentation web manifest.
 - Use `/healthz` for process liveness and `/readyz` before sending traffic to the API.
 
 ## Production Environment Report
@@ -31,6 +33,8 @@ The report prints JSON with non-secret summaries only:
 - upload/body-size limits
 - in-memory rate-limit settings
 - known alpha operational limitations
+- Documentation work concurrency, publication timeout, rebuild batch, initial
+  HTML ceiling, DNS timeout, and public-manifest configuration booleans
 
 It does not print `COOKIE_SECRET`, `DB_PASSWORD`, maintenance database
 credentials, raw cookies, bearer tokens, invite tokens, or the local storage
@@ -38,6 +42,48 @@ root path. The API process needs only `DB_USER`/`DB_PASSWORD`; do not place
 `DB_MAINTENANCE_USER` or `DB_MAINTENANCE_PASSWORD` in its runtime environment.
 Treat the report as a preflight aid, not a replacement for `/readyz`, reverse
 proxy testing, backup rehearsal, or a full production readiness review.
+
+The report never prints the Documentation manifest path, customer origin
+values, DNS answers, public/private content, or resource identifiers.
+
+## Documentation Operations
+
+Organization members can inspect content-free Documentation usage at
+`/organization/documentation`. Only an Organization Owner can set nullable
+active-Site and active-Page product limits. `null` means unlimited. Lowering a
+limit below current use is allowed and reports `over_limit`; it blocks only
+future quota-increasing commands, not archive, export, publication rollback, or
+projection recovery.
+
+The following bounded process settings are validated at startup:
+
+```text
+OSSIE_DOCUMENTATION_HEAVY_WORK_CONCURRENCY
+OSSIE_DOCUMENTATION_PUBLICATION_CONCURRENCY
+OSSIE_DOCUMENTATION_REBUILD_CONCURRENCY
+OSSIE_DOCUMENTATION_PUBLICATION_TIMEOUT_MS
+OSSIE_DOCUMENTATION_REBUILD_BATCH_SIZE
+OSSIE_DOCUMENTATION_INITIAL_HTML_MAX_BYTES
+OSSIE_DOCUMENTATION_TRY_IT_DNS_TIMEOUT_MS
+```
+
+Admission is process-local and non-waiting. Multi-process operators must
+multiply configured concurrency by process count and must not describe it as a
+distributed queue.
+
+Projection recovery is explicit and defaults to a content-free dry run:
+
+```bash
+rtk pnpm --filter server maintenance:documentation-projections -- --dry-run
+rtk pnpm --filter server maintenance:documentation-projections -- --all-legacy
+rtk pnpm --filter server maintenance:documentation-projections -- \
+  --publication-id <publication-id>
+```
+
+The command requires maintenance database credentials. Mutation modes rebuild
+only derived search projections, stop on the first failed root, and write
+content-free system Audit Evidence. They do not move Publish Links, create
+Revisions/Publications, or change discovery policy.
 
 ## Database Roles
 
@@ -158,6 +204,12 @@ After restore:
 - open a guide preview
 - open a published guide link
 - open a published interactive demo if the instance has demos
+- open an old and the current Documentation Publication and verify canonical
+  routes and output digests
+- run the Documentation projection command in `--dry-run`, rebuild one exact
+  draft and Publication when required, and verify search still resolves
+- treat missing protected File bytes as a failed restore; never repair by
+  silently dropping immutable references
 
 Record the backup timestamp, database dump name, storage archive name, restore target, application version, and verification result. If any capture asset or published asset is missing after restore, treat the backup pair as incomplete.
 
@@ -271,6 +323,15 @@ portal together because old snapshot/singular-publish clients are unsupported.
 DOWN is allowed only while the new publication/link tables are empty and never
 discards retained Publication, manifest, viewer-session, Audit, or Access
 Evidence.
+
+Migration `031_documentation_v1_operational_hardening.sql` adds nullable
+Organization limits, immutable Publication-search generations, discovery
+policy, weighted search projections, and their runtime grants/guards. Stop API
+writers for the upgrade. Existing Publication search rows become a
+`requires_rebuild` legacy generation and remain readable until the bounded
+maintenance command selects a validated ready generation. DOWN is supported
+only before limits, non-legacy generations, or non-backfill discovery changes
+exist; it never discards retained operational state.
 
 Before upgrading:
 

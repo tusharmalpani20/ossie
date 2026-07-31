@@ -185,7 +185,9 @@ rtk pnpm --filter server seed:documentation-browser-fixture
 The fixture resets `ossie_test`, uses synthetic users/content only, and must
 never target a retained database. It includes expanded Page content, a reusable
 Snippet, Documentation- and Capture-backed images, two exact Publications,
-public search, and rollback coverage.
+public search, rollback coverage, two active Sites for Organization usage/limit
+checks, discovery policy, initial-document/ETag validation, and explicit
+projection rebuild dogfood.
 
 For self-hosted extension use, build the extension, load `apps/extension/dist` as an unpacked Chrome extension, and configure the extension with the server URL for the instance it should talk to.
 

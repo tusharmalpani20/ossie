@@ -172,6 +172,33 @@ Ossie never proxies the target request. Browser CORS, TLS, DNS,
 authentication, and target rate limits remain authoritative. Credentials are
 entered per open request panel and are not stored.
 
+## Documentation Public HTML And Work Limits
+
+Production Fastify serves `/docs/**` so crawlers and no-JavaScript readers
+receive route-specific status, title, canonical/social metadata, language,
+robots policy, safe content, CSP, cache policy, and a bounded bootstrap
+document. Route `/api/v1/**` to Fastify as before. Route the manifest-selected
+web assets to the built portal files; do not send `/docs/**` only to Vite's SPA
+fallback.
+
+Set an absolute readable Vite manifest path and a normalized same-origin
+root-relative asset base:
+
+```bash
+OSSIE_DOCUMENTATION_WEB_MANIFEST_PATH=/opt/ossie/apps/web/dist/.vite/manifest.json
+OSSIE_DOCUMENTATION_WEB_ASSET_BASE=/assets/
+```
+
+Build `apps/web` before starting the production API. Startup fails closed for a
+missing/malformed manifest, an absent `index.html` entry, an absolute/traversal
+asset, or an invalid asset base. The API does not read a live mutable manifest
+after startup.
+
+Operators may tune only the bounded Documentation work settings listed in
+[operations.md](operations.md). Persisted content safety ceilings remain
+compiled shared contracts. Publication and rebuild admission is per-process,
+has no waiter queue, and is not multi-instance coordination.
+
 ## Run
 
 Server:

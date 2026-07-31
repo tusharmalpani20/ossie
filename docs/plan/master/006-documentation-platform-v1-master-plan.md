@@ -2,10 +2,10 @@
 
 Date: 2026-07-30
 
-Status: Active after child `137` independent closure on 2026-07-31.
-Children `132` through `137` are implemented, independently close-rechecked,
-and verified. Child `138` is the next bounded reservation; children `138`
-through `140` must be re-expanded after their actual predecessors.
+Status: Active after child `138` implementation and verification on 2026-07-31.
+Children `132` through `137` are independently close-rechecked; child `138` is
+implemented and verified. Child `139` is the next bounded final-closeout reservation;
+children `139` and `140` must be re-expanded after their actual predecessors.
 
 Master plan number: 006.
 
@@ -2329,6 +2329,16 @@ SEO, and operator behavior before certification.
 - operator docs truthful;
 - child `139` receives a stable implementation, not unfinished features.
 
+Status: completed and verified on 2026-07-31. Migration `031`, nullable
+Organization limits and exact usage, race-safe quota enforcement, heavy-work
+admission, immutable search generations/rebuild, one-primary discovery policy,
+bounded public read representations, crawler-visible initial HTML, access-first
+ETag/cache behavior, truthful operational diagnostics, Organization operations
+and recovery UI, measured lazy boundaries, dependency remediation, backup/
+restore rehearsal, and headless browser evidence are shipped. Per-process
+admission, production p75 telemetry, and Firefox/WebKit proof remain documented
+non-blocking deployment/capability limitations.
+
 ## 36. Child 139: Documentation V1 Final Closeout
 
 ### Goal
@@ -2663,7 +2673,7 @@ By child `139`, the combined verification must include:
 - [x] Create, expand, recheck, implement, verify, and close child `135`.
 - [x] Create, expand, recheck, implement, verify, and close child `136`.
 - [x] Create, expand, recheck, implement, verify, and close child `137`.
-- [ ] Create, expand, recheck, implement, verify, and close child `138`.
+- [x] Create, expand, recheck, implement, verify, and close child `138`.
 - [ ] Create, expand, recheck, verify, and close child `139`.
 - [ ] Create, conduct, document, accept, and close child `140`.
 
@@ -2710,13 +2720,14 @@ proposals without another accepted plan.
 
 ## 45. Immediate Next Action
 
-Product Documentation is implemented and independently close-rechecked through
-child `137`. The next activity is to rewrite/expand
-`docs/plan/138-documentation-v1-operational-hardening.md` against the actual
-closed child `137` contracts and current code, then recheck that plan before
-implementation.
+Product Documentation is implemented and verified through child `138`; child
+`137` is the latest independently close-rechecked predecessor. The next activity
+is to rewrite/expand
+`docs/plan/139-documentation-v1-final-closeout.md` against the actual closed
+child `138` contracts, evidence, and current code, then recheck that plan before
+the final V1 audit.
 
-Children `138` through `140` remain sequential reservations. Each later child
+Children `139` and `140` remain sequential reservations. Each later child
 follows the same close-predecessor rule.
 
 ## 46. Planning And Recheck Log
@@ -2828,6 +2839,13 @@ follows the same close-predecessor rule.
   draft builder to Viewers without policy mutation authority, kept production
   CSP strict while allowing Vite's development bootstrap, and passed full
   shared/server/web/extension/DB/smoke regression.
+- 2026-07-31: implemented and verified child `138`. Added migration `031`,
+  Organization limits/usage, complete race-safe quota coverage, publication
+  admission/timeout safety, immutable weighted-search generations and recovery,
+  one-primary discovery, access-first ETags, route-specific bounded public read
+  representations, Fastify initial documents and production asset-manifest
+  checks, operations/recovery UI, diagnostics, measured lazy boundaries,
+  backup/restore proof, dependency remediation, and headless Chromium evidence.
 
 ## 47. Master Planning Verification Record
 
@@ -2847,7 +2865,7 @@ Required final results:
   planning checkpoint; superseded by the child `132` runtime evidence above.
 - scoped diff assertion: passed; documentation/plan files only.
 - child file assertion: exactly one correctly named plan exists for each child
-  `132` through `140`; `132` through `134` are complete and `135`–`140`
+  `132` through `140`; `132` through `138` are complete and `139`–`140`
   identify themselves as reservations.
 
 Child `132` runtime evidence includes:
@@ -3008,8 +3026,8 @@ Child `137` implementation evidence includes:
 
 ## 48. Planning Leftovers And Handoff
 
-- Product Documentation children `132` through `137` are complete and
-  verified. Child `138` is next.
+- Product Documentation children `132` through `138` are complete and
+  verified. Child `139` is next.
 - Child `132` established the first vertical slice. Child `133` extended it
   with the complete constrained V1 block graph, Edition-owned Snippets,
   Documentation/Capture Asset sources, exact artifact Publication references,
@@ -3017,21 +3035,22 @@ Child `137` implementation evidence includes:
 - The child `132` compatibility proof selected the replaceable Ossie-native
   editor/reader fallback and exact `yaml@2.9.0`; no Tiptap/Fumadocs runtime was
   added.
-- Child `132` now fixes first-slice hard safety ceilings. Organization-owned
-  configurable quota defaults and operational reporting remain child `138`
-  scope; nullable still means unlimited product quota below hard ceilings.
+- Child `138` replaced first-slice-only ceilings with Organization-owned
+  nullable active-Site/active-Page limits beneath hard safety ceilings and
+  exact usage/health reporting.
 - Git/GitHub, translation, custom domains, public feedback/analytics, realtime
   collaboration, permanent deletion, cross-artifact search, server proxy,
   stored credentials, SDK generation, and Video remain deferred/rejected as
   recorded.
-- Child `138` must preserve exact Publication/link access, the browser-direct
-  and memory-only credential boundary, matching origin-set/CSP authority, and
-  the separation between review evidence and API request authority.
-- The measured single-chunk bundle growth, organization-configurable
-  quotas/reporting, production observability, and capability-dependent
-  Firefox/WebKit or production-p75 evidence remain child `138` work.
+- Child `138` preserved exact Publication/link access, the browser-direct and
+  memory-only credential boundary, matching origin-set/CSP authority, and the
+  separation between review evidence and API request authority.
+- Child `138` added measured lazy boundaries, production diagnostics,
+  Organization quota/reporting, and local Chromium evidence. Firefox/WebKit
+  and production-p75 evidence remain capability/deployment-owned limitations,
+  not unfinished V1 runtime work.
 - Child `135` preserves the child `133` hard ceilings, exact immutable
   references, source discriminants, protected-byte/digest checks, retained
   archived-reference rules, and Edition path-namespace serialization.
-  Child `138` must measure and, where needed, split public immutable snapshot
-  loading by Page/search/metadata access shape.
+  Child `138` now selects bounded public Page/search/operation/metadata read
+  representations while retaining the full immutable root representation.

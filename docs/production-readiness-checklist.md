@@ -29,6 +29,12 @@ These settings are validated at server startup in production:
 - [ ] Set `OSSIE_RATE_LIMIT_WINDOW_MS`.
 - [ ] Set `API_URL` to the externally reachable API origin.
 - [ ] Set `OSSIE_PUBLIC_WEB_URL` to the browser-facing portal origin when the API and portal origins differ.
+- [ ] Build the web portal, set absolute
+      `OSSIE_DOCUMENTATION_WEB_MANIFEST_PATH`, and set a normalized
+      root-relative `OSSIE_DOCUMENTATION_WEB_ASSET_BASE`.
+- [ ] Review the bounded Documentation concurrency, publication timeout,
+      rebuild batch, initial-document, and DNS-timeout settings; account for
+      API process count.
 
 These settings still require operator verification:
 
@@ -103,6 +109,11 @@ rtk pnpm build
 - [ ] Confirm cookies are secure on HTTPS.
 - [ ] Confirm `/healthz` returns `200` without a database dependency.
 - [ ] Confirm `/readyz` returns `200` only when the database is reachable.
+- [ ] In production, confirm `/readyz` reports migrations, File storage, and
+      Documentation public assets as `ok` without exposing paths.
+- [ ] Confirm `/docs/**` reaches Fastify while manifest-selected `/assets/**`
+      reaches the built web files; verify `200`, alias `308`, gone `410`, CSP,
+      canonical, robots, sitemap, ETag `304`, and noindex behavior.
 - [ ] Confirm reverse proxy body size limits are at least as strict as `OSSIE_JSON_BODY_LIMIT_BYTES` and `OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES`.
 - [ ] Confirm login, first-run setup, public password unlock, and invite acceptance return `429` after repeated failed submissions.
 - [ ] Confirm first-run setup is disabled after owner creation.
@@ -113,6 +124,9 @@ rtk pnpm build
 - [ ] Confirm `COOKIE_SECRET` rotation is understood: existing web sessions become invalid.
 - [ ] Confirm extension bearer token/session rotation is handled by logging users out and asking them to sign in again.
 - [ ] Run dependency review, for example `rtk pnpm audit`, and record accepted risks.
+- [ ] Run Documentation projection maintenance with `--dry-run`; after an
+      upgrade, rebuild legacy draft/Publication projections in bounded batches
+      and verify exact old/current public routes remain unchanged.
 - [ ] If running more than one API process, document that rate limiting is still in-memory and must be replaced before relying on it for multi-instance abuse protection.
 
 ## Smoke Test
