@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import {
   DocumentationTryItOriginError,
   validate_documentation_try_it_origin,
+  type DocumentationTryItDnsAnswer,
 } from "./documentation-try-it.origin";
 
 describe("Documentation Try-It origin validation", () => {
@@ -57,5 +58,18 @@ describe("Documentation Try-It origin validation", () => {
         }),
       ).rejects.toBeInstanceOf(DocumentationTryItOriginError);
     }
+  });
+
+  it("fails closed when uncached all-address DNS validation times out", async () => {
+    await expect(
+      validate_documentation_try_it_origin({
+        origin: "https://api.example.com",
+        allowed_origins: new Set(["https://api.example.com"]),
+        resolve: vi.fn(
+          () => new Promise<DocumentationTryItDnsAnswer[]>(() => undefined),
+        ),
+        timeout_ms: 5,
+      }),
+    ).rejects.toMatchObject({ code: "origin_resolution_failed" });
   });
 });

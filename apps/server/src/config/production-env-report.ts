@@ -8,6 +8,7 @@ import { get_public_web_url } from "./public-web-url.config";
 import { get_runtime_mode } from "./runtime.config";
 import { validate_server_startup_config } from "./startup.config";
 import { get_documentation_try_it_origin_config } from "./documentation-try-it.config";
+import { get_documentation_operations_config } from "./documentation-operations.config";
 
 const parse_origins = (value: string | undefined) =>
   (value || "")
@@ -64,6 +65,18 @@ export type ProductionEnvReport = {
   documentation_try_it: {
     allowed_origins_count: number;
     origin_set_digest: string;
+    dns_validation: "all_addresses_must_be_public";
+    dns_timeout_ms: number;
+  };
+  documentation: {
+    public_asset_manifest_configured: boolean;
+    public_asset_base_configured: boolean;
+    heavy_work_concurrency: number;
+    publication_concurrency: number;
+    publication_timeout_ms: number;
+    rebuild_concurrency: number;
+    rebuild_batch_size: number;
+    initial_html_max_bytes: number;
   };
   operational_limitations: string[];
 };
@@ -94,6 +107,7 @@ export const build_production_env_report = (): ProductionEnvReport => {
   const local_storage_root = process.env.OSSIE_LOCAL_STORAGE_ROOT || "";
   const rate_limit = get_rate_limit_config();
   const documentation_try_it = get_documentation_try_it_origin_config();
+  const documentation_operations = get_documentation_operations_config();
 
   return {
     status: "valid",
@@ -146,6 +160,22 @@ export const build_production_env_report = (): ProductionEnvReport => {
     documentation_try_it: {
       allowed_origins_count: documentation_try_it.origins.length,
       origin_set_digest: documentation_try_it.digest,
+      dns_validation: "all_addresses_must_be_public",
+      dns_timeout_ms: documentation_operations.try_it_dns_timeout_ms,
+    },
+    documentation: {
+      public_asset_manifest_configured: Boolean(
+        process.env.OSSIE_DOCUMENTATION_WEB_MANIFEST_PATH,
+      ),
+      public_asset_base_configured: Boolean(
+        process.env.OSSIE_DOCUMENTATION_WEB_ASSET_BASE,
+      ),
+      heavy_work_concurrency: documentation_operations.heavy_work_concurrency,
+      publication_concurrency: documentation_operations.publication_concurrency,
+      publication_timeout_ms: documentation_operations.publication_timeout_ms,
+      rebuild_concurrency: documentation_operations.rebuild_concurrency,
+      rebuild_batch_size: documentation_operations.rebuild_batch_size,
+      initial_html_max_bytes: documentation_operations.initial_html_max_bytes,
     },
     operational_limitations: [
       "Local file storage is the only storage provider.",

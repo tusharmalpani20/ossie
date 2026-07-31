@@ -242,6 +242,12 @@ const reads: AccessRouteRegistration[] = [
     null,
     "authentication",
   ),
+  read(
+    "GET /api/v1/organization/documentation/operations",
+    "documentation.operations.viewed",
+    "organization",
+    null,
+  ),
   read("GET /api/v1/projects", "project.list_viewed", "organization", null),
   read("GET /api/v1/projects/:id", "project.viewed", "project", "id"),
   read(
@@ -502,6 +508,12 @@ const reads: AccessRouteRegistration[] = [
     "site_id",
   ),
   read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/discovery-policy",
+    "documentation.discovery_policy.viewed",
+    "publish_link",
+    "link_id",
+  ),
+  read(
     "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/operations/:operation_key/try-it-configuration",
     "documentation.try_it_configuration.viewed",
     "documentation_site",
@@ -680,6 +692,26 @@ const reads: AccessRouteRegistration[] = [
     "documentation.publication_review_evidence_viewed",
     "documentation_publication_review_evidence",
     "evidence_id",
+  ),
+  ...[
+    "GET /api/v1/docs/:slug",
+    "GET /api/v1/docs/:slug/:*",
+    "GET /api/v1/docs/:slug/operations/:operation_key",
+    "GET /api/v1/docs/:slug/versions/:version_slug",
+    "GET /api/v1/docs/:slug/versions/:version_slug/:*",
+    "GET /api/v1/docs/:slug/versions/:version_slug/operations/:operation_key",
+  ].map((route) =>
+    registration(route, {
+      action: "documentation.initial_document_served",
+      denied_action: "documentation.initial_document_denied",
+      root_resource_type: "publish_link",
+      root_parameter: null,
+      project_parameter: null,
+      policy: "excluded_transport",
+      surface: "api",
+      authorization_type: "public_link",
+      atomic_commands: [],
+    }),
   ),
 ];
 

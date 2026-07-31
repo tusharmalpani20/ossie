@@ -44,6 +44,8 @@ const documentation_service_stubs = (
   list_revisions: vi.fn(async () => []),
   list_publications: vi.fn(async () => []),
   list_publish_links: vi.fn(async () => []),
+  get_discovery_policy: vi.fn(),
+  update_discovery_policy: vi.fn(),
   revoke_publish_link: vi.fn(),
   get_revision: vi.fn(),
   create_revision: vi.fn(),
@@ -698,6 +700,70 @@ describe("Documentation routes", () => {
     );
   });
 
+  it("reads and updates one scoped Publish Link discovery policy", async () => {
+    const get_discovery_policy = vi.fn(async () => ({
+      publish_link_id: "link",
+      indexing_enabled: false,
+      is_primary_canonical: false,
+      effective_indexing: false,
+      effective_reason: "not_primary",
+      version: 1,
+    }));
+    const update_discovery_policy = vi.fn(async () => ({
+      publish_link_id: "link",
+      indexing_enabled: true,
+      is_primary_canonical: true,
+      effective_indexing: true,
+      effective_reason: "enabled",
+      version: 2,
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          get_discovery_policy,
+          update_discovery_policy,
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+      }),
+    );
+    const url =
+      "/api/v1/projects/project/versions/main/documentation-sites/site/publish-links/link/discovery-policy";
+    const read = await app.inject({
+      method: "GET",
+      url,
+      cookies: { ossie_session: "session" },
+    });
+    const update = await app.inject({
+      method: "PATCH",
+      url,
+      cookies: { ossie_session: "session" },
+      payload: {
+        expected_version: 1,
+        indexing_enabled: true,
+        is_primary_canonical: true,
+      },
+    });
+    await app.close();
+
+    expect(read.statusCode).toBe(200);
+    expect(read.headers["cache-control"]).toBe("private, no-store");
+    expect(update.statusCode).toBe(200);
+    expect(update.json()).toMatchObject({
+      effective_indexing: true,
+      version: 2,
+    });
+    expect(update_discovery_policy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project_version_id: "version",
+        site_id: "site",
+        link_id: "link",
+      }),
+    );
+  });
+
   it("revokes a version-matched Documentation Publish Link", async () => {
     const revoke_publish_link = vi.fn(async () => ({
       publish_link: { id: "link", status: "revoked", version: 4 },
@@ -918,6 +984,7 @@ describe("Documentation routes", () => {
             ],
             redirects: [],
             openapi_operations: [],
+            _discovery: { effective_indexing: true },
           })),
         }),
         resolve_project_version: vi.fn(),
@@ -941,6 +1008,78 @@ describe("Documentation routes", () => {
       "<loc>https://docs.example.test/docs/product-docs/versions/v2/install</loc>",
     );
     expect(robots.statusCode).toBe(200);
+    delete process.env.OSSIE_PUBLIC_WEB_URL;
+  });
+
+  it("serves escaped route-specific initial HTML with CSP, canonical, and ETag", async () => {
+    process.env.OSSIE_PUBLIC_WEB_URL = "https://docs.example.test";
+    const resolve_public_site = vi.fn(async () => ({
+      link: {
+        visibility: "public",
+        slug: "product-docs",
+      },
+      site: {
+        id: "site",
+        name: 'Product <script>alert("x")</script>',
+        description: "Safe docs",
+      },
+      edition: { primary_language: "en-US" },
+      revision: { primary_language: "en-US" },
+      working_draft: { home_page_id: "page" },
+      publication: { output_digest: "a".repeat(64) },
+      pages: [
+        {
+          id: "page",
+          title: "Install & configure",
+          description: 'Never render "raw" metadata',
+          canonical_path: "install",
+          blocks: [{ kind: "paragraph", text: "Run the installer." }],
+        },
+      ],
+      aliases: [],
+      redirects: [],
+      openapi_operations: [],
+      _discovery: {
+        effective_indexing: true,
+        primary_slug: "product-docs",
+      },
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        public_assets: {
+          scripts: ["/assets/app.js"],
+          styles: ["/assets/app.css"],
+          asset_base: "/",
+          production: true,
+        },
+        auth_service: {} as never,
+        documentation_service: documentation_service_stubs({
+          resolve_public_site,
+        }),
+        resolve_project_version: vi.fn(),
+      }),
+    );
+    const response = await app.inject({ url: "/docs/product-docs/install" });
+    const notModified = await app.inject({
+      url: "/docs/product-docs/install",
+      headers: { "if-none-match": response.headers.etag! },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-security-policy"]).toContain(
+      "script-src 'self'",
+    );
+    expect(response.body).toContain("<title>Install &amp; configure");
+    expect(response.body).toContain(
+      '<link rel="canonical" href="https://docs.example.test/docs/product-docs/install">',
+    );
+    expect(response.body).toContain('src="/assets/app.js"');
+    expect(response.body).not.toContain("<script>alert");
+    expect(notModified.statusCode).toBe(304);
+    expect(resolve_public_site).toHaveBeenCalledTimes(2);
     delete process.env.OSSIE_PUBLIC_WEB_URL;
   });
 

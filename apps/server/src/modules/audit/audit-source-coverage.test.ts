@@ -84,6 +84,9 @@ const excluded = new Set([
   "documentation_schema.site_revision_openapi_source:INSERT",
   "publish_schema.site_publication:INSERT",
   "publish_schema.site_publication_search_document:INSERT",
+  "publish_schema.site_publication_search_generation:INSERT",
+  "publish_schema.site_publication_search_selection:INSERT",
+  "publish_schema.site_publication_search_selection:UPDATE",
 ]);
 
 describe("Audit production SQL source coverage", () => {

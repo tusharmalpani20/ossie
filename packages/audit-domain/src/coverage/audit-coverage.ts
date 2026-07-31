@@ -24,6 +24,7 @@ export type AuditCommandCoverage = {
   source_types: readonly AuditSourceType[];
   actor_types: readonly AuditActorType[];
   writes: readonly AuditCoveredWrite[];
+  audit_only?: boolean;
 };
 
 const identifier = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)?$/u;
@@ -51,7 +52,7 @@ export const validate_audit_coverage = (
       !command_or_action.test(registration.command)
       || !command_or_action.test(registration.action)
       || !registration.routes.every((value) => route.test(value))
-      || registration.writes.length === 0
+      || (registration.writes.length === 0 && registration.audit_only !== true)
       || registration.actor_types.length === 0
       || registration.source_types.length === 0
       || !registration.actor_types.every((value) => actor_types.has(value))

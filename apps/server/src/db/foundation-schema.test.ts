@@ -754,4 +754,36 @@ describe("foundation schema migrations", () => {
       "Refusing to roll back Documentation review workflow",
     );
   });
+
+  it("adds Documentation operational limits, immutable search generations, and discovery policy", () => {
+    const migration = readFileSync(
+      new URL(
+        "./migrations/031_documentation_v1_operational_hardening.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const up = migration.split("-- DOWN:")[0] ?? migration;
+    const down = migration.split("-- DOWN:")[1] ?? "";
+
+    for (const table of [
+      "organization_documentation_limits",
+      "site_publication_search_generation",
+      "site_publication_search_selection",
+      "documentation_discovery_policy",
+    ]) {
+      expect(up).toContain(table);
+    }
+    expect(up).toContain("source_digest");
+    expect(up).toContain("heading_text");
+    expect(up).toContain("body_text");
+    expect(up).toContain("ranking_vector");
+    expect(up).toContain("legacy_compatible");
+    expect(up).toContain("requires_rebuild");
+    expect(up).toContain("uq_documentation_discovery_primary");
+    expect(up).toContain("prevent_publication_search_generation_mutation");
+    expect(down).toContain(
+      "Refusing to roll back Documentation V1 operational hardening",
+    );
+  });
 });

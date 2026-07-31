@@ -30,6 +30,7 @@ import {
   DocumentationPageLifecycleRequestSchema,
   DocumentationOpenApiLifecycleRequestSchema,
   DocumentationTryItAttemptReportRequestSchema,
+  UpdateDocumentationDiscoveryPolicyRequestSchema,
   DocumentationUpdatePublishLinkTryItPolicyRequestSchema,
   DocumentationUpsertTryItPolicyRequestSchema,
   RevokePublishLinkRequestSchema,
@@ -47,10 +48,13 @@ import {
   DOCUMENTATION_TRY_IT_URL_MAX_BYTES,
 } from "@repo/constants";
 import {
+  build_documentation_csp,
+  build_documentation_etag,
   normalize_documentation_blocks,
   normalize_documentation_path,
   validate_documentation_snippet_blocks,
 } from "@repo/documentation-domain";
+import type { DocumentationPublicAssetsConfig } from "../../config/documentation-public-assets.config";
 import { z } from "zod";
 import { createHmac } from "node:crypto";
 import { ulid } from "ulid";
@@ -228,6 +232,8 @@ const normalize_publication_review_gate = (body: unknown) =>
     : body;
 
 export type DocumentationRouteDependencies = {
+  public_assets?: DocumentationPublicAssetsConfig;
+  initial_html_max_bytes?: number;
   auth_service: {
     get_current_auth_context: (session?: string) => Promise<AuthContext>;
   };
@@ -441,6 +447,24 @@ export type DocumentationRouteDependencies = {
       actor_org_user_id: string;
       site_id: string;
     }) => Promise<unknown[]>;
+    get_discovery_policy: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      link_id: string;
+    }) => Promise<unknown>;
+    update_discovery_policy: (
+      input: {
+        organization_id: string;
+        project_id: string;
+        project_version_id: string;
+        actor_org_user_id: string;
+        site_id: string;
+        link_id: string;
+      } & z.infer<typeof UpdateDocumentationDiscoveryPolicyRequestSchema>,
+    ) => Promise<unknown>;
     get_revision: (input: {
       organization_id: string;
       project_id: string;
@@ -947,6 +971,19 @@ export const build_documentation_routes = (
             error_response(code, "Try-It evidence is temporarily unavailable"),
           );
       if (
+        code === "documentation_publication_capacity_exceeded" ||
+        code === "documentation_publication_timed_out"
+      )
+        return reply
+          .header("Retry-After", "1")
+          .status(503)
+          .send(
+            error_response(
+              code,
+              "Documentation Publication is temporarily unavailable",
+            ),
+          );
+      if (
         code === "documentation_row_version_conflict" ||
         code === "documentation_path_conflict" ||
         code === "documentation_path_retired" ||
@@ -979,11 +1016,21 @@ export const build_documentation_routes = (
         code === "documentation_try_it_operation_unsupported" ||
         code === "documentation_try_it_unavailable"
       )
-        return reply
-          .status(409)
-          .send(
-            error_response(code, "Documentation changed; reload and retry"),
-          );
+        return reply.status(409).send({
+          ...error_response(code, "Documentation changed; reload and retry"),
+          ...(error &&
+          typeof error === "object" &&
+          "latest" in error &&
+          error.latest
+            ? { latest: error.latest }
+            : {}),
+          ...(error &&
+          typeof error === "object" &&
+          "latest_page" in error &&
+          error.latest_page
+            ? { latest_page: error.latest_page }
+            : {}),
+        });
       if (
         code === "documentation_navigation_invalid" ||
         code === "documentation_redirect_cycle" ||
@@ -1009,7 +1056,11 @@ export const build_documentation_routes = (
         return reply
           .status(400)
           .send(error_response(code, "Documentation request is invalid"));
-      if (code === "documentation_carry_forward_limit_exceeded")
+      if (
+        code === "documentation_carry_forward_limit_exceeded" ||
+        code === "documentation_organization_quota_exceeded" ||
+        code === "documentation_discovery_policy_invalid"
+      )
         return reply
           .status(422)
           .send(error_response(code, "Documentation limit exceeded"));
@@ -3416,6 +3467,63 @@ export const build_documentation_routes = (
     );
 
     fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/discovery-policy",
+      async (request, reply) => {
+        const params = PublicationLinkParamsSchema.safeParse(request.params);
+        if (!params.success) return reply.status(400).send();
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const result =
+            await dependencies.documentation_service.get_discovery_policy({
+              ...scope,
+              site_id: params.data.site_id,
+              link_id: params.data.link_id,
+            });
+          if (!result) return reply.status(404).send();
+          return reply
+            .header("cache-control", "private, no-store")
+            .send(result);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.patch(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/discovery-policy",
+      async (request, reply) => {
+        const params = PublicationLinkParamsSchema.safeParse(request.params);
+        const body = UpdateDocumentationDiscoveryPolicyRequestSchema.safeParse(
+          request.body,
+        );
+        if (!params.success || !body.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_request",
+                "Documentation discovery policy request is invalid",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const result =
+            await dependencies.documentation_service.update_discovery_policy({
+              ...scope,
+              site_id: params.data.site_id,
+              link_id: params.data.link_id,
+              ...body.data,
+            });
+          return reply
+            .header("cache-control", "private, no-store")
+            .send(result);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.get(
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/try-it-policy",
       async (request, reply) => {
         const params = PublicationLinkParamsSchema.safeParse(request.params);
@@ -3611,6 +3719,40 @@ export const build_documentation_routes = (
         openapi_operations: operations,
       };
     };
+    const apply_public_representation_headers = (
+      request: { headers: Record<string, unknown> },
+      reply: FastifyReply,
+      site: Record<string, unknown>,
+      representation:
+        | "html"
+        | "json-root"
+        | "json-page"
+        | "operation"
+        | "search"
+        | "sitemap"
+        | "robots",
+    ) => {
+      const publication = site.publication as
+        | { output_digest?: unknown }
+        | undefined;
+      const link = site.link as { visibility?: unknown } | undefined;
+      const digest =
+        typeof publication?.output_digest === "string"
+          ? publication.output_digest
+          : null;
+      reply
+        .header(
+          "cache-control",
+          link?.visibility === "public"
+            ? "public, max-age=0, must-revalidate"
+            : "private, no-store",
+        )
+        .header("vary", "Cookie");
+      if (!digest) return false;
+      const etag = build_documentation_etag(digest, representation);
+      reply.header("etag", etag);
+      return request.headers["if-none-match"] === etag;
+    };
 
     fastify.get(
       "/api/v1/public/publish-links/:slug/documentation",
@@ -3630,6 +3772,15 @@ export const build_documentation_routes = (
                 "Publish Link was not found",
               ),
             );
+        if (
+          apply_public_representation_headers(
+            request,
+            reply,
+            result.site as Record<string, unknown>,
+            "json-root",
+          )
+        )
+          return reply.status(304).send();
         return reply.send(public_site_response(result.site));
       },
     );
@@ -3651,6 +3802,15 @@ export const build_documentation_routes = (
                 "Publish Link was not found",
               ),
             );
+        if (
+          apply_public_representation_headers(
+            request,
+            reply,
+            result.site as Record<string, unknown>,
+            "json-root",
+          )
+        )
+          return reply.status(304).send();
         return reply.send(public_site_response(result.site));
       },
     );
@@ -3707,7 +3867,18 @@ export const build_documentation_routes = (
         const page = site.pages.find(
           (candidate) => candidate.canonical_path === requestedPath,
         );
-        if (page) return reply.send({ ...public_site_response(site), page });
+        if (page) {
+          if (
+            apply_public_representation_headers(
+              request,
+              reply,
+              site,
+              "json-page",
+            )
+          )
+            return reply.status(304).send();
+          return reply.send({ ...public_site_response(site), page });
+        }
         const alias = site.aliases.find(
           (candidate) => candidate.former_path === requestedPath,
         );
@@ -4150,9 +4321,21 @@ export const build_documentation_routes = (
         if (!result?.site) return reply.status(404).send();
         const site = result.site as {
           pages: Array<{ canonical_path: string }>;
+          _discovery?: {
+            effective_indexing: boolean;
+            is_primary_canonical: boolean;
+          };
         };
         if (kind === "robots")
-          return reply.type("text/plain").send("User-agent: *\nAllow: /\n");
+          return reply
+            .type("text/plain")
+            .send(
+              site._discovery?.effective_indexing
+                ? "User-agent: *\nAllow: /\n"
+                : "User-agent: *\nDisallow: /\n",
+            );
+        if (!site._discovery?.effective_indexing)
+          return reply.status(404).send();
         const urls = site.pages
           .map((page) => {
             const origin =
@@ -4180,6 +4363,300 @@ export const build_documentation_routes = (
     register_public_metadata(
       "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/robots.txt",
       "robots",
+    );
+
+    const escape_html = (value: unknown) =>
+      String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    const public_initial_document = (
+      site: Record<string, unknown>,
+      input: {
+        slug: string;
+        version_slug: string | null;
+        page_path: string | null;
+        operation_key: string | null;
+      },
+    ) => {
+      const pages = Array.isArray(site.pages)
+        ? (site.pages as Array<Record<string, unknown>>)
+        : [];
+      const homeId = (
+        site.working_draft as { home_page_id?: unknown } | undefined
+      )?.home_page_id;
+      const page = input.page_path
+        ? pages.find((candidate) => candidate.canonical_path === input.page_path)
+        : pages.find((candidate) => candidate.id === homeId);
+      const operations = Array.isArray(site.openapi_operations)
+        ? (site.openapi_operations as Array<Record<string, unknown>>)
+        : [];
+      const operation = input.operation_key
+        ? operations.find(
+            (candidate) => candidate.destination_key === input.operation_key,
+          )
+        : null;
+      if (input.page_path && !page) return null;
+      if (input.operation_key && !operation) return null;
+      const siteState = (site.site ?? {}) as Record<string, unknown>;
+      const edition = (site.edition ?? {}) as Record<string, unknown>;
+      const revision = (site.revision ?? {}) as Record<string, unknown>;
+      const discovery = (site._discovery ?? {}) as Record<string, unknown>;
+      const title = operation
+        ? `${operation.summary ?? operation.destination_key} · ${siteState.name}`
+        : page
+          ? `${page.title} · ${siteState.name}`
+          : String(siteState.name ?? "Documentation");
+      const description = String(
+        (operation?.summary ??
+          page?.description ??
+          siteState.description ??
+          edition.description ??
+          "") as unknown,
+      );
+      const primarySlug =
+        typeof discovery.primary_slug === "string"
+          ? discovery.primary_slug
+          : input.slug;
+      const routeSuffix = input.operation_key
+        ? `/operations/${encodeURIComponent(input.operation_key)}`
+        : input.page_path
+          ? `/${input.page_path
+              .split("/")
+              .map(encodeURIComponent)
+              .join("/")}`
+          : "";
+      const versionSuffix = input.version_slug
+        ? `/versions/${encodeURIComponent(input.version_slug)}`
+        : "";
+      const origin = get_public_web_url() ?? "";
+      const canonical =
+        `${origin}/docs/${encodeURIComponent(primarySlug)}` +
+        `${versionSuffix}${routeSuffix}`;
+      const noindex = discovery.effective_indexing !== true;
+      const blocks = Array.isArray(page?.blocks)
+        ? (page.blocks as Array<Record<string, unknown>>)
+        : [];
+      const blockHtml = blocks
+        .map((block) => {
+          const text =
+            block.text_content ??
+            block.text ??
+            block.code ??
+            block.label ??
+            "";
+          if (!text) return "";
+          const tag =
+            block.kind === "heading" &&
+            Number(block.heading_level ?? block.level) >= 2 &&
+            Number(block.heading_level ?? block.level) <= 6
+              ? `h${Number(block.heading_level ?? block.level)}`
+              : block.kind === "code"
+                ? "pre"
+                : "p";
+          return `<${tag}>${escape_html(text)}</${tag}>`;
+        })
+        .join("");
+      const operationHtml = operation
+        ? `<p><strong>${escape_html(
+            String(operation.method ?? "").toUpperCase(),
+          )}</strong> <code>${escape_html(operation.path)}</code></p>`
+        : "";
+      const assets = dependencies.public_assets ?? {
+        scripts: ["/src/main.tsx"],
+        styles: [],
+      };
+      const styles = assets.styles
+        .map((href) => `<link rel="stylesheet" href="${escape_html(href)}">`)
+        .join("");
+      const scripts = assets.scripts
+        .map(
+          (src) =>
+            `<script type="module" src="${escape_html(src)}"></script>`,
+        )
+        .join("");
+      const initialData =
+        !operation && page
+          ? JSON.stringify({
+              ...public_site_response(site),
+              page,
+            }).replaceAll("<", "\\u003c")
+          : null;
+      const initialDataElement = initialData
+        ? `<script id="ossie-documentation-initial-data" type="application/json" data-slug="${escape_html(
+            input.slug,
+          )}"${
+            input.version_slug
+              ? ` data-version-slug="${escape_html(input.version_slug)}"`
+              : ""
+          }${
+            input.page_path
+              ? ` data-page-path="${escape_html(input.page_path)}"`
+              : ""
+          }>${initialData}</script>`
+        : "";
+      return (
+        "<!doctype html>" +
+        `<html lang="${escape_html(
+          revision.primary_language ?? edition.primary_language ?? "en-US",
+        )}"><head><meta charset="UTF-8">` +
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+        `<title>${escape_html(title)}</title>` +
+        `<meta name="description" content="${escape_html(description)}">` +
+        `<meta name="robots" content="${noindex ? "noindex,nofollow" : "index,follow"}">` +
+        `<link rel="canonical" href="${escape_html(canonical)}">` +
+        `<meta property="og:title" content="${escape_html(title)}">` +
+        `<meta property="og:description" content="${escape_html(description)}">` +
+        `<meta property="og:url" content="${escape_html(canonical)}">` +
+        '<meta property="og:type" content="article">' +
+        `<meta name="twitter:card" content="summary">` +
+        `<meta name="twitter:title" content="${escape_html(title)}">` +
+        `<meta name="twitter:description" content="${escape_html(description)}">` +
+        `${styles}</head><body><a href="#main-content">Skip to content</a>` +
+        `<div id="root"><main id="main-content"><h1>${escape_html(
+          operation?.summary ?? page?.title ?? siteState.name,
+        )}</h1>${description ? `<p>${escape_html(description)}</p>` : ""}` +
+        `${operationHtml}${blockHtml}</main></div>${initialDataElement}${scripts}</body></html>`
+      );
+    };
+
+    const serve_initial_document = async (
+      request: {
+        params: unknown;
+        headers: Record<string, unknown>;
+        cookies?: Record<string, string | undefined>;
+      },
+      reply: FastifyReply,
+      input: {
+        versioned: boolean;
+        page: boolean;
+        operation: boolean;
+      },
+    ) => {
+      const params = request.params as Record<string, string | undefined>;
+      const result = await public_site(
+        {
+          slug: params.slug,
+          ...(input.versioned ? { version_slug: params.version_slug } : {}),
+        },
+        reply,
+        request.cookies?.[public_viewer_cookie_name],
+      );
+      if (reply.sent) return reply;
+      if (!result?.site) return reply.status(404).type("text/html").send("");
+      const site = result.site as Record<string, unknown>;
+      let pagePath: string | null = null;
+      if (input.page) {
+        try {
+          pagePath = normalize_documentation_path(params["*"] ?? "");
+        } catch {
+          return reply.status(404).type("text/html").send("");
+        }
+        const redirects = Array.isArray(site.redirects)
+          ? (site.redirects as Array<Record<string, unknown>>)
+          : [];
+        const aliases = Array.isArray(site.aliases)
+          ? (site.aliases as Array<Record<string, unknown>>)
+          : [];
+        const pages = Array.isArray(site.pages)
+          ? (site.pages as Array<Record<string, unknown>>)
+          : [];
+        const retirement = redirects.find(
+          (candidate) => candidate.source_path === pagePath,
+        );
+        if (retirement?.outcome === "gone")
+          return reply.status(410).type("text/html").send("");
+        const alias = aliases.find(
+          (candidate) => candidate.former_path === pagePath,
+        );
+        const targetId =
+          alias?.documentation_page_id ?? retirement?.target_page_id;
+        const target = pages.find((candidate) => candidate.id === targetId);
+        if (target && typeof target.canonical_path === "string") {
+          const location =
+            `/docs/${params.slug}` +
+            (input.versioned ? `/versions/${params.version_slug}` : "") +
+            `/${target.canonical_path}`;
+          return reply.status(308).header("location", location).send();
+        }
+      }
+      const html = public_initial_document(site, {
+        slug: params.slug ?? "",
+        version_slug: input.versioned ? (params.version_slug ?? null) : null,
+        page_path: pagePath,
+        operation_key: input.operation ? (params.operation_key ?? null) : null,
+      });
+      if (!html) return reply.status(404).type("text/html").send("");
+      const maximum = dependencies.initial_html_max_bytes ?? 16 * 1024 * 1024;
+      if (Buffer.byteLength(html, "utf8") > maximum)
+        return reply.status(500).type("text/html").send("");
+      const deployment = get_documentation_try_it_origin_config();
+      reply
+        .header(
+          "content-security-policy",
+          build_documentation_csp({
+            try_it_origins: deployment.origins,
+          }),
+        )
+        .type("text/html; charset=utf-8");
+      if (
+        apply_public_representation_headers(
+          request,
+          reply,
+          site,
+          "html",
+        )
+      )
+        return reply.status(304).send();
+      return reply.status(200).send(html);
+    };
+    fastify.get("/docs/:slug", (request, reply) =>
+      serve_initial_document(request, reply, {
+        versioned: false,
+        page: false,
+        operation: false,
+      }),
+    );
+    fastify.get("/docs/:slug/versions/:version_slug", (request, reply) =>
+      serve_initial_document(request, reply, {
+        versioned: true,
+        page: false,
+        operation: false,
+      }),
+    );
+    fastify.get(
+      "/docs/:slug/operations/:operation_key",
+      (request, reply) =>
+        serve_initial_document(request, reply, {
+          versioned: false,
+          page: false,
+          operation: true,
+        }),
+    );
+    fastify.get(
+      "/docs/:slug/versions/:version_slug/operations/:operation_key",
+      (request, reply) =>
+        serve_initial_document(request, reply, {
+          versioned: true,
+          page: false,
+          operation: true,
+        }),
+    );
+    fastify.get("/docs/:slug/versions/:version_slug/*", (request, reply) =>
+      serve_initial_document(request, reply, {
+        versioned: true,
+        page: true,
+        operation: false,
+      }),
+    );
+    fastify.get("/docs/:slug/*", (request, reply) =>
+      serve_initial_document(request, reply, {
+        versioned: false,
+        page: true,
+        operation: false,
+      }),
     );
   };
 };

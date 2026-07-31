@@ -7,6 +7,17 @@ describe("Documentation repository", () => {
     const client = {
       query: vi.fn(async (sql: string) => {
         statements.push(sql);
+        if (sql.includes("limits.active_sites_limit"))
+          return {
+            rows: [
+              {
+                active_sites: 0,
+                active_pages: 0,
+                active_sites_limit: null,
+                active_pages_limit: null,
+              },
+            ],
+          };
         return { rows: [] };
       }),
       release: vi.fn(),
@@ -52,6 +63,17 @@ describe("Documentation repository", () => {
     const client = {
       query: vi.fn(async (sql: string) => {
         statements.push(sql);
+        if (sql.includes("limits.active_sites_limit"))
+          return {
+            rows: [
+              {
+                active_sites: 0,
+                active_pages: 0,
+                active_sites_limit: null,
+                active_pages_limit: null,
+              },
+            ],
+          };
         if (sql.includes("site_working_draft")) throw new Error("injected");
         return { rows: [] };
       }),
@@ -60,7 +82,7 @@ describe("Documentation repository", () => {
     const repository = build_documentation_repository({
       connect: vi.fn(async () => client),
       query: client.query,
-    });
+    } as never);
 
     await expect(
       repository.create_site({
@@ -81,6 +103,17 @@ describe("Documentation repository", () => {
   it("rejects Page creation at the Edition hard ceiling", async () => {
     const client = {
       query: vi.fn(async (sql: string) => {
+        if (sql.includes("limits.active_sites_limit"))
+          return {
+            rows: [
+              {
+                active_sites: 1,
+                active_pages: 1_000,
+                active_sites_limit: null,
+                active_pages_limit: null,
+              },
+            ],
+          };
         if (sql.includes("SELECT edition.id edition_id"))
           return {
             rows: [{ edition_id: "edition", working_draft_id: "draft" }],

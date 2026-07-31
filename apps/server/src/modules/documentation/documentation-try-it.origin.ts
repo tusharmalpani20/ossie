@@ -1,5 +1,6 @@
 import { promises as dns } from "node:dns";
 import { normalize_documentation_try_it_target } from "@repo/documentation-domain";
+import { DOCUMENTATION_TRY_IT_DNS_TIMEOUT_DEFAULT_MS } from "@repo/constants";
 
 export type DocumentationTryItDnsAnswer = {
   address: string;
@@ -69,6 +70,7 @@ export const validate_documentation_try_it_origin = async (input: {
     hostname: string,
     options: { all: true },
   ) => Promise<DocumentationTryItDnsAnswer[]>;
+  timeout_ms?: number;
 }) => {
   const normalized = normalize_documentation_try_it_target(
     input.origin,
@@ -87,7 +89,20 @@ export const validate_documentation_try_it_origin = async (input: {
         (await dns.lookup(hostname, {
           all: true,
         })) as DocumentationTryItDnsAnswer[]);
-    answers = await resolve(new URL(normalized).hostname, { all: true });
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      answers = await Promise.race([
+        resolve(new URL(normalized).hostname, { all: true }),
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("DNS validation timed out")),
+            input.timeout_ms ?? DOCUMENTATION_TRY_IT_DNS_TIMEOUT_DEFAULT_MS,
+          );
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   } catch {
     throw new DocumentationTryItOriginError(
       "origin_resolution_failed",

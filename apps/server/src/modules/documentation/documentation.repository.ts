@@ -5,6 +5,7 @@ import {
   DOCUMENTATION_COMMENT_THREADS_PER_PAGE_MAX,
   DOCUMENTATION_ASSETS_PER_EDITION_MAX,
   DOCUMENTATION_PAGES_PER_EDITION_MAX,
+  DOCUMENTATION_PUBLICATION_TIMEOUT_DEFAULT_MS,
   DOCUMENTATION_READY_IMPORTS_PER_ACTOR_MAX,
   DOCUMENTATION_SNIPPETS_PER_EDITION_MAX,
 } from "@repo/constants";
@@ -12,6 +13,7 @@ import {
   assert_documentation_carry_forward_eligibility,
   assert_documentation_comment_transition,
   assert_documentation_page_retirement,
+  assert_documentation_quota_increase,
   build_documentation_search_document,
   derive_documentation_try_it_descriptors,
   inspect_openapi_document,
@@ -21,6 +23,7 @@ import {
   validate_documentation_navigation,
   validate_documentation_routes,
   resolve_documentation_publication_review_gate,
+  DocumentationDomainError,
 } from "@repo/documentation-domain";
 import { derive_documentation_server_candidates } from "./documentation-openapi";
 import {
@@ -55,6 +58,17 @@ const with_transaction = async <T>(
     return result;
   } catch (error) {
     await client.query("ROLLBACK");
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "57014"
+    ) {
+      throw new DocumentationDomainError(
+        "documentation_publication_timed_out",
+        "Documentation Publication exceeded the configured time ceiling",
+      );
+    }
     throw error;
   } finally {
     client.release();
@@ -68,6 +82,97 @@ const lock_documentation_path_namespace = (
   client.query("SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))", [
     site_edition_id,
   ]);
+
+const lock_documentation_quota_namespace = (
+  client: Queryable,
+  organization_id: string,
+) =>
+  client.query(
+    "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 138))",
+    [organization_id],
+  );
+
+const assert_documentation_growth_allowed = async (
+  client: Queryable,
+  input: {
+    organization_id: string;
+    active_sites_delta: number;
+    active_pages_delta: number;
+  },
+) => {
+  const result = await client.query<{
+    active_sites_limit: number | null;
+    active_pages_limit: number | null;
+    active_sites: number;
+    active_pages: number;
+  }>(
+    `SELECT
+       limits.active_sites_limit,
+       limits.active_pages_limit,
+       (SELECT count(DISTINCT edition.documentation_site_id)::integer
+          FROM documentation_schema.site_edition edition
+         WHERE edition.organization_id=$1 AND edition.status='active')
+         active_sites,
+       (SELECT count(*)::integer
+          FROM documentation_schema.documentation_page page
+          JOIN documentation_schema.site_edition edition
+            ON edition.id=page.site_edition_id
+         WHERE page.organization_id=$1 AND page.status='active'
+           AND edition.status='active') active_pages
+       FROM (SELECT $1::varchar organization_id) scope
+       LEFT JOIN documentation_schema.organization_documentation_limits limits
+         ON limits.organization_id=scope.organization_id`,
+    [input.organization_id],
+  );
+  const state = result.rows[0]!;
+  assert_documentation_quota_increase({
+    dimension: "active_sites",
+    usage: state.active_sites,
+    limit: state.active_sites_limit,
+    delta: input.active_sites_delta,
+  });
+  assert_documentation_quota_increase({
+    dimension: "active_pages",
+    usage: state.active_pages,
+    limit: state.active_pages_limit,
+    delta: input.active_pages_delta,
+  });
+};
+
+type DocumentationDiscoveryPolicyRow = {
+  publish_link_id: string;
+  indexing_enabled: boolean;
+  is_primary_canonical: boolean;
+  version: number;
+  visibility: "public" | "restricted";
+  status: "active" | "revoked";
+  expires_at: Date | null;
+};
+
+const present_documentation_discovery_policy = (
+  row: DocumentationDiscoveryPolicyRow,
+) => {
+  const effective_reason =
+    row.status !== "active"
+      ? ("revoked" as const)
+      : row.visibility !== "public"
+        ? ("restricted" as const)
+        : row.expires_at && row.expires_at.getTime() <= Date.now()
+          ? ("expired" as const)
+          : !row.is_primary_canonical
+            ? ("not_primary" as const)
+            : !row.indexing_enabled
+              ? ("disabled" as const)
+              : ("enabled" as const);
+  return {
+    publish_link_id: row.publish_link_id,
+    indexing_enabled: row.indexing_enabled,
+    is_primary_canonical: row.is_primary_canonical,
+    effective_indexing: effective_reason === "enabled",
+    effective_reason,
+    version: row.version,
+  };
+};
 
 const insert_default_documentation_review_policy = async (
   client: Queryable,
@@ -2299,7 +2404,15 @@ const insert_carried_revision_graph = async (
   );
 };
 
-export const build_documentation_repository = (database: Database) => {
+export const build_documentation_repository = (
+  database: Database,
+  options: {
+    publication_timeout_ms?: number;
+  } = {},
+) => {
+  const publication_timeout_ms =
+    options.publication_timeout_ms ??
+    DOCUMENTATION_PUBLICATION_TIMEOUT_DEFAULT_MS;
   const repository = {
     get_try_it_policy: async (input: {
       organization_id: string;
@@ -5004,6 +5117,7 @@ export const build_documentation_repository = (database: Database) => {
         revision_id: string;
         revision_number: number;
         output_digest: string;
+        documentation_site_id: string;
         published_at: Date;
       }>(
         `SELECT publication.id,publication.publication_sequence,
@@ -5085,6 +5199,231 @@ export const build_documentation_repository = (database: Database) => {
       }));
     },
 
+    get_discovery_policy: async (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      site_id: string;
+      link_id: string;
+    }) => {
+      const result = await database.query<DocumentationDiscoveryPolicyRow>(
+        `SELECT policy.publish_link_id,policy.indexing_enabled,
+                policy.is_primary_canonical,policy.version,
+                link.visibility,link.status,link.expires_at
+           FROM publish_schema.documentation_discovery_policy policy
+           JOIN publish_schema.publish_link link
+             ON link.id=policy.publish_link_id
+            AND link.organization_id=policy.organization_id
+            AND link.project_id=policy.project_id
+          WHERE policy.publish_link_id=$1
+            AND policy.organization_id=$2 AND policy.project_id=$3
+            AND policy.documentation_site_id=$4
+            AND EXISTS (
+              SELECT 1 FROM publish_schema.publish_link_entry entry
+               WHERE entry.publish_link_id=link.id
+                 AND entry.project_version_id=$5
+            )`,
+        [
+          input.link_id,
+          input.organization_id,
+          input.project_id,
+          input.site_id,
+          input.project_version_id,
+        ],
+      );
+      return result.rows[0]
+        ? present_documentation_discovery_policy(result.rows[0])
+        : null;
+    },
+
+    update_discovery_policy: async (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      site_id: string;
+      link_id: string;
+      actor_org_user_id: string;
+      expected_version: number;
+      indexing_enabled: boolean;
+      is_primary_canonical: boolean;
+    }) =>
+      with_transaction(database, async (client) => {
+        await client.query(
+          "SELECT pg_advisory_xact_lock(hashtextextended($1::text,138))",
+          [`documentation-discovery:${input.organization_id}:${input.site_id}`],
+        );
+        const selected = await client.query<DocumentationDiscoveryPolicyRow>(
+          `SELECT policy.publish_link_id,policy.indexing_enabled,
+                  policy.is_primary_canonical,policy.version,
+                  link.visibility,link.status,link.expires_at
+             FROM publish_schema.documentation_discovery_policy policy
+             JOIN publish_schema.publish_link link
+               ON link.id=policy.publish_link_id
+              AND link.organization_id=policy.organization_id
+              AND link.project_id=policy.project_id
+            WHERE policy.publish_link_id=$1
+              AND policy.organization_id=$2 AND policy.project_id=$3
+              AND policy.documentation_site_id=$4
+              AND EXISTS (
+                SELECT 1 FROM publish_schema.publish_link_entry entry
+                 WHERE entry.publish_link_id=link.id
+                   AND entry.project_version_id=$5
+                   AND entry.site_publication_id IS NOT NULL
+              )
+            FOR UPDATE OF policy,link`,
+          [
+            input.link_id,
+            input.organization_id,
+            input.project_id,
+            input.site_id,
+            input.project_version_id,
+          ],
+        );
+        const current = selected.rows[0];
+        if (!current) {
+          const error = new Error("Documentation Publish Link was not found");
+          Object.assign(error, { code: "documentation_not_found" });
+          throw error;
+        }
+        if (current.version !== input.expected_version) {
+          const error = new Error(
+            "Documentation discovery policy changed; reload and retry",
+          );
+          Object.assign(error, {
+            code: "documentation_row_version_conflict",
+            latest: present_documentation_discovery_policy(current),
+          });
+          throw error;
+        }
+        if (
+          (input.indexing_enabled || input.is_primary_canonical) &&
+          (current.status !== "active" ||
+            current.visibility !== "public" ||
+            (current.expires_at &&
+              current.expires_at.getTime() <= Date.now()))
+        ) {
+          throw new DocumentationDomainError(
+            "documentation_discovery_policy_invalid",
+            "Only an active, unrestricted, unexpired link can be primary or indexable",
+          );
+        }
+        if (input.indexing_enabled && !input.is_primary_canonical) {
+          throw new DocumentationDomainError(
+            "documentation_discovery_policy_invalid",
+            "Only a primary canonical link can enable indexing",
+          );
+        }
+        const prior = input.is_primary_canonical
+          ? await client.query<{
+              publish_link_id: string;
+              indexing_enabled: boolean;
+              is_primary_canonical: boolean;
+              version: number;
+            }>(
+              `SELECT publish_link_id,indexing_enabled,is_primary_canonical,
+                      version
+                 FROM publish_schema.documentation_discovery_policy
+                WHERE organization_id=$1 AND documentation_site_id=$2
+                  AND is_primary_canonical AND publish_link_id<>$3
+                FOR UPDATE`,
+              [input.organization_id, input.site_id, input.link_id],
+            )
+          : { rows: [] };
+        const audit = await begin_documentation_audit_context(client, {
+          ...input,
+          command: "documentation.discovery_policy.update",
+          action: "documentation.discovery_policy.updated",
+        });
+        for (const policy of prior.rows) {
+          await client.query(
+            `UPDATE publish_schema.documentation_discovery_policy
+                SET indexing_enabled=FALSE,is_primary_canonical=FALSE,
+                    version=version+1,updated_by_id=$1,
+                    updated_at=CURRENT_TIMESTAMP
+              WHERE publish_link_id=$2`,
+            [input.actor_org_user_id, policy.publish_link_id],
+          );
+        }
+        await client.query(
+          `UPDATE publish_schema.documentation_discovery_policy
+              SET indexing_enabled=$1,is_primary_canonical=$2,
+                  version=version+1,updated_by_id=$3,
+                  updated_at=CURRENT_TIMESTAMP
+            WHERE publish_link_id=$4`,
+          [
+            input.indexing_enabled,
+            input.is_primary_canonical,
+            input.actor_org_user_id,
+            input.link_id,
+          ],
+        );
+        const event = build_entity_audit_event({
+          id: audit.event_id,
+          organization_id: input.organization_id,
+          project_id: input.project_id,
+          root_resource_type: "documentation_site",
+          root_resource_id: input.site_id,
+          action: "documentation.discovery_policy.updated",
+          actor_org_user_id: input.actor_org_user_id,
+          actor_label: audit.actor_label,
+          source_type: audit.source_type,
+          occurred_at: audit.occurred_at,
+          before_row_version: current.version,
+          after_row_version: current.version + 1,
+          changes: [
+            ...prior.rows.map((policy) => ({
+              entity_type: "documentation_discovery_policy",
+              entity_id: policy.publish_link_id,
+              parent_entity_type: "documentation_site",
+              parent_entity_id: input.site_id,
+              before: {
+                indexing_enabled: policy.indexing_enabled,
+                is_primary_canonical: policy.is_primary_canonical,
+                version: policy.version,
+              },
+              after: {
+                indexing_enabled: false,
+                is_primary_canonical: false,
+                version: policy.version + 1,
+              },
+              safe_fields: {
+                indexing_enabled: "boolean" as const,
+                is_primary_canonical: "boolean" as const,
+                version: "integer" as const,
+              },
+            })),
+            {
+              entity_type: "documentation_discovery_policy",
+              entity_id: input.link_id,
+              parent_entity_type: "documentation_site",
+              parent_entity_id: input.site_id,
+              before: {
+                indexing_enabled: current.indexing_enabled,
+                is_primary_canonical: current.is_primary_canonical,
+                version: current.version,
+              },
+              after: {
+                indexing_enabled: input.indexing_enabled,
+                is_primary_canonical: input.is_primary_canonical,
+                version: current.version + 1,
+              },
+              safe_fields: {
+                indexing_enabled: "boolean",
+                is_primary_canonical: "boolean",
+                version: "integer",
+              },
+            },
+          ],
+        });
+        if (event) await write_audit_event(client, event);
+        return present_documentation_discovery_policy({
+          ...current,
+          indexing_enabled: input.indexing_enabled,
+          is_primary_canonical: input.is_primary_canonical,
+          version: current.version + 1,
+        });
+      }),
+
     get_revision: async (input: {
       organization_id: string;
       project_id: string;
@@ -5142,6 +5481,10 @@ export const build_documentation_repository = (database: Database) => {
       } | null;
     }) =>
       with_transaction(database, async (client) => {
+        await client.query(
+          "SELECT set_config('statement_timeout',$1::text,true)",
+          [publication_timeout_ms],
+        );
         const request_digest = command_digest({
           project_version_id: input.project_version_id,
           site_id: input.site_id,
@@ -5157,20 +5500,6 @@ export const build_documentation_repository = (database: Database) => {
           request_digest,
         });
         if (replay) return replay;
-        const audit_command =
-          input.link.mode === "create"
-            ? {
-                command: "publish.documentation_link.create",
-                action: "documentation.publish_link.created",
-              }
-            : {
-                command: "publish.documentation_link.manifest_update",
-                action: "documentation.publish_link.manifest_updated",
-              };
-        const audit = await begin_documentation_audit_context(client, {
-          ...input,
-          ...audit_command,
-        });
         const snapshot = await load_revision_snapshot(client, {
           organization_id: input.organization_id,
           project_id: input.project_id,
@@ -5185,6 +5514,33 @@ export const build_documentation_repository = (database: Database) => {
           Object.assign(error, { code: "documentation_revision_invalid" });
           throw error;
         }
+        const publicationLock = await client.query<{ acquired: boolean }>(
+          `SELECT pg_try_advisory_xact_lock(
+             hashtextextended($1::text, 138)
+           ) acquired`,
+          [`documentation-publication:${snapshot.revision.site_edition_id}`],
+        );
+        if (!publicationLock.rows[0]?.acquired) {
+          const error = new Error(
+            "Another Publication is active for this Documentation Site",
+          );
+          Object.assign(error, { code: "documentation_publication_busy" });
+          throw error;
+        }
+        const audit_command =
+          input.link.mode === "create"
+            ? {
+                command: "publish.documentation_link.create",
+                action: "documentation.publish_link.created",
+              }
+            : {
+                command: "publish.documentation_link.manifest_update",
+                action: "documentation.publish_link.manifest_updated",
+              };
+        const audit = await begin_documentation_audit_context(client, {
+          ...input,
+          ...audit_command,
+        });
         const reviewGate = await evaluate_documentation_publication_review_gate(
           client,
           {
@@ -5242,7 +5598,7 @@ export const build_documentation_repository = (database: Database) => {
               input.actor_org_user_id,
             ],
           );
-          for (const page of snapshot.pages) {
+          const publicationSearchRows = snapshot.pages.map((page) => {
             const expandedSnippetBlocks = (
               page.blocks as Array<Record<string, unknown>>
             ).flatMap((block) => {
@@ -5261,28 +5617,109 @@ export const build_documentation_repository = (database: Database) => {
                   []),
               ],
             );
+            const pageBlocks = [
+              ...(page.blocks as Array<Record<string, unknown>>),
+              ...expandedSnippetBlocks,
+            ];
+            return {
+              page,
+              searchText,
+              headingText: pageBlocks
+                .filter((block) => block.kind === "heading")
+                .map((block) => String(block.text_content ?? block.text ?? ""))
+                .filter(Boolean)
+                .join(" "),
+              bodyText: pageBlocks
+                .filter((block) => block.kind !== "heading")
+                .map((block) => String(block.text_content ?? block.text ?? ""))
+                .filter(Boolean)
+                .join(" "),
+            };
+          });
+          const searchGenerationId = ulid();
+          const projectionDigest = createHash("sha256")
+            .update(
+              JSON.stringify(
+                publicationSearchRows.map(({ page, headingText, bodyText }) => [
+                  page.id,
+                  page.title,
+                  page.description,
+                  page.canonical_path,
+                  headingText,
+                  bodyText,
+                ]),
+              ),
+            )
+            .digest("hex");
+          await client.query(
+            `INSERT INTO publish_schema.site_publication_search_generation
+              (id,organization_id,project_id,site_publication_id,
+               generation_number,output_digest,projection_digest,
+               document_count,status,legacy_compatible,actor_type,created_by_id)
+             VALUES ($1,$2,$3,$4,1,$5,$6,$7,'ready',FALSE,'org_user',$8)`,
+            [
+              searchGenerationId,
+              input.organization_id,
+              input.project_id,
+              publication.id,
+              publication.output_digest,
+              projectionDigest,
+              publicationSearchRows.length,
+              input.actor_org_user_id,
+            ],
+          );
+          for (const {
+            page,
+            searchText,
+            headingText,
+            bodyText,
+          } of publicationSearchRows) {
             await client.query(
               `INSERT INTO publish_schema.site_publication_search_document
               (id,organization_id,project_id,site_publication_id,
-               source_page_id,title,description,canonical_path,search_text)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+               search_generation_id,source_page_id,title,description,
+               canonical_path,search_text,heading_text,body_text)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
               [
                 ulid(),
                 input.organization_id,
                 input.project_id,
                 publication.id,
+                searchGenerationId,
                 page.id,
                 page.title,
                 page.description,
                 page.canonical_path,
                 searchText,
+                headingText,
+                bodyText,
               ],
             );
           }
+          await client.query(
+            `INSERT INTO publish_schema.site_publication_search_selection
+              (site_publication_id,organization_id,project_id,
+               search_generation_id)
+             VALUES ($1,$2,$3,$4)`,
+            [
+              publication.id,
+              input.organization_id,
+              input.project_id,
+              searchGenerationId,
+            ],
+          );
         }
         let link: { id: string; slug: string; version: number };
         let entry: { id: string; version: number };
         let entryBeforeVersion: number | null = null;
+        let discoveryPolicyCreated:
+          | {
+              publish_link_id: string;
+              indexing_enabled: boolean;
+              is_primary_canonical: boolean;
+              version: number;
+            }
+          | undefined;
         if (input.link.mode === "create") {
           link = { id: ulid(), slug: input.link.slug, version: 1 };
           entry = { id: ulid(), version: 1 };
@@ -5329,6 +5766,44 @@ export const build_documentation_repository = (database: Database) => {
               input.actor_org_user_id,
             ],
           );
+          const primary = await client.query<{ select_as_primary: boolean }>(
+            `SELECT
+               link.visibility='public'
+               AND (link.expires_at IS NULL
+                    OR link.expires_at>CURRENT_TIMESTAMP)
+               AND NOT EXISTS (
+                 SELECT 1
+                   FROM publish_schema.documentation_discovery_policy policy
+                  WHERE policy.organization_id=link.organization_id
+                    AND policy.documentation_site_id=link.documentation_site_id
+                    AND policy.is_primary_canonical
+               ) select_as_primary
+               FROM publish_schema.publish_link link WHERE link.id=$1`,
+            [link.id],
+          );
+          const selectAsPrimary =
+            primary.rows[0]?.select_as_primary === true;
+          await client.query(
+            `INSERT INTO publish_schema.documentation_discovery_policy
+              (publish_link_id,organization_id,project_id,
+               documentation_site_id,indexing_enabled,is_primary_canonical,
+               created_by_id,updated_by_id)
+             VALUES ($1,$2,$3,$4,$5,$5,$6,$6)`,
+            [
+              link.id,
+              input.organization_id,
+              input.project_id,
+              input.site_id,
+              selectAsPrimary,
+              input.actor_org_user_id,
+            ],
+          );
+          discoveryPolicyCreated = {
+            publish_link_id: link.id,
+            indexing_enabled: selectAsPrimary,
+            is_primary_canonical: selectAsPrimary,
+            version: 1,
+          };
         } else {
           const selected = await client.query<{
             link_id: string;
@@ -5475,6 +5950,19 @@ export const build_documentation_repository = (database: Database) => {
                     before: null,
                     after: { id: link.id, version: link.version },
                     safe_fields: { version: "integer" as const },
+                  },
+                  {
+                    entity_type: "documentation_discovery_policy",
+                    entity_id: link.id,
+                    parent_entity_type: "documentation_site",
+                    parent_entity_id: input.site_id,
+                    before: null,
+                    after: discoveryPolicyCreated!,
+                    safe_fields: {
+                      indexing_enabled: "boolean" as const,
+                      is_primary_canonical: "boolean" as const,
+                      version: "integer" as const,
+                    },
                   },
                 ]
               : []),
@@ -6077,7 +6565,8 @@ export const build_documentation_repository = (database: Database) => {
               version.slug project_version_slug,
               publication.id site_publication_id,
               publication.publication_sequence,
-              publication.site_revision_id,publication.output_digest
+              publication.site_revision_id,publication.output_digest,
+              publication.documentation_site_id
          FROM publish_schema.publish_link link
          JOIN publish_schema.publish_link_entry entry
            ON entry.publish_link_id=link.id
@@ -6111,12 +6600,50 @@ export const build_documentation_repository = (database: Database) => {
         canonical_path: string;
         search_text: string;
       }>(
-        `SELECT source_page_id page_id,title,description,canonical_path,search_text
-         FROM publish_schema.site_publication_search_document
-        WHERE site_publication_id=$1
-        ORDER BY canonical_path,page_id`,
+        `SELECT document.source_page_id page_id,document.title,
+                document.description,document.canonical_path,
+                document.search_text
+           FROM publish_schema.site_publication_search_selection selection
+           JOIN publish_schema.site_publication_search_document document
+             ON document.search_generation_id=selection.search_generation_id
+            AND document.site_publication_id=selection.site_publication_id
+          WHERE selection.site_publication_id=$1
+          ORDER BY document.canonical_path,document.source_page_id`,
         [selected.site_publication_id],
       );
+      const discovery =
+        await database.query<
+          DocumentationDiscoveryPolicyRow & {
+            primary_slug: string | null;
+          }
+        >(
+          `SELECT policy.publish_link_id,policy.indexing_enabled,
+                  policy.is_primary_canonical,policy.version,
+                  link.visibility,link.status,link.expires_at,
+                  CASE WHEN primary_entry.id IS NOT NULL
+                    THEN primary_link.slug ELSE NULL END primary_slug
+             FROM publish_schema.documentation_discovery_policy policy
+             JOIN publish_schema.publish_link link
+               ON link.id=policy.publish_link_id
+             LEFT JOIN publish_schema.documentation_discovery_policy primary_policy
+               ON primary_policy.organization_id=policy.organization_id
+              AND primary_policy.documentation_site_id=
+                  policy.documentation_site_id
+              AND primary_policy.is_primary_canonical
+             LEFT JOIN publish_schema.publish_link primary_link
+               ON primary_link.id=primary_policy.publish_link_id
+              AND primary_link.status='active'
+              AND primary_link.visibility='public'
+              AND (primary_link.expires_at IS NULL
+                   OR primary_link.expires_at>CURRENT_TIMESTAMP)
+             LEFT JOIN publish_schema.publish_link_entry primary_entry
+               ON primary_entry.publish_link_id=primary_link.id
+              AND primary_entry.site_publication_id=$2
+            WHERE policy.publish_link_id=$1
+            LIMIT 1`,
+          [selected.link_id, selected.site_publication_id],
+        );
+      const discoveryRow = discovery.rows[0];
       const tryIt = await database.query<Record<string, unknown>>(
         `SELECT link_policy.id link_policy_id,
                 link_policy.version link_policy_version,
@@ -6162,6 +6689,20 @@ export const build_documentation_repository = (database: Database) => {
           publication_sequence: selected.publication_sequence,
           output_digest: selected.output_digest,
         },
+        _discovery: discoveryRow
+          ? {
+              ...present_documentation_discovery_policy(discoveryRow),
+              primary_slug: discoveryRow.primary_slug,
+            }
+          : {
+              publish_link_id: selected.link_id,
+              indexing_enabled: false,
+              is_primary_canonical: false,
+              effective_indexing: false,
+              effective_reason: "disabled" as const,
+              version: 1,
+              primary_slug: null,
+            },
         search_documents: search_documents.rows,
         _try_it: tryIt.rows[0] ?? null,
         ...snapshot,
@@ -7112,6 +7653,10 @@ export const build_documentation_repository = (database: Database) => {
       };
     }) =>
       with_transaction(database, async (client) => {
+        await lock_documentation_quota_namespace(
+          client,
+          input.organization_id,
+        );
         const request_digest = command_digest({
           project_version_id: input.project_version_id,
           site_id: input.site_id,
@@ -7123,6 +7668,11 @@ export const build_documentation_repository = (database: Database) => {
           request_digest,
         });
         if (replay) return replay;
+        await assert_documentation_growth_allowed(client, {
+          organization_id: input.organization_id,
+          active_sites_delta: 0,
+          active_pages_delta: 1,
+        });
         const parent = await client.query<{
           edition_id: string;
           working_draft_id: string;
@@ -7851,6 +8401,10 @@ export const build_documentation_repository = (database: Database) => {
       }>;
     }) =>
       with_transaction(database, async (client) => {
+        await lock_documentation_quota_namespace(
+          client,
+          input.organization_id,
+        );
         const idempotencyKeyHash = createHash("sha256")
           .update(input.idempotency_key)
           .digest("hex");
@@ -8169,6 +8723,26 @@ export const build_documentation_repository = (database: Database) => {
           target_project_version_id: input.target_project_version_id,
           selections: facts,
         });
+        const activeSites = await client.query<{ site_id: string }>(
+          `SELECT DISTINCT documentation_site_id site_id
+             FROM documentation_schema.site_edition
+            WHERE organization_id=$1 AND status='active'
+              AND documentation_site_id=ANY($2::varchar[])`,
+          [input.organization_id, selectedSiteIds],
+        );
+        const alreadyActive = new Set(
+          activeSites.rows.map(({ site_id }) => site_id),
+        );
+        await assert_documentation_growth_allowed(client, {
+          organization_id: input.organization_id,
+          active_sites_delta: selectedSiteIds.filter(
+            (siteId) => !alreadyActive.has(siteId),
+          ).length,
+          active_pages_delta: facts.reduce(
+            (total, fact) => total + fact.page_count,
+            0,
+          ),
+        });
 
         const operationId = ulid();
         const audit = await begin_documentation_audit_context(client, {
@@ -8484,6 +9058,10 @@ export const build_documentation_repository = (database: Database) => {
       transition: "archive" | "restore";
     }) =>
       with_transaction(database, async (client) => {
+        await lock_documentation_quota_namespace(
+          client,
+          input.organization_id,
+        );
         const selected = await client.query<{
           id: string;
           title: string;
@@ -8517,6 +9095,31 @@ export const build_documentation_repository = (database: Database) => {
             new Error("Documentation lifecycle transition is invalid"),
             { code: "documentation_lifecycle_conflict" },
           );
+        if (input.transition === "restore") {
+          const growth = await client.query<{
+            activates_site: boolean;
+            active_pages: number;
+          }>(
+            `SELECT
+               NOT EXISTS (
+                 SELECT 1 FROM documentation_schema.site_edition other
+                  WHERE other.organization_id=$1
+                    AND other.documentation_site_id=$2
+                    AND other.status='active' AND other.id<>$3
+               ) activates_site,
+               (SELECT count(*)::integer
+                  FROM documentation_schema.documentation_page page
+                 WHERE page.organization_id=$1
+                   AND page.site_edition_id=$3
+                   AND page.status='active') active_pages`,
+            [input.organization_id, input.site_id, edition.id],
+          );
+          await assert_documentation_growth_allowed(client, {
+            organization_id: input.organization_id,
+            active_sites_delta: growth.rows[0]?.activates_site ? 1 : 0,
+            active_pages_delta: growth.rows[0]?.active_pages ?? 0,
+          });
+        }
         const nextStatus =
           input.transition === "archive" ? "archived" : "active";
         const command =
@@ -8661,6 +9264,10 @@ export const build_documentation_repository = (database: Database) => {
           };
     }) =>
       with_transaction(database, async (client) => {
+        await lock_documentation_quota_namespace(
+          client,
+          input.organization_id,
+        );
         const aggregate = await client.query<{
           page_id: string;
           page_title: string;
@@ -8725,6 +9332,13 @@ export const build_documentation_repository = (database: Database) => {
             new Error("Documentation Site Edition is archived"),
             { code: "documentation_read_only" },
           );
+        if (input.data.transition === "restore") {
+          await assert_documentation_growth_allowed(client, {
+            organization_id: input.organization_id,
+            active_sites_delta: 0,
+            active_pages_delta: 1,
+          });
+        }
         const expectedStatus =
           input.data.transition === "archive" ? "active" : "archived";
         if (page.page_status !== expectedStatus)
@@ -10682,6 +11296,10 @@ export const build_documentation_repository = (database: Database) => {
       blocks: Array<Record<string, unknown>>;
     }) =>
       with_transaction(database, async (client) => {
+        await lock_documentation_quota_namespace(
+          client,
+          input.organization_id,
+        );
         const request_digest = command_digest({
           inspection_id: input.inspection_id,
           content_fingerprint: input.content_fingerprint,
@@ -10697,6 +11315,11 @@ export const build_documentation_repository = (database: Database) => {
           request_digest,
         });
         if (replay) return replay;
+        await assert_documentation_growth_allowed(client, {
+          organization_id: input.organization_id,
+          active_sites_delta: 0,
+          active_pages_delta: 1,
+        });
         const parent = await client.query<{
           edition_id: string;
           working_draft_id: string;
@@ -11094,6 +11717,10 @@ export const build_documentation_repository = (database: Database) => {
       counts: Record<string, number>;
     }) =>
       with_transaction(database, async (client) => {
+        await lock_documentation_quota_namespace(
+          client,
+          input.organization_id,
+        );
         const request_digest = command_digest({
           inspection_id: input.inspection_id,
           content_fingerprint: input.content_fingerprint,
@@ -11106,6 +11733,33 @@ export const build_documentation_repository = (database: Database) => {
           request_digest,
         });
         if (replay) return replay;
+        let replaced_active_pages = 0;
+        if (input.target.mode === "empty_site") {
+          const existing = await client.query<{ count: number }>(
+            `SELECT count(*)::integer count
+               FROM documentation_schema.documentation_page page
+               JOIN documentation_schema.site_edition edition
+                 ON edition.id=page.site_edition_id
+              WHERE page.organization_id=$1 AND page.status='active'
+                AND edition.status='active'
+                AND edition.project_version_id=$2
+                AND edition.documentation_site_id=$3`,
+            [
+              input.organization_id,
+              input.project_version_id,
+              input.target.site_id,
+            ],
+          );
+          replaced_active_pages = existing.rows[0]?.count ?? 0;
+        }
+        await assert_documentation_growth_allowed(client, {
+          organization_id: input.organization_id,
+          active_sites_delta: input.target.mode === "create_site" ? 1 : 0,
+          active_pages_delta: Math.max(
+            0,
+            input.graph.pages.length - replaced_active_pages,
+          ),
+        });
         const inspectionResult = await client.query<{
           id: string;
           status: string;
@@ -12002,6 +12656,10 @@ export const build_documentation_repository = (database: Database) => {
 
     create_site: async (input: CreateSiteInput) =>
       with_transaction(database, async (client) => {
+        await lock_documentation_quota_namespace(
+          client,
+          input.organization_id,
+        );
         const request_digest = command_digest({
           project_version_id: input.project_version_id,
           name: input.name,
@@ -12015,6 +12673,11 @@ export const build_documentation_repository = (database: Database) => {
           request_digest,
         });
         if (replay) return replay;
+        await assert_documentation_growth_allowed(client, {
+          organization_id: input.organization_id,
+          active_sites_delta: 1,
+          active_pages_delta: input.initial_home_page ? 1 : 0,
+        });
         const audit = await begin_documentation_audit_context(client, {
           ...input,
           command: "documentation.site.create",

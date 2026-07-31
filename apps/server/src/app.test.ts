@@ -35,7 +35,15 @@ describe("app configuration", () => {
       "chrome-extension://abcdefghijklmnopabcdefghijklmnop",
     ].join(",");
 
-    const app = build({ logger: false });
+    const app = build({
+      logger: false,
+      documentation_public_assets: {
+        scripts: ["/assets/app.js"],
+        styles: [],
+        asset_base: "/",
+        production: true,
+      },
+    });
 
     const allowed_response = await app.inject({
       method: "OPTIONS",

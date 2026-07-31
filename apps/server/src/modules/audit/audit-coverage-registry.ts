@@ -33,6 +33,7 @@ const command = (
   options: {
     source_types?: readonly AuditSourceType[];
     actor_types?: readonly AuditActorType[];
+    audit_only?: boolean;
   } = {},
 ): AuditCommandCoverage => ({
   command: name,
@@ -41,6 +42,7 @@ const command = (
   writes,
   source_types: options.source_types ?? normal_sources,
   actor_types: options.actor_types ?? org_actor,
+  audit_only: options.audit_only,
 });
 
 const U = {
@@ -253,6 +255,30 @@ const U = {
       "publish_schema.documentation_publication_review_evidence",
       "INSERT",
       "documentation_publication_review_evidence",
+    ),
+  documentation_limits_insert: () =>
+    write(
+      "documentation_schema.organization_documentation_limits",
+      "INSERT",
+      "organization_documentation_limits",
+    ),
+  documentation_limits_update: () =>
+    write(
+      "documentation_schema.organization_documentation_limits",
+      "UPDATE",
+      "organization_documentation_limits",
+    ),
+  documentation_discovery_policy_insert: () =>
+    write(
+      "publish_schema.documentation_discovery_policy",
+      "INSERT",
+      "documentation_discovery_policy",
+    ),
+  documentation_discovery_policy_update: () =>
+    write(
+      "publish_schema.documentation_discovery_policy",
+      "UPDATE",
+      "documentation_discovery_policy",
     ),
   documentation_import_inspection_insert: () =>
     write(
@@ -1505,6 +1531,46 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [U.documentation_review_notification_update()],
   ),
   command(
+    "documentation.organization_limits.update",
+    "documentation.organization_limits.updated",
+    ["PUT /api/v1/organization/documentation/limits"],
+    [U.documentation_limits_insert(), U.documentation_limits_update()],
+  ),
+  command(
+    "documentation.projection_rebuild.draft",
+    "documentation.projection.draft_search_rebuilt",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/projections/rebuild",
+    ],
+    [],
+    {
+      source_types: ["web", "api", "system"],
+      actor_types: ["org_user", "system"],
+      audit_only: true,
+    },
+  ),
+  command(
+    "documentation.projection_rebuild.publication",
+    "documentation.projection.publication_search_rebuilt",
+    [
+      "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/projections/rebuild",
+    ],
+    [],
+    {
+      source_types: ["web", "api", "system"],
+      actor_types: ["org_user", "system"],
+      audit_only: true,
+    },
+  ),
+  command(
+    "documentation.discovery_policy.update",
+    "documentation.discovery_policy.updated",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/discovery-policy",
+    ],
+    [U.documentation_discovery_policy_update()],
+  ),
+  command(
     "publish.interactive_demo",
     "interactive_demo.published",
     [
@@ -1593,6 +1659,7 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
     [
       U.link_insert(),
       U.link_entry_insert(),
+      U.documentation_discovery_policy_insert(),
       U.documentation_publication_review_evidence_insert(),
       U.documentation_review_notification_insert(),
     ],

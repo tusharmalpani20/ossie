@@ -101,4 +101,18 @@ describe("audit coverage", () => {
       }],
     }])).toHaveLength(1);
   });
+
+  it("allows explicitly audit-only derived work without product-table guards", () => {
+    expect(
+      validate_audit_coverage([
+        {
+          ...registration,
+          command: "documentation.projection_rebuild.draft",
+          action: "documentation.projection.draft_search_rebuilt",
+          writes: [],
+          audit_only: true,
+        },
+      ]),
+    ).toHaveLength(1);
+  });
 });

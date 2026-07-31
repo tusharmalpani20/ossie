@@ -27,6 +27,16 @@ const valid_production_env = {
   OSSIE_PUBLIC_WEB_URL: "https://demo.example.com",
   OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS:
     "https://b.example.com,https://a.example.com",
+  OSSIE_DOCUMENTATION_WEB_MANIFEST_PATH:
+    "/opt/ossie/apps/web/dist/.vite/manifest.json",
+  OSSIE_DOCUMENTATION_WEB_ASSET_BASE: "/assets/",
+  OSSIE_DOCUMENTATION_HEAVY_WORK_CONCURRENCY: "4",
+  OSSIE_DOCUMENTATION_PUBLICATION_CONCURRENCY: "2",
+  OSSIE_DOCUMENTATION_REBUILD_CONCURRENCY: "1",
+  OSSIE_DOCUMENTATION_PUBLICATION_TIMEOUT_MS: "45000",
+  OSSIE_DOCUMENTATION_REBUILD_BATCH_SIZE: "250",
+  OSSIE_DOCUMENTATION_INITIAL_HTML_MAX_BYTES: "1048576",
+  OSSIE_DOCUMENTATION_TRY_IT_DNS_TIMEOUT_MS: "4000",
 };
 
 describe("production env report", () => {
@@ -95,6 +105,18 @@ describe("production env report", () => {
       },
       documentation_try_it: {
         allowed_origins_count: 2,
+        dns_validation: "all_addresses_must_be_public",
+        dns_timeout_ms: 4000,
+      },
+      documentation: {
+        public_asset_manifest_configured: true,
+        public_asset_base_configured: true,
+        heavy_work_concurrency: 4,
+        publication_concurrency: 2,
+        publication_timeout_ms: 45000,
+        rebuild_concurrency: 1,
+        rebuild_batch_size: 250,
+        initial_html_max_bytes: 1048576,
       },
     });
     expect(report.operational_limitations).toContain(

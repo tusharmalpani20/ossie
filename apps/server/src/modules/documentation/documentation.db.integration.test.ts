@@ -1308,7 +1308,49 @@ describe("DB-backed Documentation repository", () => {
         },
       },
     });
-    expect(publication1.statusCode).toBe(201);
+    expect(publication1.statusCode, publication1.body).toBe(201);
+    const discoveryUrl =
+      `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/` +
+      `${response.json().site.id}/publish-links/${publication1.json().link.id}` +
+      "/discovery-policy";
+    const discovery = await app.inject({
+      method: "GET",
+      url: discoveryUrl,
+      cookies: { ossie_session: scope.session_token },
+    });
+    expect(discovery.statusCode, discovery.body).toBe(200);
+    expect(discovery.json()).toMatchObject({
+      indexing_enabled: true,
+      is_primary_canonical: true,
+      effective_indexing: true,
+      version: 1,
+    });
+    const disableDiscovery = await app.inject({
+      method: "PATCH",
+      url: discoveryUrl,
+      cookies: { ossie_session: scope.session_token },
+      payload: {
+        expected_version: 1,
+        indexing_enabled: false,
+        is_primary_canonical: true,
+      },
+    });
+    expect(disableDiscovery.statusCode, disableDiscovery.body).toBe(200);
+    expect(disableDiscovery.json()).toMatchObject({
+      effective_reason: "disabled",
+      version: 2,
+    });
+    const enableDiscovery = await app.inject({
+      method: "PATCH",
+      url: discoveryUrl,
+      cookies: { ossie_session: scope.session_token },
+      payload: {
+        expected_version: 2,
+        indexing_enabled: true,
+        is_primary_canonical: true,
+      },
+    });
+    expect(enableDiscovery.statusCode, enableDiscovery.body).toBe(200);
     const publicBefore = await app.inject({
       method: "GET",
       url: "/api/v1/public/publish-links/product-docs/documentation/pages/install-guide",
@@ -1318,6 +1360,26 @@ describe("DB-backed Documentation repository", () => {
       id: page.json().page.id,
       canonical_path: "install-guide",
     });
+    const initialDocument = await app.inject({
+      method: "GET",
+      url: "/docs/product-docs/install-guide",
+    });
+    expect(initialDocument.statusCode, initialDocument.body).toBe(200);
+    expect(initialDocument.headers["content-security-policy"]).toContain(
+      "default-src 'self'",
+    );
+    expect(initialDocument.body).toContain(
+      "<title>Install · Product docs</title>",
+    );
+    expect(initialDocument.body).toContain(
+      'id="ossie-documentation-initial-data"',
+    );
+    const unchangedInitialDocument = await app.inject({
+      method: "GET",
+      url: "/docs/product-docs/install-guide",
+      headers: { "if-none-match": initialDocument.headers.etag! },
+    });
+    expect(unchangedInitialDocument.statusCode).toBe(304);
     expect(JSON.stringify(publicBefore.json())).not.toContain(
       "Please clarify this installation step.",
     );

@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { access } from "node:fs/promises";
+import { constants as file_constants } from "node:fs";
 import { Readable } from "node:stream";
 import { ulid } from "ulid";
 import sharp from "sharp";
@@ -16,6 +18,9 @@ import {
 import { error_handler } from "./common/helper_function/error_handler.helper.js";
 import { get_cookie_config } from "./config/cookie.config.js";
 import { get_cors_config } from "./config/cors.config.js";
+import { get_documentation_operations_config } from "./config/documentation-operations.config.js";
+import { get_documentation_public_assets_config } from "./config/documentation-public-assets.config.js";
+import type { DocumentationPublicAssetsConfig } from "./config/documentation-public-assets.config.js";
 import { initialize_event_emitter } from "./config/event.config.js";
 import {
   get_json_body_limit_bytes,
@@ -24,6 +29,7 @@ import {
 } from "./config/production-hardening.config.js";
 import requestDec from "./config/fastify_decoder.config.js";
 import { pool } from "./config/database.config.js";
+import { is_production_runtime } from "./config/runtime.config.js";
 import {
   build_public_instance_routes,
   type PublicInstanceRouteService,
@@ -151,6 +157,14 @@ import {
 } from "./modules/documentation/documentation.routes.js";
 import { build_documentation_repository } from "./modules/documentation/documentation.repository.js";
 import { build_documentation_service } from "./modules/documentation/documentation.service.js";
+import { build_documentation_work_admission } from "./modules/documentation/documentation-work-admission.js";
+import type { DocumentationWorkAdmission } from "./modules/documentation/documentation-work-admission.js";
+import { build_documentation_operations_repository } from "./modules/documentation-operations/documentation-operations.repository.js";
+import {
+  build_documentation_operations_service,
+  type DocumentationOperationsService,
+} from "./modules/documentation-operations/documentation-operations.service.js";
+import { build_documentation_operations_routes } from "./modules/documentation-operations/documentation-operations.routes.js";
 import { parse_documentation_openapi } from "./modules/documentation/documentation-openapi.js";
 import { validate_documentation_try_it_origin } from "./modules/documentation/documentation-try-it.origin.js";
 import { inspect_documentation_markdown } from "./modules/documentation/documentation-markdown.js";
@@ -179,6 +193,7 @@ import {
 } from "./modules/documentation/documentation-asset-integrity.js";
 import {
   canonicalize_documentation_package_json,
+  DocumentationDomainError,
   export_documentation_page_markdown,
   normalize_primary_language,
   normalize_documentation_blocks,
@@ -215,13 +230,28 @@ type BuildOptions = FastifyServerOptions & {
   interactive_demo_service?: InteractiveDemoRouteDependencies["interactive_demo_service"];
   publish_service?: PublishRouteDependencies["publish_service"];
   documentation_service?: DocumentationRouteDependencies["documentation_service"];
+  documentation_operations_service?: DocumentationOperationsService;
+  documentation_work_admission?: DocumentationWorkAdmission;
+  documentation_public_assets?: DocumentationPublicAssetsConfig;
   documentation_try_it_origin_validator?: typeof validate_documentation_try_it_origin;
   access_event_writer?: {
     append(event: AccessEvent): Promise<void>;
   };
   compliance_service?: ComplianceRouteDependencies["compliance_service"];
-  readiness_check?: () => Promise<void>;
+  readiness_check?: () => Promise<void | Record<
+    string,
+    "ok" | "unavailable" | "invalid"
+  >>;
 };
+
+class ReadinessComponentError extends Error {
+  constructor(
+    readonly component: string,
+    readonly status: "unavailable" | "invalid",
+  ) {
+    super(`Readiness component ${component} is ${status}`);
+  }
+}
 
 export const guide_project_capabilities = {
   create_guide_from_capture: "artifact.write",
@@ -342,12 +372,13 @@ export const build = (opts: BuildOptions = {}) => {
     interactive_demo_service,
     publish_service,
     documentation_service,
+    documentation_operations_service,
+    documentation_work_admission: injected_documentation_work_admission,
+    documentation_public_assets: injected_documentation_public_assets,
     documentation_try_it_origin_validator,
     access_event_writer,
     compliance_service,
-    readiness_check = async () => {
-      await pool.query("SELECT 1");
-    },
+    readiness_check: injected_readiness_check,
     ...fastify_options
   } = opts;
   const app = fastify({
@@ -362,6 +393,59 @@ export const build = (opts: BuildOptions = {}) => {
     attempts_per_window_max: DOCUMENTATION_IMPORT_ATTEMPTS_PER_WINDOW_MAX,
     attempt_window_ms: DOCUMENTATION_IMPORT_ATTEMPT_WINDOW_MS,
   });
+  const documentation_operations_config = get_documentation_operations_config();
+  const resolved_documentation_try_it_origin_validator =
+    documentation_try_it_origin_validator ??
+    ((input) =>
+      validate_documentation_try_it_origin({
+        ...input,
+        timeout_ms: documentation_operations_config.try_it_dns_timeout_ms,
+      }));
+  const documentation_public_assets_config =
+    injected_documentation_public_assets ??
+    get_documentation_public_assets_config();
+  const readiness_check =
+    injected_readiness_check ??
+    (async () => {
+      try {
+        await pool.query("SELECT 1");
+      } catch {
+        throw new ReadinessComponentError("database", "unavailable");
+      }
+      if (!is_production_runtime()) return;
+      const migration = await pool.query<{ installed: boolean }>(
+        `SELECT EXISTS(
+           SELECT 1 FROM db_migration.schema_migrations
+            WHERE name='031_documentation_v1_operational_hardening.sql'
+         ) installed`,
+      );
+      if (!migration.rows[0]?.installed) {
+        throw new ReadinessComponentError("migrations", "invalid");
+      }
+      try {
+        await access(
+          default_local_storage_root(),
+          file_constants.R_OK | file_constants.W_OK,
+        );
+      } catch {
+        throw new ReadinessComponentError("file_storage", "unavailable");
+      }
+      return {
+        migrations: "ok" as const,
+        file_storage: "ok" as const,
+        documentation_public_assets:
+          documentation_public_assets_config.production
+            ? ("ok" as const)
+            : ("invalid" as const),
+      };
+    });
+  const documentation_work_admission =
+    injected_documentation_work_admission ??
+    build_documentation_work_admission({
+      total: documentation_operations_config.heavy_work_concurrency,
+      publication: documentation_operations_config.publication_concurrency,
+      rebuild: documentation_operations_config.rebuild_concurrency,
+    });
   const rate_limit_buckets = new Map<string, RateLimitBucket>();
   const resolved_access_event_writer =
     access_event_writer ?? build_access_repository(pool);
@@ -425,18 +509,26 @@ export const build = (opts: BuildOptions = {}) => {
 
   app.get("/readyz", async (_request, reply) => {
     try {
-      await readiness_check();
+      const additional_checks = (await readiness_check()) ?? {};
       return reply.status(200).send({
         status: "ready",
         checks: {
           database: "ok",
+          ...additional_checks,
         },
       });
-    } catch {
+    } catch (error) {
+      const component =
+        error instanceof ReadinessComponentError ? error.component : "database";
+      const component_status =
+        error instanceof ReadinessComponentError ? error.status : "unavailable";
       return reply.status(503).send({
         status: "not_ready",
         checks: {
-          database: "unavailable",
+          database: component === "database" ? component_status : "ok",
+          ...(component === "database"
+            ? {}
+            : { [component]: component_status }),
         },
       });
     }
@@ -801,9 +893,27 @@ export const build = (opts: BuildOptions = {}) => {
   );
 
   app.register(
+    build_documentation_operations_routes({
+      auth_service: {
+        get_current_auth_context:
+          default_authentication_session_service.get_current_auth_context,
+      },
+      service:
+        documentation_operations_service ??
+        build_documentation_operations_service(
+          build_documentation_operations_repository(pool),
+          { admission: documentation_work_admission },
+        ),
+    }),
+  );
+
+  app.register(
     build_documentation_routes({
+      public_assets: documentation_public_assets_config,
+      initial_html_max_bytes:
+        documentation_operations_config.initial_html_max_bytes,
       access_event_writer: resolved_access_event_writer,
-      validate_try_it_origin: documentation_try_it_origin_validator,
+      validate_try_it_origin: resolved_documentation_try_it_origin_validator,
       auth_service: {
         get_current_auth_context:
           default_authentication_session_service.get_current_auth_context,
@@ -814,7 +924,10 @@ export const build = (opts: BuildOptions = {}) => {
           const unavailable = async () => {
             throw new Error("Documentation operation is not available");
           };
-          const repository = build_documentation_repository(pool);
+          const repository = build_documentation_repository(pool, {
+            publication_timeout_ms:
+              documentation_operations_config.publication_timeout_ms,
+          });
           const validate_referenced_asset_bytes = async (
             input: {
               organization_id: string;
@@ -1363,6 +1476,28 @@ export const build = (opts: BuildOptions = {}) => {
               });
               return repository.list_publish_links(input);
             },
+            get_discovery_policy: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.get_discovery_policy(input);
+            },
+            update_discovery_policy: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "publish_link.manage",
+              });
+              return repository.update_discovery_policy(input);
+            },
             get_revision: async (input) => {
               await project_access_service.authorize({
                 auth: {
@@ -1419,24 +1554,35 @@ export const build = (opts: BuildOptions = {}) => {
                   project_id: input.project_id,
                   capability: "documentation.review.override",
                 });
-              if (input.link.mode === "existing")
+              const slot =
+                documentation_work_admission.try_acquire("publication");
+              if (!slot.acquired)
+                throw new DocumentationDomainError(
+                  "documentation_publication_capacity_exceeded",
+                  "Documentation Publication capacity is currently full",
+                );
+              try {
+                if (input.link.mode === "existing")
+                  return repository.create_publication({
+                    ...input,
+                    link: input.link,
+                  });
+                validate_publish_password_input(input.link.password);
+                const password =
+                  input.link.password === null
+                    ? { hash: null, salt: null }
+                    : await hash_public_link_password(input.link.password);
                 return repository.create_publication({
                   ...input,
-                  link: input.link,
+                  link: {
+                    ...input.link,
+                    password_hash: password.hash,
+                    password_salt: password.salt,
+                  },
                 });
-              validate_publish_password_input(input.link.password);
-              const password =
-                input.link.password === null
-                  ? { hash: null, salt: null }
-                  : await hash_public_link_password(input.link.password);
-              return repository.create_publication({
-                ...input,
-                link: {
-                  ...input.link,
-                  password_hash: password.hash,
-                  password_salt: password.salt,
-                },
-              });
+              } finally {
+                slot.release();
+              }
             },
             rollback_publication: async (input) => {
               await project_access_service.authorize({
