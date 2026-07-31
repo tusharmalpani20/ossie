@@ -3,9 +3,9 @@
 Date: 2026-07-30
 
 Status: Active after Product Documentation V1 implementation closeout in child
-`139` on 2026-07-31. Children `132` through `138` are independently
-close-rechecked; child `139` is implemented and verified. Child `140` remains a
-decision-only reservation and is the only open child.
+`139` on 2026-07-31. Children `132` through `139` are independently
+close-rechecked and verified. Child `140` remains a decision-only reservation
+and is the only open child.
 
 Master plan number: 006.
 
@@ -2859,6 +2859,14 @@ implement proposals or serve as a place to finish V1 defects.
   maintenance, shared Vite/Fastify CSP origin policy, and Owner recovery
   permission resolution; repeated unit/type/build/PostgreSQL smoke and
   headless Chromium Owner/Viewer/public verification before handoff to `139`.
+- 2026-07-31: independently close-rechecked child `139`. Reproduced and fixed
+  a pending-migration Audit verifier weakness that discarded existing guard
+  expectations at historical baselines. Historical verification now skips
+  only tables not yet installed and tolerates only future command-list drift;
+  guard shape remains enforced and head verification remains exact. Fresh
+  `024`, removed-guard rejection, restored `031`, server 126/547, database
+  24/88, V1 smoke 1/2, docs 4/12, workspace types, and scoped-diff
+  verification passed. Child `140` remains decision-only.
 
 ## 47. Master Planning Verification Record
 
@@ -3060,6 +3068,11 @@ Child `139` implementation evidence includes:
 - two migration-verification repairs, `6c3390a` and `a8a82d9`, which let
   historical/pending baselines report status without requiring future Audit
   guards while preserving strict head verification;
+- independent close-recheck commit `2ae1b3a` retains existing Audit guard
+  shape checks at historical baselines while excluding only not-yet-installed
+  tables and allowing later command-list additions. A disposable `024`
+  baseline reported ready intact, rejected a removed Project update guard, and
+  was restored cleanly to strict head `031`;
 - clean migration `001`–`031`, verified `024 -> 031` and `030 -> 031`
   upgrades, empty down/up, populated `031` refusal, reset/reseed, and isolated
   custom-format backup/restore with 31 migrations, two Site Publications, one
@@ -3086,7 +3099,8 @@ Child `139` implementation evidence includes:
 ## 48. Planning Leftovers And Handoff
 
 - Product Documentation children `132` through `139` are complete and
-  verified. Child `140` is next and remains decision-only.
+  independently close-rechecked and verified. Child `140` is next and remains
+  decision-only.
 - Child `132` established the first vertical slice. Child `133` extended it
   with the complete constrained V1 block graph, Edition-owned Snippets,
   Documentation/Capture Asset sources, exact artifact Publication references,

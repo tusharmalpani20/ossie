@@ -10,9 +10,9 @@
 
 **Expanded:** 2026-07-31
 
-**Status:** Complete and verified on 2026-07-31. Product Documentation V1 is
-closed with no unresolved S1/S2 defect. Independent close-previous recheck is
-the next prompt-chain step; child `140` remains decision-only.
+**Status:** Complete, independently close-rechecked, and verified on
+2026-07-31. Product Documentation V1 is closed with no unresolved S1/S2
+defect. Child `140` remains the next, decision-only step.
 
 ## 1. Sequence Gate And Starting State
 
@@ -1578,6 +1578,8 @@ Child `139` is complete only when:
 - [x] Synchronize active current-truth docs.
 - [x] Update this child and Master `006` only for proven completion.
 - [x] Confirm child `140` remains decision-only.
+- [x] Independently close-recheck the implemented child and repeat repair and
+      verification until clean.
 - [x] Commit only scoped owned work in logical commits.
 
 ## 26. Implementation Log
@@ -1592,10 +1594,10 @@ Findings and dispositions:
 - `DOC139-S2-001` — `migrate status` and historical upgrade baselines required
   current-head Audit guards before their owning migrations existed. A failing
   focused test first reproduced both the missing-table and already-existing
-  table/future-guard cases. Commits `6c3390a` and `a8a82d9` now skip only the
-  current guard registry while migrations are pending; head verification
-  remains strict. Real status/upgrade proof passed at migrations `023`, `024`,
-  `030`, and `031`.
+  table/future-command cases. Commits `6c3390a` and `a8a82d9` made historical
+  baselines runnable; the independent close-recheck finding
+  `DOC139-S2-004` below then tightened that compatibility behavior. Real
+  status/upgrade proof passed at migrations `023`, `024`, `030`, and `031`.
 - `DOC139-S2-002` — production audit reported nine high advisories through
   `fast-uri`, `ws`, `sharp`, and `postcss`. Commit `4756982` pinned patched
   compatible transitive versions. The `sharp` 0.35 export map then produced a
@@ -1610,6 +1612,17 @@ Findings and dispositions:
   `96d1878` and `7ff1e21` propagate `actor_type` through every unchanged/rebuilt
   draft/Publication path and verify content-free `System` evidence. Dry-run and
   exact-Publication mutation modes now pass.
+- `DOC139-S2-004` — the pending-migration compatibility path introduced while
+  resolving `DOC139-S2-001` omitted the whole current Audit guard registry.
+  That allowed a historical baseline to report ready even when a guard on an
+  already-installed table was missing. A failing unit regression reproduced
+  the false-ready result. Commit `2ae1b3a` keeps guard name, table, operation,
+  function, timing, constraint, entity, and tenant-mode checks for tables that
+  exist at the historical baseline; only not-yet-installed tables and future
+  command-list additions receive compatibility treatment. A real disposable
+  migration-`024` proof rejected a removed
+  `project_schema.project` update-context guard, while intact `024` and strict
+  migration-`031` status both reported Audit ready.
 - `DOC139-S3-001` — `CONTEXT.md`, Documentation decisions, and Master `006`
   still described child `137`/pre-runtime or unresolved adapter mechanics.
   Current-truth wording, the actual Ossie-native adapter decision, migration
@@ -1730,6 +1743,37 @@ Implementation verification rerun on 2026-07-31:
   with system Audit Evidence;
 - `git diff --check` passed and only explicitly staged child-owned files were
   committed.
+
+Independent implemented-work close-recheck on 2026-07-31:
+
+- reread child `139`, Master `006`, the shipped child `138` handoff, current
+  migration verifier, Audit coverage registry, current-truth records, and the
+  existing sanitized browser evidence;
+- confirmed that all 32 accepted grill answers remain represented by the
+  shipped traceability matrix and that every completed child `132`–`139`
+  retains status, checklist, implementation, verification, leftovers, and
+  handoff records;
+- reproduced `DOC139-S2-004` red before implementation: the historical
+  verifier returned ready after its expected guard registry had been emptied;
+- passed the focused Audit verifier suite: 1 file / 11 tests;
+- built a fresh disposable migration-`024` database and confirmed 24 executed /
+  7 pending / Audit ready, then removed the existing
+  `project_u_audit_ctx` trigger and confirmed `migrate status` failed with
+  `guard:project_schema.project:UPDATE`;
+- rebuilt the disposable test database from migration `001` through `031` and
+  confirmed 31 executed / 0 pending / Audit ready;
+- passed the full server unit suite: 126 files / 547 tests;
+- passed the full PostgreSQL suite: 24 files / 88 tests; the already-recorded
+  pg-9 overlapping-query deprecation warning remains unchanged;
+- passed V1 PostgreSQL smoke: 1 file / 2 tests, and repository docs tests:
+  4 files / 12 tests;
+- passed all 13 workspace type-check tasks and `git diff --check`;
+- no browser-visible behavior changed, so the existing child-`139` Headless
+  Chrome evidence remains authoritative and no duplicate browser run or custom
+  harness was created;
+- the audit repeated clean after the repair: no unresolved S1/S2, migration,
+  schema, API, UI, security, permission, compatibility, or documentation
+  contradiction remains in child `139` scope.
 
 ## 28. Leftovers And Handoff To Child 140
 
