@@ -3,21 +3,25 @@
 Date accepted: 2026-07-30
 
 Status: Accepted target model, implemented and V1-closeout verified through
-child `139` on 2026-07-31.
+child `139`, with post-V1 priorities finally accepted in child `140` on
+2026-07-31.
 
 Sources:
 
 - `docs/grill/2026-07-29-documentation-domain-grill.md`
 - `docs/plan/130-pre-documentation-closeout.md`
 - `docs/plan/131-documentation-domain-grill.md`
+- `docs/grill/2026-07-31-post-v1-documentation-decision-gate.md`
+- `docs/plan/140-post-v1-documentation-decision-gate.md`
 - `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 - `CONTEXT.md`
-- ADRs `0021` through `0033`
+- ADRs `0021` through `0034`
 
 This document consolidates the final answers from the 32-question Documentation
 domain grill. It remains the decision authority for the Documentation runtime
-implemented through child `139`; later child plans must preserve or explicitly
-supersede these accepted boundaries.
+implemented through child `139`. Section 11 records the accepted post-V1
+planning result. Later child plans must preserve or explicitly supersede these
+accepted boundaries.
 
 ## 1. Accepted Domain Model
 
@@ -431,7 +435,9 @@ operational hardening from final certification.
    and collaboration as separate evidence-backed proposals; do not inherit them
    automatically into V1.
 
-Children `132` through `139` are implemented and verified. The implementation
+Children `132` through `140` are complete. Children `132` through `139`
+implemented and verified Product Documentation V1; child `140` was a
+documentation-only post-V1 decision gate. The implementation
 uses additive migrations `025`–`031`, Ossie-owned typed authoring and reader
 adapters, PostgreSQL search projections, exact immutable Publications, and the
 accepted permission/evidence boundaries. Child `140` remains a decision-only
@@ -440,16 +446,73 @@ gate and does not inherit implementation authority from this closure.
 ## 10. Handoff Invariants
 
 - Child `131` closes decisions only; no runtime or package change belongs to it.
-- Master Plan `006` owns the refined implementation sequence `132` through
-  `140`.
+- Master Plan `006` owns the completed V1 sequence `132` through `140`.
 - Shipped adapters may not reopen these semantics without a new ADR and
   explicit user decision.
 - The accepted Question 31 private Page comments boundary is shipped and
   remains outside immutable/public output.
-- Fumadocs and Tiptap are absent from V1. Any later adoption remains
-  conditional on focused proof and cannot rewrite the domain model.
+- Fumadocs and Tiptap are absent from V1. Child `140` accepts bounded adapter
+  proofs next; production adoption remains conditional and cannot rewrite the
+  domain model.
 - Documentation appears in operational and Project navigation only through its
   authorized shipped routes.
 - Video, Git sync, translations, custom domains, public feedback/analytics,
   permanent deletion, realtime collaboration, and arbitrary executable content
   stay outside the first implementation slice.
+
+## 11. Accepted Post-V1 Decision Gate
+
+Child `140` reviewed the shipped V1 and every post-V1 candidate before selecting
+new implementation scope. The user finally accepted the complete Q1–Q17 ledger
+on 2026-07-31.
+
+### 11.1 Selected next objective
+
+Master `007` owns one Documentation experience objective:
+
+> Evaluate Tiptap for constrained authoring and Fumadocs for exact-Publication
+> reading, adopt only evidence-backed improvements, add deterministic
+> multi-language API request examples, and close the combined experience with
+> browser, accessibility, performance, and compatibility proof.
+
+The ordered reservations are:
+
+1. adapter proof and adoption gate;
+2. authoring experience modernization;
+3. reader experience modernization;
+4. generated curl, browser Fetch, Node.js, Python, and Go request examples via
+   an extensible versioned registry;
+5. accessibility, cross-browser, motion, performance, security, and
+   compatibility hardening;
+6. final independent closeout.
+
+The proof compares against the shipped native UI. Tiptap and Fumadocs remain
+replaceable adapters. Failure selects the native fallback and cannot weaken an
+acceptance gate.
+
+### 11.2 Final feature disposition matrix
+
+| Band                            | Capabilities                                                                                                                                                                                                                                                                                                              | Owner or reopen trigger                                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Selected next                   | Tiptap authoring proof; Fumadocs reader proof; evidence-gated UI modernization; deterministic multi-language request examples                                                                                                                                                                                             | Documentation Master `007` and children `141`–`146`                                                                                              |
+| Accepted later                  | One-way GitHub proposal export; human-first translation; verified custom domains; structured Helpful/Not helpful feedback; privacy-minimized aggregate analytics; exact-Revision external review; ephemeral author presence; offline read-only snapshots; typed disclosure block; deterministic public static-site export | Separate focused Documentation sequences after explicit prioritization and prerequisites                                                         |
+| Accepted later, separate domain | Permission-filtered Organization-wide metadata discovery                                                                                                                                                                                                                                                                  | Future Knowledge Platform master; body/full-text and cross-Organization search remain deferred                                                   |
+| Deferred                        | Bidirectional Git sync; simultaneous editing; offline mutation/merge; governed permanent deletion; full SDK packages; direct cloud/CDN deployment and deploy hooks                                                                                                                                                        | Reopen only when each recorded demand, authority, security, lifecycle, and operational evidence gap closes                                       |
+| Separate maintenance/operations | Firefox/WebKit and real assistive-technology coverage; PostgreSQL client warning; server lint debt; production telemetry; distributed admission; durable jobs; non-local File storage                                                                                                                                     | QA, dependency/server maintenance, or cross-product operations—not Documentation Master `007` unless a future accepted boundary proves otherwise |
+| Rejected boundary               | Arbitrary HTML/JavaScript/MDX/React/iframe/widgets; server API proxy; stored target credentials; automatic registry SDK publication; destructive deletion masquerading as archive                                                                                                                                         | Remains prohibited unless a new explicit grill and superseding ADR changes the trust model                                                       |
+
+### 11.3 Authority and compatibility
+
+- PostgreSQL and protected Files remain authoritative.
+- Tiptap state, Fumadocs content sources/page trees, generated request text,
+  static exports, Git, and caches are transient adapters or derived forms.
+- Existing constrained blocks, URLs, APIs, Project Membership, Publish Link
+  access, exact Revisions/Publications, review evidence, Try-It authority,
+  sanitization, Audit/Access Evidence, and archive-first lifecycle remain
+  compatible.
+- Generated request examples are inert exact-operation projections under ADR
+  `0034`; they never execute, contain entered credentials, grant target origin
+  authority, or constitute a supported SDK.
+- Child `140` implemented none of these post-V1 capabilities. Master `007` and
+  its reservations are planning artifacts; each runtime child requires the
+  standard expand/recheck/implement/recheck chain.

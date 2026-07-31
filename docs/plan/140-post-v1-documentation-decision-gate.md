@@ -4,12 +4,14 @@ Date reserved: 2026-07-30
 
 Date expanded: 2026-07-31
 
-Status: In progress. The documentation-only decision session began on
-2026-07-31 from clean commit `df409d0`. Q1 through Q16 are provisionally
-recorded and Q17 is open for explicit user/product authority. Product
-Documentation V1 remains implemented and independently close-rechecked through
-child `139`; this child authorizes no runtime, schema, route, dependency, or
-browser-visible implementation.
+Status: Closing. The documentation-only decision session began on 2026-07-31
+from clean commit `df409d0`, and the user finally accepted the complete Q1–Q17
+ledger plus the Documentation-owned Master `007` sequence on 2026-07-31.
+Canonical synchronization, planning reservations, verification, and scoped
+commits remain before this child is complete. Product Documentation V1 remains
+implemented and independently close-rechecked through child `139`; this child
+authorizes no runtime, schema, route, dependency, or browser-visible
+implementation.
 
 Parent plan:
 
@@ -1641,10 +1643,14 @@ Child `140` may close only when:
   evidence belongs to a selected UI sequence; PostgreSQL/lint maintenance and
   shared production infrastructure remain separately owned. Q17 opened with a
   proposed Documentation experience master and children `141`–`146`.
+- 2026-07-31: the user finally accepted Q17 and the reconciled Q1–Q17 ledger.
+  Selected the Documentation-owned Master `007` objective and ordered children
+  `141`–`146`; accepted-later, deferred, rejected, maintenance, operations, and
+  Knowledge Platform items remain outside that implementation checklist.
 
-The expansion itself made no decision. At the current execution checkpoint Q1
-through Q16 are provisionally recorded, Q17 is open, and final cross-question
-acceptance remains pending.
+The expansion itself made no decision. The execution session now has final
+user authority for Q1–Q17; canonical synchronization and closeout remain in
+progress.
 
 ## 25. Expansion Verification Record
 

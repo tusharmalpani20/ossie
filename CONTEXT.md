@@ -1,9 +1,10 @@
 # Ossie Context
 
 Ossie captures real software workflows and turns those captures into shareable
-Guides and Interactive Demos. It also ships the first complete vertical slice
-of version-aware Product Documentation Sites. Remaining Documentation V1 work
-is sequenced separately; Video remains later.
+Guides and Interactive Demos. It also ships V1 of version-aware Product
+Documentation Sites. Documentation V1 is complete through Master Plan `006`;
+the accepted next experience sequence is planned separately in Master Plan
+`007`. Video remains later.
 
 This context owns canonical product language. It contains both implemented alpha concepts and accepted target terms from Master Plan `005`; inclusion here does not mean a target capability has shipped. `docs/project-zoomout-status.md` and `docs/roadmap.md` own the current-versus-planned implementation boundary.
 
@@ -414,6 +415,33 @@ required, satisfied, or overridden; an override requires a Project Admin and a
 reason whose detail remains Admin-only.
 _Avoid_: mutable policy snapshot, public metadata, Audit Event replacement
 
+### Accepted Post-V1 Documentation Language
+
+The following terms were accepted by child `140` for planning under Master
+`007`. They do not claim that the corresponding runtime is implemented.
+
+**Documentation Experience Adapter Proof**:
+A bounded, non-authoritative comparison of a candidate authoring or reader
+adapter against the shipped Ossie-native behavior. It may use existing
+Documentation content and Publications but cannot migrate authoritative data,
+replace permissions or URLs, or expose a production route before its adoption
+gate passes.
+_Avoid_: framework migration, source-of-truth replacement
+
+**Generated API Request Example**:
+Deterministic inert source text derived from one exact accepted OpenAPI
+operation for one named language/runtime contract. It uses placeholders, never
+entered credentials, performs no request, grants no origin authority, and is
+not a supported SDK package.
+_Avoid_: Try-It request, generated SDK, stored credential
+
+**Static Documentation Export**:
+An accepted-later deterministic portable website derived from one exact public
+Site Publication for customer-owned hosting. It is not an Ossie-managed
+deployment, cannot reproduce restricted/internal server authorization, and
+cannot be recalled after a customer downloads or deploys it.
+_Avoid_: Site Publication authority, managed CDN deployment, revocable copy
+
 ## Relationships
 
 - A **Project** contains many **Captures**
@@ -566,6 +594,15 @@ _Avoid_: mutable policy snapshot, public metadata, Audit Event replacement
   exactly one immutable **Publication Review Evidence** row atomically
 - Documentation review notifications are private, content-free, in-product
   inbox records and are never part of public output
+- A **Generated API Request Example** belongs to one exact accepted API
+  operation and language contract, remains inert, and never changes Try-It
+  origin or credential authority
+- A **Documentation Experience Adapter Proof** reads existing authoritative
+  Ossie state through an adapter boundary; Tiptap/Fumadocs state never becomes
+  a second domain or persistence model
+- A future **Static Documentation Export** may derive only from one exact
+  public Site Publication and remains an externally held copy rather than a
+  mutable or revocable Publication
 
 ## Example Dialogue
 

@@ -2,10 +2,10 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q16 are provisionally recorded and Q17 is open
-for explicit user/product authority. No post-V1 capability, Master `007`, child
-`141`, ADR, runtime change, or roadmap commitment is finally accepted by this
-record yet.
+Status: Complete. The user finally accepted the complete Q1–Q17 disposition
+ledger and the Documentation-owned next-master sequence on 2026-07-31. This
+record made no runtime, schema, route, migration, dependency, or browser-visible
+change.
 
 Parent:
 
@@ -131,8 +131,8 @@ Every opened decision must end as exactly one:
 | `defer`        | No commitment; missing evidence/authority and reopen condition are explicit.                 |
 | `reject`       | Explicit non-goal under the recorded rationale; reopening requires a new decision and proof. |
 
-Answers remain provisional until the complete cross-question ledger is
-reconciled and explicitly accepted by the user.
+The complete ledger was reconciled and explicitly accepted by the user on
+2026-07-31.
 
 ## 6. Evidence Labels
 
@@ -146,25 +146,25 @@ Inference and preference must not be written as shipped fact.
 
 ## 7. Candidate Ledger
 
-| Question | Candidate                                                       | State    | Provisional disposition          | Final authority |
-| -------- | --------------------------------------------------------------- | -------- | -------------------------------- | --------------- |
-| Q1       | First post-V1 problem and priority                              | Answered | Review first; no immediate build | Provisional     |
-| Q2       | GitHub App proposals and export automation                      | Answered | `accept-later`: one-way proposal | Provisional     |
-| Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Answered | `defer` until Git is selected    | Provisional     |
-| Q4       | Translation identity, fallback, and workflow                    | Answered | `accept-later`: human-first      | Provisional     |
-| Q5       | Custom domains                                                  | Answered | `accept-later`: verified domain  | Provisional     |
-| Q6       | Public feedback                                                 | Answered | `accept-later`: structured only  | Provisional     |
-| Q7       | Public analytics                                                | Answered | `accept-later`: aggregate only   | Provisional     |
-| Q8       | External reviewer access                                        | Answered | `accept-later`: exact review     | Provisional     |
-| Q9       | Realtime collaboration and presence                             | Answered | Presence later; editing deferred | Provisional     |
-| Q10      | Offline editing and merge                                       | Answered | Read later; editing deferred     | Provisional     |
-| Q11      | Governed permanent deletion and retention                       | Answered | `defer`; archive only now        | Provisional     |
-| Q12      | Cross-artifact and Organization-wide search                     | Answered | `accept-later`: metadata first   | Provisional     |
-| Q13      | Rich interactive components                                     | Answered | `accept-later`: disclosure only  | Provisional     |
-| Q14      | Request examples and SDK generation                             | Answered | Examples next; SDKs deferred     | Provisional     |
-| Q15      | Advanced publication distribution                               | Answered | Static export; deploy deferred   | Provisional     |
-| Q16      | Tooling and operational follow-up                               | Answered | Adapter proofs; split operations | Provisional     |
-| Q17      | Final prioritization, next-master ownership, and child sequence | Open     | Pending                          | Pending         |
+| Question | Candidate                                                       | State    | Final disposition                | Authority |
+| -------- | --------------------------------------------------------------- | -------- | -------------------------------- | --------- |
+| Q1       | First post-V1 problem and priority                              | Answered | Review first; sequence selected  | Final     |
+| Q2       | GitHub App proposals and export automation                      | Answered | `accept-later`: one-way proposal | Final     |
+| Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Answered | `defer` until Git is selected    | Final     |
+| Q4       | Translation identity, fallback, and workflow                    | Answered | `accept-later`: human-first      | Final     |
+| Q5       | Custom domains                                                  | Answered | `accept-later`: verified domain  | Final     |
+| Q6       | Public feedback                                                 | Answered | `accept-later`: structured only  | Final     |
+| Q7       | Public analytics                                                | Answered | `accept-later`: aggregate only   | Final     |
+| Q8       | External reviewer access                                        | Answered | `accept-later`: exact review     | Final     |
+| Q9       | Realtime collaboration and presence                             | Answered | Presence later; editing deferred | Final     |
+| Q10      | Offline editing and merge                                       | Answered | Read later; editing deferred     | Final     |
+| Q11      | Governed permanent deletion and retention                       | Answered | `defer`; archive only now        | Final     |
+| Q12      | Cross-artifact and Organization-wide search                     | Answered | `accept-later`: metadata first   | Final     |
+| Q13      | Rich interactive components                                     | Answered | `accept-later`: disclosure only  | Final     |
+| Q14      | Request examples and SDK generation                             | Answered | `accept-next`; SDKs deferred     | Final     |
+| Q15      | Advanced publication distribution                               | Answered | Static export; deploy deferred   | Final     |
+| Q16      | Tooling and operational follow-up                               | Answered | `accept-next`: adapter proofs    | Final     |
+| Q17      | Final prioritization, next-master ownership, and child sequence | Answered | Master `007`; children 141–146   | Final     |
 
 ## 8. Q1 — What Problem Should The First Post-V1 Slice Solve?
 
@@ -250,7 +250,7 @@ not runtime implementation.
 The repository cannot determine the user's current business priority, target
 customer, or external product evidence.
 
-### Provisional disposition
+### Final disposition
 
 `defer` immediate implementation while the complete candidate list is reviewed.
 Do not create Master `007` from Q1 alone.
@@ -270,8 +270,7 @@ Recorded interpretation:
 - decide the next deep implementation only after cross-question
   reconciliation.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 9. Q2 — GitHub App Proposals And Export Automation
 
@@ -414,7 +413,7 @@ harder to reverse and remains Q3.
 - no accepted repository layout or generated-file ownership markers;
 - no accepted branch/PR conflict behavior.
 
-### Provisional disposition
+### Final disposition
 
 `accept-later` for the narrow one-way proposal adapter described above. This
 does not select it as the next implementation and does not accept
@@ -443,8 +442,7 @@ Recorded interpretation:
   review;
 - decide broad bidirectional synchronization separately in Q3.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 10. Q3 — Should Ossie And GitHub Synchronize Both Ways?
 
@@ -577,7 +575,7 @@ semantics.
 - no accepted force-push, PR lifecycle, or recovery model;
 - no durable webhook/background-work infrastructure decision.
 
-### Provisional disposition
+### Final disposition
 
 `defer`. Do not design or implement bidirectional sync while Git integration
 itself is only an accepted-later possibility. Reopen this question only if a
@@ -608,8 +606,7 @@ User answer:
 
 > Yes, I agree.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 11. Q4 — Should Ossie Support Documentation In Multiple Languages?
 
@@ -741,7 +738,7 @@ implementation-ready plan before code.
 - no URL compatibility decision;
 - no machine-translation provider or privacy authority.
 
-### Provisional disposition
+### Final disposition
 
 `accept-later` for a human-authored, locale-separated capability when supported
 by real user demand. Do not select it as the next implementation from this
@@ -769,8 +766,7 @@ Recorded interpretation:
 - do not select translation as `accept-next` before cross-question
   reconciliation.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 12. Q5 — Should Published Documentation Support Custom Domains?
 
@@ -913,7 +909,7 @@ closed.
 - no accepted cookie/canonical redirect policy;
 - no operational SLO for issuance or renewal failure.
 
-### Provisional disposition
+### Final disposition
 
 `accept-later` for one verified subdomain with managed HTTPS when supported by
 real demand and an accepted deployment/operator model. Do not select it as the
@@ -940,8 +936,7 @@ Recorded interpretation:
 - do not select custom domains as `accept-next` before cross-question
   reconciliation and deployment ownership are resolved.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 13. Q6 — Should Public Readers Be Able To Leave Documentation Feedback?
 
@@ -1068,7 +1063,7 @@ harder to reverse because it creates moderation and privacy obligations.
 - no moderation/notification owner;
 - no decision on authenticated versus anonymous future feedback.
 
-### Provisional disposition
+### Final disposition
 
 `accept-later` for opt-in Helpful/Not helpful feedback with fixed reasons and
 an exact Publication/Page anchor. Public comments, open text, and reader
@@ -1097,8 +1092,7 @@ Recorded interpretation:
 - do not select feedback as `accept-next` before cross-question
   reconciliation.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 14. Q7 — Should Documentation Include Reader Analytics?
 
@@ -1235,7 +1229,7 @@ reverse and are excluded from the first slice.
 - no durable event/rollup infrastructure beyond current in-process limits;
 - no decision for richer authenticated-reader analytics.
 
-### Provisional disposition
+### Final disposition
 
 `accept-later` for opt-in, first-party, exact-Page aggregate counts that do not
 track people. Persistent identifiers, personal details, third-party scripts,
@@ -1266,8 +1260,7 @@ Recorded interpretation:
 - do not select analytics as `accept-next` before cross-question
   reconciliation.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 15. Q8 — Should People Outside A Project Be Invited To Review A Draft?
 
@@ -1409,7 +1402,7 @@ excluded from the first slice.
 - no comment retention or external-reviewer data-subject workflow;
 - no accepted future external approval requirement.
 
-### Provisional disposition
+### Final disposition
 
 `accept-later` for verified, expiring access to one exact Revision with private
 comments only. Project membership, editing, approval, export, Try It, and
@@ -1439,8 +1432,7 @@ Recorded interpretation:
 - do not select external review as `accept-next` before cross-question
   reconciliation.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 16. Q9 — Should Authors See And Edit With Each Other In Real Time?
 
@@ -1575,7 +1567,7 @@ availability.
 - no revoked-user, reconnect, validation, undo, or checkpoint model;
 - no provider region, retention, outage, or cost decision.
 
-### Provisional disposition
+### Final disposition
 
 `accept-later` for ephemeral same-Page presence. `defer` simultaneous editing
 until demonstrated demand and a dedicated authority/persistence ADR exist.
@@ -1602,8 +1594,7 @@ Recorded interpretation:
 - do not select either collaboration slice as `accept-next` before
   cross-question reconciliation.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 17. Q10 — Should Authors Read Or Edit Documentation While Offline?
 
@@ -1749,7 +1740,7 @@ deferred.
 - no multi-device, revoked-user, lost-device, or remote-wipe guarantee;
 - no browser support matrix beyond current Chromium evidence.
 
-### Provisional disposition
+### Final disposition
 
 `accept-later` for explicit, bounded, read-only offline snapshots after a
 device-cache policy exists. `defer` offline mutation until demonstrated demand
@@ -1778,8 +1769,7 @@ Recorded interpretation:
 - do not select either offline slice as `accept-next` before cross-question
   reconciliation.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 18. Q11 — When Should Ossie Permanently Delete Customer Data?
 
@@ -1942,7 +1932,7 @@ implementation may be impossible to repair.
 - no durable cross-product asynchronous job infrastructure;
 - no truthful deletion-completion SLO or evidence contract.
 
-### Provisional disposition
+### Final disposition
 
 `defer` permanent deletion. Keep recoverable archive/soft delete as the only
 supported lifecycle now. Reopen deletion only as governed cross-product work
@@ -1972,8 +1962,7 @@ Recorded interpretation:
   after legal, retention, backup, security, and operational policy exists;
 - do not create a Documentation-owned implementation sequence from Q11.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 19. Q12 — Should One Search Find Different Ossie Content Across An Organization?
 
@@ -2119,7 +2108,7 @@ harder to unwind and is excluded from the first slice.
 - no external search infrastructure/privacy decision;
 - no decision on whether metadata-only value justifies the cross-product cost.
 
-### Provisional disposition
+### Final disposition
 
 `accept-later` as Knowledge Platform work for permission-filtered Organization
 metadata discovery. Cross-artifact body/full-text search and cross-Organization
@@ -2150,8 +2139,7 @@ Recorded interpretation:
 - do not create a Documentation-owned sequence or select search as
   `accept-next` before cross-question reconciliation.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 20. Q13 — Should Ossie Add More Interactive Documentation Blocks?
 
@@ -2290,7 +2278,7 @@ far harder to reverse and remains rejected.
 - no non-Chromium or real screen-reader evidence for the future block;
 - no demonstrated need for third-party embeds or executable components.
 
-### Provisional disposition
+### Final disposition
 
 `accept-later` for one new Ossie-owned typed disclosure-group block. Every
 other component family requires a separate decision. Arbitrary executable
@@ -2322,8 +2310,7 @@ Recorded interpretation:
 - do not select disclosure as `accept-next` before cross-question
   reconciliation.
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 21. Q14 — Should Ossie Generate API Code Examples Or Full SDKs?
 
@@ -2468,10 +2455,10 @@ which is why they remain deferred.
 - no evidence that full SDKs add more value than examples plus exported
   OpenAPI.
 
-### Provisional disposition
+### Final disposition
 
-`accept-next-candidate` for safe deterministic request snippets, subject to
-the Q17 cross-candidate prioritization. The first implementation sequence must
+`accept-next` for safe deterministic request snippets under the accepted Q17
+sequence. The first implementation sequence must
 cover at least curl, browser JavaScript `fetch`, Node.js, Python, and Go and
 must use an extensible, versioned language registry so additional languages
 can be added without changing the Publication authority model.
@@ -2501,8 +2488,7 @@ Node.js, Python, and Go and allowing more languages to be added. Defer full SDK
 packages until users request exact languages and Ossie can maintain them
 safely.**
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 22. Q15 — Should Ossie Export A Static Site Or Deploy It For Customers?
 
@@ -2659,7 +2645,7 @@ state can outlive a failed operation.
 - no evidence that a provider adapter is more valuable than a portable static
   bundle plus customer-owned CI.
 
-### Provisional disposition
+### Final disposition
 
 `accept-later` for a deterministic, portable static-site artifact derived from
 one exact public Publication. Ossie-managed provider deployment, deploy hooks,
@@ -2679,8 +2665,7 @@ Recommended answer: **Yes. Add a safe, portable static-site export later.
 Defer direct S3/CDN deployment, deploy hooks, and stored cloud credentials until
 customers clearly need them and Ossie has the required operational model.**
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 23. Q16 — Should Product Features And Engineering Follow-Up Be One Project?
 
@@ -2833,9 +2818,9 @@ operational state and therefore require dedicated migration and rollback plans.
 - no File durability/scale requirement exceeding local storage;
 - no measured editor/reader deficiency that Tiptap or Fumadocs would solve.
 
-### Provisional disposition
+### Final disposition
 
-`accept-next-candidate` for two bounded, non-authoritative adapter proofs:
+`accept-next` for two bounded, non-authoritative adapter proofs:
 
 - Tiptap against the existing constrained Documentation authoring model;
 - Fumadocs against one exact existing Publication reader model.
@@ -2869,8 +2854,7 @@ better without changing Ossie's source of truth or security model. Keep the
 unrelated testing, maintenance, and infrastructure work under their proper
 owners.**
 
-Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
-accepted.
+Final decision: Accepted in the complete Q1–Q17 reconciliation on 2026-07-31.
 
 ## 24. Q17 — What Should Ossie Build Next?
 
@@ -2878,12 +2862,12 @@ accepted.
 
 Q1 required reviewing the shipped platform and every candidate before choosing
 the next implementation. Q2–Q16 have now completed that review. This question
-must reconcile the provisional answers, select one coherent objective, and
+must reconcile the reviewed answers, select one coherent objective, and
 keep all other ideas visible without pretending they are scheduled.
 
 ### Reconciled candidate matrix
 
-| Candidate                                           | Provisional result      | Recommended final placement                                    |
+| Candidate                                           | Reviewed result         | Final placement                                                |
 | --------------------------------------------------- | ----------------------- | -------------------------------------------------------------- |
 | Tiptap authoring adapter proof                      | Accepted next candidate | Next Documentation master, first gate                          |
 | Fumadocs reader adapter proof                       | Accepted next candidate | Next Documentation master, first gate                          |
@@ -3006,9 +2990,16 @@ whole master or justify weakening the gate.
 - A new dependency is accepted only after version/license/advisory/bundle and
   transitive-dependency review.
 
-### Provisional disposition
+### Final disposition
 
-Pending explicit user authority for the complete prioritization and sequence.
+`accept-next`. Create the Documentation-owned Master `007` and bounded child
+reservations `141`–`146` exactly as proposed. The master is planning authority,
+not implementation. Each child still requires separate expansion, recheck,
+implementation authorization, and close-recheck.
+
+### User answer
+
+> I agree with you.
 
 ### Simple decision requested
 
@@ -3021,9 +3012,11 @@ Recommended answer: **Yes. This is the clearest next sequence. Keep every other
 accepted idea in the later backlog and keep infrastructure/maintenance work
 with its proper owner.**
 
+Final decision: Accepted by explicit user/product authority on 2026-07-31.
+
 ## 25. Questions Not Yet Opened
 
-None. Q17 is the final open decision.
+None. Q1–Q17 are finally answered.
 
 ## 26. Session Log
 
@@ -3093,6 +3086,13 @@ None. Q17 is the final open decision.
   improvement and preservation of all Ossie authority/security contracts.
   Operational infrastructure and maintenance debt remain separately owned.
   Reconciled Q1–Q16 and opened final prioritization Q17.
+- 2026-07-31: the user finally accepted Q17 and the complete Q1–Q17 ledger.
+  Selected one Documentation-owned Master `007` with bounded children
+  `141`–`146`: adapter proof/adoption gate, authoring modernization, reader
+  modernization, multi-language request examples, combined browser/
+  accessibility/performance hardening, and final closeout. All other accepted
+  candidates remain later; deferred and separately owned work remains outside
+  the sequence.
 
 ## 27. Verification Record
 
@@ -3113,7 +3113,8 @@ are required for this documentation-only checkpoint.
 
 ## 28. Current Handoff
 
-Awaiting explicit user/product authority for the complete Q17 prioritization,
-Master `007` objective, and child `141`–`146` sequence. Do not create Master
-`007`, reserve children, finalize the ledger, or close child `140` before that
-answer is recorded.
+Final authority is recorded. Create the selected Documentation Master `007`
+and bounded children `141`–`146`, synchronize canonical decision/current-truth
+documents, close child `140` and Master `006`, verify the documentation-only
+change set, and hand off to expansion/recheck of child `141`. Do not implement
+runtime behavior in this closeout.
