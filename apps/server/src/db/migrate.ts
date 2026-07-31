@@ -22,7 +22,10 @@ const run = async () => {
   try {
     if (command === "up") {
       await umzug.up(target ? { to: target } : undefined);
-      const executed = await umzug.executed();
+      const [executed, pending] = await Promise.all([
+        umzug.executed(),
+        umzug.pending(),
+      ]);
       if (executed.some(({ name }) => name === "015_audit_evidence_core.sql")) {
         const access_evidence = executed.some(
           ({ name }) =>
@@ -70,7 +73,9 @@ const run = async () => {
                       : comprehensive
                         ? verify_audit_schema
                         : verify_audit_core_schema
-        )(pool, roles);
+        )(pool, roles, {
+          allow_missing_guard_tables: pending.length > 0,
+        });
       }
     } else if (command === "down")
       await umzug.down(target ? { to: target } : undefined);
@@ -126,7 +131,9 @@ const run = async () => {
                             )
                           ? verify_audit_schema
                           : verify_audit_core_schema
-          )(pool, roles)
+          )(pool, roles, {
+            allow_missing_guard_tables: pending.length > 0,
+          })
         : { status: "not_installed" as const };
       console.info(
         JSON.stringify(

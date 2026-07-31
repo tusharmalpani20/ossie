@@ -3,6 +3,10 @@ import { AUDIT_COVERAGE_REGISTRY } from "../modules/audit/audit-coverage-registr
 
 type VerificationPool = Pick<Pool, "query">;
 
+export type AuditSchemaVerificationOptions = {
+  allow_missing_guard_tables?: boolean;
+};
+
 const throw_verification_issues = (rows: Array<{ issue: string }>) => {
   if (rows.length) {
     throw new Error(
@@ -15,6 +19,7 @@ const throw_verification_issues = (rows: Array<{ issue: string }>) => {
 export const verify_audit_core_schema = async (
   pool: VerificationPool,
   roles: { runtime_role: string; maintenance_role: string },
+  _options: AuditSchemaVerificationOptions = {},
 ) => {
   const result = await pool.query<{ issue: string }>(
     `
@@ -118,6 +123,7 @@ export const verify_audit_core_schema = async (
 export const verify_audit_schema = async (
   pool: VerificationPool,
   roles: { runtime_role: string; maintenance_role: string },
+  options: AuditSchemaVerificationOptions = {},
 ) => {
   const guards = new Map<
     string,
@@ -235,7 +241,10 @@ export const verify_audit_schema = async (
     UNION ALL
     SELECT 'guard:' || guard.schema_name || '.' || guard.table_name || ':' || guard.sql_operation
     FROM expected_guards guard
-    WHERE NOT EXISTS (
+    WHERE (
+      $4::boolean
+      OR to_regclass(guard.schema_name || '.' || guard.table_name) IS NOT NULL
+    ) AND (NOT EXISTS (
       SELECT 1
       FROM pg_trigger trigger
       JOIN pg_class class ON class.oid = trigger.tgrelid
@@ -287,7 +296,7 @@ export const verify_audit_schema = async (
           ELSE guard.entity_type || E'\\\\000' || guard.tenant_mode || E'\\\\000'
             || guard.commands || E'\\\\000'
         END
-    )
+    ))
     UNION ALL
     SELECT 'index:' || expected.name
     FROM expected_indexes expected
@@ -339,7 +348,12 @@ export const verify_audit_schema = async (
     )
     ORDER BY issue
     `,
-    [roles.runtime_role, roles.maintenance_role, expected_guards],
+    [
+      roles.runtime_role,
+      roles.maintenance_role,
+      expected_guards,
+      !options.allow_missing_guard_tables,
+    ],
   );
   return throw_verification_issues(result.rows);
 };
@@ -347,8 +361,9 @@ export const verify_audit_schema = async (
 export const verify_evidence_schema = async (
   pool: VerificationPool,
   roles: { runtime_role: string; maintenance_role: string },
+  options: AuditSchemaVerificationOptions = {},
 ) => {
-  await verify_audit_schema(pool, roles);
+  await verify_audit_schema(pool, roles, options);
   const result = await pool.query<{ issue: string }>(
     `
     WITH expected_triggers(name) AS (VALUES
@@ -431,8 +446,9 @@ export const verify_evidence_schema = async (
 export const verify_project_membership_schema = async (
   pool: VerificationPool,
   roles: { runtime_role: string; maintenance_role: string },
+  options: AuditSchemaVerificationOptions = {},
 ) => {
-  await verify_evidence_schema(pool, roles);
+  await verify_evidence_schema(pool, roles, options);
   const result = await pool.query<{ issue: string }>(
     `
     WITH expected_triggers(name) AS (VALUES
@@ -498,8 +514,9 @@ export const verify_project_membership_schema = async (
 export const verify_project_version_schema = async (
   pool: VerificationPool,
   roles: { runtime_role: string; maintenance_role: string },
+  options: AuditSchemaVerificationOptions = {},
 ) => {
-  await verify_project_membership_schema(pool, roles);
+  await verify_project_membership_schema(pool, roles, options);
   const result = await pool.query<{ issue: string }>(
     `
     WITH expected_triggers(name) AS (VALUES
@@ -644,8 +661,9 @@ export const verify_project_version_schema = async (
 export const verify_artifact_edition_schema = async (
   pool: VerificationPool,
   roles: { runtime_role: string; maintenance_role: string },
+  options: AuditSchemaVerificationOptions = {},
 ) => {
-  await verify_project_version_schema(pool, roles);
+  await verify_project_version_schema(pool, roles, options);
   const result = await pool.query<{ issue: string }>(
     `
     -- Verify guide_schema.guide_edition and
@@ -753,9 +771,10 @@ export const verify_artifact_edition_schema = async (
 export const verify_artifact_revision_schema = async (
   pool: VerificationPool,
   roles: { runtime_role: string; maintenance_role: string },
+  options: AuditSchemaVerificationOptions = {},
   publication_projection_expected = true,
 ) => {
-  await verify_artifact_edition_schema(pool, roles);
+  await verify_artifact_edition_schema(pool, roles, options);
   const result = await pool.query<{ issue: string }>(
     `
     -- Verify guide_schema.guide_revision and protected Asset tables explicitly.
@@ -806,8 +825,9 @@ export const verify_artifact_revision_schema = async (
 export const verify_publication_schema = async (
   pool: VerificationPool,
   roles: { runtime_role: string; maintenance_role: string },
+  options: AuditSchemaVerificationOptions = {},
 ) => {
-  await verify_artifact_revision_schema(pool, roles, false);
+  await verify_artifact_revision_schema(pool, roles, options, false);
   const result = await pool.query<{ issue: string }>(
     `
     WITH expected_tables(name) AS (VALUES ('published_artifact'),('publish_link'),('publish_link_entry'),('public_publish_viewer_session'))

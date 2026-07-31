@@ -76,6 +76,32 @@ describe("Audit schema verification", () => {
     });
   });
 
+  it("ignores guards owned by pending migrations without weakening head verification", async () => {
+    const missing_operational_guard = {
+      issue:
+        "guard:documentation_schema.organization_documentation_limits:INSERT",
+    };
+    const pool = {
+      query: vi.fn(async (_sql: string, values?: unknown[]) => ({
+        rows: values?.[3] === false ? [] : [missing_operational_guard],
+      })),
+    };
+    const verify = Reflect.get(verification, "verify_audit_schema");
+    const roles = {
+      runtime_role: "runtime",
+      maintenance_role: "maintenance",
+    };
+
+    await expect(
+      verify(pool as never, roles, {
+        allow_missing_guard_tables: true,
+      }),
+    ).resolves.toEqual({ status: "ready" });
+    await expect(verify(pool as never, roles)).rejects.toThrow(
+      missing_operational_guard.issue,
+    );
+  });
+
   it("accepts the child 112 core catalog after migration 016 is rolled back", async () => {
     const pool = {
       query: vi.fn(async (sql: string) => {
