@@ -2,8 +2,8 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 and Q2 are provisionally recorded and Q3 is open for
-explicit user/product authority. No post-V1 capability, Master `007`, child
+Status: In progress. Q1 through Q3 are provisionally recorded and Q4 is open
+for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
 
@@ -150,8 +150,8 @@ Inference and preference must not be written as shipped fact.
 | -------- | --------------------------------------------------------------- | ---------- | -------------------------------- | --------------- |
 | Q1       | First post-V1 problem and priority                              | Answered   | Review first; no immediate build | Provisional     |
 | Q2       | GitHub App proposals and export automation                      | Answered   | `accept-later`: one-way proposal | Provisional     |
-| Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Open       | Pending                          | Pending         |
-| Q4       | Translation identity, fallback, and workflow                    | Not opened | None                             | Pending         |
+| Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Answered   | `defer` until Git is selected    | Provisional     |
+| Q4       | Translation identity, fallback, and workflow                    | Open       | Pending                          | Pending         |
 | Q5       | Custom domains                                                  | Not opened | None                             | Pending         |
 | Q6       | Public feedback                                                 | Not opened | None                             | Pending         |
 | Q7       | Public analytics                                                | Not opened | None                             | Pending         |
@@ -579,7 +579,9 @@ semantics.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`defer`. Do not design or implement bidirectional sync while Git integration
+itself is only an accepted-later possibility. Reopen this question only if a
+Git integration is selected for implementation.
 
 ### Simple decision requested
 
@@ -588,13 +590,175 @@ Should Ossie and GitHub automatically synchronize changes in both directions?
 Recommended answer: **No. Keep the safer one-way Ossie-to-GitHub pull-request
 proposal.**
 
-## 11. Questions Not Yet Opened
+### User clarification and answer
 
-Q4 through Q17 remain unmade. Their full implementation-safe question
+The user correctly challenged why this detailed question was being decided
+when no Git integration is currently selected.
+
+Revised recommendation:
+
+- defer bidirectional-sync design rather than reject every possible future
+  form;
+- build no Git integration now;
+- accept no two-way synchronization now;
+- preserve Ossie as authority;
+- reopen the question only if Git integration is selected.
+
+User answer:
+
+> Yes, I agree.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 11. Q4 — Should Ossie Support Documentation In Multiple Languages?
+
+### Why this question is open
+
+Some teams need the same Documentation Site in more than one language. This is
+an independent product capability, not part of Git integration. Supporting it
+safely requires more than translating text: Ossie must know which pages are
+translations of each other, what to show when a translation is missing, and
+which exact language variants belong to a Publication.
+
+### Shipped V1 facts
+
+- A Site has one `primary_language` declaration.
+- V1 does not model translated Page variants or a translation workflow.
+- Page identity, Navigation, search, Review, Revision, Publication, public
+  URLs, and Carry-Forward currently operate without a locale dimension.
+- Public output is always derived from one exact immutable Publication.
+- No machine-translation provider or translator-specific role exists.
+- No user demand or supported-language list is recorded.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- BCP 47 defines standard language tags, including language, script, region,
+  and variant subtags. Tags are case-insensitive and the IANA registry is the
+  source for valid subtags:
+  [RFC 5646](https://www.rfc-editor.org/rfc/rfc5646).
+- W3C recommends declaring a page's default language with the HTML `lang`
+  attribute and changing the declaration where content switches language:
+  [Declaring language in HTML](https://www.w3.org/International/questions/qa-html-language-declarations).
+- W3C explains that language tags identify languages in HTML/XML and should
+  use BCP 47 syntax:
+  [Language tags in HTML and XML](https://www.w3.org/International/articles/language-tags/).
+- Google documents that localized alternatives need explicit locale-specific
+  URLs and `hreflang` relationships; every version should identify itself and
+  the other alternatives:
+  [Localized versions of pages](https://developers.google.com/search/docs/specialty/international/localized-versions).
+
+### Inference
+
+Translations cannot safely be represented as unrelated duplicate Pages. Ossie
+would need stable translation identity and explicit behavior for:
+
+- a source Page and its language variants;
+- language/script/region tags such as `en`, `pt-BR`, or `zh-Hant`;
+- missing or stale translations;
+- localized Navigation, search, slugs, metadata, and accessibility language;
+- review and publication completeness;
+- Carry-Forward when the source changes;
+- public locale URLs and fallback;
+- optional machine-translation data leaving Ossie.
+
+Adding only a language selector would create misleading or mixed-language
+public output.
+
+### Recommendation
+
+Keep translation as an **accepted-later** capability, not the next
+implementation by default.
+
+If real users need it, begin with a small human-authored slice:
+
+1. one primary language plus explicitly enabled BCP 47 locales;
+2. stable Page-to-translation relationships;
+3. a clear “translation unavailable” result instead of silently mixing
+   languages;
+4. locale-specific URLs, Navigation, search, metadata, and HTML language;
+5. one immutable Publication containing exact variants;
+6. stale-translation warnings when source content changes;
+7. existing Site permissions for authors/reviewers;
+8. no machine translation in the first slice.
+
+Do not select it as `accept-next` until the full candidate review and actual
+user need are known.
+
+### Alternatives
+
+- **Defer:** make no commitment until a target customer, languages, and
+  workflow are known.
+- **Reject:** keep one-language Sites as a permanent product boundary.
+- **Accept-next:** select translation as the next master only if it is the
+  strongest evidenced user problem after Q1–Q16.
+
+### Rejected shortcuts
+
+- treating `primary_language` as if it already models translations;
+- copying Pages without stable translation relationships;
+- falling back silently to another language inside a localized Page;
+- publishing a locale with missing required Navigation or content while
+  claiming it is complete;
+- machine-translating private drafts without an accepted provider, consent,
+  region, retention, and redaction policy;
+- reinterpreting existing public URLs or Publications.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- PostgreSQL and protected Files remain authority.
+- Translation variants remain inside the same Organization, Project, Site, and
+  permission boundary unless a future ADR explicitly changes it.
+- Existing roles do not gain access merely because a locale exists.
+- Review and Publication must authorize the exact language variants included.
+- Search and public caches must separate locale results.
+- Machine translation, if ever proposed, requires a separate provider-egress
+  and confidential-draft decision.
+- Removing a locale must not rewrite immutable Revisions or Publications.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. A future implementation would require additive
+translation identity, locale-aware API/types/UI, public URL and canonical/
+`hreflang` rules, localized search projections, and a compatibility rule that
+maps every existing Site to its current `primary_language` without changing
+existing URLs or Publications.
+
+### Reversibility
+
+The accepted-later planning choice is reversible. The future data and URL model
+would be expensive to change after launch, so it needs a dedicated ADR and an
+implementation-ready plan before code.
+
+### Evidence gaps
+
+- no target users or requested languages;
+- no translation volume or freshness expectation;
+- no accepted translator role or review workflow;
+- no fallback/completeness policy;
+- no URL compatibility decision;
+- no machine-translation provider or privacy authority.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should we keep multi-language Documentation as a possible later feature?
+
+Recommended answer: **Yes, later—but only when users need it. Start with human
+translations and keep each language clearly separated.**
+
+## 12. Questions Not Yet Opened
+
+Q5 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 12. Session Log
+## 13. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -606,8 +770,12 @@ at a time with current primary-source research only when opened.
 - 2026-07-31: the user accepted the narrow Q2 recommendation. Recorded
   one-way Ossie-to-GitHub pull-request proposals as `accept-later`, preserved
   Ossie authority and explicit import/apply boundaries, and opened Q3.
+- 2026-07-31: the user clarified that detailed two-way-sync design is
+  premature while Git integration is not selected. Recorded Q3 as deferred
+  until a Git implementation is selected, preserved Ossie authority, and
+  opened the independent translation candidate in Q4.
 
-## 13. Verification Record
+## 14. Verification Record
 
 Initial checkpoint verification:
 
@@ -624,7 +792,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 14. Current Handoff
+## 15. Current Handoff
 
-Awaiting explicit user/product authority for Q3. Do not open Q4 until Q3 is
+Awaiting explicit user/product authority for Q4. Do not open Q5 until Q4 is
 recorded.

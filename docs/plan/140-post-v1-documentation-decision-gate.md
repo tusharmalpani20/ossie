@@ -5,11 +5,11 @@ Date reserved: 2026-07-30
 Date expanded: 2026-07-31
 
 Status: In progress. The documentation-only decision session began on
-2026-07-31 from clean commit `df409d0`. Q1 and Q2 are provisionally recorded
-and Q3 is open for explicit user/product authority. Product Documentation V1
-remains implemented and independently close-rechecked through child `139`;
-this child authorizes no runtime, schema, route, dependency, or browser-visible
-implementation.
+2026-07-31 from clean commit `df409d0`. Q1 through Q3 are provisionally
+recorded and Q4 is open for explicit user/product authority. Product
+Documentation V1 remains implemented and independently close-rechecked through
+child `139`; this child authorizes no runtime, schema, route, dependency, or
+browser-visible implementation.
 
 Parent plan:
 
@@ -1576,9 +1576,14 @@ Child `140` may close only when:
   and GitHub cannot automatically import, apply, checkpoint, publish, or
   delete content. Q3 opened separately to decide broad bidirectional
   synchronization.
+- 2026-07-31: the user challenged the need to decide detailed two-way-sync
+  semantics while Git integration itself is not selected. Q3 was consequently
+  recorded as `defer`: no Git integration or two-way sync is accepted now,
+  Ossie remains authority, and Q3 reopens only if Git implementation is
+  selected. The independent translation candidate opened as Q4.
 
 The expansion itself made no decision. At the current execution checkpoint Q1
-and Q2 are provisionally recorded, Q3 is open, and final cross-question
+through Q3 are provisionally recorded, Q4 is open, and final cross-question
 acceptance remains pending.
 
 ## 25. Expansion Verification Record
