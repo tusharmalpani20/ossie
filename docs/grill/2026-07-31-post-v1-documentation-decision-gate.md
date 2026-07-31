@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q9 are provisionally recorded and Q10 is open
+Status: In progress. Q1 through Q10 are provisionally recorded and Q11 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -157,8 +157,8 @@ Inference and preference must not be written as shipped fact.
 | Q7       | Public analytics                                                | Answered   | `accept-later`: aggregate only   | Provisional     |
 | Q8       | External reviewer access                                        | Answered   | `accept-later`: exact review     | Provisional     |
 | Q9       | Realtime collaboration and presence                             | Answered   | Presence later; editing deferred | Provisional     |
-| Q10      | Offline editing and merge                                       | Open       | Pending                          | Pending         |
-| Q11      | Governed permanent deletion and retention                       | Not opened | None                             | Pending         |
+| Q10      | Offline editing and merge                                       | Answered   | Read later; editing deferred     | Provisional     |
+| Q11      | Governed permanent deletion and retention                       | Open       | Pending                          | Pending         |
 | Q12      | Cross-artifact and Organization-wide search                     | Not opened | None                             | Pending         |
 | Q13      | Rich interactive components                                     | Not opened | None                             | Pending         |
 | Q14      | SDK generation                                                  | Not opened | None                             | Pending         |
@@ -1751,7 +1751,9 @@ deferred.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-later` for explicit, bounded, read-only offline snapshots after a
+device-cache policy exists. `defer` offline mutation until demonstrated demand
+and an independently accepted security/merge model exist.
 
 ### Simple decision requested
 
@@ -1760,13 +1762,206 @@ Should we keep offline Documentation use as a possible later capability?
 Recommended answer: **Allow saved read-only pages later. Defer offline editing
 until users need it and safe merge/security rules are designed.**
 
-## 18. Questions Not Yet Opened
+### User answer
 
-Q11 through Q17 remain unmade. Their full implementation-safe question
+> Yes, I agree with you.
+
+Recorded interpretation:
+
+- preserve explicit, bounded offline read-only snapshots as an accepted-later
+  possibility;
+- require trusted-device, expiry, clear/logout, protected-content, and online
+  reauthorization rules before implementation;
+- defer offline mutation until user demand and safe queued-operation,
+  revocation, reconnect, validation, attribution, and merge semantics exist;
+- retain PostgreSQL and protected Files as authority;
+- do not select either offline slice as `accept-next` before cross-question
+  reconciliation.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 18. Q11 — When Should Ossie Permanently Delete Customer Data?
+
+### Why this question is open
+
+V1 supports recoverable archive and preserves immutable Publications and
+append-only operational evidence. Permanent deletion is different: it can make
+data unrecoverable and must account for shared Files, users, Projects,
+Organizations, public links, caches, backups, restores, legal holds, security
+records, contracts, and data-protection rights.
+
+This is inherently cross-product when it includes a Project, Organization,
+user identity, shared File, Audit, Access Evidence, or backup. It cannot be
+owned by a Documentation-only implementation plan.
+
+### Shipped V1 facts
+
+- Archive is recoverable and is not permanent deletion.
+- Site Revisions and Publications are immutable.
+- Audit and Access Evidence are append-only and content-free.
+- Files can be shared/protected outside one Documentation resource.
+- Public URLs can have redirects, aliases, stable Publish Links, and
+  intentional `gone` behavior.
+- Customer-content retention and governed permanent deletion are not shipped.
+- Backup/restore deletion propagation, legal hold, approval, dry-run impact,
+  cancellation, and recovery windows are not defined.
+- No authorized legal, contractual, statutory, billing, or security-evidence
+  retention schedule is recorded.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- The European Commission explains that erasure rights exist but are not
+  absolute; data may need to be retained for legal obligations, public
+  interest, expression, research/statistics, or legal claims:
+  [When deletion is required](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/dealing-requests-individuals/do-we-always-have-delete-personal-data-if-person-asks_en).
+- GDPR principles include purpose limitation, data minimization, storage
+  limitation, security, and accountability, and require communicating the
+  storage duration or criteria:
+  [European Commission GDPR principles](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/principles-gdpr_en).
+- NIST SP 800-88 Rev. 2 defines media sanitization as making target data access
+  infeasible for a stated effort level and requires a sensitivity-appropriate
+  sanitization program:
+  [NIST media sanitization guidance](https://csrc.nist.gov/pubs/sp/800/88/r2/final).
+- PostgreSQL continuous backups and WAL can restore a database to an earlier
+  state; backup retention is operator-managed and recovery operates at whole-
+  cluster scope rather than deleting one row from old backups:
+  [PostgreSQL continuous archiving and PITR](https://www.postgresql.org/docs/current/continuous-archiving.html).
+
+### Inference
+
+“Delete now” cannot honestly mean that every historical backup bit disappears
+immediately. A safe product promise must distinguish:
+
+- active-system inaccessibility;
+- queued deletion from primary data, Files, projections, caches, and replicas;
+- delayed expiry from protected backups;
+- prevention of deleted data being resurrected after restore;
+- legally retained evidence or identity pseudonymization;
+- media/device sanitization at infrastructure end of life.
+
+Deleting a Documentation Site alone can also break shared File references,
+public URL semantics, actor attribution, or cross-product records. Engineering
+cannot choose the required retention or legal exceptions.
+
+### Recommendation
+
+**Defer governed permanent deletion until an authorized cross-product
+retention policy and legal/compliance owner exist.**
+
+Keep recoverable archive as the current user-facing lifecycle. Before any
+permanent-delete implementation, require a Knowledge Platform decision that
+defines:
+
+1. every resource/data class and its owner;
+2. purpose and retention period or criteria;
+3. legal hold and exception authority;
+4. export-before-delete, reauthentication, approval/quorum, and exact impact
+   report;
+5. cancellation and recovery windows;
+6. shared File/reference and immutable Publication behavior;
+7. public URL tombstones and identifier/domain reuse;
+8. primary, replica, cache, object/File storage, backup, restore, and restored-
+   snapshot propagation;
+9. Audit/Access Evidence and deleted-actor attribution;
+10. idempotent asynchronous execution, partial failure, monitoring, and proof
+    of completion;
+11. truthful deletion and media/cryptographic-erasure claims.
+
+This defers implementation, not the responsibility to create a compliant
+retention/deletion policy.
+
+### Alternatives
+
+- **Accept-next as cross-product work:** only if the user appoints the legal/
+  compliance/operator owners and makes retention/deletion the highest-priority
+  problem after the complete candidate review.
+- **Documentation-only deletion:** possible only for a narrowly proven data
+  class with no shared identity/File/evidence/backup/public-link impact; no such
+  safe slice is currently established.
+- **Reject permanent deletion:** unsafe as a blanket product promise because
+  legal/contractual requirements may require deletion in some deployments.
+
+### Rejected shortcuts
+
+- equating archive, export, or hiding UI with deletion;
+- hard-cascade deleting a Site/Project/Organization;
+- erasing immutable Publications or append-only evidence silently;
+- deleting shared Files without complete reference proof;
+- claiming immediate deletion from immutable/protected backups;
+- restoring a backup without replaying deletion tombstones/ledger state;
+- reusing public slugs, aliases, Publish Link tokens, custom domains, or stable
+  identifiers without an accepted policy;
+- choosing retention periods in code or an engineering plan;
+- accepting permanent deletion without legal hold and exception behavior;
+- emitting customer content or sensitive impact details into Audit logs.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- PostgreSQL remains lifecycle authority; protected Files and all derived
+  systems must follow an accepted deletion operation.
+- Only explicitly authorized high-assurance actors can request or approve a
+  future permanent deletion; reauthentication and separation/quorum may be
+  required by scope.
+- A dry-run impact report must be tenant scoped, permission checked, and safe
+  from cross-tenant metadata disclosure.
+- Legal hold overrides ordinary deletion until released by authorized policy.
+- An append-only content-free deletion ledger may be necessary to prevent
+  restore resurrection and prove orchestration without retaining deleted
+  content; exact retention requires authority.
+- Failed/partial jobs fail closed, remain retryable/idempotent, and never report
+  completion prematurely.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. A future cross-product implementation would require
+data classification and policy, hold/deletion-operation schemas, dependency
+graphs, async orchestration, File/cache/replica/backup adapters, dry-run and
+approval APIs/UI, Audit/Access boundaries, restore reconciliation, public URL
+semantics, operator runbooks, and destructive-path verification. Existing
+archive and immutable records remain unchanged until that work is separately
+accepted.
+
+### Reversibility
+
+Deferral is reversible. Permanent deletion is intentionally irreversible after
+its recovery window, so its policy, authority, preview, cancellation, backup,
+restore, and proof semantics must be accepted before implementation. A wrong
+implementation may be impossible to repair.
+
+### Evidence gaps
+
+- no authorized retention schedule or governing jurisdiction/contract set;
+- no legal/compliance, security-evidence, billing, or backup owner;
+- no data-class dependency/reference inventory across the product;
+- no legal hold or approval/quorum model;
+- no backup/object-storage/replica deletion and restore policy;
+- no accepted public URL/identifier reuse policy;
+- no durable cross-product asynchronous job infrastructure;
+- no truthful deletion-completion SLO or evidence contract.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should we defer permanent deletion until legal, retention, backup, and
+cross-product rules are formally decided?
+
+Recommended answer: **Yes. Keep recoverable archive for now. Design permanent
+deletion later as a separate Knowledge Platform project with legal and
+operational owners.**
+
+## 19. Questions Not Yet Opened
+
+Q12 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 19. Session Log
+## 20. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -1803,8 +1998,12 @@ at a time with current primary-source research only when opened.
   `accept-later` possibility and deferred simultaneous editing until real
   demand and an authoritative collaboration model exist. Opened offline use as
   Q10.
+- 2026-07-31: the user accepted bounded offline read-only snapshots as an
+  `accept-later` possibility and deferred offline mutation until real demand
+  and safe security/merge semantics exist. Opened governed permanent deletion
+  as the cross-product Q11 decision.
 
-## 20. Verification Record
+## 21. Verification Record
 
 Initial checkpoint verification:
 
@@ -1821,7 +2020,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 21. Current Handoff
+## 22. Current Handoff
 
-Awaiting explicit user/product authority for Q10. Do not open Q11 until Q10 is
+Awaiting explicit user/product authority for Q11. Do not open Q12 until Q11 is
 recorded.
