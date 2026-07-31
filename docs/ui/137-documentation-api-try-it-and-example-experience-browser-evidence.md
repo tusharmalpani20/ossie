@@ -40,6 +40,30 @@ skill.
 - No JavaScript console errors were present in the final Admin, Viewer, or
   public journeys.
 
+## Independent closure recheck
+
+The 2026-07-31 close-previous audit reran the real fixture after repairing the
+exact immutable Revision route and stricter response/request lifecycle:
+
+- exact Revision `2` loaded as a read-only snapshot, resolved its immutable
+  Access Evidence root, and fetched both configuration and report authority with
+  `source=revision&revision_number=2`;
+- confirmation received focus, trapped Tab, and restored focus to Send on
+  Escape;
+- one confirmed Revision request reached `https://api.github.com/widgets`; the
+  target returned inert JSON `404` and Ossie received one content-free `204`
+  report;
+- bearer input remained confined to its password control and target request;
+  all three examples used `<BEARER_TOKEN>`, and close removed the value from
+  controls and serialized DOM;
+- Admin policy save displayed the exact origin/operation-count confirmation;
+- exact Revision and public operation layouts had no page-level overflow at
+  320 CSS pixels, reduced-motion emulation was active, and consoles were clean;
+- axe WCAG 2 A/AA reported zero violations for Admin, exact Revision, and public
+  operation surfaces. Public code-example contrast was indeterminate and
+  manually reviewed; the example regions no longer produce prohibited-ARIA
+  findings.
+
 ## Evidence images
 
 - [Admin policy and link state](137-documentation-api-try-it-and-example-experience-admin.png)
@@ -47,6 +71,7 @@ skill.
 - [Public request and inert response](137-documentation-api-try-it-and-example-experience-public.png)
 - [Per-request confirmation](137-documentation-api-try-it-and-example-experience-confirmation.png)
 - [Reflow and zoom check](137-documentation-api-try-it-and-example-experience-reflow.png)
+- [Exact immutable Revision request builder](137-documentation-api-try-it-and-example-experience-revision.png)
 
 ## Automated failure-state coverage
 
@@ -54,7 +79,7 @@ Focused unit/integration tests cover digest/origin mismatch, disallowed/private
 DNS answers, descriptor-v0 refusal, permission denial, stale policy and
 optimistic conflicts, invalid/oversized request data, redirect refusal,
 timeout/Abort, CORS/network failure classification, active/binary/oversized/
-unreadable responses, malformed JSON as inert text, secret reflection
+unreadable responses, malformed JSON blocked from display, secret reflection
 redaction, short-secret refusal, idempotent policy writes, immutable Revision
 freezing, strict public projection, and content-free Access Evidence.
 

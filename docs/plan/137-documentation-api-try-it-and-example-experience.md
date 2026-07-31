@@ -4,8 +4,7 @@ Date reserved: 2026-07-30
 
 Date expanded: 2026-07-31
 
-Status: Complete and verified on 2026-07-31.
-Runtime implementation has not started.
+Status: Complete, independently close-rechecked, and verified on 2026-07-31.
 
 Parent plan:
 
@@ -43,11 +42,12 @@ The current read-only OpenAPI reference must remain fully usable when:
 - CORS or CSP prevents execution;
 - the target request fails.
 
-No Documentation runtime code is authorized by this planning pass.
+This sequence gate governed the now-completed implementation. Child `138`
+remains the next runtime reservation.
 
-## 2. Baseline From The Implemented Code
+## 2. Pre-Implementation Baseline At Expansion
 
-### 2.1 Current authority and storage
+### 2.1 Authority and storage at expansion
 
 - PostgreSQL remains the authority for Documentation state.
 - One Site Edition currently owns at most one active OpenAPI Source.
@@ -66,7 +66,7 @@ No Documentation runtime code is authorized by this planning pass.
   be replaced by a strict public projection so source File/digest/server-policy
   fields cannot flow through incidentally.
 
-### 2.2 Current routes that remain compatible
+### 2.2 Baseline routes retained compatibly
 
 Authenticated:
 
@@ -88,7 +88,7 @@ GET /api/v1/public/publish-links/:slug/versions/:version_slug/documentation/oper
 Existing route response fields remain valid. Additive fields must be parsed by
 strict shared schemas before the portal uses them.
 
-### 2.3 Current portal behavior
+### 2.3 Portal behavior before child `137`
 
 - `DocumentationOpenApiPanel` uploads, inspects, applies, archives, restores,
   exports, and lists operation identities.
@@ -1875,6 +1875,7 @@ Child `137` is complete only when:
 - [x] Audit/Access/tenant/concurrency/privacy coverage passed.
 - [x] Agent-browser evidence passed.
 - [x] Context/ADR/decision/master/docs updated.
+- [x] Independent close-previous audit and exact Revision re-dogfood passed.
 - [x] Scoped logical commits complete.
 
 ## 24. Planning Log
@@ -1926,6 +1927,21 @@ Child `137` is complete only when:
   operation experience while preserving Admin-only policy controls, then proved
   one confirmed direct target request, one `204` report, credential teardown,
   reflow/reduced-motion, and zero axe violations on public/Viewer surfaces.
+- 2026-07-31: Independent close-previous audit repaired empty/malformed/binary/
+  invalid-UTF-8 response handling, aggregate header bounds, short-secret
+  response blocking, inert request examples, sensitive body/header
+  placeholders, per-confirmation authority refresh, lease/rate feedback,
+  independent clear/copy controls, and keyboard-contained confirmation.
+- 2026-07-31: The same audit bounded the Admin operation workbench, labelled
+  imported server candidates as unapproved, added explicit Site/link
+  confirmation, and completed the exact immutable Revision request-builder
+  route. Revision configuration and content-free attempt reporting now retain
+  the same `source=revision&revision_number=...` selection.
+- 2026-07-31: Real agent-browser verification exposed a missing resolved
+  `documentation_revision` Access Evidence root. The route now binds successful
+  Revision reads to the immutable Revision ID instead of failing closed with
+  `503`; exact Revision read/configuration/request/report and narrow/keyboard/
+  axe checks then passed.
 
 ## 25. Planning Verification Record
 
@@ -1946,9 +1962,10 @@ This expansion inspected:
 - current Vite/API deployment and absence of dynamic reader CSP;
 - current Audit/Access/foundation/reset/fixture ownership.
 
-This planning pass changes only this child-plan document. It adds no runtime,
-migration, schema, API, dependency, lockfile, Context, ADR, decision, Master, or
-browser-evidence change.
+At the planning checkpoint, this pass changed only this child-plan document and
+added no runtime, migration, schema, API, dependency, lockfile, Context, ADR,
+decision, Master, or browser-evidence change. The later implementation and
+close-recheck records below supersede that planning-only scope statement.
 
 Independent recheck verification:
 
@@ -1989,7 +2006,7 @@ Verified on 2026-07-31:
   still blocked by unrelated pre-existing control-regex/unused-variable
   warnings in child `136` and earlier files;
 - production web build passed; the existing single-chunk warning remains
-  (`728.80 kB` JavaScript raw in the Child 137 production build) and is handed
+  (`739.99 kB` JavaScript raw after the independent closure) and is handed
   to child `138` for measurement/splitting;
 - migration `001`–`030`, full DB suite, and V1 smoke passed; populated/guarded
   rollback behavior remains covered by the migration and foundation suites;
@@ -1997,6 +2014,33 @@ Verified on 2026-07-31:
   320px reflow, 200% zoom, reduced-motion, console, and axe proof is recorded in
   `docs/ui/137-documentation-api-try-it-and-example-experience-browser-evidence.md`;
 - `git diff --check` and focused documentation checks passed before closeout.
+
+Independent close-recheck verification on 2026-07-31:
+
+- focused web Try-It/API/policy/publishing/Revision/public-reader coverage:
+  8 files / 28 tests;
+- focused server Documentation route/repository coverage: 2 files / 37 tests;
+- server and web package type checks passed after the repairs;
+- agent-browser reverified Admin confirmation, public credential placeholders
+  and teardown, exact immutable Revision read/configuration/report binding,
+  one target request, one content-free report, confirmation focus/Escape
+  restoration, 320 CSS-pixel reflow, reduced motion, and clean consoles;
+- axe reported zero WCAG 2 A/AA violations on Admin, public, and exact Revision
+  surfaces. Public example contrast remains an indeterminate manual check, not
+  an axe violation; the example regions no longer use prohibited ARIA;
+- the exact Revision closure screenshot is
+  `docs/ui/137-documentation-api-try-it-and-example-experience-revision.png`;
+- the implementation deliberately consolidates related Try-It contracts into
+  the existing Documentation type/domain/repository/route modules rather than
+  creating every provisional filename named during planning.
+- authoritative post-repair regression: server non-DB 120 files / 527 tests,
+  web 81 files / 434 tests, extension 19 files / 140 tests, constants 1 file /
+  9 tests, strict types 18 files / 93 tests, Documentation domain 17 files / 45
+  tests, DB 23 files / 83 tests, and V1 smoke 1 file / 2 tests;
+- workspace type check and production build each passed 13 tasks. Focused web
+  changed-file lint is clean; focused server route/test lint is clean. The
+  workspace lint remains blocked only by the already-recorded unrelated
+  warnings in prior Documentation/review files.
 
 The full non-DB regression initially exposed three scoped omissions and the
 final run is the authoritative result: migration `030`'s audited allowance
@@ -2017,6 +2061,11 @@ Child `138` receives:
 - bundle splitting if the operation experience materially grows the reader;
 - production performance and capability-dependent browser expansion;
 - review of DNS validation caching/TTL and deployment reload ergonomics.
+- measurement of the additional exact-Revision reader route and operation
+  selector, including whether it should share a lazy-loaded request-experience
+  chunk with public and draft readers;
+- operator diagnostics for Access Evidence failure on resolved immutable
+  resources, without exposing request, response, or credential content.
 
 Child `138` must not weaken:
 

@@ -2,15 +2,10 @@
 
 Date: 2026-07-30
 
-Status: Active after child `135` implementation and verification on 2026-07-30.
-The first vertical slice, constrained V1 content, Edition-owned Snippets,
-protected Documentation/Capture Assets, exact artifact references, immutable
-snapshots, and inspected portability are implemented, independently
-close-rechecked, and verified. Cross-Version Carry-Forward, multi-Site
-selection, and recoverable lifecycle are also implemented and verified. Child
-`136` is the next bounded reservation; children `136` through `140` must be
-re-expanded after their actual
-predecessors.
+Status: Active after child `137` independent closure on 2026-07-31.
+Children `132` through `137` are implemented, independently close-rechecked,
+and verified. Child `138` is the next bounded reservation; children `138`
+through `140` must be re-expanded after their actual predecessors.
 
 Master plan number: 006.
 
@@ -25,7 +20,7 @@ Canonical decision baseline:
 - `docs/documentation-domain-decisions.md`
 - `docs/plan/130-pre-documentation-closeout.md`
 - `docs/plan/131-documentation-domain-grill.md`
-- ADRs `0021` through `0030`
+- ADRs `0021` through `0033`
 
 Child sequence:
 
@@ -88,7 +83,7 @@ distinguish these bands.
 
 ### 2.1 Current Runtime
 
-After child `133` completion:
+After child `137` completion:
 
 - Ossie implements Organizations, Org Users, Projects, Project Membership,
   Project Versions, Captures, Guides, Interactive Demos, relational
@@ -103,7 +98,7 @@ After child `133` completion:
 - `apps/docs` is repository contributor/operator documentation and is not
   Product Documentation.
 - Migrations end at
-  `026_documentation_content_snippets_and_asset_workflows.sql`.
+  `030_documentation_api_try_it_and_example_experience.sql`.
 - Product Documentation now has a domain package, relational mutable Site/
   Edition/Page/navigation/routing/comment/OpenAPI/search state, immutable
   Revision and type-specific Publication snapshots, protected image assets,
@@ -118,6 +113,21 @@ After child `133` completion:
   reuse, exact Guide/Demo Publication cards, complete immutable expansion,
   Snippet-aware search, Capture purge protection, and Admin/Viewer/public
   Chrome evidence pass.
+- Child `134` is complete. Inspected package import/export, exact immutable
+  portability, Markdown Page import, and guarded package compatibility are
+  shipped.
+- Child `135` is complete. Multi-Site selection, cross-Version Carry-Forward,
+  recoverable Edition/Page/OpenAPI lifecycle, path namespace protection, and
+  retained-reference behavior are shipped.
+- Child `136` is complete. Optional exact-Revision review/approval, private
+  inbox state, deterministic Publication gates, Admin override, and immutable
+  Publication Review Evidence are shipped.
+- Child `137` is complete. Descriptor-v1 reference/request contracts,
+  independently governed Site and Publish Link Try-It policies, immutable
+  Revision freezing, browser-direct request execution, memory-only credentials,
+  strict public projection, matching CSP/origin authority, content-free attempt
+  evidence, safe response display, and exact Revision/public/draft request
+  experiences are shipped. Descriptor-v0 references remain read-only.
 - Tiptap and Fumadocs are not application dependencies.
 
 ### 2.2 Accepted Target
@@ -150,7 +160,8 @@ The following are deliberately owned by expanded child plans:
   permission-filtered projection;
 - publication preparation execution strategy for the initial self-hosted
   deployment;
-- exact browser-direct Try It origin/credential UX after the required proof.
+- exact operational quota defaults, diagnostics, cache/rebuild strategy, and
+  bundle-splitting thresholds owned by child `138`.
 
 These mechanics must be decided and documented before their owning child is
 implemented. They do not require a new grill unless they reveal a genuinely new
@@ -2700,12 +2711,12 @@ proposals without another accepted plan.
 ## 45. Immediate Next Action
 
 Product Documentation is implemented and independently close-rechecked through
-child `134`. The next activity is to rewrite/expand
-`docs/plan/135-documentation-carry-forward-multi-site-and-lifecycle.md`
-against the actual closed child `134` contracts and current code, then recheck
-that plan before implementation.
+child `137`. The next activity is to rewrite/expand
+`docs/plan/138-documentation-v1-operational-hardening.md` against the actual
+closed child `137` contracts and current code, then recheck that plan before
+implementation.
 
-Children `135` through `140` remain sequential reservations. Each later child
+Children `138` through `140` remain sequential reservations. Each later child
 follows the same close-predecessor rule.
 
 ## 46. Planning And Recheck Log
@@ -2981,6 +2992,19 @@ Child `137` implementation evidence includes:
   teardown, strict production CSP, reflow/zoom/reduced-motion, clean console,
   and zero public/Viewer axe violations in
   `docs/ui/137-documentation-api-try-it-and-example-experience-browser-evidence.md`.
+- 2026-07-31 independent close-recheck repaired response safety and redaction,
+  per-attempt authority refresh, bounded Admin operation selection, explicit
+  policy confirmations, exact immutable Revision UI/configuration/report
+  selection, and successful Revision-read Access Evidence root resolution.
+  Focused web coverage passed 8 files / 28 tests and focused server coverage
+  passed 2 files / 37 tests. The authoritative aggregate passed server 120
+  files / 527 tests, web 81 / 434, extension 19 / 140, strict types 18 / 93,
+  Documentation domain 17 / 45, DB 23 / 83, V1 smoke 1 / 2, workspace type
+  check, and production build; headless Chromium
+  reconfirmed exact Revision one-request/content-free-report behavior, privacy,
+  keyboard focus, 320px reflow, reduced motion, clean consoles, and zero axe
+  violations. Closure evidence includes
+  `docs/ui/137-documentation-api-try-it-and-example-experience-revision.png`.
 
 ## 48. Planning Leftovers And Handoff
 
