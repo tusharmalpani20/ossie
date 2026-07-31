@@ -76,10 +76,9 @@ describe("Audit schema verification", () => {
     });
   });
 
-  it("ignores the current guard registry for historical baselines without weakening head verification", async () => {
+  it("keeps existing guard verification enabled for historical baselines", async () => {
     const missing_operational_guard = {
-      issue:
-        "guard:documentation_schema.organization_documentation_limits:INSERT",
+      issue: "guard:project_schema.project:UPDATE",
     };
     const pool = {
       query: vi.fn(async (_sql: string, values?: unknown[]) => {
@@ -98,11 +97,16 @@ describe("Audit schema verification", () => {
 
     await expect(
       verify(pool as never, roles, {
-        skip_current_guard_registry: true,
+        historical_guard_compatibility: true,
       }),
-    ).resolves.toEqual({ status: "ready" });
+    ).rejects.toThrow(missing_operational_guard.issue);
     await expect(verify(pool as never, roles)).rejects.toThrow(
       missing_operational_guard.issue,
+    );
+    expect(pool.query.mock.calls[0]?.[1]?.[3]).toBe(true);
+    expect(pool.query.mock.calls[0]?.[0]).toContain("to_regclass(format");
+    expect(pool.query.mock.calls[0]?.[0]).toMatch(
+      /left\(\s+encode\(trigger\.tgargs, 'escape'\)/,
     );
   });
 

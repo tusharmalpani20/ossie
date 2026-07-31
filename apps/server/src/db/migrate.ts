@@ -74,7 +74,7 @@ const run = async () => {
                         ? verify_audit_schema
                         : verify_audit_core_schema
         )(pool, roles, {
-          skip_current_guard_registry: pending.length > 0,
+          historical_guard_compatibility: pending.length > 0,
         });
       }
     } else if (command === "down")
@@ -132,7 +132,7 @@ const run = async () => {
                           ? verify_audit_schema
                           : verify_audit_core_schema
           )(pool, roles, {
-            skip_current_guard_registry: pending.length > 0,
+            historical_guard_compatibility: pending.length > 0,
           })
         : { status: "not_installed" as const };
       console.info(
