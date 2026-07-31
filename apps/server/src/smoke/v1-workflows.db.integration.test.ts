@@ -727,6 +727,62 @@ describe("v1 dogfood smoke workflow", () => {
       const admin = fixture.users.find(
         ({ project_role }) => project_role === "project_admin",
       )!;
+      const viewer = fixture.users.find(
+        ({ project_role }) => project_role === "viewer",
+      )!;
+      const operations = await app.inject({
+        method: "GET",
+        url: "/api/v1/organization/documentation/operations",
+        cookies: { ossie_session: admin.session_token },
+      });
+      expect(operations.statusCode, operations.body).toBe(200);
+      expect(operations.json()).toMatchObject({
+        limits: {
+          active_sites_limit: null,
+          active_pages_limit: null,
+          version: 0,
+        },
+        usage: { active_sites: 2 },
+        permissions: { can_manage_limits: true },
+      });
+      const limits = await app.inject({
+        method: "PUT",
+        url: "/api/v1/organization/documentation/limits",
+        cookies: { ossie_session: admin.session_token },
+        payload: {
+          expected_version: 0,
+          active_sites_limit: 2,
+          active_pages_limit: null,
+        },
+      });
+      expect(limits.statusCode, limits.body).toBe(200);
+      expect(limits.json()).toMatchObject({
+        limits: { active_sites_limit: 2, version: 1 },
+      });
+      const denied_limits = await app.inject({
+        method: "PUT",
+        url: "/api/v1/organization/documentation/limits",
+        cookies: { ossie_session: viewer.session_token },
+        payload: {
+          expected_version: 1,
+          active_sites_limit: null,
+          active_pages_limit: null,
+        },
+      });
+      expect(denied_limits.statusCode, denied_limits.body).toBe(403);
+      const rebuild = await app.inject({
+        method: "POST",
+        url:
+          `/api/v1/projects/${fixture.project_id}/versions/${fixture.version_slug}` +
+          `/documentation-sites/${fixture.site_id}/projections/rebuild`,
+        cookies: { ossie_session: admin.session_token },
+        payload: { projection: "draft_search" },
+      });
+      expect(rebuild.statusCode, rebuild.body).toBe(200);
+      expect(rebuild.json()).toMatchObject({
+        projection: "draft_search",
+        site_id: fixture.site_id,
+      });
       const currentPage = await app.inject({
         method: "GET",
         url:
@@ -817,6 +873,23 @@ describe("v1 dogfood smoke workflow", () => {
           }),
         ],
       });
+      const initial_document = await app.inject({
+        method: "GET",
+        url: "/docs/plan132-public/install-guide",
+      });
+      expect(initial_document.statusCode, initial_document.body).toBe(200);
+      expect(initial_document.headers.etag).toMatch(
+        /^"documentation-[a-f0-9]{64}-html"$/u,
+      );
+      expect(initial_document.body).toContain(
+        "<title>Install · Plan 132 Product Documentation</title>",
+      );
+      const not_modified = await app.inject({
+        method: "GET",
+        url: "/docs/plan132-public/install-guide",
+        headers: { "if-none-match": initial_document.headers.etag! },
+      });
+      expect(not_modified.statusCode).toBe(304);
       const snippet_search = await app.inject({
         method: "GET",
         url: "/api/v1/public/publish-links/plan132-public/documentation/search?q=production",

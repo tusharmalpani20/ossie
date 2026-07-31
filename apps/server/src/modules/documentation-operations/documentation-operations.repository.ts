@@ -675,7 +675,7 @@ export const build_documentation_operations_repository = (
              documentation_site_id,site_edition_id,documentation_page_id,
              title,description,canonical_path,search_text,source_digest,
              heading_text,body_text)
-           SELECT $1,$2,$3,edition.project_version_id,$4,$5,$6,$7,$8,$9,
+           SELECT $1,$2,$3,edition.project_version_id,$4,$5::varchar,$6,$7,$8,$9,
                   $10,$11,$12,$13
              FROM documentation_schema.site_edition edition
             WHERE edition.id=$5`,
