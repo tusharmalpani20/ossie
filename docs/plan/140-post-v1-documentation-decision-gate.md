@@ -5,8 +5,8 @@ Date reserved: 2026-07-30
 Date expanded: 2026-07-31
 
 Status: In progress. The documentation-only decision session began on
-2026-07-31 from clean commit `df409d0`. Q1 through Q10 are provisionally
-recorded and Q11 is open for explicit user/product authority. Product
+2026-07-31 from clean commit `df409d0`. Q1 through Q11 are provisionally
+recorded and Q12 is open for explicit user/product authority. Product
 Documentation V1 remains implemented and independently close-rechecked through
 child `139`; this child authorizes no runtime, schema, route, dependency, or
 browser-visible implementation.
@@ -1610,9 +1610,13 @@ Child `140` may close only when:
   explicit, bounded offline read-only snapshots and deferred offline mutation
   until real demand and safe security/merge semantics exist. Governed
   permanent deletion opened as the cross-product Q11 decision.
+- 2026-07-31: the user kept recoverable archive/soft delete as the only current
+  destructive lifecycle and deferred Q11 permanent deletion to separately
+  governed Knowledge Platform work with legal, retention, backup, security,
+  and operational authority. Organization-wide discovery opened as Q12.
 
 The expansion itself made no decision. At the current execution checkpoint Q1
-through Q10 are provisionally recorded, Q11 is open, and final cross-question
+through Q11 are provisionally recorded, Q12 is open, and final cross-question
 acceptance remains pending.
 
 ## 25. Expansion Verification Record

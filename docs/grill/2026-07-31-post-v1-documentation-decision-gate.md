@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q10 are provisionally recorded and Q11 is open
+Status: In progress. Q1 through Q11 are provisionally recorded and Q12 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -158,8 +158,8 @@ Inference and preference must not be written as shipped fact.
 | Q8       | External reviewer access                                        | Answered   | `accept-later`: exact review     | Provisional     |
 | Q9       | Realtime collaboration and presence                             | Answered   | Presence later; editing deferred | Provisional     |
 | Q10      | Offline editing and merge                                       | Answered   | Read later; editing deferred     | Provisional     |
-| Q11      | Governed permanent deletion and retention                       | Open       | Pending                          | Pending         |
-| Q12      | Cross-artifact and Organization-wide search                     | Not opened | None                             | Pending         |
+| Q11      | Governed permanent deletion and retention                       | Answered   | `defer`; archive only now        | Provisional     |
+| Q12      | Cross-artifact and Organization-wide search                     | Open       | Pending                          | Pending         |
 | Q13      | Rich interactive components                                     | Not opened | None                             | Pending         |
 | Q14      | SDK generation                                                  | Not opened | None                             | Pending         |
 | Q15      | Advanced publication distribution                               | Not opened | None                             | Pending         |
@@ -1944,7 +1944,9 @@ implementation may be impossible to repair.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`defer` permanent deletion. Keep recoverable archive/soft delete as the only
+supported lifecycle now. Reopen deletion only as governed cross-product work
+with authorized legal, retention, backup, security, and operational owners.
 
 ### Simple decision requested
 
@@ -1955,13 +1957,187 @@ Recommended answer: **Yes. Keep recoverable archive for now. Design permanent
 deletion later as a separate Knowledge Platform project with legal and
 operational owners.**
 
-## 19. Questions Not Yet Opened
+### User answer
 
-Q12 through Q17 remain unmade. Their full implementation-safe question
+> Yes. We only support soft delete for now.
+
+Recorded interpretation:
+
+- the current supported destructive lifecycle is recoverable archive/soft
+  delete only;
+- no permanent deletion capability or immediate-erasure promise is accepted;
+- preserve existing immutable Publication, shared File, Audit/Access,
+  backup/restore, public URL, and cross-product guarantees;
+- reopen permanent deletion only through a separate Knowledge Platform plan
+  after legal, retention, backup, security, and operational policy exists;
+- do not create a Documentation-owned implementation sequence from Q11.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 19. Q12 — Should One Search Find Different Ossie Content Across An Organization?
+
+### Why this question is open
+
+An Organization member may want one place to discover Documentation Sites,
+Guides, Interactive Demos, Captures, Projects, and other artifacts they are
+allowed to access. Today search is deliberately narrower. A broad search could
+improve discovery, but even a result title or count can leak that a private
+Project or artifact exists.
+
+This is cross-product work whenever it spans artifact families or Projects. It
+cannot be owned by a Documentation-only implementation plan.
+
+### Shipped V1 facts
+
+- Internal Documentation search is authorized within its current Project/
+  Project Version scope.
+- Public Documentation search is scoped to one exact Site Publication.
+- Search projections are derived; PostgreSQL content and permissions remain
+  authority.
+- Guide, Interactive Demo, Capture, Project, File, and Documentation artifacts
+  have distinct schemas, identities, lifecycle, routes, and authorization.
+- Comments, private review content, Audit, Access Evidence, raw search queries,
+  and Try-It data are not general search content.
+- No Organization-wide result schema, ranking, stable cross-artifact link,
+  revocation-latency contract, or demand evidence exists.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- PostgreSQL full-text search preprocesses documents into derived `tsvector`
+  representations for matching and ranking; the representation is an index of
+  source content, not the original authority:
+  [PostgreSQL full-text search](https://www.postgresql.org/docs/current/textsearch-intro.html).
+- PostgreSQL row-security policies can restrict returned rows per user and use
+  default deny, but policy design must account for bypass roles, race
+  conditions, referential-integrity channels, and testing:
+  [PostgreSQL row security](https://www.postgresql.org/docs/current/ddl-rowsecurity.html).
+- NIST ABAC defines access decisions based on subject, object, operation, and
+  environment attributes, which reflects the cross-resource permission inputs
+  required for safe discovery:
+  [NIST SP 800-162](https://csrc.nist.gov/pubs/sp/800/162/upd2/final).
+- OWASP recommends least privilege, deny by default, per-request checks, safe
+  failure, and authorization tests:
+  [Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
+
+### Inference
+
+The index cannot be authorization authority. Permission filtering must happen
+before result existence, counts, snippets, facets, or ranking are revealed,
+and the target route must reauthorize when opened. Membership revocation must
+remove discoverability within a defined bound even if a projection is stale.
+
+A metadata-only first slice can provide useful navigation with less sensitive
+content and simpler ranking. Cross-artifact full-text snippets introduce
+different parsers, languages, content classifications, permissions, and
+revocation behavior and should remain a later gate.
+
+### Recommendation
+
+Keep Organization-wide discovery as an **accepted-later cross-product
+capability**, with a metadata-only first slice:
+
+1. an authenticated member searches only within one Organization;
+2. results include already-authorized Projects and safe artifact metadata such
+   as title, type, Project, version/status, and stable route;
+3. permission and lifecycle filters run before indexing/return, counts,
+   facets, snippets, and ranking disclosure;
+4. opening a result performs normal current authorization again;
+5. archived/inaccessible content is excluded by default;
+6. result types use one versioned envelope while each artifact owner supplies
+   its own safe projection and route;
+7. comments, review content, feedback, analytics, Audit/Access Evidence,
+   credentials, raw search queries, and protected File bodies remain excluded;
+8. indexes remain derived and rebuildable from authoritative stores.
+
+Defer cross-artifact body/full-text search and cross-Organization search until
+revocation, classification, ranking, language, and scale behavior are proven.
+
+### Alternatives
+
+- **Defer:** retain per-product/per-Project search until real discovery demand
+  and a Knowledge Platform owner exist.
+- **Reject:** provide only explicit navigation and each artifact's local
+  search.
+- **Accept-next as Knowledge Platform work:** only if Organization discovery
+  is the strongest evidenced problem after the complete candidate review.
+- **Documentation-only enhancement:** remains possible for a narrow
+  Documentation scope, but must not claim cross-artifact ownership.
+
+### Rejected shortcuts
+
+- returning results and filtering them in the browser;
+- using the derived search index as permission authority;
+- revealing unauthorized titles, snippets, counts, facets, ranking, or timing
+  differences;
+- indexing comments, review content, evidence, credentials, Try-It data, raw
+  queries, or protected File bodies by default;
+- building a single untyped URL or identity scheme that erases artifact
+  ownership;
+- allowing stale membership to remain searchable indefinitely;
+- mixing public Publication search with authenticated Organization search;
+- searching across Organizations by default;
+- selecting an external search provider before privacy, region, tenant,
+  deletion, credential, and outage ownership.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- Each source artifact and its owning service/database model remain authority.
+- The Knowledge Platform owns the versioned result envelope, orchestration,
+  aggregate limits, rebuild, and cross-product permission contract.
+- Each artifact owner supplies only safe metadata and stable authorized routes.
+- Tenant, membership, Project, artifact, version/lifecycle, and field-level
+  permission checks fail closed before disclosure and again at destination.
+- Revocation, archive, deletion policy, and Project moves produce bounded
+  projection invalidation; stale data cannot grant access.
+- Raw queries and result content remain outside Audit/Access Evidence; only
+  content-free allowed/denied operation evidence is eligible.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. A future Knowledge Platform implementation would
+require a versioned cross-artifact metadata contract, owner adapters,
+permission-aware projection/rebuild state, query/result APIs, global UI,
+stable routes, quotas, revocation tests, diagnostics, and browser/performance
+verification. Existing local Documentation and public search remain unchanged.
+
+### Reversibility
+
+A derived metadata index is reversible and rebuildable if source identities
+and permissions stay authoritative. A shared full-text store or provider is
+harder to unwind and is excluded from the first slice.
+
+### Evidence gaps
+
+- no measured cross-product discovery problem or target user;
+- no accepted Knowledge Platform owner or result envelope;
+- no safe metadata contract for every artifact family;
+- no revocation-latency or indexing SLO;
+- no ranking, archived-content, language, or scale requirements;
+- no external search infrastructure/privacy decision;
+- no decision on whether metadata-only value justifies the cross-product cost.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should we keep one Organization-wide search as a possible later feature?
+
+Recommended answer: **Yes, later—but first search only safe titles and basic
+details for content the person already has permission to see. Defer searching
+inside every artifact.**
+
+## 20. Questions Not Yet Opened
+
+Q13 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 20. Session Log
+## 21. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -2002,8 +2178,12 @@ at a time with current primary-source research only when opened.
   `accept-later` possibility and deferred offline mutation until real demand
   and safe security/merge semantics exist. Opened governed permanent deletion
   as the cross-product Q11 decision.
+- 2026-07-31: the user kept recoverable archive/soft delete as the only current
+  destructive lifecycle and deferred permanent deletion to a governed
+  cross-product Knowledge Platform project. Opened Organization-wide
+  cross-artifact discovery as Q12.
 
-## 21. Verification Record
+## 22. Verification Record
 
 Initial checkpoint verification:
 
@@ -2020,7 +2200,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 22. Current Handoff
+## 23. Current Handoff
 
-Awaiting explicit user/product authority for Q11. Do not open Q12 until Q11 is
+Awaiting explicit user/product authority for Q12. Do not open Q13 until Q12 is
 recorded.
