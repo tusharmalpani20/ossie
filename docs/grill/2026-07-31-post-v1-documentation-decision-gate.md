@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q3 are provisionally recorded and Q4 is open
+Status: In progress. Q1 through Q4 are provisionally recorded and Q5 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -151,8 +151,8 @@ Inference and preference must not be written as shipped fact.
 | Q1       | First post-V1 problem and priority                              | Answered   | Review first; no immediate build | Provisional     |
 | Q2       | GitHub App proposals and export automation                      | Answered   | `accept-later`: one-way proposal | Provisional     |
 | Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Answered   | `defer` until Git is selected    | Provisional     |
-| Q4       | Translation identity, fallback, and workflow                    | Open       | Pending                          | Pending         |
-| Q5       | Custom domains                                                  | Not opened | None                             | Pending         |
+| Q4       | Translation identity, fallback, and workflow                    | Answered   | `accept-later`: human-first      | Provisional     |
+| Q5       | Custom domains                                                  | Open       | Pending                          | Pending         |
 | Q6       | Public feedback                                                 | Not opened | None                             | Pending         |
 | Q7       | Public analytics                                                | Not opened | None                             | Pending         |
 | Q8       | External reviewer access                                        | Not opened | None                             | Pending         |
@@ -743,7 +743,9 @@ implementation-ready plan before code.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-later` for a human-authored, locale-separated capability when supported
+by real user demand. Do not select it as the next implementation from this
+answer alone.
 
 ### Simple decision requested
 
@@ -752,13 +754,184 @@ Should we keep multi-language Documentation as a possible later feature?
 Recommended answer: **Yes, later—but only when users need it. Start with human
 translations and keep each language clearly separated.**
 
-## 12. Questions Not Yet Opened
+### User answer
 
-Q5 through Q17 remain unmade. Their full implementation-safe question
+> Yes, I agree.
+
+Recorded interpretation:
+
+- preserve multi-language Documentation as an accepted-later possibility;
+- require real user demand before implementation;
+- begin with human-authored translations;
+- keep locale identity, content, URLs, Navigation, search, review, and
+  Publication state explicitly separated;
+- do not include machine translation in the first slice;
+- do not select translation as `accept-next` before cross-question
+  reconciliation.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 12. Q5 — Should Published Documentation Support Custom Domains?
+
+### Why this question is open
+
+Organizations may want readers to use a branded address such as
+`docs.example.com` instead of an Ossie-owned address. This is an independent
+access feature. It does not change which Publication is authoritative, but it
+adds DNS ownership, HTTPS certificate, routing, and domain-takeover
+responsibilities.
+
+### Shipped V1 facts
+
+- A stable Publish Link selects an exact immutable Publication.
+- Link-wide public, restricted, or password access policy applies on the
+  existing Ossie host.
+- Public routing, canonical metadata, search, assets, operations, and Try It
+  currently assume the configured Ossie deployment origin.
+- No custom-domain mapping, DNS challenge, certificate issuance, renewal,
+  revocation, or domain transfer model exists.
+- No managed edge/domain provider or deployment-wide ACME owner is accepted.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- ACME automates proof of domain control, certificate issuance, renewal, and
+  revocation. The certificate authority must verify that the requester
+  controls the domain:
+  [RFC 8555](https://www.rfc-editor.org/rfc/rfc8555).
+- Let's Encrypt documents HTTP-01 and DNS-01 validation. DNS-01 can validate
+  wildcard names but requires careful protection of DNS credentials:
+  [Challenge types](https://letsencrypt.org/docs/challenge-types/).
+- Let's Encrypt recommends automated renewal, retry/backoff, durable storage,
+  monitoring, and testing against staging for large integrations:
+  [Integration guide](https://letsencrypt.org/docs/integration-guide/).
+- OWASP documents that untrusted Host headers can affect links, redirects,
+  password-reset behavior, and internal routing if an application uses them
+  without validation:
+  [Testing for Host header injection](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/17-Testing_for_Host_Header_Injection).
+
+### Inference
+
+A custom domain is not just a text setting. Ossie must prove control before
+serving it and must keep certificate and routing state correct through:
+
+- DNS propagation delays and stale records;
+- failed or rate-limited certificate issuance or renewal;
+- a domain moving between Organizations or Sites;
+- deletion, archival, Publish Link revocation, or access-policy change;
+- restricted/password cookies across different hosts;
+- CSP, CORS, Try-It allowed origins, caches, canonical metadata, sitemap, and
+  robots output;
+- a former customer leaving DNS pointed at Ossie.
+
+Without explicit deprovisioning and uniqueness rules, one tenant could claim or
+receive traffic for another tenant's domain.
+
+### Recommendation
+
+Keep custom domains as an **accepted-later** capability for managed
+deployments, not the next implementation by default.
+
+A safe first slice should:
+
+1. support one verified subdomain, such as `docs.example.com`, per Publish
+   Link;
+2. require an Organization Owner or Project Admin to configure it;
+3. verify control with a unique expiring DNS challenge;
+4. issue and renew HTTPS automatically through an operator-owned ACME service;
+5. route only stored, active, verified host mappings;
+6. keep the Publish Link's exact Publication selection and access policy;
+7. define one canonical host and redirect the other supported host;
+8. remove routing safely when verification, ownership, or the Publish Link
+   ends.
+
+Defer apex domains, wildcard domains, customer-uploaded certificates, and
+multiple domains per link until demand is proven.
+
+### Alternatives
+
+- **Defer:** make no product commitment until deployment ownership and customer
+  demand are known.
+- **Reject:** require customers to place their own proxy/CDN in front of the
+  existing Ossie host.
+- **Accept-next:** choose managed custom domains only if branded public URLs
+  are the strongest evidenced problem after the full candidate review.
+
+### Rejected shortcuts
+
+- trusting the request Host header without a stored active mapping;
+- activating a domain before ownership verification;
+- allowing duplicate active domain claims;
+- never rechecking stale or transferred ownership;
+- issuing certificates from user-controlled arbitrary ACME settings;
+- sharing broad DNS-provider credentials;
+- falling back to another tenant or default Site for an unknown custom host;
+- widening restricted/password access because the hostname changed;
+- treating the domain as Publication authority.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- PostgreSQL remains authority for the domain-to-Publish-Link mapping.
+- Protected Files and the exact Publication remain content authority.
+- The deployment operator owns ACME account keys, certificate storage,
+  renewal, monitoring, and provider configuration.
+- Organization Owner or an explicitly authorized Project Admin owns the
+  product mapping; ordinary public readers cannot configure it.
+- Domain names are public configuration, but challenge tokens, ACME keys,
+  certificate private keys, and DNS credentials must never enter Audit,
+  Access Evidence, logs, or client responses.
+- Unknown, expired, revoked, or duplicate hosts fail closed.
+- Access cookies and Try-It origin rules must be scoped to the verified host
+  without weakening existing link-wide access.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. A future implementation would require additive domain
+mapping and verification state, operator configuration, API/types/UI,
+background renewal and monitoring, exact host routing, canonical/redirect/
+cookie/CSP/CORS/cache behavior, and compatibility tests. Existing Ossie-hosted
+Publish Links and URLs must continue to work unless a future explicit
+canonical-host policy redirects them.
+
+### Reversibility
+
+The accepted-later planning choice is reversible. A future active domain must
+be safely removable without deleting a Publish Link, Publication, Site, or
+immutable history. DNS outside Ossie remains customer-owned and may continue
+pointing at Ossie after deprovisioning, so unknown hosts must remain fail
+closed.
+
+### Evidence gaps
+
+- no recorded customer demand;
+- no accepted managed-hosting/edge provider;
+- no ACME account and certificate-storage owner;
+- no DNS challenge and revalidation interval;
+- no apex-domain requirement;
+- no accepted cookie/canonical redirect policy;
+- no operational SLO for issuance or renewal failure.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should we keep branded addresses such as `docs.example.com` as a possible later
+feature?
+
+Recommended answer: **Yes, later—but start with one verified subdomain and
+automatic HTTPS.**
+
+## 13. Questions Not Yet Opened
+
+Q6 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 13. Session Log
+## 14. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -774,8 +947,11 @@ at a time with current primary-source research only when opened.
   premature while Git integration is not selected. Recorded Q3 as deferred
   until a Git implementation is selected, preserved Ossie authority, and
   opened the independent translation candidate in Q4.
+- 2026-07-31: the user accepted human-first, locale-separated translation as
+  an `accept-later` possibility subject to real demand. No machine translation
+  or next implementation was selected. Opened custom domains as Q5.
 
-## 14. Verification Record
+## 15. Verification Record
 
 Initial checkpoint verification:
 
@@ -792,7 +968,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 15. Current Handoff
+## 16. Current Handoff
 
-Awaiting explicit user/product authority for Q4. Do not open Q5 until Q4 is
+Awaiting explicit user/product authority for Q5. Do not open Q6 until Q5 is
 recorded.

@@ -5,8 +5,8 @@ Date reserved: 2026-07-30
 Date expanded: 2026-07-31
 
 Status: In progress. The documentation-only decision session began on
-2026-07-31 from clean commit `df409d0`. Q1 through Q3 are provisionally
-recorded and Q4 is open for explicit user/product authority. Product
+2026-07-31 from clean commit `df409d0`. Q1 through Q4 are provisionally
+recorded and Q5 is open for explicit user/product authority. Product
 Documentation V1 remains implemented and independently close-rechecked through
 child `139`; this child authorizes no runtime, schema, route, dependency, or
 browser-visible implementation.
@@ -1581,9 +1581,13 @@ Child `140` may close only when:
   recorded as `defer`: no Git integration or two-way sync is accepted now,
   Ossie remains authority, and Q3 reopens only if Git implementation is
   selected. The independent translation candidate opened as Q4.
+- 2026-07-31: the user provisionally accepted Q4 as an `accept-later`,
+  human-authored, locale-separated translation capability triggered by real
+  user demand. It is not selected as the next implementation, and machine
+  translation is excluded from its first slice. Custom domains opened as Q5.
 
 The expansion itself made no decision. At the current execution checkpoint Q1
-through Q3 are provisionally recorded, Q4 is open, and final cross-question
+through Q4 are provisionally recorded, Q5 is open, and final cross-question
 acceptance remains pending.
 
 ## 25. Expansion Verification Record
