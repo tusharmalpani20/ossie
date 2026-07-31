@@ -508,6 +508,7 @@ export const build_documentation_operations_repository = (
           await audit_projection_rebuild(client, {
             organization_id: input.organization_id,
             actor_org_user_id: input.actor_org_user_id,
+            actor_type: input.actor_type,
             project_id: input.project_id,
             ...receipt,
           });
@@ -590,6 +591,7 @@ export const build_documentation_operations_repository = (
         await audit_projection_rebuild(client, {
           organization_id: input.organization_id,
           actor_org_user_id: input.actor_org_user_id,
+          actor_type: input.actor_type,
           project_id: input.project_id,
           ...receipt,
         });
@@ -647,6 +649,7 @@ export const build_documentation_operations_repository = (
         await audit_projection_rebuild(client, {
           organization_id: input.organization_id,
           actor_org_user_id: input.actor_org_user_id,
+          actor_type: input.actor_type,
           project_id: input.project_id,
           ...receipt,
         });
@@ -709,6 +712,7 @@ export const build_documentation_operations_repository = (
       await audit_projection_rebuild(client, {
         organization_id: input.organization_id,
         actor_org_user_id: input.actor_org_user_id,
+        actor_type: input.actor_type,
         project_id: input.project_id,
         ...receipt,
       });

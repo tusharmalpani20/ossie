@@ -171,4 +171,50 @@ describe("DB-backed Documentation operations repository", () => {
     );
     expect(counts.rows[0]).toEqual({ sites: "1", pages: "1" });
   });
+
+  it("records maintenance projection rebuilds with a system audit actor", async () => {
+    const scope = await establish_organization();
+    const operations = build_documentation_operations_repository(pool);
+    const documentation = build_documentation_repository(pool);
+    const created = await documentation.create_site({
+      ...scope,
+      idempotency_key: "system-rebuild-site",
+      name: "Maintenance",
+      description: null,
+      primary_language: "en-US",
+      initial_home_page: { title: "Home", path: "home" },
+    });
+
+    await expect(
+      operations.rebuild_projection({
+        organization_id: scope.organization_id,
+        actor_org_user_id: null,
+        actor_type: "system",
+        project_id: scope.project_id,
+        project_version_slug: "main",
+        site_id: created.site.id,
+        request: { projection: "draft_search" },
+      }),
+    ).resolves.toMatchObject({
+      projection: "draft_search",
+      outcome: "unchanged",
+    });
+
+    const evidence = await pool.query<{
+      actor_type: string;
+      actor_label: string;
+    }>(
+      `SELECT actor_type,actor_label
+         FROM audit_schema.audit_event
+        WHERE organization_id=$1
+          AND action='documentation.projection.draft_search_rebuilt'
+        ORDER BY occurred_at DESC
+        LIMIT 1`,
+      [scope.organization_id],
+    );
+    expect(evidence.rows[0]).toEqual({
+      actor_type: "system",
+      actor_label: "System",
+    });
+  });
 });
