@@ -5,8 +5,8 @@ Date reserved: 2026-07-30
 Date expanded: 2026-07-31
 
 Status: In progress. The documentation-only decision session began on
-2026-07-31 from clean commit `df409d0`. Q1 through Q15 are provisionally
-recorded and Q16 is open for explicit user/product authority. Product
+2026-07-31 from clean commit `df409d0`. Q1 through Q16 are provisionally
+recorded and Q17 is open for explicit user/product authority. Product
 Documentation V1 remains implemented and independently close-rechecked through
 child `139`; this child authorizes no runtime, schema, route, dependency, or
 browser-visible implementation.
@@ -1633,9 +1633,17 @@ Child `140` may close only when:
   Publication and deployed through customer-owned tools. Direct provider
   deployment, hooks, cloud credentials, cache purge, and environment promotion
   remain deferred. Tooling and operational ownership opened as Q16.
+- 2026-07-31: the user provisionally accepted Q16 as an
+  `accept-next-candidate` for bounded Tiptap-authoring and Fumadocs-reader
+  adapter proofs. Adoption remains conditional on measurable improvement and
+  preservation of existing authority, schema, permission, URL, publication,
+  accessibility, and compatibility contracts. Cross-browser/accessibility
+  evidence belongs to a selected UI sequence; PostgreSQL/lint maintenance and
+  shared production infrastructure remain separately owned. Q17 opened with a
+  proposed Documentation experience master and children `141`–`146`.
 
 The expansion itself made no decision. At the current execution checkpoint Q1
-through Q15 are provisionally recorded, Q16 is open, and final cross-question
+through Q16 are provisionally recorded, Q17 is open, and final cross-question
 acceptance remains pending.
 
 ## 25. Expansion Verification Record

@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q15 are provisionally recorded and Q16 is open
+Status: In progress. Q1 through Q16 are provisionally recorded and Q17 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -146,25 +146,25 @@ Inference and preference must not be written as shipped fact.
 
 ## 7. Candidate Ledger
 
-| Question | Candidate                                                       | State      | Provisional disposition          | Final authority |
-| -------- | --------------------------------------------------------------- | ---------- | -------------------------------- | --------------- |
-| Q1       | First post-V1 problem and priority                              | Answered   | Review first; no immediate build | Provisional     |
-| Q2       | GitHub App proposals and export automation                      | Answered   | `accept-later`: one-way proposal | Provisional     |
-| Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Answered   | `defer` until Git is selected    | Provisional     |
-| Q4       | Translation identity, fallback, and workflow                    | Answered   | `accept-later`: human-first      | Provisional     |
-| Q5       | Custom domains                                                  | Answered   | `accept-later`: verified domain  | Provisional     |
-| Q6       | Public feedback                                                 | Answered   | `accept-later`: structured only  | Provisional     |
-| Q7       | Public analytics                                                | Answered   | `accept-later`: aggregate only   | Provisional     |
-| Q8       | External reviewer access                                        | Answered   | `accept-later`: exact review     | Provisional     |
-| Q9       | Realtime collaboration and presence                             | Answered   | Presence later; editing deferred | Provisional     |
-| Q10      | Offline editing and merge                                       | Answered   | Read later; editing deferred     | Provisional     |
-| Q11      | Governed permanent deletion and retention                       | Answered   | `defer`; archive only now        | Provisional     |
-| Q12      | Cross-artifact and Organization-wide search                     | Answered   | `accept-later`: metadata first   | Provisional     |
-| Q13      | Rich interactive components                                     | Answered   | `accept-later`: disclosure only  | Provisional     |
-| Q14      | Request examples and SDK generation                             | Answered   | Examples next; SDKs deferred     | Provisional     |
-| Q15      | Advanced publication distribution                               | Answered   | Static export; deploy deferred   | Provisional     |
-| Q16      | Tooling and operational follow-up                               | Open       | Pending                          | Pending         |
-| Q17      | Final prioritization, next-master ownership, and child sequence | Not opened | None                             | Pending         |
+| Question | Candidate                                                       | State    | Provisional disposition          | Final authority |
+| -------- | --------------------------------------------------------------- | -------- | -------------------------------- | --------------- |
+| Q1       | First post-V1 problem and priority                              | Answered | Review first; no immediate build | Provisional     |
+| Q2       | GitHub App proposals and export automation                      | Answered | `accept-later`: one-way proposal | Provisional     |
+| Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Answered | `defer` until Git is selected    | Provisional     |
+| Q4       | Translation identity, fallback, and workflow                    | Answered | `accept-later`: human-first      | Provisional     |
+| Q5       | Custom domains                                                  | Answered | `accept-later`: verified domain  | Provisional     |
+| Q6       | Public feedback                                                 | Answered | `accept-later`: structured only  | Provisional     |
+| Q7       | Public analytics                                                | Answered | `accept-later`: aggregate only   | Provisional     |
+| Q8       | External reviewer access                                        | Answered | `accept-later`: exact review     | Provisional     |
+| Q9       | Realtime collaboration and presence                             | Answered | Presence later; editing deferred | Provisional     |
+| Q10      | Offline editing and merge                                       | Answered | Read later; editing deferred     | Provisional     |
+| Q11      | Governed permanent deletion and retention                       | Answered | `defer`; archive only now        | Provisional     |
+| Q12      | Cross-artifact and Organization-wide search                     | Answered | `accept-later`: metadata first   | Provisional     |
+| Q13      | Rich interactive components                                     | Answered | `accept-later`: disclosure only  | Provisional     |
+| Q14      | Request examples and SDK generation                             | Answered | Examples next; SDKs deferred     | Provisional     |
+| Q15      | Advanced publication distribution                               | Answered | Static export; deploy deferred   | Provisional     |
+| Q16      | Tooling and operational follow-up                               | Answered | Adapter proofs; split operations | Provisional     |
+| Q17      | Final prioritization, next-master ownership, and child sequence | Open     | Pending                          | Pending         |
 
 ## 8. Q1 — What Problem Should The First Post-V1 Slice Solve?
 
@@ -2764,9 +2764,10 @@ and track them separately:
 2. **Operations/cross-product infrastructure:** add production telemetry,
    distributed admission/rate limiting, durable background jobs, and non-local
    File storage only when the deployment topology requires them.
-3. **No editor/reader replacement now:** keep the Ossie-native implementation.
-   Permit a bounded Tiptap or Fumadocs adapter proof only when a selected
-   feature has explicit acceptance criteria and a measured native gap.
+3. **Bounded adapter proofs next:** compare a Tiptap authoring adapter and a
+   Fumadocs reader adapter against the working native implementation. Adopt
+   only the portions that measurably improve usability and preserve all Ossie
+   authority, schema, security, URL, accessibility, and compatibility rules.
 
 Ownership must remain explicit. Maintenance work must not silently create
 Master `007`, and cross-product infrastructure must not be hidden inside a
@@ -2834,7 +2835,27 @@ operational state and therefore require dedicated migration and rollback plans.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-next-candidate` for two bounded, non-authoritative adapter proofs:
+
+- Tiptap against the existing constrained Documentation authoring model;
+- Fumadocs against one exact existing Publication reader model.
+
+Production adoption remains conditional on an explicit comparison gate. The
+proofs cannot migrate authoritative content, replace APIs/routes, weaken
+permissions, or introduce MDX/HTML/JavaScript authority. Cross-browser and
+accessibility proof belong to the resulting UI sequence. PostgreSQL client
+compatibility, server lint debt, production telemetry, distributed admission,
+durable jobs, and non-local File storage remain assigned to separate
+maintenance or cross-product operations owners.
+
+### User answer
+
+The user asked whether the newer tools would provide a more modern appearance
+and more features, and which Ossie layers they would affect. After clarifying
+that Tiptap affects authoring while Fumadocs affects reader presentation, and
+recommending isolated proofs before adoption, the user answered:
+
+> I agree with your recommendation.
 
 ### Simple decision requested
 
@@ -2842,17 +2863,169 @@ Should Ossie keep the working native Documentation editor/reader and track
 browser, accessibility, dependency, lint, telemetry, rate-limit, job, and File
 work under their proper QA, maintenance, or operations owners?
 
-Recommended answer: **Yes. Keep the current editor and reader. Improve testing
-and maintenance separately, and build shared production infrastructure only
-when deployment needs it.**
+Recommended answer: **Yes. Evaluate Tiptap for authoring and Fumadocs for the
+reader in small isolated proofs, then adopt only the parts that are clearly
+better without changing Ossie's source of truth or security model. Keep the
+unrelated testing, maintenance, and infrastructure work under their proper
+owners.**
 
-## 24. Questions Not Yet Opened
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
 
-Q17 remains unmade. Its full implementation-safe question
-contracts are defined in Plan `140`. They will be copied into this record one
-at a time with current primary-source research only when opened.
+## 24. Q17 — What Should Ossie Build Next?
 
-## 25. Session Log
+### Why this question is open
+
+Q1 required reviewing the shipped platform and every candidate before choosing
+the next implementation. Q2–Q16 have now completed that review. This question
+must reconcile the provisional answers, select one coherent objective, and
+keep all other ideas visible without pretending they are scheduled.
+
+### Reconciled candidate matrix
+
+| Candidate                                           | Provisional result      | Recommended final placement                                    |
+| --------------------------------------------------- | ----------------------- | -------------------------------------------------------------- |
+| Tiptap authoring adapter proof                      | Accepted next candidate | Next Documentation master, first gate                          |
+| Fumadocs reader adapter proof                       | Accepted next candidate | Next Documentation master, first gate                          |
+| Multi-language request examples                     | Accepted next candidate | Next Documentation master after UI direction                   |
+| Typed disclosure block                              | Accepted later          | Backlog after the selected sequence                            |
+| Static public-site export                           | Accepted later          | Separate distribution sequence                                 |
+| One-way GitHub proposals                            | Accepted later          | Separate Git integration sequence                              |
+| Human-first translations                            | Accepted later          | Demand-triggered localization sequence                         |
+| Verified custom domains                             | Accepted later          | Deployment/domain sequence                                     |
+| Structured reader feedback                          | Accepted later          | Feedback sequence                                              |
+| Aggregate privacy-friendly analytics                | Accepted later          | Analytics/operations sequence                                  |
+| Exact-Revision external review                      | Accepted later          | Review/access sequence                                         |
+| Ephemeral author presence                           | Accepted later          | Collaboration sequence                                         |
+| Offline read-only snapshots                         | Accepted later          | Offline-read sequence                                          |
+| Organization metadata discovery                     | Accepted later          | Knowledge Platform master, not Documentation `007`             |
+| Bidirectional Git sync                              | Deferred                | Reopen only after Git integration is selected                  |
+| Simultaneous editing                                | Deferred                | Reopen only with demand and authority model                    |
+| Offline editing/merge                               | Deferred                | Reopen only with demand and merge/security model               |
+| Permanent deletion                                  | Deferred                | Cross-product governance; archive remains current behavior     |
+| Full SDK packages                                   | Deferred                | Reopen with language demand and supply-chain/support ownership |
+| Direct cloud/CDN deployment                         | Deferred                | Reopen with credential/job/provider operations ownership       |
+| Shared telemetry/rate-limit/job/File infrastructure | Separate owner          | Cross-product operations, triggered by deployment need         |
+| PostgreSQL warning and server lint debt             | Separate owner          | Dependency/server maintenance                                  |
+
+### Recommended next objective
+
+Create one `007-documentation-post-v1-experience-master-plan.md` whose objective
+is:
+
+> Modernize Documentation authoring and reading through evidence-gated Tiptap
+> and Fumadocs adapters, then add deterministic multi-language API request
+> examples, without changing Ossie's authoritative content, permissions,
+> publication, or URL models.
+
+This is one coherent experience objective: first decide the UI adapters so the
+request-example controls are built once on the selected reader architecture.
+It excludes distribution, Git, localization, domains, feedback, analytics,
+collaboration, offline, search, deletion, shared infrastructure, and full SDK
+packages.
+
+### Recommended child sequence
+
+1. **Child 141 — Documentation editor/reader adapter proof and adoption gate**
+   - compare current native UI, Tiptap authoring, and Fumadocs reader paths;
+   - use real existing constrained blocks and one exact Publication;
+   - measure fidelity, usability, accessibility, bundle/runtime cost, security,
+     and maintenance;
+   - make an explicit adopt/partial-adopt/reject decision for each tool;
+   - do not migrate authoritative data or expose a production route.
+2. **Child 142 — Documentation authoring experience modernization**
+   - implement the child-141-selected authoring route;
+   - preserve existing block schemas, optimistic concurrency, comments,
+     permissions, checkpointing, import/export, and publication behavior;
+   - if Tiptap fails its gate, improve the native editor instead.
+3. **Child 143 — Documentation reader experience modernization**
+   - implement the child-141-selected reader route;
+   - preserve public/internal access, exact Publications, URLs, search, assets,
+     API reference, Try It, CSP, canonical metadata, and crawler HTML;
+   - if Fumadocs fails its gate, improve the native reader instead.
+4. **Child 144 — Generated API request examples**
+   - provide deterministic curl, browser `fetch`, Node.js, Python, and Go
+     examples from one exact accepted API operation;
+   - use an extensible versioned language registry and inert placeholder-only
+     output;
+   - add more languages only through fixtures and the same safety contract;
+   - do not generate or publish SDK packages.
+5. **Child 145 — Experience accessibility, browser, and performance hardening**
+   - prove Chromium, Firefox, and WebKit where supported;
+   - run automated accessibility plus available real assistive-technology
+     checks without overstating unavailable evidence;
+   - preserve reduced motion, keyboard/focus, zoom, narrow viewport, CSP, and
+     accepted performance boundaries.
+6. **Child 146 — Post-V1 experience final closeout**
+   - recheck the complete `007` sequence against its master and current code;
+   - reconcile docs, dependencies, migrations, compatibility, leftovers, and
+     future handoff;
+   - close only actually completed items.
+
+Each child still requires the established rewrite/expand, plan recheck,
+implementation, and implementation recheck prompt chain. Q17 authorizes only
+creation of the master and bounded child reservations, not runtime work.
+
+### Why this order
+
+- The adapter decision comes first so Ossie does not build the editor, reader,
+  or request-example UI twice.
+- Authoring precedes reader because the reader must render exactly the accepted
+  stored blocks without introducing a second content model.
+- Request examples follow reader selection because their visible controls live
+  in the API-reference reader experience.
+- Cross-browser/accessibility/performance hardening validates the combined
+  experience rather than repeating a full matrix in isolation.
+- Final closeout prevents provisional or partially verified work from being
+  called complete.
+
+### Required adoption gates
+
+Tiptap may be adopted only if it round-trips every in-scope Ossie block without
+loss, keeps Tiptap state non-authoritative, and preserves concurrency,
+permissions, sanitization, import/export, and Publication behavior.
+
+Fumadocs may be adopted only if it consumes Ossie's authorized Publication
+snapshot, preserves existing URLs and server access decisions, does not make
+MDX or its content source authoritative, and meets accessibility, CSP, SEO,
+bundle, and browser criteria.
+
+Failure of either proof selects the native fallback; it does not block the
+whole master or justify weakening the gate.
+
+### Security and compatibility boundaries
+
+- PostgreSQL remains authoritative.
+- Existing constrained block and API contracts remain authoritative.
+- No arbitrary HTML, JavaScript, MDX, React component, iframe, remote widget,
+  generated-code execution, target credential storage, or API proxy is added.
+- Existing authorization, non-enumeration, exact Revision/Publication,
+  prepare-before-switch, protected File, Audit/Access Evidence, archive-first,
+  URL, and self-hosted rules remain in force.
+- Existing data must remain readable throughout rollout and rollback.
+- A new dependency is accepted only after version/license/advisory/bundle and
+  transitive-dependency review.
+
+### Provisional disposition
+
+Pending explicit user authority for the complete prioritization and sequence.
+
+### Simple decision requested
+
+Should Ossie create one next Documentation master that first tests Tiptap and
+Fumadocs safely, modernizes the editor and reader using only the parts that
+pass, then adds multi-language API request examples and performs a final
+browser/accessibility/performance closeout?
+
+Recommended answer: **Yes. This is the clearest next sequence. Keep every other
+accepted idea in the later backlog and keep infrastructure/maintenance work
+with its proper owner.**
+
+## 25. Questions Not Yet Opened
+
+None. Q17 is the final open decision.
+
+## 26. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -2915,8 +3088,13 @@ at a time with current primary-source research only when opened.
   Ossie-managed deployment adapters, hooks, cloud credentials, cache purge,
   and environment promotion remain deferred. Opened tooling and operational
   ownership classification as Q16.
+- 2026-07-31: the user accepted bounded Tiptap-authoring and Fumadocs-reader
+  adapter proofs as next candidates, with adoption conditional on measurable
+  improvement and preservation of all Ossie authority/security contracts.
+  Operational infrastructure and maintenance debt remain separately owned.
+  Reconciled Q1–Q16 and opened final prioritization Q17.
 
-## 26. Verification Record
+## 27. Verification Record
 
 Initial checkpoint verification:
 
@@ -2933,7 +3111,9 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 27. Current Handoff
+## 28. Current Handoff
 
-Awaiting explicit user/product authority for Q16. Do not open Q17 until Q16 is
-recorded.
+Awaiting explicit user/product authority for the complete Q17 prioritization,
+Master `007` objective, and child `141`–`146` sequence. Do not create Master
+`007`, reserve children, finalize the ledger, or close child `140` before that
+answer is recorded.
