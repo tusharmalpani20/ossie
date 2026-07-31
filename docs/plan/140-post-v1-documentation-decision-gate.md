@@ -4,11 +4,11 @@ Date reserved: 2026-07-30
 
 Date expanded: 2026-07-31
 
-Status: Ready for decision-session execution after independent
-implementation-readiness recheck on 2026-07-31. This is a decision-session and
-documentation-only child. Product Documentation V1 is already implemented and
-independently close-rechecked through child `139`. This child authorizes no
-runtime, schema, route, dependency, or browser-visible implementation.
+Status: In progress. The documentation-only decision session began on
+2026-07-31 from clean commit `df409d0`. Q1 is open for explicit user/product
+authority. Product Documentation V1 remains implemented and independently
+close-rechecked through child `139`; this child authorizes no runtime, schema,
+route, dependency, or browser-visible implementation.
 
 Parent plan:
 
@@ -1523,9 +1523,9 @@ Child `140` may close only when:
 
 ### Decision execution
 
-- [ ] Freeze execution HEAD/worktree and reconcile drift.
-- [ ] Create the dated grill record.
-- [ ] Record shipped facts, evidence gaps, and current limitations.
+- [x] Freeze execution HEAD/worktree and reconcile drift.
+- [x] Create the dated grill record.
+- [x] Record shipped facts, evidence gaps, and current limitations.
 - [ ] Conduct Q1–Q16 one consequential question at a time.
 - [ ] Reconcile cross-question conflicts and dependencies.
 - [ ] Complete Q17 final prioritization and sequence.
@@ -1560,9 +1560,14 @@ Child `140` may close only when:
   cross-artifact search away from a Documentation-only master, added primary-
   source/legal-authority requirements, and closed Git, deletion, backup,
   identifier-reuse, and infrastructure-ownership edge cases.
+- 2026-07-31: began decision execution from clean `main` commit `df409d0`.
+  There were no commits or worktree changes after the reviewed plan checkpoint,
+  migration head remains `031`, and child `139` remains clean. Created the
+  dated grill ledger, recorded the shipped evidence/limitations, and opened Q1
+  without accepting any post-V1 candidate.
 
-No decision session has been conducted by this expansion. All Q1–Q17 outcomes
-remain unmade.
+The expansion itself made no decision. At the current execution checkpoint Q1
+is open and all Q1–Q17 outcomes remain unmade.
 
 ## 25. Expansion Verification Record
 
