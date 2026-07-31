@@ -176,7 +176,7 @@ describe("DB-backed Documentation operations repository", () => {
     const scope = await establish_organization();
     const operations = build_documentation_operations_repository(pool);
     const documentation = build_documentation_repository(pool);
-    const created = await documentation.create_site({
+    await documentation.create_site({
       ...scope,
       idempotency_key: "system-rebuild-site",
       name: "Maintenance",
@@ -184,6 +184,11 @@ describe("DB-backed Documentation operations repository", () => {
       primary_language: "en-US",
       initial_home_page: { title: "Home", path: "home" },
     });
+    const site = await pool.query<{ id: string }>(
+      `SELECT id FROM documentation_schema.documentation_site
+        WHERE organization_id=$1 AND project_id=$2 AND name='Maintenance'`,
+      [scope.organization_id, scope.project_id],
+    );
 
     await expect(
       operations.rebuild_projection({
@@ -192,7 +197,7 @@ describe("DB-backed Documentation operations repository", () => {
         actor_type: "system",
         project_id: scope.project_id,
         project_version_slug: "main",
-        site_id: created.site.id,
+        site_id: site.rows[0]!.id,
         request: { projection: "draft_search" },
       }),
     ).resolves.toMatchObject({
