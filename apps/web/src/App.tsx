@@ -36,6 +36,7 @@ import { DocumentationSiteEditorPage } from "./features/documentation/Documentat
 import { canPublishDocumentation } from "./features/documentation/documentationPermissions";
 import { PublicDocumentationReaderPage } from "./features/documentation/PublicDocumentationReaderPage";
 import { DocumentationDraftPreviewPage } from "./features/documentation/DocumentationDraftPreviewPage";
+import { DocumentationRevisionPreviewPage } from "./features/documentation/DocumentationRevisionPreviewPage";
 import { DocumentationCarryForwardPage } from "./features/documentation/DocumentationCarryForwardPage";
 import {
   canCarryForwardDocumentation,
@@ -717,6 +718,27 @@ export default function App() {
             projectId={route.projectId}
             versionSlug={route.versionSlug}
             siteId={route.siteId}
+          />
+        )}
+      </ProjectVersionRouteBoundary>
+    );
+  }
+
+  if (route.type === "documentation_revision_preview") {
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+        activeSection="documentation"
+        currentLabel="Documentation Revision"
+      >
+        {() => (
+          <DocumentationRevisionPreviewPage
+            projectId={route.projectId}
+            versionSlug={route.versionSlug}
+            siteId={route.siteId}
+            revisionNumber={route.sequence!}
           />
         )}
       </ProjectVersionRouteBoundary>

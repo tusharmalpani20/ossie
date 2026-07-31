@@ -108,9 +108,16 @@ export const reportDocumentationTryItAttempt = async (
     | "aborted"
     | "response_blocked"
     | "client_validation_blocked",
+  selection:
+    | { source: "draft" }
+    | { source: "revision"; revision_number: number } = { source: "draft" },
 ) => {
+  const query =
+    selection.source === "draft"
+      ? "source=draft"
+      : `source=revision&revision_number=${selection.revision_number}`;
   const response = await fetch(
-    `${baseUrl()}${internalRoot(projectId, versionSlug, siteId)}/openapi/operations/${encodeURIComponent(operationKey)}/try-it-attempts`,
+    `${baseUrl()}${internalRoot(projectId, versionSlug, siteId)}/openapi/operations/${encodeURIComponent(operationKey)}/try-it-attempts?${query}`,
     {
       method: "POST",
       credentials: "include",

@@ -7,6 +7,10 @@ import {
   build_documentation_routes,
   type DocumentationRouteDependencies,
 } from "./documentation.routes";
+import {
+  current_access_request_context,
+  run_with_access_request_context,
+} from "../access/access-request-context";
 
 const auth = {
   user: { id: "user", email: "owner@example.test", display_name: "Owner" },
@@ -741,10 +745,32 @@ describe("Documentation routes", () => {
         resolve_project_version: vi.fn(async () => ({ id: "version" })),
       }),
     );
-    const response = await app.inject({
-      url: "/api/v1/projects/project/versions/main/documentation-sites/site/revisions/3",
-      cookies: { ossie_session: "session" },
-    });
+    const response = await run_with_access_request_context(
+      {
+        request_id: "revision-read",
+        source_type: "web",
+        route: null,
+        auth: null,
+        resolved_resource: null,
+        public_surface: null,
+        atomic_access_event_id: null,
+        response_access_event_id: null,
+        authorization: null,
+      },
+      async () => {
+        const injected = await app.inject({
+          url: "/api/v1/projects/project/versions/main/documentation-sites/site/revisions/3",
+          cookies: { ossie_session: "session" },
+        });
+        expect(current_access_request_context()?.resolved_resource).toEqual({
+          organization_id: "org",
+          project_id: "project",
+          root_resource_type: "documentation_revision",
+          root_resource_id: "revision",
+        });
+        return injected;
+      },
+    );
     await app.close();
 
     expect(response.statusCode).toBe(200);
@@ -1409,7 +1435,7 @@ describe("Documentation routes", () => {
     });
     await app.close();
     process.env = originalEnv;
-    expect(report.statusCode).toBe(204);
+    expect(report.statusCode, report.body).toBe(204);
     expect(leakingReport.statusCode).toBe(400);
     expect(append_access_event).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1417,6 +1443,74 @@ describe("Documentation routes", () => {
         request_id: null,
         http_method: null,
         route_template: null,
+      }),
+    );
+  });
+
+  it("reports an internal attempt against the same immutable Revision selection", async () => {
+    const originalEnv = { ...process.env };
+    process.env.COOKIE_SECRET = "test-cookie-secret-that-is-at-least-32-bytes";
+    process.env.OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS =
+      "https://api.example.com";
+    const descriptor = {
+      descriptor_version: 1,
+      destination_key: "get-pets",
+      method: "GET",
+      path: "/pets",
+      summary: "List pets",
+      parameters: [],
+      request_body: null,
+      security: { bearer: false, api_key_header_names: [] },
+      unsupported_reasons: [],
+    };
+    const get_try_it_configuration = vi.fn(async () => ({
+      policy_id: "policy",
+      policy_version: 2,
+      approved_origin: "https://api.example.com",
+      base_path: "/v1",
+      allow_bearer: false,
+      api_key_header_name: null,
+      request_descriptor: descriptor,
+    }));
+    const app = Fastify();
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: { get_current_auth_context: vi.fn(async () => auth) },
+        documentation_service: documentation_service_stubs({
+          get_try_it_configuration,
+        }),
+        resolve_project_version: vi.fn(async () => ({ id: "version" })),
+        validate_try_it_origin: vi.fn(async ({ origin }) => origin),
+        access_event_writer: { append: vi.fn(async () => undefined) },
+      }),
+    );
+    const root =
+      "/api/v1/projects/project/versions/main/documentation-sites/site/openapi/operations/get-pets";
+    const selection = "source=revision&revision_number=3";
+    const configuration = await app.inject({
+      url: `${root}/try-it-configuration?${selection}`,
+      cookies: { ossie_session: "session" },
+    });
+    const report = await app.inject({
+      method: "POST",
+      url: `${root}/try-it-attempts?${selection}`,
+      cookies: { ossie_session: "session" },
+      payload: {
+        attempt_token: configuration.json().attempt_token,
+        outcome: "completed",
+      },
+    });
+    await app.close();
+    process.env = originalEnv;
+
+    expect(configuration.statusCode).toBe(200);
+    expect(report.statusCode, report.body).toBe(204);
+    expect(get_try_it_configuration).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        source: "revision",
+        revision_number: 3,
       }),
     );
   });

@@ -57,7 +57,10 @@ import { ulid } from "ulid";
 import { web_session_cookie_name } from "../authentication/session-cookie";
 import type { AuthContext } from "../authentication/session.service";
 import type { AccessEvent } from "@repo/audit-domain";
-import { current_access_request_context } from "../access/access-request-context";
+import {
+  current_access_request_context,
+  set_access_resolved_resource,
+} from "../access/access-request-context";
 import { public_viewer_cookie_name } from "../publish/public-viewer-cookie";
 import { error_response } from "../shared/http-errors";
 import { get_public_web_url } from "../../config/public-web-url.config";
@@ -1575,10 +1578,24 @@ export const build_documentation_routes = (
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/operations/:operation_key/try-it-attempts",
       async (request, reply) => {
         const params = OperationParamsSchema.safeParse(request.params);
+        const query = z
+          .object({
+            source: z.enum(["draft", "revision"]).default("draft"),
+            revision_number: z.coerce.number().int().positive().optional(),
+          })
+          .strict()
+          .safeParse(request.query);
         const body = DocumentationTryItAttemptReportRequestSchema.safeParse(
           request.body,
         );
-        if (!params.success || !body.success) return reply.status(400).send();
+        if (
+          !params.success ||
+          !query.success ||
+          !body.success ||
+          (query.data.source === "revision" && !query.data.revision_number) ||
+          (query.data.source === "draft" && query.data.revision_number)
+        )
+          return reply.status(400).send();
         try {
           const scope = await authorized_scope(request, params.data);
           const loaded =
@@ -1586,6 +1603,8 @@ export const build_documentation_routes = (
               ...scope,
               site_id: params.data.site_id,
               operation_key: params.data.operation_key,
+              source: query.data.source,
+              revision_number: query.data.revision_number,
             });
           const secret = process.env.COOKIE_SECRET;
           if (!loaded || !secret || secret.length < 32)
@@ -3018,6 +3037,15 @@ export const build_documentation_routes = (
                 "Documentation Revision was not found",
               ),
             );
+        const revision_id = (revision as { revision?: { id?: unknown } })
+          .revision?.id;
+        if (typeof revision_id === "string")
+          set_access_resolved_resource({
+            organization_id: scope.organization_id,
+            project_id: scope.project_id,
+            root_resource_type: "documentation_revision",
+            root_resource_id: revision_id,
+          });
         return reply.send({ revision });
       },
     );
