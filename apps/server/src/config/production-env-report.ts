@@ -1,15 +1,19 @@
 import path from "node:path";
-import { get_json_body_limit_bytes, get_max_screenshot_upload_bytes, get_rate_limit_config } from "./production-hardening.config";
+import {
+  get_json_body_limit_bytes,
+  get_max_screenshot_upload_bytes,
+  get_rate_limit_config,
+} from "./production-hardening.config";
 import { get_public_web_url } from "./public-web-url.config";
 import { get_runtime_mode } from "./runtime.config";
 import { validate_server_startup_config } from "./startup.config";
+import { get_documentation_try_it_origin_config } from "./documentation-try-it.config";
 
-const parse_origins = (value: string | undefined) => (
+const parse_origins = (value: string | undefined) =>
   (value || "")
     .split(",")
     .map((origin) => origin.trim())
-    .filter(Boolean)
-);
+    .filter(Boolean);
 
 export type ProductionEnvReport = {
   status: "valid";
@@ -57,6 +61,10 @@ export type ProductionEnvReport = {
     window_ms: number;
     multi_instance_safe: false;
   };
+  documentation_try_it: {
+    allowed_origins_count: number;
+    origin_set_digest: string;
+  };
   operational_limitations: string[];
 };
 
@@ -85,6 +93,7 @@ export const build_production_env_report = (): ProductionEnvReport => {
   const runtime_mode = get_runtime_mode();
   const local_storage_root = process.env.OSSIE_LOCAL_STORAGE_ROOT || "";
   const rate_limit = get_rate_limit_config();
+  const documentation_try_it = get_documentation_try_it_origin_config();
 
   return {
     status: "valid",
@@ -109,7 +118,9 @@ export const build_production_env_report = (): ProductionEnvReport => {
       secure_cookies: runtime_mode === "production",
     },
     cors: {
-      allowed_origins_count: parse_origins(process.env.OSSIE_CORS_ALLOWED_ORIGINS).length,
+      allowed_origins_count: parse_origins(
+        process.env.OSSIE_CORS_ALLOWED_ORIGINS,
+      ).length,
       allowed_origins: parse_origins(process.env.OSSIE_CORS_ALLOWED_ORIGINS),
     },
     urls: {
@@ -131,6 +142,10 @@ export const build_production_env_report = (): ProductionEnvReport => {
       max_attempts: rate_limit.max_attempts,
       window_ms: rate_limit.window_ms,
       multi_instance_safe: false,
+    },
+    documentation_try_it: {
+      allowed_origins_count: documentation_try_it.origins.length,
+      origin_set_digest: documentation_try_it.digest,
     },
     operational_limitations: [
       "Local file storage is the only storage provider.",

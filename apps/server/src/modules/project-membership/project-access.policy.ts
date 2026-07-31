@@ -128,9 +128,7 @@ export const project_route_capability = (
   if (route_template.includes("/documentation-review-inbox"))
     return "documentation.review.inbox";
   if (route_template.includes("/documentation-sites")) {
-    if (
-      route_template.includes("/review-publication-evidence/:evidence_id")
-    )
+    if (route_template.includes("/review-publication-evidence/:evidence_id"))
       return "documentation.review.evidence.read_sensitive";
     if (route_template.includes("/review-publication-evidence"))
       return "documentation.read";
@@ -138,8 +136,7 @@ export const project_route_capability = (
       return read ? "documentation.read" : "documentation.review.manage";
     if (route_template.endsWith("/review-candidates"))
       return "documentation.review.request";
-    if (route_template.endsWith("/review-gate"))
-      return "documentation.read";
+    if (route_template.endsWith("/review-gate")) return "documentation.read";
     if (route_template.includes("/reviews/")) {
       if (route_template.endsWith("/decisions"))
         return "documentation.review.decide";
@@ -151,6 +148,10 @@ export const project_route_capability = (
       return read ? "documentation.read" : "documentation.review.request";
   }
   if (route_template.includes("/documentation-sites")) {
+    if (route_template.endsWith("/try-it-policy"))
+      return read ? "documentation.read" : "documentation.site.manage";
+    if (route_template.endsWith("/try-it-attempts"))
+      return "documentation.read";
     if (route_template.endsWith("/documentation-sites/carry-forward"))
       return read ? "documentation.read" : "documentation.carry_forward";
     if (route_template.includes("/publications"))

@@ -38,8 +38,21 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_PUBLIC_WEB_URL must be an origin without a path, query, or hash"
+      "OSSIE_PUBLIC_WEB_URL must be an origin without a path, query, or hash",
     );
+  });
+
+  it("validates the optional Documentation Try-It origin ceiling in every mode", () => {
+    process.env = {
+      ...original_env,
+      ...valid_required_env,
+      OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS: "https://*.example.com",
+    };
+    expect(() => validate_server_startup_config()).toThrow();
+
+    process.env.OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS =
+      "https://api.example.com";
+    expect(() => validate_server_startup_config()).not.toThrow();
   });
 
   it("rejects missing database startup config", () => {
@@ -49,7 +62,9 @@ describe("startup config", () => {
       DB_HOST: "",
     };
 
-    expect(() => validate_server_startup_config()).toThrow("Database configuration must be defined");
+    expect(() => validate_server_startup_config()).toThrow(
+      "Database configuration must be defined",
+    );
   });
 
   it("rejects invalid server and database numeric startup config", () => {
@@ -60,7 +75,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "SERVER_PORT must be a positive integer"
+      "SERVER_PORT must be a positive integer",
     );
 
     process.env = {
@@ -70,7 +85,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "DB_PORT must be a positive integer"
+      "DB_PORT must be a positive integer",
     );
 
     process.env = {
@@ -80,7 +95,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "DB_MAX_POOL must be a positive integer"
+      "DB_MAX_POOL must be a positive integer",
     );
   });
 
@@ -95,7 +110,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_CORS_ALLOWED_ORIGINS must be defined in production"
+      "OSSIE_CORS_ALLOWED_ORIGINS must be defined in production",
     );
   });
 
@@ -110,7 +125,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "COOKIE_SECRET must be defined in production"
+      "COOKIE_SECRET must be defined in production",
     );
   });
 
@@ -145,7 +160,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_DEPLOYMENT_MODE must be explicitly set in production"
+      "OSSIE_DEPLOYMENT_MODE must be explicitly set in production",
     );
 
     process.env = {
@@ -161,7 +176,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_ONBOARDING_MODE must be explicitly set in production"
+      "OSSIE_ONBOARDING_MODE must be explicitly set in production",
     );
   });
 
@@ -180,7 +195,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_DEPLOYMENT_MODE must be self_hosted or hosted"
+      "OSSIE_DEPLOYMENT_MODE must be self_hosted or hosted",
     );
 
     process.env = {
@@ -197,7 +212,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_ONBOARDING_MODE must be first_run_setup or signup"
+      "OSSIE_ONBOARDING_MODE must be first_run_setup or signup",
     );
   });
 
@@ -216,7 +231,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_LOCAL_STORAGE_ROOT must be set to a durable storage path in production"
+      "OSSIE_LOCAL_STORAGE_ROOT must be set to a durable storage path in production",
     );
 
     process.env = {
@@ -233,7 +248,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_LOCAL_STORAGE_ROOT must be set to an absolute durable storage path in production"
+      "OSSIE_LOCAL_STORAGE_ROOT must be set to an absolute durable storage path in production",
     );
   });
 
@@ -252,7 +267,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "API_URL must be an absolute http(s) URL in production"
+      "API_URL must be an absolute http(s) URL in production",
     );
   });
 
@@ -272,7 +287,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_PUBLIC_WEB_URL must be an absolute http(s) URL when set"
+      "OSSIE_PUBLIC_WEB_URL must be an absolute http(s) URL when set",
     );
 
     process.env = {
@@ -290,7 +305,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_PUBLIC_WEB_URL must be an absolute http(s) URL when set"
+      "OSSIE_PUBLIC_WEB_URL must be an absolute http(s) URL when set",
     );
 
     process.env = {
@@ -308,7 +323,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_PUBLIC_WEB_URL must be an origin without a path, query, or hash"
+      "OSSIE_PUBLIC_WEB_URL must be an origin without a path, query, or hash",
     );
   });
 
@@ -320,7 +335,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_JSON_BODY_LIMIT_BYTES must be a positive integer"
+      "OSSIE_JSON_BODY_LIMIT_BYTES must be a positive integer",
     );
 
     process.env = {
@@ -330,7 +345,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES must be a positive integer"
+      "OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES must be a positive integer",
     );
 
     process.env = {
@@ -340,7 +355,7 @@ describe("startup config", () => {
     };
 
     expect(() => validate_server_startup_config()).toThrow(
-      "OSSIE_RATE_LIMIT_MAX_ATTEMPTS must be a positive integer"
+      "OSSIE_RATE_LIMIT_MAX_ATTEMPTS must be a positive integer",
     );
   });
 });

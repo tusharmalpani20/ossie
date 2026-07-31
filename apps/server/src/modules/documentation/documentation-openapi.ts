@@ -1,4 +1,8 @@
-import { inspect_openapi_document } from "@repo/documentation-domain";
+import { createHash } from "node:crypto";
+import {
+  derive_documentation_try_it_descriptors,
+  inspect_openapi_document,
+} from "@repo/documentation-domain";
 import { isAlias, parseDocument, visit } from "yaml";
 import { parse_duplicate_safe_json } from "./documentation-json";
 
@@ -6,6 +10,51 @@ const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_NODES = 250_000;
 const MAX_DEPTH = 100;
 const MAX_SCALAR_LENGTH = 1024 * 1024;
+const MAX_SERVER_CANDIDATES = 32;
+
+export const derive_documentation_server_candidates = (
+  value: unknown,
+): Array<{ origin: string; base_path: string }> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const servers = (value as { servers?: unknown }).servers;
+  if (!Array.isArray(servers)) return [];
+  const candidates = new Map<string, { origin: string; base_path: string }>();
+  for (const server of servers.slice(0, MAX_SERVER_CANDIDATES)) {
+    if (!server || typeof server !== "object" || Array.isArray(server))
+      continue;
+    const rawUrl = (server as { url?: unknown }).url;
+    if (
+      typeof rawUrl !== "string" ||
+      rawUrl.length > 2_048 ||
+      rawUrl.includes("{")
+    )
+      continue;
+    try {
+      const url = new URL(rawUrl);
+      if (
+        url.protocol !== "https:" ||
+        url.username ||
+        url.password ||
+        url.search ||
+        url.hash
+      )
+        continue;
+      const candidate = {
+        origin: url.origin,
+        base_path:
+          url.pathname === "/" ? "/" : url.pathname.replace(/\/$/u, ""),
+      };
+      candidates.set(`${candidate.origin}${candidate.base_path}`, candidate);
+    } catch {
+      // Invalid candidates remain authoring-only omissions.
+    }
+  }
+  return [...candidates.values()].sort((left, right) =>
+    `${left.origin}${left.base_path}`.localeCompare(
+      `${right.origin}${right.base_path}`,
+    ),
+  );
+};
 
 export class DocumentationOpenApiError extends Error {
   readonly code = "documentation_openapi_invalid";
@@ -23,7 +72,9 @@ const assert_bounded_structure = (
 ): void => {
   state.nodes += 1;
   if (state.nodes > MAX_NODES || depth > MAX_DEPTH) {
-    throw new DocumentationOpenApiError("OpenAPI structure exceeds safe limits");
+    throw new DocumentationOpenApiError(
+      "OpenAPI structure exceeds safe limits",
+    );
   }
   if (typeof value === "string" && value.length > MAX_SCALAR_LENGTH) {
     throw new DocumentationOpenApiError("OpenAPI scalar exceeds safe limits");
@@ -67,9 +118,35 @@ export const parse_documentation_openapi = (
       value = document.toJS({ maxAliasCount: 0 });
     }
     assert_bounded_structure(value);
+    const summary = inspect_openapi_document(value);
+    const descriptors = derive_documentation_try_it_descriptors(value);
     return {
       document: value,
-      summary: inspect_openapi_document(value),
+      summary: {
+        ...summary,
+        server_candidates: derive_documentation_server_candidates(value),
+        operations: summary.operations.map((operation) => {
+          const request_descriptor = descriptors.find(
+            (descriptor) =>
+              descriptor.destination_key === operation.destination_key,
+          );
+          if (!request_descriptor)
+            return {
+              ...operation,
+              descriptor_version: 0 as const,
+              descriptor_digest: null,
+              request_descriptor: {},
+            };
+          return {
+            ...operation,
+            descriptor_version: 1 as const,
+            descriptor_digest: createHash("sha256")
+              .update(JSON.stringify(request_descriptor))
+              .digest("hex"),
+            request_descriptor,
+          };
+        }),
+      },
     };
   } catch (error) {
     if (error instanceof DocumentationOpenApiError) throw error;

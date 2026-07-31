@@ -205,6 +205,21 @@ describe("project access policy", () => {
       "documentation.carry_forward",
     ],
     [
+      "PUT",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/try-it-policy",
+      "documentation.site.manage",
+    ],
+    [
+      "PATCH",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/try-it-policy",
+      "documentation.site.manage",
+    ],
+    [
+      "POST",
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/operations/:operation_key/try-it-attempts",
+      "documentation.read",
+    ],
+    [
       "POST",
       "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publications",
       "publication.create",

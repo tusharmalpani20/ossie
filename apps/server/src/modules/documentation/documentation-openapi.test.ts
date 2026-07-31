@@ -67,4 +67,42 @@ copy: *info
       ),
     ).toThrow(/duplicate JSON key/iu);
   });
+
+  it("derives a bounded versioned request descriptor during inspection", () => {
+    const parsed = parse_documentation_openapi(
+      Buffer.from(
+        JSON.stringify({
+          openapi: "3.1.0",
+          info: { title: "Pets", version: "1" },
+          paths: {
+            "/pets/{petId}": {
+              get: {
+                operationId: "getPet",
+                parameters: [
+                  {
+                    name: "petId",
+                    in: "path",
+                    required: true,
+                    schema: { type: "string" },
+                  },
+                ],
+              },
+            },
+          },
+        }),
+      ),
+      "application/json",
+    );
+    expect(parsed.summary.operations[0]).toMatchObject({
+      descriptor_version: 1,
+      request_descriptor: {
+        method: "GET",
+        path: "/pets/{petId}",
+        unsupported_reasons: [],
+      },
+    });
+    expect(parsed.summary.operations[0]?.descriptor_digest).toMatch(
+      /^[a-f0-9]{64}$/u,
+    );
+  });
 });

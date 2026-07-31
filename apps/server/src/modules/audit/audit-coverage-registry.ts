@@ -161,6 +161,30 @@ const U = {
     write("documentation_schema.openapi_source", "INSERT", "openapi_source"),
   documentation_openapi_update: () =>
     write("documentation_schema.openapi_source", "UPDATE", "openapi_source"),
+  documentation_openapi_try_it_policy_insert: () =>
+    write(
+      "documentation_schema.openapi_try_it_policy",
+      "INSERT",
+      "openapi_try_it_policy",
+    ),
+  documentation_openapi_try_it_policy_update: () =>
+    write(
+      "documentation_schema.openapi_try_it_policy",
+      "UPDATE",
+      "openapi_try_it_policy",
+    ),
+  documentation_link_try_it_policy_insert: () =>
+    write(
+      "publish_schema.documentation_try_it_policy",
+      "INSERT",
+      "documentation_try_it_policy",
+    ),
+  documentation_link_try_it_policy_update: () =>
+    write(
+      "publish_schema.documentation_try_it_policy",
+      "UPDATE",
+      "documentation_try_it_policy",
+    ),
   documentation_revision_insert: () =>
     write("documentation_schema.site_revision", "INSERT", "site_revision"),
   documentation_review_policy_insert: () =>
@@ -1338,6 +1362,52 @@ export const AUDIT_COVERAGE_REGISTRY = validate_audit_coverage([
       "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/sources",
     ],
     [U.documentation_openapi_insert(), U.documentation_openapi_update()],
+  ),
+  command(
+    "documentation.openapi_try_it_policy.create",
+    "documentation.openapi_try_it_policy.created",
+    [
+      "PUT /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/try-it-policy",
+    ],
+    [U.documentation_openapi_try_it_policy_insert()],
+  ),
+  command(
+    "documentation.openapi_try_it_policy.update",
+    "documentation.openapi_try_it_policy.updated",
+    [
+      "PUT /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/try-it-policy",
+    ],
+    [U.documentation_openapi_try_it_policy_update()],
+  ),
+  command(
+    "documentation.openapi_try_it_policy.disable",
+    "documentation.openapi_try_it_policy.disabled",
+    [
+      "PUT /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/try-it-policy",
+    ],
+    [U.documentation_openapi_try_it_policy_update()],
+  ),
+  command(
+    "documentation.publish_link_try_it_policy.enable",
+    "documentation.publish_link_try_it_policy.enabled",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/try-it-policy",
+    ],
+    [
+      U.documentation_link_try_it_policy_insert(),
+      U.documentation_link_try_it_policy_update(),
+    ],
+  ),
+  command(
+    "documentation.publish_link_try_it_policy.disable",
+    "documentation.publish_link_try_it_policy.disabled",
+    [
+      "PATCH /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/try-it-policy",
+    ],
+    [
+      U.documentation_link_try_it_policy_insert(),
+      U.documentation_link_try_it_policy_update(),
+    ],
   ),
   command(
     "documentation.openapi.archive",

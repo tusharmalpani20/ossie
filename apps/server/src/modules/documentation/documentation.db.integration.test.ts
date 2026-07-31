@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { ulid } from "ulid";
+import { createHash } from "node:crypto";
 import { build } from "../../app";
 import { pool } from "../../config/database.config";
 import {
@@ -106,6 +107,146 @@ describe("DB-backed Documentation repository", () => {
       drafts: "1",
       pages: "1",
     });
+  });
+
+  it("audits and replays Try-It policy writes and freezes exact Revision authority", async () => {
+    const scope = await establish_project();
+    const repository = build_documentation_repository(pool);
+    const created = (await repository.create_site({
+      ...scope,
+      idempotency_key: "try-it-site",
+      name: "API docs",
+      description: null,
+      primary_language: "en-US",
+      initial_home_page: { title: "Home", path: "home" },
+    })) as unknown as {
+      site: { id: string };
+      edition: { id: string; version: number };
+      working_draft: { version: number };
+    };
+    const fileId = ulid();
+    const sourceId = ulid();
+    const operationId = ulid();
+    const sourceDigest = "a".repeat(64);
+    const descriptor = {
+      descriptor_version: 1,
+      destination_key: "get-pets",
+      method: "GET",
+      path: "/pets",
+      summary: "List pets",
+      parameters: [],
+      request_body: null,
+      security: { bearer: true, api_key_header_names: [] },
+      unsupported_reasons: [],
+    };
+    const descriptorDigest = createHash("sha256")
+      .update(JSON.stringify(descriptor))
+      .digest("hex");
+    await with_maintenance_client(async (client) => {
+      await client.query(
+        `INSERT INTO file_schema.file
+          (id,organization_id,storage_provider,storage_key,mime_type,
+           size_bytes,original_name,checksum_sha256,created_by_id,updated_by_id)
+         VALUES ($1,$2,'local','try-it-openapi','application/json',2,
+                 'openapi.json',$3,$4,$4)`,
+        [
+          fileId,
+          scope.organization_id,
+          sourceDigest,
+          scope.actor_org_user_id,
+        ],
+      );
+      await client.query(
+        `INSERT INTO documentation_schema.openapi_source
+          (id,organization_id,project_id,site_edition_id,file_id,digest,
+           openapi_version,title,created_by_id,updated_by_id)
+         VALUES ($1,$2,$3,$4,$5,$6,'3.1.0','Pets',$7,$7)`,
+        [
+          sourceId,
+          scope.organization_id,
+          scope.project_id,
+          created.edition.id,
+          fileId,
+          sourceDigest,
+          scope.actor_org_user_id,
+        ],
+      );
+      await client.query(
+        `INSERT INTO documentation_schema.openapi_operation
+          (id,organization_id,project_id,site_edition_id,openapi_source_id,
+           method,path,destination_key,summary,request_descriptor,
+           descriptor_version,descriptor_digest)
+         VALUES ($1,$2,$3,$4,$5,'get','/pets','get-pets','List pets',
+                 $6::jsonb,1,$7)`,
+        [
+          operationId,
+          scope.organization_id,
+          scope.project_id,
+          created.edition.id,
+          sourceId,
+          JSON.stringify(descriptor),
+          descriptorDigest,
+        ],
+      );
+    });
+    const input = {
+      ...scope,
+      site_id: created.site.id,
+      idempotency_key: "try-it-policy-1",
+      expected_policy_version: null,
+      status: "enabled" as const,
+      approved_origin: "https://sensitive-api.example.com",
+      base_path: "/v1",
+      allow_bearer: true,
+      api_key_header_name: null,
+      operation_destination_keys: ["get-pets"],
+    };
+    const policy = await repository.upsert_try_it_policy(input);
+    const replay = await repository.upsert_try_it_policy(input);
+    expect(policy).toMatchObject({
+      policy: { version: 1, operation_count: 1 },
+      idempotent_replay: false,
+    });
+    expect(replay).toMatchObject({
+      policy: { version: 1, operation_count: 1 },
+      idempotent_replay: true,
+    });
+    const revision = (await repository.create_revision({
+      ...scope,
+      site_id: created.site.id,
+      idempotency_key: "try-it-revision-1",
+      expected_draft_version: created.working_draft.version,
+      expected_edition_version: created.edition.version,
+    })) as unknown as { revision_number: number };
+    const frozen = await repository.get_try_it_configuration({
+      ...scope,
+      site_id: created.site.id,
+      operation_key: "get-pets",
+      source: "revision",
+      revision_number: revision.revision_number,
+    });
+    expect(frozen).toMatchObject({
+      approved_origin: "https://sensitive-api.example.com",
+      base_path: "/v1",
+      request_descriptor: descriptor,
+    });
+    const evidence = await pool.query<{ payload: string }>(
+      `SELECT string_agg(to_jsonb(event)::text || ' ' ||
+                         to_jsonb(item)::text,' ') payload
+         FROM audit_schema.audit_event event
+         JOIN audit_schema.audit_change_item item
+           ON item.audit_event_id=event.id
+        WHERE event.action='documentation.openapi_try_it_policy.created'`,
+    );
+    expect(evidence.rows[0]?.payload).not.toContain(
+      "sensitive-api.example.com",
+    );
+    expect(
+      await pool.query(
+        `SELECT count(*)::integer count
+           FROM documentation_schema.site_revision_openapi_try_it_policy`,
+      ),
+    ).toMatchObject({ rows: [{ count: 1 }] });
   });
 
   it("carries an exact checkpoint into a missing target Edition and replays immutably", async () => {

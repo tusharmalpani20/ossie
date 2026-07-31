@@ -29,6 +29,9 @@ import {
   DocumentationEditionUpdateRequestSchema,
   DocumentationPageLifecycleRequestSchema,
   DocumentationOpenApiLifecycleRequestSchema,
+  DocumentationTryItAttemptReportRequestSchema,
+  DocumentationUpdatePublishLinkTryItPolicyRequestSchema,
+  DocumentationUpsertTryItPolicyRequestSchema,
   RevokePublishLinkRequestSchema,
 } from "@repo/types";
 import {
@@ -36,13 +39,25 @@ import {
   DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
 } from "@repo/constants";
 import {
+  DOCUMENTATION_TRY_IT_CONFIGURATION_LEASE_MS,
+  DOCUMENTATION_TRY_IT_REQUEST_BODY_MAX_BYTES,
+  DOCUMENTATION_TRY_IT_RESPONSE_BODY_MAX_BYTES,
+  DOCUMENTATION_TRY_IT_RESPONSE_HEADERS_MAX,
+  DOCUMENTATION_TRY_IT_TIMEOUT_DEFAULT_MS,
+  DOCUMENTATION_TRY_IT_URL_MAX_BYTES,
+} from "@repo/constants";
+import {
   normalize_documentation_blocks,
   normalize_documentation_path,
   validate_documentation_snippet_blocks,
 } from "@repo/documentation-domain";
 import { z } from "zod";
+import { createHmac } from "node:crypto";
+import { ulid } from "ulid";
 import { web_session_cookie_name } from "../authentication/session-cookie";
 import type { AuthContext } from "../authentication/session.service";
+import type { AccessEvent } from "@repo/audit-domain";
+import { current_access_request_context } from "../access/access-request-context";
 import { public_viewer_cookie_name } from "../publish/public-viewer-cookie";
 import { error_response } from "../shared/http-errors";
 import { get_public_web_url } from "../../config/public-web-url.config";
@@ -50,6 +65,12 @@ import {
   DocumentationIdempotencyConflictError,
   DocumentationRowVersionConflictError,
 } from "./documentation.service";
+import { get_documentation_try_it_origin_config } from "../../config/documentation-try-it.config";
+import { validate_documentation_try_it_origin } from "./documentation-try-it.origin";
+import {
+  create_documentation_try_it_attempt_token,
+  verify_documentation_try_it_attempt_token,
+} from "./documentation-try-it.token";
 
 const ParamsSchema = z
   .object({
@@ -178,6 +199,9 @@ const PublicOperationParamsSchema = z
     operation_key: z.string().trim().min(1).max(255),
   })
   .strict();
+const OperationParamsSchema = SiteParamsSchema.extend({
+  operation_key: z.string().trim().min(1).max(255),
+}).strict();
 const PublicAssetParamsSchema = z
   .object({
     slug: z.string().trim().min(1).max(80),
@@ -741,6 +765,54 @@ export type DocumentationRouteDependencies = {
       artifact_type: "guide" | "interactive_demo";
       cursor?: string;
     }) => Promise<unknown[]>;
+    get_try_it_policy: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+    }) => Promise<unknown>;
+    upsert_try_it_policy: (
+      input: {
+        organization_id: string;
+        project_id: string;
+        project_version_id: string;
+        actor_org_user_id: string;
+        site_id: string;
+        idempotency_key: string;
+      } & z.infer<typeof DocumentationUpsertTryItPolicyRequestSchema>,
+    ) => Promise<unknown>;
+    get_try_it_configuration: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      operation_key: string;
+      source?: "draft" | "revision";
+      revision_number?: number;
+    }) => Promise<Record<string, unknown> | null>;
+    get_publish_link_try_it_policy: (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      actor_org_user_id: string;
+      site_id: string;
+      link_id: string;
+    }) => Promise<unknown>;
+    upsert_publish_link_try_it_policy: (
+      input: {
+        organization_id: string;
+        project_id: string;
+        project_version_id: string;
+        actor_org_user_id: string;
+        site_id: string;
+        link_id: string;
+        idempotency_key: string;
+      } & z.infer<
+        typeof DocumentationUpdatePublishLinkTryItPolicyRequestSchema
+      >,
+    ) => Promise<unknown>;
   };
   resolve_project_version: (input: {
     organization_id: string;
@@ -748,12 +820,74 @@ export type DocumentationRouteDependencies = {
     project_id: string;
     version_slug: string;
   }) => Promise<{ id: string }>;
+  validate_try_it_origin?: typeof validate_documentation_try_it_origin;
+  access_event_writer?: {
+    append(event: AccessEvent): Promise<void>;
+  };
 };
 
 export const build_documentation_routes = (
   dependencies: DocumentationRouteDependencies,
 ): FastifyPluginAsync => {
   return async (fastify: FastifyInstance) => {
+    const validateTryItOrigin =
+      dependencies.validate_try_it_origin ??
+      validate_documentation_try_it_origin;
+    const append_try_it_attempt_evidence = async (input: {
+      outcome: z.infer<
+        typeof DocumentationTryItAttemptReportRequestSchema
+      >["outcome"];
+      root_resource_type: "documentation_site" | "publish_link";
+      root_resource_id: string;
+      organization_id: string;
+      project_id: string;
+      public_surface: boolean;
+    }) => {
+      const context = current_access_request_context();
+      if (!dependencies.access_event_writer)
+        throw Object.assign(
+          new Error("Try-It Access Evidence is unavailable"),
+          { code: "documentation_try_it_evidence_unavailable" },
+        );
+      const id = ulid();
+      try {
+        await dependencies.access_event_writer.append({
+          id,
+          organization_id: input.organization_id,
+          project_id: input.project_id,
+          root_resource_type: input.root_resource_type,
+          root_resource_id: input.root_resource_id,
+          action: `documentation.try_it.attempt_${input.outcome}`,
+          source_type: context?.source_type ?? "web",
+          actor_type: context?.auth ? "org_user" : "anonymous",
+          actor_org_user_id: context?.auth?.org_user_id ?? null,
+          actor_label: context?.auth?.actor_label ?? "anonymous",
+          request_id: context?.request_id ?? null,
+          http_method: null,
+          route_template: null,
+          access_surface: input.public_surface
+            ? (context?.public_surface ?? "public_reader")
+            : context?.source_type === "extension"
+              ? "extension"
+              : "portal",
+          authorization_type:
+            context?.authorization?.authorization_type ??
+            (input.public_surface ? "public_link" : "project_role"),
+          authorization_role:
+            context?.authorization?.authorization_role ?? null,
+          outcome: "succeeded",
+          reason_code: null,
+          response_bytes: null,
+          occurred_at: new Date().toISOString(),
+        });
+      } catch {
+        throw Object.assign(
+          new Error("Try-It Access Evidence is unavailable"),
+          { code: "documentation_try_it_evidence_unavailable" },
+        );
+      }
+      if (context) context.response_access_event_id = id;
+    };
     const authorized_scope = async (
       request: {
         cookies: Record<string, string | undefined>;
@@ -802,6 +936,12 @@ export const build_documentation_routes = (
             ),
           );
       }
+      if (code === "documentation_try_it_evidence_unavailable")
+        return reply
+          .status(503)
+          .send(
+            error_response(code, "Try-It evidence is temporarily unavailable"),
+          );
       if (
         code === "documentation_row_version_conflict" ||
         code === "documentation_path_conflict" ||
@@ -829,7 +969,11 @@ export const build_documentation_routes = (
         code === "documentation_review_gate_unsatisfied" ||
         code === "documentation_review_approval_required" ||
         code === "documentation_review_approval_invalidated" ||
-        code === "documentation_review_override_invalid"
+        code === "documentation_review_override_invalid" ||
+        code === "documentation_try_it_policy_conflict" ||
+        code === "documentation_try_it_link_incompatible" ||
+        code === "documentation_try_it_operation_unsupported" ||
+        code === "documentation_try_it_unavailable"
       )
         return reply
           .status(409)
@@ -854,7 +998,9 @@ export const build_documentation_routes = (
         code === "documentation_import_invalid" ||
         code === "documentation_import_unsupported_version" ||
         code === "documentation_carry_forward_invalid" ||
-        code === "documentation_review_invalid"
+        code === "documentation_review_invalid" ||
+        code === "origin_not_allowed" ||
+        code === "origin_resolution_unsafe"
       )
         return reply
           .status(400)
@@ -863,6 +1009,15 @@ export const build_documentation_routes = (
         return reply
           .status(422)
           .send(error_response(code, "Documentation limit exceeded"));
+      if (code === "origin_resolution_failed")
+        return reply
+          .status(503)
+          .send(
+            error_response(
+              "documentation_try_it_origin_resolution_unsafe",
+              "Try-It origin could not be resolved safely",
+            ),
+          );
       if (
         code === "documentation_page_limit_exceeded" ||
         code === "documentation_comment_limit_exceeded" ||
@@ -1410,6 +1565,52 @@ export const build_documentation_routes = (
             });
           return reply.send({ source });
         } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.post(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/operations/:operation_key/try-it-attempts",
+      async (request, reply) => {
+        const params = OperationParamsSchema.safeParse(request.params);
+        const body = DocumentationTryItAttemptReportRequestSchema.safeParse(
+          request.body,
+        );
+        if (!params.success || !body.success) return reply.status(400).send();
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const loaded =
+            await dependencies.documentation_service.get_try_it_configuration({
+              ...scope,
+              site_id: params.data.site_id,
+              operation_key: params.data.operation_key,
+            });
+          const secret = process.env.COOKIE_SECRET;
+          if (!loaded || !secret || secret.length < 32)
+            return reply.status(400).send();
+          verify_documentation_try_it_attempt_token({
+            token: body.data.attempt_token,
+            secret,
+            surface: "internal",
+            authorization_binding: `${scope.organization_id}:${scope.project_id}:${scope.actor_org_user_id}:${params.data.site_id}`,
+            policy_binding: `${loaded.policy_id}:${loaded.policy_version}:${params.data.operation_key}:${loaded.approved_origin}`,
+          });
+          await append_try_it_attempt_evidence({
+            outcome: body.data.outcome,
+            root_resource_type: "documentation_site",
+            root_resource_id: params.data.site_id,
+            organization_id: scope.organization_id,
+            project_id: scope.project_id,
+            public_surface: false,
+          });
+          return reply
+            .header("cache-control", "private, no-store")
+            .status(204)
+            .send();
+        } catch (error) {
+          if (error instanceof Error && error.message.includes("expired"))
+            return reply.status(410).send();
           return documentation_error(error, reply);
         }
       },
@@ -2968,6 +3169,285 @@ export const build_documentation_routes = (
       },
     );
 
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/try-it-policy",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        if (!params.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Invalid request",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const result =
+            (await dependencies.documentation_service.get_try_it_policy({
+              ...scope,
+              site_id: params.data.site_id,
+            })) as {
+              policy: null | {
+                approved_origin: string | null;
+                effective_status: string;
+              };
+            };
+          if (
+            result.policy?.effective_status === "enabled" &&
+            result.policy.approved_origin
+          ) {
+            const deployment = get_documentation_try_it_origin_config();
+            if (!deployment.origin_set.has(result.policy.approved_origin))
+              result.policy.effective_status = "operator_disallowed";
+            else
+              try {
+                await validateTryItOrigin({
+                  origin: result.policy.approved_origin,
+                  allowed_origins: deployment.origin_set,
+                });
+              } catch {
+                result.policy.effective_status =
+                  "origin_resolution_unsafe";
+              }
+          }
+          return reply
+            .header("cache-control", "private, no-store")
+            .send(result);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.put(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/try-it-policy",
+      async (request, reply) => {
+        const params = SiteParamsSchema.safeParse(request.params);
+        const body = DocumentationUpsertTryItPolicyRequestSchema.safeParse(
+          request.body,
+        );
+        const idempotency = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (!params.success || !body.success || !idempotency.success)
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Invalid request",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const deployment = get_documentation_try_it_origin_config();
+          let approved_origin = body.data.approved_origin;
+          if (body.data.status === "enabled" && approved_origin)
+            approved_origin = await validateTryItOrigin({
+              origin: approved_origin,
+              allowed_origins: deployment.origin_set,
+            });
+          const result =
+            await dependencies.documentation_service.upsert_try_it_policy({
+              ...scope,
+              site_id: params.data.site_id,
+              ...body.data,
+              approved_origin,
+              idempotency_key: idempotency.data,
+            });
+          const command = unwrap_idempotent_result(result);
+          return reply
+            .status(
+              !command.replayed && body.data.expected_policy_version === null
+                ? 201
+                : 200,
+            )
+            .header("cache-control", "private, no-store")
+            .header("idempotent-replay", String(command.replayed))
+            .send(command.body);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/operations/:operation_key/try-it-configuration",
+      async (request, reply) => {
+        const params = OperationParamsSchema.safeParse(request.params);
+        const query = z
+          .object({
+            source: z.enum(["draft", "revision"]),
+            revision_number: z.coerce.number().int().positive().optional(),
+          })
+          .strict()
+          .safeParse(request.query);
+        if (
+          !params.success ||
+          !query.success ||
+          (query.data.source === "revision" && !query.data.revision_number) ||
+          (query.data.source === "draft" && query.data.revision_number)
+        )
+          return reply
+            .status(400)
+            .send(
+              error_response(
+                "invalid_documentation_request",
+                "Invalid request",
+              ),
+            );
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const loaded =
+            await dependencies.documentation_service.get_try_it_configuration({
+              ...scope,
+              site_id: params.data.site_id,
+              operation_key: params.data.operation_key,
+              source: query.data.source,
+              revision_number: query.data.revision_number,
+            });
+          if (!loaded)
+            return reply
+              .status(409)
+              .send(
+                error_response(
+                  "documentation_try_it_unavailable",
+                  "Try It is unavailable for this operation",
+                ),
+              );
+          const deployment = get_documentation_try_it_origin_config();
+          const approved_origin = await validateTryItOrigin({
+            origin: String(loaded.approved_origin),
+            allowed_origins: deployment.origin_set,
+          });
+          const secret = process.env.COOKIE_SECRET;
+          if (!secret || secret.length < 32)
+            throw Object.assign(
+              new Error("Try-It token signing is unavailable"),
+              {
+                code: "documentation_try_it_unavailable",
+              },
+            );
+          const now = new Date();
+          const authorization_binding = `${scope.organization_id}:${scope.project_id}:${scope.actor_org_user_id}:${params.data.site_id}`;
+          const policy_binding = `${loaded.policy_id}:${loaded.policy_version}:${params.data.operation_key}:${approved_origin}`;
+          const attempt_token = create_documentation_try_it_attempt_token({
+            secret,
+            surface: "internal",
+            authorization_binding,
+            policy_binding,
+            now,
+          });
+          const descriptor = loaded.request_descriptor as Record<
+            string,
+            unknown
+          >;
+          const allowed_credential_modes = [
+            "none",
+            ...(loaded.allow_bearer === true &&
+            (descriptor.security as { bearer?: boolean } | undefined)?.bearer
+              ? ["bearer"]
+              : []),
+            ...(loaded.api_key_header_name ? ["api_key_header"] : []),
+          ];
+          return reply.header("cache-control", "private, no-store").send({
+            configuration_id: ulid(),
+            policy_identity: createHmac("sha256", secret)
+              .update(policy_binding)
+              .digest("base64url"),
+            configuration_expires_at: new Date(
+              now.getTime() + DOCUMENTATION_TRY_IT_CONFIGURATION_LEASE_MS,
+            ).toISOString(),
+            attempt_token_expires_at: new Date(
+              now.getTime() + 5 * 60 * 1_000,
+            ).toISOString(),
+            surface: "internal",
+            operation: descriptor,
+            approved_origin,
+            base_path: loaded.base_path,
+            allowed_credential_modes,
+            api_key_header_name: loaded.api_key_header_name,
+            request_limits: {
+              url_bytes: DOCUMENTATION_TRY_IT_URL_MAX_BYTES,
+              body_bytes: DOCUMENTATION_TRY_IT_REQUEST_BODY_MAX_BYTES,
+              timeout_ms: DOCUMENTATION_TRY_IT_TIMEOUT_DEFAULT_MS,
+            },
+            response_limits: {
+              body_bytes: DOCUMENTATION_TRY_IT_RESPONSE_BODY_MAX_BYTES,
+              headers: DOCUMENTATION_TRY_IT_RESPONSE_HEADERS_MAX,
+            },
+            operator_origin_set_digest: deployment.digest,
+            attempt_token,
+          });
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.get(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/try-it-policy",
+      async (request, reply) => {
+        const params = PublicationLinkParamsSchema.safeParse(request.params);
+        if (!params.success) return reply.status(400).send();
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const result =
+            await dependencies.documentation_service.get_publish_link_try_it_policy(
+              {
+                ...scope,
+                site_id: params.data.site_id,
+                link_id: params.data.link_id,
+              },
+            );
+          if (!result) return reply.status(404).send();
+          return reply
+            .header("cache-control", "private, no-store")
+            .send(result);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
+    fastify.patch(
+      "/api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/try-it-policy",
+      async (request, reply) => {
+        const params = PublicationLinkParamsSchema.safeParse(request.params);
+        const body =
+          DocumentationUpdatePublishLinkTryItPolicyRequestSchema.safeParse(
+            request.body,
+          );
+        const idempotency = IdempotencyKeySchema.safeParse(
+          request.headers["idempotency-key"],
+        );
+        if (!params.success || !body.success || !idempotency.success)
+          return reply.status(400).send();
+        try {
+          const scope = await authorized_scope(request, params.data);
+          const result =
+            await dependencies.documentation_service.upsert_publish_link_try_it_policy(
+              {
+                ...scope,
+                site_id: params.data.site_id,
+                link_id: params.data.link_id,
+                ...body.data,
+                idempotency_key: idempotency.data,
+              },
+            );
+          const command = unwrap_idempotent_result(result);
+          return reply
+            .header("cache-control", "private, no-store")
+            .header("idempotent-replay", String(command.replayed))
+            .send(command.body);
+        } catch (error) {
+          return documentation_error(error, reply);
+        }
+      },
+    );
+
     const public_site = async (
       params: unknown,
       reply: FastifyReply,
@@ -2988,11 +3468,111 @@ export const build_documentation_routes = (
         return null;
       }
     };
+    const public_operation_response = (
+      operation: Record<string, unknown>,
+    ): Record<string, unknown> => {
+      const descriptor = operation.request_descriptor;
+      if (
+        descriptor &&
+        typeof descriptor === "object" &&
+        !Array.isArray(descriptor) &&
+        (descriptor as Record<string, unknown>).descriptor_version === 1
+      )
+        return {
+          destination_key: operation.destination_key,
+          method: operation.method,
+          path: operation.path,
+          summary: operation.summary ?? null,
+          descriptor_version: 1,
+          request_descriptor: { ...(descriptor as Record<string, unknown>) },
+        };
+      return {
+        destination_key: operation.destination_key,
+        method: operation.method,
+        path: operation.path,
+        summary: operation.summary ?? null,
+        descriptor_version: 0,
+      };
+    };
     const public_site_response = (site: unknown): Record<string, unknown> => {
       if (!site || typeof site !== "object") return {};
-      const response = { ...(site as Record<string, unknown>) };
-      delete response.search_documents;
-      return response;
+      const source = site as Record<string, unknown>;
+      const sourceSite =
+        source.site && typeof source.site === "object"
+          ? (source.site as Record<string, unknown>)
+          : {};
+      const edition =
+        source.edition && typeof source.edition === "object"
+          ? (source.edition as Record<string, unknown>)
+          : {};
+      const workingDraft =
+        source.working_draft && typeof source.working_draft === "object"
+          ? (source.working_draft as Record<string, unknown>)
+          : {};
+      const revision =
+        source.revision && typeof source.revision === "object"
+          ? (source.revision as Record<string, unknown>)
+          : {};
+      const assets = Array.isArray(source.assets)
+        ? source.assets.map((asset) => {
+            const row =
+              asset && typeof asset === "object"
+                ? (asset as Record<string, unknown>)
+                : {};
+            return {
+              id: row.id,
+              source_kind: row.source_kind,
+              name: row.name,
+              status: row.status,
+              mime_type: row.mime_type,
+              width: row.width ?? null,
+              height: row.height ?? null,
+            };
+          })
+        : [];
+      const operations = Array.isArray(source.openapi_operations)
+        ? source.openapi_operations.map((operation) =>
+            public_operation_response(
+              operation && typeof operation === "object"
+                ? (operation as Record<string, unknown>)
+                : {},
+            ),
+          )
+        : [];
+      return {
+        site: {
+          id: sourceSite.id,
+          name: sourceSite.name,
+          description: sourceSite.description ?? null,
+        },
+        edition: {
+          id: edition.id,
+          project_version_id: edition.project_version_id,
+          title: edition.title,
+          description: edition.description ?? null,
+          primary_language: edition.primary_language,
+        },
+        working_draft: { home_page_id: workingDraft.home_page_id ?? null },
+        revision: {
+          site_name: revision.site_name ?? sourceSite.name,
+          site_description:
+            revision.site_description ?? sourceSite.description ?? null,
+          primary_language:
+            revision.primary_language ?? edition.primary_language,
+          home_page_id:
+            revision.home_page_id ?? workingDraft.home_page_id ?? null,
+          revision_number: revision.revision_number,
+          created_at: revision.created_at,
+        },
+        pages: Array.isArray(source.pages) ? source.pages : [],
+        navigation: source.navigation ?? { nodes: [] },
+        routing: source.routing ?? { aliases: [], rules: [] },
+        aliases: Array.isArray(source.aliases) ? source.aliases : [],
+        redirects: Array.isArray(source.redirects) ? source.redirects : [],
+        snippets: Array.isArray(source.snippets) ? source.snippets : [],
+        assets,
+        openapi_operations: operations,
+      };
     };
 
     fastify.get(
@@ -3243,10 +3823,231 @@ export const build_documentation_routes = (
                 "OpenAPI operation was not found",
               ),
             );
-        return reply.send({ operation });
+        return reply.send({
+          operation: public_operation_response(
+            operation as Record<string, unknown>,
+          ),
+        });
       });
     register_public_operation(
       "/api/v1/public/publish-links/:slug/documentation/operations/:operation_key",
+    );
+
+    const public_try_it_context = async (
+      request: {
+        params: unknown;
+        cookies: Record<string, string | undefined>;
+      },
+      reply: FastifyReply,
+    ) => {
+      const params = PublicOperationParamsSchema.safeParse(request.params);
+      if (!params.success) return null;
+      const result = await public_site(
+        {
+          slug: params.data.slug,
+          ...(params.data.version_slug
+            ? { version_slug: params.data.version_slug }
+            : {}),
+        },
+        reply,
+        request.cookies?.[public_viewer_cookie_name],
+      );
+      if (!result?.site) return null;
+      const site = result.site as Record<string, unknown>;
+      const policy =
+        site._try_it && typeof site._try_it === "object"
+          ? (site._try_it as Record<string, unknown>)
+          : null;
+      const operations = Array.isArray(site.openapi_operations)
+        ? (site.openapi_operations as Array<Record<string, unknown>>)
+        : [];
+      const operation = operations.find(
+        (candidate) => candidate.destination_key === params.data.operation_key,
+      );
+      if (
+        !policy ||
+        !operation ||
+        !Array.isArray(policy.operation_destination_keys) ||
+        !policy.operation_destination_keys.includes(params.data.operation_key)
+      )
+        return null;
+      return { params: params.data, site, policy, operation };
+    };
+
+    const register_public_try_it_configuration = (path: string) =>
+      fastify.get(path, async (request, reply) => {
+        try {
+          const context = await public_try_it_context(request, reply);
+          if (reply.sent) return reply;
+          if (!context)
+            return reply
+              .status(409)
+              .header("cache-control", "private, no-store")
+              .header("vary", "Cookie")
+              .send(
+                error_response(
+                  "documentation_try_it_unavailable",
+                  "Try It is unavailable",
+                ),
+              );
+          const deployment = get_documentation_try_it_origin_config();
+          const approved_origin = await validateTryItOrigin({
+            origin: String(context.policy.approved_origin),
+            allowed_origins: deployment.origin_set,
+          });
+          const secret = process.env.COOKIE_SECRET;
+          if (!secret || secret.length < 32)
+            return reply
+              .status(409)
+              .send(
+                error_response(
+                  "documentation_try_it_unavailable",
+                  "Try It is unavailable",
+                ),
+              );
+          const link = context.site.link as Record<string, unknown>;
+          const entry = context.site.entry as Record<string, unknown>;
+          const publication = context.site.publication as Record<
+            string,
+            unknown
+          >;
+          const authorization_binding = `${link.id}:${entry.id}:${publication.id}`;
+          const policy_binding = `${context.policy.frozen_policy_id}:${context.policy.link_policy_id}:${context.params.operation_key}:${approved_origin}`;
+          const now = new Date();
+          const descriptor =
+            context.operation.request_descriptor &&
+            typeof context.operation.request_descriptor === "object"
+              ? (context.operation.request_descriptor as Record<
+                  string,
+                  unknown
+                >)
+              : null;
+          if (!descriptor || descriptor.descriptor_version !== 1)
+            throw new Error("Try-It operation descriptor is unavailable");
+          return reply
+            .header("cache-control", "private, no-store")
+            .header("vary", "Cookie")
+            .send({
+              configuration_id: ulid(),
+              policy_identity: createHmac("sha256", secret)
+                .update(policy_binding)
+                .digest("base64url"),
+              configuration_expires_at: new Date(
+                now.getTime() + DOCUMENTATION_TRY_IT_CONFIGURATION_LEASE_MS,
+              ).toISOString(),
+              attempt_token_expires_at: new Date(
+                now.getTime() + 5 * 60 * 1_000,
+              ).toISOString(),
+              surface: "public",
+              operation: descriptor,
+              approved_origin,
+              base_path: context.policy.base_path,
+              allowed_credential_modes: [
+                "none",
+                ...(context.policy.allow_bearer === true &&
+                (descriptor.security as { bearer?: boolean } | undefined)
+                  ?.bearer
+                  ? ["bearer"]
+                  : []),
+                ...(context.policy.api_key_header_name
+                  ? ["api_key_header"]
+                  : []),
+              ],
+              api_key_header_name: context.policy.api_key_header_name,
+              request_limits: {
+                url_bytes: DOCUMENTATION_TRY_IT_URL_MAX_BYTES,
+                body_bytes: DOCUMENTATION_TRY_IT_REQUEST_BODY_MAX_BYTES,
+                timeout_ms: DOCUMENTATION_TRY_IT_TIMEOUT_DEFAULT_MS,
+              },
+              response_limits: {
+                body_bytes: DOCUMENTATION_TRY_IT_RESPONSE_BODY_MAX_BYTES,
+                headers: DOCUMENTATION_TRY_IT_RESPONSE_HEADERS_MAX,
+              },
+              operator_origin_set_digest: deployment.digest,
+              attempt_token: create_documentation_try_it_attempt_token({
+                secret,
+                surface: "public",
+                authorization_binding,
+                policy_binding,
+                now,
+              }),
+            });
+        } catch {
+          return reply
+            .status(409)
+            .header("cache-control", "private, no-store")
+            .header("vary", "Cookie")
+            .send(
+              error_response(
+                "documentation_try_it_unavailable",
+                "Try It is unavailable",
+              ),
+            );
+        }
+      });
+
+    const register_public_try_it_attempt = (path: string) =>
+      fastify.post(path, async (request, reply) => {
+        const body = DocumentationTryItAttemptReportRequestSchema.safeParse(
+          request.body,
+        );
+        if (!body.success) return reply.status(400).send();
+        try {
+          const context = await public_try_it_context(request, reply);
+          const secret = process.env.COOKIE_SECRET;
+          if (!context || !secret || secret.length < 32)
+            return reply.status(400).send();
+          const link = context.site.link as Record<string, unknown>;
+          const entry = context.site.entry as Record<string, unknown>;
+          const publication = context.site.publication as Record<
+            string,
+            unknown
+          >;
+          verify_documentation_try_it_attempt_token({
+            token: body.data.attempt_token,
+            secret,
+            surface: "public",
+            authorization_binding: `${link.id}:${entry.id}:${publication.id}`,
+            policy_binding: `${context.policy.frozen_policy_id}:${context.policy.link_policy_id}:${context.params.operation_key}:${context.policy.approved_origin}`,
+          });
+          await append_try_it_attempt_evidence({
+            outcome: body.data.outcome,
+            root_resource_type: "publish_link",
+            root_resource_id: String(link.id),
+            organization_id: String(link.organization_id),
+            project_id: String(link.project_id),
+            public_surface: true,
+          });
+          return reply
+            .header("cache-control", "private, no-store")
+            .header("vary", "Cookie")
+            .status(204)
+            .send();
+        } catch (error) {
+          if (error instanceof Error && error.message.includes("expired"))
+            return reply.status(410).send();
+          if (
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            error.code === "documentation_try_it_evidence_unavailable"
+          )
+            return reply.status(503).send();
+          return reply.status(400).send();
+        }
+      });
+
+    register_public_try_it_configuration(
+      "/api/v1/public/publish-links/:slug/documentation/operations/:operation_key/try-it-configuration",
+    );
+    register_public_try_it_configuration(
+      "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/operations/:operation_key/try-it-configuration",
+    );
+    register_public_try_it_attempt(
+      "/api/v1/public/publish-links/:slug/documentation/operations/:operation_key/try-it-attempts",
+    );
+    register_public_try_it_attempt(
+      "/api/v1/public/publish-links/:slug/versions/:version_slug/documentation/operations/:operation_key/try-it-attempts",
     );
 
     const register_public_asset = (

@@ -6,6 +6,7 @@ import {
   AUDIT_COMMANDS,
   AUDIT_COVERAGE_REGISTRY,
 } from "./audit-coverage-registry";
+import { ACCESS_ROUTE_COVERAGE_REGISTRY } from "../access/access-coverage-registry";
 
 const normalize_openapi_route = (method: string, path: string) => {
   const parameterized = path.replaceAll(/\{([^}]+)\}/gu, ":$1");
@@ -32,12 +33,19 @@ describe("Audit mutation entry-point coverage", () => {
             )
             .map((method) => normalize_openapi_route(method, path)),
       );
+      const access_only_routes = new Set(
+        ACCESS_ROUTE_COVERAGE_REGISTRY.filter(
+          ({ policy }) => policy === "denial_only",
+        ).map(({ method, route_template }) => `${method} ${route_template}`),
+      );
       const registered = AUDIT_COVERAGE_REGISTRY.flatMap(
         ({ routes }) => routes,
       ).filter((route) => !route.startsWith("GET "));
 
       expect([...new Set(registered)].sort()).toEqual(
-        [...new Set(actual)].sort(),
+        [
+          ...new Set(actual.filter((route) => !access_only_routes.has(route))),
+        ].sort(),
       );
     } finally {
       await app.close();

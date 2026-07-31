@@ -8,10 +8,10 @@ import {
 
 describe("audit coverage registry", () => {
   it("registers every current semantic mutation command", () => {
-    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(125);
+    expect(AUDIT_COVERAGE_REGISTRY).toHaveLength(130);
     expect(
       new Set(AUDIT_COVERAGE_REGISTRY.map(({ command }) => command)).size,
-    ).toBe(125);
+    ).toBe(130);
     expect(AUDIT_COMMANDS).toContain("setup.complete_first_run");
     expect(AUDIT_COMMANDS).toContain("guide.block.screenshot_upload");
     expect(AUDIT_COMMANDS).toContain("publish.viewer_session.touch");
@@ -34,16 +34,22 @@ describe("audit coverage registry", () => {
     expect(AUDIT_COMMANDS).toContain("documentation.import.expire");
     expect(AUDIT_COMMANDS).toContain("documentation.carry_forward");
     expect(AUDIT_COMMANDS).toContain("documentation.edition.archive");
+    expect(AUDIT_COMMANDS).toContain(
+      "documentation.openapi_try_it_policy.create",
+    );
+    expect(AUDIT_COMMANDS).toContain(
+      "documentation.publish_link_try_it_policy.enable",
+    );
   });
 
   it("covers all product tables and the relational Publish Link DELETE boundary", () => {
     const writes = AUDIT_COVERAGE_REGISTRY.flatMap(({ writes }) => writes);
-    expect(new Set(writes.map(({ table }) => table)).size).toBe(64);
+    expect(new Set(writes.map(({ table }) => table)).size).toBe(66);
     expect(
       new Set(
         writes.map(({ table, sql_operation }) => `${table}:${sql_operation}`),
       ).size,
-    ).toBe(99);
+    ).toBe(103);
     expect(
       writes
         .filter(({ sql_operation }) => sql_operation === "DELETE")
@@ -220,6 +226,13 @@ describe("audit coverage registry", () => {
       ),
       "utf8",
     );
+    const migration_030 = readFileSync(
+      new URL(
+        "../../db/migrations/030_documentation_api_try_it.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
     const policy_start = migration_016.indexOf("FROM (VALUES");
     const policy_end = migration_016.indexOf(") AS policy(command, action)");
     const new_policy_start = migration_019.indexOf(
@@ -236,7 +249,7 @@ describe("audit coverage registry", () => {
       "AND selected_actor_type",
       version_policy_start,
     );
-    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}\n${migration_022}\n${migration_023}\n${migration_024}\n${migration_025}\n${migration_026}\n${migration_027}\n${migration_028}\n${migration_029}`;
+    const policy = `${migration_016.slice(policy_start, policy_end)}\n${migration_019.slice(new_policy_start, new_policy_end)}\n${migration_020.slice(version_policy_start, version_policy_end)}\n${migration_021}\n${migration_022}\n${migration_023}\n${migration_024}\n${migration_025}\n${migration_026}\n${migration_027}\n${migration_028}\n${migration_029}\n${migration_030}`;
     const pairs = [...policy.matchAll(/\('([^']+)',\s*'([^']+)'\)/gu)]
       .map(([, command, action]) => ({ command, action }))
       .filter(({ command }) =>
@@ -342,6 +355,13 @@ describe("audit coverage registry", () => {
     const migration_029 = readFileSync(
       new URL(
         "../../db/migrations/029_documentation_review_and_approval_workflow.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const migration_030 = readFileSync(
+      new URL(
+        "../../db/migrations/030_documentation_api_try_it.sql",
         import.meta.url,
       ),
       "utf8",
@@ -725,6 +745,48 @@ describe("audit coverage registry", () => {
       ].at(-1)?.[1];
       actual.set(
         `documentation_schema.${table}:${operation}`,
+        commandArgument?.split(",") ?? [],
+      );
+    }
+    const migration_030_up =
+      migration_030.split("-- DOWN:")[0] ?? migration_030;
+    for (const [schema, table, operation, triggerName] of [
+      [
+        "documentation_schema",
+        "openapi_try_it_policy",
+        "INSERT",
+        "openapi_try_it_policy_i_audit_ctx",
+      ],
+      [
+        "documentation_schema",
+        "openapi_try_it_policy",
+        "UPDATE",
+        "openapi_try_it_policy_u_audit_ctx",
+      ],
+      [
+        "publish_schema",
+        "documentation_try_it_policy",
+        "INSERT",
+        "documentation_try_it_policy_i_audit_ctx",
+      ],
+      [
+        "publish_schema",
+        "documentation_try_it_policy",
+        "UPDATE",
+        "documentation_try_it_policy_u_audit_ctx",
+      ],
+    ] as const) {
+      const triggerStart = migration_030_up.indexOf(
+        `CREATE TRIGGER ${triggerName}`,
+      );
+      const triggerEnd = migration_030_up.indexOf(");", triggerStart);
+      const commandArgument = [
+        ...migration_030_up
+          .slice(triggerStart, triggerEnd)
+          .matchAll(/'([^']+)'/gu),
+      ].at(-1)?.[1];
+      actual.set(
+        `${schema}.${table}:${operation}`,
         commandArgument?.split(",") ?? [],
       );
     }

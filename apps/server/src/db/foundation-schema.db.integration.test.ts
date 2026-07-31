@@ -716,6 +716,36 @@ describe("foundation schema migrations on postgres", () => {
     }
   });
 
+  it("creates governed mutable, frozen, and link-specific Try-It storage", async () => {
+    for (const table_name of [
+      "openapi_try_it_policy",
+      "openapi_try_it_operation_allowance",
+      "site_revision_openapi_try_it_policy",
+      "site_revision_openapi_try_it_operation_allowance",
+    ]) {
+      await expect(
+        table_exists("documentation_schema", table_name),
+      ).resolves.toBe(true);
+    }
+    await expect(
+      table_exists("publish_schema", "documentation_try_it_policy"),
+    ).resolves.toBe(true);
+    for (const table_name of [
+      "openapi_operation",
+      "site_revision_openapi_operation",
+    ]) {
+      for (const column_name of [
+        "request_descriptor",
+        "descriptor_version",
+        "descriptor_digest",
+      ]) {
+        await expect(
+          column_exists("documentation_schema", table_name, column_name),
+        ).resolves.toBe(true);
+      }
+    }
+  });
+
   it("creates relational Publication and multi-version Publish Link schema", async () => {
     for (const column_name of [
       "organization_id",

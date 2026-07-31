@@ -152,6 +152,7 @@ import {
 import { build_documentation_repository } from "./modules/documentation/documentation.repository.js";
 import { build_documentation_service } from "./modules/documentation/documentation.service.js";
 import { parse_documentation_openapi } from "./modules/documentation/documentation-openapi.js";
+import { validate_documentation_try_it_origin } from "./modules/documentation/documentation-try-it.origin.js";
 import { inspect_documentation_markdown } from "./modules/documentation/documentation-markdown.js";
 import {
   inspect_documentation_site_package,
@@ -214,6 +215,7 @@ type BuildOptions = FastifyServerOptions & {
   interactive_demo_service?: InteractiveDemoRouteDependencies["interactive_demo_service"];
   publish_service?: PublishRouteDependencies["publish_service"];
   documentation_service?: DocumentationRouteDependencies["documentation_service"];
+  documentation_try_it_origin_validator?: typeof validate_documentation_try_it_origin;
   access_event_writer?: {
     append(event: AccessEvent): Promise<void>;
   };
@@ -282,6 +284,18 @@ const production_hardened_routes = [
     method: "POST",
     pattern: /^\/api\/v1\/public\/invites\/[^/]+\/accept$/,
   },
+  {
+    key: "documentation_try_it_attempt_internal",
+    method: "POST",
+    pattern:
+      /^\/api\/v1\/projects\/[^/]+\/versions\/[^/]+\/documentation-sites\/[^/]+\/openapi\/operations\/[^/]+\/try-it-attempts$/,
+  },
+  {
+    key: "documentation_try_it_attempt_public",
+    method: "POST",
+    pattern:
+      /^\/api\/v1\/public\/publish-links\/[^/]+(?:\/versions\/[^/]+)?\/documentation\/operations\/[^/]+\/try-it-attempts$/,
+  },
 ] as const;
 
 type RateLimitBucket = {
@@ -328,6 +342,7 @@ export const build = (opts: BuildOptions = {}) => {
     interactive_demo_service,
     publish_service,
     documentation_service,
+    documentation_try_it_origin_validator,
     access_event_writer,
     compliance_service,
     readiness_check = async () => {
@@ -348,6 +363,8 @@ export const build = (opts: BuildOptions = {}) => {
     attempt_window_ms: DOCUMENTATION_IMPORT_ATTEMPT_WINDOW_MS,
   });
   const rate_limit_buckets = new Map<string, RateLimitBucket>();
+  const resolved_access_event_writer =
+    access_event_writer ?? build_access_repository(pool);
 
   app.addHook("onRequest", (request, _reply, done) => {
     run_with_audit_request_context(audit_request_context(request), () =>
@@ -357,9 +374,7 @@ export const build = (opts: BuildOptions = {}) => {
 
   app.addHook(
     "onSend",
-    build_access_response_hook(
-      access_event_writer ?? build_access_repository(pool),
-    ),
+    build_access_response_hook(resolved_access_event_writer),
   );
 
   app.addHook("onRequest", async (request, reply) => {
@@ -641,10 +656,7 @@ export const build = (opts: BuildOptions = {}) => {
     });
     const run_documentation_import_cleanup = () =>
       documentation_import_cleanup.run_once().catch((error: unknown) => {
-        app.log.error(
-          { error },
-          "Documentation import cleanup pass failed",
-        );
+        app.log.error({ error }, "Documentation import cleanup pass failed");
       });
     app.addHook("onReady", async () => {
       await run_documentation_import_cleanup();
@@ -790,6 +802,8 @@ export const build = (opts: BuildOptions = {}) => {
 
   app.register(
     build_documentation_routes({
+      access_event_writer: resolved_access_event_writer,
+      validate_try_it_origin: documentation_try_it_origin_validator,
       auth_service: {
         get_current_auth_context:
           default_authentication_session_service.get_current_auth_context,
@@ -909,65 +923,63 @@ export const build = (opts: BuildOptions = {}) => {
                 capability: "documentation.carry_forward",
               });
               const prepared = await Promise.all(
-                  input.selections.map(async (selection) => {
-                    const source = await repository.get_preview({
-                      organization_id: input.organization_id,
-                      project_id: input.project_id,
-                      project_version_id: input.source_project_version_id,
-                      site_id: selection.site_id,
-                    });
-                    if (!source)
-                      throw Object.assign(
-                        new Error("Source Documentation Site was not found"),
-                        { code: "documentation_carry_forward_invalid" },
-                      );
-                    const snapshot = source as {
-                      pages: Array<{ blocks: Array<Record<string, unknown>> }>;
-                      snippets: Array<{
-                        blocks: Array<Record<string, unknown>>;
-                      }>;
-                      openapi_source: null | { version: number };
-                    };
-                    const openapiFile = snapshot.openapi_source
-                      ? await repository.get_openapi_export_file({
-                          organization_id: input.organization_id,
-                          project_id: input.project_id,
-                          project_version_id:
-                            input.source_project_version_id,
-                          site_id: selection.site_id,
-                          source: "draft",
-                          expected_source_version:
-                            snapshot.openapi_source.version,
-                        })
-                      : null;
-                    const openapiDigest = openapiFile
-                      ? await validate_documentation_protected_file_bytes({
-                          file: {
-                            ...openapiFile,
-                            checksum_sha256: openapiFile.digest,
-                          },
-                          get: default_capture_file_storage.get,
-                        })
-                      : null;
-                    return [
-                      selection.site_id,
-                      await validate_referenced_asset_bytes(
-                        {
-                          organization_id: input.organization_id,
-                          project_id: input.project_id,
-                          project_version_id:
-                            input.source_project_version_id,
-                          site_id: selection.site_id,
+                input.selections.map(async (selection) => {
+                  const source = await repository.get_preview({
+                    organization_id: input.organization_id,
+                    project_id: input.project_id,
+                    project_version_id: input.source_project_version_id,
+                    site_id: selection.site_id,
+                  });
+                  if (!source)
+                    throw Object.assign(
+                      new Error("Source Documentation Site was not found"),
+                      { code: "documentation_carry_forward_invalid" },
+                    );
+                  const snapshot = source as {
+                    pages: Array<{ blocks: Array<Record<string, unknown>> }>;
+                    snippets: Array<{
+                      blocks: Array<Record<string, unknown>>;
+                    }>;
+                    openapi_source: null | { version: number };
+                  };
+                  const openapiFile = snapshot.openapi_source
+                    ? await repository.get_openapi_export_file({
+                        organization_id: input.organization_id,
+                        project_id: input.project_id,
+                        project_version_id: input.source_project_version_id,
+                        site_id: selection.site_id,
+                        source: "draft",
+                        expected_source_version:
+                          snapshot.openapi_source.version,
+                      })
+                    : null;
+                  const openapiDigest = openapiFile
+                    ? await validate_documentation_protected_file_bytes({
+                        file: {
+                          ...openapiFile,
+                          checksum_sha256: openapiFile.digest,
                         },
-                        [
-                          ...snapshot.pages.flatMap(({ blocks }) => blocks),
-                          ...snapshot.snippets.flatMap(({ blocks }) => blocks),
-                        ],
-                      ),
-                      openapiDigest,
-                    ] as const;
-                  }),
-                );
+                        get: default_capture_file_storage.get,
+                      })
+                    : null;
+                  return [
+                    selection.site_id,
+                    await validate_referenced_asset_bytes(
+                      {
+                        organization_id: input.organization_id,
+                        project_id: input.project_id,
+                        project_version_id: input.source_project_version_id,
+                        site_id: selection.site_id,
+                      },
+                      [
+                        ...snapshot.pages.flatMap(({ blocks }) => blocks),
+                        ...snapshot.snippets.flatMap(({ blocks }) => blocks),
+                      ],
+                    ),
+                    openapiDigest,
+                  ] as const;
+                }),
+              );
               const verified_asset_digests = Object.fromEntries(
                 prepared.map(([siteId, digests]) => [siteId, digests]),
               );
@@ -1676,8 +1688,7 @@ export const build = (opts: BuildOptions = {}) => {
                   openapi_source: openapiSource,
                 };
               }
-              const portable =
-                create_portable_documentation_snapshot(snapshot);
+              const portable = create_portable_documentation_snapshot(snapshot);
               const pageIndex = snapshot.pages.findIndex(
                 (page: Record<string, unknown>) => page.id === input.page_id,
               );
@@ -1760,8 +1771,7 @@ export const build = (opts: BuildOptions = {}) => {
                   openapi_source: openapiSource,
                 };
               }
-              const portable =
-                create_portable_documentation_snapshot(snapshot);
+              const portable = create_portable_documentation_snapshot(snapshot);
               const entries: Array<{
                 path: string;
                 role:
@@ -1797,54 +1807,54 @@ export const build = (opts: BuildOptions = {}) => {
               for (const [index, asset] of (
                 snapshot.assets as Array<Record<string, any>>
               ).entries()) {
-                  const portableAsset = portable.site.assets[index];
-                  const file =
-                    exported.source === "draft" && !asset.storage_key
-                      ? await repository.get_asset_file_record({
-                          ...input,
-                          asset_id: asset.id,
-                        })
-                      : asset;
-                  if (!file || !portableAsset)
-                    throw Object.assign(
-                      new Error(
-                        "Documentation export Asset source is unavailable",
-                      ),
-                      { code: "documentation_export_source_unavailable" },
-                    );
-                  let bytes: Buffer;
-                  try {
-                    const validated =
-                      await read_validated_documentation_asset_bytes({
-                        file: {
-                          ...(file as {
-                            storage_provider: string;
-                            storage_key: string;
-                          }),
-                          mime_type: portableAsset.mime_type,
-                          size_bytes: portableAsset.size_bytes,
-                          checksum_sha256: portableAsset.sha256,
-                          width: portableAsset.width,
-                          height: portableAsset.height,
-                        },
-                        get: default_capture_file_storage.get,
-                      });
-                    bytes = validated.bytes;
-                  } catch {
-                    throw Object.assign(
-                      new Error(
-                        "Documentation export Asset source is unavailable",
-                      ),
-                      { code: "documentation_export_source_unavailable" },
-                    );
-                  }
-                  entries.push({
-                    path: portableAsset.path,
-                    role: "asset",
-                    mime_type: portableAsset.mime_type,
-                    bytes,
-                  });
+                const portableAsset = portable.site.assets[index];
+                const file =
+                  exported.source === "draft" && !asset.storage_key
+                    ? await repository.get_asset_file_record({
+                        ...input,
+                        asset_id: asset.id,
+                      })
+                    : asset;
+                if (!file || !portableAsset)
+                  throw Object.assign(
+                    new Error(
+                      "Documentation export Asset source is unavailable",
+                    ),
+                    { code: "documentation_export_source_unavailable" },
+                  );
+                let bytes: Buffer;
+                try {
+                  const validated =
+                    await read_validated_documentation_asset_bytes({
+                      file: {
+                        ...(file as {
+                          storage_provider: string;
+                          storage_key: string;
+                        }),
+                        mime_type: portableAsset.mime_type,
+                        size_bytes: portableAsset.size_bytes,
+                        checksum_sha256: portableAsset.sha256,
+                        width: portableAsset.width,
+                        height: portableAsset.height,
+                      },
+                      get: default_capture_file_storage.get,
+                    });
+                  bytes = validated.bytes;
+                } catch {
+                  throw Object.assign(
+                    new Error(
+                      "Documentation export Asset source is unavailable",
+                    ),
+                    { code: "documentation_export_source_unavailable" },
+                  );
                 }
+                entries.push({
+                  path: portableAsset.path,
+                  role: "asset",
+                  mime_type: portableAsset.mime_type,
+                  bytes,
+                });
+              }
               if (snapshot.openapi_source) {
                 const sourceFile = snapshot.openapi_source as Record<
                   string,
@@ -1892,8 +1902,7 @@ export const build = (opts: BuildOptions = {}) => {
                     (input.source === "revision"
                       ? input.revision_number
                       : null),
-                  publication_sequence:
-                    exported.publication_sequence ?? null,
+                  publication_sequence: exported.publication_sequence ?? null,
                 },
                 site: portable.site,
                 entries,
@@ -1924,8 +1933,7 @@ export const build = (opts: BuildOptions = {}) => {
                 size_bytes: reopened.size_bytes,
                 filename: `${safeName}-${input.version_slug}-documentation-v1.zip`,
                 mime_type: "application/zip",
-                cleanup: () =>
-                  default_capture_file_storage.purge_exact(staged),
+                cleanup: () => default_capture_file_storage.purge_exact(staged),
               };
             },
             export_openapi_source: async (input) => {
@@ -2005,30 +2013,30 @@ export const build = (opts: BuildOptions = {}) => {
                       )
                       .digest("hex");
                     safe_report = {
-                    summary: {
-                      pages: 1,
-                      snippets: 0,
-                      assets: 0,
-                      openapi_sources: 0,
-                      external_bindings: 0,
-                      expanded_bytes: stored.size_bytes,
-                    },
-                    proposal: {
-                      package_profile: null,
-                      claimed_source_kind: null,
-                      title: parsed.title,
-                      canonical_path: parsed.canonical_path,
-                      site_name: null,
-                      site_description: null,
-                      primary_language: null,
-                      home_page_handle: null,
-                      pages: [],
-                      required_bindings: [],
-                    },
-                    issues: [],
-                    issue_counts: { blocking: 0, warnings: 0 },
-                    has_blocking_issues: false,
-                    issues_truncated: false,
+                      summary: {
+                        pages: 1,
+                        snippets: 0,
+                        assets: 0,
+                        openapi_sources: 0,
+                        external_bindings: 0,
+                        expanded_bytes: stored.size_bytes,
+                      },
+                      proposal: {
+                        package_profile: null,
+                        claimed_source_kind: null,
+                        title: parsed.title,
+                        canonical_path: parsed.canonical_path,
+                        site_name: null,
+                        site_description: null,
+                        primary_language: null,
+                        home_page_handle: null,
+                        pages: [],
+                        required_bindings: [],
+                      },
+                      issues: [],
+                      issue_counts: { blocking: 0, warnings: 0 },
+                      has_blocking_issues: false,
+                      issues_truncated: false,
                     };
                   } else {
                     const parsed = await inspect_documentation_site_package(
@@ -2038,60 +2046,58 @@ export const build = (opts: BuildOptions = {}) => {
                     );
                     content_fingerprint = parsed.manifest.content_fingerprint;
                     safe_report = {
-                    summary: {
-                      pages: parsed.counts.pages,
-                      snippets: parsed.counts.snippets,
-                      assets: parsed.counts.assets,
-                      openapi_sources: parsed.counts.openapi_sources,
-                      external_bindings: parsed.counts.external_bindings,
-                      expanded_bytes: parsed.archive.expanded_bytes,
-                    },
-                    proposal: {
-                      package_profile: parsed.manifest.profile,
-                      claimed_source_kind: parsed.manifest.source.kind,
-                      title: null,
-                      canonical_path: null,
-                      site_name: parsed.site.site.name,
-                      site_description: parsed.site.site.description,
-                      primary_language: parsed.site.site.primary_language,
-                      home_page_handle: parsed.site.home_page_handle,
-                      pages: parsed.site.pages.map(
-                        ({ handle, title, canonical_path }) => ({
-                          handle,
-                          title,
-                          canonical_path,
-                        }),
-                      ),
-                      required_bindings: parsed.site.external_bindings,
-                    },
-                    issues: parsed.blocking_issues,
-                    issue_counts: {
-                      blocking: parsed.blocking_issues.length,
-                      warnings: 0,
-                    },
-                    has_blocking_issues:
-                      parsed.blocking_issues.length > 0,
-                    issues_truncated: false,
+                      summary: {
+                        pages: parsed.counts.pages,
+                        snippets: parsed.counts.snippets,
+                        assets: parsed.counts.assets,
+                        openapi_sources: parsed.counts.openapi_sources,
+                        external_bindings: parsed.counts.external_bindings,
+                        expanded_bytes: parsed.archive.expanded_bytes,
+                      },
+                      proposal: {
+                        package_profile: parsed.manifest.profile,
+                        claimed_source_kind: parsed.manifest.source.kind,
+                        title: null,
+                        canonical_path: null,
+                        site_name: parsed.site.site.name,
+                        site_description: parsed.site.site.description,
+                        primary_language: parsed.site.site.primary_language,
+                        home_page_handle: parsed.site.home_page_handle,
+                        pages: parsed.site.pages.map(
+                          ({ handle, title, canonical_path }) => ({
+                            handle,
+                            title,
+                            canonical_path,
+                          }),
+                        ),
+                        required_bindings: parsed.site.external_bindings,
+                      },
+                      issues: parsed.blocking_issues,
+                      issue_counts: {
+                        blocking: parsed.blocking_issues.length,
+                        warnings: 0,
+                      },
+                      has_blocking_issues: parsed.blocking_issues.length > 0,
+                      issues_truncated: false,
                     };
                   }
-                  const persisted =
-                    (await repository.create_import_inspection({
-                      ...input,
-                      inspection_id,
-                      file_id,
-                      source_file: {
-                        ...stored,
-                        mime_type: input.mime_type,
-                      },
-                      content_fingerprint,
-                      safe_report,
-                      expires_at: new Date(
-                        Date.now() + DOCUMENTATION_IMPORT_LIFETIME_MS,
-                      ),
-                    })) as unknown as Record<string, unknown> & {
-                      id: string;
-                      safe_report?: Record<string, unknown>;
-                    };
+                  const persisted = (await repository.create_import_inspection({
+                    ...input,
+                    inspection_id,
+                    file_id,
+                    source_file: {
+                      ...stored,
+                      mime_type: input.mime_type,
+                    },
+                    content_fingerprint,
+                    safe_report,
+                    expires_at: new Date(
+                      Date.now() + DOCUMENTATION_IMPORT_LIFETIME_MS,
+                    ),
+                  })) as unknown as Record<string, unknown> & {
+                    id: string;
+                    safe_report?: Record<string, unknown>;
+                  };
                   if (persisted.id !== inspection_id)
                     await default_capture_file_storage.delete_best_effort(
                       stored,
@@ -2106,14 +2112,11 @@ export const build = (opts: BuildOptions = {}) => {
                     (persisted.idempotent_replay ? null : safe_report);
                   return {
                     ...inspection,
-                    format_version:
-                      input.kind === "site_package" ? 1 : null,
+                    format_version: input.kind === "site_package" ? 1 : null,
                     ...(report ?? {}),
                   };
                 } catch (error) {
-                  await default_capture_file_storage.delete_best_effort(
-                    stored,
-                  );
+                  await default_capture_file_storage.delete_best_effort(stored);
                   throw error;
                 }
               } finally {
@@ -2141,14 +2144,11 @@ export const build = (opts: BuildOptions = {}) => {
             cancel_import_inspection: async (input) => {
               const inspection = (await repository.get_import_inspection(
                 input,
-              )) as
-                | {
-                    storage_provider?: string;
-                    storage_key?: string;
-                  }
-                | null;
-              const result =
-                await repository.cancel_import_inspection(input);
+              )) as {
+                storage_provider?: string;
+                storage_key?: string;
+              } | null;
+              const result = await repository.cancel_import_inspection(input);
               if (
                 inspection?.storage_provider === "local" &&
                 inspection.storage_key
@@ -2161,17 +2161,15 @@ export const build = (opts: BuildOptions = {}) => {
             apply_import: async (input) => {
               const inspection = (await repository.get_import_inspection(
                 input,
-              )) as
-                | {
-                    kind: "page_markdown" | "site_package";
-                    status: string;
-                    source_digest: string;
-                    content_fingerprint: string;
-                    storage_provider: string;
-                    storage_key: string;
-                    safe_report?: { has_blocking_issues?: boolean } | null;
-                  }
-                | null;
+              )) as {
+                kind: "page_markdown" | "site_package";
+                status: string;
+                source_digest: string;
+                content_fingerprint: string;
+                storage_provider: string;
+                storage_key: string;
+                safe_report?: { has_blocking_issues?: boolean } | null;
+              } | null;
               if (
                 !inspection ||
                 inspection.storage_provider !== "local" ||
@@ -2207,8 +2205,7 @@ export const build = (opts: BuildOptions = {}) => {
                 });
                 throw error;
               }
-              const source =
-                await default_capture_file_storage.get(inspection);
+              const source = await default_capture_file_storage.get(inspection);
               const chunks: Buffer[] = [];
               for await (const chunk of source.stream as AsyncIterable<
                 Buffer | string
@@ -2311,9 +2308,8 @@ export const build = (opts: BuildOptions = {}) => {
                     const assetBytes = entryBytes.get(asset.path);
                     if (
                       !assetBytes ||
-                      createHash("sha256")
-                        .update(assetBytes)
-                        .digest("hex") !== asset.sha256
+                      createHash("sha256").update(assetBytes).digest("hex") !==
+                        asset.sha256
                     ) {
                       const error = new Error(
                         "Documentation package Asset changed",
@@ -2347,17 +2343,15 @@ export const build = (opts: BuildOptions = {}) => {
                         "Documentation package Asset metadata changed",
                       );
                     const file_id = ulid();
-                    const stored =
-                      await default_capture_file_storage.put({
-                        organization_id: input.organization_id,
-                        project_id: input.project_id,
-                        documentation_site_id: targetSiteId,
-                        file_id,
-                        mime_type: asset.mime_type,
-                        stream: Readable.from([assetBytes]),
-                        max_size_bytes:
-                          DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
-                      });
+                    const stored = await default_capture_file_storage.put({
+                      organization_id: input.organization_id,
+                      project_id: input.project_id,
+                      documentation_site_id: targetSiteId,
+                      file_id,
+                      mime_type: asset.mime_type,
+                      stream: Readable.from([assetBytes]),
+                      max_size_bytes: DOCUMENTATION_PACKAGE_UPLOAD_MAX_BYTES,
+                    });
                     staged.push(stored);
                     assets.push({
                       handle: asset.handle,
@@ -2405,16 +2399,15 @@ export const build = (opts: BuildOptions = {}) => {
                       mime_type,
                     );
                     const file_id = ulid();
-                    const stored =
-                      await default_capture_file_storage.put({
-                        organization_id: input.organization_id,
-                        project_id: input.project_id,
-                        documentation_site_id: targetSiteId,
-                        file_id,
-                        mime_type,
-                        stream: Readable.from([openapiBytes]),
-                        max_size_bytes: 10 * 1024 * 1024,
-                      });
+                    const stored = await default_capture_file_storage.put({
+                      organization_id: input.organization_id,
+                      project_id: input.project_id,
+                      documentation_site_id: targetSiteId,
+                      file_id,
+                      mime_type,
+                      stream: Readable.from([openapiBytes]),
+                      max_size_bytes: 10 * 1024 * 1024,
+                    });
                     staged.push(stored);
                     openapi = {
                       source_id: ulid(),
@@ -2455,28 +2448,24 @@ export const build = (opts: BuildOptions = {}) => {
                           working_draft_id: ulid(),
                           navigation_tree_id: ulid(),
                           routing_set_id: ulid(),
-                          name:
-                            input.data.target.name ??
-                            parsed.site.site.name,
+                          name: input.data.target.name ?? parsed.site.site.name,
                         }
                       : input.data.target;
-                  const result =
-                    await repository.apply_site_package_import({
-                      organization_id: input.organization_id,
-                      project_id: input.project_id,
-                      project_version_id: input.project_version_id,
-                      actor_org_user_id: input.actor_org_user_id,
-                      idempotency_key: input.idempotency_key,
-                      inspection_id: input.inspection_id,
-                      content_fingerprint:
-                        input.data.content_fingerprint,
-                      target,
-                      site: parsed.site.site,
-                      graph: { ...graph, assets },
-                      openapi,
-                      external_bindings: mappedBindings,
-                      counts: parsed.counts,
-                    });
+                  const result = await repository.apply_site_package_import({
+                    organization_id: input.organization_id,
+                    project_id: input.project_id,
+                    project_version_id: input.project_version_id,
+                    actor_org_user_id: input.actor_org_user_id,
+                    idempotency_key: input.idempotency_key,
+                    inspection_id: input.inspection_id,
+                    content_fingerprint: input.data.content_fingerprint,
+                    target,
+                    site: parsed.site.site,
+                    graph: { ...graph, assets },
+                    openapi,
+                    external_bindings: mappedBindings,
+                    counts: parsed.counts,
+                  });
                   await default_capture_file_storage.delete_best_effort(
                     inspection,
                   );
@@ -2509,9 +2498,7 @@ export const build = (opts: BuildOptions = {}) => {
                 .update(canonicalize_documentation_package_json(parsed.blocks))
                 .digest("hex");
               if (fingerprint !== inspection.content_fingerprint) {
-                const error = new Error(
-                  "Documentation import content changed",
-                );
+                const error = new Error("Documentation import content changed");
                 Object.assign(error, {
                   code: "documentation_import_conflict",
                 });
@@ -2546,9 +2533,7 @@ export const build = (opts: BuildOptions = {}) => {
                 set_as_home: input.data.target.set_as_home,
                 blocks,
               });
-              await default_capture_file_storage.delete_best_effort(
-                inspection,
-              );
+              await default_capture_file_storage.delete_best_effort(inspection);
               return result;
             },
             inspect_openapi: async (input) => {
@@ -2576,8 +2561,7 @@ export const build = (opts: BuildOptions = {}) => {
                   max_size_bytes: 10 * 1024 * 1024,
                 });
                 try {
-                  const source =
-                    await default_capture_file_storage.get(stored);
+                  const source = await default_capture_file_storage.get(stored);
                   const chunks: Buffer[] = [];
                   for await (const chunk of source.stream as AsyncIterable<
                     Buffer | string
@@ -2602,9 +2586,7 @@ export const build = (opts: BuildOptions = {}) => {
                     summary: parsed.summary,
                   });
                 } catch (error) {
-                  await default_capture_file_storage.delete_best_effort(
-                    stored,
-                  );
+                  await default_capture_file_storage.delete_best_effort(stored);
                   throw error;
                 }
               } finally {
@@ -2632,6 +2614,61 @@ export const build = (opts: BuildOptions = {}) => {
                 capability: "documentation.read",
               });
               return repository.get_openapi_source(input);
+            },
+            get_try_it_policy: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.get_try_it_policy(input);
+            },
+            upsert_try_it_policy: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.site.manage",
+              });
+              return repository.upsert_try_it_policy(input);
+            },
+            get_try_it_configuration: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.get_try_it_configuration(input);
+            },
+            get_publish_link_try_it_policy: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.read",
+              });
+              return repository.get_publish_link_try_it_policy(input);
+            },
+            upsert_publish_link_try_it_policy: async (input) => {
+              await project_access_service.authorize({
+                auth: {
+                  organization_id: input.organization_id,
+                  actor_org_user_id: input.actor_org_user_id,
+                },
+                project_id: input.project_id,
+                capability: "documentation.site.manage",
+              });
+              return repository.upsert_publish_link_try_it_policy(input);
             },
           };
         })(),

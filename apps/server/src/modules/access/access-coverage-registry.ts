@@ -496,6 +496,38 @@ const reads: AccessRouteRegistration[] = [
     "site_id",
   ),
   read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/try-it-policy",
+    "documentation.try_it_policy.viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/operations/:operation_key/try-it-configuration",
+    "documentation.try_it_configuration.viewed",
+    "documentation_site",
+    "site_id",
+  ),
+  read(
+    "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/publish-links/:link_id/try-it-policy",
+    "documentation.publish_link_try_it_policy.viewed",
+    "publish_link",
+    "link_id",
+  ),
+  registration(
+    "POST /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/openapi/operations/:operation_key/try-it-attempts",
+    {
+      action: "documentation.try_it.attempt_completed",
+      denied_action: "documentation.try_it.attempt_denied",
+      root_resource_type: "documentation_site",
+      root_parameter: "site_id",
+      project_parameter: "project_id",
+      policy: "denial_only",
+      surface: "portal",
+      authorization_type: "project_role",
+      atomic_commands: [],
+    },
+  ),
+  read(
     "GET /api/v1/projects/:project_id/versions/:version_slug/documentation-sites/:site_id/assets/:asset_id/file",
     "documentation_asset.downloaded",
     "documentation_asset",
@@ -744,6 +776,24 @@ const public_routes: AccessRouteRegistration[] = [
       "documentation_publication.operation_viewed",
     ),
     public_documentation_read(
+      `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation/operations/:operation_key/try-it-configuration`,
+      "documentation.try_it_configuration.viewed",
+    ),
+    registration(
+      `POST /api/v1/public/publish-links/:slug${version_prefix}/documentation/operations/:operation_key/try-it-attempts`,
+      {
+        action: "documentation.try_it.attempt_completed",
+        denied_action: "documentation.try_it.attempt_denied",
+        root_resource_type: "publish_link",
+        root_parameter: null,
+        project_parameter: null,
+        policy: "denial_only",
+        surface: "api",
+        authorization_type: "public_link",
+        atomic_commands: [],
+      },
+    ),
+    public_documentation_read(
       `GET /api/v1/public/publish-links/:slug${version_prefix}/documentation/sitemap.xml`,
       "documentation_publication.sitemap_viewed",
     ),
@@ -813,12 +863,18 @@ export const ACCESS_ROUTE_COVERAGE_REGISTRY = [
   ...compliance_routes,
 ] as const;
 
-const allowed_actions = new Set(
-  ACCESS_ROUTE_COVERAGE_REGISTRY.flatMap((route) => [
+const allowed_actions = new Set([
+  ...ACCESS_ROUTE_COVERAGE_REGISTRY.flatMap((route) => [
     route.action,
     route.denied_action,
   ]),
-);
+  "documentation.try_it.attempt_completed",
+  "documentation.try_it.attempt_browser_network_blocked",
+  "documentation.try_it.attempt_timed_out",
+  "documentation.try_it.attempt_aborted",
+  "documentation.try_it.attempt_response_blocked",
+  "documentation.try_it.attempt_client_validation_blocked",
+]);
 
 export const is_registered_access_action = (action: string) =>
   allowed_actions.has(action);

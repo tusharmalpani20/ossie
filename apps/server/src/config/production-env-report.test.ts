@@ -14,7 +14,8 @@ const valid_production_env = {
   DB_MAX_POOL: "10",
   COOKIE_SECRET: "super-secret-cookie-value",
   COOKIE_DOMAIN: "demo.example.com",
-  OSSIE_CORS_ALLOWED_ORIGINS: "https://demo.example.com,chrome-extension://abcdefghijklmnopabcdefghijklmnop",
+  OSSIE_CORS_ALLOWED_ORIGINS:
+    "https://demo.example.com,chrome-extension://abcdefghijklmnopabcdefghijklmnop",
   OSSIE_DEPLOYMENT_MODE: "self_hosted",
   OSSIE_ONBOARDING_MODE: "first_run_setup",
   OSSIE_LOCAL_STORAGE_ROOT: "/var/lib/ossie/storage",
@@ -24,6 +25,8 @@ const valid_production_env = {
   OSSIE_RATE_LIMIT_WINDOW_MS: "60000",
   API_URL: "https://api.example.com",
   OSSIE_PUBLIC_WEB_URL: "https://demo.example.com",
+  OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS:
+    "https://b.example.com,https://a.example.com",
 };
 
 describe("production env report", () => {
@@ -90,14 +93,25 @@ describe("production env report", () => {
         window_ms: 60000,
         multi_instance_safe: false,
       },
+      documentation_try_it: {
+        allowed_origins_count: 2,
+      },
     });
-    expect(report.operational_limitations).toContain("Local file storage is the only storage provider.");
-    expect(report.operational_limitations).toContain("Rate limiting is in-memory and not shared across API processes.");
+    expect(report.operational_limitations).toContain(
+      "Local file storage is the only storage provider.",
+    );
+    expect(report.operational_limitations).toContain(
+      "Rate limiting is in-memory and not shared across API processes.",
+    );
     expect(serialized).not.toContain("super-secret-cookie-value");
     expect(serialized).not.toContain("super-secret-db-password");
     expect(serialized).not.toContain("COOKIE_SECRET");
     expect(serialized).not.toContain("DB_PASSWORD");
     expect(serialized).not.toContain("/var/lib/ossie/storage");
+    expect(serialized).not.toContain("https://a.example.com");
+    expect(report.documentation_try_it.origin_set_digest).toMatch(
+      /^[a-f0-9]{64}$/u,
+    );
   });
 
   it("fails through startup validation when production config is invalid", () => {
@@ -107,14 +121,17 @@ describe("production env report", () => {
       COOKIE_SECRET: "",
     };
 
-    expect(() => build_production_env_report()).toThrow("COOKIE_SECRET must be defined in production");
+    expect(() => build_production_env_report()).toThrow(
+      "COOKIE_SECRET must be defined in production",
+    );
   });
 
   it("reports only the public API origin when API_URL contains extra URL parts", () => {
     process.env = {
       ...original_env,
       ...valid_production_env,
-      API_URL: "https://api-user:api-password@api.example.com/internal?token=secret-token",
+      API_URL:
+        "https://api-user:api-password@api.example.com/internal?token=secret-token",
     };
 
     const report = build_production_env_report();

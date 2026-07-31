@@ -58,6 +58,7 @@ export const build_documentation_browser_fixture = () => {
       "review_request",
       "review_inbox",
       "review_publication_evidence",
+      "api_try_it_browser_direct",
     ] as const,
     routes: {
       list: `/projects/${capture.project_id}/versions/summer-release/documentation`,
@@ -101,7 +102,12 @@ export const seed_documentation_browser_fixture = async () => {
       WHERE organization_id=$1 AND project_id=$2 AND org_user_id=$3`,
     [base.organization_id, base.project_id, viewer.org_user_id],
   );
-  const app = build({ logger: false });
+  process.env.OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS =
+    "https://api.github.com";
+  const app = build({
+    logger: false,
+    documentation_try_it_origin_validator: async ({ origin }) => origin,
+  });
   const cookie = { ossie_session: admin.session_token };
   const root = `/api/v1/projects/${base.project_id}/versions/${base.version_slug}/documentation-sites`;
 
@@ -339,6 +345,24 @@ export const seed_documentation_browser_fixture = async () => {
       "apply OpenAPI",
     );
     const source = applied.source as { id: string };
+    require_success(
+      await app.inject({
+        method: "PUT",
+        url: `${siteRoot}/openapi/try-it-policy`,
+        cookies: cookie,
+        headers: { "idempotency-key": "plan137-try-it-policy" },
+        payload: {
+          expected_policy_version: null,
+          status: "enabled",
+          approved_origin: "https://api.github.com",
+          base_path: "/",
+          allow_bearer: false,
+          api_key_header_name: null,
+          operation_destination_keys: ["get-widgets-listwidgets"],
+        },
+      }),
+      "enable synthetic Try-It policy",
+    );
     const snippet = require_success(
       await app.inject({
         method: "POST",
@@ -607,8 +631,22 @@ export const seed_documentation_browser_fixture = async () => {
       "publish exact Site Revision",
     );
     const publicationOne = publication.publication as { id: string };
-    const link = publication.link as { id: string };
+    const link = publication.link as { id: string; version: number };
     const entry = publication.entry as { id: string; version: number };
+    require_success(
+      await app.inject({
+        method: "PATCH",
+        url: `${siteRoot}/publish-links/${link.id}/try-it-policy`,
+        cookies: cookie,
+        headers: { "idempotency-key": "plan137-link-try-it-policy" },
+        payload: {
+          expected_policy_version: null,
+          expected_link_version: link.version,
+          enabled: true,
+        },
+      }),
+      "enable Try It on Publish Link",
+    );
     const latestHome = require_success(
       await app.inject({
         method: "GET",

@@ -13,6 +13,7 @@ import {
   assert_documentation_comment_transition,
   assert_documentation_page_retirement,
   build_documentation_search_document,
+  derive_documentation_try_it_descriptors,
   inspect_openapi_document,
   normalize_documentation_asset_name,
   normalize_documentation_snippet_name,
@@ -21,6 +22,7 @@ import {
   validate_documentation_routes,
   resolve_documentation_publication_review_gate,
 } from "@repo/documentation-domain";
+import { derive_documentation_server_candidates } from "./documentation-openapi";
 import {
   DocumentationIdempotencyConflictError,
   DocumentationRowVersionConflictError,
@@ -1357,7 +1359,9 @@ const load_draft_snapshot = async (
   const operations = await db.query<Record<string, unknown>>(
     `SELECT operation.id,operation.method,operation.path,
             operation.operation_id,operation.destination_key,
-            operation.summary,operation.openapi_source_id
+            operation.summary,operation.openapi_source_id,
+            operation.request_descriptor,operation.descriptor_version,
+            operation.descriptor_digest
        FROM documentation_schema.openapi_operation operation
       WHERE operation.organization_id=$1 AND operation.project_id=$2
         AND operation.site_edition_id=$3
@@ -1728,7 +1732,8 @@ export const load_revision_snapshot = async (
   );
   const operations = await db.query<Record<string, unknown>>(
     `SELECT source_openapi_operation_id id,method,path,operation_id,
-            destination_key,summary
+            destination_key,summary,request_descriptor,descriptor_version,
+            descriptor_digest
        FROM documentation_schema.site_revision_openapi_operation
       WHERE site_revision_id=$1 ORDER BY destination_key,id`,
     [root.id],
@@ -1751,6 +1756,7 @@ export const load_revision_snapshot = async (
   const openapiSource = await db.query<Record<string, unknown>>(
     `SELECT frozen.source_openapi_source_id id,frozen.file_id,frozen.digest,
             frozen.original_format,frozen.openapi_version,frozen.title,
+            frozen.server_candidates,
             file.mime_type,file.storage_provider,file.storage_key,
             file.size_bytes,file.checksum_sha256
        FROM documentation_schema.site_revision_openapi_source frozen
@@ -2088,8 +2094,8 @@ const insert_carried_revision_graph = async (
     await client.query(
       `INSERT INTO documentation_schema.openapi_source
         (id,organization_id,project_id,site_edition_id,file_id,digest,
-         openapi_version,title,created_by_id,updated_by_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)`,
+         openapi_version,title,server_candidates,created_by_id,updated_by_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$10)`,
       [
         source.source_id,
         input.organization_id,
@@ -2099,6 +2105,7 @@ const insert_carried_revision_graph = async (
         source.digest,
         source.openapi_version,
         source.title,
+        JSON.stringify(source.server_candidates ?? []),
         input.actor_org_user_id,
       ],
     );
@@ -2106,8 +2113,9 @@ const insert_carried_revision_graph = async (
       await client.query(
         `INSERT INTO documentation_schema.openapi_operation
           (id,organization_id,project_id,site_edition_id,openapi_source_id,
-           method,path,operation_id,destination_key,summary)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+           method,path,operation_id,destination_key,summary,
+           request_descriptor,descriptor_version,descriptor_digest)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,$13)`,
         [
           operation.id,
           input.organization_id,
@@ -2119,6 +2127,9 @@ const insert_carried_revision_graph = async (
           operation.operation_id ?? null,
           operation.destination_key,
           operation.summary ?? null,
+          JSON.stringify(operation.request_descriptor ?? {}),
+          operation.descriptor_version ?? 0,
+          operation.descriptor_digest ?? null,
         ],
       );
   }
@@ -2290,6 +2301,592 @@ const insert_carried_revision_graph = async (
 
 export const build_documentation_repository = (database: Database) => {
   const repository = {
+    get_try_it_policy: async (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      site_id: string;
+    }) => {
+      const result = await database.query<Record<string, unknown>>(
+        `SELECT policy.id,policy.version,policy.status,policy.approved_origin,
+                policy.base_path,policy.allow_bearer,
+                policy.api_key_header_name,policy.openapi_source_version,
+                source.version current_source_version,
+                edition.status edition_status,
+                COALESCE(array_agg(allowance.destination_key ORDER BY
+                  allowance.destination_key)
+                  FILTER (WHERE allowance.destination_key IS NOT NULL),
+                  ARRAY[]::varchar[]) operation_destination_keys
+           FROM documentation_schema.site_edition edition
+           LEFT JOIN documentation_schema.openapi_source source
+             ON source.site_edition_id=edition.id
+           LEFT JOIN documentation_schema.openapi_try_it_policy policy
+             ON policy.site_edition_id=edition.id
+           LEFT JOIN documentation_schema.openapi_try_it_operation_allowance allowance
+             ON allowance.try_it_policy_id=policy.id
+          WHERE edition.organization_id=$1 AND edition.project_id=$2
+            AND edition.project_version_id=$3
+            AND edition.documentation_site_id=$4
+          GROUP BY policy.id,policy.version,policy.status,policy.approved_origin,
+                   policy.base_path,policy.allow_bearer,
+                   policy.api_key_header_name,policy.openapi_source_version,
+                   source.version,edition.status`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+        ],
+      );
+      const row = result.rows[0];
+      if (!row?.id) return { policy: null };
+      const effective_status =
+        row.edition_status === "archived"
+          ? "archived"
+          : row.status === "disabled"
+            ? "disabled"
+            : row.openapi_source_version !== row.current_source_version
+              ? "stale_source"
+              : "enabled";
+      return {
+        policy: {
+          id: row.id,
+          version: row.version,
+          status: row.status,
+          approved_origin: row.approved_origin,
+          base_path: row.base_path,
+          allow_bearer: row.allow_bearer,
+          api_key_header_name: row.api_key_header_name,
+          operation_destination_keys: row.operation_destination_keys,
+          source_version: row.openapi_source_version,
+          effective_status,
+          operation_count: Array.isArray(row.operation_destination_keys)
+            ? row.operation_destination_keys.length
+            : 0,
+        },
+      };
+    },
+
+    upsert_try_it_policy: async (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      site_id: string;
+      actor_org_user_id: string;
+      idempotency_key: string;
+      expected_policy_version: number | null;
+      status: "disabled" | "enabled";
+      approved_origin: string | null;
+      base_path: string | null;
+      allow_bearer: boolean;
+      api_key_header_name: string | null;
+      operation_destination_keys: string[];
+    }) =>
+      with_transaction(database, async (client) => {
+        const request_digest = command_digest({
+          project_version_id: input.project_version_id,
+          site_id: input.site_id,
+          expected_policy_version: input.expected_policy_version,
+          status: input.status,
+          approved_origin: input.approved_origin,
+          base_path: input.base_path,
+          allow_bearer: input.allow_bearer,
+          api_key_header_name: input.api_key_header_name,
+          operation_destination_keys: [
+            ...input.operation_destination_keys,
+          ].sort(),
+        });
+        const replay = await read_command_receipt(client, {
+          ...input,
+          operation: "documentation.openapi_try_it_policy.upsert",
+          request_digest,
+        });
+        if (replay) return replay;
+        const edition = await client.query<{
+          id: string;
+          status: string;
+          source_id: string | null;
+          source_version: number | null;
+          source_digest: string | null;
+        }>(
+          `SELECT edition.id,edition.status,source.id source_id,
+                  source.version source_version,source.digest source_digest
+             FROM documentation_schema.site_edition edition
+             JOIN documentation_schema.openapi_source source
+               ON source.site_edition_id=edition.id
+            WHERE edition.organization_id=$1 AND edition.project_id=$2
+              AND edition.project_version_id=$3
+              AND edition.documentation_site_id=$4
+            FOR UPDATE OF edition,source`,
+          [
+            input.organization_id,
+            input.project_id,
+            input.project_version_id,
+            input.site_id,
+          ],
+        );
+        const scoped = edition.rows[0];
+        if (
+          !scoped?.source_id ||
+          !scoped.source_version ||
+          !scoped.source_digest
+        )
+          throw Object.assign(new Error("OpenAPI Source was not found"), {
+            code: "documentation_not_found",
+          });
+        if (scoped.status === "archived")
+          throw Object.assign(new Error("Documentation Site is read-only"), {
+            code: "documentation_read_only",
+          });
+        const current = await client.query<{ id: string; version: number }>(
+          `SELECT id,version FROM documentation_schema.openapi_try_it_policy
+            WHERE site_edition_id=$1 FOR UPDATE`,
+          [scoped.id],
+        );
+        if (
+          (current.rows[0]?.version ?? null) !== input.expected_policy_version
+        )
+          throw Object.assign(new Error("Try-It policy changed"), {
+            code: "documentation_try_it_policy_conflict",
+          });
+        const command = !current.rows[0]
+          ? "documentation.openapi_try_it_policy.create"
+          : input.status === "disabled"
+            ? "documentation.openapi_try_it_policy.disable"
+            : "documentation.openapi_try_it_policy.update";
+        const action = !current.rows[0]
+          ? "documentation.openapi_try_it_policy.created"
+          : input.status === "disabled"
+            ? "documentation.openapi_try_it_policy.disabled"
+            : "documentation.openapi_try_it_policy.updated";
+        const audit = await begin_documentation_audit_context(client, {
+          ...input,
+          command,
+          action,
+        });
+        if (input.status === "enabled") {
+          const allowed = await client.query<{
+            destination_key: string;
+            request_descriptor: {
+              security?: {
+                bearer?: boolean;
+                api_key_header_names?: string[];
+              };
+            };
+          }>(
+            `SELECT destination_key,request_descriptor
+               FROM documentation_schema.openapi_operation
+              WHERE openapi_source_id=$1 AND descriptor_version=1
+                AND destination_key=ANY($2::varchar[])`,
+            [scoped.source_id, input.operation_destination_keys],
+          );
+          if (allowed.rows.length !== input.operation_destination_keys.length)
+            throw Object.assign(new Error("Try-It operation is unsupported"), {
+              code: "documentation_try_it_operation_unsupported",
+            });
+          if (
+            input.allow_bearer &&
+            !allowed.rows.some(
+              ({ request_descriptor }) =>
+                request_descriptor.security?.bearer === true,
+            )
+          )
+            throw Object.assign(
+              new Error("The selected source does not declare bearer auth"),
+              { code: "documentation_try_it_operation_unsupported" },
+            );
+          if (
+            input.api_key_header_name &&
+            !allowed.rows.some(({ request_descriptor }) =>
+              request_descriptor.security?.api_key_header_names?.some(
+                (name) =>
+                  name.toLowerCase() ===
+                  input.api_key_header_name!.toLowerCase(),
+              ),
+            )
+          )
+            throw Object.assign(
+              new Error("The selected source does not declare that API key"),
+              { code: "documentation_try_it_operation_unsupported" },
+            );
+        }
+        const id = current.rows[0]?.id ?? ulid();
+        if (current.rows[0])
+          await client.query(
+            `UPDATE documentation_schema.openapi_try_it_policy
+                SET openapi_source_id=$1,openapi_source_version=$2,
+                    openapi_source_digest=$3,status=$4,approved_origin=$5,
+                    base_path=$6,allow_bearer=$7,api_key_header_name=$8,
+                    version=version+1,updated_by_id=$9,
+                    updated_at=CURRENT_TIMESTAMP
+              WHERE id=$10`,
+            [
+              scoped.source_id,
+              scoped.source_version,
+              scoped.source_digest,
+              input.status,
+              input.approved_origin,
+              input.base_path,
+              input.allow_bearer,
+              input.api_key_header_name,
+              input.actor_org_user_id,
+              id,
+            ],
+          );
+        else
+          await client.query(
+            `INSERT INTO documentation_schema.openapi_try_it_policy
+              (id,organization_id,project_id,documentation_site_id,
+               site_edition_id,openapi_source_id,openapi_source_version,
+               openapi_source_digest,status,approved_origin,base_path,
+               allow_bearer,api_key_header_name,created_by_id,updated_by_id)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$14)`,
+            [
+              id,
+              input.organization_id,
+              input.project_id,
+              input.site_id,
+              scoped.id,
+              scoped.source_id,
+              scoped.source_version,
+              scoped.source_digest,
+              input.status,
+              input.approved_origin,
+              input.base_path,
+              input.allow_bearer,
+              input.api_key_header_name,
+              input.actor_org_user_id,
+            ],
+          );
+        await client.query(
+          `DELETE FROM documentation_schema.openapi_try_it_operation_allowance
+            WHERE try_it_policy_id=$1`,
+          [id],
+        );
+        for (const destination_key of input.operation_destination_keys)
+          await client.query(
+            `INSERT INTO documentation_schema.openapi_try_it_operation_allowance
+              (id,organization_id,project_id,site_edition_id,try_it_policy_id,
+               destination_key)
+             VALUES ($1,$2,$3,$4,$5,$6)`,
+            [
+              ulid(),
+              input.organization_id,
+              input.project_id,
+              scoped.id,
+              id,
+              destination_key,
+            ],
+          );
+        const result = {
+          policy: {
+            id,
+            version: (current.rows[0]?.version ?? 0) + 1,
+            status: input.status,
+            effective_status: input.status,
+            operation_count: input.operation_destination_keys.length,
+          },
+        };
+        await write_documentation_audit_event(client, {
+          audit,
+          organization_id: input.organization_id,
+          project_id: input.project_id,
+          site_id: input.site_id,
+          actor_org_user_id: input.actor_org_user_id,
+          action,
+          entity_type: "openapi_try_it_policy",
+          entity_id: id,
+          before_version: current.rows[0]?.version ?? null,
+          after_version: result.policy.version,
+        });
+        await write_command_receipt(client, {
+          ...input,
+          operation: "documentation.openapi_try_it_policy.upsert",
+          request_digest,
+          response_status: current.rows[0] ? 200 : 201,
+          response_body: result,
+        });
+        return { ...result, idempotent_replay: false };
+      }),
+
+    get_try_it_configuration: async (input: {
+      organization_id: string;
+      project_id: string;
+      project_version_id: string;
+      site_id: string;
+      operation_key: string;
+      source?: "draft" | "revision";
+      revision_number?: number;
+    }) => {
+      if (input.source === "revision") {
+        if (!input.revision_number) return null;
+        const frozen = await database.query<Record<string, unknown>>(
+          `SELECT policy.id policy_id,
+                  policy.source_policy_version policy_version,
+                  policy.approved_origin,policy.base_path,policy.allow_bearer,
+                  policy.api_key_header_name,operation.request_descriptor
+             FROM documentation_schema.site_revision revision
+             JOIN documentation_schema.site_edition edition
+               ON edition.id=revision.site_edition_id
+              AND edition.status='active'
+             JOIN documentation_schema.site_revision_openapi_try_it_policy policy
+               ON policy.site_revision_id=revision.id
+             JOIN documentation_schema.site_revision_openapi_try_it_operation_allowance allowance
+               ON allowance.frozen_policy_id=policy.id
+             JOIN documentation_schema.site_revision_openapi_operation operation
+               ON operation.site_revision_id=revision.id
+              AND operation.destination_key=allowance.destination_key
+              AND operation.descriptor_version=1
+            WHERE revision.organization_id=$1 AND revision.project_id=$2
+              AND revision.project_version_id=$3
+              AND revision.documentation_site_id=$4
+              AND revision.revision_number=$5
+              AND operation.destination_key=$6`,
+          [
+            input.organization_id,
+            input.project_id,
+            input.project_version_id,
+            input.site_id,
+            input.revision_number,
+            input.operation_key,
+          ],
+        );
+        return frozen.rows[0] ?? null;
+      }
+      const result = await database.query<Record<string, unknown>>(
+        `SELECT policy.id policy_id,policy.version policy_version,
+                policy.approved_origin,policy.base_path,policy.allow_bearer,
+                policy.api_key_header_name,policy.openapi_source_version,
+                source.version current_source_version,
+                operation.request_descriptor
+           FROM documentation_schema.site_edition edition
+           JOIN documentation_schema.openapi_source source
+             ON source.site_edition_id=edition.id AND source.status='active'
+           JOIN documentation_schema.openapi_try_it_policy policy
+             ON policy.site_edition_id=edition.id AND policy.status='enabled'
+           JOIN documentation_schema.openapi_try_it_operation_allowance allowance
+             ON allowance.try_it_policy_id=policy.id
+           JOIN documentation_schema.openapi_operation operation
+             ON operation.openapi_source_id=source.id
+            AND operation.destination_key=allowance.destination_key
+            AND operation.descriptor_version=1
+          WHERE edition.organization_id=$1 AND edition.project_id=$2
+            AND edition.project_version_id=$3
+            AND edition.documentation_site_id=$4
+            AND edition.status='active' AND operation.destination_key=$5`,
+        [
+          input.organization_id,
+          input.project_id,
+          input.project_version_id,
+          input.site_id,
+          input.operation_key,
+        ],
+      );
+      const row = result.rows[0];
+      if (!row || row.openapi_source_version !== row.current_source_version)
+        return null;
+      return row;
+    },
+
+    get_publish_link_try_it_policy: async (input: {
+      organization_id: string;
+      project_id: string;
+      site_id: string;
+      link_id: string;
+    }) => {
+      const link = await database.query<Record<string, unknown>>(
+        `SELECT link.id,link.status,policy.id policy_id,
+                policy.version policy_version,policy.enabled
+           FROM publish_schema.publish_link link
+           LEFT JOIN publish_schema.documentation_try_it_policy policy
+             ON policy.publish_link_id=link.id
+          WHERE link.id=$1 AND link.organization_id=$2 AND link.project_id=$3
+            AND link.documentation_site_id=$4
+            AND link.resource_family='documentation_site'`,
+        [input.link_id, input.organization_id, input.project_id, input.site_id],
+      );
+      if (!link.rows[0]) return null;
+      const entries = await database.query<Record<string, unknown>>(
+        `SELECT entry.id entry_id,version.slug project_version_slug,
+                version.name project_version_label,entry.is_default,
+                (frozen.id IS NOT NULL) available
+           FROM publish_schema.publish_link_entry entry
+           JOIN project_schema.project_version version
+             ON version.id=entry.project_version_id
+           JOIN publish_schema.site_publication publication
+             ON publication.id=entry.site_publication_id
+           LEFT JOIN documentation_schema.site_revision_openapi_try_it_policy frozen
+             ON frozen.site_revision_id=publication.site_revision_id
+          WHERE entry.publish_link_id=$1
+          ORDER BY entry.position,entry.id`,
+        [input.link_id],
+      );
+      const row = link.rows[0];
+      const available = entries.rows.filter((entry) => entry.available).length;
+      const enabled = row.enabled === true;
+      return {
+        policy: row.policy_id
+          ? { id: row.policy_id, version: row.policy_version, enabled }
+          : null,
+        effective_status:
+          row.status === "revoked"
+            ? "revoked"
+            : !enabled
+              ? "off"
+              : available === 0
+                ? "unavailable"
+                : available === entries.rows.length
+                  ? "available"
+                  : "partially_available",
+        entries: entries.rows.map((entry) => ({
+          entry_id: entry.entry_id,
+          project_version_slug: entry.project_version_slug,
+          project_version_label: entry.project_version_label,
+          is_default: entry.is_default,
+          effective_status: entry.available ? "available" : "unavailable",
+        })),
+      };
+    },
+
+    upsert_publish_link_try_it_policy: async (input: {
+      organization_id: string;
+      project_id: string;
+      site_id: string;
+      link_id: string;
+      actor_org_user_id: string;
+      idempotency_key: string;
+      expected_policy_version: number | null;
+      expected_link_version: number;
+      enabled: boolean;
+    }) =>
+      with_transaction(database, async (client) => {
+        const request_digest = command_digest({
+          site_id: input.site_id,
+          link_id: input.link_id,
+          expected_policy_version: input.expected_policy_version,
+          expected_link_version: input.expected_link_version,
+          enabled: input.enabled,
+        });
+        const replay = await read_command_receipt(client, {
+          ...input,
+          operation: "documentation.publish_link_try_it_policy.upsert",
+          request_digest,
+        });
+        if (replay) return replay;
+        const link = await client.query<{
+          version: number;
+          status: string;
+          default_compatible: boolean;
+        }>(
+          `SELECT link.version,link.status,
+                  EXISTS (
+                    SELECT 1 FROM publish_schema.publish_link_entry entry
+                    JOIN publish_schema.site_publication publication
+                      ON publication.id=entry.site_publication_id
+                    JOIN documentation_schema.site_revision_openapi_try_it_policy frozen
+                      ON frozen.site_revision_id=publication.site_revision_id
+                    WHERE entry.publish_link_id=link.id AND entry.is_default
+                  ) default_compatible
+             FROM publish_schema.publish_link link
+            WHERE link.id=$1 AND link.organization_id=$2 AND link.project_id=$3
+              AND link.documentation_site_id=$4
+              AND link.resource_family='documentation_site'
+            FOR UPDATE`,
+          [
+            input.link_id,
+            input.organization_id,
+            input.project_id,
+            input.site_id,
+          ],
+        );
+        const scoped = link.rows[0];
+        if (!scoped) return null;
+        if (
+          scoped.version !== input.expected_link_version ||
+          scoped.status !== "active"
+        )
+          throw Object.assign(new Error("Publish Link changed"), {
+            code: "documentation_try_it_policy_conflict",
+          });
+        if (input.enabled && !scoped.default_compatible)
+          throw Object.assign(
+            new Error("Default Publish Link entry is incompatible"),
+            { code: "documentation_try_it_link_incompatible" },
+          );
+        const current = await client.query<{ id: string; version: number }>(
+          `SELECT id,version FROM publish_schema.documentation_try_it_policy
+            WHERE publish_link_id=$1 FOR UPDATE`,
+          [input.link_id],
+        );
+        if (
+          (current.rows[0]?.version ?? null) !== input.expected_policy_version
+        )
+          throw Object.assign(new Error("Try-It link policy changed"), {
+            code: "documentation_try_it_policy_conflict",
+          });
+        const command = input.enabled
+          ? "documentation.publish_link_try_it_policy.enable"
+          : "documentation.publish_link_try_it_policy.disable";
+        const action = input.enabled
+          ? "documentation.publish_link_try_it_policy.enabled"
+          : "documentation.publish_link_try_it_policy.disabled";
+        const audit = await begin_documentation_audit_context(client, {
+          ...input,
+          command,
+          action,
+        });
+        const id = current.rows[0]?.id ?? ulid();
+        if (current.rows[0])
+          await client.query(
+            `UPDATE publish_schema.documentation_try_it_policy
+                SET enabled=$1,version=version+1,updated_by_id=$2,
+                    updated_at=CURRENT_TIMESTAMP WHERE id=$3`,
+            [input.enabled, input.actor_org_user_id, id],
+          );
+        else
+          await client.query(
+            `INSERT INTO publish_schema.documentation_try_it_policy
+              (id,organization_id,project_id,publish_link_id,enabled,
+               created_by_id,updated_by_id)
+             VALUES ($1,$2,$3,$4,$5,$6,$6)`,
+            [
+              id,
+              input.organization_id,
+              input.project_id,
+              input.link_id,
+              input.enabled,
+              input.actor_org_user_id,
+            ],
+          );
+        const result = {
+          policy: {
+            id,
+            version: (current.rows[0]?.version ?? 0) + 1,
+            enabled: input.enabled,
+          },
+        };
+        await write_documentation_audit_event(client, {
+          audit,
+          organization_id: input.organization_id,
+          project_id: input.project_id,
+          site_id: input.site_id,
+          actor_org_user_id: input.actor_org_user_id,
+          action,
+          entity_type: "documentation_try_it_policy",
+          entity_id: id,
+          before_version: current.rows[0]?.version ?? null,
+          after_version: result.policy.version,
+        });
+        await write_command_receipt(client, {
+          ...input,
+          operation: "documentation.publish_link_try_it_policy.upsert",
+          request_digest,
+          response_status: current.rows[0] ? 200 : 201,
+          response_body: result,
+        });
+        return { ...result, idempotent_replay: false };
+      }),
+
     create_asset: async (input: {
       organization_id: string;
       project_id: string;
@@ -2653,6 +3250,9 @@ export const build_documentation_repository = (database: Database) => {
           throw error;
         }
         const source_id = current.rows[0]?.id ?? ulid();
+        const server_candidates = derive_documentation_server_candidates(
+          inspected.parsed_document,
+        );
         if (current.rows[0]) {
           await client.query(
             `DELETE FROM documentation_schema.openapi_operation
@@ -2662,14 +3262,15 @@ export const build_documentation_repository = (database: Database) => {
           await client.query(
             `UPDATE documentation_schema.openapi_source
               SET file_id=$1,digest=$2,openapi_version=$3,title=$4,
-                  version=version+1,updated_by_id=$5,
+                  server_candidates=$5::jsonb,version=version+1,updated_by_id=$6,
                   updated_at=CURRENT_TIMESTAMP
-            WHERE id=$6`,
+            WHERE id=$7`,
             [
               inspected.file_id,
               inspected.digest,
               inspected.openapi_version,
               inspected.title,
+              JSON.stringify(server_candidates),
               input.actor_org_user_id,
               source_id,
             ],
@@ -2678,8 +3279,8 @@ export const build_documentation_repository = (database: Database) => {
           await client.query(
             `INSERT INTO documentation_schema.openapi_source
             (id,organization_id,project_id,site_edition_id,file_id,digest,
-             openapi_version,title,created_by_id,updated_by_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)`,
+             openapi_version,title,server_candidates,created_by_id,updated_by_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$10)`,
             [
               source_id,
               input.organization_id,
@@ -2689,20 +3290,39 @@ export const build_documentation_repository = (database: Database) => {
               inspected.digest,
               inspected.openapi_version,
               inspected.title,
+              JSON.stringify(server_candidates),
               input.actor_org_user_id,
             ],
           );
         }
         const summary = inspect_openapi_document(inspected.parsed_document);
+        const descriptors = derive_documentation_try_it_descriptors(
+          inspected.parsed_document,
+        );
         const operations = [];
         for (const operation of summary.operations) {
-          const persisted = { id: ulid(), ...operation };
+          const request_descriptor = descriptors.find(
+            (descriptor) =>
+              descriptor.destination_key === operation.destination_key,
+          );
+          const persisted = {
+            id: ulid(),
+            ...operation,
+            request_descriptor: request_descriptor ?? {},
+            descriptor_version: request_descriptor ? 1 : 0,
+            descriptor_digest: request_descriptor
+              ? createHash("sha256")
+                  .update(JSON.stringify(request_descriptor))
+                  .digest("hex")
+              : null,
+          };
           operations.push(persisted);
           await client.query(
             `INSERT INTO documentation_schema.openapi_operation
             (id,organization_id,project_id,site_edition_id,openapi_source_id,
-             method,path,operation_id,destination_key)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+             method,path,operation_id,destination_key,request_descriptor,
+             descriptor_version,descriptor_digest)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
             [
               persisted.id,
               input.organization_id,
@@ -2713,6 +3333,9 @@ export const build_documentation_repository = (database: Database) => {
               persisted.path,
               persisted.operation_id ?? null,
               persisted.destination_key,
+              persisted.request_descriptor,
+              persisted.descriptor_version,
+              persisted.descriptor_digest,
             ],
           );
         }
@@ -3299,11 +3922,76 @@ export const build_documentation_repository = (database: Database) => {
           });
           throw error;
         }
-        const content_digest = command_digest({
+        const tryItPolicy = await client.query<{
+          id: string;
+          openapi_source_id: string;
+          openapi_source_version: number;
+          openapi_source_digest: string;
+          approved_origin: string;
+          base_path: string;
+          allow_bearer: boolean;
+          api_key_header_name: string | null;
+          version: number;
+        }>(
+          `SELECT policy.id,policy.openapi_source_id,
+                  policy.openapi_source_version,policy.openapi_source_digest,
+                  policy.approved_origin,policy.base_path,policy.allow_bearer,
+                  policy.api_key_header_name,policy.version
+             FROM documentation_schema.openapi_try_it_policy policy
+             JOIN documentation_schema.openapi_source source
+               ON source.id=policy.openapi_source_id
+              AND source.version=policy.openapi_source_version
+              AND source.digest=policy.openapi_source_digest
+            WHERE policy.site_edition_id=$1 AND policy.status='enabled'`,
+          [snapshot.edition.id],
+        );
+        const effectiveTryItPolicy = tryItPolicy.rows[0] ?? null;
+        const tryItAllowances = effectiveTryItPolicy
+          ? await client.query<{ destination_key: string }>(
+              `SELECT allowance.destination_key
+                 FROM documentation_schema.openapi_try_it_operation_allowance allowance
+                 JOIN documentation_schema.openapi_operation operation
+                   ON operation.openapi_source_id=$2
+                  AND operation.destination_key=allowance.destination_key
+                  AND operation.descriptor_version=1
+                WHERE allowance.try_it_policy_id=$1
+                ORDER BY allowance.destination_key`,
+              [effectiveTryItPolicy.id, effectiveTryItPolicy.openapi_source_id],
+            )
+          : { rows: [] };
+        const frozenTryItDigestInput =
+          effectiveTryItPolicy && tryItAllowances.rows.length > 0
+            ? {
+                approved_origin: effectiveTryItPolicy.approved_origin,
+                base_path: effectiveTryItPolicy.base_path,
+                allow_bearer: effectiveTryItPolicy.allow_bearer,
+                api_key_header_name: effectiveTryItPolicy.api_key_header_name,
+                source_digest: effectiveTryItPolicy.openapi_source_digest,
+                source_policy_version: effectiveTryItPolicy.version,
+                operation_destination_keys: tryItAllowances.rows.map(
+                  ({ destination_key }) => destination_key,
+                ),
+              }
+            : null;
+        const digestSnapshot = {
           ...snapshot,
+          openapi_operations: snapshot.openapi_operations.map((operation) => {
+            if (operation.descriptor_version === 1) return operation;
+            const legacyOperation = { ...operation };
+            delete legacyOperation.request_descriptor;
+            delete legacyOperation.descriptor_version;
+            delete legacyOperation.descriptor_digest;
+            return legacyOperation;
+          }),
+        };
+        const content_digest = command_digest({
+          ...digestSnapshot,
           protected_asset_digests: [...protectedAssetDigests.entries()].sort(
             ([left], [right]) => left.localeCompare(right),
           ),
+          ...(frozenTryItDigestInput
+            ? { openapi_try_it_policy: frozenTryItDigestInput }
+            : {}),
         });
         const existing = await client.query<{
           id: string;
@@ -4026,8 +4714,9 @@ export const build_documentation_repository = (database: Database) => {
             `INSERT INTO documentation_schema.site_revision_openapi_operation
             (id,organization_id,project_id,site_edition_id,site_revision_id,
              source_openapi_operation_id,method,path,operation_id,
-             destination_key,summary)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+             destination_key,summary,request_descriptor,descriptor_version,
+             descriptor_digest)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
             [
               ulid(),
               input.organization_id,
@@ -4040,8 +4729,71 @@ export const build_documentation_repository = (database: Database) => {
               operation.operation_id,
               operation.destination_key,
               operation.summary,
+              operation.request_descriptor ?? {},
+              operation.descriptor_version ?? 0,
+              operation.descriptor_digest ?? null,
             ],
           );
+        }
+        if (effectiveTryItPolicy) {
+          const policy = effectiveTryItPolicy;
+          const allowances = tryItAllowances;
+          if (allowances.rows.length > 0) {
+            const policyDigest = createHash("sha256")
+              .update(
+                JSON.stringify({
+                  origin: policy.approved_origin,
+                  base_path: policy.base_path,
+                  allow_bearer: policy.allow_bearer,
+                  api_key_header_name: policy.api_key_header_name,
+                  operations: allowances.rows.map(
+                    (allowance) => allowance.destination_key,
+                  ),
+                }),
+              )
+              .digest("hex");
+            const frozenPolicyId = ulid();
+            await client.query(
+              `INSERT INTO documentation_schema.site_revision_openapi_try_it_policy
+                (id,organization_id,project_id,documentation_site_id,
+                 site_edition_id,site_revision_id,source_openapi_source_id,
+                 source_digest,source_policy_version,approved_origin,base_path,
+                 allow_bearer,api_key_header_name,policy_digest)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+              [
+                frozenPolicyId,
+                input.organization_id,
+                input.project_id,
+                input.site_id,
+                snapshot.edition.id,
+                revision.id,
+                policy.openapi_source_id,
+                policy.openapi_source_digest,
+                policy.version,
+                policy.approved_origin,
+                policy.base_path,
+                policy.allow_bearer,
+                policy.api_key_header_name,
+                policyDigest,
+              ],
+            );
+            for (const allowance of allowances.rows)
+              await client.query(
+                `INSERT INTO documentation_schema.site_revision_openapi_try_it_operation_allowance
+                  (id,organization_id,project_id,site_edition_id,
+                   site_revision_id,frozen_policy_id,destination_key)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+                [
+                  ulid(),
+                  input.organization_id,
+                  input.project_id,
+                  snapshot.edition.id,
+                  revision.id,
+                  frozenPolicyId,
+                  allowance.destination_key,
+                ],
+              );
+          }
         }
         const openapiSource = await client.query<{
           id: string;
@@ -4050,9 +4802,10 @@ export const build_documentation_repository = (database: Database) => {
           mime_type: string;
           openapi_version: string;
           title: string;
+          server_candidates: unknown[];
         }>(
           `SELECT source.id,source.file_id,source.digest,file.mime_type,
-                source.openapi_version,source.title
+                source.openapi_version,source.title,source.server_candidates
            FROM documentation_schema.openapi_source source
            JOIN file_schema.file file
              ON file.id=source.file_id
@@ -4067,8 +4820,8 @@ export const build_documentation_repository = (database: Database) => {
             `INSERT INTO documentation_schema.site_revision_openapi_source
             (id,organization_id,project_id,site_edition_id,site_revision_id,
              source_openapi_source_id,file_id,digest,mime_type,
-             original_format,openapi_version,title)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+             original_format,openapi_version,title,server_candidates)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb)`,
             [
               ulid(),
               input.organization_id,
@@ -4082,6 +4835,7 @@ export const build_documentation_repository = (database: Database) => {
               source.mime_type === "application/json" ? "json" : "yaml",
               source.openapi_version,
               source.title,
+              JSON.stringify(source.server_candidates),
             ],
           );
         }
@@ -5359,6 +6113,31 @@ export const build_documentation_repository = (database: Database) => {
         ORDER BY canonical_path,page_id`,
         [selected.site_publication_id],
       );
+      const tryIt = await database.query<Record<string, unknown>>(
+        `SELECT link_policy.id link_policy_id,
+                link_policy.version link_policy_version,
+                link_policy.enabled,
+                frozen.id frozen_policy_id,
+                frozen.source_policy_version,frozen.approved_origin,
+                frozen.base_path,frozen.allow_bearer,
+                frozen.api_key_header_name,frozen.policy_digest,
+                COALESCE(array_agg(allowance.destination_key ORDER BY
+                  allowance.destination_key)
+                  FILTER (WHERE allowance.destination_key IS NOT NULL),
+                  ARRAY[]::varchar[]) operation_destination_keys
+           FROM publish_schema.documentation_try_it_policy link_policy
+           JOIN documentation_schema.site_revision_openapi_try_it_policy frozen
+             ON frozen.site_revision_id=$2
+           LEFT JOIN documentation_schema.site_revision_openapi_try_it_operation_allowance allowance
+             ON allowance.frozen_policy_id=frozen.id
+          WHERE link_policy.publish_link_id=$1 AND link_policy.enabled
+          GROUP BY link_policy.id,link_policy.version,link_policy.enabled,
+                   frozen.id,frozen.source_policy_version,
+                   frozen.approved_origin,frozen.base_path,
+                   frozen.allow_bearer,frozen.api_key_header_name,
+                   frozen.policy_digest`,
+        [selected.link_id, selected.site_revision_id],
+      );
       return {
         resource_family: "documentation_site" as const,
         link: {
@@ -5378,6 +6157,7 @@ export const build_documentation_repository = (database: Database) => {
           output_digest: selected.output_digest,
         },
         search_documents: search_documents.rows,
+        _try_it: tryIt.rows[0] ?? null,
         ...snapshot,
       };
     },

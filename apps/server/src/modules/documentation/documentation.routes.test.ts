@@ -79,6 +79,11 @@ const documentation_service_stubs = (
   list_pages: vi.fn(async () => []),
   transition_page: vi.fn(),
   transition_openapi_source: vi.fn(),
+  get_try_it_policy: vi.fn(async () => ({ policy: null })),
+  upsert_try_it_policy: vi.fn(),
+  get_try_it_configuration: vi.fn(async () => null),
+  get_publish_link_try_it_policy: vi.fn(async () => null),
+  upsert_publish_link_try_it_policy: vi.fn(),
   ...overrides,
 });
 
@@ -1201,6 +1206,202 @@ describe("Documentation routes", () => {
       expect.objectContaining({
         artifact_type: "guide",
         project_version_id: "version",
+      }),
+    );
+  });
+
+  it("projects public Site and operation responses without repository-only OpenAPI fields", async () => {
+    const descriptor = {
+      descriptor_version: 1,
+      destination_key: "get-pets",
+      method: "GET",
+      path: "/pets",
+      summary: "List pets",
+      parameters: [],
+      request_body: null,
+      security: { bearer: true, api_key_header_names: ["X-Api-Key"] },
+      unsupported_reasons: [],
+    };
+    const app = Fastify();
+    await app.register(
+      build_documentation_routes({
+        auth_service: {} as never,
+        documentation_service: documentation_service_stubs({
+          resolve_public_site: vi.fn(async () => ({
+            site: { id: "site", name: "Docs" },
+            edition: { id: "edition", title: "Docs" },
+            working_draft: { home_page_id: "page" },
+            revision: {
+              site_name: "Docs",
+              site_description: null,
+              primary_language: "en-US",
+              home_page_id: "page",
+              file_id: "private-file",
+              content_digest: "private-digest",
+            },
+            pages: [],
+            navigation: { nodes: [] },
+            routing: { aliases: [], rules: [] },
+            aliases: [],
+            redirects: [],
+            snippets: [],
+            assets: [
+              {
+                id: "asset",
+                name: "Image",
+                source_kind: "documentation_asset",
+                storage_key: "private/key",
+                file_id: "private-file",
+              },
+            ],
+            openapi_source: {
+              id: "source",
+              file_id: "private-file",
+              digest: "private-digest",
+              server_candidates: ["https://unapproved.example.com"],
+            },
+            openapi_operations: [
+              {
+                id: "operation-row",
+                openapi_source_id: "source",
+                descriptor_digest: "private-digest",
+                request_descriptor: descriptor,
+                ...descriptor,
+              },
+            ],
+            search_documents: [{ search_text: "private index" }],
+            frozen_policy: { approved_origin: "https://api.example.com" },
+          })),
+        }),
+        resolve_project_version: vi.fn(),
+      }),
+    );
+    const root = await app.inject({
+      url: "/api/v1/public/publish-links/docs/documentation",
+    });
+    const operation = await app.inject({
+      url: "/api/v1/public/publish-links/docs/documentation/operations/get-pets",
+    });
+    await app.close();
+
+    expect(root.statusCode).toBe(200);
+    expect(root.body).not.toContain("private-file");
+    expect(root.body).not.toContain("private-digest");
+    expect(root.body).not.toContain("unapproved.example.com");
+    expect(root.body).not.toContain("api.example.com");
+    expect(operation.statusCode).toBe(200);
+    expect(operation.json()).toEqual({
+      operation: {
+        destination_key: descriptor.destination_key,
+        method: descriptor.method,
+        path: descriptor.path,
+        summary: descriptor.summary,
+        descriptor_version: 1,
+        request_descriptor: descriptor,
+      },
+    });
+  });
+
+  it("exposes a secret-free public configuration and accepts only content-free reports", async () => {
+    const originalEnv = { ...process.env };
+    process.env.COOKIE_SECRET = "test-cookie-secret-that-is-at-least-32-bytes";
+    process.env.OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS =
+      "https://api.example.com";
+    const descriptor = {
+      descriptor_version: 1,
+      destination_key: "get-pets",
+      method: "GET",
+      path: "/pets",
+      summary: "List pets",
+      parameters: [],
+      request_body: null,
+      security: { bearer: true, api_key_header_names: [] },
+      unsupported_reasons: [],
+    };
+    const resolve_public_site = vi.fn(async () => ({
+      link: {
+        id: "link",
+        organization_id: "organization",
+        project_id: "project",
+      },
+      entry: { id: "entry" },
+      publication: { id: "publication" },
+      pages: [],
+      aliases: [],
+      redirects: [],
+      openapi_operations: [
+        {
+          destination_key: "get-pets",
+          request_descriptor: descriptor,
+        },
+      ],
+      _try_it: {
+        frozen_policy_id: "frozen-policy",
+        link_policy_id: "link-policy",
+        approved_origin: "https://api.example.com",
+        base_path: "/v1",
+        allow_bearer: true,
+        api_key_header_name: null,
+        operation_destination_keys: ["get-pets"],
+      },
+    }));
+    const app = Fastify();
+    const append_access_event = vi.fn(async () => undefined);
+    await app.register(cookie);
+    await app.register(
+      build_documentation_routes({
+        auth_service: {} as never,
+        documentation_service: documentation_service_stubs({
+          resolve_public_site,
+        }),
+        resolve_project_version: vi.fn(),
+        validate_try_it_origin: vi.fn(async ({ origin }) => origin),
+        access_event_writer: { append: append_access_event },
+      }),
+    );
+    const root =
+      "/api/v1/public/publish-links/docs/documentation/operations/get-pets";
+    const configuration = await app.inject({
+      url: `${root}/try-it-configuration`,
+    });
+    expect(configuration.statusCode).toBe(200);
+    expect(configuration.headers["cache-control"]).toBe("private, no-store");
+    expect(configuration.headers.vary).toContain("Cookie");
+    expect(configuration.json()).toMatchObject({
+      surface: "public",
+      approved_origin: "https://api.example.com",
+      base_path: "/v1",
+      operation: descriptor,
+      allowed_credential_modes: ["none", "bearer"],
+    });
+    expect(configuration.body).not.toContain("test-cookie-secret");
+
+    const report = await app.inject({
+      method: "POST",
+      url: `${root}/try-it-attempts`,
+      payload: {
+        attempt_token: configuration.json().attempt_token,
+        outcome: "completed",
+      },
+    });
+    const leakingReport = await app.inject({
+      method: "POST",
+      url: `${root}/try-it-attempts`,
+      payload: {
+        attempt_token: configuration.json().attempt_token,
+        outcome: "completed",
+        target_status: 200,
+      },
+    });
+    await app.close();
+    process.env = originalEnv;
+    expect(report.statusCode).toBe(204);
+    expect(leakingReport.statusCode).toBe(400);
+    expect(append_access_event).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "documentation.try_it.attempt_completed",
+        http_method: null,
+        route_template: null,
       }),
     );
   });
