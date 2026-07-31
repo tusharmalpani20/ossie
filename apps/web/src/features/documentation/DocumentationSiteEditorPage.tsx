@@ -325,6 +325,7 @@ export const DocumentationSiteEditorPage = ({
         versionSlug={versionSlug}
         siteId={siteId}
         canWrite={effectiveCanWrite}
+        canManageTryIt={canManageEdition}
       />
       <DocumentationPublishingPanel
         key={checkpointCount}

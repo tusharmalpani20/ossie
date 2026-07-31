@@ -14,6 +14,10 @@ import {
   type DocumentationRevisionSummary,
 } from "../../lib/documentationApi";
 import { getDocumentationReviewGate } from "../../lib/documentationReviewApi";
+import {
+  getDocumentationPublishLinkTryItPolicy,
+  patchDocumentationPublishLinkTryItPolicy,
+} from "../../lib/documentationTryItApi";
 
 type Props = {
   projectId: string;
@@ -68,6 +72,9 @@ export const DocumentationPublishingPanel = ({
   > | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
   const [overrideConfirmed, setOverrideConfirmed] = useState(false);
+  const [linkTryItPolicy, setLinkTryItPolicy] = useState<Awaited<
+    ReturnType<typeof getDocumentationPublishLinkTryItPolicy>
+  > | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -134,6 +141,30 @@ export const DocumentationPublishingPanel = ({
       );
     };
   }, [loadReviewGate, projectId, selectedRevisionId, siteId, versionSlug]);
+
+  useEffect(() => {
+    const link = publishLinks[0];
+    if (!link) {
+      setLinkTryItPolicy(null);
+      return;
+    }
+    let active = true;
+    getDocumentationPublishLinkTryItPolicy(
+      projectId,
+      versionSlug,
+      siteId,
+      link.id,
+    )
+      .then((policy) => {
+        if (active) setLinkTryItPolicy(policy);
+      })
+      .catch(() => {
+        if (active) setLinkTryItPolicy(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [projectId, publishLinks, siteId, versionSlug]);
 
   const selectedRevision =
     revisions.find((revision) => revision.id === selectedRevisionId) ?? null;
@@ -338,6 +369,41 @@ export const DocumentationPublishingPanel = ({
     }
   };
 
+  const setLinkTryItEnabled = async (enabled: boolean) => {
+    const link = publishLinks[0];
+    if (!link) return;
+    setStatus(`${enabled ? "Enabling" : "Disabling"} Try It for this link…`);
+    try {
+      await patchDocumentationPublishLinkTryItPolicy(
+        projectId,
+        versionSlug,
+        siteId,
+        link.id,
+        {
+          expected_policy_version: linkTryItPolicy?.policy?.version ?? null,
+          expected_link_version: link.version,
+          enabled,
+        },
+      );
+      const refreshed = await getDocumentationPublishLinkTryItPolicy(
+        projectId,
+        versionSlug,
+        siteId,
+        link.id,
+      );
+      setLinkTryItPolicy(refreshed);
+      setStatus(
+        enabled
+          ? "Try It enabled for compatible current entries."
+          : "Try It disabled for this Publish Link.",
+      );
+    } catch {
+      setStatus(
+        "Try It link policy was not changed. Reload the current link state.",
+      );
+    }
+  };
+
   const existingLink = publishLinks[0];
   const existingEntry = existingLink?.entries[0];
   const livePublication = publications.find(
@@ -411,6 +477,34 @@ export const DocumentationPublishingPanel = ({
           </p>
           {canPublish && existingLink.status === "active" ? (
             <Button onClick={() => void revokeLink()}>Revoke link</Button>
+          ) : null}
+          {linkTryItPolicy ? (
+            <section aria-labelledby="documentation-link-try-it-heading">
+              <h4 id="documentation-link-try-it-heading">Published Try It</h4>
+              <p>
+                Status: {linkTryItPolicy.effective_status.replaceAll("_", " ")}
+              </p>
+              <ul>
+                {linkTryItPolicy.entries.map((entry) => (
+                  <li key={entry.entry_id}>
+                    {entry.project_version_label}: {entry.effective_status}
+                  </li>
+                ))}
+              </ul>
+              {canOverrideReview && existingLink.status === "active" ? (
+                <Button
+                  onClick={() =>
+                    void setLinkTryItEnabled(
+                      !(linkTryItPolicy.policy?.enabled ?? false),
+                    )
+                  }
+                >
+                  {linkTryItPolicy.policy?.enabled
+                    ? "Disable published Try It"
+                    : "Enable published Try It"}
+                </Button>
+              ) : null}
+            </section>
           ) : null}
           {canPublish && selectedRevision ? (
             <Button

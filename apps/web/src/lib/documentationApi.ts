@@ -1,5 +1,8 @@
 import type { DocumentationCreateSiteRequest } from "@repo/types";
-import type { DocumentationBlock } from "@repo/types";
+import type {
+  DocumentationBlock,
+  DocumentationTryItRequestDescriptor,
+} from "@repo/types";
 
 export type DocumentationSiteSummary = {
   id: string;
@@ -699,6 +702,8 @@ export type DocumentationDraftPreview = {
     method: string;
     path: string;
     summary: string | null;
+    descriptor_version?: 0 | 1;
+    request_descriptor?: DocumentationTryItRequestDescriptor;
   }>;
   snippets?: Array<{
     id: string;
@@ -962,7 +967,17 @@ export type PublicDocumentationSnapshot = {
     method: string;
     path: string;
     summary: string | null;
+    descriptor_version?: 0 | 1;
+    request_descriptor?: DocumentationTryItRequestDescriptor;
   }>;
+  current_operation?: {
+    destination_key: string;
+    method: string;
+    path: string;
+    summary: string | null;
+    descriptor_version: 0 | 1;
+    request_descriptor?: DocumentationTryItRequestDescriptor;
+  };
   snippets?: Array<{
     id: string;
     name: string;
@@ -1055,27 +1070,32 @@ export const getPublicDocumentationPage = async (
           method: string;
           path: string;
           summary: string | null;
+          descriptor_version: 0 | 1;
+          request_descriptor?: DocumentationTryItRequestDescriptor;
         };
       }>(response),
     );
-    return normalizePublicDocumentationSnapshot(raw, {
-      id: `operation:${operation.destination_key}`,
-      title:
-        operation.summary ??
-        `${operation.method.toUpperCase()} ${operation.path}`,
-      description: `${operation.method.toUpperCase()} ${operation.path}`,
-      canonical_path: pagePath,
-      blocks: [
-        {
-          id: `operation:${operation.destination_key}:path`,
-          kind: "code",
-          position: 1,
-          expected_version: 1,
-          code: `${operation.method.toUpperCase()} ${operation.path}`,
-          language: "http",
-        },
-      ],
-    });
+    return {
+      ...normalizePublicDocumentationSnapshot(raw, {
+        id: `operation:${operation.destination_key}`,
+        title:
+          operation.summary ??
+          `${operation.method.toUpperCase()} ${operation.path}`,
+        description: `${operation.method.toUpperCase()} ${operation.path}`,
+        canonical_path: pagePath,
+        blocks: [
+          {
+            id: `operation:${operation.destination_key}:path`,
+            kind: "code",
+            position: 1,
+            expected_version: 1,
+            code: `${operation.method.toUpperCase()} ${operation.path}`,
+            language: "http",
+          },
+        ],
+      }),
+      current_operation: operation,
+    };
   }
   if (pagePath) {
     const raw = await fetch(`${baseUrl()}${root}`, {

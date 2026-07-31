@@ -1,0 +1,44 @@
+.documentation-api-operation {
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.75rem;
+  margin-block: 2rem;
+  padding: 1rem;
+}
+
+.documentation-api-operation__fields {
+  display: grid;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+
+.documentation-api-operation__fields label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.documentation-api-operation__fields input,
+.documentation-api-operation__fields select,
+.documentation-api-operation__fields textarea {
+  font: inherit;
+  max-width: 48rem;
+  padding: 0.5rem;
+}
+
+.documentation-api-operation__target,
+.documentation-api-operation pre {
+  max-width: 100%;
+  overflow: auto;
+}
+
+.documentation-api-operation button + button {
+  margin-inline-start: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .documentation-api-operation *,
+  .documentation-api-operation *::before,
+  .documentation-api-operation *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

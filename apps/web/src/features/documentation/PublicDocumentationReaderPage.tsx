@@ -8,6 +8,7 @@ import {
   type PublicDocumentationSnapshot,
 } from "../../lib/documentationApi";
 import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
+import { DocumentationApiOperationExperience } from "./DocumentationApiOperationExperience";
 
 type SearchResult = Awaited<
   ReturnType<typeof searchPublicDocumentation>
@@ -249,6 +250,18 @@ export const PublicDocumentationReaderPage = ({
             }}
             snippets={snapshot.snippets ?? []}
           />
+          {snapshot.current_operation?.descriptor_version === 1 &&
+          snapshot.current_operation.request_descriptor ? (
+            <DocumentationApiOperationExperience
+              descriptor={snapshot.current_operation.request_descriptor}
+              slug={slug}
+              versionSlug={versionSlug}
+            />
+          ) : snapshot.current_operation ? (
+            <p role="note">
+              Interactive requests are unavailable for this legacy operation.
+            </p>
+          ) : null}
         </main>
       </div>
     </>

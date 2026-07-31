@@ -10,12 +10,17 @@ import {
   documentationOpenApiExportUrl,
   transitionDocumentationOpenApi,
 } from "../../lib/documentationApi";
+import {
+  getDocumentationTryItPolicy,
+  putDocumentationTryItPolicy,
+} from "../../lib/documentationTryItApi";
 
 type Props = {
   projectId: string;
   versionSlug: string;
   siteId: string;
   canWrite: boolean;
+  canManageTryIt?: boolean;
   inspect?: typeof inspectDocumentationOpenApi;
   apply?: typeof applyDocumentationOpenApi;
   loadSource?: typeof getDocumentationOpenApiSource;
@@ -26,6 +31,7 @@ export const DocumentationOpenApiPanel = ({
   versionSlug,
   siteId,
   canWrite,
+  canManageTryIt = false,
   inspect = inspectDocumentationOpenApi,
   apply = applyDocumentationOpenApi,
   loadSource = getDocumentationOpenApiSource,
@@ -33,14 +39,21 @@ export const DocumentationOpenApiPanel = ({
   const [file, setFile] = useState<File | null>(null);
   const [inspection, setInspection] =
     useState<DocumentationOpenApiInspection | null>(null);
-  const [operations, setOperations] = useState<
-    DocumentationOpenApiOperation[]
-  >([]);
+  const [operations, setOperations] = useState<DocumentationOpenApiOperation[]>(
+    [],
+  );
   const [status, setStatus] = useState("");
   const [sourceVersion, setSourceVersion] = useState<number | null>(null);
   const [sourceStatus, setSourceStatus] = useState<"active" | "archived">(
     "active",
   );
+  const [tryItVersion, setTryItVersion] = useState<number | null>(null);
+  const [tryItEnabled, setTryItEnabled] = useState(false);
+  const [approvedOrigin, setApprovedOrigin] = useState("");
+  const [basePath, setBasePath] = useState("/");
+  const [allowBearer, setAllowBearer] = useState(false);
+  const [apiKeyHeaderName, setApiKeyHeaderName] = useState("");
+  const [allowedOperations, setAllowedOperations] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -57,6 +70,25 @@ export const DocumentationOpenApiPanel = ({
     };
   }, [loadSource, projectId, siteId, versionSlug]);
 
+  useEffect(() => {
+    let active = true;
+    getDocumentationTryItPolicy(projectId, versionSlug, siteId)
+      .then(({ policy }) => {
+        if (!active || !policy) return;
+        setTryItVersion(policy.version);
+        setTryItEnabled(policy.status === "enabled");
+        setApprovedOrigin(policy.approved_origin ?? "");
+        setBasePath(policy.base_path ?? "/");
+        setAllowBearer(policy.allow_bearer);
+        setApiKeyHeaderName(policy.api_key_header_name ?? "");
+        setAllowedOperations(policy.operation_destination_keys);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [projectId, siteId, versionSlug]);
+
   const inspectFile = async () => {
     if (!file) return;
     setStatus("Inspecting OpenAPI without fetching external references…");
@@ -65,7 +97,9 @@ export const DocumentationOpenApiPanel = ({
       setInspection(result.inspection);
       setStatus("Inspection ready. Review the safe summary before applying.");
     } catch {
-      setStatus("OpenAPI inspection failed. The active source was not changed.");
+      setStatus(
+        "OpenAPI inspection failed. The active source was not changed.",
+      );
     }
   };
 
@@ -85,6 +119,47 @@ export const DocumentationOpenApiPanel = ({
       setStatus("OpenAPI source applied.");
     } catch {
       setStatus("OpenAPI source could not be applied.");
+    }
+  };
+
+  const saveTryItPolicy = async () => {
+    setStatus("Saving browser-direct request policy…");
+    try {
+      const enabled = tryItEnabled;
+      const response = (await putDocumentationTryItPolicy(
+        projectId,
+        versionSlug,
+        siteId,
+        enabled
+          ? {
+              expected_policy_version: tryItVersion,
+              status: "enabled",
+              approved_origin: approvedOrigin,
+              base_path: basePath,
+              allow_bearer: allowBearer,
+              api_key_header_name: apiKeyHeaderName.trim() || null,
+              operation_destination_keys: allowedOperations,
+            }
+          : {
+              expected_policy_version: tryItVersion,
+              status: "disabled",
+              approved_origin: null,
+              base_path: null,
+              allow_bearer: false,
+              api_key_header_name: null,
+              operation_destination_keys: [],
+            },
+      )) as { policy?: { version?: number } };
+      if (response.policy?.version) setTryItVersion(response.policy.version);
+      setStatus(
+        enabled
+          ? "Try It policy saved. Create a new revision to freeze it."
+          : "Try It policy disabled.",
+      );
+    } catch {
+      setStatus(
+        "Try It policy was not saved. Reload to check permissions, source state, and operator origin policy.",
+      );
     }
   };
 
@@ -118,7 +193,9 @@ export const DocumentationOpenApiPanel = ({
             {inspection.operation_count}{" "}
             {inspection.operation_count === 1 ? "operation" : "operations"}.
           </p>
-          {inspection.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+          {inspection.warnings.map((warning) => (
+            <p key={warning}>{warning}</p>
+          ))}
           {canWrite ? (
             <Button onClick={() => void applySource()}>Apply source</Button>
           ) : null}
@@ -153,7 +230,9 @@ export const DocumentationOpenApiPanel = ({
           disabled={Boolean(status.match(/Archiving|Restoring/u))}
           onClick={() => {
             const next = sourceStatus === "active" ? "archive" : "restore";
-            setStatus(`${next === "archive" ? "Archiving" : "Restoring"} OpenAPI source…`);
+            setStatus(
+              `${next === "archive" ? "Archiving" : "Restoring"} OpenAPI source…`,
+            );
             void transitionDocumentationOpenApi(
               projectId,
               versionSlug,
@@ -169,7 +248,9 @@ export const DocumentationOpenApiPanel = ({
                 );
               })
               .catch(() =>
-                setStatus("OpenAPI lifecycle changed elsewhere. Reload and retry."),
+                setStatus(
+                  "OpenAPI lifecycle changed elsewhere. Reload and retry.",
+                ),
               );
           }}
         >
@@ -177,6 +258,97 @@ export const DocumentationOpenApiPanel = ({
             ? "Archive OpenAPI source"
             : "Restore OpenAPI source"}
         </Button>
+      ) : null}
+      {sourceVersion ? (
+        <section aria-labelledby="documentation-try-it-policy-heading">
+          <h3 id="documentation-try-it-policy-heading">
+            Browser-direct Try It
+          </h3>
+          <p>
+            Administrators approve one exact HTTPS origin and the operations
+            readers may call. The Ossie server never proxies target requests.
+          </p>
+          {canManageTryIt ? (
+            <>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={tryItEnabled}
+                  onChange={(event) => setTryItEnabled(event.target.checked)}
+                />
+                Enable for the next revision
+              </label>
+              {tryItEnabled ? (
+                <>
+                  <Label htmlFor="documentation-try-it-origin">
+                    Approved exact HTTPS origin
+                  </Label>
+                  <input
+                    id="documentation-try-it-origin"
+                    type="url"
+                    placeholder="https://api.example.com"
+                    value={approvedOrigin}
+                    onChange={(event) => setApprovedOrigin(event.target.value)}
+                  />
+                  <Label htmlFor="documentation-try-it-base-path">
+                    Base path
+                  </Label>
+                  <input
+                    id="documentation-try-it-base-path"
+                    value={basePath}
+                    onChange={(event) => setBasePath(event.target.value)}
+                  />
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={allowBearer}
+                      onChange={(event) => setAllowBearer(event.target.checked)}
+                    />
+                    Allow bearer credentials
+                  </label>
+                  <Label htmlFor="documentation-try-it-api-key">
+                    Allowed API-key header (optional)
+                  </Label>
+                  <input
+                    id="documentation-try-it-api-key"
+                    value={apiKeyHeaderName}
+                    onChange={(event) =>
+                      setApiKeyHeaderName(event.target.value)
+                    }
+                  />
+                  <fieldset>
+                    <legend>Allowed operations</legend>
+                    {operations.map((operation) => (
+                      <label key={operation.destination_key}>
+                        <input
+                          type="checkbox"
+                          checked={allowedOperations.includes(
+                            operation.destination_key,
+                          )}
+                          onChange={(event) =>
+                            setAllowedOperations((current) =>
+                              event.target.checked
+                                ? [...current, operation.destination_key]
+                                : current.filter(
+                                    (key) => key !== operation.destination_key,
+                                  ),
+                            )
+                          }
+                        />
+                        {operation.method.toUpperCase()} {operation.path}
+                      </label>
+                    ))}
+                  </fieldset>
+                </>
+              ) : null}
+              <Button onClick={() => void saveTryItPolicy()}>
+                Save Try It policy
+              </Button>
+            </>
+          ) : (
+            <p>Only a Project Admin can change this security policy.</p>
+          )}
+        </section>
       ) : null}
       <p role="status">{status}</p>
     </section>
