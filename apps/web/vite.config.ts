@@ -18,17 +18,29 @@ export default defineConfig(({ mode }) => {
     environment.OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS ??
       environment.VITE_OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS,
   );
+  const apiOrigin = (() => {
+    try {
+      return new URL(apiProxyTarget).origin;
+    } catch {
+      return null;
+    }
+  })();
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
     "form-action 'self'",
     "object-src 'none'",
-    "script-src 'self'",
+    mode === "development"
+      ? "script-src 'self' 'unsafe-inline'"
+      : "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
-    buildDocumentationConnectSrc(tryItOrigins.origins),
+    buildDocumentationConnectSrc([
+      ...tryItOrigins.origins,
+      ...(apiOrigin ? [apiOrigin] : []),
+    ]),
   ].join("; ");
   return {
     define: {

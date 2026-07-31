@@ -8,6 +8,7 @@ export class DocumentationTryItClientError extends Error {
       | "response_unreadable"
       | "timed_out"
       | "aborted"
+      | "client_validation_blocked"
       | "browser_network_blocked",
     message: string,
   ) {
@@ -20,6 +21,11 @@ type ClientInput = {
   configuration: {
     approved_origin: string;
     operator_origin_set_digest: string;
+    request_limits?: {
+      url_bytes: number;
+      body_bytes: number;
+      timeout_ms: number;
+    };
     response_limits: { body_bytes: number; headers: number };
   };
   web_origin_set_digest: string;
@@ -42,6 +48,20 @@ const ACTIVE_CONTENT_TYPES = [
   "application/javascript",
   "text/javascript",
 ];
+const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
+const FORBIDDEN_HEADERS = new Set([
+  "cookie",
+  "host",
+  "origin",
+  "referer",
+  "content-length",
+  "connection",
+  "transfer-encoding",
+  "proxy-authorization",
+]);
+const bytes = (value: string) => new TextEncoder().encode(value).byteLength;
+const validationError = (message: string) =>
+  new DocumentationTryItClientError("client_validation_blocked", message);
 
 const redact = (value: string, secrets: readonly string[]) =>
   secrets.reduce(
@@ -105,6 +125,49 @@ export const executeDocumentationTryItRequest = async (input: ClientInput) => {
       "origin_mismatch",
       "The request target did not match the approved origin.",
     );
+  const requestLimits = input.configuration.request_limits ?? {
+    url_bytes: 8 * 1024,
+    body_bytes: 256 * 1024,
+    timeout_ms: input.timeout_ms,
+  };
+  if (!ALLOWED_METHODS.has(input.request.method))
+    throw validationError("The request method is not supported.");
+  if (bytes(input.request.url) > requestLimits.url_bytes)
+    throw validationError("The request URL exceeds the safe limit.");
+  if (
+    input.request.body !== null &&
+    bytes(input.request.body) > requestLimits.body_bytes
+  )
+    throw validationError("The request body exceeds the safe limit.");
+  const requestHeaders = Object.entries(input.request.headers);
+  if (
+    requestHeaders.length > 50 ||
+    requestHeaders.some(([name]) =>
+      FORBIDDEN_HEADERS.has(name.toLowerCase()),
+    ) ||
+    requestHeaders.reduce(
+      (total, [name, value]) => total + bytes(name) + bytes(value),
+      0,
+    ) >
+      32 * 1024
+  )
+    throw validationError("The request headers exceed the safe policy.");
+  const requestContentType = requestHeaders
+    .find(([name]) => name.toLowerCase() === "content-type")?.[1]
+    .split(";", 1)[0]
+    ?.trim()
+    .toLowerCase();
+  if (
+    input.request.body !== null &&
+    (requestContentType === "application/json" ||
+      requestContentType?.endsWith("+json"))
+  ) {
+    try {
+      JSON.parse(input.request.body);
+    } catch {
+      throw validationError("The JSON request body is invalid.");
+    }
+  }
   if (input.secrets.some((secret) => secret.length > 0 && secret.length < 4))
     return {
       kind: "blocked" as const,

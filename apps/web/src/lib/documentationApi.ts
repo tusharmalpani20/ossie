@@ -1290,6 +1290,8 @@ export type DocumentationOpenApiOperation = {
   method: string;
   path: string;
   summary: string | null;
+  descriptor_version?: 0 | 1;
+  request_descriptor?: import("@repo/types").DocumentationTryItRequestDescriptor;
 };
 
 export const getDocumentationOpenApiSource = async (

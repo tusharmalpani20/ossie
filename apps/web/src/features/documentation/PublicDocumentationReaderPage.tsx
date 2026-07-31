@@ -7,6 +7,10 @@ import {
   searchPublicDocumentation,
   type PublicDocumentationSnapshot,
 } from "../../lib/documentationApi";
+import {
+  getPublicDocumentationTryItConfiguration,
+  reportPublicDocumentationTryItAttempt,
+} from "../../lib/documentationTryItApi";
 import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
 import { DocumentationApiOperationExperience } from "./DocumentationApiOperationExperience";
 
@@ -254,8 +258,22 @@ export const PublicDocumentationReaderPage = ({
           snapshot.current_operation.request_descriptor ? (
             <DocumentationApiOperationExperience
               descriptor={snapshot.current_operation.request_descriptor}
-              slug={slug}
-              versionSlug={versionSlug}
+              loadConfiguration={() =>
+                getPublicDocumentationTryItConfiguration(
+                  slug,
+                  snapshot.current_operation!.destination_key,
+                  versionSlug,
+                )
+              }
+              reportAttempt={(attemptToken, outcome) =>
+                reportPublicDocumentationTryItAttempt(
+                  slug,
+                  snapshot.current_operation!.destination_key,
+                  attemptToken,
+                  outcome,
+                  versionSlug,
+                )
+              }
             />
           ) : snapshot.current_operation ? (
             <p role="note">

@@ -47,7 +47,9 @@ afterEach(() => vi.unstubAllGlobals());
 describe("DocumentationApiOperationExperience", () => {
   it("loads authority on demand, sends one exact request, and reports content-free outcome", async () => {
     const loadConfiguration = vi.fn(async () => configuration);
-    const reportAttempt = vi.fn(async () => undefined);
+    const reportAttempt = vi
+      .fn<(attemptToken: string, outcome: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
     const targetFetch = vi.fn(
       async () =>
         new Response('{"name":"Milo"}', {
@@ -57,9 +59,8 @@ describe("DocumentationApiOperationExperience", () => {
     vi.stubGlobal("fetch", targetFetch);
     render(
       <DocumentationApiOperationExperience
-        slug="docs"
         descriptor={descriptor}
-        loadConfiguration={loadConfiguration}
+        loadConfiguration={() => loadConfiguration()}
         reportAttempt={reportAttempt}
       />,
     );
@@ -72,6 +73,10 @@ describe("DocumentationApiOperationExperience", () => {
       target: { value: "pet one" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(
+      screen.getByRole("dialog", { name: "Confirm target API request" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm and send" }));
 
     expect(await screen.findByText("Status: 200")).toBeInTheDocument();
     expect(targetFetch).toHaveBeenCalledTimes(1);
@@ -80,13 +85,42 @@ describe("DocumentationApiOperationExperience", () => {
       expect.objectContaining({ credentials: "omit", redirect: "error" }),
     );
     await waitFor(() =>
-      expect(reportAttempt).toHaveBeenCalledWith(
-        "docs",
-        "get-pets",
-        "signed-token",
-        "completed",
-        undefined,
-      ),
+      expect(reportAttempt).toHaveBeenCalledWith("signed-token", "completed"),
     );
+  });
+
+  it("requires explicit risk acknowledgement before a mutation can be sent", async () => {
+    const mutationDescriptor = {
+      ...descriptor,
+      destination_key: "post-pets",
+      method: "POST" as const,
+      path: "/pets",
+      parameters: [],
+    };
+    const targetFetch = vi.fn();
+    vi.stubGlobal("fetch", targetFetch);
+    render(
+      <DocumentationApiOperationExperience
+        descriptor={mutationDescriptor}
+        loadConfiguration={async () => ({
+          ...configuration,
+          operation: mutationDescriptor,
+        })}
+        reportAttempt={async () => undefined}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open request builder" }),
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Send" }));
+    const confirm = screen.getByRole("button", { name: "Confirm and send" });
+    expect(confirm).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: "I understand this can change real target data",
+      }),
+    );
+    expect(confirm).toBeEnabled();
+    expect(targetFetch).not.toHaveBeenCalled();
   });
 });

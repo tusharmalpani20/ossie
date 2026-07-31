@@ -175,4 +175,50 @@ describe("Documentation Try-It browser client", () => {
       }),
     ).resolves.toMatchObject({ kind: "blocked" });
   });
+
+  it("refuses oversized URLs/bodies and malformed JSON before target fetch", async () => {
+    const fetchImpl = vi.fn();
+    const boundedConfiguration = {
+      ...configuration,
+      request_limits: { url_bytes: 40, body_bytes: 8, timeout_ms: 15_000 },
+    };
+    const invalidRequests: Array<{
+      url: string;
+      method: string;
+      headers: Record<string, string>;
+      body: string | null;
+    }> = [
+      {
+        url: `https://api.example.com/${"x".repeat(40)}`,
+        method: "GET",
+        headers: {},
+        body: null,
+      },
+      {
+        url: "https://api.example.com/x",
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: '{"long":true}',
+      },
+      {
+        url: "https://api.example.com/x",
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{broken",
+      },
+    ];
+    for (const request of invalidRequests) {
+      await expect(
+        executeDocumentationTryItRequest({
+          configuration: boundedConfiguration,
+          web_origin_set_digest: "a".repeat(64),
+          request,
+          secrets: [],
+          timeout_ms: 15_000,
+          fetchImpl,
+        }),
+      ).rejects.toMatchObject({ code: "client_validation_blocked" });
+    }
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
 });

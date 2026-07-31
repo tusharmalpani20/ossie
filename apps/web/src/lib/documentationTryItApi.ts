@@ -95,6 +95,32 @@ export const getDocumentationTryItConfiguration = (
   ).then(configurationResponse);
 };
 
+export const reportDocumentationTryItAttempt = async (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  operationKey: string,
+  attemptToken: string,
+  outcome:
+    | "completed"
+    | "browser_network_blocked"
+    | "timed_out"
+    | "aborted"
+    | "response_blocked"
+    | "client_validation_blocked",
+) => {
+  const response = await fetch(
+    `${baseUrl()}${internalRoot(projectId, versionSlug, siteId)}/openapi/operations/${encodeURIComponent(operationKey)}/try-it-attempts`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ attempt_token: attemptToken, outcome }),
+    },
+  );
+  if (!response.ok) throw await errorFor(response);
+};
+
 export const getDocumentationTryItPolicy = async (
   projectId: string,
   versionSlug: string,

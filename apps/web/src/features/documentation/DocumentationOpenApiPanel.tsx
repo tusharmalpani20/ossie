@@ -11,9 +11,12 @@ import {
   transitionDocumentationOpenApi,
 } from "../../lib/documentationApi";
 import {
+  getDocumentationTryItConfiguration,
   getDocumentationTryItPolicy,
   putDocumentationTryItPolicy,
+  reportDocumentationTryItAttempt,
 } from "../../lib/documentationTryItApi";
+import { DocumentationApiOperationExperience } from "./DocumentationApiOperationExperience";
 
 type Props = {
   projectId: string;
@@ -24,6 +27,20 @@ type Props = {
   inspect?: typeof inspectDocumentationOpenApi;
   apply?: typeof applyDocumentationOpenApi;
   loadSource?: typeof getDocumentationOpenApiSource;
+  loadTryItConfiguration?: (
+    operationKey: string,
+  ) => ReturnType<typeof getDocumentationTryItConfiguration>;
+  reportTryItAttempt?: (
+    operationKey: string,
+    attemptToken: string,
+    outcome:
+      | "completed"
+      | "browser_network_blocked"
+      | "timed_out"
+      | "aborted"
+      | "response_blocked"
+      | "client_validation_blocked",
+  ) => Promise<void>;
 };
 
 export const DocumentationOpenApiPanel = ({
@@ -35,6 +52,22 @@ export const DocumentationOpenApiPanel = ({
   inspect = inspectDocumentationOpenApi,
   apply = applyDocumentationOpenApi,
   loadSource = getDocumentationOpenApiSource,
+  loadTryItConfiguration = (operationKey) =>
+    getDocumentationTryItConfiguration(
+      projectId,
+      versionSlug,
+      siteId,
+      operationKey,
+    ),
+  reportTryItAttempt = (operationKey, attemptToken, outcome) =>
+    reportDocumentationTryItAttempt(
+      projectId,
+      versionSlug,
+      siteId,
+      operationKey,
+      attemptToken,
+      outcome,
+    ),
 }: Props) => {
   const [file, setFile] = useState<File | null>(null);
   const [inspection, setInspection] =
@@ -350,6 +383,44 @@ export const DocumentationOpenApiPanel = ({
           )}
         </section>
       ) : null}
+      {operations
+        .filter(
+          (
+            operation,
+          ): operation is DocumentationOpenApiOperation & {
+            descriptor_version: 1;
+            request_descriptor: NonNullable<
+              DocumentationOpenApiOperation["request_descriptor"]
+            >;
+          } =>
+            operation.descriptor_version === 1 &&
+            Boolean(operation.request_descriptor),
+        )
+        .map((operation) => (
+          <article key={`request-${operation.destination_key}`}>
+            <h3>
+              Draft API request: {operation.method.toUpperCase()}{" "}
+              {operation.path}
+            </h3>
+            <p>
+              This request uses the current server-saved OpenAPI source. It is
+              not a frozen Revision.
+            </p>
+            <DocumentationApiOperationExperience
+              descriptor={operation.request_descriptor}
+              loadConfiguration={() =>
+                loadTryItConfiguration(operation.destination_key)
+              }
+              reportAttempt={(attemptToken, outcome) =>
+                reportTryItAttempt(
+                  operation.destination_key,
+                  attemptToken,
+                  outcome,
+                )
+              }
+            />
+          </article>
+        ))}
       <p role="status">{status}</p>
     </section>
   );

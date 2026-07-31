@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type {
   DocumentationTryItConfiguration,
   DocumentationTryItRequestDescriptor,
 } from "@repo/types";
 import {
-  getPublicDocumentationTryItConfiguration,
-  reportPublicDocumentationTryItAttempt,
-} from "../../lib/documentationTryItApi";
+  DOCUMENTATION_TRY_IT_SEND_INTERVAL_MS,
+  DOCUMENTATION_TRY_IT_SENDS_PER_ORIGIN_MINUTE_MAX,
+} from "@repo/constants";
 import {
   DocumentationTryItClientError,
   executeDocumentationTryItRequest,
@@ -15,23 +15,29 @@ import { generateDocumentationTryItExamples } from "../../lib/documentationTryIt
 import "./documentation-api-operation.css";
 
 type Props = {
-  slug: string;
-  versionSlug?: string;
   descriptor: DocumentationTryItRequestDescriptor;
-  loadConfiguration?: typeof getPublicDocumentationTryItConfiguration;
-  reportAttempt?: typeof reportPublicDocumentationTryItAttempt;
+  loadConfiguration: () => Promise<DocumentationTryItConfiguration>;
+  reportAttempt: (
+    attemptToken: string,
+    outcome:
+      | "completed"
+      | "browser_network_blocked"
+      | "timed_out"
+      | "aborted"
+      | "response_blocked"
+      | "client_validation_blocked",
+  ) => Promise<void>;
 };
 
 const inputType = (valueType: string) =>
   valueType === "number" || valueType === "integer" ? "number" : "text";
 
 export const DocumentationApiOperationExperience = ({
-  slug,
-  versionSlug,
   descriptor,
-  loadConfiguration = getPublicDocumentationTryItConfiguration,
-  reportAttempt = reportPublicDocumentationTryItAttempt,
+  loadConfiguration,
+  reportAttempt,
 }: Props) => {
+  const headingId = useId();
   const [configuration, setConfiguration] =
     useState<DocumentationTryItConfiguration | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -48,11 +54,21 @@ export const DocumentationApiOperationExperience = ({
   const [result, setResult] = useState<Awaited<
     ReturnType<typeof executeDocumentationTryItRequest>
   > | null>(null);
-  const [confirmedMutation, setConfirmedMutation] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [mutationAcknowledged, setMutationAcknowledged] = useState(false);
   const reportedTokens = useRef(new Set<string>());
+  const abortController = useRef<AbortController | null>(null);
+  const sendTimestamps = useRef<number[]>([]);
+  const sendButton = useRef<HTMLButtonElement | null>(null);
+  const confirmButton = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (confirming) confirmButton.current?.focus();
+  }, [confirming]);
 
   useEffect(
     () => () => {
+      abortController.current?.abort();
       setCredential("");
       setValues({});
       setBody("");
@@ -102,31 +118,23 @@ export const DocumentationApiOperationExperience = ({
     };
   }, [body, configuration, credential, credentialMode, values]);
 
-  const report = (outcome: Parameters<typeof reportAttempt>[3]) => {
+  const report = (outcome: Parameters<typeof reportAttempt>[1]) => {
     if (
       !configuration ||
       reportedTokens.current.has(configuration.attempt_token)
     )
       return;
     reportedTokens.current.add(configuration.attempt_token);
-    void reportAttempt(
-      slug,
-      descriptor.destination_key,
-      configuration.attempt_token,
-      outcome,
-      versionSlug,
-    ).catch(() => undefined);
+    void reportAttempt(configuration.attempt_token, outcome).catch(
+      () => undefined,
+    );
   };
 
   const openBuilder = async () => {
     setLoading(true);
     setError(null);
     try {
-      const loaded = await loadConfiguration(
-        slug,
-        descriptor.destination_key,
-        versionSlug,
-      );
+      const loaded = await loadConfiguration();
       setConfiguration(loaded);
       setCredentialMode("none");
       setCredential("");
@@ -141,22 +149,41 @@ export const DocumentationApiOperationExperience = ({
 
   const send = async () => {
     if (!configuration || !builtRequest) return;
-    if (configuration.operation.method !== "GET" && !confirmedMutation) {
-      setConfirmedMutation(true);
-      setError("Review the request, then press Send again to confirm it.");
+    const now = Date.now();
+    const recent = sendTimestamps.current.filter(
+      (timestamp) => now - timestamp < 60_000,
+    );
+    const retryAfter =
+      recent.length > 0
+        ? DOCUMENTATION_TRY_IT_SEND_INTERVAL_MS - (now - recent.at(-1)!)
+        : 0;
+    if (
+      retryAfter > 0 ||
+      recent.length >= DOCUMENTATION_TRY_IT_SENDS_PER_ORIGIN_MINUTE_MAX
+    ) {
+      setConfirming(false);
+      setError(
+        `Wait ${Math.max(1, Math.ceil(retryAfter / 1_000))} second before sending another request.`,
+      );
       report("client_validation_blocked");
       return;
     }
+    sendTimestamps.current = [...recent, now];
+    setConfirming(false);
+    setMutationAcknowledged(false);
     setSending(true);
     setError(null);
     setResult(null);
     try {
+      const controller = new AbortController();
+      abortController.current = controller;
       const response = await executeDocumentationTryItRequest({
         configuration,
         web_origin_set_digest: __OSSIE_DOCUMENTATION_TRY_IT_ORIGIN_SET_DIGEST__,
         request: builtRequest,
         secrets: credential ? [credential] : [],
         timeout_ms: configuration.request_limits.timeout_ms,
+        signal: controller.signal,
       });
       setResult(response);
       report(response.kind === "blocked" ? "response_blocked" : "completed");
@@ -179,11 +206,14 @@ export const DocumentationApiOperationExperience = ({
                 code === "response_headers_too_large" ||
                 code === "response_unreadable"
               ? "response_blocked"
-              : code === "csp_mismatch" || code === "origin_mismatch"
+              : code === "csp_mismatch" ||
+                  code === "origin_mismatch" ||
+                  code === "client_validation_blocked"
                 ? "client_validation_blocked"
                 : "browser_network_blocked",
       );
     } finally {
+      abortController.current = null;
       setSending(false);
     }
   };
@@ -201,13 +231,22 @@ export const DocumentationApiOperationExperience = ({
         timeout_ms: configuration?.request_limits.timeout_ms ?? 15_000,
       })
     : null;
+  const missingRequiredField =
+    configuration?.operation.parameters.find(
+      (parameter) =>
+        parameter.required &&
+        !(values[`${parameter.location}:${parameter.name}`] ?? "").trim(),
+    )?.name ??
+    (configuration?.operation.request_body?.required && !body.trim()
+      ? "request body"
+      : null);
 
   return (
     <section
-      aria-labelledby="documentation-api-operation-heading"
+      aria-labelledby={headingId}
       className="documentation-api-operation"
     >
-      <h2 id="documentation-api-operation-heading">Request</h2>
+      <h2 id={headingId}>Request</h2>
       <p>
         Examples never include a credential value. Try It sends one
         browser-direct request to an administrator-approved HTTPS origin.
@@ -303,12 +342,37 @@ export const DocumentationApiOperationExperience = ({
               Target: <code>{builtRequest.url}</code>
             </p>
           ) : null}
-          <button type="button" disabled={sending} onClick={() => void send()}>
+          <button
+            ref={sendButton}
+            type="button"
+            disabled={sending}
+            onClick={() => {
+              if (missingRequiredField) {
+                setError(
+                  `Complete the required ${missingRequiredField} field before sending.`,
+                );
+                report("client_validation_blocked");
+                return;
+              }
+              setError(null);
+              setConfirming(true);
+            }}
+          >
             {sending ? "Sending…" : "Send"}
           </button>
+          {sending ? (
+            <button
+              type="button"
+              onClick={() => abortController.current?.abort()}
+            >
+              Abort request
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => {
+              abortController.current?.abort();
+              setConfirming(false);
               setConfiguration(null);
               setCredential("");
               setResult(null);
@@ -316,6 +380,64 @@ export const DocumentationApiOperationExperience = ({
           >
             Close and clear
           </button>
+          {confirming ? (
+            <dialog
+              aria-labelledby={`${headingId}-confirmation`}
+              className="documentation-api-operation__confirmation"
+              onKeyDown={(event) => {
+                if (event.key !== "Escape") return;
+                event.preventDefault();
+                setConfirming(false);
+                setMutationAcknowledged(false);
+                sendButton.current?.focus();
+              }}
+              open
+            >
+              <h3 id={`${headingId}-confirmation`}>
+                Confirm target API request
+              </h3>
+              <p>
+                Send one {configuration.operation.method} request to{" "}
+                <code>{builtRequest?.url}</code>?
+              </p>
+              {configuration.operation.method !== "GET" ? (
+                <>
+                  <p>This request can change real data in the target system.</p>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={mutationAcknowledged}
+                      onChange={(event) =>
+                        setMutationAcknowledged(event.target.checked)
+                      }
+                    />
+                    I understand this can change real target data
+                  </label>
+                </>
+              ) : null}
+              <button
+                ref={confirmButton}
+                type="button"
+                disabled={
+                  configuration.operation.method !== "GET" &&
+                  !mutationAcknowledged
+                }
+                onClick={() => void send()}
+              >
+                Confirm and send
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirming(false);
+                  setMutationAcknowledged(false);
+                  sendButton.current?.focus();
+                }}
+              >
+                Cancel
+              </button>
+            </dialog>
+          ) : null}
           {examples ? (
             <details>
               <summary>Generated examples</summary>
