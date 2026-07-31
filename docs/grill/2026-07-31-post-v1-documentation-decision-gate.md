@@ -2,9 +2,9 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 is open for explicit user/product authority. No
-post-V1 capability, Master `007`, child `141`, ADR, runtime change, or roadmap
-commitment is accepted by this record yet.
+Status: In progress. Q1 is provisionally recorded and Q2 is open for explicit
+user/product authority. No post-V1 capability, Master `007`, child `141`, ADR,
+runtime change, or roadmap commitment is finally accepted by this record yet.
 
 Parent:
 
@@ -145,25 +145,25 @@ Inference and preference must not be written as shipped fact.
 
 ## 7. Candidate Ledger
 
-| Question | Candidate                                                       | State      | Provisional disposition | Final authority |
-| -------- | --------------------------------------------------------------- | ---------- | ----------------------- | --------------- |
-| Q1       | First post-V1 problem and priority                              | Open       | None                    | Pending         |
-| Q2       | GitHub App proposals and export automation                      | Not opened | None                    | Pending         |
-| Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Not opened | None                    | Pending         |
-| Q4       | Translation identity, fallback, and workflow                    | Not opened | None                    | Pending         |
-| Q5       | Custom domains                                                  | Not opened | None                    | Pending         |
-| Q6       | Public feedback                                                 | Not opened | None                    | Pending         |
-| Q7       | Public analytics                                                | Not opened | None                    | Pending         |
-| Q8       | External reviewer access                                        | Not opened | None                    | Pending         |
-| Q9       | Realtime collaboration and presence                             | Not opened | None                    | Pending         |
-| Q10      | Offline editing and merge                                       | Not opened | None                    | Pending         |
-| Q11      | Governed permanent deletion and retention                       | Not opened | None                    | Pending         |
-| Q12      | Cross-artifact and Organization-wide search                     | Not opened | None                    | Pending         |
-| Q13      | Rich interactive components                                     | Not opened | None                    | Pending         |
-| Q14      | SDK generation                                                  | Not opened | None                    | Pending         |
-| Q15      | Advanced publication distribution                               | Not opened | None                    | Pending         |
-| Q16      | Tooling and operational follow-up                               | Not opened | None                    | Pending         |
-| Q17      | Final prioritization, next-master ownership, and child sequence | Not opened | None                    | Pending         |
+| Question | Candidate                                                       | State      | Provisional disposition          | Final authority |
+| -------- | --------------------------------------------------------------- | ---------- | -------------------------------- | --------------- |
+| Q1       | First post-V1 problem and priority                              | Answered   | Review first; no immediate build | Provisional     |
+| Q2       | GitHub App proposals and export automation                      | Open       | Pending                          | Pending         |
+| Q3       | Bidirectional Git/conflict/branch/PR/force-push semantics       | Not opened | None                             | Pending         |
+| Q4       | Translation identity, fallback, and workflow                    | Not opened | None                             | Pending         |
+| Q5       | Custom domains                                                  | Not opened | None                             | Pending         |
+| Q6       | Public feedback                                                 | Not opened | None                             | Pending         |
+| Q7       | Public analytics                                                | Not opened | None                             | Pending         |
+| Q8       | External reviewer access                                        | Not opened | None                             | Pending         |
+| Q9       | Realtime collaboration and presence                             | Not opened | None                             | Pending         |
+| Q10      | Offline editing and merge                                       | Not opened | None                             | Pending         |
+| Q11      | Governed permanent deletion and retention                       | Not opened | None                             | Pending         |
+| Q12      | Cross-artifact and Organization-wide search                     | Not opened | None                             | Pending         |
+| Q13      | Rich interactive components                                     | Not opened | None                             | Pending         |
+| Q14      | SDK generation                                                  | Not opened | None                             | Pending         |
+| Q15      | Advanced publication distribution                               | Not opened | None                             | Pending         |
+| Q16      | Tooling and operational follow-up                               | Not opened | None                             | Pending         |
+| Q17      | Final prioritization, next-master ownership, and child sequence | Not opened | None                             | Pending         |
 
 ## 8. Q1 — What Problem Should The First Post-V1 Slice Solve?
 
@@ -251,35 +251,197 @@ customer, or external product evidence.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`defer` immediate implementation while the complete candidate list is reviewed.
+Do not create Master `007` from Q1 alone.
 
 ### Decision requested
 
-Choose one:
+User answer:
 
-1. **No immediate post-V1 implementation** — recommended. Complete the gate,
-   explicitly disposition every candidate, close Master `006`, and create no
-   Master `007`.
-2. **Select one priority** — provide the target user, concrete problem,
-   evidence/strategic reason, desired result, and acceptable first slice.
+> First review what has been implemented, list the possible things to include
+> next, and only then decide and dive deeply into those features.
 
-Final decision: Pending.
+Recorded interpretation:
 
-## 9. Questions Not Yet Opened
+- review shipped V1 first;
+- assess all next-feature candidates one by one;
+- select nothing for immediate implementation yet;
+- decide the next deep implementation only after cross-question
+  reconciliation.
 
-Q2 through Q17 remain unmade. Their full implementation-safe question
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 9. Q2 — GitHub App Proposals And Export Automation
+
+### Why this question is open
+
+Teams may want Documentation snapshots in a GitHub repository for review,
+backup-like portability, or an existing pull-request workflow. That is useful
+only if GitHub does not silently replace Ossie's database authority.
+
+### Shipped V1 facts
+
+- PostgreSQL and protected Files are authoritative.
+- Documentation Package V1 and Markdown exports are deterministic snapshots.
+- Import already requires actor-bound Inspect followed by explicit atomic
+  Apply.
+- Import never overwrites a non-empty Site, checkpoints, publishes, or claims
+  source lineage.
+- No GitHub credential, integration, webhook, repository mapping, or runtime
+  dependency exists.
+
+### Current primary-source research
+
+Retrieved 2026-07-31 from GitHub's official documentation:
+
+- GitHub Apps have no permissions by default and should request the minimum
+  required permissions. Repository Contents permission is required for HTTP
+  Git/content access, and permissions govern available API endpoints and
+  webhook subscriptions:
+  [Choosing permissions for a GitHub App](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app).
+- Installation access tokens can be narrowed to repositories and permissions
+  already granted to the installation and expire after one hour:
+  [Generating an installation access token](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app).
+- Installers can limit repository access and suspend or uninstall an App;
+  suspension blocks installation access:
+  [Reviewing and modifying installed GitHub Apps](https://docs.github.com/en/enterprise-cloud@latest/apps/using-github-apps/reviewing-and-modifying-installed-github-apps),
+  [Suspending an installation](https://docs.github.com/en/apps/maintaining-github-apps/suspending-a-github-app-installation).
+- GitHub recommends HMAC-SHA256 webhook signature validation, HTTPS, minimum
+  event subscriptions, checking event/action, responding quickly, and using
+  `X-GitHub-Delivery` for replay/idempotency handling:
+  [Validating webhook deliveries](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries),
+  [Webhook best practices](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks).
+- Installation API limits are per installation and secondary/content-creation
+  limits also apply:
+  [REST API rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api).
+
+### Inference
+
+A GitHub App can support a narrow proposal workflow safely, but it introduces
+credential custody, external account/repository mapping, webhook replay,
+revocation, rate-limit, background-job, and branch-protection responsibilities.
+Those costs are not justified for an automatic two-way sync without stronger
+evidence.
+
+### Recommendation
+
+Keep this as an **accepted-later** possibility with a deliberately narrow first
+slice:
+
+1. An Organization Owner connects and can revoke one GitHub App installation.
+2. A Project Admin selects an allowed repository and base branch.
+3. An authorized Editor/Admin explicitly exports one exact immutable Site
+   Revision or Publication.
+4. Ossie creates or updates a dedicated proposal branch and pull request.
+5. GitHub receives a deterministic snapshot; it never becomes Documentation
+   authority.
+6. Nothing is imported, applied, checkpointed, or published automatically.
+7. Any future inbound proposal must return through existing Inspect and
+   explicit Apply.
+
+Do not choose it as `accept-next` until the entire candidate review is
+complete.
+
+### Alternatives
+
+- **Defer:** gather real demand for GitHub review/export first.
+- **Reject:** keep manual Package/Markdown export as the only Git path.
+- **Broader sync:** evaluate separately in Q3; do not hide it inside this
+  answer.
+
+### Rejected shortcuts
+
+- personal access tokens;
+- broad all-repository access when selected repositories are sufficient;
+- long-lived installation tokens;
+- unsigned or replayable webhook processing;
+- Git pushes that automatically mutate or publish Ossie state;
+- treating a merged PR as an implicit Apply or Publication;
+- storing repository content as a second canonical database.
+
+### Security and permission boundary
+
+- Deployment operator owns the App registration/private key and webhook-secret
+  storage.
+- Organization Owner binds, suspends, or removes an installation in Ossie.
+- Project Admin selects the repository/base branch.
+- Editor/Admin may request an export proposal only for a Site they can read
+  and checkpoint/publish under the future accepted policy.
+- Every installation/repository mapping is tenant scoped and revalidated before
+  use.
+- Generate a short-lived repository-scoped installation token per job; do not
+  persist it as customer data.
+- Verify webhook bytes before parsing, deduplicate the delivery ID, allowlist
+  event/action, and fail closed on suspended/uninstalled/repository-removed
+  state.
+- Audit configuration/export commands without Package bytes, tokens, webhook
+  bodies, private repository URLs, branch content, or pull-request bodies.
+- Access Evidence records allowed/denied integration reads without sensitive
+  payloads.
+
+### Source of truth, lifecycle, and failure
+
+- Exact Site Revision/Publication remains the exported source.
+- The repository/branch/PR is a proposal adapter and portable copy.
+- Retry is idempotent by Ossie operation ID plus exact source digest and
+  destination mapping.
+- Rate limit, branch protection, conflict, outage, suspension, or token failure
+  leaves Ossie unchanged and reports a safe actionable error.
+- Removing an installation disables future jobs without deleting Ossie
+  Documentation or immutable history.
+- Repository deletion or force-push never deletes Ossie data.
+
+### Migration, API, UI, and compatibility
+
+Child `140` makes no change. A future child would require additive integration,
+mapping, operation, idempotency, Audit/Access, API, portal, secret-management,
+background-work, and browser contracts. Existing exports/imports and all
+current Publications remain unchanged and opt-out by default.
+
+### Reversibility
+
+The proposal-adapter model is reversible because removing the integration does
+not change Documentation authority. Bidirectional sync would be materially
+harder to reverse and remains Q3.
+
+### Evidence gaps
+
+- no recorded user demand;
+- no selected GitHub hosting scope (GitHub.com versus Enterprise);
+- no deployment secret manager or background queue decision;
+- no accepted repository layout or generated-file ownership markers;
+- no accepted branch/PR conflict behavior.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should we keep a safe GitHub export-to-pull-request feature as a possible later
+feature?
+
+Recommended answer: **Yes, later—but GitHub should only receive proposals.
+Ossie stays the main source, and nothing syncs or publishes automatically.**
+
+## 10. Questions Not Yet Opened
+
+Q3 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 10. Session Log
+## 11. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
 - 2026-07-31: recorded shipped V1 facts, verification, limitations,
   disposition vocabulary, evidence labels, and the unopened candidate ledger.
 - 2026-07-31: opened Q1. No provisional or final disposition has been recorded.
+- 2026-07-31: the user chose the review-first Q1 direction. Recorded a
+  provisional defer of immediate implementation and opened Q2.
 
-## 11. Verification Record
+## 12. Verification Record
 
 Initial checkpoint verification:
 
@@ -288,15 +450,15 @@ Initial checkpoint verification:
 - scoped path check: passed; only the grill record and child `140` changed;
 - baseline drift check: passed; no commit exists after the independently
   rechecked plan checkpoint;
-- candidate ledger: all Q1–Q17 entries present, with Q1 open and every other
-  question explicitly unopened;
+- candidate ledger: all Q1–Q17 entries present, with only the current question
+  open;
 - no Master `007`, child `141`, ADR, runtime, schema, route, dependency, or
   browser artifact was created.
 
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 12. Current Handoff
+## 13. Current Handoff
 
-Awaiting explicit user/product authority for Q1. Do not open Q2 until Q1 is
+Awaiting explicit user/product authority for Q2. Do not open Q3 until Q2 is
 recorded.
