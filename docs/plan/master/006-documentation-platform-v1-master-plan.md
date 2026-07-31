@@ -2,10 +2,10 @@
 
 Date: 2026-07-30
 
-Status: Active after child `138` implementation and verification on 2026-07-31.
-Children `132` through `137` are independently close-rechecked; child `138` is
-implemented and verified. Child `139` is the next bounded final-closeout reservation;
-children `139` and `140` must be re-expanded after their actual predecessors.
+Status: Active after Product Documentation V1 implementation closeout in child
+`139` on 2026-07-31. Children `132` through `138` are independently
+close-rechecked; child `139` is implemented and verified. Child `140` remains a
+decision-only reservation and is the only open child.
 
 Master plan number: 006.
 
@@ -83,7 +83,7 @@ distinguish these bands.
 
 ### 2.1 Current Runtime
 
-After child `137` completion:
+After child `139` implementation:
 
 - Ossie implements Organizations, Org Users, Projects, Project Membership,
   Project Versions, Captures, Guides, Interactive Demos, relational
@@ -98,7 +98,7 @@ After child `137` completion:
 - `apps/docs` is repository contributor/operator documentation and is not
   Product Documentation.
 - Migrations end at
-  `030_documentation_api_try_it_and_example_experience.sql`.
+  `031_documentation_v1_operational_hardening.sql`.
 - Product Documentation now has a domain package, relational mutable Site/
   Edition/Page/navigation/routing/comment/OpenAPI/search state, immutable
   Revision and type-specific Publication snapshots, protected image assets,
@@ -128,6 +128,15 @@ After child `137` completion:
   strict public projection, matching CSP/origin authority, content-free attempt
   evidence, safe response display, and exact Revision/public/draft request
   experiences are shipped. Descriptor-v0 references remain read-only.
+- Child `138` is complete. Organization limits and usage, hard ceilings,
+  publication admission/timeout/failure controls, deterministic PostgreSQL
+  search projections/rebuilds, discovery policy, public response shaping,
+  cache/ETag behavior, crawler-visible initial HTML, health/readiness,
+  environment diagnostics, and measured lazy boundaries are shipped.
+- Child `139` final-closeout verification passes across migrations, database,
+  smoke, packages, web, docs, extension, type-check, lint, build, dependency,
+  recovery, and representative headless Chromium evidence. No unresolved S1/S2
+  defect remains.
 - Tiptap and Fumadocs are not application dependencies.
 
 ### 2.2 Accepted Target
@@ -143,29 +152,28 @@ some are now partially or fully implemented as recorded in the child logs:
 - one primary Site language identified by a standard language tag;
 - complete immutable Site Revisions and exact Site Publications;
 - private Project-member Page comments excluded from Revisions/Publications;
-- a replaceable Tiptap authoring adapter;
-- a replaceable Fumadocs reader/search/OpenAPI adapter;
+- Ossie-owned typed authoring and reader adapters, with any future Tiptap or
+  Fumadocs adoption remaining replaceable and optional;
 - stable Publish Links selecting exact Site Publications;
 - Project/Version-scoped internal search and exact-Publication public search;
 - atomic publication preparation/switch and rollback by pointer;
 - safe import/export, Carry-Forward, review workflow, browser-direct Try It
   after proof, V1 hardening, and final closure.
 
-### 2.3 Unresolved Implementation Mechanics
+### 2.3 Resolved V1 Implementation Mechanics
 
-The following are deliberately owned by expanded child plans:
+- Tiptap and Fumadocs were not adopted; Ossie-owned typed React/Fastify
+  adapters implement V1.
+- PostgreSQL owns permission-filtered draft and exact-Publication search
+  projections and their deterministic rebuild selectors.
+- Publication preparation is synchronous, bounded, serialized per process, and
+  switches the stable link only after exact output is ready.
+- Child `138` owns the shipped quota ceilings, diagnostics, rebuild controls,
+  initial-document boundary, and measured lazy chunks.
 
-- exact Tiptap/Fumadocs compatible package versions at implementation time;
-- search implementation and storage technology, provided it remains a derived,
-  permission-filtered projection;
-- publication preparation execution strategy for the initial self-hosted
-  deployment;
-- exact operational quota defaults, diagnostics, cache/rebuild strategy, and
-  bundle-splitting thresholds owned by child `138`.
-
-These mechanics must be decided and documented before their owning child is
-implemented. They do not require a new grill unless they reveal a genuinely new
-irreversible product decision.
+Durable queues, shared admission/rate-limit state, external search/cache, and
+production p75 telemetry remain explicit post-V1 operational candidates rather
+than unresolved V1 mechanics.
 
 ### 2.4 Rejected Or Deferred
 
@@ -2678,24 +2686,24 @@ By child `139`, the combined verification must include:
 - [x] Create, expand, recheck, implement, verify, and close child `136`.
 - [x] Create, expand, recheck, implement, verify, and close child `137`.
 - [x] Create, expand, recheck, implement, verify, and close child `138`.
-- [ ] Create, expand, recheck, verify, and close child `139`.
+- [x] Create, expand, recheck, implement, verify, and close child `139`.
 - [ ] Create, conduct, document, accept, and close child `140`.
 
 ### Final Closure
 
-- [ ] All V1 first-slice and remaining-V1 matrix entries are implemented or
+- [x] All V1 first-slice and remaining-V1 matrix entries are implemented or
       explicitly documented as an accepted leftover.
-- [ ] No rejected/deferred item is falsely claimed.
-- [ ] Full migration/DB/smoke/workspace/build matrix passes.
-- [ ] Full authenticated/public/browser/accessibility/performance dogfood passes
+- [x] No rejected/deferred item is falsely claimed.
+- [x] Full migration/DB/smoke/workspace/build matrix passes.
+- [x] Full authenticated/public/browser/accessibility/performance dogfood passes
       or capability limitations are truthfully recorded.
-- [ ] Tenant isolation, authorization, Audit/Access, protected Files, immutable
+- [x] Tenant isolation, authorization, Audit/Access, protected Files, immutable
       Publications, search/cache isolation, and retention pass final audit.
-- [ ] Existing Capture/Guide/Demo/extension/public/embed behavior remains green.
-- [ ] Every child has complete status/checklist/log/verification/leftovers/
+- [x] Existing Capture/Guide/Demo/extension/public/embed behavior remains green.
+- [x] Every implemented child has complete status/checklist/log/verification/leftovers/
       handoff.
-- [ ] Active documentation reflects shipped V1 accurately.
-- [ ] Commits contain only scoped work.
+- [x] Active documentation reflects shipped V1 accurately.
+- [x] Commits contain only scoped work.
 - [ ] Post-V1 decisions are accepted/deferred/rejected without accidental
       runtime expansion.
 
@@ -2724,15 +2732,10 @@ proposals without another accepted plan.
 
 ## 45. Immediate Next Action
 
-Product Documentation is implemented and verified through child `138`; child
-`137` is the latest independently close-rechecked predecessor. The next activity
-is to rewrite/expand
-`docs/plan/139-documentation-v1-final-closeout.md` against the actual closed
-child `138` contracts, evidence, and current code, then recheck that plan before
-the final V1 audit.
-
-Children `139` and `140` remain sequential reservations. Each later child
-follows the same close-predecessor rule.
+Product Documentation V1 is implemented and final-closeout verified through
+child `139`. The next activity is to rewrite/expand child `140` as a
+decision-only post-V1 gate against the shipped evidence. Child `140` must not
+implement proposals or serve as a place to finish V1 defects.
 
 ## 46. Planning And Recheck Log
 
@@ -3052,10 +3055,38 @@ Child `138` independent close-recheck evidence includes:
 - no migration, schema, public contract, tenant boundary, or accepted V1 scope
   expansion.
 
+Child `139` implementation evidence includes:
+
+- two migration-verification repairs, `6c3390a` and `a8a82d9`, which let
+  historical/pending baselines report status without requiring future Audit
+  guards while preserving strict head verification;
+- clean migration `001`–`031`, verified `024 -> 031` and `030 -> 031`
+  upgrades, empty down/up, populated `031` refusal, reset/reseed, and isolated
+  custom-format backup/restore with 31 migrations, two Site Publications, one
+  selected public entry, and one protected Documentation File reference;
+- dependency remediation `4756982` plus the `sharp` TypeScript/runtime
+  compatibility correction `6c63a19`; production audit reports no known
+  vulnerabilities and frozen install passes;
+- complete recursive package tests, server `126` files / `547` tests, web `83`
+  / `442`, database `24` / `88`, V1 smoke `1` / `2`, all workspace type-check
+  and build tasks, and the existing warning-producing lint gate;
+- headless Chrome `151` / agent-browser `0.33.1` Owner, Viewer, and public
+  evidence, zero WCAG A/AA axe violations on four representative surfaces,
+  honest editor contrast-incomplete and screen-reader/browser capability
+  limits, `320px` reflow, reduced motion, exact initial HTML/cache/route
+  behavior, and local public vitals in
+  `docs/ui/139-documentation-v1-final-closeout-browser-evidence.md`;
+- all 32 accepted grill answers, children `132`–`138`, current schemas/routes/
+  contracts, active decisions, feature exclusions, and current-truth docs
+  reconciled with no unresolved S1/S2.
+- commits `96d1878` and `7ff1e21` close the final maintenance-path defect:
+  exact projection rebuilds retain the selected system actor through Audit
+  Evidence; dry-run and exact-Publication mutation modes pass.
+
 ## 48. Planning Leftovers And Handoff
 
-- Product Documentation children `132` through `138` are complete and
-  verified. Child `139` is next.
+- Product Documentation children `132` through `139` are complete and
+  verified. Child `140` is next and remains decision-only.
 - Child `132` established the first vertical slice. Child `133` extended it
   with the complete constrained V1 block graph, Edition-owned Snippets,
   Documentation/Capture Asset sources, exact artifact Publication references,

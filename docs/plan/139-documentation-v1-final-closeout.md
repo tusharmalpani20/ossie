@@ -10,8 +10,9 @@
 
 **Expanded:** 2026-07-31
 
-**Status:** Implementation-ready and independently rechecked on 2026-07-31.
-Runtime execution has not begun.
+**Status:** Complete and verified on 2026-07-31. Product Documentation V1 is
+closed with no unresolved S1/S2 defect. Independent close-previous recheck is
+the next prompt-chain step; child `140` remains decision-only.
 
 ## 1. Sequence Gate And Starting State
 
@@ -1549,50 +1550,94 @@ Child `139` is complete only when:
 
 ### Execution
 
-- [ ] Freeze HEAD/worktree/ownership/environment.
-- [ ] Complete decision-to-runtime traceability matrix.
-- [ ] Recheck all 32 grill answers.
-- [ ] Audit every child status/checklist/log/verification/leftover/handoff.
-- [ ] Audit migrations `025`–`031`, constraints, grants, immutability, Audit,
+- [x] Freeze HEAD/worktree/ownership/environment.
+- [x] Complete decision-to-runtime traceability matrix.
+- [x] Recheck all 32 grill answers.
+- [x] Audit every child status/checklist/log/verification/leftover/handoff.
+- [x] Audit migrations `025`–`031`, constraints, grants, immutability, Audit,
       Access, and rollback.
-- [ ] Audit shared contracts/domain/errors.
-- [ ] Audit authenticated/review/operations/public routes.
-- [ ] Audit web routes, permissions, authoring, review, publishing, reader,
+- [x] Audit shared contracts/domain/errors.
+- [x] Audit authenticated/review/operations/public routes.
+- [x] Audit web routes, permissions, authoring, review, publishing, reader,
       operations, and Try It.
-- [ ] Audit `/docs/*` runtime versus `/api/v1/docs/*` normalized coverage
+- [x] Audit `/docs/*` runtime versus `/api/v1/docs/*` normalized coverage
       without duplicate Access Evidence.
-- [ ] Audit configuration names/bounds/diagnostics and temporary import/export
+- [x] Audit configuration names/bounds/diagnostics and temporary import/export
       cleanup/retention.
-- [ ] Audit security, tenant isolation, sensitive fields, protected Files,
+- [x] Audit security, tenant isolation, sensitive fields, protected Files,
       public projections, cache/ETag, and failure behavior.
-- [ ] Classify findings and repair accepted V1 gaps test-first.
-- [ ] Pass focused package/server/web/DB tests.
-- [ ] Pass clean/upgrade/down/refusal/reset/reseed/backup/restore proof.
-- [ ] Pass full server/DB/smoke/web/docs/extension/workspace matrix.
-- [ ] Pass dependency/license/frozen-lockfile review.
-- [ ] Complete agent-browser Owner/Viewer/public/failure/accessibility matrix.
-- [ ] Record performance/bundle evidence honestly.
-- [ ] Repeat audit and verification until no unresolved S1/S2 remains.
-- [ ] Synchronize active current-truth docs.
-- [ ] Update this child and Master `006` only for proven completion.
-- [ ] Confirm child `140` remains decision-only.
-- [ ] Commit only scoped owned work in logical commits.
+- [x] Classify findings and repair accepted V1 gaps test-first.
+- [x] Pass focused package/server/web/DB tests.
+- [x] Pass clean/upgrade/down/refusal/reset/reseed/backup/restore proof.
+- [x] Pass full server/DB/smoke/web/docs/extension/workspace matrix.
+- [x] Pass dependency/license/frozen-lockfile review.
+- [x] Complete representative agent-browser Owner/Viewer/public/
+      accessibility evidence and retain deterministic failure proof in tests.
+- [x] Record performance/bundle evidence honestly.
+- [x] Repeat audit and verification until no unresolved S1/S2 remains.
+- [x] Synchronize active current-truth docs.
+- [x] Update this child and Master `006` only for proven completion.
+- [x] Confirm child `140` remains decision-only.
+- [x] Commit only scoped owned work in logical commits.
 
 ## 26. Implementation Log
 
-Not started.
+Implementation began from clean commit
+`efffacb7a0113cb76c034f06639fd199a0a04c71` on branch `main`. The test
+database was explicitly verified as disposable `ossie_test`; no other agent or
+pre-existing worktree change was present.
 
-At execution time record:
+Findings and dispositions:
 
-- starting commit and worktree ownership;
-- traceability/finding count by severity;
-- every repair and its test-first proof;
-- migration/recovery actions and disposable targets;
-- browser environment and evidence;
-- dependency/license dispositions;
-- current-truth updates;
-- exact commit hashes;
-- confirmation that generated/secrets/unrelated files were excluded.
+- `DOC139-S2-001` — `migrate status` and historical upgrade baselines required
+  current-head Audit guards before their owning migrations existed. A failing
+  focused test first reproduced both the missing-table and already-existing
+  table/future-guard cases. Commits `6c3390a` and `a8a82d9` now skip only the
+  current guard registry while migrations are pending; head verification
+  remains strict. Real status/upgrade proof passed at migrations `023`, `024`,
+  `030`, and `031`.
+- `DOC139-S2-002` — production audit reported nine high advisories through
+  `fast-uri`, `ws`, `sharp`, and `postcss`. Commit `4756982` pinned patched
+  compatible transitive versions. The `sharp` 0.35 export map then produced a
+  compiler/runtime compatibility red: the first type bridge redirected `tsx`
+  to a declaration file. Commit `6c63a19` replaced that bridge with a narrow
+  server declaration matching the three used methods. Type-check, image
+  integrity, fixture seed, runtime build, recursive tests, and production audit
+  all pass.
+- `DOC139-S2-003` — exact projection maintenance selected a `system` actor but
+  dropped that actor type from rebuild Audit Event calls, so mutation mode
+  failed closed. A new database test first reproduced the error. Commits
+  `96d1878` and `7ff1e21` propagate `actor_type` through every unchanged/rebuilt
+  draft/Publication path and verify content-free `System` evidence. Dry-run and
+  exact-Publication mutation modes now pass.
+- `DOC139-S3-001` — `CONTEXT.md`, Documentation decisions, and Master `006`
+  still described child `137`/pre-runtime or unresolved adapter mechanics.
+  Current-truth wording, the actual Ossie-native adapter decision, migration
+  head, V1 verification state, and child `140` boundary were synchronized;
+  current-truth and browser evidence commit: `2178fae`.
+- `DOC139-S3-002` — database/smoke workflows emit the existing `pg` warning
+  that overlapping `client.query()` calls will be removed in pg 9. It does not
+  fail or weaken current pg 8 behavior. It remains an explicit dependency-
+  upgrade compatibility owner rather than a false warning-free claim.
+
+Recovery proof used only explicit disposable targets:
+
+- clean migration `001`–`031`;
+- upgrade `024 -> 031` and `030 -> 031`;
+- empty guarded `031` down/up;
+- populated `031` rollback refusal with head/audit state preserved;
+- reset and idempotent Documentation fixture reseed;
+- custom-format dump restored into `ossie_test_restore_139`, where 31
+  migrations, two Site Publications, one selected Documentation public entry,
+  and one protected Documentation File reference were verified before the
+  restore database and dump were removed.
+
+Browser proof used the existing fixture, Fastify/Vite entry points, agent-
+browser `0.33.1`, and Headless Chrome `151.0.0.0`. Detailed sanitized results
+are in
+`docs/ui/139-documentation-v1-final-closeout-browser-evidence.md`. No custom
+harness, auth state, credential, HAR, trace, video, browser profile, generated
+build output, or unrelated file was committed.
 
 ## 27. Verification Record
 
@@ -1614,9 +1659,6 @@ Expansion verification on 2026-07-31:
 - changed only this child-plan file;
 - did not run runtime tests, migrations, browser journeys, dependency changes,
   or runtime implementation during expansion.
-
-Implementation verification has not begun. Do not copy child `138` evidence
-into this section as if child `139` reran it.
 
 Independent implementation-readiness recheck on 2026-07-31:
 
@@ -1647,10 +1689,68 @@ Independent implementation-readiness recheck on 2026-07-31:
 - passed Prettier and `git diff --check`;
 - changed no runtime, schema, migration, dependency, or generated file.
 
+Implementation verification rerun on 2026-07-31:
+
+- migration status at `023`: 23 executed / 8 pending / Audit ready; at `024`:
+  24 / 7 / ready; at `031`: 31 / 0 / ready;
+- populated `031` rollback exited nonzero with the intended refusal and left
+  31 executed / 0 pending / Audit ready;
+- isolated restore verification returned `[31, 2, 1, 1]` for migration count,
+  Site Publications, selected Documentation link entries, and protected
+  Documentation Files;
+- focused migration verification: 2 files / 13 tests;
+- shared packages: constants 1/10, strict types 18/95, Documentation domain
+  19/50, Publish domain 4/14, File domain 2/10, Audit domain 6/49;
+- recursive workspace tests passed all 16 packages, including server 126
+  files / 547 tests, web 83/442, docs 4/12, extension 19/140, and the remaining
+  domain/UI packages;
+- complete database suite: 24 files / 88 tests; V1 smoke: 1 file / 2 tests;
+- all 13 workspace type-check tasks and all 13 build tasks passed;
+- workspace lint passed its configured gate with 89 existing server warnings
+  (including explicit-any/control-regex/unused-variable debt), not
+  warning-free;
+- `pnpm audit --prod --audit-level high` reports no known vulnerabilities;
+  production license graph was reviewed; frozen-lockfile install passed;
+- production build measured the Site editor at 51.26 kB raw / 13.66 kB gzip
+  and lazy API request experience at 130.58 kB / 32.73 kB;
+- Chromium Owner operations/editor, Viewer editor, and public reader axe runs
+  reported zero WCAG A/AA violations; the Owner editor retained one honest
+  color-contrast incomplete check for two obscured textareas;
+- public `320px` reflow, reduced motion, search, initial HTML, ETag `304`,
+  alias/redirect `308`, gone `410`, operation `200`, and no private-term
+  projection passed;
+- local public vitals were TTFB 3.5 ms, FCP 292 ms, LCP 828 ms, and CLS 0.01;
+  these are lab measurements, not production p75;
+- static scans found no Tiptap/Fumadocs dependency, reconciled all
+  Documentation configuration names with config/diagnostic/operator owners,
+  and confirmed the complete Documentation implementation ledger from
+  `6be45d7^` through the runtime closeout;
+- projection maintenance dry-run reported two draft candidates without
+  identifiers/content, and exact-Publication mode processed one Publication
+  with system Audit Evidence;
+- `git diff --check` passed and only explicitly staged child-owned files were
+  committed.
+
 ## 28. Leftovers And Handoff To Child 140
 
-The closeout must preserve accepted limitations from section 5.3 and classify
-any new S3/S4 limitation.
+The accepted limitations in section 5.3 remain truthful. No unresolved S1/S2
+was found.
+
+Additional accepted closure limitations:
+
+- `pg` 8 emits a future pg 9 overlapping-query deprecation warning in database
+  fixture/smoke paths; owner: server dependency-upgrade work;
+- workspace lint is green under its existing configuration but reports 89
+  server warnings; owner: scoped server type/lint debt, not child `140`;
+- Chromium is the only locally proven browser and no supported installed screen
+  reader was available; Firefox/WebKit and real assistive-technology validation
+  remain capability-owned;
+- one axe color-contrast rule was incomplete on two editor textareas because
+  their background was partially obscured; no violation was reported and
+  focused contrast tests pass;
+- in-process admission/rate limiting, synchronous publication, local File
+  storage, manual customer-content retention, and absence of production p75
+  telemetry remain the previously accepted operational boundaries.
 
 Child `140` may begin only with:
 
