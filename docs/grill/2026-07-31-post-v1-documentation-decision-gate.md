@@ -2,7 +2,7 @@
 
 Date started: 2026-07-31
 
-Status: In progress. Q1 through Q8 are provisionally recorded and Q9 is open
+Status: In progress. Q1 through Q9 are provisionally recorded and Q10 is open
 for explicit user/product authority. No post-V1 capability, Master `007`, child
 `141`, ADR, runtime change, or roadmap commitment is finally accepted by this
 record yet.
@@ -156,8 +156,8 @@ Inference and preference must not be written as shipped fact.
 | Q6       | Public feedback                                                 | Answered   | `accept-later`: structured only  | Provisional     |
 | Q7       | Public analytics                                                | Answered   | `accept-later`: aggregate only   | Provisional     |
 | Q8       | External reviewer access                                        | Answered   | `accept-later`: exact review     | Provisional     |
-| Q9       | Realtime collaboration and presence                             | Open       | Pending                          | Pending         |
-| Q10      | Offline editing and merge                                       | Not opened | None                             | Pending         |
+| Q9       | Realtime collaboration and presence                             | Answered   | Presence later; editing deferred | Provisional     |
+| Q10      | Offline editing and merge                                       | Open       | Pending                          | Pending         |
 | Q11      | Governed permanent deletion and retention                       | Not opened | None                             | Pending         |
 | Q12      | Cross-artifact and Organization-wide search                     | Not opened | None                             | Pending         |
 | Q13      | Rich interactive components                                     | Not opened | None                             | Pending         |
@@ -1577,7 +1577,8 @@ availability.
 
 ### Provisional disposition
 
-Pending explicit user authority.
+`accept-later` for ephemeral same-Page presence. `defer` simultaneous editing
+until demonstrated demand and a dedicated authority/persistence ADR exist.
 
 ### Simple decision requested
 
@@ -1586,13 +1587,186 @@ Should we keep realtime author collaboration as a possible later feature?
 Recommended answer: **Yes, later—but first only show who is viewing the same
 Page. Decide simultaneous editing separately when users actually need it.**
 
-## 17. Questions Not Yet Opened
+### User answer
 
-Q10 through Q17 remain unmade. Their full implementation-safe question
+> Yes, I agree.
+
+Recorded interpretation:
+
+- preserve ephemeral author presence as an accepted-later capability;
+- retain PostgreSQL relational Working Drafts, Row Versions, and current save
+  behavior during presence-only work;
+- do not retain presence as authoring/Audit history;
+- defer simultaneous editing until real demand and a dedicated CRDT/operation,
+  persistence, permission, reconnect, validation, and checkpoint decision;
+- do not select either collaboration slice as `accept-next` before
+  cross-question reconciliation.
+
+Final decision: Provisional until the complete Q1–Q17 ledger is reconciled and
+accepted.
+
+## 17. Q10 — Should Authors Read Or Edit Documentation While Offline?
+
+### Why this question is open
+
+Authors may lose connectivity while traveling or working on an unreliable
+network. Showing previously loaded information offline is different from
+allowing edits that must later merge with server changes. Offline mutation
+stores confidential drafts and authorization state on a device after the
+server can no longer revoke access in real time.
+
+### Shipped V1 facts
+
+- PostgreSQL and protected Files are authority.
+- The authoring UI reports online, saving, saved, offline, and error states but
+  does not promise offline mutation.
+- Stale Row Version conflicts preserve local work and require deliberate user
+  recovery.
+- No service worker, offline app shell, protected-content cache policy,
+  IndexedDB draft store, encrypted device key, operation queue, reconnect
+  merge, multi-device identity, or remote cleanup exists.
+- Public reader caching is exact-Publication HTTP behavior, not an authoring
+  offline guarantee.
+- No user demand or target offline duration is recorded.
+
+### Current primary-source research
+
+Retrieved 2026-07-31:
+
+- The W3C Service Workers specification provides fetch interception and a
+  response store for offline-enabled web applications, while noting worker
+  lifecycle, origin, CSP, cross-origin, security, and privacy concerns:
+  [Service Workers](https://www.w3.org/TR/service-workers/).
+- IndexedDB provides transactional persistent browser storage scoped through
+  browser storage keys/origins, with its own privacy and security model:
+  [Indexed Database API](https://www.w3.org/TR/IndexedDB/).
+- OWASP warns against storing sensitive information or session identifiers in
+  Web Storage, notes that local data is exposed to same-origin script/XSS, and
+  recommends assuming client-side storage can be manipulated:
+  [HTML5 Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html).
+- MDN describes cache-first, network-first, and stale-while-revalidate
+  strategies and their different freshness/offline tradeoffs:
+  [PWA caching guide](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Caching).
+
+### Inference
+
+Read-only caching can improve resilience without creating a second mutable
+authority, but cached private drafts may remain available on a lost/shared
+device after membership is revoked. It therefore still needs explicit opt-in,
+scope, age, cleanup, and device-security rules.
+
+Offline editing is materially harder. Every queued change must be authenticated
+and fully revalidated after reconnect, then shown as a conflict when server
+state, permissions, deletion, archive, or Project Version changed. Automatic
+last-write-wins would risk lost or unauthorized work.
+
+### Recommendation
+
+Split the future direction:
+
+1. **Accept later: offline read-only access** to explicitly saved, bounded
+   authoring snapshots on trusted personal devices, only after a device-cache
+   security and cleanup plan exists.
+2. **Defer offline editing** until demonstrated demand and an independently
+   accepted encrypted local-store, queued-operation, revocation, reconnect,
+   merge/conflict, multi-device, and attribution model exist.
+
+For a first read-only slice:
+
+- make saving for offline use explicit per user/resource;
+- show the snapshot time and a clear read-only/offline state;
+- never cache credentials, Try-It data, review invitations, or unrestricted
+  Project content automatically;
+- bound storage size and maximum age;
+- clear cached content on logout and provide a manual clear-device action;
+- require a successful online authorization refresh before any edit, export,
+  review decision, checkpoint, or publication action.
+
+### Alternatives
+
+- **Defer all offline work:** rely on current online/error recovery until user
+  demand exists.
+- **Reject private offline storage:** allow only already-public Publication
+  caching through normal browser/HTTP behavior.
+- **Accept offline mutation next:** requires a dedicated master and ADR after
+  the complete candidate review; it cannot be inferred from the current
+  autosave offline label.
+
+### Rejected shortcuts
+
+- claiming current autosave status supports offline editing;
+- silently caching all private Project content;
+- storing session tokens, passwords, Try-It credentials, or invitation tokens
+  with offline content;
+- trusting client-side queued operations or timestamps;
+- replaying operations without current actor, tenant, permission, lifecycle,
+  Row Version, limits, and validation checks;
+- last-write-wins or invisible automatic merge;
+- allowing offline edits to checkpoint, approve, publish, or delete;
+- assuming logout can remotely erase data from an already offline device;
+- bundling offline mutation into realtime collaboration.
+
+### Security, permission, source-of-truth, and lifecycle impact
+
+- PostgreSQL and protected Files remain authority; a cache is a labeled local
+  copy, never publication or authoring authority.
+- Offline availability is user/device/resource scoped and opt-in.
+- The device cannot learn new permission or revocation state while offline;
+  cached access must expire locally and all mutations require online
+  reauthorization.
+- Local records are minimized, integrity checked, origin scoped, encrypted
+  where the accepted threat model makes that meaningful, and never contain
+  reusable secrets.
+- Server Access Evidence is emitted only for real server access, not inferred
+  from offline reads.
+- Clearing, expiry, logout cleanup, browser eviction, and device loss behavior
+  must be explicit and honestly documented.
+
+### Migration, API, UI, URL, and compatibility impact
+
+Child `140` changes none. A future read-only slice would require a versioned
+cache manifest, service worker/storage scope, opt-in/clear UI, freshness and
+quota behavior, protected asset handling, CSP/security/browser verification,
+and online authorization refresh. Offline mutation would require separate
+operation/schema/API/merge/conflict/Audit compatibility planning and must
+preserve current Row Version recovery until deliberately replaced.
+
+### Reversibility
+
+Read-only opt-in caching is partly reversible in the product but cannot
+guarantee remote deletion from an offline or copied device; that limitation
+must be explicit. Offline mutation becomes difficult to reverse once queued
+operations and merge semantics are a supported contract, so it remains
+deferred.
+
+### Evidence gaps
+
+- no offline user demand, target workflow, or maximum duration;
+- no trusted-device or shared-device policy;
+- no accepted browser/device encryption threat model;
+- no cache retention, size, or protected-asset scope;
+- no queued-operation or conflict model;
+- no multi-device, revoked-user, lost-device, or remote-wipe guarantee;
+- no browser support matrix beyond current Chromium evidence.
+
+### Provisional disposition
+
+Pending explicit user authority.
+
+### Simple decision requested
+
+Should we keep offline Documentation use as a possible later capability?
+
+Recommended answer: **Allow saved read-only pages later. Defer offline editing
+until users need it and safe merge/security rules are designed.**
+
+## 18. Questions Not Yet Opened
+
+Q11 through Q17 remain unmade. Their full implementation-safe question
 contracts are defined in Plan `140`. They will be copied into this record one
 at a time with current primary-source research only when opened.
 
-## 18. Session Log
+## 19. Session Log
 
 - 2026-07-31: started from clean `main` commit `df409d0`; no implementation
   drift existed after the independently rechecked Plan `140`.
@@ -1625,8 +1799,12 @@ at a time with current primary-source research only when opened.
   `accept-later` possibility with verified, expiring read/comment access only.
   Project membership and decision/publication authority remain excluded.
   Opened realtime presence and collaboration as Q9.
+- 2026-07-31: the user accepted ephemeral same-Page author presence as an
+  `accept-later` possibility and deferred simultaneous editing until real
+  demand and an authoritative collaboration model exist. Opened offline use as
+  Q10.
 
-## 19. Verification Record
+## 20. Verification Record
 
 Initial checkpoint verification:
 
@@ -1643,7 +1821,7 @@ Initial checkpoint verification:
 No runtime tests, migrations, dependency operations, or agent-browser sessions
 are required for this documentation-only checkpoint.
 
-## 20. Current Handoff
+## 21. Current Handoff
 
-Awaiting explicit user/product authority for Q9. Do not open Q10 until Q9 is
+Awaiting explicit user/product authority for Q10. Do not open Q11 until Q10 is
 recorded.

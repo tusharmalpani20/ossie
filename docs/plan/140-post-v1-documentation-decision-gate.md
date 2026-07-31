@@ -5,8 +5,8 @@ Date reserved: 2026-07-30
 Date expanded: 2026-07-31
 
 Status: In progress. The documentation-only decision session began on
-2026-07-31 from clean commit `df409d0`. Q1 through Q8 are provisionally
-recorded and Q9 is open for explicit user/product authority. Product
+2026-07-31 from clean commit `df409d0`. Q1 through Q9 are provisionally
+recorded and Q10 is open for explicit user/product authority. Product
 Documentation V1 remains implemented and independently close-rechecked through
 child `139`; this child authorizes no runtime, schema, route, dependency, or
 browser-visible implementation.
@@ -1602,9 +1602,13 @@ Child `140` may close only when:
   private comments only. Project membership, editing, approval, export, Try
   It, and publication authority remain excluded. Realtime collaboration opened
   as Q9.
+- 2026-07-31: the user provisionally accepted ephemeral same-Page presence as
+  an `accept-later` capability while deferring simultaneous editing until real
+  demand and a dedicated authority/persistence decision exist. Offline use
+  opened separately as Q10.
 
 The expansion itself made no decision. At the current execution checkpoint Q1
-through Q8 are provisionally recorded, Q9 is open, and final cross-question
+through Q9 are provisionally recorded, Q10 is open, and final cross-question
 acceptance remains pending.
 
 ## 25. Expansion Verification Record
