@@ -451,6 +451,17 @@ const requestBlob = async (
   };
 };
 
+/** Returns the API origin users should enter in the browser extension. */
+export const getConfiguredApiOrigin = () =>
+  new URL(apiBaseUrl() || window.location.origin, window.location.origin)
+    .origin;
+
+/** Downloads the authenticated Manifest V3 extension bundle. */
+export const downloadExtensionBundle = async (): Promise<{
+  filename: string;
+  blob: Blob;
+}> => requestBlob("/api/v1/extension/download", "ossie-extension.zip");
+
 export const resolveApiAssetUrl = (fileUrl: string, baseUrl = apiBaseUrl()) =>
   joinUrl(baseUrl, fileUrl);
 

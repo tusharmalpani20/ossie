@@ -22,6 +22,9 @@ export type PortalRoute =
       type: "organization_documentation";
     }
   | {
+      type: "browser_extension";
+    }
+  | {
       type: "organization_invite_accept";
       token: string;
     }
@@ -408,6 +411,10 @@ export const parsePortalRoute = (pathname: string): PortalRoute => {
     segments[1] === "documentation"
   ) {
     return { type: "organization_documentation" };
+  }
+
+  if (segments.length === 1 && segments[0] === "extension") {
+    return { type: "browser_extension" };
   }
 
   if (segments.length === 2 && segments[0] === "invites") {

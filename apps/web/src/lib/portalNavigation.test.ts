@@ -40,6 +40,19 @@ describe("portalNavigation", () => {
     ]);
   });
 
+  it("includes the browser extension download in organization navigation", () => {
+    expect(
+      buildPortalNavigation({ activeSection: "browser_extension" }).find(
+        (item) => item.label === "Browser extension",
+      ),
+    ).toEqual({
+      label: "Browser extension",
+      href: "/extension",
+      active: true,
+      ariaLabel: "Download and install the Ossie browser extension",
+    });
+  });
+
   it("hides project settings when the project role cannot manage settings", () => {
     expect(
       buildPortalNavigation({

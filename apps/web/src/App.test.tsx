@@ -144,6 +144,41 @@ const demoDetailResponse = {
 };
 
 describe("App", () => {
+  it("renders the browser extension installation page", async () => {
+    window.history.pushState({}, "", "/extension");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = input.toString();
+        if (url.endsWith("/api/v1/public/instance")) {
+          return jsonResponse(readyInstanceStatus);
+        }
+        if (url.endsWith("/api/v1/authentication/me")) {
+          return jsonResponse({
+            user: {
+              id: "user_1",
+              email: "owner@example.com",
+              display_name: "Owner",
+            },
+            organization: { id: "organization_1", name: "Acme" },
+            org_user: { id: "org_user_1", role: "owner" },
+          });
+        }
+        return jsonResponse({ error: { message: "Unexpected request" } }, 404);
+      }),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Install the browser extension",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Download extension" }),
+    ).toBeInTheDocument();
+  });
   it("renders project list home routes", async () => {
     window.history.pushState({}, "", "/projects");
     vi.stubGlobal(

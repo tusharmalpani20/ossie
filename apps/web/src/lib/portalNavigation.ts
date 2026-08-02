@@ -93,6 +93,12 @@ export const buildPortalNavigation = ({
       active: activeSection === "organization_documentation",
       ariaLabel: "Portal Documentation operations",
     },
+    {
+      label: "Browser extension",
+      href: "/extension",
+      active: activeSection === "browser_extension",
+      ariaLabel: "Download and install the Ossie browser extension",
+    },
   ];
 
   if (!project) return items;

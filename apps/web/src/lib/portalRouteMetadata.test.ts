@@ -21,6 +21,11 @@ describe("portalRouteMetadata", () => {
         versionSlug: "main",
       }).section,
     ).toBe("guides");
+    expect(portalRouteMetadata({ type: "browser_extension" })).toEqual({
+      section: "browser_extension",
+      usesPortalShell: true,
+      label: "Browser extension",
+    });
   });
 
   it("keeps public and setup routes outside the portal shell", () => {
@@ -57,6 +62,9 @@ describe("portalRouteMetadata", () => {
     ).toBe("Interactive demo | Ossie");
     expect(portalDocumentTitle({ type: "unsupported" })).toBe(
       "Page not found | Ossie",
+    );
+    expect(portalDocumentTitle({ type: "browser_extension" })).toBe(
+      "Browser extension | Ossie",
     );
   });
 });

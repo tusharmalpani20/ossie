@@ -1,0 +1,122 @@
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.header h1,
+.downloadCard h2,
+.grid h2 {
+  margin: 0;
+}
+
+.eyebrow {
+  margin-bottom: 0.35rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lede {
+  max-width: 48rem;
+  margin: 0.55rem 0 0;
+  color: #475569;
+  line-height: 1.65;
+}
+
+.downloadCard {
+  margin-bottom: 1rem;
+  border-color: #cbd5e1;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.downloadContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.downloadContent p {
+  max-width: 48rem;
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.steps {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.steps code,
+.details code {
+  border-radius: 0.25rem;
+  background: #f1f5f9;
+  padding: 0.12rem 0.3rem;
+  color: #0f172a;
+  font-size: 0.88em;
+}
+
+.url {
+  display: block;
+  overflow-wrap: anywhere;
+  margin-top: 0.35rem;
+  padding: 0.55rem 0.65rem !important;
+}
+
+.note {
+  margin: 1rem 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.details {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.details p,
+.state p {
+  margin: 0;
+}
+
+.state {
+  display: grid;
+  gap: 0.75rem;
+  color: #475569;
+}
+
+.state a {
+  width: fit-content;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .header,
+  .downloadContent {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

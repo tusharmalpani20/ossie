@@ -52,6 +52,15 @@ describe("parsePortalRoute", () => {
     });
   });
 
+  it("parses the browser extension route", () => {
+    expect(parsePortalRoute("/extension")).toEqual({
+      type: "browser_extension",
+    });
+    expect(parsePortalRoute("/extension/")).toEqual({
+      type: "browser_extension",
+    });
+  });
+
   it("parses organization invite acceptance routes", () => {
     expect(parsePortalRoute("/invites/plain-token")).toEqual({
       type: "organization_invite_accept",

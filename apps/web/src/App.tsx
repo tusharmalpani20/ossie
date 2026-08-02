@@ -25,6 +25,7 @@ import { ProjectInteractiveDemoListPage } from "./features/interactive-demo/Proj
 import { PublicInteractiveDemoViewerPage } from "./features/interactive-demo/PublicInteractiveDemoViewerPage";
 import { InviteAcceptPage } from "./features/organization/InviteAcceptPage";
 import { OrganizationMembersPage } from "./features/organization/OrganizationMembersPage";
+import { BrowserExtensionPage } from "./features/extension/BrowserExtensionPage";
 import { ComplianceTimelinePage } from "./features/compliance/ComplianceTimelinePage";
 import { ProjectListPage } from "./features/project/ProjectListPage";
 import { ProjectSettingsPage } from "./features/project/ProjectSettingsPage";
@@ -148,6 +149,7 @@ const setupGuardedRouteTypes = new Set<PortalRoute["type"]>([
   "organization_members",
   "organization_compliance",
   "organization_documentation",
+  "browser_extension",
   "project_workspace",
   "project_version_workspace",
   "project_settings",
@@ -405,6 +407,10 @@ export default function App() {
 
   if (route.type === "organization_members") {
     return <OrganizationMembersPage currentPath={currentPath} />;
+  }
+
+  if (route.type === "browser_extension") {
+    return <BrowserExtensionPage currentPath={currentPath} />;
   }
 
   if (route.type === "organization_compliance") {
