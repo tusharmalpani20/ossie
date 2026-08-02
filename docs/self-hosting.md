@@ -31,6 +31,31 @@ If the portal is served from a different origin without that dev proxy, set:
 VITE_OSSIE_API_URL=https://api.example.com
 ```
 
+## Build And Distribute The Browser Extension
+
+Build the loadable Chrome/Chromium extension before starting the API:
+
+```bash
+pnpm --filter extension build
+```
+
+By default the API packages the monorepo output at `apps/extension/dist` when a
+signed-in Organization member selects **Download extension** on the portal's
+`/extension` page. Generated build output remains ignored by Git.
+
+If the deployed extension files live outside the monorepo, set the API runtime
+to the absolute directory that directly contains `manifest.json`:
+
+```text
+OSSIE_EXTENSION_DIST_ROOT=/opt/ossie/extension
+```
+
+The portal gives members the complete unpacked-extension installation,
+connection, update, and removal steps. The API returns a stable `503` response
+when the artifact is missing or unsafe, and the portal never accepts a
+user-supplied server path. Rebuild and redeploy this directory whenever the
+extension changes.
+
 ## Configure The Server
 
 Create `apps/server/.env-cmdrc` from `apps/server/.env-cmdrc.example`.

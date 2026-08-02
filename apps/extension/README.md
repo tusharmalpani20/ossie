@@ -66,6 +66,26 @@ Clearing local active capture state does not cancel, delete, or complete the
 server Capture Session. Use `Finish and open portal` to complete the server
 Capture Session.
 
+## Portal Download And Installation
+
+Signed-in Organization members can open `/extension` in the web portal to
+download the current build and follow the installation instructions. The API
+packages `apps/extension/dist` at request time and does not commit generated
+extension files to Git.
+
+Before starting or deploying the API, build the extension from the repository
+root:
+
+```bash
+pnpm --filter extension build
+```
+
+The server finds the monorepo build automatically. A packaged deployment can
+instead set `OSSIE_EXTENSION_DIST_ROOT` to the absolute directory containing
+the deployed `manifest.json` and extension assets. The download route rejects
+symbolic links, invalid manifests, excessive file counts, and oversized builds;
+it returns `503 extension_bundle_unavailable` when no safe build is available.
+
 ## Development
 
 From the repo root:

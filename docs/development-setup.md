@@ -57,9 +57,15 @@ OSSIE_DEPLOYMENT_MODE
 OSSIE_ONBOARDING_MODE
 OSSIE_LOCAL_STORAGE_ROOT
 OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES
+OSSIE_EXTENSION_DIST_ROOT
 API_URL
 OSSIE_PUBLIC_WEB_URL
 ```
+
+`OSSIE_EXTENSION_DIST_ROOT` is optional. The API normally discovers
+`apps/extension/dist`; set an absolute path only when a packaged deployment
+stores the built Manifest V3 files elsewhere. Run
+`pnpm --filter extension build` before using the authenticated portal download at `/extension`.
 
 `OSSIE_CORS_ALLOWED_ORIGINS` is required in production and accepts comma-separated browser origins, including Chrome extension origins when needed:
 
