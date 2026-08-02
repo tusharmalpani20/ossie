@@ -52,6 +52,7 @@ import {
   build_organization_invites_routes,
   type OrganizationInvitesRouteDependencies,
 } from "./modules/organization/organization-invites.routes.js";
+import { build_extension_distribution_routes } from "./modules/extension/extension-distribution.routes.js";
 import { build_organization_invites_repository } from "./modules/organization/organization-invites.audit.js";
 import { build_organization_invites_service } from "./modules/organization/organization-invites.service.js";
 import {
@@ -735,6 +736,18 @@ export const build = (opts: BuildOptions = {}) => {
     }),
     {
       prefix: "/api/v1",
+    },
+  );
+
+  app.register(
+    build_extension_distribution_routes({
+      auth_service: {
+        get_current_auth_context:
+          default_authentication_session_service.get_current_auth_context,
+      },
+    }),
+    {
+      prefix: "/api/v1/extension",
     },
   );
 

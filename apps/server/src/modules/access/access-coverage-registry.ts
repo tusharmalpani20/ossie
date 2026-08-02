@@ -248,6 +248,12 @@ const reads: AccessRouteRegistration[] = [
     "organization",
     null,
   ),
+  read(
+    "GET /api/v1/extension/download",
+    "extension.bundle_downloaded",
+    "organization",
+    null,
+  ),
   read("GET /api/v1/projects", "project.list_viewed", "organization", null),
   read("GET /api/v1/projects/:id", "project.viewed", "project", "id"),
   read(

@@ -58,6 +58,17 @@ describe("Access route coverage", () => {
     ).toBe("excluded_transport");
   });
 
+  it("classifies extension downloads as authenticated Organization reads", () => {
+    expect(
+      access_route_registration("GET", "/api/v1/extension/download"),
+    ).toMatchObject({
+      action: "extension.bundle_downloaded",
+      policy: "meaningful_read",
+      root_resource_type: "organization",
+      authorization_type: "organization_role",
+    });
+  });
+
   it("classifies Documentation authoring and public reader access explicitly", () => {
     expect(
       access_route_registration(
