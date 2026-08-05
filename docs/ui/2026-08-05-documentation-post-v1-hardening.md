@@ -120,15 +120,15 @@ Optional engine/AT limits:
 
 The final `pnpm --filter web build` emitted:
 
-| surface | raw | gzip |
-|---|---:|---:|
-| `DocumentationTiptapProseField` | 5.64 kB | 2.20 kB |
-| `DocumentationPublicationReaderChrome` | 10.02 kB | 4.17 kB |
-| `DocumentationRequestExamples` | 10.16 kB | 4.13 kB |
+| surface                                                  |       raw |     gzip |
+| -------------------------------------------------------- | --------: | -------: |
+| `DocumentationTiptapProseField`                          |   5.64 kB |  2.20 kB |
+| `DocumentationPublicationReaderChrome`                   |  10.02 kB |  4.17 kB |
+| `DocumentationRequestExamples`                           |  10.16 kB |  4.13 kB |
 | `LazyDocumentationRequestExamples` boundary/shared graph | 131.39 kB | 32.82 kB |
-| `DocumentationApiOperationExperience` | 19.22 kB | 6.83 kB |
-| `PublicDocumentationReaderPage` | 6.88 kB | 2.69 kB |
-| `DocumentationSiteEditorPage` | 51.52 kB | 13.77 kB |
+| `DocumentationApiOperationExperience`                    |  19.22 kB |  6.83 kB |
+| `PublicDocumentationReaderPage`                          |   6.88 kB |  2.69 kB |
+| `DocumentationSiteEditorPage`                            |  51.52 kB | 13.77 kB |
 
 The request-example UI remains dynamically loaded. The production manifest
 contains no Tiptap module in the public reader chunk, and no Fumadocs reader

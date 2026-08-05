@@ -44,7 +44,8 @@ export const DocumentationRequestExamples = ({
     [descriptor],
   );
   const selected =
-    examples.find((example) => example.languageId === selectedId) ?? examples[0];
+    examples.find((example) => example.languageId === selectedId) ??
+    examples[0];
   const selectedResult = selected?.result;
 
   const selectTab = (index: number) => {
@@ -97,9 +98,8 @@ export const DocumentationRequestExamples = ({
         aria-label="Request example languages"
         className="documentation-request-examples__tabs"
         onKeyDown={(event) => {
-          const index = DOCUMENTATION_REQUEST_EXAMPLE_LANGUAGE_IDS.indexOf(
-            selectedId,
-          );
+          const index =
+            DOCUMENTATION_REQUEST_EXAMPLE_LANGUAGE_IDS.indexOf(selectedId);
           if (event.key === "ArrowRight") {
             event.preventDefault();
             selectTab(index + 1);

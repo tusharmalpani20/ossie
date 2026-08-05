@@ -138,9 +138,7 @@ describe("PublicDocumentationReaderPage", () => {
         loadPage={async () => ({
           site: { name: "Product docs", description: null },
           revision: { primary_language: "en-US", home_page_id: "page" },
-          pages: [
-            { id: "page", title: "Install", canonical_path: "install" },
-          ],
+          pages: [{ id: "page", title: "Install", canonical_path: "install" }],
           navigation: [],
           openapi_operations: [],
           page: {

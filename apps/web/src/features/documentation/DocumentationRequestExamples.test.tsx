@@ -61,9 +61,7 @@ describe("DocumentationRequestExamples", () => {
     expect(screen.getByRole("tabpanel")).toHaveTextContent(
       "https://api.example.com/pets/pet%2F1",
     );
-    expect(screen.getByRole("tabpanel")).toHaveTextContent(
-      "<SENSITIVE_VALUE>",
-    );
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("<SENSITIVE_VALUE>");
     expect(screen.getByRole("tabpanel")).not.toHaveTextContent(
       "private-body-value",
     );
@@ -82,7 +80,9 @@ describe("DocumentationRequestExamples", () => {
     );
     await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
     expect(targetFetch).not.toHaveBeenCalled();
-    expect(screen.getByText("Browser Fetch example copied.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Browser Fetch example copied."),
+    ).toBeInTheDocument();
   });
 
   it("downloads one safe text file and revokes its object URL", () => {
