@@ -9,6 +9,7 @@ import {
   reportDocumentationTryItAttempt,
 } from "../../lib/documentationTryItApi";
 import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiOperationExperience";
+import { LazyDocumentationRequestExamples } from "./LazyDocumentationRequestExamples";
 
 type Props = {
   projectId: string;
@@ -106,30 +107,36 @@ export const DocumentationRevisionPreviewPage = ({
             </select>
           </label>
           {selected?.request_descriptor ? (
-            <LazyDocumentationApiOperationExperience
-              key={selected.destination_key}
-              descriptor={selected.request_descriptor}
-              loadConfiguration={() =>
-                loadTryItConfiguration(
-                  projectId,
-                  versionSlug,
-                  siteId,
-                  selected.destination_key,
-                  { source: "revision", revision_number: revisionNumber },
-                )
-              }
-              reportAttempt={(attemptToken, outcome) =>
-                reportTryItAttempt(
-                  projectId,
-                  versionSlug,
-                  siteId,
-                  selected.destination_key,
-                  attemptToken,
-                  outcome,
-                  { source: "revision", revision_number: revisionNumber },
-                )
-              }
-            />
+            <>
+              <LazyDocumentationRequestExamples
+                descriptor={selected.request_descriptor}
+                operationName={selected.destination_key}
+              />
+              <LazyDocumentationApiOperationExperience
+                key={selected.destination_key}
+                descriptor={selected.request_descriptor}
+                loadConfiguration={() =>
+                  loadTryItConfiguration(
+                    projectId,
+                    versionSlug,
+                    siteId,
+                    selected.destination_key,
+                    { source: "revision", revision_number: revisionNumber },
+                  )
+                }
+                reportAttempt={(attemptToken, outcome) =>
+                  reportTryItAttempt(
+                    projectId,
+                    versionSlug,
+                    siteId,
+                    selected.destination_key,
+                    attemptToken,
+                    outcome,
+                    { source: "revision", revision_number: revisionNumber },
+                  )
+                }
+              />
+            </>
           ) : null}
         </>
       ) : (

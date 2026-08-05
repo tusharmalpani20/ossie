@@ -13,6 +13,7 @@ import {
 } from "../../lib/documentationTryItApi";
 import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
 import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiOperationExperience";
+import { LazyDocumentationRequestExamples } from "./LazyDocumentationRequestExamples";
 import { LazyDocumentationPublicationReaderChrome } from "./LazyDocumentationPublicationReaderChrome";
 import { readDocumentationInitialDocument } from "../../lib/documentationInitialDocument";
 
@@ -240,25 +241,31 @@ export const PublicDocumentationReaderPage = ({
       />
       {snapshot.current_operation?.descriptor_version === 1 &&
       snapshot.current_operation.request_descriptor ? (
-        <LazyDocumentationApiOperationExperience
-          descriptor={snapshot.current_operation.request_descriptor}
-          loadConfiguration={() =>
-            getPublicDocumentationTryItConfiguration(
-              slug,
-              snapshot.current_operation!.destination_key,
-              versionSlug,
-            )
-          }
-          reportAttempt={(attemptToken, outcome) =>
-            reportPublicDocumentationTryItAttempt(
-              slug,
-              snapshot.current_operation!.destination_key,
-              attemptToken,
-              outcome,
-              versionSlug,
-            )
-          }
-        />
+        <>
+          <LazyDocumentationRequestExamples
+            descriptor={snapshot.current_operation.request_descriptor}
+            operationName={snapshot.current_operation.destination_key}
+          />
+          <LazyDocumentationApiOperationExperience
+            descriptor={snapshot.current_operation.request_descriptor}
+            loadConfiguration={() =>
+              getPublicDocumentationTryItConfiguration(
+                slug,
+                snapshot.current_operation!.destination_key,
+                versionSlug,
+              )
+            }
+            reportAttempt={(attemptToken, outcome) =>
+              reportPublicDocumentationTryItAttempt(
+                slug,
+                snapshot.current_operation!.destination_key,
+                attemptToken,
+                outcome,
+                versionSlug,
+              )
+            }
+          />
+        </>
       ) : snapshot.current_operation ? (
         <p role="note">
           Interactive requests are unavailable for this legacy operation.

@@ -16,7 +16,7 @@ const placeholderFor = (name: string) =>
     ? "<BEARER_TOKEN>"
     : `<${name.toUpperCase().replaceAll(/[^A-Z0-9]+/gu, "_")}>`;
 
-export const generateDocumentationTryItExamples = (input: ExampleInput) => {
+export const generateDocumentationTryItRequestPreviews = (input: ExampleInput) => {
   const sensitive = new Set(
     input.sensitive_header_names.map((name) => name.toLowerCase()),
   );

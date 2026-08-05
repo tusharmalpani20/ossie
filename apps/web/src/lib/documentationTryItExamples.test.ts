@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { generateDocumentationTryItExamples } from "./documentationTryItExamples";
+import { generateDocumentationTryItRequestPreviews } from "./documentationTryItExamples";
 
 describe("Documentation Try-It examples", () => {
   it("uses placeholders and language-specific escaping without executing", () => {
-    const examples = generateDocumentationTryItExamples({
+    const examples = generateDocumentationTryItRequestPreviews({
       url: "https://api.example.com/pets?q=a%27b",
       method: "POST",
       headers: {

@@ -53,6 +53,29 @@
   background: rgb(15 23 42 / 55%);
 }
 
+.documentation-request-examples {
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.75rem;
+  margin-block: 1.5rem;
+  padding: 1rem;
+}
+
+.documentation-request-examples__tabs,
+.documentation-request-examples__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.documentation-request-examples__tab[aria-selected="true"] {
+  font-weight: 700;
+}
+
+.documentation-request-examples__panel pre {
+  max-width: 100%;
+  overflow: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .documentation-api-operation *,
   .documentation-api-operation *::before,

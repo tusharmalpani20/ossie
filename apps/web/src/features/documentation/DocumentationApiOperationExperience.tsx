@@ -11,7 +11,7 @@ import {
   DocumentationTryItClientError,
   executeDocumentationTryItRequest,
 } from "../../lib/documentationTryItClient";
-import { generateDocumentationTryItExamples } from "../../lib/documentationTryItExamples";
+import { generateDocumentationTryItRequestPreviews } from "../../lib/documentationTryItExamples";
 import "./documentation-api-operation.css";
 
 type AttemptOutcome =
@@ -261,7 +261,7 @@ export const DocumentationApiOperationExperience = ({
       (parameter) => parameter.location === "header" && parameter.sensitive,
     )
     .map((parameter) => parameter.name);
-  const examples = generateDocumentationTryItExamples({
+  const examples = generateDocumentationTryItRequestPreviews({
     ...builtRequest,
     body: safeExampleBody,
     sensitive_header_names: [
@@ -787,7 +787,7 @@ export const DocumentationApiOperationExperience = ({
         </>
       )}
       <details>
-        <summary>Generated examples</summary>
+        <summary>Current Try-It request preview</summary>
         {!configuration ? (
           <p>
             The placeholder origin <code>api.example.invalid</code> is replaced

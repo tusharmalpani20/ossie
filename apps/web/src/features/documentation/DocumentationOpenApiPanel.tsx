@@ -17,6 +17,7 @@ import {
   reportDocumentationTryItAttempt,
 } from "../../lib/documentationTryItApi";
 import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiOperationExperience";
+import { LazyDocumentationRequestExamples } from "./LazyDocumentationRequestExamples";
 
 type Props = {
   projectId: string;
@@ -518,6 +519,10 @@ export const DocumentationOpenApiPanel = ({
                 This request uses the current server-saved OpenAPI source. It is
                 not a frozen Revision.
               </p>
+              <LazyDocumentationRequestExamples
+                descriptor={selectedRequestOperation.request_descriptor}
+                operationName={selectedRequestOperation.destination_key}
+              />
               <LazyDocumentationApiOperationExperience
                 descriptor={selectedRequestOperation.request_descriptor}
                 loadConfiguration={() =>
