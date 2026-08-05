@@ -548,6 +548,14 @@ and fixture-reset evidence is recorded in
 Implements the selected reader path, or native fallback, under exact
 Publication/access/URL/search/SEO/CSP/Try-It contracts.
 
+Closed 2026-08-05: adopted Fumadocs page-tree, breadcrumb, and heading TOC
+primitives in a lazy public exact-Publication reader chrome over the existing
+authorized Ossie projection. Draft and Revision previews remain native and
+resource-distinct; the disposable reader proof query/UI was removed. Native
+fallback, public/default and explicit-version routes, search/API/assets,
+responsive/reduced-motion/axe, and chunk-failure recovery are recorded in
+`docs/ui/2026-08-05-documentation-reader-modernization-browser-evidence.md`.
+
 ### 17.4 Child 144 — Multi-language request examples
 
 Implements ADR `0034` after the reader surface is stable.
@@ -758,13 +766,13 @@ date.
 
 ### Child 143 lifecycle
 
-- [ ] Review Child `142` closure and Child `141` reader disposition.
-- [ ] Refresh/recheck Child `143` and lock its selected/native branch.
-- [ ] Implement reader modernization test-first.
-- [ ] Verify public/draft/Revision authority, URL/SEO/access/CSP/Try-It and
+- [x] Review Child `142` closure and Child `141` reader disposition.
+- [x] Refresh/recheck Child `143` and lock its selected/native branch.
+- [x] Implement reader modernization test-first.
+- [x] Verify public/draft/Revision authority, URL/SEO/access/CSP/Try-It and
       browser behavior.
-- [ ] Independently close-recheck Child `143`.
-- [ ] Freeze the stable reader seam and route example work to Child `144`.
+- [x] Independently close-recheck Child `143`.
+- [x] Freeze the stable reader seam and route example work to Child `144`.
 
 ### Child 144 lifecycle
 
@@ -812,19 +820,11 @@ date.
 
 ## 20. Immediate Handoff
 
-Children `141` and `142` are closed and independently rechecked. Begin Child
-`143` by reviewing Child `141`'s recorded Fumadocs `partial-adopt` branch for
-page-tree, breadcrumb, and TOC primitives over an authorized Publication
-projection. Child `142` leaves no reader-affecting runtime change; it passes
-only the exact retained Tiptap dependency/lazy-loading facts, the prose-only
-authoring limitation, and the 5.64 kB raw / 2.20 kB gzip authoring field
-baseline.
-
-Child `143` receives the Fumadocs `partial-adopt` branch: page-tree,
-breadcrumb, and TOC primitives only, fed by an already authorized exact
-Publication projection. Ossie retains route, URL, search, initial HTML,
-publication, access, CSP, Try-It, and block rendering authority. No routine
-product question remains open.
+Children `141`, `142`, and `143` are closed and independently rechecked. Begin
+Child `144` at the stable `PublicDocumentationReaderPage` content seam inside
+the lazy reader chrome. Its generated examples must remain inert, descriptor-
+versioned, and separate from mutable Try-It configuration; no reader routing,
+Publication authority, or access expansion is carried forward.
 
 ## 21. Planning Re-Audit Record
 

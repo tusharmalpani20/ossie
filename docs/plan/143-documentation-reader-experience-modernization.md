@@ -4,7 +4,10 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
-Status: In progress — implementation-ready after Child `142` closeout intake.
+Status: Complete — Fumadocs `partial-adopt` for the public exact-Publication
+page-tree, breadcrumb, and TOC primitives. Child `143` was independently
+close-rechecked on 2026-08-05 after full regressions, build/dependency review,
+fresh browser evidence, and final fixture reseed.
 
 Selected branch: fumadocs-headless(page-tree, breadcrumb, TOC primitives).
 The production adoption is limited to the public exact-Publication reader.
@@ -434,53 +437,116 @@ end-of-child commit. Stage exact paths and preserve unrelated work.
 
 ### Intake and plan
 
-- [ ] Children `141` and `142` complete/close-rechecked.
-- [ ] Selected reader branch/imports copied here.
-- [ ] Shared renderer/bundle/leftover intake recorded.
-- [ ] Current public/preview/server routes inspected.
-- [ ] Plan refreshed and independently rechecked.
+- [x] Children `141` and `142` complete/close-rechecked.
+- [x] Selected reader branch/imports copied here.
+- [x] Shared renderer/bundle/leftover intake recorded.
+- [x] Current public/preview/server routes inspected.
+- [x] Plan refreshed and independently rechecked.
 
 ### Implementation
 
-- [ ] Resource-class projection tests first.
-- [ ] Public reader shell/navigation/breadcrumb/TOC modernized.
-- [ ] Search/loading/empty/error states complete.
-- [ ] Draft and Revision previews remain distinct.
-- [ ] Initial document/hydration/fallback complete.
-- [ ] URL/access/redirect/gone/asset/operation behavior preserved.
-- [ ] Responsive/accessibility/motion work complete.
-- [ ] Native fallback complete.
+- [x] Resource-class projection tests first.
+- [x] Public reader shell/navigation/breadcrumb/TOC modernized.
+- [x] Search/loading/empty/error states complete.
+- [x] Draft and Revision previews remain distinct.
+- [x] Initial document/hydration/fallback complete.
+- [x] URL/access/redirect/gone/asset/operation behavior preserved.
+- [x] Responsive/accessibility/motion work complete.
+- [x] Native fallback complete.
 
 ### Verification and closure
 
-- [ ] Focused tests/types/lint/build pass.
-- [ ] Server route/header tests pass.
-- [ ] Dependency/frozen/audit checks pass if applicable.
-- [ ] Agent-browser matrix passes.
-- [ ] Bundle/performance evidence passes.
-- [ ] Independent close-recheck clean.
-- [ ] Status/log/evidence/limitations/leftovers/handoff/commits updated.
-- [ ] Commits are small, single-purpose, focused-test green, and independently
+- [x] Focused tests/types/lint/build pass.
+- [x] Server route/header tests pass.
+- [x] Dependency/frozen/audit checks pass if applicable.
+- [x] Agent-browser matrix passes.
+- [x] Bundle/performance evidence passes.
+- [x] Independent close-recheck clean.
+- [x] Status/log/evidence/limitations/leftovers/handoff/commits updated.
+- [x] Commits are small, single-purpose, focused-test green, and independently
       reviewable; no large end-of-child commit was used.
-- [ ] Master Child `143` lifecycle updated.
+- [x] Master Child `143` lifecycle updated.
 
 ## 18. Implementation Log
 
-Not started. Append dated facts and the selected branch.
+### 2026-08-05
+
+- Locked and implemented the Child `141` Fumadocs `partial-adopt` branch for
+  the public Publication reader only. The production component consumes the
+  existing authorized snapshot through `buildDocumentationReaderProjection`
+  and `buildFumadocsPageTree`.
+- Added a lazy `DocumentationPublicationReaderChrome` using only Fumadocs
+  page-tree, breadcrumb, `AnchorProvider`, and `TOCItem` primitives. It renders
+  Ossie-provided URLs and content under the same main landmark and leaves
+  search, block rendering, assets, operations, Try-It, and access authority in
+  Ossie code.
+- Added a native fallback/error boundary around the lazy component and tested
+  missing selected navigation as fail-closed. The existing draft and Revision
+  preview components were not routed through the public adapter.
+- Removed the disposable Child 141 reader proof panel, lazy wrapper, and
+  `fumadocs-headless` query mode. The historical evidence remains in Child
+  `141` records; the live route now has only production chrome plus native
+  fallback.
+- Moved `fumadocs-core@16.14.0` to web runtime dependencies. It remains MIT;
+  frozen install and license review passed. The production audit retains the
+  known workspace high `fast-uri` finding and records Fumadocs transitive
+  moderate PostCSS/low Babel findings without claiming a clean audit.
+- Commits: `9bfb47a` (branch plan), `fa8abac` (projection/dependency),
+  `218a34b` (lazy chrome), `7cd9558` (production adoption/proof removal).
 
 ## 19. Verification Record
 
-Not started. Record exact commands, routes, response/header checks, fixture
-identity, measurements, and results.
+### Automated verification
+
+- `pnpm --filter web test`: **90 files / 464 tests passed**.
+- `pnpm --filter server test`: **127 files / 552 tests passed**.
+- `pnpm --filter server test -- src/modules/documentation/documentation.routes.test.ts src/modules/documentation/documentation.service.test.ts src/modules/documentation/documentation-try-it.origin.test.ts src/modules/documentation/documentation-try-it.token.test.ts`: **4 files / 38 tests passed**.
+- Reader/preview/renderer/initial-document focused run: **5 files / 15 tests
+  passed**.
+- `pnpm --filter web check-types`: passed.
+- `pnpm --filter web lint`: passed with zero warnings.
+- `pnpm --filter web build`: passed. `DocumentationPublicationReaderChrome`
+  was **10.02 kB raw / 4.17 kB gzip** and remained lazy; the public reader
+  chunk was **6.67 kB raw / 2.64 kB gzip**.
+- `pnpm install --frozen-lockfile`: passed.
+- `pnpm licenses list --filter web`: passed; the retained direct Fumadocs
+  package is MIT.
+- `pnpm audit --prod`: non-zero for known workspace findings: high
+  `fast-uri` in the server graph, moderate PostCSS and low Babel paths also
+  visible through the Fumadocs dependency graph. No high/critical finding was
+  introduced by the selected Fumadocs path; this limitation is recorded in
+  the evidence file.
+- `git diff --check`: passed.
+
+### Browser verification
+
+Evidence is recorded in
+`docs/ui/2026-08-05-documentation-reader-modernization-browser-evidence.md`.
+The synthetic fixture organization/project were
+`01K12500000000000000000001` / `01K12500000000000000000002`. Chrome
+`151.0.7922.47` via agent-browser `0.33.1` covered default and explicit
+Publication routes, navigation/breadcrumb, search, API operation link, asset,
+axe, accessibility tree, console/error scans, 320px/160px reflow, reduced
+motion, proof-query removal, and lazy chunk abort/recovery. Axe reported zero
+violations and the final fixture was reseeded clean.
+
+Firefox/WebKit and an installed screen reader were unavailable and are not
+claimed as passed.
 
 ## 20. Leftovers And Handoff
 
-At planning time no user-input blocker remains. Child `144` receives:
+No in-scope reader leftovers remain. Child `144` receives:
 
-- the stable component location where inert examples render;
-- exact authorized descriptor shapes available in draft/Revision/Publication;
-- selected reader lazy-loading and CSS constraints;
-- accessibility/bundle limitations that affect example selection/copy;
-- confirmation that mutable Try-It configuration remains separate.
+- the stable public reader content location where inert examples render:
+  `PublicDocumentationReaderPage` inside
+  `LazyDocumentationPublicationReaderChrome`;
+- the existing exact authorized operation descriptor and immutable/mutable
+  resource boundaries from Child `141`/current API clients;
+- the reader lazy-loading baseline (**4.17 kB gzip** selected chrome) and
+  responsive/accessibility limitations recorded above;
+- confirmation that generated examples must remain inert and separate from
+  mutable Try-It configuration, which remains unchanged.
 
-Close reader defects here; do not disguise them as example work.
+No reader defects are disguised as Child `144` work. The audit findings and
+unavailable browser/AT engines are recorded limitations or separately owned
+maintenance, not blockers to the accepted reader branch.
