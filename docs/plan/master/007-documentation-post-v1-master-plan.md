@@ -4,12 +4,9 @@ Date: 2026-07-31
 
 Last full sequence re-audit: 2026-08-05
 
-Status: In progress; Child `141` is complete and Children `142`–`146` remain
-ordered execution work. Children `141`–`146` contain implementation-ready
-planning baselines. Each
-child must still execute its embedded current-code preflight and independent
-plan recheck before changing runtime behavior; that refresh is a safety stage,
-not an unresolved product decision or a requirement for routine user input.
+Status: Complete — independently close-reconciled on 2026-08-05. Children
+`141`–`145` implemented and verified the accepted post-V1 branches; Child `146`
+completed the final audit and records-only closeout.
 
 Independent reservation re-audit: completed 2026-07-31 against Master `006`,
 child `140`, ADRs `0027`–`0034`, the current caller graph, current package
@@ -593,6 +590,14 @@ fixes are `37e4bc8` and `72b8943`; the scoped plan/evidence closeout is
 Independently reconciles the implementation against this master, all children,
 accepted decisions/ADRs, current code, migrations, tests, docs, and leftovers.
 
+Closed 2026-08-05: the final ledger maps every Master `007` requirement to
+actual runtime files, tests, browser evidence, migration/dependency facts, and
+owned limitations. The current-truth docs now describe the actual Tiptap and
+Fumadocs partial-adopt branches and the permanent inert five-language request
+example contract. Final Chromium rechecks passed for supported/unsupported
+operations, draft, and immutable Revision; no unresolved in-scope S1/S2,
+contract drift, migration, authority, or worktree issue remains.
+
 ## 18. Standard Prompt Chain
 
 For every child:
@@ -820,38 +825,37 @@ date.
 
 ### Child 146 lifecycle
 
-- [ ] Review every completed child, commit, leftover, and current-truth surface.
-- [ ] Refresh/recheck Child `146` as a closure plan, not a feature child.
-- [ ] Run the final independent code/contract/security/compatibility audit.
-- [ ] Fix and reverify only scoped closure defects until clean.
-- [ ] Reconcile all child records and this master checklist.
-- [ ] Classify remaining limitations/future work and close Master `007`.
+- [x] Review every completed child, commit, leftover, and current-truth surface.
+- [x] Refresh/recheck Child `146` as a closure plan, not a feature child.
+- [x] Run the final independent code/contract/security/compatibility audit.
+- [x] Fix and reverify only scoped closure defects until clean.
+- [x] Reconcile all child records and this master checklist.
+- [x] Classify remaining limitations/future work and close Master `007`.
 
 ### Closure
 
-- [ ] Every child used small, single-purpose, test-green commits rather than one
+- [x] Every child used small, single-purpose, test-green commits rather than one
       large end-of-child commit; plan, implementation, verification fixes, and
       closeout remain independently attributable.
-- [ ] Every adopted adapter passed its explicit gate.
-- [ ] Existing content, permissions, Publications, URLs, and APIs remain
+- [x] Every adopted adapter passed its explicit gate.
+- [x] Existing content, permissions, Publications, URLs, and APIs remain
       compatible.
-- [ ] Request examples satisfy ADR `0034` and no SDK/proxy scope leaked in.
-- [ ] Full focused/workspace/browser/accessibility/performance evidence passes
+- [x] Request examples satisfy ADR `0034` and no SDK/proxy scope leaked in.
+- [x] Full focused/workspace/browser/accessibility/performance evidence passes
       or truthful limitations are recorded.
-- [ ] Active docs distinguish shipped behavior from later work.
-- [ ] Leftovers have owners/triggers and no false completion claim remains.
+- [x] Active docs distinguish shipped behavior from later work.
+- [x] Leftovers have owners/triggers and no false completion claim remains.
 
 ## 20. Immediate Handoff
 
-Children `141` through `145` are closed and independently rechecked. Begin
-Child `146` with the final evidence index, the actual Tiptap/Fumadocs
-partial-adopt dispositions and native fallbacks, the five-language
-descriptor-versioned inert request-example contract, the `37e4bc8` and
-`72b8943` hardening fixes, migration head `031`, final bundle measurements,
-known audit findings, optional browser/AT limits, and the maintenance-owned
-Extension contrast finding. Child `146` must reconcile current code, contracts,
-commits, plans, and all Master `007` checklist rows before marking this master
-complete; it must not add new feature or authority scope.
+Children `141` through `146` are closed and independently rechecked. Master
+`007` is complete. Its actual Tiptap/Fumadocs partial-adopt dispositions,
+five-language `documentation-request-example-v1` contract, native authority
+boundaries, migration head `031`, final bundle measurements, audit findings,
+optional browser/AT limits, and maintenance-owned Extension contrast finding
+are recorded in the child plans, current-truth docs, and `docs/ui/` evidence
+index. No next master is created automatically; the next activity requires an
+explicit prioritization decision.
 
 ## 21. Planning Re-Audit Record
 
@@ -888,6 +892,9 @@ The 2026-08-05 autonomous-execution re-audit then:
   accessibility, performance, dependency, commit, and handoff matrices;
 - corrected stale `PRODUCT.md` wording that claimed shipped Documentation V1
   remained future and restored accepted Project Membership role names.
+- completed Child `145` hardening and Child `146` final reconciliation on
+  2026-08-05; current-truth docs, evidence, limitations, commit scope, and
+  Master closure state now match the shipped runtime.
 
 Planning-environment readiness on 2026-08-05 (refresh at execution):
 
