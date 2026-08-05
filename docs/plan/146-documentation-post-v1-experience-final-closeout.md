@@ -557,9 +557,9 @@ Only then set this child and Master `007` to Complete.
   `826ca40`, `b4bf380`, `4dfdb70`, `9bfb47a`, `fa8abac`, `218a34b`,
   `7cd9558`, `4eed0ff`, `791e67a`, `20c6f1c`, `5c690be`, `31294db`,
   `bbb67e9`, `193c04f`, `dd0b9e0`, `5b64a9d`, `37e4bc8`, `72b8943`,
-  `886a396`, `d450522`, `289cd26`, and `e134f7b`, plus this final records-only
-  closeout. `e134f7b` is mechanical Prettier normalization only and introduced
-  no runtime behavior.
+  `886a396`, `d450522`, `289cd26`, `e134f7b`, and `85866ab`. `e134f7b` is
+  mechanical Prettier normalization only; `85866ab` is the final records-only
+  Child/Master closeout and introduced no runtime behavior.
   Each is represented in its owning child/master log; no unrelated dirty
   path was present.
 

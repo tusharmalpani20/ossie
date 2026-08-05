@@ -596,7 +596,8 @@ owned limitations. The current-truth docs now describe the actual Tiptap and
 Fumadocs partial-adopt branches and the permanent inert five-language request
 example contract. Final Chromium rechecks passed for supported/unsupported
 operations, draft, and immutable Revision; no unresolved in-scope S1/S2,
-contract drift, migration, authority, or worktree issue remains.
+contract drift, migration, authority, or worktree issue remains. The closure
+records are committed in `85866ab`.
 
 ## 18. Standard Prompt Chain
 
