@@ -154,7 +154,7 @@ export const DocumentationRequestExamples = ({
               Download {selectedResult.display_name} example
             </button>
           </div>
-          <pre>
+          <pre tabIndex={0}>
             <code>{selectedResult.code}</code>
           </pre>
         </div>

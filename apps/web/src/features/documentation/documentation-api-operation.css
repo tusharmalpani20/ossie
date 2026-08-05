@@ -72,8 +72,13 @@
 }
 
 .documentation-request-examples__panel pre {
+  background: var(--ossie-color-surface-elevated, #f9fafb);
+  border: 1px solid var(--ossie-color-border, #d9e0e7);
+  border-radius: 0.5rem;
+  color: var(--ossie-color-code, #1f2937);
   max-width: 100%;
   overflow: auto;
+  padding: 0.75rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

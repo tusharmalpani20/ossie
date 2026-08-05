@@ -67,6 +67,10 @@ describe("DocumentationRequestExamples", () => {
     expect(screen.getByRole("tabpanel")).not.toHaveTextContent(
       "private-body-value",
     );
+    expect(screen.getByRole("tabpanel").querySelector("pre")).toHaveAttribute(
+      "tabindex",
+      "0",
+    );
 
     fireEvent.keyDown(screen.getByRole("tablist"), { key: "ArrowRight" });
     expect(screen.getByRole("tab", { name: "Browser Fetch" })).toHaveAttribute(
