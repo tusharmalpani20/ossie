@@ -312,7 +312,9 @@ const parameter_descriptor = (
   const sensitive =
     sensitive_name(input.name) ||
     input.schema.format === "password" ||
-    input.schema.writeOnly === true;
+    input.schema.writeOnly === true ||
+    item_schema.format === "password" ||
+    item_schema.writeOnly === true;
   if (sensitive && location !== "header") return null;
   const example = documented_parameter_example(input, item_schema, sensitive);
   return {
@@ -424,16 +426,17 @@ export const derive_documentation_try_it_descriptors = (
             sanitized_example === undefined
               ? undefined
               : JSON.stringify(sanitized_example);
-          if (
+          const example_too_large =
             serialized_example !== undefined &&
-            byte_length(serialized_example) > DOCUMENTATION_TRY_IT_REQUEST_BODY_MAX_BYTES
-          )
+            byte_length(serialized_example) >
+              DOCUMENTATION_TRY_IT_REQUEST_BODY_MAX_BYTES;
+          if (example_too_large)
             unsupported_reasons.push("JSON request body example is too large");
           request_body = {
             required: operation.requestBody.required === true,
             media_type: media,
             schema,
-            ...(serialized_example === undefined
+            ...(serialized_example === undefined || example_too_large
               ? {}
               : { example: sanitized_example }),
           };
