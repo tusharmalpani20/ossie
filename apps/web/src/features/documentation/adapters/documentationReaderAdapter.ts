@@ -143,6 +143,12 @@ export const buildFumadocsPageTree = (
     });
   }
 
+  const selected = projection.pages.find(
+    (page) => page.id === projection.selectedPageId,
+  );
+  if (!selected || !urls.has(selected.url))
+    throw new Error("Selected reader Page is not present in authorized navigation");
+
   return { type: "root", name: "Documentation", children };
 };
 

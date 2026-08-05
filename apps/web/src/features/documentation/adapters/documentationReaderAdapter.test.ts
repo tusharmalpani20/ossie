@@ -151,4 +151,15 @@ describe("Fumadocs reader adapter proof projection", () => {
       ).size,
     ).toBe(2);
   });
+
+  it("fails closed when the selected Page is not in authorized navigation", () => {
+    const projection = buildDocumentationReaderProjection({
+      ...source,
+      selectedPageId: "page-missing",
+    });
+
+    expect(() => buildFumadocsPageTree(projection)).toThrow(
+      /not present in authorized navigation/i,
+    );
+  });
 });
