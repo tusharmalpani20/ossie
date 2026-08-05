@@ -1,12 +1,10 @@
 export type DocumentationAdapterProofMode =
   | "tiptap-prose"
-  | "tiptap-graph"
-  | "fumadocs-headless";
+  | "tiptap-graph";
 
 const proofModes = new Set<DocumentationAdapterProofMode>([
   "tiptap-prose",
   "tiptap-graph",
-  "fumadocs-headless",
 ]);
 
 export const getDocumentationAdapterProofMode = (

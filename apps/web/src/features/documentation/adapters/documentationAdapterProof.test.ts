@@ -15,12 +15,6 @@ describe("Documentation adapter proof selector", () => {
         true,
       ),
     ).toBe("tiptap-graph");
-    expect(
-      getDocumentationAdapterProofMode(
-        "?__documentation_adapter_proof=fumadocs-headless",
-        true,
-      ),
-    ).toBe("fumadocs-headless");
   });
 
   it("ignores the selector in production and for unknown values", () => {

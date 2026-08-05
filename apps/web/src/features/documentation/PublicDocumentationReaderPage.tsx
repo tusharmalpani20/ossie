@@ -13,8 +13,7 @@ import {
 } from "../../lib/documentationTryItApi";
 import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
 import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiOperationExperience";
-import { LazyDocumentationReaderAdapterProofPanel } from "./LazyDocumentationReaderAdapterProofPanel";
-import { getDocumentationAdapterProofMode } from "./adapters/documentationAdapterProof";
+import { LazyDocumentationPublicationReaderChrome } from "./LazyDocumentationPublicationReaderChrome";
 import { readDocumentationInitialDocument } from "../../lib/documentationInitialDocument";
 
 type SearchResult = Awaited<
@@ -184,41 +183,117 @@ export const PublicDocumentationReaderPage = ({
     );
   if (!snapshot) return <p role="status">Loading Documentation…</p>;
   const operationBase = `${pageBase}/operations`;
-  const proofMode = getDocumentationAdapterProofMode(
-    window.location.search,
-    // eslint-disable-next-line turbo/no-undeclared-env-vars -- DEV is a Vite built-in mode flag, not a user environment variable.
-    import.meta.env.DEV,
-  );
-  if (proofMode === "fumadocs-headless") {
-    const pageUrl = (path: string) => `${pageBase}/${path.replace(/^\/+/, "")}`;
-    return (
-      <main id="main-content">
-        <LazyDocumentationReaderAdapterProofPanel
-          source={{
-            resourceClass: "publication",
-            selectedPageId: snapshot.page.id,
-            selectedPagePath: pageUrl(snapshot.page.canonical_path),
-            pages: snapshot.pages.map((page) => ({
-              id: page.id,
-              title: page.title,
-              canonicalPath: page.canonical_path,
-              url: pageUrl(page.canonical_path),
-              blocks: page.blocks ?? [],
-            })),
-            navigation: snapshot.navigation.map((node) => ({
-              id: node.id,
-              kind: node.kind,
-              pageId: node.page_id,
-              label: node.label,
-            })),
-          }}
-        />
-      </main>
-    );
-  }
   const assetBase = versionSlug
     ? `/api/v1/public/publish-links/${encodeURIComponent(slug)}/versions/${encodeURIComponent(versionSlug)}/documentation/assets`
     : `/api/v1/public/publish-links/${encodeURIComponent(slug)}/documentation/assets`;
+  const pageUrl = (path: string) => `${pageBase}/${path.replace(/^\/+/, "")}`;
+  const readerSource = {
+    resourceClass: "publication" as const,
+    selectedPageId: snapshot.page.id,
+    selectedPagePath: pageUrl(snapshot.page.canonical_path),
+    pages: snapshot.pages.map((page) => ({
+      id: page.id,
+      title: page.title,
+      canonicalPath: page.canonical_path,
+      url: pageUrl(page.canonical_path),
+      blocks: page.blocks ?? [],
+    })),
+    navigation: snapshot.navigation.map((node) => ({
+      id: node.id,
+      kind: node.kind,
+      pageId: node.page_id,
+      label: node.label,
+    })),
+  };
+  const readerContent = (
+    <>
+      <h1>{snapshot.page.title}</h1>
+      <DocumentationBlockRenderer
+        assetUrl={(source) =>
+          `${assetBase}/${source.kind === "capture_asset" ? "capture/" : ""}${encodeURIComponent(source.id)}/file`
+        }
+        blocks={snapshot.page.blocks}
+        operationLabel={(operationKey) => {
+          const operation = snapshot.openapi_operations.find(
+            (candidate) => candidate.destination_key === operationKey,
+          );
+          return operation
+            ? {
+                method: operation.method,
+                label: operation.summary ?? operation.path,
+                path: operation.path,
+              }
+            : undefined;
+        }}
+        operationUrl={(operationKey) =>
+          `${operationBase}/${encodeURIComponent(operationKey)}`
+        }
+        pageUrl={(pageId, targetBlockId) => {
+          const page = snapshot.pages.find(
+            (candidate) => candidate.id === pageId,
+          );
+          return page
+            ? `${pageBase}/${page.canonical_path}${targetBlockId ? `#documentation-block-${targetBlockId}` : ""}`
+            : undefined;
+        }}
+        snippets={snapshot.snippets ?? []}
+      />
+      {snapshot.current_operation?.descriptor_version === 1 &&
+      snapshot.current_operation.request_descriptor ? (
+        <LazyDocumentationApiOperationExperience
+          descriptor={snapshot.current_operation.request_descriptor}
+          loadConfiguration={() =>
+            getPublicDocumentationTryItConfiguration(
+              slug,
+              snapshot.current_operation!.destination_key,
+              versionSlug,
+            )
+          }
+          reportAttempt={(attemptToken, outcome) =>
+            reportPublicDocumentationTryItAttempt(
+              slug,
+              snapshot.current_operation!.destination_key,
+              attemptToken,
+              outcome,
+              versionSlug,
+            )
+          }
+        />
+      ) : snapshot.current_operation ? (
+        <p role="note">
+          Interactive requests are unavailable for this legacy operation.
+        </p>
+      ) : null}
+    </>
+  );
+  const nativeReader = (
+    <div>
+      <nav aria-label="Documentation navigation">
+        <ul>
+          {snapshot.navigation
+            .filter((node) => node.kind === "page")
+            .map((node) => {
+              const page = snapshot.pages.find(
+                (candidate) => candidate.id === node.page_id,
+              );
+              return page ? (
+                <li key={node.id}>
+                  <a href={pageUrl(page.canonical_path)}>
+                    {node.label ?? page.title}
+                  </a>
+                </li>
+              ) : null;
+            })}
+        </ul>
+      </nav>
+      <main id="main-content">
+        <p>
+          <a href={pageBase}>Documentation</a>
+        </p>
+        {readerContent}
+      </main>
+    </div>
+  );
   return (
     <>
       <a href="#main-content">Skip to content</a>
@@ -254,88 +329,12 @@ export const PublicDocumentationReaderPage = ({
           </ul>
         ) : null}
       </header>
-      <div>
-        <nav aria-label="Documentation">
-          <ul>
-            {snapshot.navigation
-              .filter((node) => node.kind === "page")
-              .map((node) => {
-                const page = snapshot.pages.find(
-                  (candidate) => candidate.id === node.page_id,
-                );
-                return page ? (
-                  <li key={node.id}>
-                    <a href={`${pageBase}/${page.canonical_path}`}>
-                      {node.label ?? page.title}
-                    </a>
-                  </li>
-                ) : null;
-              })}
-          </ul>
-        </nav>
-        <main id="main-content">
-          <p>
-            <a href={pageBase}>Documentation</a>
-          </p>
-          <h1>{snapshot.page.title}</h1>
-          <DocumentationBlockRenderer
-            assetUrl={(source) =>
-              `${assetBase}/${source.kind === "capture_asset" ? "capture/" : ""}${encodeURIComponent(source.id)}/file`
-            }
-            blocks={snapshot.page.blocks}
-            operationLabel={(operationKey) => {
-              const operation = snapshot.openapi_operations.find(
-                (candidate) => candidate.destination_key === operationKey,
-              );
-              return operation
-                ? {
-                    method: operation.method,
-                    label: operation.summary ?? operation.path,
-                    path: operation.path,
-                  }
-                : undefined;
-            }}
-            operationUrl={(operationKey) =>
-              `${operationBase}/${encodeURIComponent(operationKey)}`
-            }
-            pageUrl={(pageId, targetBlockId) => {
-              const page = snapshot.pages.find(
-                (candidate) => candidate.id === pageId,
-              );
-              return page
-                ? `${pageBase}/${page.canonical_path}${targetBlockId ? `#documentation-block-${targetBlockId}` : ""}`
-                : undefined;
-            }}
-            snippets={snapshot.snippets ?? []}
-          />
-          {snapshot.current_operation?.descriptor_version === 1 &&
-          snapshot.current_operation.request_descriptor ? (
-            <LazyDocumentationApiOperationExperience
-              descriptor={snapshot.current_operation.request_descriptor}
-              loadConfiguration={() =>
-                getPublicDocumentationTryItConfiguration(
-                  slug,
-                  snapshot.current_operation!.destination_key,
-                  versionSlug,
-                )
-              }
-              reportAttempt={(attemptToken, outcome) =>
-                reportPublicDocumentationTryItAttempt(
-                  slug,
-                  snapshot.current_operation!.destination_key,
-                  attemptToken,
-                  outcome,
-                  versionSlug,
-                )
-              }
-            />
-          ) : snapshot.current_operation ? (
-            <p role="note">
-              Interactive requests are unavailable for this legacy operation.
-            </p>
-          ) : null}
-        </main>
-      </div>
+      <LazyDocumentationPublicationReaderChrome
+        fallback={nativeReader}
+        source={readerSource}
+      >
+        {readerContent}
+      </LazyDocumentationPublicationReaderChrome>
     </>
   );
 };
