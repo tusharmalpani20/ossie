@@ -2,9 +2,13 @@
 
 Date: 2026-07-31
 
-Status: Planned and accepted. No child is implementation-ready. Child `141`
-must be rewritten/expanded and independently rechecked before any prototype,
-dependency, or runtime change.
+Last full sequence re-audit: 2026-08-05
+
+Status: Planned, accepted, and re-audited for ordered autonomous execution.
+Children `141`–`146` now contain implementation-ready planning baselines. Each
+child must still execute its embedded current-code preflight and independent
+plan recheck before changing runtime behavior; that refresh is a safety stage,
+not an unresolved product decision or a requirement for routine user input.
 
 Independent reservation re-audit: completed 2026-07-31 against Master `006`,
 child `140`, ADRs `0027`–`0034`, the current caller graph, current package
@@ -26,7 +30,7 @@ Accepted authority:
 - `CONTEXT.md`
 - ADRs `0027` through `0034`
 
-Reserved child sequence:
+Ordered child sequence:
 
 - `docs/plan/141-documentation-editor-reader-adapter-proof-and-adoption-gate.md`
 - `docs/plan/142-documentation-authoring-experience-modernization.md`
@@ -251,13 +255,13 @@ ADR `0034` governs this feature.
   cannot invent a successful client.
 - Additional languages require fixtures for paths, query, headers, supported
   bodies/auth placeholders, escaping, Unicode, and unsupported cases.
-- Publication/export behavior must preserve exact output or enough pinned
-  generator metadata to reproduce it.
-- The child must explicitly choose and test the historical contract: either an
-  immutable example-contract/generator version is stored in the existing exact
-  Revision/Publication descriptor path, or every historical descriptor version
-  remains permanently routed to its original generator. A current registry
-  default may never silently change old Publication output.
+- Descriptor version `1` permanently selects the frozen
+  `documentation-request-example-v1` contract and its exact initial five-
+  language registry; descriptor version `0` is unsupported. Existing immutable
+  Revision/Publication descriptors therefore reproduce the same output without
+  new stored rendered code or metadata. Future semantic/language-set changes
+  require a new accepted version; a current registry default may never silently
+  change old Publication output.
 - Generation uses documented OpenAPI examples/defaults and explicit
   environment/auth placeholders only. It is independent of mutable Try-It form
   values, approved private origins, credentials, browser memory, request/response
@@ -361,11 +365,11 @@ accepted during child expansion. No server-side target transport is allowed.
 - Child `141` must require no migration.
 - Children `142` and `143` should require no content migration because adapters
   operate over existing schemas.
-- Child `144` must make historical reproduction explicit before implementation.
-  Prefer the existing immutable descriptor version when it can permanently pin
-  generation semantics. Otherwise justify the smallest additive metadata and
-  migration, backfill legacy rows safely, and preserve rollback/read
-  compatibility. "Use the latest generator" is not an accepted fallback.
+- Child `144` uses the accepted permanent descriptor-version mapping:
+  descriptor `1` selects `documentation-request-example-v1`; descriptor `0` is
+  unsupported. No migration or backfill is planned. A future change must add a
+  separately accepted version rather than route historical descriptors to the
+  latest generator.
 - No migration may rewrite immutable Revisions/Publications or convert content
   into Tiptap/Fumadocs-owned blobs.
 
@@ -554,9 +558,147 @@ For every child:
 
 No reservation below is authorization to skip a stage.
 
+## 18.1 Autonomous Goal Execution Contract
+
+The intended execution environment is one long-running, high-reasoning goal.
+That goal may advance through children only in numeric order. It must treat
+each child as a separately closable unit and must not batch an unfinished child
+with its successor merely to keep moving.
+
+For every child, the goal performs this complete loop:
+
+1. **Predecessor intake.** Read the predecessor's final status, implementation
+   log, verification, limitations, leftovers, and handoff. Confirm the
+   predecessor is complete and independently close-rechecked. Move only the
+   explicitly assigned leftovers into the active child; do not silently absorb
+   unrelated defects.
+2. **Current-state preflight.** Read `AGENTS.md`, `CONTEXT.md`, accepted ADRs,
+   this master, the active child, current manifests/lockfile, affected code and
+   tests, and `git status`. Record code drift and preserve overlapping user or
+   agent work. Do not rely on file names, dependency versions, bundle sizes, or
+   route facts merely because this plan recorded them on 2026-08-05.
+3. **Plan review and expansion refresh.** Reconcile the child's baseline with
+   the predecessor result and current code. Fill any newly discovered exact
+   caller, test, dependency, or verification detail. The conditional branches
+   already accepted by this master are agent-decidable; they do not require a
+   new product grill.
+4. **Independent plan recheck.** Review the refreshed child against the master,
+   predecessor, ADRs, contracts, authorization, tenant isolation, migration,
+   compatibility, explicit non-scope, and dirty worktree. Fix planning gaps and
+   commit only the docs-only plan change before implementation when the run's
+   commit policy permits it.
+5. **Test-first implementation.** Establish a focused failing test or other
+   reproducible failing evidence, implement the smallest in-scope behavior,
+   and refactor only with focused tests green. Keep adapter state derived and
+   replaceable. Never weaken a gate to make an external package pass.
+6. **Focused verification.** Run the active child's type, unit, route, domain,
+   integration, build, dependency, accessibility, and browser checks in the
+   order defined by that child. Use the existing synthetic Documentation
+   fixture and real routes. Record unavailable tooling as a limitation, never
+   as passing evidence.
+7. **Implementation close-recheck.** Re-read the child and master against the
+   actual diff and runtime. Fix gaps, rerun affected checks, and repeat until no
+   in-scope S1/S2 defect or unmet acceptance criterion remains.
+8. **Record closure.** In the same child, update status, checklist,
+   implementation log, exact commands/results, browser evidence, dependency
+   disposition, limitations, leftovers, and handoff. Update this master only
+   for genuinely completed stage boxes.
+9. **Leftover routing.** Classify every leftover as successor-owned,
+   accepted-later, separately owned maintenance/operations, or blocked by a
+   named new product decision. The successor receives only its explicit items.
+10. **Commit integrity.** Inspect the staged diff and commit only the active
+    child's scoped work in small logical commits. Do not include unrelated
+    worktree changes. Record commit IDs in the child before advancing.
+
+The goal is complete only after Child `146` independently closes this master.
+Completing an implementation commit without its recheck and records is not a
+completed child.
+
+## 18.2 Decision And Blocker Policy
+
+The following outcomes are already authorized and must not pause for user
+input:
+
+- `adopt`, `partial-adopt`, or `reject` for each proof candidate when Child
+  `141`'s mandatory gates and scorecard determine the result;
+- choosing the newest mutually compatible exact package versions whose
+  license, official compatibility, frozen install, audit, tests, and build all
+  pass; a package's `latest` tag alone is not authority;
+- rejecting/removing an adapter when official research is unavailable after
+  bounded retries, packages cannot be installed reproducibly, React/Vite
+  compatibility fails, or the adapter exceeds accepted risk/cost thresholds;
+- using the Ossie-native fallback in children `142` or `143` after rejection;
+- reversible component composition, CSS, copy, test-fixture, lazy-loading, and
+  pure-adapter details inside the accepted contracts;
+- preserving descriptor-version `1` as the permanent selector for request-
+  example contract `documentation-request-example-v1` in Child `144`, with
+  descriptor version `0` unsupported and future semantic changes requiring a
+  new accepted version rather than silently changing historical output;
+- repairing in-scope accessibility, security, compatibility, or performance
+  defects found by children `145` or `146` when the repair preserves accepted
+  behavior.
+
+The following are genuine stop conditions requiring explicit user/product
+authority before proceeding:
+
+- changing tenant, Project Membership, public-link, review, publication, Try
+  It, or credential authority;
+- changing public URL/canonical identity, immutable Revision/Publication
+  meaning, archive/retention/deletion semantics, or source of truth;
+- accepting executable/custom content, a target-request proxy, stored target
+  credentials, SDK packages, MDX/customer code authority, collaboration/cloud,
+  or any accepted-later feature;
+- adding a new persistence model or migration because the implementation can no
+  longer satisfy the accepted zero-migration adapter boundary;
+- adopting a major dependency with an incompatible license, unresolved known
+  high/critical advisory in the shipped path, or a required hosted/commercial
+  service;
+- changing child ordering or broadening Master `007` beyond the Q17 decision.
+
+Operational friction is handled without inventing product decisions:
+
+- transient network/registry failures receive bounded retries; if package
+  provenance still cannot be verified, reject the package and continue native;
+- an unavailable optional Firefox/WebKit/real-AT engine is recorded with the
+  exact attempted setup and owner, while required Chromium evidence must pass
+  before a browser-visible child closes;
+- unrelated dirty-worktree changes are preserved and excluded; overlap blocks
+  only the affected file until it can be reconciled without discarding work;
+- a database or fixture failure is diagnosed and repaired in scope; it is not
+  bypassed with mocked browser evidence.
+
+## 18.3 Planning-Time Research Snapshot
+
+This snapshot explains the implementation boundaries but is not a future
+package pin. Child `141` must refresh it from primary sources on its execution
+date.
+
+- On 2026-08-05, the official Tiptap React guide documents the Vite/React
+  packages `@tiptap/react`, `@tiptap/pm`, and `@tiptap/starter-kit`; the npm
+  registry showed staggered `3.29.x` publications. Install one exact version
+  available for every selected Tiptap package rather than mixing independently
+  tagged latest patches.
+- Tiptap core is MIT, but the official Tiptap UI Components guide still says
+  those prebuilt components work best with React 18 while React 19 support is
+  being completed. Master `007` therefore evaluates editor core only and does
+  not install `@tiptap/ui-components`, templates, Pro, Cloud, AI, or
+  Collaboration.
+- The official Fumadocs documentation identifies `fumadocs-core` as MIT and
+  headless, but its Loader API is server-side and not browser-compatible. The
+  current Ossie product is a Vite SPA with a custom `App.tsx` route parser, not
+  a supported Fumadocs React Router/Next/Waku content application. The proof is
+  consequently limited to client-safe `fumadocs-core` primitives such as page-
+  tree types, breadcrumb, and TOC over already authorized Ossie snapshots. It
+  excludes Loader, MDX, search server/client replacement, `fumadocs-ui`,
+  framework providers, and route ownership.
+- Official references to refresh are the Tiptap React installation and React
+  performance/compatibility pages, Tiptap repository license/changelog,
+  Fumadocs headless introduction/page-tree/breadcrumb/TOC/source pages,
+  Fumadocs repository license/releases, and exact npm registry metadata.
+
 ## 19. Master Checklist
 
-### Planning
+### Planning baseline
 
 - [x] Master `006` and child `140` finally accepted the next objective.
 - [x] Source-of-truth, adapter, security, compatibility, and non-scope
@@ -565,16 +707,71 @@ No reservation below is authorization to skip a stage.
 - [x] Accepted-later/deferred/separate work is outside the checklist.
 - [x] Master and child reservations were independently re-audited against the
       current code/dependency graph on 2026-07-31.
-- [ ] Expand and independently recheck child `141`.
+- [x] Re-audit Master `007` and children `141`–`146` against shipped code,
+      final Plan `140`, ADRs, current packages, and official adapter guidance.
+- [x] Expand all six children into detailed ordered-execution baselines.
+- [x] Resolve routine conditional branches and historical example selection so
+      they do not become avoidable user-input blockers.
 
-### Implementation
+### Child 141 lifecycle
 
-- [ ] Complete and close-recheck child `141`.
-- [ ] Complete and close-recheck child `142`.
-- [ ] Complete and close-recheck child `143`.
-- [ ] Complete and close-recheck child `144`.
-- [ ] Complete and close-recheck child `145`.
-- [ ] Complete and independently close child `146`.
+- [ ] Review predecessor closure and all Plan `140` handoff items.
+- [ ] Refresh/recheck Child `141` against current dependencies and code.
+- [ ] Implement the isolated proof test-first on the existing fixture.
+- [ ] Run scorecard, security, dependency, browser, accessibility, and bundle
+      evidence; record Tiptap and Fumadocs dispositions.
+- [ ] Independently close-recheck Child `141` and clean rejected proof code.
+- [ ] Route exact selected seams and leftovers to Child `142`/`143`.
+
+### Child 142 lifecycle
+
+- [ ] Review Child `141` authoring disposition and leftover intake.
+- [ ] Refresh/recheck Child `142` and lock its selected/native branch.
+- [ ] Implement authoring modernization test-first.
+- [ ] Verify Page/snippet identity, save/conflict/permission/publication and
+      browser behavior.
+- [ ] Independently close-recheck Child `142`.
+- [ ] Route only reader-relevant leftovers to Child `143`.
+
+### Child 143 lifecycle
+
+- [ ] Review Child `142` closure and Child `141` reader disposition.
+- [ ] Refresh/recheck Child `143` and lock its selected/native branch.
+- [ ] Implement reader modernization test-first.
+- [ ] Verify public/draft/Revision authority, URL/SEO/access/CSP/Try-It and
+      browser behavior.
+- [ ] Independently close-recheck Child `143`.
+- [ ] Freeze the stable reader seam and route example work to Child `144`.
+
+### Child 144 lifecycle
+
+- [ ] Review Child `143` closure and ADR `0034` inputs.
+- [ ] Refresh/recheck Child `144`, including the permanent descriptor-to-
+      generator contract mapping.
+- [ ] Implement the pure five-language registry test-first.
+- [ ] Verify determinism, placeholders, unsupported cases, historical output,
+      Try-It isolation, UI copy, and browser behavior.
+- [ ] Independently close-recheck Child `144`.
+- [ ] Route only integrated hardening leftovers to Child `145`.
+
+### Child 145 lifecycle
+
+- [ ] Review all explicit leftovers from children `141`–`144`.
+- [ ] Refresh/recheck the integrated hardening matrix.
+- [ ] Establish failing evidence and fix only proven in-scope defects.
+- [ ] Complete accessibility, Chromium, supported cross-browser, security,
+      dependency, bundle, performance, and compatibility evidence.
+- [ ] Independently close-recheck Child `145` with no unresolved S1/S2.
+- [ ] Route closure-only limitations and future work to Child `146`.
+
+### Child 146 lifecycle
+
+- [ ] Review every completed child, commit, leftover, and current-truth surface.
+- [ ] Refresh/recheck Child `146` as a closure plan, not a feature child.
+- [ ] Run the final independent code/contract/security/compatibility audit.
+- [ ] Fix and reverify only scoped closure defects until clean.
+- [ ] Reconcile all child records and this master checklist.
+- [ ] Classify remaining limitations/future work and close Master `007`.
 
 ### Closure
 
@@ -589,10 +786,11 @@ No reservation below is authorization to skip a stage.
 
 ## 20. Immediate Handoff
 
-Rewrite/expand child `141` against this master, the complete child-`140` grill,
-Master `006`, ADRs `0027`–`0034`, current dependencies, current Documentation
-code, and any uncommitted work. Do not install Tiptap/Fumadocs or implement a
-prototype until that expanded plan is independently rechecked and authorized.
+Begin Child `141` at its embedded Stage 0 preflight. Refresh its dependency
+snapshot and current-code inventory, independently recheck the plan, then run
+the proof. No routine product question remains open. The evidence scorecard,
+not visual preference, selects each adapter disposition; package failure or
+rejection continues through the documented native fallback.
 
 ## 21. Planning Re-Audit Record
 
@@ -610,6 +808,40 @@ fixed these planning defects without changing runtime scope:
 - reconciled browser-visible proof with the no-production-route/no-new-harness
   boundary and clarified proof dependency cleanup;
 - made Chromium versus Firefox/WebKit evidence ownership truthful.
+
+The 2026-08-05 autonomous-execution re-audit then:
+
+- expanded all six reservations into implementation-ready conditional plans;
+- added a repeated predecessor/preflight/plan-recheck/test-first/verification/
+  close-recheck/leftover/commit lifecycle for every child;
+- separated routine evidence-derived decisions from genuine user stop
+  conditions so adapter rejection continues through native fallback;
+- excluded Tiptap UI Components under the current React 19 compatibility
+  warning and limited Fumadocs to client-safe headless primitives over
+  Ossie-authorized projections;
+- fixed descriptor version `1` as the permanent
+  `documentation-request-example-v1` selector with no migration;
+- added bounded documented example/default admission and explicit separation
+  from mutable Try-It request previews to Child `144`;
+- added complete security, permission, migration, compatibility, browser,
+  accessibility, performance, dependency, commit, and handoff matrices;
+- corrected stale `PRODUCT.md` wording that claimed shipped Documentation V1
+  remained future and restored accepted Project Membership role names.
+
+Planning-environment readiness on 2026-08-05 (refresh at execution):
+
+- Node `24.18.0` and pnpm `9.0.0` are available;
+- PostgreSQL client `18.4` is installed and the local server accepts
+  connections on `/var/run/postgresql:5432`;
+- agent-browser `0.33.1` doctor reported 10 passes, 0 warnings, and 0
+  failures, including managed Chrome for Testing `151.0.7922.47` and a
+  successful headless launch;
+- the server test environment configuration and Documentation browser fixture
+  CLI are present;
+- PM2 is available but is not a prerequisite for test-owned process startup;
+- the repository-requested `rtk` command is absent in this shell. The goal
+  should check once, record the limitation, and use the direct underlying
+  commands when unavailable; missing `rtk` is not a product blocker.
 
 Verification completed:
 

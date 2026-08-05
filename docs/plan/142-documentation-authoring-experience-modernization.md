@@ -2,7 +2,12 @@
 
 Date reserved: 2026-07-31
 
-Status: Reserved. Not implementation-ready and not authorized for execution.
+Last implementation-readiness audit: 2026-08-05
+
+Status: Conditionally implementation-ready. Execution begins only after Child
+`141` is complete and independently close-rechecked. Child `141` selects the
+Tiptap whole-graph, Tiptap prose-only, or Ossie-native branch; no further routine
+user decision is required.
 
 Parent:
 
@@ -12,41 +17,410 @@ Predecessor:
 
 - `docs/plan/141-documentation-editor-reader-adapter-proof-and-adoption-gate.md`
 
-## Objective
+Authority:
 
-Implement the child-`141` selected authoring route: bounded Tiptap adoption,
-partial component adoption, or native-editor modernization.
+- `CONTEXT.md`
+- ADRs `0027`, `0028`, `0030`, `0031`, and `0032`
+- Master `007` and the final Child `141` authoring disposition
 
-## Required expansion scope
+## 1. Objective
 
-- exact affected authoring files and dependency result from child `141`;
-- exact child-`141` selected adapter surface: prose-field-only, named partial
-  primitives, whole-graph adapter, or native; untouched block kinds remain
-  native and must not be coerced into generic rich text;
-- complete selected block/mark/identity conversion and round-trip contract for
-  both `DocumentationPageEditor.tsx` and `DocumentationSnippetPanel.tsx`;
-- toolbar, insertion, selection, reorder, paste/drop, keyboard, focus, save,
-  autosave, error, conflict, local recovery, comment-anchor, and preview rules;
-- server authorization and Row-Version behavior unchanged;
-- import/export, checkpoint, review, Publication, search, and Carry-Forward
-  compatibility;
-- schema/migration proof, expected to require no authoritative data migration;
-- focused unit/integration/browser/accessibility/performance verification;
-- rollout flag/fallback and dependency/license/security checks.
+Modernize the production Documentation Page and snippet authoring experience
+using exactly the branch selected by Child `141`, while preserving shared
+block schemas, stable identities, Row-Version concurrency, permissions,
+comments, assets, imports/exports, Revisions, Publications, search, and
+Carry-Forward.
 
-## Hard boundaries
+The branch may be:
 
-- Existing shared block schemas and relational persistence remain authority.
-- Existing stable block/list/table/tab identities remain comment, concurrency,
-  import/export, checkpoint, Revision, Publication, and search anchors.
-- Unknown/executable nodes fail closed.
-- Tiptap collaboration/cloud, AI, offline mutation, and simultaneous editing
-  remain out of scope.
-- No unrelated portal redesign.
-- Use agent-browser on the existing fixture.
+- **whole-graph Tiptap adapter** — only if Child `141` explicitly records
+  `adopt`;
+- **prose-only Tiptap adapter** — only for the exact kinds recorded by Child
+  `141` as `partial-adopt`;
+- **native modernization** — required if Tiptap is rejected.
 
-## Exit gate
+This child is an experience change, not a new content model.
 
-Authoring is measurably improved, every existing in-scope content/workflow path
-remains compatible, fallback is proven, documentation is current, and the child
-is independently close-rechecked before child `143` begins.
+## 2. Required Preflight And Leftover Intake
+
+Before runtime edits:
+
+1. read the completed Child `141` status, scorecard, dependency disposition,
+   implementation log, evidence, limitations, leftovers, and commits;
+2. copy its exact authoring branch and selected block/mark list into this plan;
+3. confirm rejected proof code/packages are absent and retained dependencies
+   match the recorded exact versions;
+4. inspect current Page/snippet editor callers, shared schemas, API clients,
+   server request schemas, save/conflict tests, comments, preview, imports,
+   checkpoint/publication/search paths, and current worktree;
+5. list only Child `141` leftovers explicitly assigned here;
+6. refresh exact file ownership and independently recheck this plan.
+
+If Child `141` is incomplete, stop. If its selected adapter later fails a
+production-only gate, use the already authorized native fallback and document
+why; do not weaken schema or permission contracts.
+
+## 3. Invariants
+
+- PostgreSQL relational state and `DocumentationBlock[]` remain authoritative.
+- Stable block, list-item, table-row/cell, and tab-item IDs remain unchanged
+  unless the user explicitly inserts/deletes that item.
+- `position` remains one-based and normalized after deliberate reorder.
+- `expected_version` and Page/snippet Row-Version semantics remain intact.
+- UI state cannot bypass `canWrite`, Project Membership, lifecycle read-only,
+  archive, review, or publication rules.
+- Page comments continue to anchor to Page/block identity under ADR `0030`.
+- unknown, executable, or adapter-only nodes fail closed and are never saved.
+- local unsaved content is never silently discarded after save failure,
+  navigation, adapter failure, or conflict.
+- Revisions/Publications remain immutable and are created only by existing
+  server flows.
+- snippets use the same selected editor contract as Pages for supported kinds;
+  no Page-only adapter state may become required to edit a snippet.
+
+## 4. Selected Branch Contract
+
+At execution, replace this planning placeholder with one final line:
+
+`Selected branch: whole-graph | prose-only(<exact kinds>) | native`.
+
+### 4.1 Whole-graph branch
+
+Allowed only when Child `141` proves exact round-trip for every accepted
+block. Keep one shared conversion module. Every Tiptap transaction must either
+produce a valid complete `DocumentationBlock[]` or leave the prior graph
+unchanged with an accessible error. No HTML serialization.
+
+### 4.2 Prose-only branch
+
+Tiptap may own only the exact text fields proven by Child `141`. Structural
+forms, references, assets, API blocks, code, tables/tabs, and any unselected
+kind remain native. The UI must make the editing mode change understandable
+without splitting save authority or producing nested forms.
+
+### 4.3 Native branch
+
+Improve the existing controlled inputs with Ossie components and CSS:
+
+- clearer block insertion grouped by prose, structure, media, and references;
+- explicit block type/name and position;
+- keyboard-accessible move up/down and delete actions;
+- better empty, read-only, invalid, conflict, saving, saved, and recovery states;
+- preserved focus after insert/reorder/delete;
+- no drag-only control; pointer reorder is optional only when keyboard parity
+  exists.
+
+The native branch must not imitate a free-form rich text editor by weakening
+the constrained block model.
+
+## 5. Authoring Behavior Rules
+
+### 5.1 Load and readiness
+
+- show a named loading state while Page/options load;
+- render load failure with retry and retain route context;
+- Viewer/read-only mode renders content and metadata without enabled mutation
+  controls;
+- a selected adapter chunk failure falls back to native controls over the same
+  loaded graph and announces the fallback.
+
+### 5.2 Insert, edit, and delete
+
+- insertion creates ULID identities once, with `expected_version: null`;
+- empty required fields prevent insertion with field-associated errors;
+- edit preserves identity and only changes the selected fields;
+- deletion requires confirmation when the block has content or references;
+- referenced/protected asset/snippet behavior remains server-authoritative;
+- destructive confirmation returns focus to a deterministic neighboring block.
+
+### 5.3 Reorder
+
+- move controls are buttons with accessible names containing block type and
+  position;
+- first/last unavailable moves are disabled;
+- reorder emits one normalized graph and preserves nested identities;
+- drag/drop, if retained, accepts only internal same-Page block payloads and
+  has keyboard parity; file/HTML/external drops fail closed.
+
+### 5.4 Paste
+
+- plain text enters the active supported field;
+- rich HTML is reduced to the accepted text/marks subset only in a selected
+  Tiptap field;
+- unsupported tags, scripts, event handlers, iframes, images, and custom nodes
+  are discarded/rejected without executing or creating hidden content;
+- multi-block conversion occurs only if Child `141` explicitly proved it;
+  otherwise paste remains within one field.
+
+### 5.5 Save and autosave
+
+- preserve the existing 800 ms default unless measured evidence justifies a
+  reversible constant change;
+- coalesce changes but never issue overlapping saves for stale local graphs;
+- status uses `aria-live` without announcing each keystroke;
+- save sends only shared blocks plus the existing expected draft/Page versions;
+- success adopts server-returned versions;
+- network/server error retains local content and offers retry;
+- conflict stops autosave, identifies server/local divergence, and offers the
+  existing safe recovery/reload path—never last-write-wins;
+- route unload warning applies when local unsaved changes exist.
+
+### 5.6 Comments and anchors
+
+- existing block DOM IDs remain
+  `documentation-block-<stable-block-id>`;
+- editor chrome must not duplicate those IDs;
+- comment thread anchors survive text editing and reorder;
+- deleting an anchored block follows existing server/comment behavior and must
+  not silently retarget comments.
+
+### 5.7 References, assets, and preview
+
+- existing reference option APIs remain authoritative;
+- image alt text remains required;
+- Page links preserve Page/block target identity;
+- snippet, Guide Publication, Demo Publication, and OpenAPI references retain
+  typed fields;
+- saved preview remains clearly server-saved state and excludes unsaved local
+  edits unless existing behavior explicitly says otherwise;
+- markdown/package export continues to project server-saved content.
+
+## 6. Routes And API Contracts
+
+No route or method change is planned.
+
+Primary browser route:
+
+- `/projects/:projectId/versions/:versionSlug/documentation/:siteId/pages/:pageId`
+
+Existing clients remain in `apps/web/src/lib/documentationApi.ts`, including:
+
+- Page load/update/save;
+- preview/options;
+- asset upload;
+- snippet list/get/create/update/save/archive;
+- export links.
+
+The existing request/response Zod schemas in `packages/types/src/documentation.ts`
+remain unchanged. If the selected UI cannot save through them losslessly, use
+the native branch. Do not add an adapter-document field or endpoint.
+
+Authorization remains server-side. Client `canWrite` controls presentation
+only and is not accepted enforcement.
+
+## 7. Exact File Plan
+
+### 7.1 Expected production files
+
+- `apps/web/src/features/documentation/DocumentationBlockEditor.tsx`
+- `apps/web/src/features/documentation/DocumentationPageEditor.tsx`
+- `apps/web/src/features/documentation/DocumentationSnippetPanel.tsx`
+- `apps/web/src/features/documentation/DocumentationCommentsPanel.tsx`
+  only for proven anchor/focus integration
+- `apps/web/src/features/documentation/DocumentationBlockRenderer.tsx`
+  only for editor preview/anchor parity
+- `apps/web/src/features/documentation/DocumentationContentWorkflows.module.css`
+- a focused new editor CSS module if clearer than extending the shared file
+- Child `141` retained adapter/converter files
+- `apps/web/src/App.tsx` only for route-level lazy/fallback wiring already
+  selected by Child `141`
+- `apps/web/package.json` and `pnpm-lock.yaml` only for retained Tiptap core.
+
+### 7.2 Expected tests
+
+- `DocumentationBlockEditor.test.tsx`
+- `DocumentationPageEditor.test.tsx`
+- `DocumentationSnippetPanel.test.tsx`
+- `DocumentationCommentsPanel.test.tsx` when touched
+- adapter/converter tests retained from Child `141`
+- `apps/web/src/lib/documentationApi.test.ts` only if caller typing changes
+  without changing the wire contract
+- existing server Documentation route/service/repository tests as regression
+  evidence, not expected production edits.
+
+### 7.3 Conditional shared files
+
+Touch `packages/types`, `packages/documentation-domain`, server routes,
+repositories, services, or a migration only if an independently rechecked
+amendment demonstrates a pre-existing contract bug. A UI adapter need is not
+sufficient. Such a change that alters semantics uses the Master stop policy.
+
+### 7.4 Forbidden files
+
+- public reader modernization owned by Child `143`, except shared renderer
+  compatibility fixes;
+- generated examples owned by Child `144`;
+- `apps/docs`, extension, unrelated portal, deployment, or accepted-later
+  feature files.
+
+## 8. Schema, Migration, Compatibility, And Rollback
+
+- New persisted schema: none.
+- Migration: none.
+- API version: unchanged.
+- Existing content: opens and saves without conversion job.
+- Import/export/package: exact shared blocks remain compatible.
+- Revision/Publication: snapshots remain byte/semantic compatible at the
+  accepted shared-contract layer.
+- Rollback: switch the route/component to the retained native editor and remove
+  the adapter dependency after verifying no persisted adapter state exists.
+- Dependency removal must not require data rewrite.
+
+## 9. Security And Permission Tests
+
+Prove:
+
+- Viewer cannot edit through hidden controls, keyboard shortcuts, DOM events,
+  or direct client calls accepted by server;
+- cross-Organization/Project IDs remain 404/403 under existing policy;
+- archived/read-only states reject mutation;
+- paste/drop does not execute or persist HTML/JS/iframe/custom nodes;
+- adapter error messages do not expose content from other Pages/snippets;
+- no editor state, content, comment, or asset data is sent to Tiptap/third-party
+  services;
+- debug/proof selectors from Child `141` are gone in production;
+- CSP does not require unsafe script/eval changes.
+
+## 10. Test-Driven Implementation Order
+
+1. failing selected-branch conversion and unsupported-input tests;
+2. failing Page and snippet parity tests;
+3. load/read-only/empty/error states;
+4. insertion/edit/delete/reorder and focus;
+5. autosave/save/conflict/local recovery;
+6. comments/anchors and references/assets;
+7. lazy adapter failure/native fallback;
+8. responsive/accessibility/browser polish;
+9. compatibility and full focused regression;
+10. close-recheck and records.
+
+## 11. Verification Matrix
+
+Focused:
+
+- selected adapter/converter tests;
+- BlockEditor, PageEditor, SnippetPanel, CommentsPanel, BlockRenderer tests;
+- documentation API caller tests;
+- shared block/type policy tests;
+- relevant server Documentation route/service tests for save, permission,
+  conflict, asset/reference, comments, checkpoint, and publication.
+
+Package/workspace:
+
+- `pnpm --filter web test -- <focused files>`
+- `pnpm --filter @repo/types test`
+- `pnpm --filter @repo/documentation-domain test`
+- `pnpm --filter web check-types`
+- `pnpm --filter web lint`
+- `pnpm --filter web build`
+- frozen install/audit/license review when dependencies remain
+- broader server/DB tests only if shared/server files change
+- `git diff --check` and scoped diff review.
+
+Record exact commands and counts rather than copying these examples blindly.
+
+## 12. Agent-Browser Requirements
+
+Use the existing Documentation fixture and real Page route. Cover:
+
+- Project Editor and Project Viewer;
+- representative Page and snippet;
+- desktop, 320px, 200% zoom, reduced motion;
+- keyboard-only insert/edit/reorder/delete/save/comment navigation;
+- visible focus and restoration;
+- loading, empty, read-only, error, conflict, offline/failure, and recovery;
+- unsaved navigation warning;
+- adapter chunk failure/native fallback when selected;
+- axe A/AA, accessibility tree, console, and failed requests;
+- no private screenshots/credentials.
+
+Chromium is required. Record optional Firefox/WebKit capability honestly.
+Measure selected route chunk and representative interactions against Child
+`141`'s native baseline.
+
+## 13. Acceptance Criteria
+
+- selected Child `141` branch is implemented exactly;
+- authoring is measurably clearer/faster on recorded tasks;
+- all accepted block and nested identities survive;
+- Page and snippet behavior is equivalent for selected kinds;
+- read-only/permission/conflict/local-recovery behavior is correct;
+- no schema/API/migration/authority change;
+- existing comments, preview, import/export, checkpoint, review, publication,
+  search, and Carry-Forward tests pass;
+- browser/accessibility/build/dependency gates pass;
+- native fallback remains proven through the verification window;
+- no unresolved in-scope S1/S2 issue.
+
+## 14. Explicit Non-Scope
+
+- reader modernization beyond shared renderer compatibility;
+- new blocks/marks or arbitrary rich text;
+- simultaneous collaboration, presence, offline editing, AI;
+- review workflow redesign;
+- import/export redesign;
+- API examples, Try-It changes, SDK generation;
+- accepted-later features or unrelated app redesign.
+
+## 15. Commit Strategy
+
+Suggested small commits:
+
+- `refactor(documentation): establish production editor adapter boundary`
+- `feat(documentation): modernize page and snippet authoring`
+- `test(documentation): verify authoring compatibility and recovery`
+- `docs(documentation): close authoring modernization`
+
+Stage exact paths and preserve unrelated work.
+
+## 16. Checklist
+
+### Intake and plan
+
+- [ ] Child `141` is complete/close-rechecked.
+- [ ] Selected branch/kinds/dependencies copied here.
+- [ ] Child `141` leftovers classified.
+- [ ] Current callers/contracts/worktree inspected.
+- [ ] Plan refreshed and independently rechecked.
+
+### Implementation
+
+- [ ] Failing tests established first.
+- [ ] Shared adapter/native branch implemented.
+- [ ] Page and snippet paths modernized.
+- [ ] Insert/edit/delete/reorder/paste/focus completed.
+- [ ] Save/autosave/conflict/recovery completed.
+- [ ] Comments/references/assets/preview compatibility completed.
+- [ ] Read-only and permission behavior completed.
+- [ ] Lazy failure/native rollback completed.
+
+### Verification and closeout
+
+- [ ] Focused tests/type/lint/build pass.
+- [ ] Dependency/frozen/audit checks pass if applicable.
+- [ ] Agent-browser matrix passes.
+- [ ] Compatibility regressions pass.
+- [ ] Independent close-recheck clean.
+- [ ] Status/log/evidence/limitations/leftovers/handoff/commits updated.
+- [ ] Master Child `142` lifecycle updated.
+
+## 17. Implementation Log
+
+Not started. Append dated facts and final selected branch.
+
+## 18. Verification Record
+
+Not started. Record exact commands, counts, browser routes, fixture identity,
+measurements, and results.
+
+## 19. Leftovers And Handoff
+
+At planning time, no user-input blocker exists. Child `143` receives only:
+
+- shared renderer/anchor changes it must account for;
+- selected adapter dependency/lazy-loading facts that affect the reader build;
+- verified authoring limitations with reader-visible consequences;
+- exact pre-reader bundle baseline.
+
+Do not carry authoring defects forward as reader work. Close them here or assign
+them to separately owned maintenance with rationale.

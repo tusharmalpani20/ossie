@@ -14,14 +14,15 @@ Ossie is for teams that need to capture, maintain, and share operational product
 knowledge across projects and release contexts.
 
 Primary users are Organization Owners, Project Admins, Project Editors, and
-Project Viewers working inside the portal. Public readers use published Guides
-and Interactive Demos through Publish Links, but they do not manage the internal
-workspace.
+Project Viewers working inside the portal. Public readers use published
+Guides, Interactive Demos, and Documentation through Publish Links,
+but they do not manage the internal workspace.
 
 ## Product Purpose
 
 Ossie currently captures real software workflows and turns those Captures into
-shareable Guides and Interactive Demos. Its accepted direction is a
+shareable Guides and Interactive Demos, alongside governed Product
+Documentation Sites. Its accepted direction is a
 project-organized internal knowledge platform with explicit Project Version,
 Artifact Edition, Revision, Publication, Publish Link, Audit, Access, and
 Project Membership foundations.
@@ -30,13 +31,14 @@ The current product must help a team:
 
 - select the right Organization, Project, and Project Version context;
 - capture source material safely;
-- author and maintain Guides and Interactive Demos;
+- author and maintain Guides, Interactive Demos, and Documentation Sites;
 - preserve immutable Revisions and Publications;
 - publish exact immutable material through controlled Publish Links;
 - read activity and compliance evidence without weakening permissions.
 
-Documentation and Video are accepted future directions. They are not shipped
-capabilities today.
+Product Documentation V1 is shipped. Post-V1 Documentation experience work is
+planned under Master Plan `007` and must not be described as shipped before its
+children close. Video remains an accepted future direction and is not shipped.
 
 ## Positioning
 
@@ -61,7 +63,8 @@ Ossie should not look like:
 - a decorative gradient or orb interface;
 - a one-hue blue SaaS template;
 - an AI-heavy, glassy, over-rounded, or animated-for-animation interface;
-- a generic documentation site before the Documentation domain is accepted.
+- a generic documentation template that ignores Ossie's accepted
+  Documentation domain and product shell.
 
 ## Design Principles
 
@@ -70,7 +73,8 @@ Ossie should not look like:
 2. Optimize for repeated work. Dense lists, stable workbench regions, compact
    command bars, and predictable states matter more than dramatic composition.
 3. Preserve product truth. UI language must use the accepted terms in
-   `CONTEXT.md` and must not say future Documentation or Video behavior exists.
+   `CONTEXT.md`, distinguish shipped Documentation V1 from planned post-V1
+   work, and must not say future Video behavior exists.
 4. Make status readable. State must use text, shape, icon, and placement, not
    color alone.
 5. Prefer composable foundations. Later children should build screens from

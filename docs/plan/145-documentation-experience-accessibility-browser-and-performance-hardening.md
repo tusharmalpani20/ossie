@@ -2,7 +2,10 @@
 
 Date reserved: 2026-07-31
 
-Status: Reserved. Not implementation-ready and not authorized for execution.
+Last implementation-readiness audit: 2026-08-05
+
+Status: Conditionally implementation-ready. Execute only after Child `144`
+is complete and independently close-rechecked.
 
 Parent:
 
@@ -12,42 +15,447 @@ Predecessor:
 
 - `docs/plan/144-documentation-generated-api-request-examples.md`
 
-## Objective
+Evidence baseline:
 
-Harden and dogfood the integrated authoring, reader, and request-example
-experience without adding new product features.
+- final adoption scorecard from Child `141`;
+- authoring evidence from Child `142`;
+- reader evidence from Child `143`;
+- request-example evidence from Child `144`;
+- shipped V1 baseline and browser fixture from children `138`–`139`.
 
-## Required expansion scope
+## 1. Objective
 
-- desktop, 320px, keyboard, focus, 200% zoom/reflow, touch target, screen-reader
-  semantics, live status, and reduced-motion matrix;
-- Chromium through agent-browser, plus Firefox/WebKit through existing
-  repository browser tooling; install compatible headless binaries when
-  feasible and record a genuine tooling/platform limit instead of a false pass;
-- automated axe, accessibility-tree, and available real assistive-technology
-  evidence with honest capability limits;
-- loading/empty/error/unsupported/denied/conflict/offline/recovery flows;
-- CSP/XSS, private-content exclusion, credential exclusion, console/network
-  failure, and tenant/access checks;
-- bundle and representative authoring/reader/example performance comparison;
-- comparison against the pre-adoption native baseline and the retained fallback,
-  with route-level lazy-loading and initial crawler HTML checked separately;
-- existing Documentation plus Capture/Guide/Demo/extension/public/embed
-  compatibility and workspace verification;
-- dependency/license/advisory/frozen-install review;
-- sanitized evidence under `docs/ui/` using existing fixtures and agent-browser.
+Audit, dogfood, and harden the integrated post-V1 Documentation authoring,
+reader, and request-example experience. Establish reproducible failures first,
+fix only defects inside Master `007`, and close with truthful accessibility,
+browser, motion, security, dependency, performance, bundle, and compatibility
+evidence.
 
-## Hard boundaries
+This child adds no product feature and does not reopen adapter decisions.
 
-- No feature expansion, redesign unrelated to proven defects, parallel custom
-  browser/product harness, production p75 claim from lab data, or false
-  browser/AT pass.
-- PostgreSQL warning, broad lint debt, shared rate limiting/jobs/storage, and
-  production telemetry remain separately owned unless a scoped regression must
-  be fixed.
+## 2. Entry Gate And Leftover Intake
 
-## Exit gate
+Before changing code:
 
-No unresolved S1/S2 defect remains, required evidence passes or limitations are
-truthful and owned, the scoped fixes are close-rechecked, and child `146` can
-perform final closure.
+1. confirm children `141`–`144` are complete and independently
+   close-rechecked;
+2. read every final status, checklist, implementation log, verification,
+   limitation, leftover, handoff, and recorded commit;
+3. create an intake table in this plan with columns:
+   `source child | item | severity | current owner | verification route |
+disposition`;
+4. inspect the actual selected adapters, retained exact dependencies, fallback,
+   route chunks, public/server behavior, generator contract, tests, and worktree;
+5. reproduce the current synthetic fixture and baseline build;
+6. update the matrix for code drift and independently recheck the plan.
+
+Do not absorb unrelated defects. Route them to maintenance/operations with
+evidence. An issue caused by Master `007` is in scope even if discovered on an
+existing shared component.
+
+## 3. Severity And Closure Policy
+
+- **S1:** tenant/access bypass, secret/private-content leak, executable content,
+  data loss/corruption, published immutability break, target request without
+  explicit Try-It authority, or unusable core workflow for all users.
+- **S2:** common core workflow blocked for a role/browser/input method, serious
+  WCAG failure, broken public URL/SEO/cache/redirect, repeatable conflict/local
+  recovery loss, major bundle/performance regression, or dependency
+  high/critical risk in shipped reachable code.
+- **S3:** non-blocking polish, minor announcement/copy issue, optional-engine
+  inconsistency with workaround, or local lab optimization opportunity.
+
+No unresolved in-scope S1/S2 may remain. S3 may remain only with evidence,
+owner, trigger, and user impact. Missing required Chromium evidence is not an
+S3; it prevents closure.
+
+## 4. Integrated Workflow Matrix
+
+### 4.1 Authoring
+
+- Project Editor Page load/edit/insert/reorder/delete/save/autosave;
+- snippet list/create/edit/save/archive;
+- comments and stable block anchors;
+- metadata, assets, Page/snippet/Guide/Demo/API references;
+- read-only Viewer;
+- loading, empty, validation, unsupported paste/drop, adapter failure, server
+  failure, offline/network failure, Row-Version conflict, local recovery,
+  unsaved navigation;
+- checkpoint/review/publication compatibility.
+
+### 4.2 Reader
+
+- public default/explicit Project Version;
+- public/password/internal/revoked/expired/unavailable/unknown;
+- home/nested Page, canonical redirect, gone, search/result/no result;
+- exact Revision preview and saved draft preview;
+- navigation/breadcrumb/TOC/anchors;
+- assets/snippets/Guide/Demo references;
+- API operation and Try-It disabled/enabled without sending real credentials;
+- initial crawler HTML, canonical/meta, sitemap/robots, CSP, ETag/304.
+
+### 4.3 Generated examples
+
+- supported and unsupported descriptor;
+- curl/browser Fetch/Node/Python/Go;
+- keyboard selection, copy success/failure, one-file download;
+- Try-It mutable-state isolation;
+- V1 historical reproduction;
+- lazy failure and native/reader fallback;
+- no target network request.
+
+### 4.4 Existing-product regression
+
+At minimum smoke:
+
+- login/setup and portal navigation;
+- Project/Project Version shell;
+- Capture portal/session;
+- Guide authoring/public/embed;
+- Interactive Demo authoring/public/embed;
+- extension portal/bundle route;
+- Organization membership/permissions;
+- public routes not loading Documentation adapter/editor chunks.
+
+This is regression evidence, not permission to redesign those products.
+
+## 5. Accessibility Standard
+
+Target WCAG 2.2 AA. Verify:
+
+- keyboard access and logical focus order;
+- no keyboard trap; Escape/close semantics;
+- visible focus with sufficient contrast;
+- focus moves/restores after dialogs, mobile navigation, deletion, fallback,
+  conflict recovery, and route changes;
+- semantic buttons/links/forms, labels, descriptions, errors;
+- one clear `h1`, logical headings, landmarks, skip link;
+- live regions are polite and do not announce every keystroke;
+- selected/current/expanded/disabled/error states are programmatic;
+- 24 by 24 CSS-pixel minimum pointer target or accepted spacing exception;
+- 320 CSS-pixel reflow and 200% zoom without page-level two-dimensional scroll;
+- local labeled overflow for code/tables only;
+- text/interactive/non-text contrast;
+- no color-only meaning;
+- reduced-motion removal of nonessential animation;
+- accessible names for block moves, language tabs, copy/download, search,
+  navigation, and Try-It controls;
+- password/validation/conflict/unsupported errors associated to fields/summary;
+- screen-reader reading order does not duplicate editor and preview content
+  ambiguously.
+
+Run axe A/AA on representative states and inspect incomplete contrast/manual
+checks. Automated zero violations is necessary but not sufficient. Record real
+assistive-technology coverage only if genuinely available.
+
+## 6. Browser Matrix
+
+### Required Chromium
+
+Use agent-browser with the installed headless Chromium and existing seeded
+fixture. Record:
+
+- tool/browser versions;
+- route and synthetic fixture identity;
+- desktop viewport;
+- 320px viewport;
+- 200% zoom method;
+- reduced-motion setting;
+- keyboard steps;
+- screenshots;
+- accessibility tree/axe results;
+- console exceptions/warnings;
+- failed/unexpected requests;
+- local measurements.
+
+### Firefox and WebKit
+
+Use existing supported tooling and install compatible headless engines when
+feasible. Do not build a new product harness. If an engine cannot run after
+documented bounded attempts, record:
+
+- exact command/tool/version;
+- installation/runtime error;
+- coverage not obtained;
+- separate QA owner/reopen trigger.
+
+Per the accepted Plan `140` matrix, optional Firefox/WebKit/real-AT coverage is
+separately owned and does not become a false failure or false pass. Chromium
+remains the required local browser proof.
+
+## 7. Motion And Interaction
+
+Audit all motion introduced/retained by children `142`–`144`:
+
+- use motion only for spatial continuity/status;
+- no decorative perpetual animation;
+- transform/opacity preferred over layout animation;
+- interruptible open/close transitions;
+- no delayed focus or interaction behind animation;
+- reduced motion produces immediate or minimal state changes;
+- loading indicators preserve layout and accessible status;
+- scroll-to-heading respects user action and reduced motion;
+- adapter/native fallback does not flash or shift content excessively.
+
+Fix confirmed issues; do not add animation to make the UI appear modern.
+
+## 8. Performance And Bundle Contract
+
+Build production output with manifest and compare against recorded pre-Master
+and per-child baselines.
+
+Measure/report:
+
+- initial app raw/gzip;
+- unrelated portal route chunks;
+- Documentation Page editor and snippet chunks;
+- public reader, draft preview, Revision preview chunks;
+- Tiptap and Fumadocs retained modules;
+- request-example component/domain code;
+- Try-It lazy chunk;
+- route load and 20 representative interactions;
+- DOM size on large in-policy Page/navigation;
+- repeated mount/unmount listener/memory symptoms;
+- initial public HTML size and duplicate bootstrap/fetch behavior.
+
+Gates:
+
+- no editor/Tiptap bytes in public reader or unrelated initial routes;
+- no Fumadocs/reader bytes in authoring or unrelated routes unless a measured
+  shared primitive justifies it;
+- request-example UI stays lazy with API operation surfaces;
+- no candidate dependency from a rejected Child `141` disposition remains;
+- no new representative >100 ms task without fix/explanation;
+- median interactions no more than 20% slower than Child `141` native baseline;
+- selected package chunk guardrails from Child `141` remain satisfied;
+- no duplicate initial public fetch after valid bootstrap;
+- no production p75 claim from local data.
+
+If a retained adapter violates a mandatory gate, optimize/tree-shake first. If
+still failing, use the already authorized native fallback and remove the
+package; do not request permission to keep a worse implementation.
+
+## 9. Security And Privacy Matrix
+
+Verify:
+
+- Organization/Project membership and role negative tests;
+- public/password/internal/revoked/expired boundaries;
+- no draft/Revision/comments/reviewer/private navigation in public bootstrap,
+  Fumadocs page tree, logs, screenshots, or errors;
+- CSP/XSS/injection for constrained content and adapter output;
+- no unsafe eval/HTML/MDX/custom nodes;
+- no editor/Fumadocs hosted calls;
+- no credentials/private origins/policies in generated examples;
+- Try-It remains browser-direct and explicit;
+- generated examples trigger no target network;
+- Clipboard/download filenames/content are bounded and safe;
+- adapter/proof query selectors absent from production;
+- no debug logging of content/tokens;
+- Audit/Access Evidence remains existing and no new ungoverned sensitive event
+  is introduced.
+
+Use synthetic sentinel secrets in tests and assert they are absent from DOM,
+logs, generated code, screenshots, and unintended requests.
+
+## 10. Dependency And Supply-Chain Gate
+
+For every retained new direct/transitive package:
+
+- exact version and purpose;
+- license;
+- official source/release;
+- peer/engine compatibility;
+- production reachability;
+- frozen install;
+- high/critical audit triage;
+- bundle inclusion;
+- rollback/removal path.
+
+Scan manifest/lockfile/build for rejected packages. Do not upgrade unrelated
+dependencies in this child. A reachable unresolved high/critical advisory,
+license incompatibility, or required hosted service is S2/S1 and triggers the
+native fallback or Master stop policy.
+
+## 11. Compatibility Matrix
+
+Re-run relevant compatibility proof for:
+
+- stored V1 blocks/snippets/assets;
+- imports/exports/packages and Carry-Forward;
+- Revisions/Publications/rollback;
+- review/approval/comments;
+- public URLs/redirects/gone/search/SEO;
+- Try-It policy/configuration/attempt evidence;
+- descriptor V0 unsupported and descriptor V1 exact examples;
+- native adapter fallback;
+- migration head remains `031` unless an explicitly authorized repair says
+  otherwise;
+- public/app clients see no contract drift.
+
+## 12. Exact File Ownership
+
+Primary writes are defects discovered in:
+
+- Documentation web components/styles/adapters from children `141`–`144`;
+- their focused tests;
+- request-example domain policy/tests;
+- route/lazy-loading/App files touched by those children;
+- Documentation fixture/tests;
+- `docs/ui/<execution-date>-documentation-post-v1-hardening.md`;
+- this plan and Master `007`.
+
+Conditional writes:
+
+- shared UI components only for a confirmed shared regression, with all callers
+  tested;
+- server public routes/config only for a confirmed Master `007` regression;
+- package manifest/lockfile only to remove/adjust selected adapter dependencies;
+- current-truth docs only for actual shipped results.
+
+No expected migration/schema/repository/service change. No accepted-later,
+operations infrastructure, unrelated lint/PostgreSQL maintenance, or product
+redesign.
+
+## 13. Test-First Fix Protocol
+
+For each defect:
+
+1. record route/role/state/severity and reproduce;
+2. add focused failing unit/integration/browser evidence;
+3. identify owning child/contract;
+4. make the smallest in-scope repair;
+5. rerun focused checks;
+6. rerun affected browser matrix cell;
+7. update evidence/leftover table;
+8. close only when the regression test remains.
+
+Do not combine unrelated fixes into one commit.
+
+## 14. Verification Order
+
+1. focused tests while fixing;
+2. Documentation domain/types/web/server suites;
+3. affected DB integration only if server/shared data code changed;
+4. web/server/package type-check and lint;
+5. production build/manifest and frozen install/audit;
+6. agent-browser required matrix;
+7. optional engine attempts;
+8. existing-product smoke;
+9. workspace proportional checks;
+10. diff/path/secret/evidence scans;
+11. independent close-recheck.
+
+The executing child records exact commands/counts and reruns impacted checks
+after every late fix.
+
+## 15. Evidence Handling
+
+Use only synthetic fixtures and local safe URLs. Store sanitized textual
+evidence and approved screenshots under `docs/ui/`. Do not commit:
+
+- cookies/session headers;
+- passwords/tokens/credentials;
+- private URL origins;
+- customer/raw OpenAPI content;
+- unsanitized network dumps;
+- home-directory paths that expose secrets;
+- screenshots containing private data.
+
+Label local lab measurements and browser capability limits accurately.
+
+## 16. Acceptance Criteria
+
+- every matrix cell applicable to selected branches has evidence;
+- no unresolved in-scope S1/S2;
+- WCAG 2.2 AA required checks pass or an item preventing closure is fixed;
+- Chromium real-route proof passes;
+- optional-engine/AT limits are truthful and owned;
+- bundle/performance gates pass or native fallback is selected;
+- no rejected/proof package/UI remains;
+- no secret/private/authority regression;
+- existing-product smoke passes;
+- dependency/license/audit/frozen install pass;
+- migration/API/schema compatibility holds;
+- close-recheck is clean.
+
+## 17. Explicit Non-Scope
+
+- new product features;
+- redesign unrelated to a proven defect;
+- accepted-later candidates;
+- production telemetry/p75;
+- durable jobs/distributed rate limit/non-local storage;
+- PostgreSQL warning or broad lint debt;
+- new browser/product harness;
+- false Firefox/WebKit/AT completion claims.
+
+## 18. Commit Strategy
+
+Suggested commits by defect class:
+
+- `fix(documentation): harden post-v1 accessibility`
+- `fix(documentation): preserve reader and authoring browser behavior`
+- `perf(documentation): contain adapter and example bundles`
+- `test(documentation): record integrated compatibility proof`
+- `docs(documentation): close post-v1 hardening`
+
+## 19. Checklist
+
+### Intake
+
+- [ ] Children `141`–`144` complete/close-rechecked.
+- [ ] Leftover intake table completed.
+- [ ] Selected dependencies/adapters/fallback confirmed.
+- [ ] Baseline fixture/build reproduced.
+- [ ] Plan refreshed and independently rechecked.
+
+### Accessibility/browser/motion
+
+- [ ] Full workflow accessibility matrix run.
+- [ ] Keyboard/focus/zoom/320px/targets/reduced motion verified.
+- [ ] Axe/tree/manual checks recorded.
+- [ ] Required Chromium matrix passes.
+- [ ] Firefox/WebKit/AT attempts and limits recorded.
+- [ ] Loading/error/denied/conflict/recovery states pass.
+
+### Performance/security/compatibility
+
+- [ ] Build/chunk/interactions/DOM/bootstrap measured.
+- [ ] Package guardrails and route isolation pass.
+- [ ] Security/privacy/tenant/credential checks pass.
+- [ ] Dependency/license/audit/frozen install pass.
+- [ ] Historical examples and native fallback pass.
+- [ ] Existing-product regression smoke passes.
+- [ ] Migration/API/schema compatibility passes.
+
+### Closure
+
+- [ ] Every fix has failing-then-passing evidence.
+- [ ] No unresolved S1/S2.
+- [ ] Sanitized evidence committed.
+- [ ] Independent close-recheck clean.
+- [ ] Status/log/verification/limitations/leftovers/handoff/commits updated.
+- [ ] Master Child `145` lifecycle updated.
+
+## 20. Implementation Log
+
+Not started. Append intake and each fix with date/severity/owner.
+
+## 21. Verification Record
+
+Not started. Record exact commands, counts, browsers, routes, fixtures, bundle
+numbers, axe/manual results, optional capability limits, and regressions.
+
+## 22. Leftovers And Handoff
+
+No planning-time user blocker exists. Child `146` receives only:
+
+- the final evidence index;
+- selected adapter/dependency/fallback inventory;
+- S3 limitations with owners/triggers;
+- optional Firefox/WebKit/AT capability gaps;
+- separately owned operations/maintenance items;
+- current migration head, bundle baseline, and exact commits.
+
+Any S1/S2 must be fixed before handoff.
