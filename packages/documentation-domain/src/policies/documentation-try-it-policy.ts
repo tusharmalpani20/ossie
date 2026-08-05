@@ -634,7 +634,7 @@ export const redact_documentation_try_it_text = (
 
 const shell_quote = (value: string) => `'${value.replaceAll("'", "'\"'\"'")}'`;
 
-export const generate_documentation_try_it_examples = (input: {
+export const generate_documentation_try_it_request_previews = (input: {
   url: string;
   method: string;
   headers: Record<string, string>;

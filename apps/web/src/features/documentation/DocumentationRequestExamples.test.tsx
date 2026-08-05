@@ -110,6 +110,26 @@ describe("DocumentationRequestExamples", () => {
     expect(click).toHaveBeenCalledTimes(1);
   });
 
+  it("announces clipboard failure without changing the displayed example", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: vi.fn(async () => Promise.reject(new Error("denied"))),
+      },
+    });
+    render(<DocumentationRequestExamples descriptor={descriptor} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy curl example" }));
+    await waitFor(() =>
+      expect(
+        screen.getByText("curl example could not be copied."),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("tabpanel")).toHaveTextContent(
+      "https://api.example.com/pets/pet%2F1",
+    );
+  });
+
   it("shows bounded unsupported output without copy or download actions", () => {
     render(
       <DocumentationRequestExamples

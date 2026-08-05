@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   build_documentation_try_it_request,
   derive_documentation_try_it_descriptors,
-  generate_documentation_try_it_examples,
+  generate_documentation_try_it_request_previews,
   normalize_documentation_try_it_target,
   redact_documentation_try_it_text,
 } from "./documentation-try-it-policy";
@@ -251,7 +251,7 @@ describe("documentation Try-It policy", () => {
       redact_documentation_try_it_text("reflected xx", ["xx"]),
     ).toThrow(DocumentationDomainError);
 
-    const examples = generate_documentation_try_it_examples({
+    const examples = generate_documentation_try_it_request_previews({
       url: "https://api.example.com/v1/pets?q=a%27b",
       method: "GET",
       headers: { Authorization: "Bearer actual-secret" },
