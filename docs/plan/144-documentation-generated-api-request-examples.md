@@ -4,8 +4,12 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
-Status: Conditionally implementation-ready. Execute only after Child `143`
-is complete and independently close-rechecked.
+Status: In progress — implementation-ready after Child `143` closeout intake.
+
+Selected contract: `documentation-request-example-v1` for descriptor version
+`1`, with the fixed registry order `curl`, `browser_fetch`, `node_fetch`,
+`python_urllib`, and `go_net_http`. Descriptor version `0`, unknown versions,
+unknown languages, and unsupported descriptor reasons fail closed.
 
 Parent:
 
@@ -89,6 +93,24 @@ Before code changes:
 
 A missing required input returns unsupported; do not ask the user to invent a
 fallback example.
+
+### 3.1 Execution intake and independent recheck
+
+- Child `143` is complete and independently close-rechecked in commit
+  `62ee9c4`. Its stable public content seam is `PublicDocumentationReaderPage`
+  inside `LazyDocumentationPublicationReaderChrome`; generated examples may
+  be rendered beside the existing lazy Try-It experience without entering it.
+- The current descriptor is already a wire-safe V1 shape with optional
+  parameter `example` and request-body `schema`/`example` fields. The current
+  admission policy does not yet populate schema/default/body examples, so this
+  child owns that compatible derivation refinement without adding a wire field
+  or migration.
+- The current mutable examples helper is used only by the live Try-It builder.
+  It will be renamed/consolidated as the current-preview helper and will not
+  be imported by the new pure registry.
+- No new package, endpoint, route, persistence field, migration, or generated
+  output storage is authorized or required. The standard-language outputs are
+  produced in the browser-safe domain package and rendered as text.
 
 ## 4. Source Input Contract
 
