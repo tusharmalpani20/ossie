@@ -30,6 +30,7 @@ describe("Documentation browser fixture", () => {
         "review_request",
         "review_inbox",
         "review_publication_evidence",
+        "request_examples",
       ]),
     );
     expect(fixture.routes.review_inbox).toContain("/documentation/reviews");

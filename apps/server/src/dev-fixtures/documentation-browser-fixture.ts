@@ -59,6 +59,7 @@ export const build_documentation_browser_fixture = () => {
       "review_inbox",
       "review_publication_evidence",
       "api_try_it_browser_direct",
+      "request_examples",
     ] as const,
     routes: {
       list: `/projects/${capture.project_id}/versions/summer-release/documentation`,
@@ -68,6 +69,8 @@ export const build_documentation_browser_fixture = () => {
       public_gone: "/docs/plan132-public/obsolete",
       public_operation:
         "/docs/plan132-public/operations/get-widgets-listwidgets",
+      public_unsupported_operation:
+        "/docs/plan132-public/operations/post-widgets-createwidget",
       review_inbox: `/projects/${capture.project_id}/versions/summer-release/documentation/reviews`,
     },
   };
@@ -333,6 +336,23 @@ export const seed_documentation_browser_fixture = async () => {
                     summary: "List widgets",
                     security: [{ bearerAuth: [] }, { fixtureApiKey: [] }],
                     responses: { "200": { description: "OK" } },
+                  },
+                  post: {
+                    operationId: "createWidget",
+                    summary: "Create a widget",
+                    requestBody: {
+                      required: true,
+                      content: {
+                        "application/json": {
+                          schema: {
+                            type: "object",
+                            required: ["name"],
+                            properties: { name: { type: "string" } },
+                          },
+                        },
+                      },
+                    },
+                    responses: { "201": { description: "Created" } },
                   },
                 },
               },
