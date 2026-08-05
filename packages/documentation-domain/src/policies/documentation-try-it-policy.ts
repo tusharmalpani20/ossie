@@ -22,6 +22,15 @@ export { DocumentationDomainError };
 
 type JsonRecord = Record<string, unknown>;
 type Primitive = string | number | boolean;
+type DocumentationTryItJsonSchemaDescriptor = {
+  type: "object" | "array" | "string" | "number" | "integer" | "boolean";
+  nullable: boolean;
+  sensitive: boolean;
+  properties?: Record<string, DocumentationTryItJsonSchemaDescriptor>;
+  items?: DocumentationTryItJsonSchemaDescriptor;
+  required?: string[];
+  enum?: (string | number | boolean | null)[];
+};
 
 const encoder = new TextEncoder();
 const byte_length = (value: string) => encoder.encode(value).byteLength;
@@ -88,6 +97,14 @@ const sensitive_name = (name: string) =>
     name,
   );
 
+const has_own = (value: object, key: PropertyKey): boolean =>
+  Object.prototype.hasOwnProperty.call(value, key);
+
+const is_documented_primitive = (value: unknown): value is Primitive =>
+  (typeof value === "string" && byte_length(value) <= DOCUMENTATION_TRY_IT_FIELD_VALUE_MAX_BYTES) ||
+  (typeof value === "number" && Number.isFinite(value)) ||
+  typeof value === "boolean";
+
 const primitive_type = (
   schema: JsonRecord | undefined,
 ): DocumentationTryItParameterDescriptor["value_type"] | null => {
@@ -98,6 +115,133 @@ const primitive_type = (
     type === "boolean"
     ? type
     : null;
+};
+
+const documented_parameter_example = (
+  input: JsonRecord,
+  schema: JsonRecord,
+  sensitive: boolean,
+): Primitive | undefined => {
+  if (sensitive) return undefined;
+  for (const candidate of [input.example, schema.example, schema.default]) {
+    if (is_documented_primitive(candidate)) return candidate;
+  }
+  return undefined;
+};
+
+const json_schema_descriptor = (
+  input: unknown,
+  property_name: string | null = null,
+  depth = 0,
+  nodes = { count: 0 },
+): DocumentationTryItJsonSchemaDescriptor | null => {
+  nodes.count += 1;
+  if (depth > DOCUMENTATION_TRY_IT_JSON_DEPTH_MAX || nodes.count > DOCUMENTATION_TRY_IT_JSON_NODES_MAX)
+    return null;
+  if (!is_record(input)) return null;
+  if (
+    "$ref" in input ||
+    "allOf" in input ||
+    "anyOf" in input ||
+    "oneOf" in input ||
+    "not" in input ||
+    "if" in input ||
+    "then" in input ||
+    "else" in input
+  )
+    return null;
+  const type = input.type;
+  if (
+    type !== "object" &&
+    type !== "array" &&
+    type !== "string" &&
+    type !== "number" &&
+    type !== "integer" &&
+    type !== "boolean"
+  )
+    return null;
+  const sensitive =
+    (property_name !== null && sensitive_name(property_name)) ||
+    input.format === "password" ||
+    input.writeOnly === true;
+  const descriptor: DocumentationTryItJsonSchemaDescriptor = {
+    type,
+    nullable: input.nullable === true,
+    sensitive,
+  };
+  if (type === "object" && input.properties !== undefined) {
+    if (!is_record(input.properties)) return null;
+    const properties: Record<string, DocumentationTryItJsonSchemaDescriptor> = {};
+    for (const [name, child] of Object.entries(input.properties)) {
+      const parsed = json_schema_descriptor(child, name, depth + 1, nodes);
+      if (!parsed) return null;
+      properties[name] = parsed;
+    }
+    descriptor.properties = properties;
+  }
+  if (type === "array") {
+    const items = json_schema_descriptor(input.items, null, depth + 1, nodes);
+    if (!items) return null;
+    descriptor.items = items;
+  }
+  if (input.required !== undefined) {
+    if (
+      !Array.isArray(input.required) ||
+      input.required.some((name) => typeof name !== "string")
+    )
+      return null;
+    descriptor.required = input.required.slice(0, 100) as string[];
+  }
+  if (input.enum !== undefined) {
+    if (
+      !Array.isArray(input.enum) ||
+      input.enum.some(
+        (value) =>
+          value !== null &&
+          !is_documented_primitive(value),
+      )
+    )
+      return null;
+    descriptor.enum = input.enum.slice(0, 100) as (string | number | boolean | null)[];
+  }
+  return byte_length(JSON.stringify(descriptor)) > DOCUMENTATION_TRY_IT_REQUEST_BODY_MAX_BYTES
+    ? null
+    : descriptor;
+};
+
+const sanitize_documented_json = (
+  value: unknown,
+  schema: DocumentationTryItJsonSchemaDescriptor | null,
+  depth = 0,
+  nodes = { count: 0 },
+): unknown | undefined => {
+  nodes.count += 1;
+  if (depth > DOCUMENTATION_TRY_IT_JSON_DEPTH_MAX || nodes.count > DOCUMENTATION_TRY_IT_JSON_NODES_MAX)
+    return undefined;
+  if (schema?.sensitive) return "<SENSITIVE_VALUE>";
+  if (value === null || typeof value === "string" || typeof value === "boolean")
+    return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (Array.isArray(value)) {
+    const result = value.map((entry) =>
+      sanitize_documented_json(entry, schema?.items ?? null, depth + 1, nodes),
+    );
+    return result.some((entry) => entry === undefined) ? undefined : result;
+  }
+  if (!is_record(value)) return undefined;
+  const result: Record<string, unknown> = {};
+  const properties = schema?.properties ?? {};
+  for (const [name, entry] of Object.entries(value)) {
+    const sanitized = sanitize_documented_json(
+      entry,
+      properties[name] ?? null,
+      depth + 1,
+      nodes,
+    );
+    if (sanitized === undefined) return undefined;
+    result[name] = sanitized;
+  }
+  return result;
 };
 
 const security_for = (
@@ -170,10 +314,7 @@ const parameter_descriptor = (
     input.schema.format === "password" ||
     input.schema.writeOnly === true;
   if (sensitive && location !== "header") return null;
-  const example =
-    sensitive || !["string", "number", "boolean"].includes(typeof input.example)
-      ? undefined
-      : (input.example as Primitive);
+  const example = documented_parameter_example(input, item_schema, sensitive);
   return {
     name: input.name,
     location,
@@ -255,10 +396,46 @@ export const derive_documentation_try_it_descriptors = (
         } else if (!media || !is_record(content[media])) {
           unsupported_reasons.push("Only JSON request bodies are supported");
         } else {
+          const media_entry = content[media] as JsonRecord;
+          const raw_schema = media_entry.schema;
+          const schema =
+            raw_schema === undefined
+              ? null
+              : json_schema_descriptor(raw_schema);
+          if (raw_schema !== undefined && !schema)
+            unsupported_reasons.push("Unsupported JSON request body schema");
+          const raw_example = has_own(media_entry, "example")
+            ? media_entry.example
+            : is_record(raw_schema) && has_own(raw_schema, "example")
+              ? raw_schema.example
+              : is_record(raw_schema) && has_own(raw_schema, "default")
+                ? raw_schema.default
+                : undefined;
+          const has_example =
+            has_own(media_entry, "example") ||
+            (is_record(raw_schema) &&
+              (has_own(raw_schema, "example") || has_own(raw_schema, "default")));
+          const sanitized_example = has_example
+            ? sanitize_documented_json(raw_example, schema)
+            : undefined;
+          if (has_example && sanitized_example === undefined)
+            unsupported_reasons.push("Unsupported JSON request body example");
+          const serialized_example =
+            sanitized_example === undefined
+              ? undefined
+              : JSON.stringify(sanitized_example);
+          if (
+            serialized_example !== undefined &&
+            byte_length(serialized_example) > DOCUMENTATION_TRY_IT_REQUEST_BODY_MAX_BYTES
+          )
+            unsupported_reasons.push("JSON request body example is too large");
           request_body = {
             required: operation.requestBody.required === true,
             media_type: media,
-            schema: null,
+            schema,
+            ...(serialized_example === undefined
+              ? {}
+              : { example: sanitized_example }),
           };
         }
       }

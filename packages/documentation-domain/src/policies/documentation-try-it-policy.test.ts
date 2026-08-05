@@ -75,6 +75,121 @@ describe("documentation Try-It policy", () => {
     expect(descriptors[0]?.parameters).toHaveLength(2);
   });
 
+  it("admits bounded schema/default examples with sensitive values redacted", () => {
+    const [descriptor] = derive_documentation_try_it_descriptors({
+      openapi: "3.1.0",
+      info: { title: "Pets", version: "1" },
+      paths: {
+        "/pets": {
+          post: {
+            parameters: [
+              {
+                name: "limit",
+                in: "query",
+                required: true,
+                example: 3,
+                schema: { type: "integer", example: 9, default: 10 },
+              },
+              {
+                name: "page",
+                in: "query",
+                schema: { type: "integer", default: 2 },
+              },
+              {
+                name: "X-Api-Key",
+                in: "header",
+                required: true,
+                schema: { type: "string", example: "private-key" },
+              },
+            ],
+            requestBody: {
+              required: true,
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["name", "password"],
+                    properties: {
+                      name: { type: "string", default: "Ada" },
+                      password: { type: "string", format: "password" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    expect(descriptor).toMatchObject({
+      parameters: [
+        { name: "limit", example: 3 },
+        { name: "page", example: 2 },
+        { name: "X-Api-Key" },
+      ],
+      request_body: {
+        schema: {
+          type: "object",
+          properties: {
+            password: { sensitive: true },
+          },
+        },
+      },
+    });
+    expect(descriptor?.request_body?.example).toBeUndefined();
+
+    const [explicit_body] = derive_documentation_try_it_descriptors({
+      openapi: "3.1.0",
+      info: { title: "Pets", version: "1" },
+      paths: {
+        "/pets": {
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  example: { name: "Grace", password: "actual-secret" },
+                  schema: {
+                    type: "object",
+                    properties: {
+                      password: { type: "string", writeOnly: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    expect(explicit_body?.request_body?.example).toEqual({
+      name: "Grace",
+      password: "<SENSITIVE_VALUE>",
+    });
+  });
+
+  it("refuses remote or structurally excessive schemas", () => {
+    const [remote] = derive_documentation_try_it_descriptors({
+      openapi: "3.1.0",
+      info: { title: "Pets", version: "1" },
+      paths: {
+        "/pets": {
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/Pet" },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    expect(remote?.unsupported_reasons).toContain(
+      "Unsupported JSON request body schema",
+    );
+  });
+
   it("builds an encoded request without allowing path or header injection", () => {
     const request = build_documentation_try_it_request({
       approved_origin: "https://api.example.com",
