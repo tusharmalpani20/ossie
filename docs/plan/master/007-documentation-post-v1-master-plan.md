@@ -558,7 +558,19 @@ responsive/reduced-motion/axe, and chunk-failure recovery are recorded in
 
 ### 17.4 Child 144 — Multi-language request examples
 
-Implements ADR `0034` after the reader surface is stable.
+Closed 2026-08-05: implemented ADR `0034` as the pure, permanent V1 registry
+over accepted DocumentationTryItRequestDescriptor data. curl, Browser Fetch,
+Node.js Fetch, Python urllib, and Go net/http are deterministic inert
+projections with visible placeholders and no target/configuration/network
+authority. Bounded documented examples/defaults are admitted and redacted in
+the existing descriptor derivation policy. Public Publication, immutable
+Revision, and draft/OpenAPI surfaces use a lazy, accessible copy/download
+panel outside the mutable Try-It builder. Unsupported required-body cases are
+shown fail-closed. The synthetic supported/unsupported fixture journeys,
+focused/full tests, browser evidence, bundle cost, and truthful audit/tool
+limitations are recorded in
+`docs/ui/2026-08-05-documentation-request-examples-browser-evidence.md` and
+Child `144`.
 
 ### 17.5 Child 145 — Combined hardening
 
@@ -776,14 +788,14 @@ date.
 
 ### Child 144 lifecycle
 
-- [ ] Review Child `143` closure and ADR `0034` inputs.
-- [ ] Refresh/recheck Child `144`, including the permanent descriptor-to-
+- [x] Review Child `143` closure and ADR `0034` inputs.
+- [x] Refresh/recheck Child `144`, including the permanent descriptor-to-
       generator contract mapping.
-- [ ] Implement the pure five-language registry test-first.
-- [ ] Verify determinism, placeholders, unsupported cases, historical output,
+- [x] Implement the pure five-language registry test-first.
+- [x] Verify determinism, placeholders, unsupported cases, historical output,
       Try-It isolation, UI copy, and browser behavior.
-- [ ] Independently close-recheck Child `144`.
-- [ ] Route only integrated hardening leftovers to Child `145`.
+- [x] Independently close-recheck Child `144`.
+- [x] Route only integrated hardening leftovers to Child `145`.
 
 ### Child 145 lifecycle
 
@@ -820,11 +832,14 @@ date.
 
 ## 20. Immediate Handoff
 
-Children `141`, `142`, and `143` are closed and independently rechecked. Begin
-Child `144` at the stable `PublicDocumentationReaderPage` content seam inside
-the lazy reader chrome. Its generated examples must remain inert, descriptor-
-versioned, and separate from mutable Try-It configuration; no reader routing,
-Publication authority, or access expansion is carried forward.
+Children `141`, `142`, `143`, and `144` are closed and independently
+rechecked. Begin Child `145` with the explicit integrated-hardening handoff:
+the stable public `PublicDocumentationReaderPage` seam inside the lazy reader
+chrome, the exact Publication/Revision/draft authorization boundaries, and the
+descriptor-versioned inert request-example registry. Child `145` may harden
+the integrated browser/accessibility/performance/dependency matrix, but must
+not turn generated examples into mutable Try-It output, add target/network
+authority, or broaden reader access.
 
 ## 21. Planning Re-Audit Record
 

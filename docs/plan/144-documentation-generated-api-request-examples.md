@@ -4,7 +4,7 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
-Status: In progress — implementation-ready after Child `143` closeout intake.
+Status: Complete — independently close-rechecked on 2026-08-05.
 
 Selected contract: `documentation-request-example-v1` for descriptor version
 `1`, with the fixed registry order `curl`, `browser_fetch`, `node_fetch`,
@@ -597,51 +597,81 @@ end-of-child commit. Stage exact paths and preserve unrelated work.
 
 ### Intake and plan
 
-- [ ] Child `143` complete/close-rechecked and handoff read.
-- [ ] Descriptor/callers/current Try-It helper inspected.
-- [ ] V1 mapping and zero-migration decision revalidated.
-- [ ] Worktree/code drift recorded.
-- [ ] Plan refreshed and independently rechecked.
+- [x] Child `143` complete/close-rechecked and handoff read.
+- [x] Descriptor/callers/current Try-It helper inspected.
+- [x] V1 mapping and zero-migration decision revalidated.
+- [x] Worktree/code drift recorded.
+- [x] Plan refreshed and independently rechecked.
 
 ### Domain implementation
 
-- [ ] Failing descriptor admission/sensitivity tests first.
-- [ ] Bounded documented example/default/schema admission implemented.
-- [ ] Failing registry/mapping/determinism tests first.
-- [ ] Pure policy and five contracts implemented.
-- [ ] Placeholder/example/body/unsupported rules complete.
-- [ ] Language escaping and output ceilings complete.
-- [ ] Try-It/private-value isolation proven.
-- [ ] Historical V1 behavior frozen.
+- [x] Failing descriptor admission/sensitivity tests first.
+- [x] Bounded documented example/default/schema admission implemented.
+- [x] Failing registry/mapping/determinism tests first.
+- [x] Pure policy and five contracts implemented.
+- [x] Placeholder/example/body/unsupported rules complete.
+- [x] Language escaping and output ceilings complete.
+- [x] Try-It/private-value isolation proven.
+- [x] Historical V1 behavior frozen.
 
 ### UI implementation
 
-- [ ] Component/lazy boundary implemented.
-- [ ] Public/Revision/draft surfaces wired.
-- [ ] Live Try-It preview clearly separated.
-- [ ] Keyboard/copy/download/unsupported/failure states complete.
-- [ ] No network/execution behavior proven.
+- [x] Component/lazy boundary implemented.
+- [x] Public/Revision/draft surfaces wired.
+- [x] Live Try-It preview clearly separated.
+- [x] Keyboard/copy/download/unsupported/failure states complete.
+- [x] No network/execution behavior proven.
 
 ### Verification and closure
 
-- [ ] Focused/domain/web/server regressions pass.
-- [ ] Type/lint/build/chunk checks pass.
-- [ ] Optional syntax-tool results recorded.
-- [ ] Agent-browser matrix passes.
-- [ ] Independent close-recheck clean.
-- [ ] Status/log/evidence/limitations/leftovers/handoff/commits updated.
-- [ ] Commits are small, single-purpose, focused-test green, and independently
+- [x] Focused/domain/web/server regressions pass.
+- [x] Type/lint/build/chunk checks pass.
+- [x] Optional syntax-tool results recorded.
+- [x] Agent-browser matrix passes.
+- [x] Independent close-recheck clean.
+- [x] Status/log/evidence/limitations/leftovers/handoff/commits updated.
+- [x] Commits are small, single-purpose, focused-test green, and independently
       reviewable; no large end-of-child commit was used.
-- [ ] Master Child `144` lifecycle updated.
+- [x] Master Child `144` lifecycle updated.
 
 ## 21. Implementation Log
 
-Not started. Append dated facts.
+2026-08-05:
+
+- Rechecked Child 143 closure, ADR 0034, the accepted descriptor V1 shape,
+  and the current live Try-It helper boundaries before implementation.
+- Implemented the pure five-language V1 registry and fixed permanent mapping:
+  descriptor 1 selects documentation-request-example-v1; descriptor 0 and
+  unknown languages/versions fail closed.
+- Refined OpenAPI admission to preserve bounded primitive/schema/default/body
+  examples, redact sensitive values before descriptor admission, and reject
+  unsupported inline schema/composition/reference/size cases.
+- Added the standalone lazy examples panel to public Publication, immutable
+  Revision, and draft/OpenAPI surfaces. The existing mutable helper is named
+  as a current Try-It request preview and receives no generated-example input.
+- Added the synthetic required-body POST fixture to exercise the unsupported
+  state on public, draft, and Revision routes.
 
 ## 22. Verification Record
 
-Not started. Record exact commands, test counts, generated contract hash/fixture
-identity if used, browser routes, and results.
+2026-08-05:
+
+- Focused domain policy tests: 20 files / 55 tests green; focused UI examples
+  tests: 4 tests green; server documentation/fixture route tests: 6 files /
+  40 tests green.
+- Full web suite: 91 files / 468 tests green. Workspace lint and type-check,
+  domain/web builds, and pnpm install --frozen-lockfile --ignore-scripts passed.
+- Representative generated curl, Browser Fetch, Node Fetch, and Python
+  snippets passed Bash -n, Node --check, or Python 3 compilation. Go tooling
+  was unavailable and no Go parse result is claimed.
+- pnpm licenses list --filter web passed. pnpm audit --prod remains
+  non-zero for the known fast-uri high finding and Fumadocs/Next transitive
+  PostCSS moderate/Babel low findings; no new dependency or high/critical
+  finding was introduced.
+- Browser evidence is recorded in
+  docs/ui/2026-08-05-documentation-request-examples-browser-evidence.md.
+- Independent close-recheck: no S1/S2 defect; no route, migration, wire field,
+  persistence, target request, credential, or package-install behavior added.
 
 ## 23. Leftovers And Handoff
 
@@ -650,9 +680,12 @@ No planning-time user blocker remains. Child `145` receives:
 - exact retained dependencies/chunk boundaries from children `141`–`143`;
 - all five example UI routes/states;
 - frozen V1 generator fixtures;
-- optional language parser/tool limitations;
-- any non-S1/S2 accessibility/browser/performance issue explicitly deferred to
-  integrated hardening.
+- optional language parser/tool limitations: Go/gofmt is unavailable in the
+  current environment; Chromium-only evidence and no installed screen reader
+  are recorded in the browser evidence file;
+- the existing draft editor axe incomplete color-contrast observation;
+- the final request-example chunk/cost and known audit findings for integrated
+  hardening comparison.
 
 Security, determinism, credential isolation, or historical reproduction defects
 must close here and may not be deferred.
