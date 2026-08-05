@@ -577,6 +577,17 @@ Child `144`.
 Closes browser, accessibility, motion, performance, security, dependency, and
 compatibility evidence for the integrated experience.
 
+Closed 2026-08-05: fixed the public operation-route adapter console error by
+selecting the existing native fallback before mounting the Fumadocs chrome, and
+made narrow generated-code overflow keyboard-focusable with deterministic code
+surface styling. The required Chromium matrix, 320px/200% reflow, reduced
+motion, axe/tree/manual checks, request-example isolation, draft/Revision
+coverage, existing-product smoke, bundle measurements, dependency/license
+review, migration head, and truthful optional-engine/AT limitations are
+recorded in `docs/ui/2026-08-05-documentation-post-v1-hardening.md`. Exact
+fixes are `37e4bc8` and `72b8943`; the scoped plan/evidence closeout is
+`886a396`.
+
 ### 17.6 Child 146 — Final closeout
 
 Independently reconciles the implementation against this master, all children,
@@ -799,13 +810,13 @@ date.
 
 ### Child 145 lifecycle
 
-- [ ] Review all explicit leftovers from children `141`–`144`.
-- [ ] Refresh/recheck the integrated hardening matrix.
-- [ ] Establish failing evidence and fix only proven in-scope defects.
-- [ ] Complete accessibility, Chromium, supported cross-browser, security,
+- [x] Review all explicit leftovers from children `141`–`144`.
+- [x] Refresh/recheck the integrated hardening matrix.
+- [x] Establish failing evidence and fix only proven in-scope defects.
+- [x] Complete accessibility, Chromium, supported cross-browser, security,
       dependency, bundle, performance, and compatibility evidence.
-- [ ] Independently close-recheck Child `145` with no unresolved S1/S2.
-- [ ] Route closure-only limitations and future work to Child `146`.
+- [x] Independently close-recheck Child `145` with no unresolved S1/S2.
+- [x] Route closure-only limitations and future work to Child `146`.
 
 ### Child 146 lifecycle
 
@@ -832,14 +843,15 @@ date.
 
 ## 20. Immediate Handoff
 
-Children `141`, `142`, `143`, and `144` are closed and independently
-rechecked. Begin Child `145` with the explicit integrated-hardening handoff:
-the stable public `PublicDocumentationReaderPage` seam inside the lazy reader
-chrome, the exact Publication/Revision/draft authorization boundaries, and the
-descriptor-versioned inert request-example registry. Child `145` may harden
-the integrated browser/accessibility/performance/dependency matrix, but must
-not turn generated examples into mutable Try-It output, add target/network
-authority, or broaden reader access.
+Children `141` through `145` are closed and independently rechecked. Begin
+Child `146` with the final evidence index, the actual Tiptap/Fumadocs
+partial-adopt dispositions and native fallbacks, the five-language
+descriptor-versioned inert request-example contract, the `37e4bc8` and
+`72b8943` hardening fixes, migration head `031`, final bundle measurements,
+known audit findings, optional browser/AT limits, and the maintenance-owned
+Extension contrast finding. Child `146` must reconcile current code, contracts,
+commits, plans, and all Master `007` checklist rows before marking this master
+complete; it must not add new feature or authority scope.
 
 ## 21. Planning Re-Audit Record
 
