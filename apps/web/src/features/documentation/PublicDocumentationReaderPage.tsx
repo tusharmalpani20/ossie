@@ -13,6 +13,8 @@ import {
 } from "../../lib/documentationTryItApi";
 import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
 import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiOperationExperience";
+import { LazyDocumentationReaderAdapterProofPanel } from "./LazyDocumentationReaderAdapterProofPanel";
+import { getDocumentationAdapterProofMode } from "./adapters/documentationAdapterProof";
 import { readDocumentationInitialDocument } from "../../lib/documentationInitialDocument";
 
 type SearchResult = Awaited<
@@ -182,6 +184,38 @@ export const PublicDocumentationReaderPage = ({
     );
   if (!snapshot) return <p role="status">Loading Documentation…</p>;
   const operationBase = `${pageBase}/operations`;
+  const proofMode = getDocumentationAdapterProofMode(
+    window.location.search,
+    // eslint-disable-next-line turbo/no-undeclared-env-vars -- DEV is a Vite built-in mode flag, not a user environment variable.
+    import.meta.env.DEV,
+  );
+  if (proofMode === "fumadocs-headless") {
+    const pageUrl = (path: string) => `${pageBase}/${path.replace(/^\/+/, "")}`;
+    return (
+      <main id="main-content">
+        <LazyDocumentationReaderAdapterProofPanel
+          source={{
+            resourceClass: "publication",
+            selectedPageId: snapshot.page.id,
+            selectedPagePath: pageUrl(snapshot.page.canonical_path),
+            pages: snapshot.pages.map((page) => ({
+              id: page.id,
+              title: page.title,
+              canonicalPath: page.canonical_path,
+              url: pageUrl(page.canonical_path),
+              blocks: page.blocks ?? [],
+            })),
+            navigation: snapshot.navigation.map((node) => ({
+              id: node.id,
+              kind: node.kind,
+              pageId: node.page_id,
+              label: node.label,
+            })),
+          }}
+        />
+      </main>
+    );
+  }
   const assetBase = versionSlug
     ? `/api/v1/public/publish-links/${encodeURIComponent(slug)}/versions/${encodeURIComponent(versionSlug)}/documentation/assets`
     : `/api/v1/public/publish-links/${encodeURIComponent(slug)}/documentation/assets`;

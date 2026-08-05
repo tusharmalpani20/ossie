@@ -12,6 +12,8 @@ import {
   type DocumentationSnippet,
 } from "../../lib/documentationApi";
 import { DocumentationBlockEditor } from "./DocumentationBlockEditor";
+import { LazyDocumentationAdapterProofPanel } from "./LazyDocumentationAdapterProofPanel";
+import { getDocumentationAdapterProofMode } from "./adapters/documentationAdapterProof";
 
 type Props = {
   projectId: string;
@@ -44,6 +46,14 @@ export const DocumentationSnippetPanel = ({
   const [selectedName, setSelectedName] = useState("");
   const [status, setStatus] = useState("Loading Snippets…");
   const selected = snippets.find((snippet) => snippet.id === selectedId);
+  const proofMode =
+    typeof window === "undefined"
+      ? null
+      : getDocumentationAdapterProofMode(
+          window.location.search,
+          // eslint-disable-next-line turbo/no-undeclared-env-vars -- DEV is a Vite built-in mode flag, not a user environment variable.
+          import.meta.env.DEV,
+        );
 
   useEffect(() => {
     let active = true;
@@ -210,14 +220,21 @@ export const DocumentationSnippetPanel = ({
                 onChange={(event) => setSelectedName(event.target.value)}
               />
               <Button onClick={() => void rename()}>Rename Snippet</Button>
-              <DocumentationBlockEditor
-                blocks={selected.blocks}
-                onChange={(blocks) => replace({ ...selected, blocks })}
-              />
+              {proofMode === "tiptap-prose" || proofMode === "tiptap-graph" ? (
+                <LazyDocumentationAdapterProofPanel
+                  blocks={selected.blocks}
+                  mode={proofMode}
+                  onChange={(blocks) => replace({ ...selected, blocks })}
+                  readOnly={false}
+                />
+              ) : (
+                <DocumentationBlockEditor
+                  blocks={selected.blocks}
+                  onChange={(blocks) => replace({ ...selected, blocks })}
+                />
+              )}
               <Button onClick={() => void save()}>Save Snippet</Button>
-              <Button onClick={() => void transition()}>
-                Archive Snippet
-              </Button>
+              <Button onClick={() => void transition()}>Archive Snippet</Button>
             </>
           ) : canWrite ? (
             <>

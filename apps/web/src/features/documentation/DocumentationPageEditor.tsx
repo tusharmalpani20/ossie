@@ -20,6 +20,8 @@ import { DocumentationBlockEditor } from "./DocumentationBlockEditor";
 import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
 import { DocumentationCommentsPanel } from "./DocumentationCommentsPanel";
 import { DocumentationPortabilityPanel } from "./DocumentationPortabilityPanel";
+import { LazyDocumentationAdapterProofPanel } from "./LazyDocumentationAdapterProofPanel";
+import { getDocumentationAdapterProofMode } from "./adapters/documentationAdapterProof";
 
 type Props = {
   projectId: string;
@@ -55,6 +57,14 @@ export const DocumentationPageEditor = ({
   >("saved");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageAlt, setImageAlt] = useState("");
+  const proofMode =
+    typeof window === "undefined"
+      ? null
+      : getDocumentationAdapterProofMode(
+          window.location.search,
+          // eslint-disable-next-line turbo/no-undeclared-env-vars -- DEV is a Vite built-in mode flag, not a user environment variable.
+          import.meta.env.DEV,
+        );
   const [assetStatus, setAssetStatus] = useState("");
   const [metadataTitle, setMetadataTitle] = useState("");
   const [metadataPath, setMetadataPath] = useState("");
@@ -329,7 +339,17 @@ export const DocumentationPageEditor = ({
           />
         </section>
       ) : null}
-      {canWrite ? (
+      {proofMode === "tiptap-prose" || proofMode === "tiptap-graph" ? (
+        <LazyDocumentationAdapterProofPanel
+          blocks={blocks}
+          mode={proofMode}
+          onChange={(nextBlocks) => {
+            setBlocks(nextBlocks);
+            setSaveState("unsaved");
+          }}
+          readOnly={!canWrite}
+        />
+      ) : canWrite ? (
         <DocumentationBlockEditor
           assetOptions={assetOptions}
           blocks={blocks}
