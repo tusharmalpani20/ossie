@@ -398,6 +398,13 @@ Suggested commits:
 - `test(documentation): verify reader access url and seo contracts`
 - `docs(documentation): close reader modernization`
 
+These are upper-bound groupings. Commit each small, single-purpose,
+independently reviewable, focused-test-green slice as soon as it is coherent.
+Split public reader, preview projections, navigation/search, API experience,
+SEO/server behavior, and browser fixes further when their diffs are broad or
+independently revertible. Never accumulate the whole child into one
+end-of-child commit. Stage exact paths and preserve unrelated work.
+
 ## 17. Checklist
 
 ### Intake and plan
@@ -428,6 +435,8 @@ Suggested commits:
 - [ ] Bundle/performance evidence passes.
 - [ ] Independent close-recheck clean.
 - [ ] Status/log/evidence/limitations/leftovers/handoff/commits updated.
+- [ ] Commits are small, single-purpose, focused-test green, and independently
+      reviewable; no large end-of-child commit was used.
 - [ ] Master Child `143` lifecycle updated.
 
 ## 18. Implementation Log

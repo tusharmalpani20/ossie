@@ -400,6 +400,13 @@ Suggested commits by defect class:
 - `test(documentation): record integrated compatibility proof`
 - `docs(documentation): close post-v1 hardening`
 
+Each defect class may require multiple commits. Commit the smallest
+single-purpose, independently reviewable, focused-test-green repair as soon as
+it is coherent. Keep unrelated accessibility, browser, security, compatibility,
+and performance defects in separate commits, and split broad fixes by surface or
+root cause. Never accumulate the whole child into one end-of-child commit. Stage
+exact paths and preserve unrelated work.
+
 ## 19. Checklist
 
 ### Intake
@@ -436,6 +443,8 @@ Suggested commits by defect class:
 - [ ] Sanitized evidence committed.
 - [ ] Independent close-recheck clean.
 - [ ] Status/log/verification/limitations/leftovers/handoff/commits updated.
+- [ ] Commits are small, single-purpose, focused-test green, and independently
+      reviewable; no large end-of-child commit was used.
 - [ ] Master Child `145` lifecycle updated.
 
 ## 20. Implementation Log

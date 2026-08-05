@@ -508,7 +508,12 @@ Suggested logical commits:
 - `docs(documentation): record adapter adoption gate`
 - optional cleanup commit removing rejected proof dependencies/UI.
 
-Do not commit unrelated work.
+These are upper-bound groupings, not permission for a large combined commit.
+Commit each small, single-purpose, independently reviewable, focused-test-green
+slice as soon as it is coherent. Split proof contracts, candidate adapters,
+browser/bundle evidence, dispositions, and cleanup further when their diffs are
+broad or independently revertible. Never accumulate the whole child into one
+end-of-child commit. Stage exact paths and do not commit unrelated work.
 
 ## 15. Checklist
 
@@ -543,6 +548,8 @@ Do not commit unrelated work.
 - [ ] Production build exposes no proof selector.
 - [ ] Focused and broad proportional verification passed.
 - [ ] Status/log/evidence/limitations/leftovers/handoff/commits updated.
+- [ ] Commits are small, single-purpose, focused-test green, and independently
+      reviewable; no large end-of-child commit was used.
 - [ ] Independent close-recheck clean.
 - [ ] Master `007` Child `141` lifecycle updated.
 

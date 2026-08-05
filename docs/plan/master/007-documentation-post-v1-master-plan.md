@@ -607,8 +607,14 @@ For every child, the goal performs this complete loop:
    accepted-later, separately owned maintenance/operations, or blocked by a
    named new product decision. The successor receives only its explicit items.
 10. **Commit integrity.** Inspect the staged diff and commit only the active
-    child's scoped work in small logical commits. Do not include unrelated
-    worktree changes. Record commit IDs in the child before advancing.
+    child's scoped work in small, single-purpose, independently reviewable
+    commits. Commit after each coherent test-green slice instead of accumulating
+    the whole child into one large commit. Keep planning, contracts/tests,
+    implementation surfaces, verification fixes, and closeout records separate
+    when they can be reviewed or reverted independently. Split any suggested
+    commit further when its diff becomes broad or mixes concerns. Do not include
+    unrelated worktree changes. Record every commit ID in the child before
+    advancing.
 
 The goal is complete only after Child `146` independently closes this master.
 Completing an implementation commit without its recheck and records is not a
@@ -775,6 +781,9 @@ date.
 
 ### Closure
 
+- [ ] Every child used small, single-purpose, test-green commits rather than one
+      large end-of-child commit; plan, implementation, verification fixes, and
+      closeout remain independently attributable.
 - [ ] Every adopted adapter passed its explicit gate.
 - [ ] Existing content, permissions, Publications, URLs, and APIs remain
       compatible.

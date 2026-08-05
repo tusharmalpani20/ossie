@@ -564,6 +564,13 @@ Suggested commits:
 - `feat(documentation): present copyable api request examples`
 - `docs(documentation): close generated request examples`
 
+These are upper-bound groupings. Commit each small, single-purpose,
+independently reviewable, focused-test-green slice as soon as it is coherent.
+Split shared contracts, individual generator groups, descriptor/example
+admission, UI presentation, and browser fixes further when their diffs are broad
+or independently revertible. Never accumulate the whole child into one
+end-of-child commit. Stage exact paths and preserve unrelated work.
+
 ## 20. Checklist
 
 ### Intake and plan
@@ -601,6 +608,8 @@ Suggested commits:
 - [ ] Agent-browser matrix passes.
 - [ ] Independent close-recheck clean.
 - [ ] Status/log/evidence/limitations/leftovers/handoff/commits updated.
+- [ ] Commits are small, single-purpose, focused-test green, and independently
+      reviewable; no large end-of-child commit was used.
 - [ ] Master Child `144` lifecycle updated.
 
 ## 21. Implementation Log

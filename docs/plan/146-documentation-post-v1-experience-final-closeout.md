@@ -343,6 +343,12 @@ Suggested closure commits:
 - one or more scoped fix commits named by defect;
 - `docs(documentation): close post-v1 experience master`.
 
+Commit each scoped fix as a small, single-purpose, independently reviewable,
+focused-test-green slice. Split fixes by defect/root cause and keep the final
+records-only closeout separate. Never accumulate all closure repairs into one
+large commit or mix unrelated child defects merely because they were found in
+the same audit. Stage exact paths and preserve unrelated work.
+
 If no runtime/docs gap is found, explicitly record “no changes needed” rather
 than manufacture a commit. The final plan/master record update is itself a
 scoped docs change when status closes.
@@ -451,6 +457,8 @@ Only then set this child and Master `007` to Complete.
 - [ ] No unresolved S1/S2 or false pass.
 - [ ] Final independent recheck clean.
 - [ ] Scoped closure commit(s) recorded.
+- [ ] Closure commits are small, single-purpose, focused-test green, and
+      independently reviewable; no large combined repair commit was used.
 - [ ] Child `146` and Master `007` marked Complete.
 
 ## 19. Implementation And Closure Log
