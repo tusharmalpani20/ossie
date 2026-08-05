@@ -4,6 +4,13 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
+Execution preflight: 2026-08-05 from `778fea8fcfae74e3cac98d0235d388abab17f797`.
+The worktree was clean, `rtk` was unavailable, and the native baseline passed
+web tests (84 files / 447 tests), web type-check, web lint, web build, and
+server non-DB tests (127 files / 552 tests). Current manifests and lockfile
+contain no Tiptap or Fumadocs package. The existing fixture and
+`agent-browser 0.33.1` doctor are available; Chromium 151 is installed.
+
 Status: Implementation-ready planning baseline. Runtime execution has not
 started. The executing goal must complete Stage 0 and the independent plan
 recheck before installing packages or creating proof code.
@@ -171,7 +178,31 @@ Refresh these primary sources and exact registry records on the execution date:
 Record retrieval timestamp and distinguish official compatibility statements
 from agent inference. Do not use search-result snippets as the final version pin.
 
-### 5.4 Required supply-chain checks
+### 5.4 Execution-date package record
+
+Registry metadata and official documentation were refreshed on 2026-08-05.
+The exact proof pins are deliberately selected as one mutually compatible set,
+not independent `latest` tags:
+
+| Candidate | Exact package pin                                                         | License | Relevant compatibility/footprint fact                                                                                                                                                                                                                                                                                                                                                                     |
+| --------- | ------------------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tiptap    | `@tiptap/react@3.29.2`, `@tiptap/pm@3.29.2`, `@tiptap/starter-kit@3.29.2` | MIT     | React and React DOM peers accept `^17`, `^18`, or `^19`; `@tiptap/react` requires matching `@tiptap/core` and `@tiptap/pm` `3.29.2`; unpacked direct sizes are approximately 505 kB, 18 kB, and 54 kB respectively.                                                                                                                                                                                       |
+| Fumadocs  | `fumadocs-core@16.14.0`                                                   | MIT     | React and React DOM peers accept `^19.2.0`; the selected package exposes `page-tree`, `breadcrumb`, and `toc` exports, while framework/content/search peers are optional. Its unpacked direct size is approximately 475 kB and its package dependencies include Markdown/MDX/highlighting utilities, so the proof must import only the named client-safe primitives and measure the resulting lazy chunk. |
+
+The Tiptap React installation guide was retrieved from
+`https://tiptap.dev/docs/editor/getting-started/install/react`; the React 19
+UI Components limitation was retrieved from
+`https://tiptap.dev/docs/ui-components/getting-started/overview`; Tiptap's
+license is documented at
+`https://github.com/ueberdosis/tiptap/blob/main/LICENSE.md`. Fumadocs' page
+tree, breadcrumb, and Loader boundaries were retrieved from
+`https://www.fumadocs.dev/docs/headless/page-tree`,
+`https://v14.fumadocs.dev/docs/headless/components/breadcrumb`, and
+`https://www.fumadocs.dev/docs/headless/source-api`. Package registry metadata
+was read from the exact npm records for the pins above. These sources support
+the package facts; adoption remains conditional on the proof gates below.
+
+### 5.5 Required supply-chain checks
 
 Before adoption:
 
@@ -326,6 +357,16 @@ Names may be adjusted during Stage 0 only to match established patterns:
 A discovered need for a forbidden write means the candidate fails this proof;
 it is not permission to broaden the child.
 
+### 7.4 Current execution ownership
+
+The execution baseline is still the native `apps/web` Vite SPA and custom
+`App.tsx` route switch. `DocumentationBlockEditor` is the shared Page/Snippet
+caller, and `DocumentationPageEditor` retains Row-Version autosave/conflict
+handling. `PublicDocumentationReaderPage` receives the exact authorized
+Publication snapshot through `documentationInitialDocument`; draft and exact
+Revision previews remain separate components. No current-code drift changes
+authority, routes, persistence, or permission semantics.
+
 ## 8. Representative Fixture Matrix
 
 The same exact IDs and data must drive native/candidate comparisons:
@@ -441,6 +482,21 @@ Then run, at minimum:
 
 No schema/DB suite is required unless Stage 0 discovers an actual shared-
 contract change, which is outside this proof and should reject the candidate.
+
+Execution baseline commands and results recorded before proof code:
+
+- `pnpm --filter web test`: passed, 84 files / 447 tests.
+- `pnpm --filter web check-types`: passed.
+- `pnpm --filter web lint`: passed with the configured zero-warning gate.
+- `pnpm --filter web build`: passed; the native Documentation Site editor
+  chunk was 13.65 kB gzip and the existing API-operation experience chunk was
+  32.73 kB gzip.
+- `pnpm --filter server test`: passed, 127 files / 552 tests, excluding DB
+  integration tests as defined by the package script.
+- The first exploratory server command included unsupported `--runInBand`;
+  it failed at Vitest argument parsing and was discarded rather than treated as
+  product evidence.
+- `git diff --check`: passed for the pre-proof worktree.
 
 ## 11. Agent-Browser Evidence
 
