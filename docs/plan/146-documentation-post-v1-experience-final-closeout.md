@@ -4,9 +4,8 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
-Status: Conditionally implementation-ready closure baseline. Execute only after
-Child `145` is complete and independently close-rechecked. This is not a new
-feature child.
+Status: In progress — entry gate and closure ledger underway. This is not a
+new feature child.
 
 Parent:
 
@@ -75,6 +74,24 @@ It must cover:
 
 Every Master `007` checklist item maps to one ledger row. No “covered by
 tests” entry without exact test/evidence reference.
+
+### 3.1 Entry ledger
+
+| master requirement | owning child | implementation files | tests/evidence | result | gap/fix commit |
+|---|---|---|---|---|---|
+| Adapter proof and Tiptap disposition | 141, 142 | `apps/web/src/features/documentation/adapters/documentationEditorAdapter.ts`, `documentationTiptapProseAdapter.ts`, `DocumentationTiptapProseField.tsx` | Child 141/142 evidence; `documentationEditorAdapter.test.ts`, `documentationTiptapProseAdapter.test.ts`, full web 91/469 | Partial-adopted prose fields with native structural/fallback authority; whole graph is proof-only | None at intake |
+| Adapter proof and Fumadocs disposition | 141, 143 | `documentationReaderAdapter.ts`, `DocumentationPublicationReaderChrome.tsx`, lazy wrapper | Child 141/143 evidence; `documentationReaderAdapter.test.ts`, `DocumentationPublicationReaderChrome.test.tsx`; public axe/tree | Partial-adopted page-tree/breadcrumb/TOC chrome over authorized Publication projection; native route/access/search authority retained | None at intake |
+| Authoring modernization | 142 | `DocumentationPageEditor.tsx`, `DocumentationBlockEditor.tsx`, `DocumentationSnippetPanel.tsx`, prose adapter/fallback | Child 142 evidence; Page/Block/Snippet/editor adapter suites; draft browser route | Selected prose fields use Tiptap; identity, structure, save, conflict, comments, assets, Viewer, preview, import/export remain native | None at intake |
+| Reader modernization | 143 | `PublicDocumentationReaderPage.tsx`, `DocumentationPublicationReaderChrome.tsx`, reader adapter | Child 143 evidence; public reader/API/initial-document suites; public Page browser route | Public Publication chrome only; draft and Revision remain explicit/native and access/search/SEO/CSP remain Ossie-owned | `37e4bc8` is a later operation-route fallback hardening fix |
+| Generated request examples | 144 | `packages/documentation-domain/src/policies/documentation-request-example-policy.ts`, `documentation-try-it-policy.ts`, `DocumentationRequestExamples.tsx` | Child 144 evidence; domain 20/55; examples 4 tests; public/draft/Revision supported and unsupported routes | V1 permanent five-language inert registry; unsupported and sensitive values fail closed; Try-It remains separate | `72b8943` is a later overflow accessibility fix |
+| Accessibility/browser/motion hardening | 145 | `PublicDocumentationReaderPage.tsx`, `DocumentationRequestExamples.tsx`, examples CSS/tests | Child 145 evidence and screenshots; Chromium axe/tree/keyboard/reflow/reduced-motion matrix | Required Documentation Chromium evidence passes; optional engines/AT are truthful limitations | `37e4bc8`, `72b8943` |
+| Performance/bundle/dependency/security hardening | 145 | web manifest/build output; retained package manifests/lockfile; Documentation UI/domain code | Child 145 evidence; final build/chunk table; frozen install/license/audit; long-task/target-network scan | Route chunks and inert/security boundaries pass; known audit findings are unchanged and owned separately | None at intake |
+| Schemas/types/APIs/routes | 141–145 | existing Documentation types/API clients/routes plus touched web/domain files | focused server 5/39; domain 20/55; web 91/469; route/API tests; `git diff`/manifest scan | No new schema, wire field, endpoint, cookie, route, or persistence state | None at intake |
+| Permissions/tenant/public access | 141–145 | existing server access policy, public reader/API clients, Documentation permissions and Try-It policy | Child 143/144/145 evidence; permission tests; public/password/unavailable route tests; no-target-network check | Existing Organization/Project/public/Try-It authority remains server/client-contract aligned; generated examples add no authority | None at intake |
+| Migration/backward compatibility | 141–145 | `apps/server/src/db/migrations/031_documentation_v1_operational_hardening.sql`; existing import/export/revision/publication clients | migration inventory; portability/carry-forward/revision/publication/route suites; migration head scan | Head remains 031; no adapter/example persistence; native fallback and V0/V1 behavior retained | None at intake |
+| Current-truth docs | 141–145 | `CONTEXT.md`, domain decisions, ADRs, children, Master 007, `docs/ui/` | child closeout records; Child 145 evidence; current-truth scan | Actual partial-adopt/shipped/deferred/rejected wording is recorded; final Master status remains pending this child | None at intake |
+| Commits and worktree | 141–145 | commits `e4f8f81` through `886a396`; current worktree | `git log`, `git status`, `git diff --check`, scoped commit review | Child commits are attributable and worktree is clean before this ledger edit | None at intake |
+| Leftovers and future ownership | 145 | Child 145 section 22 and hardening evidence | explicit S3/maintenance owners/triggers; optional engine/AT record | Every remaining item is classified as Master limitation or maintenance/operations; no unowned follow-up | None at intake |
 
 ## 4. Full Implementation Reconciliation
 

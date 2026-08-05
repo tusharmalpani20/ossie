@@ -91,10 +91,10 @@ This diagram is navigation context, while the Capture, Guide, Interactive Demo, 
 
 Product Documentation means customer-authored documentation sites and knowledge
 bases. It is different from `apps/docs`, which is this repository's
-contributor/operator documentation hub. V1 is complete through child `139`, and
-child `140` accepted bounded Tiptap/Fumadocs adapter proofs plus deterministic
-multi-language API request examples as the next sequence. Child `141` must be
-expanded and rechecked before implementation.
+contributor/operator documentation hub. V1 is complete through child `139`.
+Master `007` Children `141`–`145` have implemented and independently verified
+bounded Tiptap/Fumadocs adapter use plus deterministic inert multi-language API
+request examples; Child `146` is the active final reconciliation.
 
 ## Intentionally Deferred
 

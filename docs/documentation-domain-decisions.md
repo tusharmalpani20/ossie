@@ -451,9 +451,10 @@ and implemented no post-V1 capability.
   explicit user decision.
 - The accepted Question 31 private Page comments boundary is shipped and
   remains outside immutable/public output.
-- Fumadocs and Tiptap are absent from V1. Child `140` accepts bounded adapter
-  proofs next; production adoption remains conditional and cannot rewrite the
-  domain model.
+- Fumadocs and Tiptap were absent from V1. Master `007` subsequently accepted
+  bounded, replaceable post-V1 adapter use; the actual partial-adopt
+  dispositions are recorded in section 11.4 and cannot rewrite the domain
+  model.
 - Documentation appears in operational and Project navigation only through its
   authorized shipped routes.
 - Video, Git sync, translations, custom domains, public feedback/analytics,
@@ -513,6 +514,26 @@ acceptance gate.
 - Generated request examples are inert exact-operation projections under ADR
   `0034`; they never execute, contain entered credentials, grant target origin
   authority, or constitute a supported SDK.
-- Child `140` implemented none of these post-V1 capabilities. Master `007` and
-  its reservations are planning artifacts; each runtime child requires the
-  standard expand/recheck/implement/recheck chain.
+- Child `140` implemented none of these post-V1 capabilities. Children
+  `141`–`145` then implemented and verified the bounded branches; Child `146`
+  performs the final standard closeout reconciliation.
+
+### 11.4 Actual Master `007` disposition
+
+As of 2026-08-05, Children `141`–`145` have implemented and independently
+verified the selected replaceable runtime branches. Tiptap is partial-adopted
+only for bounded prose fields in Page and Snippet authoring; structural blocks,
+identities, persistence, save/conflict handling, comments, permissions, and
+fallback remain Ossie-native. Fumadocs Core is partial-adopted only for the
+named page-tree, breadcrumb, and heading TOC primitives over an already
+authorized immutable Publication projection; source, routing, search, access,
+SEO, and preview resource authority remain Ossie-owned.
+
+The generated request-example contract is the permanent
+`documentation-request-example-v1` registry for curl, Browser Fetch, Node.js
+Fetch, Python urllib, and Go net/http. It is deterministic, inert, bounded,
+placeholder-only, and separate from mutable Try-It configuration and target
+authority. Descriptor V0 and unknown versions fail closed. No migration,
+schema, endpoint, SDK, proxy, or persisted adapter state was added. Child
+`146` remains responsible only for final reconciliation and closure of Master
+`007`; it does not reopen these dispositions.

@@ -69,12 +69,12 @@ shipped and independently close-rechecked Product Documentation V1; child `140`
 then reviewed every post-V1 candidate and accepted one next experience
 objective.
 
-Master Plan `007` reserves children `141`–`146` to test Tiptap authoring and
-Fumadocs reading behind non-authoritative adapter gates, modernize the selected
-authoring/reader paths, add deterministic curl/Fetch/Node.js/Python/Go request
-examples, harden the integrated browser/accessibility/performance experience,
-and perform final closeout. Child `141` must be expanded and rechecked before
-any prototype or dependency change.
+Master Plan `007` Children `141`–`145` implemented and independently
+close-rechecked bounded Tiptap authoring, Fumadocs public Publication chrome,
+deterministic inert curl/Fetch/Node.js/Python/Go request examples, and the
+integrated browser/accessibility/performance hardening. Child `146` is the
+active final reconciliation; accepted-later and rejected boundaries remain
+unchanged.
 
 Product Documentation is not another name for Guides and is not `apps/docs`,
 which remains repository documentation for contributors and operators.
