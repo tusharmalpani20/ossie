@@ -206,6 +206,9 @@ export const PublicDocumentationReaderPage = ({
       label: node.label,
     })),
   };
+  const selectedPageIsInAuthorizedNavigation = snapshot.navigation.some(
+    (node) => node.kind === "page" && node.page_id === snapshot.page.id,
+  );
   const readerContent = (
     <>
       <h1>{snapshot.page.title}</h1>
@@ -336,12 +339,16 @@ export const PublicDocumentationReaderPage = ({
           </ul>
         ) : null}
       </header>
-      <LazyDocumentationPublicationReaderChrome
-        fallback={nativeReader}
-        source={readerSource}
-      >
-        {readerContent}
-      </LazyDocumentationPublicationReaderChrome>
+      {selectedPageIsInAuthorizedNavigation ? (
+        <LazyDocumentationPublicationReaderChrome
+          fallback={nativeReader}
+          source={readerSource}
+        >
+          {readerContent}
+        </LazyDocumentationPublicationReaderChrome>
+      ) : (
+        nativeReader
+      )}
     </>
   );
 };

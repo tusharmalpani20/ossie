@@ -8,6 +8,7 @@ describe("PublicDocumentationReaderPage", () => {
     document.head
       .querySelectorAll("[data-documentation-metadata]")
       .forEach((node) => node.remove());
+    vi.restoreAllMocks();
   });
 
   it("renders the exact publication, metadata, navigation, and safe blocks", async () => {
@@ -123,6 +124,44 @@ describe("PublicDocumentationReaderPage", () => {
       await screen.findByRole("heading", { name: "Documentation unavailable" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Product docs")).not.toBeInTheDocument();
+  });
+
+  it("uses the native operation-route fallback without logging an adapter error", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    render(
+      <PublicDocumentationReaderPage
+        slug="product-docs"
+        pagePath="operations/get-widgets"
+        loadPage={async () => ({
+          site: { name: "Product docs", description: null },
+          revision: { primary_language: "en-US", home_page_id: "page" },
+          pages: [
+            { id: "page", title: "Install", canonical_path: "install" },
+          ],
+          navigation: [],
+          openapi_operations: [],
+          page: {
+            id: "operation-page",
+            title: "GET /widgets",
+            description: null,
+            canonical_path: "operations/get-widgets",
+            blocks: [],
+          },
+        })}
+        search={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "GET /widgets" }),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(consoleError).not.toHaveBeenCalled());
+    expect(
+      screen.queryByTestId("documentation-publication-reader-chrome"),
+    ).not.toBeInTheDocument();
   });
 
   it("unlocks password-protected Documentation through a shared viewer session", async () => {
