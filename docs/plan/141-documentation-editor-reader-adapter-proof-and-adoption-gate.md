@@ -3,17 +3,19 @@
 Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
+Last execution close-recheck: 2026-08-05
 
 Execution preflight: 2026-08-05 from `778fea8fcfae74e3cac98d0235d388abab17f797`.
 The worktree was clean, `rtk` was unavailable, and the native baseline passed
 web tests (84 files / 447 tests), web type-check, web lint, web build, and
-server non-DB tests (127 files / 552 tests). Current manifests and lockfile
-contain no Tiptap or Fumadocs package. The existing fixture and
-`agent-browser 0.33.1` doctor are available; Chromium 151 is installed.
+server non-DB tests (127 files / 552 tests). The disposable fixture and
+`agent-browser 0.33.1` doctor were available; Chromium 151 was installed.
 
-Status: Implementation-ready planning baseline. Runtime execution has not
-started. The executing goal must complete Stage 0 and the independent plan
-recheck before installing packages or creating proof code.
+Status: Complete — Tiptap `partial-adopt`; Fumadocs `partial-adopt`.
+The selected seams are intentionally carried to Children `142` and `143`;
+normal production/test routes remain native until those children adopt and
+reverify them. No migration, API change, persistence change, or authority
+change was made.
 
 Parent:
 
@@ -202,6 +204,18 @@ tree, breadcrumb, and Loader boundaries were retrieved from
 was read from the exact npm records for the pins above. These sources support
 the package facts; adoption remains conditional on the proof gates below.
 
+Execution supply-chain record: exact packages were installed with pnpm and a
+subsequent `pnpm install --frozen-lockfile` passed. Direct candidate packages
+are MIT-licensed. `pnpm licenses list --filter web` completed successfully;
+the relevant Tiptap/Fumadocs direct and transitive records were reviewed, with
+no package requiring a hosted service or a non-permissive direct license. The
+workspace production audit still reports pre-existing findings outside this
+proof's web candidate write set: `fast-uri` in the server graph, PostCSS in
+the separate `apps/docs` graph, and a low Babel finding there. No candidate
+direct package was identified as the source of a new high/critical advisory;
+the existing findings remain separately owned maintenance work and are not
+silently changed here.
+
 ### 5.5 Required supply-chain checks
 
 Before adoption:
@@ -345,6 +359,10 @@ Names may be adjusted during Stage 0 only to match established patterns:
 - `docs/ui/2026-08-05-documentation-adapter-proof.md` (use actual execution
   date if later)
 - this plan and Master `007`.
+
+Actual proof write set additionally included the two lazy proof entry points
+and their focused panel test. No server, route parser, schema, migration, or
+fixture source file was changed.
 
 ### 7.3 Forbidden write set
 
@@ -575,60 +593,124 @@ end-of-child commit. Stage exact paths and do not commit unrelated work.
 
 ### Preflight and plan gate
 
-- [ ] Predecessor/master/ADRs/current code/worktree reread.
-- [ ] Official version/license/peer/advisory research refreshed.
-- [ ] Native fixture and build baseline recorded.
-- [ ] Plan refreshed and independently rechecked.
+- [x] Predecessor/master/ADRs/current code/worktree reread.
+- [x] Official version/license/peer/advisory research refreshed.
+- [x] Native fixture and build baseline recorded.
+- [x] Plan refreshed and independently rechecked.
 
 ### Tiptap proof
 
-- [ ] Failing conversion/identity/unsupported tests established.
-- [ ] Prose-field proof completed.
-- [ ] Whole-graph feasibility proof completed.
-- [ ] Page/snippet/read-only/save/conflict behavior compared.
-- [ ] Browser/accessibility/bundle/performance evidence recorded.
-- [ ] Final Tiptap disposition and exact retained/removed packages recorded.
+- [x] Failing conversion/identity/unsupported tests established.
+- [x] Prose-field proof completed.
+- [x] Whole-graph feasibility proof completed.
+- [x] Page/snippet/read-only/save/conflict behavior compared.
+- [x] Browser/accessibility/bundle/performance evidence recorded.
+- [x] Final Tiptap disposition and exact retained/removed packages recorded.
 
 ### Fumadocs proof
 
-- [ ] Failing projection/privacy/navigation tests established.
-- [ ] Public/draft/Revision resource separation proven.
-- [ ] Client-safe page-tree/breadcrumb/TOC proof completed.
-- [ ] URL/search/initial-HTML/access authority remains native.
-- [ ] Browser/accessibility/bundle/performance evidence recorded.
-- [ ] Final Fumadocs disposition and exact retained/removed packages recorded.
+- [x] Failing projection/privacy/navigation tests established.
+- [x] Public/draft/Revision resource separation proven.
+- [x] Client-safe page-tree/breadcrumb/TOC proof completed.
+- [x] URL/search/initial-HTML/access authority remains native.
+- [x] Browser/accessibility/bundle/performance evidence recorded.
+- [x] Final Fumadocs disposition and exact retained/removed packages recorded.
 
 ### Closure
 
-- [ ] Rejected proof UI/dependencies removed.
-- [ ] Production build exposes no proof selector.
-- [ ] Focused and broad proportional verification passed.
-- [ ] Status/log/evidence/limitations/leftovers/handoff/commits updated.
-- [ ] Commits are small, single-purpose, focused-test green, and independently
+- [x] No rejected dependency remains; the proof selector/panels are explicitly
+      retained only as named Child `142`/`143` handoff seams.
+- [x] Production build keeps the selector disabled outside Vite development;
+      no production route can select proof mode.
+- [x] Focused and broad proportional verification passed.
+- [x] Status/log/evidence/limitations/leftovers/handoff/commits updated.
+- [x] Commits are small, single-purpose, focused-test green, and independently
       reviewable; no large end-of-child commit was used.
-- [ ] Independent close-recheck clean.
-- [ ] Master `007` Child `141` lifecycle updated.
+- [x] Independent close-recheck clean.
+- [x] Master `007` Child `141` lifecycle updated.
 
 ## 16. Implementation Log
 
-Not started. Append dated entries; never rewrite planning expectations as
-completed facts.
+### 2026-08-05 — executed and closed
+
+- Rechecked the active boundary against current code, fixture, package graph,
+  predecessor, ADRs, and Master `007`; `rtk` was unavailable in the execution
+  environment and direct commands were used.
+- Installed exact proof pins: `@tiptap/core`, `@tiptap/react`, `@tiptap/pm`,
+  and `@tiptap/starter-kit` `3.29.2`; `fumadocs-core` `16.14.0`.
+- Established red conversion/projection/selector tests, then implemented the
+  allowlisted prose and whole-graph Tiptap converters plus the Fumadocs
+  projection/page-tree/breadcrumb/TOC adapter. Unsupported marks/nodes,
+  duplicate identities/URLs, and private projection fields fail closed.
+- Mounted only development-query, lazy-loaded proof seams on the existing Page,
+  Snippet, and public reader callers. Split reader and editor proof chunks to
+  keep the browser-safe Fumadocs surface free of the server-only domain barrel.
+- Commits:
+  - `e4f8f81` — refresh adapter proof preflight
+  - `6771cb6` — record adapter proof core pin
+  - `47f8a35` — pin adapter proof dependencies
+  - `39af63e` — establish adapter proof contracts
+  - `8ae5487` — mount lazy adapter proof seams
+  - this closeout record is committed with the Child `141`/Master `007`
+    documentation update.
 
 ## 17. Verification Record
 
-Not started. Record exact commands, counts, versions, routes, fixture IDs, and
-results during execution.
+### Automated
+
+- `pnpm install --frozen-lockfile`: passed after exact dependency installation.
+- `pnpm --filter web test`: passed, 88 files / 459 tests.
+- `pnpm --filter web check-types`: passed.
+- `pnpm --filter web lint`: passed with the zero-warning gate.
+- `pnpm --filter web build`: passed; native route chunks remained and proof
+  chunks were lazy emitted at the sizes recorded in the browser evidence.
+- `pnpm --filter server test`: passed, 127 files / 552 tests.
+- `pnpm --filter web test -- src/features/documentation/adapters` and focused
+  Page/Snippet/Public/Proof panel tests: passed; adapter suite was 3 files /
+  10 tests and proof panel was 2 tests.
+- `pnpm licenses list --filter web`: passed. `pnpm audit --prod` was reviewed;
+  existing unrelated workspace advisories are recorded in the supply-chain
+  note above and remain separately owned.
+- `git diff --check`: passed before closeout.
+
+### Browser
+
+- Disposable fixture: Organization `01K12500000000000000000001`, Project
+  `01K12500000000000000000002`, `ossie_test`.
+- agent-browser doctor: 10 pass / 0 warn / 0 fail; Chrome for Testing
+  `151.0.7922.47`.
+- Native public reader, Page editor, Snippet editor, Project Viewer Page
+  editor, all three proof selectors, lazy failure/retry/recovery, desktop,
+  320px, equivalent 200% reflow, keyboard focus, reduced motion, console,
+  network review, and candidate-scoped axe were exercised. Detailed sanitized
+  results are in `docs/ui/2026-08-05-documentation-adapter-proof.md`.
+- Optional Firefox/WebKit coverage was unavailable because neither engine was
+  installed. No screen-reader pass is claimed in this headless environment.
 
 ## 18. Leftovers And Handoff
 
-At planning time, no user-input blocker remains. The final handoff must state:
+No user-input blocker remains. The final handoff is:
 
-- Tiptap disposition and exact selected authoring surface for Child `142`;
-- Fumadocs disposition and exact selected reader primitives for Child `143`;
-- retained packages/exact versions/licenses or confirmation of removal;
-- retained adapter contracts and fallback;
-- evidence limitations assigned to Child `145`;
-- all rejected approaches and why they must not be reopened casually.
+- Tiptap is `partial-adopt` for Child `142`: paragraph, heading, quote,
+  callout, and ordered/unordered list-item prose text may use the
+  `documentationEditorAdapter` converter. The whole graph remains a tested
+  transient feasibility representation only. IDs, positions, expected
+  versions, block kinds, list structure, references, media, tables, tabs,
+  API, Guide, Demo, and Snippet relationships remain native.
+- Fumadocs is `partial-adopt` for Child `143`: retain only the named
+  `page-tree`, `breadcrumb`, and `toc` headless primitives over an
+  already-authorized exact Publication projection. Ossie keeps route parsing,
+  URL/canonical behavior, search, initial HTML, access, CSP, rendering, and
+  publication authority.
+- Retain the exact MIT pins listed in section 5.4 and the adapter contracts;
+  Children `142` and `143` own the next production-surface decision and must
+  remeasure the lazy Tiptap chunk against its 127.23 kB gzip proof cost.
+- Child `145` owns optional-engine coverage, actual screen-reader coverage,
+  deeper performance/memory profiling, and any remaining accessibility or
+  dependency maintenance review.
+- Rejected scope remains closed: Tiptap UI Components, collaboration/Yjs,
+  HTML/MDX/content-source authority, Fumadocs Loader/framework routing/search,
+  and any schema or migration change are not reopened by preference.
 
 Child `142` must implement the recorded branch; it must not rerun the product
 decision based on preference.

@@ -4,8 +4,9 @@ Date: 2026-07-31
 
 Last full sequence re-audit: 2026-08-05
 
-Status: Planned, accepted, and re-audited for ordered autonomous execution.
-Children `141`–`146` now contain implementation-ready planning baselines. Each
+Status: In progress; Child `141` is complete and Children `142`–`146` remain
+ordered execution work. Children `141`–`146` contain implementation-ready
+planning baselines. Each
 child must still execute its embedded current-code preflight and independent
 plan recheck before changing runtime behavior; that refresh is a safety stage,
 not an unresolved product decision or a requirement for routine user input.
@@ -521,6 +522,13 @@ Decision/proof child. No production route or authoritative migration. Its final
 record selects adopt/partial-adopt/reject independently for Tiptap and
 Fumadocs.
 
+Closed 2026-08-05: Tiptap `partial-adopt` for bounded prose fields only;
+Fumadocs `partial-adopt` for the named page-tree, breadcrumb, and TOC
+headless primitives over an authorized Publication projection. Exact pins,
+browser evidence, lazy chunk cost, rollback/fallback behavior, and successor
+ownership are recorded in Child `141` and
+`docs/ui/2026-08-05-documentation-adapter-proof.md`.
+
 ### 17.2 Child 142 — Authoring modernization
 
 Implements the selected authoring path, or native fallback, under existing
@@ -721,13 +729,13 @@ date.
 
 ### Child 141 lifecycle
 
-- [ ] Review predecessor closure and all Plan `140` handoff items.
-- [ ] Refresh/recheck Child `141` against current dependencies and code.
-- [ ] Implement the isolated proof test-first on the existing fixture.
-- [ ] Run scorecard, security, dependency, browser, accessibility, and bundle
+- [x] Review predecessor closure and all Plan `140` handoff items.
+- [x] Refresh/recheck Child `141` against current dependencies and code.
+- [x] Implement the isolated proof test-first on the existing fixture.
+- [x] Run scorecard, security, dependency, browser, accessibility, and bundle
       evidence; record Tiptap and Fumadocs dispositions.
-- [ ] Independently close-recheck Child `141` and clean rejected proof code.
-- [ ] Route exact selected seams and leftovers to Child `142`/`143`.
+- [x] Independently close-recheck Child `141` and clean rejected proof code.
+- [x] Route exact selected seams and leftovers to Child `142`/`143`.
 
 ### Child 142 lifecycle
 
@@ -795,11 +803,17 @@ date.
 
 ## 20. Immediate Handoff
 
-Begin Child `141` at its embedded Stage 0 preflight. Refresh its dependency
-snapshot and current-code inventory, independently recheck the plan, then run
-the proof. No routine product question remains open. The evidence scorecard,
-not visual preference, selects each adapter disposition; package failure or
-rejection continues through the documented native fallback.
+Child `141` is closed and independently rechecked. Begin Child `142` by
+reviewing its recorded `partial-adopt` Tiptap branch: prose text in paragraph,
+heading, quote, callout, and ordered/unordered list items may use the retained
+converter, while all typed structural/reference/media/API semantics remain
+native. Re-measure the lazy Tiptap cost and preserve the native fallback.
+
+Child `143` receives the Fumadocs `partial-adopt` branch: page-tree,
+breadcrumb, and TOC primitives only, fed by an already authorized exact
+Publication projection. Ossie retains route, URL, search, initial HTML,
+publication, access, CSP, Try-It, and block rendering authority. No routine
+product question remains open.
 
 ## 21. Planning Re-Audit Record
 
