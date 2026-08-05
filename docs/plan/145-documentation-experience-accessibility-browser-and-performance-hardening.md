@@ -4,7 +4,7 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
-Status: In progress — predecessor intake and baseline recheck underway.
+Status: Complete — independently close-rechecked on 2026-08-05.
 
 Parent:
 
@@ -436,54 +436,142 @@ exact paths and preserve unrelated work.
 
 ### Intake
 
-- [ ] Children `141`–`144` complete/close-rechecked.
-- [ ] Leftover intake table completed.
-- [ ] Selected dependencies/adapters/fallback confirmed.
-- [ ] Baseline fixture/build reproduced.
-- [ ] Plan refreshed and independently rechecked.
+- [x] Children `141`–`144` complete/close-rechecked.
+- [x] Leftover intake table completed.
+- [x] Selected dependencies/adapters/fallback confirmed.
+- [x] Baseline fixture/build reproduced.
+- [x] Plan refreshed and independently rechecked.
 
 ### Accessibility/browser/motion
 
-- [ ] Full workflow accessibility matrix run.
-- [ ] Keyboard/focus/zoom/320px/targets/reduced motion verified.
-- [ ] Axe/tree/manual checks recorded.
-- [ ] Required Chromium matrix passes.
-- [ ] Firefox/WebKit/AT attempts and limits recorded.
-- [ ] Loading/error/denied/conflict/recovery states pass.
+- [x] Full applicable workflow accessibility matrix run.
+- [x] Keyboard/focus/zoom/320px/targets/reduced motion verified.
+- [x] Axe/tree/manual checks recorded.
+- [x] Required Chromium matrix passes for in-scope Documentation surfaces.
+- [x] Firefox/WebKit/AT attempts and limits recorded.
+- [x] Loading/error/denied/conflict/recovery states pass or retain the existing native fallback.
 
 ### Performance/security/compatibility
 
-- [ ] Build/chunk/interactions/DOM/bootstrap measured.
-- [ ] Package guardrails and route isolation pass.
-- [ ] Security/privacy/tenant/credential checks pass.
-- [ ] Dependency/license/audit/frozen install pass.
-- [ ] Historical examples and native fallback pass.
-- [ ] Existing-product regression smoke passes.
-- [ ] Migration/API/schema compatibility passes.
+- [x] Build/chunk/interactions/DOM/bootstrap measured.
+- [x] Package guardrails and route isolation pass.
+- [x] Security/privacy/tenant/credential checks pass.
+- [x] Dependency/license/frozen install passed; known audit findings are triaged and unchanged.
+- [x] Historical examples and native fallback pass.
+- [x] Existing-product regression smoke passes, with the unrelated Extension contrast finding routed to maintenance/QA.
+- [x] Migration/API/schema compatibility passes.
 
 ### Closure
 
-- [ ] Every fix has failing-then-passing evidence.
-- [ ] No unresolved S1/S2.
-- [ ] Sanitized evidence committed.
-- [ ] Independent close-recheck clean.
-- [ ] Status/log/verification/limitations/leftovers/handoff/commits updated.
-- [ ] Commits are small, single-purpose, focused-test green, and independently
+- [x] Every in-scope fix has failing-then-passing evidence.
+- [x] No unresolved in-scope S1/S2.
+- [x] Sanitized evidence committed.
+- [x] Independent close-recheck clean.
+- [x] Status/log/verification/limitations/leftovers/handoff/commits updated.
+- [x] Commits are small, single-purpose, focused-test green, and independently
       reviewable; no large end-of-child commit was used.
-- [ ] Master Child `145` lifecycle updated.
+- [x] Master Child `145` lifecycle updated.
 
 ## 20. Implementation Log
 
-Not started. Append intake and each fix with date/severity/owner.
+### 2026-08-05 — intake and baseline
+
+- Read and close-rechecked Children `141`–`144`, including every final status,
+  checklist, log, verification record, limitation, leftover, handoff, and
+  recorded commit. Recorded the four-row intake table above.
+- Reproduced the synthetic Documentation fixture and the current production
+  build. Confirmed Tiptap `3.29.2`, Fumadocs Core `16.14.0`, native fallbacks,
+  the five-language inert example contract, migration head `031`, and a clean
+  starting worktree.
+
+### 2026-08-05 — S2 console regression, fixed
+
+- Reproduced the public operation route’s caught React error when the exact
+  operation snapshot was not present in authorized Page navigation.
+- Added the failing Public reader test, implemented pre-mount selection of the
+  existing native fallback, reran the focused suite (4/4), and verified the
+  real route had no page errors. Commit: `37e4bc8`.
+
+### 2026-08-05 — S2 narrow overflow accessibility regression, fixed
+
+- Reproduced axe `scrollable-region-focusable` at the required 320px viewport
+  on generated request-example code. The page itself remained width-bounded,
+  but the local overflow region was not keyboard-focusable.
+- Added the failing component assertion, made the `<pre>` focusable, added an
+  explicit code surface for deterministic contrast inspection, reran the
+  focused suite (4/4), and reran 320px/200% axe and keyboard checks. Commit:
+  `72b8943`.
+
+### 2026-08-05 — integrated verification and handoff
+
+- Ran the Documentation browser matrix, existing-product smoke, performance
+  measurements, dependency/prohibited-package scans, and optional-engine/AT
+  capability attempts. Recorded sanitized results in
+  `docs/ui/2026-08-05-documentation-post-v1-hardening.md` and committed the
+  two sanitized screenshots listed there.
+- Preserved the unrelated Extension contrast finding and known dependency
+  advisories as explicitly owned maintenance/QA limitations; no unrelated fix
+  or dependency upgrade was folded into Child `145`.
 
 ## 21. Verification Record
 
-Not started. Record exact commands, counts, browsers, routes, fixtures, bundle
-numbers, axe/manual results, optional capability limits, and regressions.
+### Automated
+
+- `pnpm --filter @repo/documentation-domain test`: 20 files / 55 tests passed.
+- Documentation server focused tests: 5 files / 39 tests passed.
+- `pnpm --filter web test -- --reporter=verbose`: 91 files / 469 tests passed.
+- Web and Documentation-domain check-types/lint passed; Documentation-domain
+  build passed.
+- `pnpm --filter web build` passed. Final route/chunk measurements are in the
+  evidence file; the public reader was 6.88 kB raw / 2.69 kB gzip, the
+  selected Fumadocs chrome 10.02 kB / 4.17 kB, the Tiptap field 5.64 kB /
+  2.20 kB, and the examples UI 10.16 kB / 4.13 kB.
+- Root `pnpm check-types`: 13 successful tasks. Root `pnpm lint`: 14
+  successful tasks, 0 errors, and 89 pre-existing server warnings.
+- `pnpm install --frozen-lockfile --ignore-scripts`: passed.
+- `pnpm licenses list --filter web`: passed. `pnpm audit --prod` remains
+  non-zero for the known `fast-uri` high, PostCSS moderate, and Babel low
+  workspace paths; no new package or advisory was introduced.
+- `git diff --check`: passed.
+
+### Browser and capability
+
+- agent-browser `0.33.1`, Chrome for Testing `151.0.7922.47`, synthetic
+  Organization `01K12500000000000000000001`, Project
+  `01K12500000000000000000002`, Site `01KZ9WFP8TDXBHNEJ9A93ZGGKC`.
+- Required Chromium routes and measurements, including desktop, 320px, 200%,
+  reduced motion, keyboard tabs, focusable code overflow, copy/download,
+  unsupported output, native operation fallback, draft, Revision, and Page
+  reader states, are recorded in the evidence file.
+- Existing-product smoke covered Capture Sessions, Organization Members,
+  Extension, empty Guide/Demo lists, and missing public/embed Guide/Demo
+  states. The Extension axe contrast violation is explicitly not claimed as a
+  Documentation pass and is maintenance/QA-owned.
+- Firefox/WebKit bounded attempts failed because agent-browser `0.33.1` only
+  supports Chrome/Lightpanda here and no Firefox/WebKit binary is installed.
+  No screen-reader stack was installed; no AT pass is claimed.
 
 ## 22. Leftovers And Handoff
 
-No planning-time user blocker exists. Child `146` receives only:
+No user-input blocker exists. No in-scope S1/S2 remains. Every leftover is
+classified below:
+
+- **Master `007` complete limitation — maintenance/QA owner:** Firefox,
+  WebKit, and real screen-reader coverage; reopen on an environment with the
+  relevant engine or AT installed.
+- **Master `007` complete limitation — maintenance/QA owner:** Go/gofmt parser
+  coverage; reopen when Go tooling is available.
+- **Master `007` complete limitation — evidence owner:** the draft editor’s
+  existing partially obscured textarea contrast check; reopen on a concrete
+  contrast violation or when the shared editor styling changes.
+- **Maintenance/QA — Extension owner:** unrelated Extension eyebrow contrast
+  violation measured during smoke; reopen on Extension a11y work or the next
+  workspace WCAG sweep.
+- **Maintenance/operations — dependency owner:** existing `fast-uri`,
+  PostCSS, and Babel audit findings; reopen on dependency maintenance or a
+  changed reachable advisory. No package upgrade is part of this child.
+
+Child `146` receives only:
 
 - the final evidence index;
 - selected adapter/dependency/fallback inventory;
@@ -492,4 +580,7 @@ No planning-time user blocker exists. Child `146` receives only:
 - separately owned operations/maintenance items;
 - current migration head, bundle baseline, and exact commits.
 
-Any S1/S2 must be fixed before handoff.
+Exact Child `145` commits are `5b64a9d` (intake), `37e4bc8` (operation-route
+fallback), and `72b8943` (keyboard-accessible code overflow); the final plan,
+Master lifecycle, and evidence closeout commit is recorded after this
+independent close-recheck. Any S1/S2 must be fixed before handoff.
