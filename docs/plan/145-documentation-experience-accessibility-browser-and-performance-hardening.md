@@ -4,8 +4,7 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
-Status: Conditionally implementation-ready. Execute only after Child `144`
-is complete and independently close-rechecked.
+Status: In progress — predecessor intake and baseline recheck underway.
 
 Parent:
 
@@ -52,6 +51,32 @@ disposition`;
 Do not absorb unrelated defects. Route them to maintenance/operations with
 evidence. An issue caused by Master `007` is in scope even if discovered on an
 existing shared component.
+
+### 2.1 Predecessor intake
+
+| source child | item | severity | current owner | verification route | disposition |
+|---|---|---|---|---|---|
+| 141 | Tiptap/Fumadocs are partial-adopt branches with native fallbacks; optional Firefox/WebKit and installed screen-reader coverage were unavailable. | S3 capability limit | Child 145 for integrated accounting; maintenance/QA for future engine and AT coverage | Child 141 evidence, current dependency/build scan, required Chromium matrix | Retain the accepted partial branches and verify that proof-only seams remain absent; record unavailable capabilities without claiming passes. |
+| 142 | Tiptap remains prose-field-only; existing axe contrast checks were incomplete in the local draft/editor evidence. | S3 evidence limitation | Child 145 | authoring route, axe/manual contrast review, native fallback/recovery | Recheck the representative state. Keep the native field and server policy authoritative; route any confirmed shared WCAG failure as an in-scope fix. |
+| 143 | Fumadocs remains public Publication chrome only; optional engines/AT unavailable and the known workspace audit findings remain. | S3 capability/supply-chain limitation | Child 145 for route isolation; maintenance/operations for existing advisories | public reader route, manifest/chunk scan, frozen install/license/audit | Reconfirm lazy route isolation and exact package/license facts. Do not upgrade unrelated dependencies or claim a clean audit. |
+| 144 | Generated examples are bounded, inert, five-language V1 output; Go/gofmt was unavailable, and draft axe had one incomplete existing contrast check. | S3 tooling/evidence limitation | Child 145 | domain policy tests, generated-snippet syntax checks where tools exist, supported/unsupported browser routes | Recheck determinism, sensitive-value redaction, no-target-network behavior, keyboard/copy/download, and unsupported states. Record Go and axe limits truthfully. |
+
+### 2.2 Entry recheck
+
+Children `141`–`144` status, checklists, implementation logs, verification
+records, limitations, leftovers, handoffs, and recorded commits were read on
+2026-08-05. The selected runtime is Tiptap `3.29.2` for bounded prose fields,
+Fumadocs Core `16.14.0` for public Publication chrome, and the inert
+`documentation-request-example-v1` registry for five request-example
+languages. Native authoring/reader fallbacks remain available. The worktree
+was clean before this plan update; no migration, schema, route, API, or
+persistence change is expected for this child.
+
+The baseline fixture is the synthetic Documentation browser fixture used by
+the predecessor children. A production build and the required Chromium
+matrix remain the next execution records; their exact fixture identity,
+manifest measurements, and browser evidence will be appended below after the
+baseline run.
 
 ## 3. Severity And Closure Policy
 
