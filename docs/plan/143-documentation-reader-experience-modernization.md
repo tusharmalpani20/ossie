@@ -4,9 +4,14 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
-Status: Conditionally implementation-ready. Execute only after Child `142`
-is complete and independently close-rechecked. Child `141` determines the
-Fumadocs headless/full-selected, named partial, or native branch.
+Status: In progress — implementation-ready after Child `142` closeout intake.
+
+Selected branch: fumadocs-headless(page-tree, breadcrumb, TOC primitives).
+The production adoption is limited to the public exact-Publication reader.
+Ossie remains authoritative for routes, authorized snapshots, search, block
+rendering, assets, API operations, Try-It, access, metadata, and cache/CSP
+behavior. Draft and Revision previews retain their existing native reader
+presentation and explicit resource boundaries.
 
 Parent:
 
@@ -39,6 +44,26 @@ Revision preview presentation using exactly the Child `141` branch:
 Preserve access, immutable resource selection, canonical URLs, search, assets,
 redirect/gone behavior, initial crawler HTML, SEO metadata, CSP, caching,
 version selection, and Try-It authority.
+
+## 1.1 Predecessor intake and branch recheck
+
+- Child `141` is complete and independently close-rechecked. Its Fumadocs
+  result is `partial-adopt` for the client-safe page-tree, breadcrumb, and TOC
+  primitives only; Loader, MDX, framework providers, Fumadocs search, route
+  ownership, and `fumadocs-ui` remain excluded.
+- Child `142` is complete and independently close-rechecked in commits
+  `826ca40`, `b4bf380`, and `4dfdb70`. It made no reader-affecting runtime
+  change. Its retained Tiptap field is editor-only and must not enter the
+  public reader chunk.
+- Current public, draft-preview, Revision-preview, block-renderer,
+  initial-document, API, route, server HTML/CSP/cache, fixture, and test paths
+  were re-inspected. No response, route, server, migration, or persistence
+  amendment is required.
+- The production reader will import the Fumadocs component lazily and pass
+  only the existing authorized Publication snapshot through the existing
+  allowlist projection. Native chrome remains the Suspense/error fallback.
+- The implementation boundary is a presentation seam: no Fumadocs object is
+  serialized, persisted, used to choose a Page, or used to authorize access.
 
 ## 2. Preflight And Branch Lock
 
