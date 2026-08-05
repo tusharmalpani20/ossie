@@ -361,6 +361,7 @@ export const DocumentationPageEditor = ({
           }}
           openApiOptions={openApiOptions}
           pageOptions={pageOptions}
+          proseAdapter
           snippetOptions={snippetOptions}
         />
       ) : null}

@@ -231,6 +231,7 @@ export const DocumentationSnippetPanel = ({
                 <DocumentationBlockEditor
                   blocks={selected.blocks}
                   onChange={(blocks) => replace({ ...selected, blocks })}
+                  proseAdapter
                 />
               )}
               <Button onClick={() => void save()}>Save Snippet</Button>

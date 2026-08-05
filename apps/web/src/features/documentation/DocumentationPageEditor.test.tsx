@@ -3,6 +3,18 @@ import { describe, expect, it, vi } from "vitest";
 import { DocumentationPageEditor } from "./DocumentationPageEditor";
 
 describe("DocumentationPageEditor", () => {
+  const editParagraph = async (value: string) => {
+    await waitFor(() =>
+      expect(
+        screen.getByRole("textbox", { name: "Paragraph text" }),
+      ).toHaveAttribute("contenteditable", "true"),
+    );
+    const field = screen.getByRole("textbox", { name: "Paragraph text" });
+    field.innerHTML = `<p blockid="block" field="text" data-ossie-prose-node="paragraph">${value}</p>`;
+    fireEvent.input(field);
+    return field;
+  };
+
   it("edits relational blocks and reports truthful save state", async () => {
     const savePage = vi.fn(async () => ({
       page: {
@@ -28,6 +40,7 @@ describe("DocumentationPageEditor", () => {
         siteId="site"
         pageId="page"
         canWrite
+        autosaveDelayMs={10_000}
         loadPage={async () => ({
           page: {
             id: "page",
@@ -48,9 +61,8 @@ describe("DocumentationPageEditor", () => {
         savePage={savePage}
       />,
     );
-    const text = await screen.findByLabelText("Paragraph text");
-    fireEvent.change(text, { target: { value: "Updated copy" } });
-    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    await editParagraph("Updated copy");
+    expect(await screen.findByText("Unsaved changes")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save Page" }));
     await waitFor(() => expect(savePage).toHaveBeenCalled());
     expect(await screen.findByText("Saved")).toBeInTheDocument();
@@ -123,12 +135,11 @@ describe("DocumentationPageEditor", () => {
         savePage={savePage}
       />,
     );
-    const text = await screen.findByLabelText("Paragraph text");
-    fireEvent.change(text, { target: { value: "Unsaved local copy" } });
+    const text = await editParagraph("Unsaved local copy");
     expect(
       await screen.findByText("Conflict — local work is preserved"),
     ).toBeInTheDocument();
-    expect(text).toHaveValue("Unsaved local copy");
+    expect(text).toHaveTextContent("Unsaved local copy");
   });
 
   it("uploads a protected image with required alternative text and attaches it", async () => {

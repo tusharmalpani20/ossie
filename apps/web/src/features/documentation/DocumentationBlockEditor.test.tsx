@@ -3,6 +3,43 @@ import { describe, expect, it, vi } from "vitest";
 import { DocumentationBlockEditor } from "./DocumentationBlockEditor";
 
 describe("DocumentationBlockEditor", () => {
+  it("mounts the selected Tiptap prose adapter without changing block identity", async () => {
+    const onChange = vi.fn();
+    render(
+      <DocumentationBlockEditor
+        blocks={[
+          {
+            id: "paragraph-1",
+            kind: "paragraph",
+            position: 1,
+            expected_version: 3,
+            text: "Synthetic prose",
+          },
+          {
+            id: "code-1",
+            kind: "code",
+            position: 2,
+            expected_version: 4,
+            code: "pnpm test",
+            language: "shell",
+          },
+        ]}
+        onChange={onChange}
+        proseAdapter
+      />,
+    );
+
+    const field = await screen.findByTestId(
+      "documentation-tiptap-field-paragraph-1",
+    );
+    expect(field.querySelector("[contenteditable='true']")).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: "Paragraph text" }),
+    ).toHaveAttribute("contenteditable", "true");
+    expect(screen.getByLabelText("Code")).toHaveValue("pnpm test");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("adds a typed Capture image from an Asset option without a raw ID field", () => {
     const onChange = vi.fn();
     render(

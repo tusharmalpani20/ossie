@@ -5,6 +5,7 @@ import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
 import type { DocumentationBlock } from "@repo/types";
+import { LazyDocumentationTiptapProseField } from "./LazyDocumentationTiptapProseField";
 
 type NewBlockKind = DocumentationBlock["kind"];
 
@@ -31,6 +32,7 @@ export const DocumentationBlockEditor = ({
   openApiOptions = [],
   guidePublicationOptions = [],
   demoPublicationOptions = [],
+  proseAdapter = false,
 }: {
   blocks: DocumentationBlock[];
   onChange: (blocks: DocumentationBlock[]) => void;
@@ -40,6 +42,7 @@ export const DocumentationBlockEditor = ({
   openApiOptions?: OpenApiOption[];
   guidePublicationOptions?: ReferenceOption[];
   demoPublicationOptions?: ReferenceOption[];
+  proseAdapter?: boolean;
 }) => {
   const [kind, setKind] = useState<NewBlockKind>("paragraph");
   const [primary, setPrimary] = useState("");
@@ -231,25 +234,67 @@ export const DocumentationBlockEditor = ({
           {block.kind === "paragraph" ? (
             <>
               <Label htmlFor={`block-${block.id}-text`}>Paragraph text</Label>
-              <Textarea
-                id={`block-${block.id}-text`}
-                value={block.text}
-                onChange={(event) =>
-                  replace(block.id, { ...block, text: event.target.value })
-                }
-              />
+              {proseAdapter ? (
+                <LazyDocumentationTiptapProseField
+                  block={block}
+                  readOnly={false}
+                  ariaLabel="Paragraph text"
+                  fallback={
+                    <Textarea
+                      id={`block-${block.id}-text`}
+                      value={block.text}
+                      onChange={(event) =>
+                        replace(block.id, {
+                          ...block,
+                          text: event.target.value,
+                        })
+                      }
+                    />
+                  }
+                  onChange={(next) => replace(block.id, next)}
+                />
+              ) : (
+                <Textarea
+                  id={`block-${block.id}-text`}
+                  value={block.text}
+                  onChange={(event) =>
+                    replace(block.id, { ...block, text: event.target.value })
+                  }
+                />
+              )}
             </>
           ) : null}
           {block.kind === "heading" ? (
             <>
               <Label htmlFor={`block-${block.id}-heading`}>Heading text</Label>
-              <Input
-                id={`block-${block.id}-heading`}
-                value={block.text}
-                onChange={(event) =>
-                  replace(block.id, { ...block, text: event.target.value })
-                }
-              />
+              {proseAdapter ? (
+                <LazyDocumentationTiptapProseField
+                  block={block}
+                  readOnly={false}
+                  ariaLabel="Heading text"
+                  fallback={
+                    <Input
+                      id={`block-${block.id}-heading`}
+                      value={block.text}
+                      onChange={(event) =>
+                        replace(block.id, {
+                          ...block,
+                          text: event.target.value,
+                        })
+                      }
+                    />
+                  }
+                  onChange={(next) => replace(block.id, next)}
+                />
+              ) : (
+                <Input
+                  id={`block-${block.id}-heading`}
+                  value={block.text}
+                  onChange={(event) =>
+                    replace(block.id, { ...block, text: event.target.value })
+                  }
+                />
+              )}
               <Label htmlFor={`block-${block.id}-level`}>Heading level</Label>
               <select
                 id={`block-${block.id}-level`}
@@ -272,23 +317,51 @@ export const DocumentationBlockEditor = ({
               <Label htmlFor={`block-${block.id}-items`}>
                 List items, one per line
               </Label>
-              <Textarea
-                id={`block-${block.id}-items`}
-                value={block.items.map((item) => item.text).join("\n")}
-                onChange={(event) => {
-                  const lines = event.target.value.split("\n");
-                  replace(block.id, {
-                    ...block,
-                    items: lines.map((text, itemIndex) => ({
-                      id: block.items[itemIndex]?.id ?? ulid(),
-                      text,
-                      position: itemIndex + 1,
-                      expected_version:
-                        block.items[itemIndex]?.expected_version ?? null,
-                    })),
-                  });
-                }}
-              />
+              {proseAdapter ? (
+                <LazyDocumentationTiptapProseField
+                  block={block}
+                  readOnly={false}
+                  ariaLabel="List items, one per line"
+                  fallback={
+                    <Textarea
+                      id={`block-${block.id}-items`}
+                      value={block.items.map((item) => item.text).join("\n")}
+                      onChange={(event) => {
+                        const lines = event.target.value.split("\n");
+                        replace(block.id, {
+                          ...block,
+                          items: lines.map((text, itemIndex) => ({
+                            id: block.items[itemIndex]?.id ?? ulid(),
+                            text,
+                            position: itemIndex + 1,
+                            expected_version:
+                              block.items[itemIndex]?.expected_version ?? null,
+                          })),
+                        });
+                      }}
+                    />
+                  }
+                  onChange={(next) => replace(block.id, next)}
+                />
+              ) : (
+                <Textarea
+                  id={`block-${block.id}-items`}
+                  value={block.items.map((item) => item.text).join("\n")}
+                  onChange={(event) => {
+                    const lines = event.target.value.split("\n");
+                    replace(block.id, {
+                      ...block,
+                      items: lines.map((text, itemIndex) => ({
+                        id: block.items[itemIndex]?.id ?? ulid(),
+                        text,
+                        position: itemIndex + 1,
+                        expected_version:
+                          block.items[itemIndex]?.expected_version ?? null,
+                      })),
+                    });
+                  }}
+                />
+              )}
             </>
           ) : null}
           {block.kind === "code" ? (
@@ -357,13 +430,34 @@ export const DocumentationBlockEditor = ({
           {block.kind === "quote" ? (
             <>
               <Label htmlFor={`block-${block.id}-quote`}>Quote text</Label>
-              <Textarea
-                id={`block-${block.id}-quote`}
-                value={block.text}
-                onChange={(event) =>
-                  replace(block.id, { ...block, text: event.target.value })
-                }
-              />
+              {proseAdapter ? (
+                <LazyDocumentationTiptapProseField
+                  block={block}
+                  readOnly={false}
+                  ariaLabel="Quote text"
+                  fallback={
+                    <Textarea
+                      id={`block-${block.id}-quote`}
+                      value={block.text}
+                      onChange={(event) =>
+                        replace(block.id, {
+                          ...block,
+                          text: event.target.value,
+                        })
+                      }
+                    />
+                  }
+                  onChange={(next) => replace(block.id, next)}
+                />
+              ) : (
+                <Textarea
+                  id={`block-${block.id}-quote`}
+                  value={block.text}
+                  onChange={(event) =>
+                    replace(block.id, { ...block, text: event.target.value })
+                  }
+                />
+              )}
               <Label htmlFor={`block-${block.id}-attribution`}>
                 Attribution
               </Label>
@@ -382,13 +476,34 @@ export const DocumentationBlockEditor = ({
           {block.kind === "callout" ? (
             <>
               <Label htmlFor={`block-${block.id}-callout`}>Callout text</Label>
-              <Textarea
-                id={`block-${block.id}-callout`}
-                value={block.text}
-                onChange={(event) =>
-                  replace(block.id, { ...block, text: event.target.value })
-                }
-              />
+              {proseAdapter ? (
+                <LazyDocumentationTiptapProseField
+                  block={block}
+                  readOnly={false}
+                  ariaLabel="Callout text"
+                  fallback={
+                    <Textarea
+                      id={`block-${block.id}-callout`}
+                      value={block.text}
+                      onChange={(event) =>
+                        replace(block.id, {
+                          ...block,
+                          text: event.target.value,
+                        })
+                      }
+                    />
+                  }
+                  onChange={(next) => replace(block.id, next)}
+                />
+              ) : (
+                <Textarea
+                  id={`block-${block.id}-callout`}
+                  value={block.text}
+                  onChange={(event) =>
+                    replace(block.id, { ...block, text: event.target.value })
+                  }
+                />
+              )}
               <Label htmlFor={`block-${block.id}-tone`}>Callout tone</Label>
               <select
                 id={`block-${block.id}-tone`}
