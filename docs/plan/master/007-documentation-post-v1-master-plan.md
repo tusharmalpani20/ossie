@@ -534,6 +534,15 @@ ownership are recorded in Child `141` and
 Implements the selected authoring path, or native fallback, under existing
 content/concurrency/comment/permission/publication contracts.
 
+Closed 2026-08-05: implemented the selected Tiptap prose-only path for
+paragraph, heading, quote, callout, and ordered/unordered list-item text.
+Structural/reference/media/API semantics remain native; Page/Snippet save,
+comments, assets, Row-Version conflict recovery, and permissions remain on
+existing Ossie clients. The lazy field is 5.64 kB raw / 2.20 kB gzip and its
+native fallback/recovery, viewer, narrow/reflow, reduced-motion, axe, console,
+and fixture-reset evidence is recorded in
+`docs/ui/2026-08-05-documentation-authoring-modernization-browser-evidence.md`.
+
 ### 17.3 Child 143 — Reader modernization
 
 Implements the selected reader path, or native fallback, under exact
@@ -739,13 +748,13 @@ date.
 
 ### Child 142 lifecycle
 
-- [ ] Review Child `141` authoring disposition and leftover intake.
-- [ ] Refresh/recheck Child `142` and lock its selected/native branch.
-- [ ] Implement authoring modernization test-first.
-- [ ] Verify Page/snippet identity, save/conflict/permission/publication and
+- [x] Review Child `141` authoring disposition and leftover intake.
+- [x] Refresh/recheck Child `142` and lock its selected/native branch.
+- [x] Implement authoring modernization test-first.
+- [x] Verify Page/snippet identity, save/conflict/permission/publication and
       browser behavior.
-- [ ] Independently close-recheck Child `142`.
-- [ ] Route only reader-relevant leftovers to Child `143`.
+- [x] Independently close-recheck Child `142`.
+- [x] Route only reader-relevant leftovers to Child `143`.
 
 ### Child 143 lifecycle
 
@@ -803,11 +812,13 @@ date.
 
 ## 20. Immediate Handoff
 
-Child `141` is closed and independently rechecked. Begin Child `142` by
-reviewing its recorded `partial-adopt` Tiptap branch: prose text in paragraph,
-heading, quote, callout, and ordered/unordered list items may use the retained
-converter, while all typed structural/reference/media/API semantics remain
-native. Re-measure the lazy Tiptap cost and preserve the native fallback.
+Children `141` and `142` are closed and independently rechecked. Begin Child
+`143` by reviewing Child `141`'s recorded Fumadocs `partial-adopt` branch for
+page-tree, breadcrumb, and TOC primitives over an authorized Publication
+projection. Child `142` leaves no reader-affecting runtime change; it passes
+only the exact retained Tiptap dependency/lazy-loading facts, the prose-only
+authoring limitation, and the 5.64 kB raw / 2.20 kB gzip authoring field
+baseline.
 
 Child `143` receives the Fumadocs `partial-adopt` branch: page-tree,
 breadcrumb, and TOC primitives only, fed by an already authorized exact

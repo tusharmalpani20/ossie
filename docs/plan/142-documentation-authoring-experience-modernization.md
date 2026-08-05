@@ -3,11 +3,18 @@
 Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
+Last execution close-recheck: 2026-08-05
 
-Status: Conditionally implementation-ready. Execution begins only after Child
-`141` is complete and independently close-rechecked. Child `141` selects the
-Tiptap whole-graph, Tiptap prose-only, or Ossie-native branch; no further routine
-user decision is required.
+Status: Complete — Tiptap `partial-adopt` for the recorded prose fields. The
+child was independently close-rechecked after the production build, full
+web/server regressions, dependency checks, fresh browser evidence, and final
+fixture reseed passed.
+
+Selected branch: prose-only(paragraph, heading, quote, callout,
+ordered_list/unordered_list item text). Tiptap owns transient inline prose
+editing only; the Ossie-native block editor remains authoritative for the
+typed block graph, identities, structure, references, assets, comments, save,
+and recovery contracts.
 
 Parent:
 
@@ -40,6 +47,25 @@ The branch may be:
 - **native modernization** — required if Tiptap is rejected.
 
 This child is an experience change, not a new content model.
+
+## 1.1 Execution intake and independent recheck
+
+- Child `141` was complete and close-rechecked before runtime edits. Its exact
+  Tiptap disposition and named prose kinds are copied above.
+- Child `141` leftovers assigned here were the retained Tiptap packages,
+  shared prose converter seam, lazy proof boundary, and native fallback. No
+  rejected proof dependency or proof-only production route was carried over.
+- Current Page and Snippet callers, shared `DocumentationBlock[]` contracts,
+  Page Row-Version/autosave/conflict flow, comments, references, assets,
+  preview, import/export, review, Publication, search, and Carry-Forward paths
+  were rechecked. No API, server, migration, persistence, authority, or URL
+  change was required.
+- The exact retained package pins are `@tiptap/core`, `@tiptap/pm`,
+  `@tiptap/react`, and `@tiptap/starter-kit`, all `3.29.2`, moved to web
+  production dependencies because the selected runtime field imports them.
+- The production adapter stayed lazy and was measured after removing the full
+  server policy-module import from its client bundle. The final field chunk is
+  5.64 kB raw / 2.20 kB gzip.
 
 ## 2. Required Preflight And Leftover Intake
 
@@ -382,52 +408,115 @@ Stage exact paths and preserve unrelated work.
 
 ### Intake and plan
 
-- [ ] Child `141` is complete/close-rechecked.
-- [ ] Selected branch/kinds/dependencies copied here.
-- [ ] Child `141` leftovers classified.
-- [ ] Current callers/contracts/worktree inspected.
-- [ ] Plan refreshed and independently rechecked.
+- [x] Child `141` is complete/close-rechecked.
+- [x] Selected branch/kinds/dependencies copied here.
+- [x] Child `141` leftovers classified.
+- [x] Current callers/contracts/worktree inspected.
+- [x] Plan refreshed and independently rechecked.
 
 ### Implementation
 
-- [ ] Failing tests established first.
-- [ ] Shared adapter/native branch implemented.
-- [ ] Page and snippet paths modernized.
-- [ ] Insert/edit/delete/reorder/paste/focus completed.
-- [ ] Save/autosave/conflict/recovery completed.
-- [ ] Comments/references/assets/preview compatibility completed.
-- [ ] Read-only and permission behavior completed.
-- [ ] Lazy failure/native rollback completed.
+- [x] Failing tests established first.
+- [x] Shared adapter/native branch implemented.
+- [x] Page and snippet paths modernized.
+- [x] Insert/edit/delete/reorder/paste/focus remain native and were regression-tested; selected prose fields preserve block identity.
+- [x] Save/autosave/conflict/recovery completed through the existing Page/Snippet clients.
+- [x] Comments/references/assets/preview compatibility completed without shared-contract changes.
+- [x] Read-only and permission behavior completed.
+- [x] Lazy failure/native rollback completed.
 
 ### Verification and closeout
 
-- [ ] Focused tests/type/lint/build pass.
-- [ ] Dependency/frozen/audit checks pass if applicable.
-- [ ] Agent-browser matrix passes.
-- [ ] Compatibility regressions pass.
-- [ ] Independent close-recheck clean.
-- [ ] Status/log/evidence/limitations/leftovers/handoff/commits updated.
-- [ ] Commits are small, single-purpose, focused-test green, and independently
+- [x] Focused tests/type/lint/build pass.
+- [x] Dependency/frozen/audit checks pass if applicable.
+- [x] Agent-browser matrix passes.
+- [x] Compatibility regressions pass.
+- [x] Independent close-recheck clean.
+- [x] Status/log/evidence/limitations/leftovers/handoff/commits updated.
+- [x] Commits are small, single-purpose, focused-test green, and independently
       reviewable; no large end-of-child commit was used.
-- [ ] Master Child `142` lifecycle updated.
+- [x] Master Child `142` lifecycle updated.
 
 ## 17. Implementation Log
 
-Not started. Append dated facts and final selected branch.
+### 2026-08-05
+
+- Retained Child `141`'s Tiptap `partial-adopt` branch and made the selected
+  field lazy through `LazyDocumentationTiptapProseField`.
+- Mounted the field by default on production Page and Snippet editor paths
+  only for paragraph, heading, quote, callout, and ordered/unordered list-item
+  text. Structural controls, typed references, assets, comments, save clients,
+  autosave, Row-Version conflict handling, preview, and exports remain native.
+- Added a client-safe bounded controlled-inline parser and converter. It
+  supports text, bold, italic, inline code, and hard breaks; unsupported
+  markup and unsupported Tiptap nodes fail closed. The server policy remains
+  the authoritative validator at save boundaries.
+- Disabled unowned StarterKit block extensions (`codeBlock` and
+  `horizontalRule`) after browser evidence showed the schema correctly
+  rejecting them but permitting them into a field transaction. This keeps the
+  selected schema bounded without weakening the converter.
+- Kept the existing native field as the Suspense/error-boundary fallback. A
+  browser abort/recovery check confirmed the fallback and re-mounted adapter.
+- Moved the exact retained Tiptap packages from web devDependencies to
+  dependencies and passed a frozen install.
+- Child `141` intake commits: `e4f8f81`, `6771cb6`, `47f8a35`, `39af63e`,
+  `8ae5480`, `7690f1d`. Child `142` implementation and closeout commits are
+  recorded below after staging.
 
 ## 18. Verification Record
 
-Not started. Record exact commands, counts, browser routes, fixture identity,
-measurements, and results.
+### Automated verification
+
+- `pnpm --filter web test`: **89 files / 462 tests passed**.
+- `pnpm --filter @repo/types test`: **18 files / 95 tests passed**.
+- `pnpm --filter @repo/documentation-domain test`: **19 files / 50 tests
+  passed**.
+- `pnpm --filter server test`: **127 files / 552 tests passed**.
+- `pnpm --filter web check-types`: passed.
+- `pnpm --filter web lint`: passed with zero warnings.
+- `pnpm --filter web build`: passed. `DocumentationTiptapProseField` was
+  **5.64 kB raw / 2.20 kB gzip**; native Documentation Page editor remained
+  **51.51 kB raw / 13.77 kB gzip**; the existing API experience remained
+  **130.58 kB raw / 32.73 kB gzip**.
+- `pnpm install --frozen-lockfile`: passed.
+- `pnpm licenses list --filter web`: passed; retained direct adapter packages
+  are MIT. `pnpm audit --prod` retained the previously recorded unrelated
+  workspace findings (server `fast-uri`, separate docs PostCSS/Babel); no new
+  candidate direct advisory was identified.
+- `git diff --check`: passed.
+
+### Browser verification
+
+Evidence is recorded in
+`docs/ui/2026-08-05-documentation-authoring-modernization-browser-evidence.md`.
+The synthetic fixture organization/project were
+`01K12500000000000000000001` / `01K12500000000000000000002`; the final reseed
+left the fixture clean. Chrome `151.0.7922.47` via agent-browser `0.33.1`
+covered:
+
+- admin Page production Tiptap prose field, edit, persistence after reload,
+  existing Saved status, and structural native controls;
+- Snippet production prose field with existing Save Snippet authority;
+- viewer read-only Page content with no contenteditable/mutation controls;
+- lazy adapter abort to native field and recovery back to Tiptap;
+- 320px and equivalent 200% reflow (160px) with no horizontal overflow;
+- reduced motion, accessibility tree, axe A/AA, console, and page-error
+  checks. Axe reported zero violations; its existing partially obscured
+  color-contrast checks were incomplete only.
+
+Firefox/WebKit and an installed screen reader were unavailable and are not
+claimed as passed.
 
 ## 19. Leftovers And Handoff
 
-At planning time, no user-input blocker exists. Child `143` receives only:
+No in-scope authoring leftovers remain. Child `143` receives only:
 
-- shared renderer/anchor changes it must account for;
-- selected adapter dependency/lazy-loading facts that affect the reader build;
-- verified authoring limitations with reader-visible consequences;
-- exact pre-reader bundle baseline.
+- the exact retained Tiptap dependency/lazy-loading facts for integrated build
+  accounting;
+- the verified limitation that Tiptap is prose-field-only and must not be
+  extended to reader content or typed structural blocks;
+- the final authoring bundle baseline and browser evidence file.
 
-Do not carry authoring defects forward as reader work. Close them here or assign
-them to separately owned maintenance with rationale.
+There are no reader-affecting code changes or authoring defects routed to
+Child `143`; its work remains limited to Child `141`'s Fumadocs reader
+disposition.
