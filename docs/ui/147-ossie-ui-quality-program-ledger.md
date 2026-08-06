@@ -132,7 +132,7 @@ review reports, final clean verification, and all required evidence.
 | `documentation-public` | Reader/API reference | Publication reader/search/TOC/operation/Try It/access challenge; anonymous/member | `d638112` | `0ea64b9` | 0 | `accept` — review A | `accept` — review B | focused reader/request/OpenAPI 20/20; full web 483/483 serial; web typecheck/lint/build/Prettier; anonymous desktop+narrow/keyboard/search/zoom/reduced-motion/route-variant/operation evidence; axe 0 violations and 0 incomplete | `agent_accepted_pending_human` | no deterministic seeded public-password route for browser screenshot; existing component tests cover challenge/retry; embed and shared access family remain separate |
 | `public-access` | Shared access challenge | public/restricted/password/expired/revoked/version selection; anonymous | `85deae4` | `8e38ee4` | 0 | `accept` — review A | `accept` — review B | focused public-access/readers 16/16; full web 496/496 serial; web check-types/lint/build; anonymous valid Guide and unavailable Demo browser matrix at desktop/narrow; axe 0/0; reduced-motion and responsive selector checks | `agent_accepted_pending_human` | multi-entry browser fixture unavailable and remains component-test coverage; Demo/Documentation disposable slugs currently render truthful unavailable states; browser zoom controls remain environment-limited; P2-010 remains queued |
 | `token-foundation` | Shared pattern / design system | web `/__design-system`, authenticated portal shell, auth entry, Demo workbench/editor, Documentation library, extension popup; default/hover/focus/disabled/selected/error/read-only/reduced-motion | `d638112` | `105fc5b` | 0 | `accept` — review A | `accept` — review B | token check; web 8/8 focused; extension 140/140; UI 7/7; affected typecheck/lint/build; browser desktop+narrow+popup; axe 0 violations | `agent_accepted_pending_human` | installed extension-toolbar capability is `blocked_local_for_run`; narrow axe has one incomplete probe over intentional table scroll |
-| `extension-installation` | Setup utility | extension check/auth/error/ready/download/update/remove | `d638112` | — | 0 | — | — | — | `queued` | extension browser capability pending |
+| `extension-installation` | Setup utility | extension check/auth/error/ready/download/update/remove | `7893091` | `1058dbd` | 0 | `accept` — review A | `accept` — review B | focused extension installation 22/22; full web 496/496 serial; web check-types/lint/build; authenticated ready-state browser matrix at desktop/narrow; axe 0/0; keyboard and reduced-motion checks; no target overflow | `agent_accepted_pending_human` | installed browser-toolbar/permission path remains unavailable and blocked under `extension-capture`; browser zoom controls remain environment-limited; shared portal-shell clipping and P2-010 remain separate |
 | `extension-capture` | Focused task utility | unconfigured/signed out/in/selection/recording/recovery/completion/error | `537b3d5` | `106705c` | 0 | `accept` — review A | `accept` — review B | focused extension 140/140; extension typecheck/lint/build; direct synthetic popup active/selection 360px and 180px proxy; axe 0 violations; no direct-popup browser errors | `blocked_local_for_run` | installed toolbar action/permission path unavailable in this runner; 180px has one incomplete contrast-background probe over overlapping long labels; Child 126 installed evidence remains prior evidence only |
 | `design-system-gallery` | Pattern gallery | `/__design-system`; patterns and state matrix; authenticated/local | `d638112` | — | 0 | — | — | — | `queued` | current route audit pending |
 | `global-fallback` | Shell/error state | unsupported route/not found/shell failure/recovery; anonymous/authenticated | `d638112` | — | 0 | — | — | — | `queued` | route audit pending |
@@ -167,6 +167,7 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | `P2-012` | P2 | Guide family composition / accessibility | Guide list/editor/preview/Revision history/Revision preview, owner/editor/viewer, 1440px and 390px | surface preflight; editor baseline measured 110 controls and 5,217px at 390px; preview had one primary-link contrast violation | implementer | 0 | accepted_pending_human | `ae217d0` | named Guide/Revision workspace regions, responsive library/editor/preview/history composition, preview contrast correction, owner/viewer browser matrix, axe, reduced-motion, no-overflow, focused 19/19, full web 495/495, check-types/lint/build, and both reviews pass | active fixture media requests are blocked by existing dev CSP/API-origin setup; editor retains two existing incomplete contrast-background probes; shared shell and browser zoom remain separate |
 | `P2-013` | P2 | entry composition / accessibility | Login, First-run Setup, and organization Invite entry; public states at 1440px and 390px | surface preflight; shared shell had no named main, entry CSS used raw spacing, and Invite’s standard card could span the desktop viewport | implementer | 0 | accepted_pending_human | `f27714b` | named `Entry workspace`, readable responsive shell, constrained standard Invite card, browser login/setup/unavailable-invite matrix, axe 0/0, keyboard/reduced-motion, focused 22/22, full web 495/495, check-types/lint/build, and both reviews pass | setup-ready and loaded-invite browser states remain component-test coverage; browser zoom controls remain environment-limited; P2-010 remains queued |
 | `P2-014` | P2 | public access composition / accessibility | Shared public Project Version selector across Guide, Demo, and Documentation readers; anonymous, desktop/narrow | surface preflight; single-entry context was loose muted text and multi-entry select had generic Version naming/raw control values | implementer | 0 | accepted_pending_human | `8e38ee4` | Project Version chip, named multi-entry combobox, responsive tokenized control, valid Guide/unavailable Demo browser matrix, axe 0/0, reduced-motion, focused 16/16, full web 496/496, check-types/lint/build, and both reviews pass | multi-entry browser fixture unavailable; Demo/Documentation valid populated slugs unavailable in current disposable seed; P2-010 remains queued |
+| `P2-015` | P2 | extension installation composition / accessibility | Authenticated `/extension` ready state; desktop 1440px and narrow 390px | surface preflight; baseline had a Capture-tools contrast violation and an incomplete gradient-background probe over the download card | implementer | 0 | accepted_pending_human | `1058dbd` | named installation workspace, tokenized hierarchy and cards, authenticated desktop/narrow browser evidence, axe 0/0, keyboard/reduced-motion, focused 22/22, full web 496/496, check-types/lint/build, and both reviews pass | installed toolbar/permission path is unavailable in this runner; shared shell clipping, browser zoom, and P2-010 remain separate |
 | `P2-001` | P2 | visual consistency | cross-product libraries/readers | plan issue register | implementer | 0 | queued | — | family review | exact route ownership pending |
 | `P2-002` | P2 | mobile composition | dense/authoring surfaces | plan issue register | implementer | 0 | queued | — | 390px/200% evidence | exact candidates pending |
 
@@ -206,6 +207,8 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | `f27714b` | `entry-onboarding` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-entry-onboarding-review-b.md` | none | setup-ready and loaded-invite browser fixtures unavailable without additional local state; P2-010 remains queued | public-entry truth, no auth/setup/invite contract changes, keyboard, reduced motion, axe 0/0, focused 22/22, full 495/495, check-types/lint/build pass | accepted pending human |
 | `8e38ee4` | `public-access` | A — visual/interaction | `accept` | `docs/ui/147-public-access-review-a.md` | none | multi-entry browser fixture unavailable; Demo/Documentation valid populated slugs unavailable in current seed | Project Version context chip, multi-entry selector hierarchy, narrow reflow, cross-reader consistency, and no blocking visual finding | accepted pending human |
 | `8e38ee4` | `public-access` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-public-access-review-b.md` | none | multi-entry browser fixture and populated Demo/Documentation routes unavailable; browser zoom limitation; P2-010 remains queued | Project Version/public-link semantics, access boundary, selector keyboard naming, axe 0/0, reduced motion, focused 16/16, full 496/496, check-types/lint/build pass | accepted pending human |
+| `1058dbd` | `extension-installation` | A — visual/interaction | `accept` | `docs/ui/147-extension-installation-review-a.md` | none | installed toolbar/permission path unavailable; shared portal shell and browser zoom remain separate | installation workspace hierarchy, download prominence, install/connect/update grouping, narrow reflow, target no-overflow, and no blocking visual finding | accepted pending human |
+| `1058dbd` | `extension-installation` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-extension-installation-review-b.md` | none | installed toolbar/permission path unavailable and remains blocked under extension-capture; P2-010 remains queued | auth/download contract, no browser mutation, named workspace, keyboard, reduced motion, axe 0/0, focused 22/22, full 496/496, check-types/lint/build pass | accepted pending human |
 
 
 ## Reference ledger
@@ -278,6 +281,9 @@ domain, permission, lifecycle, publication, or URL authority.
 | `entry-onboarding` | invalid organization invite / desktop 1440×900 and narrow 390×900 | safe local invalid token `plan147-invalid`; no live invite created | agent-browser / Chromium; runner API 3022/web 3020 | 900px body, one main, 1 control, no overflow, axe 0/0 at both viewports; `docs/ui/147-entry-onboarding-before-invite-desktop.png` and `docs/ui/147-entry-onboarding-before-invite-narrow.png` | named `Entry workspace`, centered standard card 680px desktop / 358px narrow, target overflow 0, axe 0/0; `docs/ui/147-entry-onboarding-after-invite-desktop.png` and `docs/ui/147-entry-onboarding-after-invite-narrow.png` | no | reduced-motion matched; Ossie brand link remains keyboard-reachable | unavailable invite request remained truthful; no acceptance mutation or new browser errors | loaded new-user/existing-user and acceptance branches remain component-test coverage; standard width no longer becomes a desktop-wide banner | `f27714b` / 2026-08-06 |
 | `public-access` | anonymous valid Guide / desktop 1440×900 and narrow 390×900 | synthetic Plan 127 public Guide Publish Link; one included Project Version | agent-browser / Chromium; runner API 3022/web 3020 | 1,142px desktop / 900px narrow, 0 controls, one main, target overflow 0, axe 0/0; `docs/ui/147-public-access-before-guide-desktop.png` and `docs/ui/147-public-access-before-guide-narrow.png` | same document/control/a11y metrics; single entry is a visible `Project Version: Summer release` chip; `docs/ui/147-public-access-after-guide-desktop.png` and `docs/ui/147-public-access-after-guide-narrow.png` | no | reduced-motion matched; no selector keyboard interaction for the single-entry chip; focused test covers multi-entry combobox naming | public Guide request/asset requests rendered without new browser errors; no mutation requests | selector copy and styling now explicitly use Project Version and the chip has bounded surface treatment; Guide content/access/Revision semantics unchanged | `8e38ee4` / 2026-08-06 |
 | `public-access` | anonymous unavailable Demo / desktop 1440×900 and narrow 390×900 | local `plan128-public` currently returns published-demo unavailable in disposable seed | agent-browser / Chromium; runner API 3022/web 3020 | 900px body, one main, 0 controls, target overflow 0, axe 0/0; `docs/ui/147-public-access-before-demo-desktop.png` and `docs/ui/147-public-access-before-demo-narrow.png` | same truthful unavailable state, one main, target overflow 0, axe 0/0; `docs/ui/147-public-access-after-demo-desktop.png` and `docs/ui/147-public-access-after-demo-narrow.png` | no | reduced-motion matched; no selector present in unavailable state | unavailable request remained truthful; no new browser errors | no populated Demo claim; this route proves shared candidate does not disturb unavailable access messaging | `8e38ee4` / 2026-08-06 |
+
+| `extension-installation` | authenticated ready state / desktop 1440×900 | synthetic local owner session at `/extension`; bundle was not downloaded | agent-browser / Chromium; runner API 3022/web 3020 | 900px body, one main, 10 controls, four card-region headings, target overflow 0, axe 1 violation / 1 incomplete; `docs/ui/147-extension-installation-before-desktop.png` | 932px body, one main, 10 controls, named `Extension installation workspace`, target overflow 0, axe 0/0; `docs/ui/147-extension-installation-after-desktop.png` | no | reduced-motion enabled; download button remained unsubmitted | browser errors and failed local requests empty after candidate route; no bundle mutation | Capture-tools contrast and gradient probe were removed by tokenized muted text and a solid elevated card; installation instructions and runtime URL values remain unchanged | `1058dbd` / 2026-08-06 |
+| `extension-installation` | authenticated ready state / narrow 390×900 | same synthetic local owner session at `/extension`; bundle was not downloaded | agent-browser / Chromium; runner API 3022/web 3020 | 1,857px body, one main, 10 controls, target overflow 0, axe 1 violation / 1 incomplete; `docs/ui/147-extension-installation-before-narrow.png` | 1,923px body, one main, 10 controls, named `Extension installation workspace`, target overflow 0, axe 0/0; `docs/ui/147-extension-installation-after-narrow.png` | no | reduced-motion enabled; Tab path reached portal controls; no target content overflow | browser errors and failed local requests empty after candidate route; no bundle mutation | two-column install/connect cards stack at the narrow breakpoint; installed toolbar/permission path remains unavailable and is not claimed | `1058dbd` / 2026-08-06 |
 
 ## Decision ledger
 
@@ -1126,6 +1132,56 @@ domain, permission, lifecycle, publication, or URL authority.
   candidates, ledger truth, synthetic database state, and all public-link,
   Publication, Revision, and Version-selection contracts.
 
+### extension-installation exact surface preflight
+
+- Actual HEAD/worktree before implementation: `7893091` in
+  `/home/ubuntu/ossie-plan147`, branch `agent/plan-147-ui-quality`; worktree
+  was clean. The candidate is `1058dbd` and changes only the authenticated
+  browser-extension installation page, its CSS module, and the App/page test
+  seam.
+- Surface and normal entries: authenticated `/extension` checking,
+  unauthenticated, access-error, ready/download, and download-error states.
+  The candidate proof covers the ready state; existing component tests cover
+  the remaining branches.
+- Current component/request graph: `BrowserExtensionPage` owns the auth check,
+  authenticated bundle download, file-save callback, and installation guidance;
+  `PortalAppShell` owns shared authenticated navigation. Existing API helpers,
+  browser-extension bundle endpoint, and capture contracts remain authoritative.
+- Baseline browser proof: original ready state rendered one main and ten
+  controls at 1440×900 and 390×900 with no target overflow, but axe reported
+  one real Capture-tools contrast violation and one incomplete gradient
+  background probe over the download card. Baseline files are the two
+  `docs/ui/147-extension-installation-before-*.png` files.
+- Intended write set: named installation workspace region, tokenized header,
+  download card, instruction grid, URL/code blocks, responsive stack, reduced
+  motion rule, focused test, browser evidence, and blind review records. No
+  auth, bundle, download, browser permission, capture, tenant, API, schema,
+  migration, or dependency behavior changes are authorized.
+- Explicitly out of scope: actually installing the browser toolbar extension,
+  permission prompts, popup capture, shared portal-shell clipping, browser zoom
+  tooling, and P2-010 global token-family repair.
+- Accepted constraints: the portal remains an authenticated setup utility;
+  the existing download button remains the only mutation; installation,
+  connection, update, removal, and privacy guidance must remain truthful and
+  domain-neutral.
+- Focused failing test added first: `App.test.tsx` requires the ready page to
+  expose an `Extension installation workspace` region; it failed before the
+  candidate and passes with the wrapper.
+- Browser verification: authenticated ready state at 1440×900 and 390×900;
+  reduced-motion media; axe; target no-overflow; console, page-error, and
+  failed-request checks; keyboard Tab path; no download submitted. Auth/error
+  and download-failure branches remain component-test verification.
+- Reviewer A brief: inspect installation hierarchy, download prominence,
+  numbered-step scanability, code/value wrapping, desktop density, and narrow
+  reflow.
+- Reviewer B brief: inspect auth/download contract, no mutation or credential
+  leakage, error-state coverage, named landmarks, keyboard/axe/reduced-motion
+  behavior, evidence safety, and exact diff scope.
+- Rollback boundary: revert only `1058dbd` and the extension-installation
+  evidence/review records; preserve `7893091`, all prior accepted-pending-human
+  candidates, ledger truth, synthetic database state, and extension bundle,
+  auth, and capture contracts.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
@@ -1148,6 +1204,7 @@ domain, permission, lifecycle, publication, or URL authority.
 | 2026-08-06 | `ae217d0` | `guides-internal` candidate | Guide list/editor/preview and immutable Revision composition, named workspace regions, responsive hierarchy, preview contrast correction, owner/viewer browser and axe evidence; focused 19/19, full web 495/495 serial, web check-types/lint/build, both read-only reviews accept; fixture media limitation recorded | human review Plan 147 bundle; retain shared-shell clipping, browser zoom limitation, editor incomplete contrast probes, existing dev CSP/API-origin media limitation, P2-010 token failure, and remaining queued families |
 | 2026-08-06 | `f27714b` | `entry-onboarding` candidate | Entry shell, login/setup/invite composition, named main landmark, responsive standard width, keyboard/reduced-motion and truthful local browser evidence; focused 22/22, full web 495/495 serial, web check-types/lint/build, both read-only reviews accept | human review Plan 147 bundle; retain setup-ready and loaded-invite component-test limitation, browser zoom limitation, P2-010 token failure, and remaining queued families |
 | 2026-08-06 | `8e38ee4` | `public-access` candidate | Shared Project Version selector copy/semantics and tokenized responsive control; valid Guide/unavailable Demo browser and axe evidence; focused 16/16, full web 496/496 serial, web check-types/lint/build, both read-only reviews accept; multi-entry fixture remains component-test coverage | human review Plan 147 bundle; retain multi-entry and populated Demo/Documentation fixture limitations, browser zoom limitation, P2-010 token failure, and remaining queued families |
+| 2026-08-06 | `1058dbd` | `extension-installation` candidate | authenticated installation workspace hierarchy, named region, tokenized download/instruction cards, desktop/narrow browser and axe evidence; focused 22/22, full web 496/496 serial, web check-types/lint/build, both read-only reviews accept; installed toolbar remains unavailable and unclaimed | human review Plan 147 bundle; retain installed-toolbar/permission block under extension-capture, shared-shell clipping, browser zoom limitation, P2-010 token failure, and remaining queued families |
 
 ## Final bundle index
 

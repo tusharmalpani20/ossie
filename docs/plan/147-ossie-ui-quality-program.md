@@ -1960,7 +1960,7 @@ security decision for the user.
 - [ ] Documentation draft/Revision/Publication preview family.
 - [ ] Public Documentation reader/API-reference family.
 - [x] Shared public access challenge/version-selection family.
-- [ ] Extension installation portal family.
+- [x] Extension installation portal family.
 - [ ] Extension popup/Capture/recovery/completion family.
 - [ ] Global unsupported/Page-not-found/shell-failure family.
 - [ ] Contributor/operator `apps/docs` family.
@@ -2060,6 +2060,18 @@ widths. Reviewer A and Reviewer B both accepted. Status:
 `agent_accepted_pending_human`; multi-entry and populated Demo/Documentation
 browser fixtures remain unavailable, and P2-010 remains queued.
 
+2026-08-06 — `extension-installation` — starting commit `7893091`; candidate
+`1058dbd`. Composed the authenticated extension installation workspace with a
+named landmark, tokenized hierarchy, download/instruction cards, responsive
+desktop and narrow layout, and a solid-card contrast-safe treatment. Focused
+extension installation tests passed 22/22; the full web suite passed 496/496;
+web check-types, lint, build, and diff check passed; authenticated ready-state
+browser/a11y, keyboard, and reduced-motion evidence passed at desktop and
+narrow widths. Reviewer A and Reviewer B both accepted. Status:
+`agent_accepted_pending_human`; installed-toolbar/permission evidence remains
+blocked under `extension-capture`, and shared-shell/zoom limitations plus
+P2-010 remain recorded.
+
 Record future entries as:
 
 ```text
@@ -2127,11 +2139,13 @@ The following remain outside Plan `147` unless separately accepted:
 
 ## 32. Handoff
 
-The current execution has completed the entry/setup/login/invite family as
+The current execution has completed the entry/setup/login/invite, shared public
+access, and authenticated extension-installation portal families as
 `agent_accepted_pending_human`. Continue from the canonical ledger with the
 next independent queued surface, revalidating its exact preflight before any
-edit. Do not reopen accepted surfaces or treat this family as human-approved;
-the remaining browser-fixture limitations and P2-010 token follow-up stay
+edit. Do not reopen accepted surfaces or treat these families as human-
+approved; the installed-toolbar capability block, remaining browser-fixture
+limitations, shared-shell/zoom limitations, and P2-010 token follow-up stay
 recorded in the ledger.
 
 If a long-running execution stops, resume from the next eligible `queued` or
