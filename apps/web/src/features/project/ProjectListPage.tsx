@@ -251,7 +251,7 @@ export const ProjectListPage = ({
   return (
     <PortalShell performLogout={performLogout} navigate={navigate}>
       <section className={styles.header}>
-        <div>
+        <div className={styles.headerCopy}>
           <div className={styles.eyebrow}>Portal home</div>
           <h1 className={styles.title}>Projects</h1>
         </div>
@@ -322,14 +322,20 @@ export const ProjectListPage = ({
         </Card>
       ) : null}
 
-      <section className={styles.content} aria-labelledby="projects-heading">
-        <div className={styles.titleRow}>
-          <h2 className={styles.sectionTitle} id="projects-heading">
-            {statusFilter === "active" ? "Active" : "Archived"} projects
-          </h2>
-          <label>
-            Project status{" "}
+      <section className={styles.content} aria-label="Project library">
+        <div className={styles.listHeader}>
+          <div>
+            <h2 className={styles.sectionTitle} id="projects-heading">
+              {statusFilter === "active" ? "Active" : "Archived"} projects
+            </h2>
+            <p className={styles.listDescription}>
+              Open a workspace or review archived Projects.
+            </p>
+          </div>
+          <label className={styles.filter}>
+            <span>Project status</span>
             <select
+              className={styles.filterSelect}
               aria-label="Project status"
               value={statusFilter}
               onChange={(event) =>

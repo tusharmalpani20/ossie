@@ -138,6 +138,17 @@ describe("ProjectListPage", () => {
     expect(screen.queryByText("sparkles")).not.toBeInTheDocument();
   });
 
+  it("labels the project collection as a distinct library region", async () => {
+    renderPage();
+
+    expect(
+      await screen.findByRole("region", { name: "Project library" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Project status" }),
+    ).toBeVisible();
+  });
+
   it("URL-encodes project IDs in workspace links", async () => {
     renderPage({
       loadProjects: async () => ({

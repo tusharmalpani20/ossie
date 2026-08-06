@@ -602,6 +602,61 @@ domain, permission, lifecycle, publication, or URL authority.
   review records; preserve `fff22eb`/`b4d8400`, all prior ledger truth, and the
   seeded disposable fixture.
 
+### projects-workspace exact surface preflight
+
+- Actual HEAD/worktree: `c6ee819` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; worktree was clean before this surface. New
+  files at baseline are limited to synthetic before screenshots.
+- Surface and normal entries: authenticated `/projects` and root `/` Project
+  list routes; owner/admin/editor/viewer permissions; active and archived
+  filters; populated, empty, loading, retry/error, unauthenticated, create,
+  validation, conflict, saving, keyboard, narrow/reflow, and reduced-motion
+  states. Project workspace navigation remains an existing link contract.
+- Current request/component graph: `App.tsx` resolves the root and Projects
+  routes; `ProjectListPage` owns list loading/filtering, create-form state and
+  error mapping; `PortalAppShell` owns shared navigation, authentication, and
+  the outer main landmark; `ProjectCard` owns the summary metadata and default
+  Project Version link. `listProjects` and `createProject` remain the only
+  project API calls in scope.
+- Baseline browser proof: authenticated synthetic Plan 125 admin at 1440x900
+  measured `scrollWidth=1440`, `bodyScrollWidth=1440`, 900px document height,
+  and 11 interactive controls; at 390x844 it measured `scrollWidth=390`,
+  `bodyScrollWidth=390`, 905px document height, and 11 interactive controls.
+  Both had 0 axe violations and 0 incomplete items. The visual baseline showed
+  a low-information desktop field, a loosely grouped status filter, and a
+  narrow card that inherited the shared portal navigation's horizontal
+  clipping. Baseline files are `docs/ui/147-projects-before-desktop.png` and
+  `docs/ui/147-projects-before-narrow.png`.
+- Intended write set: Project page header/list/filter/card/empty/create-form
+  composition, explicit Project library landmark, token-driven styling,
+  responsive/reduced-motion CSS, focused Project tests, browser evidence, and
+  blind review records. No Project, Project Version, membership, tenant,
+  authorization, create, archive, restore, or workspace URL contracts are
+  intended to change.
+- Explicitly out of scope: PortalAppShell/navigation redesign, server/schema/
+  API/migrations, Project settings/workspace, shared UI dependency changes,
+  new dependencies, and unrelated Project Version or Capture surfaces.
+- Accepted constraints: Project and Project Version are rendered with their
+  accepted domain terms; organization/project isolation and role-derived
+  actions remain unchanged; project metadata stays non-sensitive and direct
+  workspace links remain available for archived Projects.
+- Focused failing test to add first: the Project collection exposes a distinct
+  `Project library` region while preserving the existing Project status filter
+  and response-order/link tests.
+- Browser verification: active/archived/empty filters, create/validation/
+  conflict/retry states, unauthenticated guard, desktop/390px/200% reflow,
+  keyboard focus, reduced motion, axe, console/network, and no accidental
+  mutation beyond the existing synthetic create path.
+- Reviewer A brief: inspect workspace density, Project identity/meta hierarchy,
+  filter grouping, create-form prominence, card actions, narrow layout, and
+  shared-shell boundary.
+- Reviewer B brief: inspect role/tenant/Project Version and archived-link
+  semantics, create/error/empty/loading states, keyboard/axe/zoom/motion,
+  mutation scope, and exact diff boundary.
+- Rollback boundary: revert only the projects-workspace candidate and its
+  evidence/review records; preserve `c6ee819`, all prior public candidates,
+  ledger truth, and the seeded disposable fixture.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
