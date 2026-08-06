@@ -28,6 +28,7 @@ export const InteractiveDemoRenderer = ({
   description,
   scenes,
   assets,
+  showTitle = true,
   emptyMessage = "This demo has no scenes.",
 }: {
   title: string;
@@ -39,6 +40,7 @@ export const InteractiveDemoRenderer = ({
     width?: number | null;
     height?: number | null;
   }>;
+  showTitle?: boolean;
   emptyMessage?: string;
 }) => {
   const orderedScenes = useMemo(
@@ -135,8 +137,8 @@ export const InteractiveDemoRenderer = ({
   if (!scene) {
     return (
       <section className={styles.viewer} aria-label={title}>
-        <h1>{title}</h1>
-        {description ? <p>{description}</p> : null}
+        {showTitle ? <h1>{title}</h1> : null}
+        {showTitle && description ? <p>{description}</p> : null}
         <p>{emptyMessage}</p>
       </section>
     );
@@ -180,8 +182,8 @@ export const InteractiveDemoRenderer = ({
     <section className={styles.viewer} aria-label={title}>
       <header className={styles.header}>
         <div>
-          <h1>{title}</h1>
-          {description ? <p>{description}</p> : null}
+          {showTitle ? <h1>{title}</h1> : null}
+          {showTitle && description ? <p>{description}</p> : null}
         </div>
         <span>
           Scene {scene.sceneIndex} of {orderedScenes.length}

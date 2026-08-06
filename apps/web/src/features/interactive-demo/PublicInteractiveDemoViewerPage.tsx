@@ -132,14 +132,29 @@ export const PublicInteractiveDemoViewerPage = ({
   const publication = state.response.published_artifact;
   if (publication.artifact_type !== "interactive_demo") return null;
   return (
-    <main className={mode === "embed" ? styles.embed : styles.page}>
-      <header>
-        <span>Published interactive demo</span>
-        <PublicVersionSelector response={state.response} mode={mode} />
+    <main
+      aria-labelledby="public-interactive-demo-title"
+      className={mode === "embed" ? styles.embed : styles.page}
+    >
+      <header className={styles.header}>
+        <div className={styles.headerCopy}>
+          <span className={styles.eyebrow}>Published interactive demo</span>
+          <h1 id="public-interactive-demo-title">
+            {publication.revision.title}
+          </h1>
+          {publication.revision.description ? (
+            <p className={styles.description}>
+              {publication.revision.description}
+            </p>
+          ) : null}
+        </div>
+        <div className={styles.versionControl}>
+          <PublicVersionSelector response={state.response} mode={mode} />
+        </div>
       </header>
       <InteractiveDemoRenderer
         title={publication.revision.title}
-        description={publication.revision.description}
+        showTitle={false}
         scenes={publication.demo_scenes.map((scene) => ({
           id: scene.id,
           sceneIndex: scene.scene_index,

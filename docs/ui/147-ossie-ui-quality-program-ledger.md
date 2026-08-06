@@ -468,6 +468,67 @@ domain, permission, lifecycle, publication, or URL authority.
   records; preserve `0ea64b9`/`0028eca`, `8055143`/`b93715c`, the token
   candidate, the Publication preview candidate, and all prior ledger truth.
 
+### demos-public exact surface preflight
+
+- Actual HEAD/worktree: `aa3de94` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; no implementation diff was present before this
+  surface baseline. New files are limited to synthetic before screenshots.
+- Surface and normal entries: anonymous valid public viewer
+  `/d/plan128-public`, its `/embed` form, explicit `summer-release` and `main`
+  Project Version selections, plus seeded password, restricted, expired, and
+  revoked Publish Link states. Required states include loading, valid playback,
+  multi-version selection, Scene transition/history, missing/broken media,
+  password/invalid-password, restricted/expired/revoked/unavailable, embed,
+  320/390px, keyboard, 200% reflow, and reduced motion.
+- Current request/component graph: `App.tsx` resolves public reader/embed
+  routes and mounts `PublicInteractiveDemoViewerPage`; the page owns the
+  Publish Link load/password/retry state and Project Version selector, while
+  `InteractiveDemoRenderer` owns immutable Revision Scene playback, keyboard
+  progression, missing-media fallback, and authenticated Capture-asset
+  hydration.
+- Baseline browser proof: anonymous synthetic `plan128-public` at 1440x900
+  measured `scrollWidth=1440`, `bodyScrollWidth=1440`, 1,372px document height,
+  and 4 interactive controls. At 390x844 it measured
+  `scrollWidth=390`, `bodyScrollWidth=390`, 844px document height, and 4
+  interactive controls. Both had 0 axe violations and 0 incomplete items; the
+  visual baseline showed a plain full-width stage, weak published context, and
+  ungrouped playback controls. Baseline files are
+  `docs/ui/147-interactive-demo-public-before-desktop.png` and
+  `docs/ui/147-interactive-demo-public-before-narrow.png`.
+- Intended write set: public viewer context/header and reader-frame
+  composition; version selector hierarchy; public loading/password/error states;
+  token-driven responsive/reduced-motion CSS; the immutable renderer's optional
+  title ownership; focused viewer/renderer tests; browser evidence; and blind
+  review records. No Publish Link, Publication, Revision, access, canonical
+  URL, password, embed, tenant, or public snapshot contract changes are
+  intended.
+- Explicitly out of scope: server/schema/API/migrations, public-link semantics,
+  access/session policy, immutable Revision content, editor/admin workbench,
+  new dependencies, public Documentation reader authority, and unrelated
+  portal-shell redesign.
+- Accepted constraints: public viewers must not expose authoring or admin
+  vocabulary; exact Publication/Revision identity and Version selection remain
+  visible; stage remains the dominant reader region; playback controls remain
+  keyboard-operable; missing/broken/password/access states stay truthful; and
+  no target network or credential policy is introduced.
+- Focused failing test to add first: the public viewer owns the published Demo
+  title in one level-one heading while the renderer can omit its duplicate
+  title for that shell, preserving the existing immutable playback tests.
+- Browser verification: valid reader/embed, Version selection, Scene transition
+  and Previous/Restart, password invalid retry, restricted/expired/revoked and
+  unavailable states, missing/broken media, desktop/390px/200% reflow,
+  keyboard, reduced motion, axe, console/network, and no public metadata or
+  target-request leakage.
+- Reviewer A brief: inspect public context, title/version hierarchy, stage
+  dominance, progress/control quietness, asset framing, narrow composition,
+  embed restraint, and playback feedback.
+- Reviewer B brief: inspect exact Publish Link/Publication/Revision/access/
+  embed behavior, no authoring leakage, password/error guards, asset and target
+  request safety, keyboard/axe/zoom/reduced-motion behavior, and diff boundary.
+- Rollback boundary: revert only the demos-public candidate and its evidence/
+  review records; preserve `e97647e`/`4008ec7`, `aa3de94`, and all prior ledger
+  truth.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |

@@ -137,6 +137,24 @@ describe("InteractiveDemoRenderer", () => {
     expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
   });
 
+  it("can leave title ownership to the surrounding public shell", () => {
+    render(
+      <InteractiveDemoRenderer
+        title="Shell-owned title"
+        showTitle={false}
+        scenes={scenes}
+        assets={[]}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("heading", { level: 1, name: "Shell-owned title" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Start" }),
+    ).toBeVisible();
+  });
+
   it("hydrates an authenticated cross-origin background for read-only playback", async () => {
     const fetch = vi.fn().mockResolvedValue(
       new Response(new Blob(["synthetic image"], { type: "image/png" }), {

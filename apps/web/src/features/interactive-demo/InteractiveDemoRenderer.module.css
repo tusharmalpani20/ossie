@@ -1,7 +1,11 @@
 .viewer {
   display: grid;
-  gap: 16px;
+  gap: var(--ossie-space-5);
   min-width: 0;
+  padding: var(--ossie-space-5);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-card);
+  background: var(--ossie-color-surface);
 }
 
 .header,
@@ -10,7 +14,7 @@
   display: flex;
   align-items: start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--ossie-space-3);
 }
 
 .header h1,
@@ -26,7 +30,7 @@
   width: 100%;
   min-height: 18rem;
   aspect-ratio: 16 / 9;
-  border: 1px solid var(--ossie-color-border);
+  border: 1px solid var(--ossie-color-border-strong);
   border-radius: var(--ossie-radius-card);
   background: var(--ossie-color-surface-elevated);
 }
@@ -49,7 +53,7 @@
   position: absolute;
   min-width: 2px;
   min-height: 2px;
-  border: 2px solid var(--ossie-color-accent);
+  border: 2px solid var(--ossie-color-focus);
   background: color-mix(in srgb, var(--ossie-color-accent) 14%, transparent);
   cursor: pointer;
 }
@@ -62,11 +66,11 @@
 .hotspot span {
   position: absolute;
   left: 0;
-  bottom: calc(100% + 4px);
+  bottom: calc(100% + var(--ossie-space-1));
   max-width: 14rem;
-  padding: 2px 6px;
+  padding: 2px var(--ossie-space-2);
   overflow: hidden;
-  border-radius: var(--ossie-radius-control);
+  border-radius: var(--ossie-radius-sm);
   background: var(--ossie-color-text);
   color: var(--ossie-color-surface);
   font-size: 0.75rem;
@@ -93,6 +97,10 @@
 
   .canvas {
     min-height: 12rem;
+  }
+
+  .viewer {
+    padding: var(--ossie-space-4);
   }
 }
 
