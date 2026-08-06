@@ -1,15 +1,3 @@
-.page {
-  min-height: 100vh;
-  background: var(--ossie-color-canvas);
-  color: var(--ossie-color-text);
-}
-
-.main {
-  width: min(100%, 74rem);
-  margin: 0 auto;
-  padding: var(--ossie-space-6) var(--ossie-space-5) var(--ossie-space-6);
-}
-
 .header {
   display: flex;
   align-items: end;
@@ -208,10 +196,6 @@
 }
 
 @media (max-width: 48rem) {
-  .main {
-    padding-inline: var(--ossie-space-4);
-  }
-
   .project {
     grid-template-columns: 1fr;
   }
