@@ -57,6 +57,12 @@ describe("DocumentationRequestExamples", () => {
     vi.stubGlobal("fetch", targetFetch);
     render(<DocumentationRequestExamples descriptor={descriptor} />);
 
+    expect(
+      screen.getByRole("heading", { name: "Request examples", level: 2 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "curl · POSIX shell", level: 3 }),
+    ).toBeInTheDocument();
     expect(screen.getAllByRole("tab")).toHaveLength(5);
     expect(screen.getByRole("tabpanel")).toHaveTextContent(
       "https://api.example.com/pets/pet%2F1",

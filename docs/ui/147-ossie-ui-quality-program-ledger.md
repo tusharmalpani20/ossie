@@ -129,7 +129,7 @@ review reports, final clean verification, and all required evidence.
 | `documentation-admin` | Library/workbench/admin | Site library/operations/review/assets/snippets/OpenAPI/portability/publishing | `d638112` | — | 0 | — | — | — | `queued` | P1-003 pending |
 | `documentation-authoring` | Authoring workbench | Site/Page draft authoring, comments, conflict, read-only, archived, validation | `d638112` | `8055143` | 0 | `accept` — review A | `accept` — review B | Site 4/4; Page 6/6 isolated; App-focused pass; web typecheck/lint/build; serial web 482/483 with unrelated Guide failure; authenticated desktop+narrow/keyboard/zoom/reduced-motion; axe 0 violations | `agent_accepted_pending_human` | viewer/archived browser session unavailable on isolated runner; component tests cover guards; unrelated Guide suite failure remains out of scope |
 | `documentation-previews` | Reader/admin | draft, exact Site Revision, exact Site Publication preview; internal roles | `d638112` | `001df10` | 0 | `accept` — review A | `accept` — review B | web 482/482; UI 7/7; web typecheck/lint/build; browser desktop+narrow+anonymous; axe 0 violations | `agent_accepted_pending_human` | P2 reader-chrome and shared-shell polish remain outside this correctness candidate |
-| `documentation-public` | Reader/API reference | Publication reader/search/TOC/operation/Try It/access challenge; anonymous/member | `d638112` | — | 0 | — | — | — | `queued` | P1-004 pending |
+| `documentation-public` | Reader/API reference | Publication reader/search/TOC/operation/Try It/access challenge; anonymous/member | `d638112` | — | 0 | — | — | — | `in_preflight` | P1-004 exact public reader preflight recorded |
 | `public-access` | Shared access challenge | public/restricted/password/expired/revoked/version selection; anonymous | `d638112` | — | 0 | — | — | — | `queued` | shared contract audit pending |
 | `token-foundation` | Shared pattern / design system | web `/__design-system`, authenticated portal shell, auth entry, Demo workbench/editor, Documentation library, extension popup; default/hover/focus/disabled/selected/error/read-only/reduced-motion | `d638112` | `105fc5b` | 0 | `accept` — review A | `accept` — review B | token check; web 8/8 focused; extension 140/140; UI 7/7; affected typecheck/lint/build; browser desktop+narrow+popup; axe 0 violations | `agent_accepted_pending_human` | installed extension-toolbar capability is `blocked_local_for_run`; narrow axe has one incomplete probe over intentional table scroll |
 | `extension-installation` | Setup utility | extension check/auth/error/ready/download/update/remove | `d638112` | — | 0 | — | — | — | `queued` | extension browser capability pending |
@@ -153,7 +153,7 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | `P1-001` | P1 | correctness / route | Documentation Publication preview | Plan audit; `routes.ts`, `portalRouteMetadata.ts`, `App.tsx`; existing authenticated `GET .../publications` plus immutable `GET .../revisions/:revision_number` contract | implementer | 0 | accepted_pending_human | `001df10` | route + component tests green; authenticated and anonymous browser paths verified; both reviews accept | no new server/public route; exact Publication identity and its named Revision remain coupled |
 | `P1-002` | P1 | token system | Demo/auth/Documentation live CSS | Plan audit; undefined token inventory; current CSS consumer/definition inventory | implementer | 0 | accepted_pending_human | `105fc5b` | `check-css-tokens` passes; affected tests/builds and browser token/a11y evidence pass; both reviews accept | narrow gallery axe has one incomplete contrast check caused by partially obscured horizontal table text; no violations |
 | `P1-003` | P1 | composition / architecture | Documentation authoring 390px | Plan audit; authenticated baseline measured at 6,845 CSS px and 136 interactive controls | implementer | 0 | accepted_pending_human | `8055143` | Site task boundaries, status persistence, focused state guards, browser/a11y evidence, and both reviews pass | viewer/archived browser session unavailable on isolated runner; unrelated Guide test failure remains separate |
-| `P1-004` | P1 | reader composition | public Documentation reader 390px | Plan audit; committed reader evidence | implementer | 0 | open | — | browser reader matrix required | public UX remains unfinished |
+| `P1-004` | P1 | reader composition | public Documentation reader 390px | Plan audit; anonymous Publication reader baseline measured and operation route verified | implementer | 0 | in_progress | — | browser reader matrix required | public UX remains unfinished |
 | `P1-005` | P1 | workbench hierarchy / interaction | Interactive Demo editor | Plan audit; stage/navigator/inspector evidence | implementer | 0 | open | — | keyboard/direct-manipulation evidence required | resize alternative unverified |
 | `P1-006` | P1 | current truth | repository status/docs | Plan section 8 scan | coordinator | 0 | open | — | text scan and doc diff | stale guidance may misdirect execution |
 | `P2-001` | P2 | visual consistency | cross-product libraries/readers | plan issue register | implementer | 0 | queued | — | family review | exact route ownership pending |
@@ -315,6 +315,71 @@ domain, permission, lifecycle, publication, or URL authority.
 - Rollback boundary: revert only the P1-003 candidate and its evidence/review
   records; preserve `70e1a25`, the semantic-token candidate, the Publication
   preview candidate, and the current-truth reconciliation.
+
+### P1-004 exact surface preflight
+
+- Actual HEAD/worktree: `b93715c` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; worktree clean before this surface.
+- Surface and normal entries: anonymous public Documentation Publish Link
+  `/docs/plan132-public/install-guide`, its permanent alias/redirect/gone
+  variants, and the API operation route
+  `/docs/plan132-public/operations/get-widgets-listwidgets`. Required states
+  include valid Publication, search results/empty/error, long content/code,
+  operation examples, browser-direct Try It available/unavailable, password
+  challenge/invalid password, revoked/expired/unavailable, canonical redirect,
+  embed, 320/390px, keyboard, 200% reflow, and reduced motion.
+- Current request/component graph: `App.tsx` resolves the public route and
+  mounts `PublicDocumentationReaderPage`; the page loads the public
+  Publish-Link snapshot, owns password session/retry/search state and metadata,
+  renders typed Blocks/operation examples/Try It, and mounts the lazy
+  `DocumentationPublicationReaderChrome` when the bounded Fumadocs adapter can
+  build its authorized tree. The Chrome owns breadcrumb, navigation, adjacent
+  links, and TOC; native fallback owns equivalent semantic navigation.
+- Baseline browser proof: anonymous synthetic `install-guide` at 1440×900 and
+  390×844 rendered the exact Site/Page content, navigation, breadcrumb, search,
+  safe assets, tabs, table, previous/next, and no internal IDs. Both viewports
+  measured `scrollWidth=viewport width`, 0 axe violations, 0 incomplete items,
+  and 12 interactive controls. The operation route rendered inert examples,
+  copy/download controls, and truthful unavailable Try It messaging without
+  executing a target request. Baseline screenshots are
+  `docs/ui/147-documentation-public-before-desktop.png` and
+  `docs/ui/147-documentation-public-before-narrow.png`; browser errors were
+  empty.
+- Intended write set: public reader composition CSS and semantic wrappers;
+  deliberate title/metadata, search/header, navigation drawer/overlay,
+  breadcrumb, readable article measure, code/table overflow, TOC, API example
+  and Try It grouping, access/unavailable card styling, adjacent navigation,
+  reduced-motion rules, focused reader tests, browser evidence, and blind
+  review records. No public snapshot contract changes are intended.
+- Explicitly out of scope: server/schema/API/migrations, public URL/redirect/
+  canonical/access/password/expiry/revocation semantics, Publication identity
+  or immutable content, Fumadocs becoming route/content authority, Try It target
+  requests or credential policy, arbitrary HTML/MDX, new dependencies, and
+  internal authoring/admin UI.
+- Accepted constraints: public reader must not expose administration language,
+  internal IDs, private metadata, or credentials; native fallback and bounded
+  authorized bootstrap stay behaviorally equivalent; navigation becomes a
+  controlled narrow-screen drawer/overlay; code overflow is contained; visual
+  styling uses the accepted Ossie token authority and preserves focus,
+  contrast, keyboard, and reduced-motion behavior.
+- Focused failing test to add first: the valid reader exposes explicit reader
+  shell landmarks, an accessible navigation-drawer control, and an article
+  content region while keeping the existing exact content/search contract.
+- Browser verification: anonymous valid, operation, alias/redirect/gone, and
+  unavailable routes at 1440×900 and 390×844; keyboard drawer open/close and
+  search; 200% zoom/reflow; reduced motion; axe; console/network; no target API
+  execution. Password challenge remains verified through existing component
+  tests unless a deterministic seeded public password route is present.
+- Reviewer A brief: inspect reader hierarchy, calm chrome, measure/typography,
+  navigation drawer, search, breadcrumb, TOC, API/example separation, adjacent
+  links, and narrow/zoom composition.
+- Reviewer B brief: inspect exact public route/redirect/access/canonical
+  behavior, no metadata/credential leakage, safe assets and inert examples,
+  Try It availability messaging, keyboard/axe/reduced-motion/error states,
+  native fallback parity, and diff boundary.
+- Rollback boundary: revert only the P1-004 candidate and its evidence/review
+  records; preserve `8055143`/`b93715c`, the semantic-token candidate, the
+  Publication preview candidate, and all prior ledger truth.
 
 ## Checkpoints
 

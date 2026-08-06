@@ -17,6 +17,7 @@ import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiO
 import { LazyDocumentationRequestExamples } from "./LazyDocumentationRequestExamples";
 import { LazyDocumentationPublicationReaderChrome } from "./LazyDocumentationPublicationReaderChrome";
 import { readDocumentationInitialDocument } from "../../lib/documentationInitialDocument";
+import styles from "./PublicDocumentationReaderPage.module.css";
 import {
   buildDocumentationReaderNavigationTree,
   buildDocumentationReaderProjection,
@@ -74,19 +75,31 @@ const renderAdjacentNavigation = (
   adjacent: ReturnType<typeof getDocumentationReaderAdjacentPages>,
 ): ReactNode =>
   adjacent.previous || adjacent.next ? (
-    <nav aria-label="Documentation page navigation">
-      <ul>
+    <nav className={styles.adjacent} aria-label="Documentation page navigation">
+      <ul className={styles.adjacentList}>
         {adjacent.previous ? (
           <li>
-            <a href={adjacent.previous.url} rel="prev">
-              Previous: {adjacent.previous.title}
+            <a
+              aria-label={`Previous: ${adjacent.previous.title}`}
+              className={styles.adjacentLink}
+              href={adjacent.previous.url}
+              rel="prev"
+            >
+              <span>Previous</span>
+              <strong>{adjacent.previous.title}</strong>
             </a>
           </li>
         ) : null}
         {adjacent.next ? (
           <li>
-            <a href={adjacent.next.url} rel="next">
-              Next: {adjacent.next.title}
+            <a
+              aria-label={`Next: ${adjacent.next.title}`}
+              className={styles.adjacentLink}
+              href={adjacent.next.url}
+              rel="next"
+            >
+              <span>Next</span>
+              <strong>{adjacent.next.title}</strong>
             </a>
           </li>
         ) : null}
@@ -115,6 +128,7 @@ export const PublicDocumentationReaderPage = ({
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -227,9 +241,14 @@ export const PublicDocumentationReaderPage = ({
 
   if (passwordRequired)
     return (
-      <main id="main-content">
-        <form onSubmit={(event) => void unlock(event)}>
+      <main className={styles.gate} id="main-content">
+        <form
+          className={styles.gateCard}
+          onSubmit={(event) => void unlock(event)}
+        >
+          <p className={styles.eyebrow}>Protected Publication</p>
           <h1>Password required</h1>
+          <p>Enter the Publish Link password to continue reading.</p>
           <label>
             Publish Link password
             <input
@@ -249,12 +268,20 @@ export const PublicDocumentationReaderPage = ({
     );
   if (unavailable)
     return (
-      <main id="main-content">
-        <h1>Documentation unavailable</h1>
-        <p>This link is unavailable or you do not have access.</p>
+      <main className={styles.gate} id="main-content">
+        <div className={styles.gateCard}>
+          <p className={styles.eyebrow}>Public Documentation</p>
+          <h1>Documentation unavailable</h1>
+          <p>This link is unavailable or you do not have access.</p>
+        </div>
       </main>
     );
-  if (!snapshot) return <p role="status">Loading Documentation…</p>;
+  if (!snapshot)
+    return (
+      <main className={styles.loading} id="main-content" role="status">
+        Loading Documentation…
+      </main>
+    );
   const operationBase = `${pageBase}/operations`;
   const assetBase = versionSlug
     ? `/api/v1/public/publish-links/${encodeURIComponent(slug)}/versions/${encodeURIComponent(versionSlug)}/documentation/assets`
@@ -297,8 +324,14 @@ export const PublicDocumentationReaderPage = ({
       )
     : { previous: null, next: null };
   const readerContent = (
-    <>
+    <article className={styles.article}>
+      <p className={styles.articleMeta}>
+        {snapshot.site.name} · {snapshot.revision.primary_language}
+      </p>
       <h1>{snapshot.page.title}</h1>
+      {snapshot.page.description ? (
+        <p className={styles.lede}>{snapshot.page.description}</p>
+      ) : null}
       <DocumentationBlockRenderer
         assetUrl={(source) =>
           `${assetBase}/${source.kind === "capture_asset" ? "capture/" : ""}${encodeURIComponent(source.id)}/file`
@@ -361,46 +394,78 @@ export const PublicDocumentationReaderPage = ({
           Interactive requests are unavailable for this legacy operation.
         </p>
       ) : null}
-    </>
+    </article>
   );
   const nativeReader = (
-    <div>
-      <nav aria-label="Documentation navigation">
+    <div className={styles.readerLayout}>
+      <button
+        aria-controls="documentation-primary-navigation"
+        aria-expanded={navigationOpen}
+        className={styles.navigationToggle}
+        onClick={() => setNavigationOpen((open) => !open)}
+        type="button"
+      >
+        {navigationOpen
+          ? "Close documentation navigation"
+          : "Open documentation navigation"}
+      </button>
+      <nav
+        aria-label="Documentation navigation"
+        className={navigationOpen ? styles.primaryNavOpen : styles.primaryNav}
+        id="documentation-primary-navigation"
+        onClick={() => setNavigationOpen(false)}
+      >
         {renderNativeNavigation(
           readerNavigationTree.children,
           readerProjection.selectedPagePath,
         )}
       </nav>
-      <main id="main-content">
-        <p>
-          <a href={pageBase}>Documentation</a>
-        </p>
+      <main className={styles.main} id="main-content">
+        <nav
+          aria-label="Documentation breadcrumb"
+          className={styles.breadcrumb}
+        >
+          <ol>
+            <li>
+              <a href={pageBase}>Documentation</a>
+            </li>
+          </ol>
+        </nav>
         {readerContent}
         {renderAdjacentNavigation(adjacent)}
       </main>
     </div>
   );
   return (
-    <>
-      <a href="#main-content">Skip to content</a>
-      <header>
-        <a href={pageBase}>{snapshot.site.name}</a>
-        <form role="search" onSubmit={(event) => void submitSearch(event)}>
+    <div className={styles.readerShell}>
+      <a className={styles.skipLink} href="#main-content">
+        Skip to content
+      </a>
+      <header className={styles.header} data-reader-shell="true">
+        <div className={styles.brandLockup}>
+          <p className={styles.eyebrow}>Public Documentation</p>
+          <a className={styles.brand} href={pageBase}>
+            {snapshot.site.name}
+          </a>
+        </div>
+        <form
+          className={styles.searchForm}
+          role="search"
+          onSubmit={(event) => void submitSearch(event)}
+        >
           <label htmlFor="documentation-search">Search Documentation</label>
           <input
+            className={styles.searchInput}
             id="documentation-search"
             type="search"
-            style={{
-              backgroundColor: "#fff",
-              border: "1px solid #374151",
-              color: "#111827",
-            }}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
-          <button type="submit">Search</button>
+          <button className={styles.searchButton} type="submit">
+            Search
+          </button>
         </form>
-        <p role="status" aria-live="polite">
+        <p className={styles.searchStatus} role="status" aria-live="polite">
           {searching
             ? "Searching…"
             : results
@@ -409,7 +474,7 @@ export const PublicDocumentationReaderPage = ({
         </p>
         {searchError ? <p role="alert">{searchError}</p> : null}
         {results ? (
-          <ul>
+          <ul aria-label="Search results" className={styles.searchResults}>
             {results.map((result) => (
               <li key={result.page_id}>
                 <a href={`${pageBase}/${result.canonical_path}`}>
@@ -431,6 +496,6 @@ export const PublicDocumentationReaderPage = ({
       ) : (
         nativeReader
       )}
-    </>
+    </div>
   );
 };

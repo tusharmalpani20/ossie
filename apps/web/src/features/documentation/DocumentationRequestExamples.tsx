@@ -89,7 +89,7 @@ export const DocumentationRequestExamples = ({
       aria-labelledby={headingId}
       className="documentation-request-examples"
     >
-      <h3 id={headingId}>Request examples</h3>
+      <h2 id={headingId}>Request examples</h2>
       <p>
         Inert examples use the public placeholder origin and documented values.
         They never execute a request or use Try-It credentials.
@@ -143,9 +143,9 @@ export const DocumentationRequestExamples = ({
           role="tabpanel"
           tabIndex={0}
         >
-          <h4 id={headingId + "-" + selectedId + "-label"}>
+          <h3 id={headingId + "-" + selectedId + "-label"}>
             {selectedResult.display_name} · {selectedResult.runtime}
-          </h4>
+          </h3>
           <div className="documentation-request-examples__actions">
             <button type="button" onClick={() => void copy()}>
               Copy {selectedResult.display_name} example

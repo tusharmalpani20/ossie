@@ -104,6 +104,16 @@ describe("PublicDocumentationReaderPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Install" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("banner")).toHaveAttribute(
+      "data-reader-shell",
+      "true",
+    );
+    expect(
+      screen.getByRole("button", { name: "Open documentation navigation" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("article")).toHaveTextContent(
+      "Follow these steps.",
+    );
     expect(screen.getByText("Follow these steps.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /List widgets/ })).toHaveAttribute(
       "href",
@@ -120,9 +130,7 @@ describe("PublicDocumentationReaderPage", () => {
       "href",
       expect.stringContaining("/docs/product-docs/install"),
     );
-    expect(screen.getByRole("searchbox")).toHaveStyle({
-      backgroundColor: "rgb(255, 255, 255)",
-    });
+    expect(screen.getByRole("searchbox")).toBeEnabled();
 
     fireEvent.change(screen.getByRole("searchbox"), {
       target: { value: "install" },
