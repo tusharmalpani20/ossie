@@ -79,9 +79,23 @@ orphaned by a source-consumer audit. Both blind reviews accept pending human
 review; the gallery is synthetic/local-only and the installed toolbar remains
 blocked in this environment.
 
+### Shared shell mobile — `8b45a4b`
+
+- [Review A](./147-shared-shell-mobile-review-a.md)
+- [Review B](./147-shared-shell-mobile-review-b.md)
+- [Before desktop](./147-shared-shell-before-desktop.png), [after desktop](./147-shared-shell-after-desktop.png)
+- [Before narrow](./147-shared-shell-before-narrow.png), [after narrow](./147-shared-shell-after-narrow.png), [after 320px](./147-shared-shell-after-320.png)
+
+The shared portal navigation now wraps inside the viewport at narrow widths:
+two columns at 390px and one column at 320px. Desktop remains unchanged. Both
+blind reviews accept pending human review. The browser evidence uses the
+truthful unauthenticated `/projects` state; its unrelated missing-h1 axe finding
+and the unavailable real browser-zoom control remain recorded rather than
+overstated.
+
 ## Verification summary
 
-- Final web suite: 94 files, 497 tests passed.
+- Final web suite: 95 files, 498 tests passed.
 - Final docs suite: 4 files, 13 tests passed.
 - Shared UI tests: 4 files, 11 tests passed; focused shared-foundation web
   tests: 45/45.
@@ -108,6 +122,9 @@ blocked in this environment.
 - Review the shared-foundation parent/candidate comparison, especially the
   command hierarchy, synthetic drawer/access/reader patterns, compact
   extension states, and the five proven dead-CSS removals.
+- Review the shared-shell desktop/narrow/320px comparison and the intentional
+  narrow navigation reflow; confirm the recorded `/projects` heading and zoom
+  limitations are acceptable residuals.
 - Rerun the installed extension toolbar/permission path in a capable browser
   environment before changing `extension-capture` from
   `blocked_local_for_run`.

@@ -2131,6 +2131,22 @@ incomplete. Reviewer A and Reviewer B both accepted. Status:
 installed-toolbar verification remains `blocked_local_for_run`, and broader
 200% zoom/raw CSS review remains in section 26.6.
 
+2026-08-06 — `shared-shell-mobile` — starting commit `a83f2ae`; preflight
+commit `b332180`; candidate `8b45a4b`. Replaced the shared PortalAppShell
+narrow horizontal navigation rail, which measured 837px inside a 390px
+viewport, with an intrinsic-width-safe wrapping grid. Desktop remains the
+existing two-column shell; 390px uses two columns and 320px uses one column so
+all existing destinations remain visible without page or nav overflow. The
+TDD responsive contract and shell tests passed 6/6; the final web suite passed
+95 files / 498 tests; web check-types, lint, build, token check 130/123, and
+diff check passed. Browser evidence at 1440px, 390px, and 320px passed focused
+navigation axe 0/0, keyboard traversal, reduced motion, and local request/
+console checks. Reviewer A and Reviewer B both accepted. Status:
+`agent_accepted_pending_human`; the truthful unauthenticated `/projects`
+browser route retains its pre-existing missing-h1 axe finding, authenticated
+role contexts remain component-test coverage, actual browser zoom is
+unavailable, and P2-001 plus the broader 26.6 matrix remain open.
+
 Record future entries as:
 
 ```text
@@ -2200,7 +2216,7 @@ The following remain outside Plan `147` unless separately accepted:
 
 The autonomous execution has completed all queued surface families through
 `design-system-gallery`, `global-fallback`, `contributor-docs`, and the bounded
-`shared-foundation` follow-up; every qualifying surface is
+`shared-foundation` and `shared-shell-mobile` follow-ups; every qualifying surface is
 `agent_accepted_pending_human` unless the ledger explicitly records
 `blocked_local_for_run`. The next action is human review of the assembled
 bundle, followed by disposition and bounded implementation of any accepted
