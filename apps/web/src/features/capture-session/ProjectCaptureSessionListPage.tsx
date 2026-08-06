@@ -352,110 +352,123 @@ export const ProjectCaptureSessionListPage = ({
       versionSlug={versionSlug}
       renderShell={renderShell}
     >
-      <section className={styles.header}>
-        <div>
-          <div className={styles.eyebrow}>Project</div>
-          <h1 className={styles.title}>Capture sessions</h1>
-          <p className={styles.description}>{projectId}</p>
-        </div>
-        {writable ? (
-          <Button type="button" onClick={openCreateForm}>
-            New Capture Session
-          </Button>
-        ) : (
-          <Badge>Read only</Badge>
-        )}
-      </section>
-
-      {showCreateForm ? (
-        <Card
-          className={styles.createPanel}
-          aria-labelledby="create-capture-session-heading"
-        >
-          <CardHeader>
-            <h2
-              className={styles.formTitle}
-              id="create-capture-session-heading"
-            >
-              Create capture session
-            </h2>
-          </CardHeader>
-          <CardContent>
-            <form className={styles.form} onSubmit={submitCreateCaptureSession}>
-              {createError ? (
-                <Alert variant="destructive">{createError}</Alert>
-              ) : null}
-              <Label className={styles.field}>
-                <span>Name</span>
-                <Input
-                  ref={createNameInputRef}
-                  value={createForm.name}
-                  onChange={(event) =>
-                    updateCreateField("name", event.target.value)
-                  }
-                />
-              </Label>
-              <Label className={styles.field}>
-                <span>Start URL</span>
-                <Input
-                  value={createForm.start_url}
-                  onChange={(event) =>
-                    updateCreateField("start_url", event.target.value)
-                  }
-                />
-              </Label>
-              <Label className={styles.field}>
-                <span>Description</span>
-                <Textarea
-                  rows={4}
-                  value={createForm.description}
-                  onChange={(event) =>
-                    updateCreateField("description", event.target.value)
-                  }
-                />
-              </Label>
-              <div className={styles.formActions}>
-                <Button type="submit" disabled={isCreating}>
-                  {isCreating
-                    ? "Creating Capture Session..."
-                    : "Create Capture Session"}
-                </Button>
-                <Button
-                  variant="secondary"
-                  type="button"
-                  onClick={closeCreateForm}
-                  disabled={isCreating}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <section
-        className={styles.content}
-        aria-labelledby="capture-sessions-heading"
+      <div
+        className={styles.workspace}
+        role="region"
+        aria-label="Capture sessions workspace"
       >
-        <h2 className={styles.sectionTitle} id="capture-sessions-heading">
-          Project capture sessions
-        </h2>
-        {state.captureSessions.length === 0 ? (
-          <Card className={styles.empty}>No capture sessions yet.</Card>
-        ) : (
-          <div className={styles.list}>
-            {state.captureSessions.map((captureSession) => (
-              <CaptureSessionRow
-                key={captureSession.id}
-                captureSession={captureSession}
-                projectId={projectId}
-                versionSlug={versionSlug}
-              />
-            ))}
+        <section className={styles.header}>
+          <div>
+            <div className={styles.eyebrow}>Project</div>
+            <h1 className={styles.title}>Capture sessions</h1>
+            <p className={styles.description}>
+              {versionSlug
+                ? "Capture sessions for this Project Version"
+                : "Capture sessions for this Project"}
+            </p>
           </div>
-        )}
-      </section>
+          {writable ? (
+            <Button type="button" onClick={openCreateForm}>
+              New Capture Session
+            </Button>
+          ) : (
+            <Badge>Read only</Badge>
+          )}
+        </section>
+
+        {showCreateForm ? (
+          <Card
+            className={styles.createPanel}
+            aria-labelledby="create-capture-session-heading"
+          >
+            <CardHeader>
+              <h2
+                className={styles.formTitle}
+                id="create-capture-session-heading"
+              >
+                Create capture session
+              </h2>
+            </CardHeader>
+            <CardContent>
+              <form
+                className={styles.form}
+                onSubmit={submitCreateCaptureSession}
+              >
+                {createError ? (
+                  <Alert variant="destructive">{createError}</Alert>
+                ) : null}
+                <Label className={styles.field}>
+                  <span>Name</span>
+                  <Input
+                    ref={createNameInputRef}
+                    value={createForm.name}
+                    onChange={(event) =>
+                      updateCreateField("name", event.target.value)
+                    }
+                  />
+                </Label>
+                <Label className={styles.field}>
+                  <span>Start URL</span>
+                  <Input
+                    value={createForm.start_url}
+                    onChange={(event) =>
+                      updateCreateField("start_url", event.target.value)
+                    }
+                  />
+                </Label>
+                <Label className={styles.field}>
+                  <span>Description</span>
+                  <Textarea
+                    rows={4}
+                    value={createForm.description}
+                    onChange={(event) =>
+                      updateCreateField("description", event.target.value)
+                    }
+                  />
+                </Label>
+                <div className={styles.formActions}>
+                  <Button type="submit" disabled={isCreating}>
+                    {isCreating
+                      ? "Creating Capture Session..."
+                      : "Create Capture Session"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    onClick={closeCreateForm}
+                    disabled={isCreating}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <section
+          className={styles.content}
+          aria-labelledby="capture-sessions-heading"
+        >
+          <h2 className={styles.sectionTitle} id="capture-sessions-heading">
+            Project capture sessions
+          </h2>
+          {state.captureSessions.length === 0 ? (
+            <Card className={styles.empty}>No capture sessions yet.</Card>
+          ) : (
+            <div className={styles.list}>
+              {state.captureSessions.map((captureSession) => (
+                <CaptureSessionRow
+                  key={captureSession.id}
+                  captureSession={captureSession}
+                  projectId={projectId}
+                  versionSlug={versionSlug}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </PortalShell>
   );
 };

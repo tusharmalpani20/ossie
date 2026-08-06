@@ -893,6 +893,53 @@ domain, permission, lifecycle, publication, or URL authority.
   evidence/review records; preserve `d34eafe`, prior candidates, ledger truth,
   synthetic database state, and the existing Project Version API contracts.
 
+### capture-portal exact surface preflight
+
+- Actual HEAD/worktree: `e37df02` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; the worktree was clean before this surface. The
+  browser baseline uses only synthetic Plan 125 Capture Session fixtures and
+  records no raw captured input or private URLs.
+- Scope: authenticated owner `/projects/01K12500000000000000000002/versions/main/capture-sessions`
+  list/create and Capture Session detail for synthetic canceled/capturing
+  sessions. Existing event, asset, upload, reorder, edit, artifact creation,
+  Project Version reassignment, read-only, and failure contracts remain API
+  and component-test authority; this slice is composition only.
+- Baseline browser proof at 1440px: the list measured 1,440px body width,
+  900px document height, 23 interactive controls, one main landmark, and 0
+  axe violations / 0 incomplete items. The populated list baseline showed
+  weak header grouping, raw Project ID copy, long action labels, and loose
+  metadata rows. Baseline file is
+  `docs/ui/147-capture-portal-before-list-desktop.png`.
+- Baseline browser proof at 390px: the list measured 390px body width,
+  1,676px document height, 23 controls, one main landmark, and 0 axe
+  violations / 0 incomplete items; the target content had no horizontal
+  overflow while the shared portal navigation remained scrollable. Baseline
+  file is `docs/ui/147-capture-portal-before-list-narrow.png`.
+- Baseline detail proof at 1440px: synthetic canceled and capturing routes
+  both rendered one main landmark, 25 controls, 1,006px document height, and
+  0 axe violations / 0 incomplete items. The disposable browser fixture has
+  no populated event/asset records, so populated timeline/asset visual proof
+  remains component-test coverage rather than fabricated browser evidence.
+  Baseline files are
+  `docs/ui/147-capture-portal-before-detail-desktop.png` and
+  `docs/ui/147-capture-portal-before-detail-populated-desktop.png`.
+- Intended write set: Capture list/detail hierarchy and tokenized responsive
+  CSS, removal of raw Project ID presentation where the existing Project
+  Version context already identifies the scope, focused landmark/state tests,
+  browser evidence, and blind review records. No Capture Session/Event/Asset,
+  upload, artifact, Project Version, organization authorization, tenant,
+  immutable-content, or public URL behavior changes are authorized.
+- Reviewer A brief: inspect Capture Session identity, list row hierarchy,
+  status/source badges, create affordance, metadata density, detail metrics,
+  upload/events/assets framing, and narrow composition.
+- Reviewer B brief: inspect Capture source immutability, asset protection,
+  event/order/edit contracts, artifact creation and Project Version
+  permission boundaries, read-only states, error/retry behavior,
+  keyboard/axe/zoom/motion, and exact diff scope.
+- Rollback boundary: revert only the Capture portal candidate and its
+  evidence/review records; preserve `e37df02`, prior candidates, ledger truth,
+  synthetic database state, and existing Capture API/component contracts.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |

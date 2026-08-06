@@ -721,268 +721,284 @@ const CaptureSessionDetailView = ({
       navigate={navigate}
       renderShell={renderShell}
     >
-      <section className={styles.header}>
-        <div className={styles.titleRow}>
-          <div>
-            <div className={styles.eyebrow}>Capture session</div>
-            <h1 className={styles.title}>{session.name}</h1>
-            {session.description ? (
-              <p className={styles.description}>{session.description}</p>
-            ) : null}
-          </div>
-          <div className={styles.badges}>
-            <Badge
-              variant={session.status === "completed" ? "success" : "default"}
-            >
-              {session.status}
-            </Badge>
-            <Badge>{session.source_type}</Badge>
-            <Badge>{session.project_version.name}</Badge>
-          </div>
-        </div>
-        {canWrite ? (
-          <div className={styles.actionRow}>
-            {canReassignVersion && versionTargets.length > 0 ? (
-              <>
-                <Label>
-                  <span>Move empty draft to Project Version</span>
-                  <select
-                    value={reassignTarget}
-                    onChange={(event) => setReassignTarget(event.target.value)}
-                  >
-                    <option value="">Select Version</option>
-                    {versionTargets.map((version) => (
-                      <option key={version.id} value={version.id}>
-                        {version.name}
-                      </option>
-                    ))}
-                  </select>
-                </Label>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={!reassignTarget || reassignState === "saving"}
-                  onClick={handleReassign}
-                >
-                  {reassignState === "saving" ? "Moving..." : "Move draft"}
-                </Button>
-                {reassignState === "error" ? (
-                  <div className={styles.actionMessage}>
-                    The draft changed or can no longer be moved. Current data
-                    was reloaded.
-                  </div>
-                ) : null}
-              </>
-            ) : null}
-            <Button
-              type="button"
-              disabled={!canCreateGuide}
-              aria-describedby={artifactActionDescription}
-              onClick={handleCreateGuide}
-            >
-              {createState === "creating"
-                ? "Creating guide..."
-                : "Create guide"}
-            </Button>
-            <Button
-              variant="secondary"
-              type="button"
-              disabled={!canCreateInteractiveDemo}
-              aria-describedby={artifactActionDescription}
-              onClick={handleCreateInteractiveDemo}
-            >
-              {createDemoState === "creating"
-                ? "Creating interactive demo..."
-                : "Create interactive demo"}
-            </Button>
-            {guideTitle.length === 0 ? (
-              <div className={styles.actionMessage} id={missingTitleMessageId}>
-                Capture session needs a name before creating guide or demo
-                artifacts.
-              </div>
-            ) : null}
-            {!hasCaptureEvents ? (
-              <div className={styles.actionMessage} id={emptyCaptureMessageId}>
-                Add at least one capture event before creating guide or demo
-                artifacts.
-              </div>
-            ) : null}
-            {createState === "error" ? (
-              <div className={styles.actionMessage}>
-                Could not create guide.
-              </div>
-            ) : null}
-            {createDemoState === "error" ? (
-              <div className={styles.actionMessage}>
-                Could not create interactive demo.
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <Badge>Read only</Badge>
-        )}
-
-        <CaptureSessionMetrics detail={detail} />
-      </section>
-
-      {canUploadScreenshot ? (
-        <Card
-          className={styles.uploadPanel}
-          role="region"
-          aria-labelledby="upload-screenshot-heading"
-        >
-          <CardHeader>
-            <h2 className={styles.uploadTitle} id="upload-screenshot-heading">
-              Upload screenshot
-            </h2>
-          </CardHeader>
-          <CardContent>
-            <form
-              className={styles.uploadForm}
-              onSubmit={handleUploadScreenshot}
-            >
-              {uploadError ? (
-                <Alert variant="destructive">{uploadError}</Alert>
+      <div
+        className={styles.workspace}
+        role="region"
+        aria-label="Capture session workspace"
+      >
+        <section className={styles.header}>
+          <div className={styles.titleRow}>
+            <div>
+              <div className={styles.eyebrow}>Capture session</div>
+              <h1 className={styles.title}>{session.name}</h1>
+              {session.description ? (
+                <p className={styles.description}>{session.description}</p>
               ) : null}
-              <Label className={styles.field}>
-                <span>Screenshot file</span>
-                <input
-                  ref={uploadFileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/png,image/jpeg,image/webp"
-                  disabled={isUploading}
-                  onChange={(event) =>
-                    updateUploadFiles(Array.from(event.target.files ?? []))
-                  }
-                />
-              </Label>
-              {uploadQueue.length > 0 ? (
-                <div
-                  className={styles.uploadQueue}
-                  role="status"
-                  aria-live="polite"
-                  aria-label="Selected screenshots"
-                >
-                  {uploadQueue.map((item) => (
-                    <div className={styles.uploadQueueItem} key={item.id}>
-                      <span className={styles.uploadQueueName}>
-                        {item.name}
-                      </span>
-                      <span className={styles.uploadQueueStatus}>
-                        {uploadStatusLabel(item.status)}
-                      </span>
+            </div>
+            <div className={styles.badges}>
+              <Badge
+                variant={session.status === "completed" ? "success" : "default"}
+              >
+                {session.status}
+              </Badge>
+              <Badge>{session.source_type}</Badge>
+              <Badge>{session.project_version.name}</Badge>
+            </div>
+          </div>
+          {canWrite ? (
+            <div className={styles.actionRow}>
+              {canReassignVersion && versionTargets.length > 0 ? (
+                <>
+                  <Label>
+                    <span>Move empty draft to Project Version</span>
+                    <select
+                      value={reassignTarget}
+                      onChange={(event) =>
+                        setReassignTarget(event.target.value)
+                      }
+                    >
+                      <option value="">Select Version</option>
+                      {versionTargets.map((version) => (
+                        <option key={version.id} value={version.id}>
+                          {version.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={!reassignTarget || reassignState === "saving"}
+                    onClick={handleReassign}
+                  >
+                    {reassignState === "saving" ? "Moving..." : "Move draft"}
+                  </Button>
+                  {reassignState === "error" ? (
+                    <div className={styles.actionMessage}>
+                      The draft changed or can no longer be moved. Current data
+                      was reloaded.
                     </div>
-                  ))}
+                  ) : null}
+                </>
+              ) : null}
+              <Button
+                type="button"
+                disabled={!canCreateGuide}
+                aria-describedby={artifactActionDescription}
+                onClick={handleCreateGuide}
+              >
+                {createState === "creating"
+                  ? "Creating guide..."
+                  : "Create guide"}
+              </Button>
+              <Button
+                variant="secondary"
+                type="button"
+                disabled={!canCreateInteractiveDemo}
+                aria-describedby={artifactActionDescription}
+                onClick={handleCreateInteractiveDemo}
+              >
+                {createDemoState === "creating"
+                  ? "Creating interactive demo..."
+                  : "Create interactive demo"}
+              </Button>
+              {guideTitle.length === 0 ? (
+                <div
+                  className={styles.actionMessage}
+                  id={missingTitleMessageId}
+                >
+                  Capture session needs a name before creating guide or demo
+                  artifacts.
                 </div>
               ) : null}
-              <Label className={styles.field}>
-                <span>Page title</span>
-                <Input
-                  value={uploadPageTitle}
-                  disabled={isUploading}
-                  onChange={(event) =>
-                    updateUploadPageTitle(event.target.value)
-                  }
-                />
-              </Label>
-              <Label className={styles.field}>
-                <span>Page URL</span>
-                <Input
-                  value={uploadPageUrl}
-                  disabled={isUploading}
-                  onChange={(event) => updateUploadPageUrl(event.target.value)}
-                />
-              </Label>
-              <div className={styles.uploadActions}>
-                <Button type="submit" disabled={isUploading}>
-                  {uploadButtonText}
-                </Button>
+              {!hasCaptureEvents ? (
+                <div
+                  className={styles.actionMessage}
+                  id={emptyCaptureMessageId}
+                >
+                  Add at least one capture event before creating guide or demo
+                  artifacts.
+                </div>
+              ) : null}
+              {createState === "error" ? (
+                <div className={styles.actionMessage}>
+                  Could not create guide.
+                </div>
+              ) : null}
+              {createDemoState === "error" ? (
+                <div className={styles.actionMessage}>
+                  Could not create interactive demo.
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <Badge>Read only</Badge>
+          )}
+
+          <CaptureSessionMetrics detail={detail} />
+        </section>
+
+        {canUploadScreenshot ? (
+          <Card
+            className={styles.uploadPanel}
+            role="region"
+            aria-labelledby="upload-screenshot-heading"
+          >
+            <CardHeader>
+              <h2 className={styles.uploadTitle} id="upload-screenshot-heading">
+                Upload screenshot
+              </h2>
+            </CardHeader>
+            <CardContent>
+              <form
+                className={styles.uploadForm}
+                onSubmit={handleUploadScreenshot}
+              >
+                {uploadError ? (
+                  <Alert variant="destructive">{uploadError}</Alert>
+                ) : null}
+                <Label className={styles.field}>
+                  <span>Screenshot file</span>
+                  <input
+                    ref={uploadFileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={isUploading}
+                    onChange={(event) =>
+                      updateUploadFiles(Array.from(event.target.files ?? []))
+                    }
+                  />
+                </Label>
+                {uploadQueue.length > 0 ? (
+                  <div
+                    className={styles.uploadQueue}
+                    role="status"
+                    aria-live="polite"
+                    aria-label="Selected screenshots"
+                  >
+                    {uploadQueue.map((item) => (
+                      <div className={styles.uploadQueueItem} key={item.id}>
+                        <span className={styles.uploadQueueName}>
+                          {item.name}
+                        </span>
+                        <span className={styles.uploadQueueStatus}>
+                          {uploadStatusLabel(item.status)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                <Label className={styles.field}>
+                  <span>Page title</span>
+                  <Input
+                    value={uploadPageTitle}
+                    disabled={isUploading}
+                    onChange={(event) =>
+                      updateUploadPageTitle(event.target.value)
+                    }
+                  />
+                </Label>
+                <Label className={styles.field}>
+                  <span>Page URL</span>
+                  <Input
+                    value={uploadPageUrl}
+                    disabled={isUploading}
+                    onChange={(event) =>
+                      updateUploadPageUrl(event.target.value)
+                    }
+                  />
+                </Label>
+                <div className={styles.uploadActions}>
+                  <Button type="submit" disabled={isUploading}>
+                    {uploadButtonText}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <div className={styles.content}>
+          <section className={styles.section} aria-labelledby="events-heading">
+            <h2 className={styles.sectionTitle} id="events-heading">
+              Events
+            </h2>
+            {reorderError ? (
+              <Alert className={styles.sectionAlert} variant="destructive">
+                {reorderError}
+              </Alert>
+            ) : null}
+            {detail.capture_events.length === 0 ? (
+              <div className={styles.empty}>No capture events yet.</div>
+            ) : (
+              <div className={styles.timeline}>
+                {detail.capture_events.map((event, index) => (
+                  <EventRow
+                    key={event.id}
+                    event={event}
+                    stepNumber={index + 1}
+                    linkedAsset={
+                      event.capture_asset_id
+                        ? assetById.get(event.capture_asset_id)
+                        : undefined
+                    }
+                    canReorder={canReorderEvents}
+                    disableReorder={isReordering}
+                    canEdit={canEditEvents}
+                    disableEdit={isSavingEvent}
+                    isEditing={editingEventId === event.id}
+                    editDraft={
+                      editingEventId === event.id ? eventEditDraft : null
+                    }
+                    editError={
+                      editingEventId === event.id ? eventEditError : null
+                    }
+                    isSaving={editingEventId === event.id && isSavingEvent}
+                    isFirst={index === 0}
+                    isLast={index === detail.capture_events.length - 1}
+                    onMoveUp={() => moveEvent(index, -1)}
+                    onMoveDown={() => moveEvent(index, 1)}
+                    onEdit={() => startEditingEvent(event)}
+                    onCancelEdit={cancelEditingEvent}
+                    onChangeDraft={updateEventDraft}
+                    onSave={() => saveEvent(event)}
+                  />
+                ))}
               </div>
-            </form>
-          </CardContent>
-        </Card>
-      ) : null}
+            )}
+          </section>
 
-      <div className={styles.content}>
-        <section className={styles.section} aria-labelledby="events-heading">
-          <h2 className={styles.sectionTitle} id="events-heading">
-            Events
-          </h2>
-          {reorderError ? (
-            <Alert className={styles.sectionAlert} variant="destructive">
-              {reorderError}
-            </Alert>
-          ) : null}
-          {detail.capture_events.length === 0 ? (
-            <div className={styles.empty}>No capture events yet.</div>
-          ) : (
-            <div className={styles.timeline}>
-              {detail.capture_events.map((event, index) => (
-                <EventRow
-                  key={event.id}
-                  event={event}
-                  stepNumber={index + 1}
-                  linkedAsset={
-                    event.capture_asset_id
-                      ? assetById.get(event.capture_asset_id)
-                      : undefined
-                  }
-                  canReorder={canReorderEvents}
-                  disableReorder={isReordering}
-                  canEdit={canEditEvents}
-                  disableEdit={isSavingEvent}
-                  isEditing={editingEventId === event.id}
-                  editDraft={
-                    editingEventId === event.id ? eventEditDraft : null
-                  }
-                  editError={
-                    editingEventId === event.id ? eventEditError : null
-                  }
-                  isSaving={editingEventId === event.id && isSavingEvent}
-                  isFirst={index === 0}
-                  isLast={index === detail.capture_events.length - 1}
-                  onMoveUp={() => moveEvent(index, -1)}
-                  onMoveDown={() => moveEvent(index, 1)}
-                  onEdit={() => startEditingEvent(event)}
-                  onCancelEdit={cancelEditingEvent}
-                  onChangeDraft={updateEventDraft}
-                  onSave={() => saveEvent(event)}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className={styles.section} aria-labelledby="assets-heading">
-          <h2 className={styles.sectionTitle} id="assets-heading">
-            Assets
-          </h2>
-          {detail.capture_assets.length === 0 ? (
-            <div className={styles.empty}>No capture assets yet.</div>
-          ) : (
-            <div className={styles.assets}>
-              {detail.capture_assets.map((asset, index) => (
-                <AssetPreview
-                  key={asset.id}
-                  asset={asset}
-                  imageUrl={resolveAssetUrl(asset.file_url)}
-                  eager={index === 0}
-                  controls={
-                    <CaptureAssetLifecycleControls
-                      asset={asset}
-                      projectId={projectId}
-                      captureSessionId={captureSessionId}
-                      canWrite={canWrite}
-                      canPurge={canPurge}
-                      onChanged={reloadDetail}
-                    />
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </section>
+          <section className={styles.section} aria-labelledby="assets-heading">
+            <h2 className={styles.sectionTitle} id="assets-heading">
+              Assets
+            </h2>
+            {detail.capture_assets.length === 0 ? (
+              <div className={styles.empty}>No capture assets yet.</div>
+            ) : (
+              <div className={styles.assets}>
+                {detail.capture_assets.map((asset, index) => (
+                  <AssetPreview
+                    key={asset.id}
+                    asset={asset}
+                    imageUrl={resolveAssetUrl(asset.file_url)}
+                    eager={index === 0}
+                    controls={
+                      <CaptureAssetLifecycleControls
+                        asset={asset}
+                        projectId={projectId}
+                        captureSessionId={captureSessionId}
+                        canWrite={canWrite}
+                        canPurge={canPurge}
+                        onChanged={reloadDetail}
+                      />
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     </PortalShell>
   );

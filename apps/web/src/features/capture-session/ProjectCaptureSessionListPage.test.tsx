@@ -127,6 +127,16 @@ const renderPage = (
 };
 
 describe("ProjectCaptureSessionListPage", () => {
+  it("names the Capture sessions workspace as one region", async () => {
+    renderPage();
+
+    expect(
+      await screen.findByRole("region", {
+        name: "Capture sessions workspace",
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("renders capture sessions in response order with detail links", async () => {
     const { loadCaptureSessions } = renderPage();
 
