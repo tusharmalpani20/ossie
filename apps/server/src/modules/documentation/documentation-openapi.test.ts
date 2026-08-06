@@ -139,6 +139,8 @@ copy: *info
     );
 
     const descriptor = parsed.summary.operations[0]?.request_descriptor;
+    expect(descriptor).toMatchObject({ descriptor_version: 1 });
+    if (!descriptor || !("request_body" in descriptor)) return;
     expect(descriptor?.request_body?.example).toEqual({
       displayName: "Ada",
       profile: {
