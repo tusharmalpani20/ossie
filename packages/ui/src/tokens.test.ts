@@ -10,4 +10,15 @@ describe("semantic Ossie token aliases", () => {
     expect(tokenSource).toContain("--ossie-font-size-sm:");
     expect(tokenSource).toContain("--ossie-radius-md:");
   });
+
+  it("defines semantic command and feedback roles for shared primitives", () => {
+    expect(tokenSource).toContain("--ossie-color-action-primary:");
+    expect(tokenSource).toContain("--ossie-color-action-secondary-hover:");
+    expect(tokenSource).toContain("--ossie-color-action-destructive-hover:");
+    expect(tokenSource).toContain("--ossie-color-success-subtle:");
+    expect(tokenSource).toContain("--ossie-color-warning-subtle:");
+    expect(tokenSource).toContain("--ossie-color-danger-subtle:");
+    expect(tokenSource).toContain("--ossie-shadow-control:");
+    expect(tokenSource).toContain("--ossie-control-height:");
+  });
 });

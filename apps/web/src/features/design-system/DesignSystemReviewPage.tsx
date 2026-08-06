@@ -121,6 +121,55 @@ export function DesignSystemReviewPage() {
       </section>
 
       <section
+        aria-labelledby="command-hierarchy-direction"
+        className={styles.section}
+        role="region"
+      >
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2 id="command-hierarchy-direction">
+              Command hierarchy direction
+            </h2>
+            <p>
+              Keep one primary action obvious; make secondary, overflow, and
+              destructive actions progressively quieter.
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className={styles.commandGrid}>
+            <div className={styles.commandItem}>
+              <Badge variant="success">Primary</Badge>
+              <p>Starts the main task for this context.</p>
+              <Button size="sm">Create capture</Button>
+            </div>
+            <div className={styles.commandItem}>
+              <Badge>Secondary</Badge>
+              <p>Supports the task without competing with the primary action.</p>
+              <Button size="sm" variant="secondary">
+                Save draft
+              </Button>
+            </div>
+            <div className={styles.commandItem}>
+              <Badge>Overflow</Badge>
+              <p>Holds infrequent details and administration actions.</p>
+              <details className={styles.patternDisclosure} open>
+                <summary>More actions</summary>
+                <div className={styles.actions}>
+                  <Button size="sm" variant="ghost">
+                    Open details
+                  </Button>
+                  <Button size="sm" variant="destructive">
+                    Archive
+                  </Button>
+                </div>
+              </details>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section
         aria-labelledby="library-direction"
         className={styles.section}
         role="region"
@@ -253,11 +302,129 @@ export function DesignSystemReviewPage() {
               </p>
             </div>
             <Separator />
+            <div
+              aria-label="Long code example"
+              className={styles.codeWrap}
+              role="region"
+            >
+              <pre className={styles.codeBlock}>
+                {"curl https://local.invalid/publications/main/operations/health"}
+              </pre>
+            </div>
+            <div
+              aria-label="Missing image fallback"
+              className={styles.mediaFallback}
+              role="img"
+            >
+              Screenshot unavailable; continue with the text instructions.
+            </div>
             <p className={styles.stateNote}>
               Reduced motion: instant state changes
             </p>
           </CardContent>
         </Card>
+      </section>
+
+      <section
+        aria-labelledby="history-details-direction"
+        className={styles.section}
+        role="region"
+      >
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2 id="history-details-direction">
+              History and details direction
+            </h2>
+            <p>
+              Keep lifecycle context discoverable without crowding the primary
+              work surface.
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className={styles.detailsPreview}>
+            <details className={styles.patternDisclosure} open>
+              <summary>Open details drawer</summary>
+              <div className={styles.detailGrid}>
+                <div>
+                  <Badge>Working Draft</Badge>
+                  <strong>Current Revision</strong>
+                  <p>Editable content remains separate from immutable publication history.</p>
+                </div>
+                <div>
+                  <Badge variant="success">Published</Badge>
+                  <strong>Publication status</strong>
+                  <p>Published material is disclosed as immutable and link-scoped.</p>
+                </div>
+              </div>
+            </details>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section
+        aria-labelledby="access-challenge-direction"
+        className={styles.section}
+        role="region"
+      >
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2 id="access-challenge-direction">Access challenge direction</h2>
+            <p>Keep public-link context, retry, and privacy boundaries explicit.</p>
+          </div>
+          <Badge variant="warning">Restricted link</Badge>
+        </div>
+        <Card>
+          <CardContent className={styles.accessGrid}>
+            <div>
+              <span className={styles.kicker}>Project Version: Main</span>
+              <h3>Enter the access password</h3>
+              <p>No internal IDs or private metadata appear in the challenge.</p>
+            </div>
+            <Label htmlFor="access-password">Access password</Label>
+            <Input id="access-password" type="password" />
+            <div className={styles.actions}>
+              <Button size="sm">Continue</Button>
+              <Button size="sm" variant="ghost">
+                Cancel
+              </Button>
+            </div>
+            <Alert variant="destructive">Incorrect password. Try again.</Alert>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section
+        aria-labelledby="extension-compact-direction"
+        className={styles.section}
+        role="region"
+      >
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2 id="extension-compact-direction">Extension compact direction</h2>
+            <p>Keep capture intent and recovery legible inside constrained popups.</p>
+          </div>
+        </div>
+        <div className={styles.compactGrid}>
+          <Card>
+            <CardContent className={styles.compactCard}>
+              <span className={styles.kicker}>360px proxy</span>
+              <h3>Capture selection</h3>
+              <Badge variant="success">Ready</Badge>
+              <Button size="sm">Start capture</Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className={styles.compactCard}>
+              <span className={styles.kicker}>180px proxy</span>
+              <h3>Capture selection</h3>
+              <Alert variant="warning">Choose a tab to continue.</Alert>
+              <Button size="sm" variant="secondary">
+                Retry connection
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </section>
     </main>
   );

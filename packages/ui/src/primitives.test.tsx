@@ -69,4 +69,41 @@ describe("shared UI primitives", () => {
       screen.getByRole("region", { name: "Capture session" }),
     ).toBeInTheDocument();
   });
+
+  it("keeps shared content and feedback primitives on semantic tokens", () => {
+    render(
+      <div>
+        <Card data-testid="card" />
+        <CardDescription>Readable description</CardDescription>
+        <Label htmlFor="semantic-input">Semantic label</Label>
+        <Input id="semantic-input" />
+        <Badge variant="success">Complete</Badge>
+        <Alert variant="destructive">Needs attention</Alert>
+        <Alert variant="warning">Choose a tab to continue.</Alert>
+        <Separator />
+      </div>,
+    );
+
+    expect(screen.getByTestId("card").className).toContain(
+      "bg-[var(--ossie-color-surface)]",
+    );
+    expect(screen.getByText("Readable description").className).toContain(
+      "text-[var(--ossie-color-muted)]",
+    );
+    expect(screen.getByText("Semantic label").className).toContain(
+      "text-[var(--ossie-color-text)]",
+    );
+    expect(screen.getAllByText("Complete")[1]).toHaveClass(
+      "bg-[var(--ossie-color-success-subtle)]",
+    );
+    expect(screen.getByText("Needs attention").className).toContain(
+      "bg-[var(--ossie-color-danger-subtle)]",
+    );
+    expect(screen.getByText("Choose a tab to continue.").className).toContain(
+      "bg-[var(--ossie-color-warning-subtle)]",
+    );
+    expect(screen.getAllByRole("separator")[1]).toHaveClass(
+      "bg-[var(--ossie-color-border)]",
+    );
+  });
 });

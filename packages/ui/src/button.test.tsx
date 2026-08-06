@@ -23,4 +23,31 @@ describe("Button", () => {
 
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+
+  it("uses semantic command tokens for every command hierarchy variant", () => {
+    const { rerender } = render(
+      <Button variant="primary">Primary action</Button>,
+    );
+    const button = screen.getByRole("button", { name: "Primary action" });
+
+    expect(button.className).toContain(
+      "bg-[var(--ossie-color-action-primary)]",
+    );
+    expect(button.className).not.toMatch(/(?:slate|red|white)-/u);
+
+    rerender(<Button variant="secondary">Secondary action</Button>);
+    expect(button.className).toContain(
+      "border-[var(--ossie-color-border)]",
+    );
+
+    rerender(<Button variant="ghost">More actions</Button>);
+    expect(button.className).toContain(
+      "hover:bg-[var(--ossie-color-action-ghost-hover)]",
+    );
+
+    rerender(<Button variant="destructive">Delete action</Button>);
+    expect(button.className).toContain(
+      "bg-[var(--ossie-color-action-destructive)]",
+    );
+  });
 });

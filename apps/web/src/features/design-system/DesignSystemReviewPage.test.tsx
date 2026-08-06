@@ -27,6 +27,13 @@ describe("DesignSystemReviewPage", () => {
       within(states).getByRole("button", { name: "Retry state" }),
     ).toBeInTheDocument();
 
+    const commands = screen.getByRole("region", {
+      name: "Command hierarchy direction",
+    });
+    expect(within(commands).getByRole("button", { name: "Create capture" })).toBeInTheDocument();
+    expect(within(commands).getByText("More actions")).toBeInTheDocument();
+    expect(within(commands).getByRole("button", { name: "Archive" })).toBeInTheDocument();
+
     const library = screen.getByRole("region", {
       name: "Library operations direction",
     });
@@ -56,5 +63,28 @@ describe("DesignSystemReviewPage", () => {
     expect(
       within(reader).getByText("Reduced motion: instant state changes"),
     ).toBeInTheDocument();
+    expect(
+      within(reader).getByRole("region", { name: "Long code example" }),
+    ).toBeInTheDocument();
+
+    const access = screen.getByRole("region", {
+      name: "Access challenge direction",
+    });
+    expect(within(access).getByLabelText("Access password")).toBeInTheDocument();
+    expect(
+      within(access).getByText("Incorrect password. Try again."),
+    ).toBeInTheDocument();
+
+    const details = screen.getByRole("region", {
+      name: "History and details direction",
+    });
+    expect(within(details).getByText("Open details drawer")).toBeInTheDocument();
+    expect(within(details).getByText("Publication status")).toBeInTheDocument();
+
+    const compact = screen.getByRole("region", {
+      name: "Extension compact direction",
+    });
+    expect(within(compact).getAllByText("Capture selection")).toHaveLength(2);
+    expect(within(compact).getByText("180px proxy")).toBeInTheDocument();
   });
 });

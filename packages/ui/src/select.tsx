@@ -1,5 +1,11 @@
 import { type SelectHTMLAttributes, forwardRef } from "react";
 import { cn } from "./utils";
+import {
+  controlShapeClasses,
+  controlSurfaceClasses,
+  disabledClasses,
+  focusVisibleClasses,
+} from "./primitive-classes";
 
 export type SelectProps = SelectHTMLAttributes<HTMLSelectElement>;
 
@@ -8,7 +14,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     <select
       ref={ref}
       className={cn(
-        "flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50",
+        `flex h-[var(--ossie-control-height)] w-full ${controlShapeClasses} ${controlSurfaceClasses} px-[var(--ossie-space-3)] py-[var(--ossie-space-2)] ${focusVisibleClasses} ${disabledClasses}`,
         className
       )}
       {...props}

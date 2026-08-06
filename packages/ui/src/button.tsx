@@ -1,22 +1,30 @@
 import { type ButtonHTMLAttributes, forwardRef } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "./utils";
+import {
+  disabledClasses,
+  focusVisibleClasses,
+} from "./primitive-classes";
 
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  `inline-flex items-center justify-center gap-[var(--ossie-space-2)] whitespace-nowrap rounded-[var(--ossie-radius-control)] [font-size:var(--ossie-font-size-sm)] font-semibold transition-colors ${focusVisibleClasses} ${disabledClasses}`,
   {
     variants: {
       variant: {
-        primary: "border border-slate-950 bg-slate-950 text-white hover:bg-slate-800",
-        secondary: "border border-slate-200 bg-white text-slate-950 hover:bg-slate-100",
-        ghost: "border border-transparent bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950",
-        destructive: "border border-red-600 bg-red-600 text-white hover:bg-red-700",
+        primary:
+          "border border-[var(--ossie-color-action-primary)] bg-[var(--ossie-color-action-primary)] text-[var(--ossie-color-inverted)] hover:border-[var(--ossie-color-action-primary-hover)] hover:bg-[var(--ossie-color-action-primary-hover)]",
+        secondary:
+          "border border-[var(--ossie-color-border)] bg-[var(--ossie-color-action-secondary)] text-[var(--ossie-color-text)] hover:bg-[var(--ossie-color-action-secondary-hover)]",
+        ghost:
+          "border border-transparent bg-transparent text-[var(--ossie-color-muted)] hover:bg-[var(--ossie-color-action-ghost-hover)] hover:text-[var(--ossie-color-text)]",
+        destructive:
+          "border border-[var(--ossie-color-action-destructive)] bg-[var(--ossie-color-action-destructive)] text-[var(--ossie-color-inverted)] hover:border-[var(--ossie-color-action-destructive-hover)] hover:bg-[var(--ossie-color-action-destructive-hover)]",
       },
       size: {
-        sm: "h-8 px-3",
-        md: "h-10 px-4",
-        lg: "h-11 px-5",
-        icon: "h-9 w-9",
+        sm: "h-[var(--ossie-control-height-compact)] px-[var(--ossie-space-3)]",
+        md: "h-[var(--ossie-control-height)] px-[var(--ossie-space-4)]",
+        lg: "h-[var(--ossie-control-height-tall)] px-[var(--ossie-space-5)]",
+        icon: "h-[var(--ossie-control-height-icon)] w-[var(--ossie-control-height-icon)]",
       },
     },
     defaultVariants: {

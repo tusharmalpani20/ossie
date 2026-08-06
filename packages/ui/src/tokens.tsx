@@ -19,6 +19,26 @@ export const semanticColorTokens = {
   selected: "#eff6ff",
   disabled: "#e5e7eb",
   code: "#1f2937",
+  inverted: "#ffffff",
+  actionPrimary: "#020617",
+  actionPrimaryHover: "#1e293b",
+  actionSecondary: "#ffffff",
+  actionSecondaryHover: "#f1f5f9",
+  actionGhostHover: "#f1f5f9",
+  actionDestructive: "#dc2626",
+  actionDestructiveHover: "#b91c1c",
+  neutralSubtle: "#f1f5f9",
+  neutralBorder: "#e2e8f0",
+  neutralText: "#334155",
+  successSubtle: "#ecfdf5",
+  successBorder: "#a7f3d0",
+  successText: "#065f46",
+  warningSubtle: "#fffbeb",
+  warningBorder: "#fde68a",
+  warningText: "#92400e",
+  dangerSubtle: "#fef2f2",
+  dangerBorder: "#fecaca",
+  dangerText: "#991b1b",
 } as const;
 
 export const radiusTokens = {
@@ -62,4 +82,12 @@ export const motionTokens = {
     durationMs: 0,
     easing: "linear",
   },
+} as const;
+
+export const controlTokens = {
+  compactHeight: "32px",
+  standardHeight: "40px",
+  tallHeight: "44px",
+  iconHeight: "36px",
+  textareaMinHeight: "96px",
 } as const;

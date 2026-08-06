@@ -16,6 +16,26 @@
   --ossie-color-selected: #eff6ff;
   --ossie-color-disabled: #e5e7eb;
   --ossie-color-code: #1f2937;
+  --ossie-color-inverted: var(--ossie-color-surface);
+  --ossie-color-action-primary: #020617;
+  --ossie-color-action-primary-hover: #1e293b;
+  --ossie-color-action-secondary: var(--ossie-color-surface);
+  --ossie-color-action-secondary-hover: #f1f5f9;
+  --ossie-color-action-ghost-hover: #f1f5f9;
+  --ossie-color-action-destructive: #dc2626;
+  --ossie-color-action-destructive-hover: #b91c1c;
+  --ossie-color-neutral-subtle: #f1f5f9;
+  --ossie-color-neutral-border: #e2e8f0;
+  --ossie-color-neutral-text: #334155;
+  --ossie-color-success-subtle: #ecfdf5;
+  --ossie-color-success-border: #a7f3d0;
+  --ossie-color-success-text: #065f46;
+  --ossie-color-warning-subtle: #fffbeb;
+  --ossie-color-warning-border: #fde68a;
+  --ossie-color-warning-text: #92400e;
+  --ossie-color-danger-subtle: #fef2f2;
+  --ossie-color-danger-border: #fecaca;
+  --ossie-color-danger-text: #991b1b;
   --ossie-color-canvas: var(--ossie-color-background);
   --ossie-color-surface-subtle: var(--ossie-color-surface-elevated);
   --ossie-color-text-muted: var(--ossie-color-muted);
@@ -27,6 +47,8 @@
   --ossie-radius-popover: 8px;
   --ossie-radius-lg: 12px;
   --ossie-radius-md: var(--ossie-radius-card);
+  --ossie-shadow-control: 0 1px 2px rgb(17 24 39 / 8%);
+  --ossie-shadow-card: 0 1px 2px rgb(17 24 39 / 6%), 0 4px 12px rgb(17 24 39 / 5%);
   --ossie-space-1: 4px;
   --ossie-space-2: 8px;
   --ossie-space-3: 12px;
@@ -35,6 +57,14 @@
   --ossie-space-6: 24px;
   --ossie-font-size-xs: 12px;
   --ossie-font-size-sm: 14px;
+  --ossie-font-size-md: 16px;
+  --ossie-line-height-tight: 1.25;
+  --ossie-line-height-normal: 1.5;
+  --ossie-control-height-compact: 32px;
+  --ossie-control-height: 40px;
+  --ossie-control-height-tall: 44px;
+  --ossie-control-height-icon: 36px;
+  --ossie-control-min-height-textarea: 96px;
   --ossie-font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
