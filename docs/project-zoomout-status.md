@@ -8,8 +8,9 @@ Ossie is a self-hosted open-source product for capturing browser workflows and
 turning them into polished walkthrough artifacts. Its implemented foundation is
 a project-organized, Project Version-aware internal knowledge platform for the
 current Guide, Interactive Demo, and Product Documentation artifact families.
-Product Documentation V1 is shipped and close-rechecked; its next experience
-sequence is planning-only. Video remains later and unmodeled.
+Product Documentation V1 and the post-V1 experience sequence through Master
+Plan `007` are shipped and close-rechecked. Plan `147` is the active UI-quality
+program. Video remains later and unmodeled.
 
 The current alpha has three authored output families:
 
@@ -159,13 +160,12 @@ post-V1 decision gate. The accepted decisions are recorded in `CONTEXT.md`,
 ADRs `0021`–`0034`, the completed grill records, and
 `docs/documentation-domain-decisions.md`.
 
-Master Plan `007` is the next planning sequence. Child `141` must first expand
-and recheck isolated Tiptap-authoring and Fumadocs-reader adapter proofs. Only
-evidence-backed parts may be adopted; PostgreSQL, existing schemas,
-permissions, Publications, APIs, and URLs remain authoritative. Later children
-own authoring/reader modernization, deterministic multi-language request
-examples, integrated hardening, and final closeout.
+Plan `147` is the active UI-quality sequence. Master Plan `007` and children
+`141`–`146` are complete: Tiptap and Fumadocs are partial, bounded adapters;
+PostgreSQL, existing schemas, permissions, Publications, APIs, and URLs remain
+authoritative. Static export and other accepted-later boundaries remain outside
+the shipped runtime.
 
 Accepted-later Documentation ideas and cross-product operations/maintenance
-remain outside Master `007`. Loom-style Video remains a later direction with no
-accepted runtime model.
+remain outside the shipped sequence. Loom-style Video remains a later direction
+with no accepted runtime model.

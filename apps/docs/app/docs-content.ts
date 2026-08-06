@@ -24,11 +24,11 @@ export const productCapabilities = [
 
 export const nextPlatformDirection = {
   status:
-    "Master Plans 005 and 006 are complete; Product Documentation V1 is shipped and Master Plan 007 is a planning-only next experience sequence.",
+    "Master Plans 005, 006, and 007 are complete; Product Documentation V1 and the bounded post-V1 experience are shipped and Plan 147 is the active UI-quality program.",
   items: [
     "Product Documentation V1 ships the accepted content, source-of-truth, publication, access, URL, search, comments, review, portability, lifecycle, security, and API experience boundaries.",
-    "The next activity is to expand and recheck child 141, an isolated Tiptap/Fumadocs adapter proof and adoption gate, before any dependency or runtime change.",
-    "Later selected children modernize authoring and reading, add deterministic multi-language API request examples, harden the combined experience, and perform final closeout.",
+    "Tiptap and Fumadocs are partial, replaceable adapters: Tiptap serves bounded prose fields and Fumadocs serves bounded reader chrome while Ossie retains content, access, URL, and Publication authority.",
+    "Plan 147 improves the shipped surfaces without adding product semantics, and static export plus other accepted-later boundaries remain deferred.",
     "Loom-style Video later; its recording, storage, playback, and collaboration model remains deliberately unplanned.",
   ],
   docsAppBoundary:

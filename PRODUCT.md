@@ -37,13 +37,12 @@ The current product must help a team:
 - read activity and compliance evidence without weakening permissions.
 
 Product Documentation V1 is shipped. The post-V1 Documentation experience work
-in Master Plan `007` Children `141`–`145` is implemented and independently
-verified: Tiptap is partial-adopted for bounded prose fields, Fumadocs is
-partial-adopted for named public Publication navigation/TOC primitives, and
-generated request examples are inert five-language V1 projections. Child `146`
-is the active final reconciliation; it must close the master before the
-sequence is treated as fully complete. Video remains an accepted future
-direction and is not shipped.
+in Master Plan `007` Children `141`–`146` is implemented and independently
+close-rechecked: Tiptap is partial-adopted for bounded prose fields, Fumadocs
+is partial-adopted for named public Publication navigation/TOC primitives, and
+generated request examples are inert five-language V1 projections. Whole-graph
+adapter migration and static export remain accepted-later and are not shipped.
+Video remains an accepted future direction and is not shipped.
 
 ## Positioning
 

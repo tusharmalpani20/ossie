@@ -70,15 +70,15 @@ describe("docs content", () => {
     );
   });
 
-  it("separates shipped Documentation from the planning-only next direction", () => {
+  it("separates shipped Documentation from accepted-later boundaries", () => {
     expect(nextPlatformDirection.status).toContain(
-      "Product Documentation V1 is shipped",
+      "Master Plans 005, 006, and 007 are complete",
     );
     expect(nextPlatformDirection.items).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("Documentation V1 ships"),
-        expect.stringContaining("child 141"),
-        expect.stringContaining("Product Documentation"),
+        expect.stringContaining("Tiptap and Fumadocs are partial"),
+        expect.stringContaining("Plan 147"),
+        expect.stringContaining("static export"),
         expect.stringContaining("Video"),
       ]),
     );

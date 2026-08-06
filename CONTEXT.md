@@ -1,10 +1,10 @@
 # Ossie Context
 
 Ossie captures real software workflows and turns those captures into shareable
-Guides and Interactive Demos. It also ships V1 of version-aware Product
-Documentation Sites. Documentation V1 is complete through Master Plan `006`;
-the accepted next experience sequence is planned separately in Master Plan
-`007`. Video remains later.
+Guides and Interactive Demos. It also ships version-aware Product
+Documentation Sites. Documentation V1 and the accepted post-V1 experience
+sequence are complete through Master Plan `007` and Child `146`; the current
+UI-quality execution program is Plan `147`. Video remains later.
 
 This context owns canonical product language. It contains both implemented alpha concepts and accepted target terms from Master Plan `005`; inclusion here does not mean a target capability has shipped. `docs/project-zoomout-status.md` and `docs/roadmap.md` own the current-versus-planned implementation boundary.
 
@@ -250,14 +250,18 @@ _Avoid_: Artifact revision number, row version, project version
 A stable shareable access route for one authored output. The implemented Guide/Interactive Demo form belongs to one Artifact and exposes explicitly selected Artifact Editions through immutable Published Artifact entries. The accepted Documentation form belongs to one Documentation Site and exposes explicitly selected Site Editions through immutable Site Publication entries. Each link has one explicit default version and one link-wide access policy.
 _Avoid_: Draft link
 
-## Documentation Language: Shipped And V1-Verified Through Child 139
+## Documentation Language: Shipped And Close-Rechecked Through Master 007
 
 Documentation Site through private comments and Publication shipped in child
 `132`; content/assets, portability, multi-Site lifecycle/Carry-Forward,
 review/approval, the governed browser-direct API experience, operational
-hardening, and final V1 closure followed in children `133` through `139`. The
-terms below describe the shipped and final-closeout-verified V1 runtime unless
-explicitly marked as deferred or later work.
+hardening, and final V1 closure followed in children `133` through `139`.
+Master `007` and children `141` through `146` then shipped and close-rechecked
+bounded Tiptap prose fields, Fumadocs reader chrome, inert five-language
+request examples, and their hardening. Tiptap and Fumadocs remain partial,
+replaceable adapters; whole-graph migration, static export, and other
+accepted-later work remain deferred. The terms below describe shipped runtime
+unless explicitly marked as deferred or later work.
 
 Child `131` accepted these terms for implementation beginning at `132`;
 completed children now provide the corresponding tables, routes, contracts,
@@ -415,17 +419,18 @@ required, satisfied, or overridden; an override requires a Project Admin and a
 reason whose detail remains Admin-only.
 _Avoid_: mutable policy snapshot, public metadata, Audit Event replacement
 
-### Accepted Post-V1 Documentation Language
+### Shipped And Accepted-Later Post-V1 Documentation Language
 
-The following terms were accepted by child `140` for planning under Master
-`007`. They do not claim that the corresponding runtime is implemented.
+The following terms were accepted by child `140` and are now split by current
+runtime truth. The adapter and generated-example terms describe bounded shipped
+runtime; static export remains accepted-later and is not implemented.
 
-**Documentation Experience Adapter Proof**:
+**Documentation Experience Adapter**:
 A bounded, non-authoritative comparison of a candidate authoring or reader
-adapter against the shipped Ossie-native behavior. It may use existing
-Documentation content and Publications but cannot migrate authoritative data,
-replace permissions or URLs, or expose a production route before its adoption
-gate passes.
+adapter against the shipped Ossie-native behavior. The adopted runtime uses
+Tiptap only for bounded prose fields and Fumadocs only for bounded reader
+chrome. It cannot migrate authoritative data, replace permissions or URLs, or
+expose an alternate content authority.
 _Avoid_: framework migration, source-of-truth replacement
 
 **Generated API Request Example**:

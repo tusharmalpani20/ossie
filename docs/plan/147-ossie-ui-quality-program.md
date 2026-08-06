@@ -4,11 +4,10 @@ Date: 2026-08-06
 
 Last full planning audit: 2026-08-06
 
-Status: Expanded execution baseline — ready to begin the mandatory program and
-per-surface preflight, but no surface is implementation-ready until its section
-22.1 preflight record is complete. This document is a planning deliverable
-only; no Plan `147` runtime, UI, dependency, schema, or product behavior change
-has started.
+Status: Execution in progress — mandatory program preflight is underway in the
+dedicated runner worktree. No surface is implementation-ready until its section
+22.1 preflight record is complete. The canonical mutable ledger is
+`docs/ui/147-ossie-ui-quality-program-ledger.md`.
 
 Plan number: 147.
 

@@ -74,7 +74,8 @@ The product intentionally keeps guides and interactive demos separate. A capture
 Master Plan `005` closed the version/governance and UI foundation. Master Plan
 `006` and children `132`–`140` completed Product Documentation V1 and its
 post-V1 decision gate. [Master Plan `007`](docs/plan/master/007-documentation-post-v1-master-plan.md)
-now reserves the next Documentation experience sequence:
+and children `141`–`146` completed and close-rechecked the bounded post-V1
+experience sequence. Plan `147` is now the active UI-quality program:
 
 ```text
 Organization
@@ -83,7 +84,7 @@ Organization
       -> Capture Sessions
       -> Guide Editions
       -> Interactive Demo Editions
-      -> Product Documentation Sites (V1 shipped and close-rechecked)
+      -> Product Documentation Sites (V1 and bounded post-V1 work shipped)
       -> Video (later and not yet modeled)
 ```
 
@@ -92,9 +93,9 @@ This diagram is navigation context, while the Capture, Guide, Interactive Demo, 
 Product Documentation means customer-authored documentation sites and knowledge
 bases. It is different from `apps/docs`, which is this repository's
 contributor/operator documentation hub. V1 is complete through child `139`.
-Master `007` Children `141`–`145` have implemented and independently verified
+Master `007` Children `141`–`146` have implemented and independently verified
 bounded Tiptap/Fumadocs adapter use plus deterministic inert multi-language API
-request examples; Child `146` is the active final reconciliation.
+request examples; Master `007` and Child `146` are complete.
 
 ## Intentionally Deferred
 

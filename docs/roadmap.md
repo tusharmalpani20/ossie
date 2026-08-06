@@ -62,19 +62,18 @@ Items 1 through 11 are verified current behavior or repository foundation.
 See `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 for gates and exact child ordering.
 
-## Documentation Next
+## Documentation Current
 
 Master Plan `006` and children `132`–`140` are complete. Children `132`–`139`
 shipped and independently close-rechecked Product Documentation V1; child `140`
 then reviewed every post-V1 candidate and accepted one next experience
 objective.
 
-Master Plan `007` Children `141`–`145` implemented and independently
+Master Plan `007` Children `141`–`146` implemented and independently
 close-rechecked bounded Tiptap authoring, Fumadocs public Publication chrome,
 deterministic inert curl/Fetch/Node.js/Python/Go request examples, and the
-integrated browser/accessibility/performance hardening. Child `146` is the
-active final reconciliation; accepted-later and rejected boundaries remain
-unchanged.
+integrated browser/accessibility/performance hardening. Plan `147` is the active
+UI-quality program; accepted-later and rejected boundaries remain unchanged.
 
 Product Documentation is not another name for Guides and is not `apps/docs`,
 which remains repository documentation for contributors and operators.
@@ -92,7 +91,7 @@ which remains repository documentation for contributors and operators.
   public feedback, privacy-minimized aggregate analytics, exact-Revision
   external review, ephemeral presence, offline read-only snapshots, a typed
   disclosure component, and public static-site export remain accepted later
-  rather than scheduled in Master `007`.
+  rather than scheduled in the shipped Documentation sequence.
 - Object storage, shared multi-instance rate limiting, and one-command
   production packaging.
 - Chrome Web Store distribution.

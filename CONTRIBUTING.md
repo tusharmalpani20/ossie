@@ -93,11 +93,11 @@ Deferred:
 - Chrome Web Store packaging
 - one-command production deployment packaging
 - advanced editor/demo polish
-- Product Documentation runtime until the post-foundation domain grill is accepted
+- Product Documentation V1 and the bounded post-V1 experience are shipped; Plan 147 owns the current UI-quality work
 - Loom-style Video recording and library behavior
 
-The accepted target also includes Audit/Access Evidence, Project Membership,
-Project Versions, and version-aware Guide/Demo Editions, Revisions, and
-Publications. Those remain unimplemented until their ordered Master Plan `005`
-children close. Do not start Documentation or Video runtime work outside those
-gates.
+The accepted and shipped product foundation also includes Audit/Access Evidence,
+Project Membership, Project Versions, and version-aware Guide/Demo Editions,
+Revisions, Publications, and Documentation Sites. Preserve their accepted
+contracts while working on Plan 147. Do not start Video runtime work outside an
+accepted child.
