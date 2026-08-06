@@ -1465,6 +1465,50 @@ domain, permission, lifecycle, publication, or URL authority.
   test/evidence/review records; preserve `a83f2ae`, all prior accepted-pending-
   human candidates, and the queued P2-002 status until final acceptance.
 
+### projects-denied exact surface preflight
+
+- Actual HEAD/worktree before implementation: `b5b7924` in
+  `/home/ubuntu/ossie-plan147`, branch `agent/plan-147-ui-quality`; worktree
+  was clean before the new baseline screenshots. This is cycle 1 for the
+  previously accepted-pending-human `projects-workspace` candidate and is
+  limited to its unauthenticated denied state.
+- Surface and normal entry: `/projects` through the existing Project list
+  loader, where an `unauthenticated` API result renders the shared portal shell
+  and a sign-in recovery link. The route, `next` query, shell destinations,
+  authorization response, and Project data contracts remain unchanged.
+- Current graph: `ProjectListPage` maps `ApiClientError.kind ===
+  "unauthenticated"` to a state card containing sign-in copy and
+  `signInUrl(currentPath)`; `PortalAppShell` owns the page main landmark. The
+  denied branch has no heading, which produces the full-page axe
+  `page-has-heading-one` violation. Existing `ProjectListPage.test.tsx` owns
+  the denied-state contract.
+- Baseline browser proof at 1440×900 and 390×900: body/document width equals
+  the viewport, nine controls, and no h1/h2/h3 headings. Baseline files are
+  `docs/ui/147-projects-denied-before-desktop.png` and
+  `docs/ui/147-projects-denied-before-narrow.png`. The shared shell mobile
+  navigation is already the accepted `8b45a4b` candidate and is not being
+  changed in this slice.
+- Intended write set: denied-state heading/semantic wrapper, one focused
+  Project list test assertion, after browser evidence, blind reviews, and
+  Plan/ledger/bundle reconciliation. No API, auth, permission, tenant,
+  Project, Project Version, public-link, or navigation behavior may change.
+- Explicitly out of scope: populated/empty/create Project list composition,
+  shared PortalAppShell CSS, sign-in implementation, setup/invite behavior,
+  browser zoom tooling, and unrelated page text or lifecycle semantics.
+- Accepted constraints: use a truthful level-one `Projects` heading in the
+  denied state; preserve the existing sign-in sentence and link target. The
+  route remains anonymous/unauthenticated browser evidence, and actual browser
+  zoom remains unavailable in this environment.
+- Focused failing test to add first: the existing unauthenticated Project list
+  test must require a level-one `Projects` heading before the implementation.
+- Reviewer A brief: inspect denied-state hierarchy, recovery-link prominence,
+  desktop/narrow visual difference, and shell preservation. Reviewer B brief:
+  inspect unauthorized truth, safe `next` URL, heading/landmark/keyboard/axe
+  behavior, no data leakage, exact diff, and no API/domain changes.
+- Rollback boundary: revert only the denied-state candidate and its focused
+  test/evidence/review records; preserve `b5b7924`, `8b45a4b`, and all prior
+  accepted-pending-human candidates.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
