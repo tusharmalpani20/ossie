@@ -1917,7 +1917,7 @@ security decision for the user.
 - [x] Add failing coverage for Documentation Publication preview routing.
 - [x] Implement and browser-verify the accepted immutable Publication preview.
 - [x] Inventory all custom-property definitions and live consumers.
-- [ ] Resolve confirmed undefined live variables through accepted semantic
+- [x] Resolve confirmed undefined live variables through accepted semantic
       tokens.
 - [x] Add a repository check for newly undefined Ossie variables.
 - [x] Recheck focus, contrast, spacing, radii, and Demo interaction after token
@@ -1936,7 +1936,7 @@ security decision for the user.
 
 ### 26.4 Representative pilots
 
-- [ ] Projects library pilot completes both reviews.
+- [x] Projects library pilot completes both reviews.
 - [x] Interactive Demo workbench pilot completes both reviews.
 - [x] Public Product Documentation reader pilot completes both reviews.
 - [x] Documentation administration pilot completes both reviews.
@@ -2050,7 +2050,8 @@ web suite passed 495/495; web check-types, lint, build, and diff check passed;
 desktop/narrow login, setup-complete, invalid-invite, axe, keyboard, and
 reduced-motion evidence passed. Reviewer A and Reviewer B both accepted. Status:
 `agent_accepted_pending_human`; setup-ready and loaded-invite browser states
-remain component-test coverage, and P2-010 remains queued.
+remain component-test coverage; P2-010 is resolved in `59fd07f`, with broader
+raw CSS cleanup tracked separately.
 
 2026-08-06 — `public-access` — starting commit `85deae4`; candidate `8e38ee4`.
 Clarified the shared public Project Version selector, named its multi-entry
@@ -2060,7 +2061,8 @@ check-types, lint, build, and diff check passed; anonymous valid Guide and
 truthful unavailable Demo browser/a11y evidence passed at desktop and narrow
 widths. Reviewer A and Reviewer B both accepted. Status:
 `agent_accepted_pending_human`; multi-entry and populated Demo/Documentation
-browser fixtures remain unavailable, and P2-010 remains queued.
+browser fixtures remain unavailable; P2-010 is resolved in `59fd07f`, with
+broader raw CSS cleanup tracked separately.
 
 2026-08-06 — `extension-installation` — starting commit `7893091`; candidate
 `1058dbd`. Composed the authenticated extension installation workspace with a
@@ -2082,7 +2084,7 @@ table behavior. Focused gallery/App tests passed 21/21; web check-types, lint,
 build, and diff check passed; desktop/narrow browser, axe, keyboard, and
 reduced-motion evidence passed. Reviewer A and Reviewer B both accepted. Status:
 `agent_accepted_pending_human`; the gallery remains synthetic/local-only and
-P2-010 remains queued.
+P2-010 is resolved in `59fd07f`; broader raw CSS cleanup remains separate.
 
 2026-08-06 — `global-fallback` — starting commit `7cf7057`; candidate
 `de37b5e`. Replaced the generic unsupported-route card with a truthful
@@ -2101,6 +2103,16 @@ check passed; local desktop/narrow image, axe, keyboard, and reduced-motion
 evidence passed. Reviewer A and Reviewer B both accepted. Status:
 `agent_accepted_pending_human`; external source links were not followed and
 customer Product Documentation remains a separate app/web surface.
+
+2026-08-06 — `token-foundation` follow-up — starting commit `105fc5b`; candidate
+`59fd07f`. Completed the four live semantic aliases that remained after the
+original token candidate: link color, sans family, small text size, and medium
+radius. The focused token contract passed 4/4; full UI tests passed 8/8;
+extension tests passed 140/140; extension typecheck, lint, and build passed;
+`pnpm check-css-tokens` passed with 127 definitions and 122 consumers; browser
+desktop/narrow axe and no-overflow evidence passed; Reviewer A and Reviewer B
+both accepted. Status: `agent_accepted_pending_human`; P2-010 is resolved and
+installed-toolbar capability remains a separate local block.
 
 Record future entries as:
 
@@ -2177,7 +2189,7 @@ the assembled bundle, followed by disposition and bounded implementation of
 any accepted human findings. Do not treat any accepted surface as
 human-approved; the installed-toolbar capability block, forced Documentation
 failure limitation, browser-fixture limitations, shared-shell/zoom
-limitations, and P2-010 token follow-up stay recorded in the ledger.
+limitations, and broader raw CSS cleanup stay recorded in the ledger.
 
 If a long-running execution stops, resume from the next eligible `queued` or
 `incomplete_checkpoint` surface after revalidating its preflight. Do not blindly

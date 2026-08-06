@@ -55,6 +55,15 @@ Projects/sign-in recovery links.
 The public contributor/operator docs landing page now uses a semantic hero
 figure and caption while preserving its source-of-truth boundary.
 
+### Token-foundation follow-up — `59fd07f`
+
+- [Review A](./147-token-foundation-followup-review-a.md)
+- [Review B](./147-token-foundation-followup-review-b.md)
+- [Desktop evidence](./147-token-foundation-followup-desktop.png), [narrow evidence](./147-token-foundation-followup-narrow.png)
+
+The four live undefined token consumers now resolve through the canonical
+semantic token source without changing their rendered fallback values.
+
 ## Verification summary
 
 - Final web suite: 93 files, 496 tests passed.
@@ -65,16 +74,17 @@ figure and caption while preserving its source-of-truth boundary.
 - Final closeout browser audits for the three latest surfaces report axe 0
   violations / 0 incomplete checks, no page overflow, and keyboard paths as
   recorded in their reviews.
-- `pnpm check-css-tokens` remains a known P2-010 failure for exactly four
-  pre-existing names: `--ossie-color-link`, `--ossie-font-family-sans`,
-  `--ossie-font-size-sm`, and `--ossie-radius-md`.
+- `pnpm check-css-tokens` now passes with 127 definitions and 122 consumers;
+  the four P2-010 aliases were resolved in `59fd07f` and have follow-up
+  evidence/reviews in the ledger.
 
 ## Human review decisions still required
 
 - Review the final bundle and visual differences; agent acceptance is not human
   approval.
-- Decide dispositions for remaining queued P2 issues, especially P2-010 and
-  the broader shared-shell/200%-zoom follow-up.
+- Decide dispositions for remaining queued P2 issues and the broader
+  shared-shell/200%-zoom follow-up; P2-010 itself is resolved pending human
+  review of the candidate.
 - Rerun the installed extension toolbar/permission path in a capable browser
   environment before changing `extension-capture` from
   `blocked_local_for_run`.
