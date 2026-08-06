@@ -2,7 +2,7 @@
 
 Date opened: 2026-08-06
 Plan: `docs/plan/147-ossie-ui-quality-program.md`
-Status: `in_preflight`
+Status: `agent_accepted_pending_human`
 
 This is the canonical mutable surface, issue, reference, decision, and
 evidence ledger for Plan 147. It contains only synthetic fixture identifiers,
@@ -122,7 +122,7 @@ review reports, final clean verification, and all required evidence.
 | `demos-public` | Viewer/embed | valid/password/restricted/revoked/expired/unknown/embed; anonymous | `d638112` | — | 0 | — | — | — | `queued` | route/state expansion pending |
 | `documentation-admin` | Library/workbench/admin | Site library/operations/review/assets/snippets/OpenAPI/portability/publishing | `d638112` | — | 0 | — | — | — | `queued` | P1-003 pending |
 | `documentation-authoring` | Authoring workbench | Site/Page draft authoring, comments, conflict, read-only, archived, validation | `d638112` | — | 0 | — | — | — | `queued` | P1-003 pending |
-| `documentation-previews` | Reader/admin | draft, exact Site Revision, exact Site Publication preview; internal roles | `d638112` | — | 0 | — | — | — | `in_preflight` | P1-001: parsed Publication route has no App branch; accepted contract is authenticated Publication summary lookup followed by the exact immutable Revision snapshot it names |
+| `documentation-previews` | Reader/admin | draft, exact Site Revision, exact Site Publication preview; internal roles | `d638112` | `001df10` | 0 | `accept` — review A | `accept` — review B | web 482/482; UI 7/7; web typecheck/lint/build; browser desktop+narrow+anonymous; axe 0 violations | `agent_accepted_pending_human` | P2 reader-chrome and shared-shell polish remain outside this correctness candidate |
 | `documentation-public` | Reader/API reference | Publication reader/search/TOC/operation/Try It/access challenge; anonymous/member | `d638112` | — | 0 | — | — | — | `queued` | P1-004 pending |
 | `public-access` | Shared access challenge | public/restricted/password/expired/revoked/version selection; anonymous | `d638112` | — | 0 | — | — | — | `queued` | shared contract audit pending |
 | `extension-installation` | Setup utility | extension check/auth/error/ready/download/update/remove | `d638112` | — | 0 | — | — | — | `queued` | extension browser capability pending |
@@ -143,7 +143,7 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 
 | Finding ID | Severity | Category | Surface / route / state / viewport | Evidence | Owner | Cycle | Disposition | Fix commit | Verification | Residual risk |
 | --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- |
-| `P1-001` | P1 | correctness / route | Documentation Publication preview | Plan audit; `routes.ts`, `portalRouteMetadata.ts`, `App.tsx`; existing authenticated `GET .../publications` plus immutable `GET .../revisions/:revision_number` contract | implementer | 0 | resolved_pending_review | candidate pending commit | route + component tests green; authenticated and anonymous browser paths verified | no new server/public route; exact Publication identity and its named Revision remain coupled |
+| `P1-001` | P1 | correctness / route | Documentation Publication preview | Plan audit; `routes.ts`, `portalRouteMetadata.ts`, `App.tsx`; existing authenticated `GET .../publications` plus immutable `GET .../revisions/:revision_number` contract | implementer | 0 | accepted_pending_human | `001df10` | route + component tests green; authenticated and anonymous browser paths verified; both reviews accept | no new server/public route; exact Publication identity and its named Revision remain coupled |
 | `P1-002` | P1 | token system | Demo/auth/Documentation live CSS | Plan audit; undefined token inventory | implementer | 0 | open | — | definition/consumer inventory required | token blast radius unverified |
 | `P1-003` | P1 | composition / architecture | Documentation authoring 390px | Plan audit; mega-form evidence | implementer | 0 | open | — | browser route/state evidence required | capability ownership unverified |
 | `P1-004` | P1 | reader composition | public Documentation reader 390px | Plan audit; committed reader evidence | implementer | 0 | open | — | browser reader matrix required | public UX remains unfinished |
@@ -151,6 +151,13 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | `P1-006` | P1 | current truth | repository status/docs | Plan section 8 scan | coordinator | 0 | open | — | text scan and doc diff | stale guidance may misdirect execution |
 | `P2-001` | P2 | visual consistency | cross-product libraries/readers | plan issue register | implementer | 0 | queued | — | family review | exact route ownership pending |
 | `P2-002` | P2 | mobile composition | dense/authoring surfaces | plan issue register | implementer | 0 | queued | — | 390px/200% evidence | exact candidates pending |
+
+## Review ledger
+
+| Candidate | Surface | Reviewer | Verdict | Review artifact | P0/P1 findings | P2 dispositions | Gates / scores | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `001df10` | `documentation-previews` | A — visual/interaction | `accept` | `docs/ui/147-documentation-publication-preview-review-a.md` | none | `A-P2-001` accepted as later reader-family decision | scores 3–5; responsive score 3 because shared shell remains dense at 390px | accepted pending human |
+| `001df10` | `documentation-previews` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-documentation-publication-preview-review-b.md` | none | `B-P2-001` accepted within existing immutable contract | all gates pass; axe 0 violations at desktop and 390px | accepted pending human |
 
 ## Reference ledger
 
@@ -169,9 +176,9 @@ domain, permission, lifecycle, publication, or URL authority.
 
 | Surface | Route/state/viewport | Fixture | Browser/environment | Before | Candidate | Approved baseline | A11y | Keyboard/zoom/motion | Console/network | Intentional differences | Commit/date |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `documentation-previews` | authenticated Publication 1 / desktop 1280px | synthetic Plan 125 fixture; Publication 1 → Revision 1 | agent-browser / Chromium; runner API 3022/web 3020 | route previously fell to generic portal fallback | implementation renders exact Publication/Revision identity and frozen pages | no | keyboard Tab reached Projects; reduced-motion media set; narrow overflow check `scrollWidth=clientWidth` | browser errors empty; authenticated calls succeeded; no failed requests observed | internal preview stays authenticated and does not use public link URL | `d638112` → candidate pending / 2026-08-06 |
-| `documentation-previews` | authenticated Publication 1 / narrow 390×844 | synthetic Plan 125 fixture; Publication 1 → Revision 1 | agent-browser / Chromium | route previously fell to generic portal fallback | content and identity remain present at narrow width; page scroll width equals viewport width | no | reduced-motion media set; keyboard path exercised | no browser errors recorded | portal navigation remains a shared shell concern outside P1-001 | `d638112` → candidate pending / 2026-08-06 |
-| `documentation-previews` | anonymous internal Publication 1 | same synthetic local route | separate agent-browser session | no internal route branch | explicit `Sign in to view this Project Version.` gate | no | not applicable | no browser errors recorded | internal route did not leak Publication metadata to anonymous user | `d638112` → candidate pending / 2026-08-06 |
+| `documentation-previews` | authenticated Publication 1 / desktop 1280px | synthetic Plan 125 fixture; Publication 1 → Revision 1 | agent-browser / Chromium; runner API 3022/web 3020 | route previously fell to generic portal fallback | implementation renders exact Publication/Revision identity and frozen pages; `docs/ui/147-publication-preview-after.png` | no | keyboard Tab reached Projects; reduced-motion media set; narrow overflow check `scrollWidth=clientWidth` | browser errors empty; authenticated calls succeeded; no failed requests observed | internal preview stays authenticated and does not use public link URL | `c139780` → candidate pending / 2026-08-06 |
+| `documentation-previews` | authenticated Publication 1 / narrow 390×844 | synthetic Plan 125 fixture; Publication 1 → Revision 1 | agent-browser / Chromium | route previously fell to generic portal fallback | content and identity remain present at narrow width; `docs/ui/147-publication-preview-narrow.png`; page scroll width equals viewport width | no | reduced-motion media set; keyboard path exercised | no browser errors recorded | portal navigation remains a shared shell concern outside P1-001 | `c139780` → candidate pending / 2026-08-06 |
+| `documentation-previews` | anonymous internal Publication 1 | same synthetic local route | separate agent-browser session | no internal route branch | explicit `Sign in to view this Project Version.` gate | no | not applicable | no browser errors recorded | internal route did not leak Publication metadata to anonymous user | `c139780` → candidate pending / 2026-08-06 |
 
 ## Decision ledger
 
@@ -186,6 +193,8 @@ domain, permission, lifecycle, publication, or URL authority.
 | Date/time | Commit | Surface/state | Result | Next command |
 | --- | --- | --- | --- | --- |
 | 2026-08-06 | `d638112` | program setup | dedicated worktree established; runtime tools resolved; ledger opened | reset/migrate `ossie_test`, seed fixture, start API/web, health/login |
+| 2026-08-06 | `c139780` | preflight/current truth | disposable DB seeded; runner services healthy; current truth reconciled; Publication route preflight recorded; focused docs test 5/5 | add Publication route implementation and candidate tests |
+| 2026-08-06 | `001df10` | `documentation-previews` candidate | Publication route implemented through existing Publication→Revision contract; focused 22/22, full web 482/482, UI 7/7, typecheck/lint/build, browser/a11y evidence; both read-only reviews accept | human review of Plan 147 bundle; continue with next independent surface only after coordinator handoff |
 
 ## Final bundle index
 
