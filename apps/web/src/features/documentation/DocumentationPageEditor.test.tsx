@@ -16,23 +16,42 @@ describe("DocumentationPageEditor", () => {
   };
 
   it("edits relational blocks and reports truthful save state", async () => {
-    const savePage = vi.fn(async () => ({
-      page: {
-        id: "page",
-        title: "Home",
-        canonical_path: "home",
-        version: 2,
-        blocks: [
-          {
-            id: "block",
-            kind: "paragraph" as const,
-            position: 1,
-            expected_version: 1,
-            text: "Updated copy",
-          },
-        ],
-      },
-    }));
+    const savePage = vi
+      .fn()
+      .mockResolvedValueOnce({
+        page: {
+          id: "page",
+          title: "Home",
+          canonical_path: "home",
+          version: 2,
+          blocks: [
+            {
+              id: "block",
+              kind: "paragraph" as const,
+              position: 1,
+              expected_version: 2,
+              text: "Updated copy",
+            },
+          ],
+        },
+      })
+      .mockResolvedValueOnce({
+        page: {
+          id: "page",
+          title: "Home",
+          canonical_path: "home",
+          version: 3,
+          blocks: [
+            {
+              id: "block",
+              kind: "paragraph" as const,
+              position: 1,
+              expected_version: 3,
+              text: "Second copy",
+            },
+          ],
+        },
+      });
     render(
       <DocumentationPageEditor
         projectId="project"
@@ -66,6 +85,21 @@ describe("DocumentationPageEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save Page" }));
     await waitFor(() => expect(savePage).toHaveBeenCalled());
     expect(await screen.findByText("Saved")).toBeInTheDocument();
+
+    await editParagraph("Second copy");
+    expect(await screen.findByText("Unsaved changes")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save Page" }));
+    await waitFor(() => expect(savePage).toHaveBeenCalledTimes(2));
+    expect(savePage.mock.calls[1]?.[4]).toMatchObject({
+      expected_page_version: 2,
+      blocks: [
+        expect.objectContaining({
+          id: "block",
+          expected_version: 2,
+          text: "Second copy",
+        }),
+      ],
+    });
   });
 
   it("renders Viewer state without mutation controls", async () => {
