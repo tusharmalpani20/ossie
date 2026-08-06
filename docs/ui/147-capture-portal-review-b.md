@@ -30,8 +30,7 @@ diff scope.
   existing incomplete contrast-background probe over the textarea only when
   the form was open, with no axe violation.
 - Full final verification passes: focused Capture tests 58/58, serial web
-  suite 494/494, lint, and production build. The web package has no separate
-  typecheck script. The repository-wide `check-css-tokens` command remains
+  suite 494/494, web check-types, lint, and production build. The repository-wide `check-css-tokens` command remains
   red on the pre-existing Documentation reader/editor fallback consumers
   (`--ossie-color-link`, `--ossie-font-family-sans`, `--ossie-font-size-sm`,
   and `--ossie-radius-md`), tracked as P2-010; the Capture CSS introduces no
