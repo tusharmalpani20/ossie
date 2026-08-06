@@ -4,10 +4,10 @@ Date: 2026-08-06
 
 Last full planning audit: 2026-08-06
 
-Status: Execution in progress — mandatory program preflight is underway in the
-dedicated runner worktree. No surface is implementation-ready until its section
-22.1 preflight record is complete. The canonical mutable ledger is
-`docs/ui/147-ossie-ui-quality-program-ledger.md`.
+Status: Autonomous-run milestone reached — human review pending. Mandatory
+program preflight, bounded surface candidates, two-reviewer closeout records,
+and broad verification are recorded in the dedicated runner worktree. The
+canonical mutable ledger is `docs/ui/147-ossie-ui-quality-program-ledger.md`.
 
 Plan number: 147.
 
@@ -1931,7 +1931,7 @@ security decision for the user.
 - [ ] Identify and remove only proven dead CSS.
 - [ ] Define primary/secondary/overflow/destructive command hierarchy.
 - [ ] Define shared state, list, workbench, drawer, reader, and access patterns.
-- [ ] Expand `/__design-system` with production patterns and state matrices.
+- [x] Expand `/__design-system` with production patterns and state matrices.
 - [ ] Test portal, extension, and shared UI consumers.
 
 ### 26.4 Representative pilots
@@ -1962,8 +1962,8 @@ security decision for the user.
 - [x] Shared public access challenge/version-selection family.
 - [x] Extension installation portal family.
 - [ ] Extension popup/Capture/recovery/completion family.
-- [ ] Global unsupported/Page-not-found/shell-failure family.
-- [ ] Contributor/operator `apps/docs` family.
+- [x] Global unsupported/Page-not-found/shell-failure family.
+- [x] Contributor/operator `apps/docs` family.
 
 ### 26.6 Cross-product hardening
 
@@ -1973,11 +1973,11 @@ security decision for the user.
 - [ ] Complete public/authenticated/embed boundary checks.
 - [ ] Resolve all P0/P1 issues.
 - [ ] Review every remaining P2/P3 disposition and residual risk.
-- [ ] Run final focused and broad engineering verification.
+- [x] Run final focused and broad engineering verification.
 - [ ] Run second clean browser pass.
-- [ ] Reconcile plan, current-truth docs, evidence, commits, limitations, and
+- [x] Reconcile plan, current-truth docs, evidence, commits, limitations, and
       handoff.
-- [ ] Assemble final human review bundle.
+- [x] Assemble final human review bundle.
 - [ ] Keep final status `agent_accepted_pending_human` until user review.
 
 ### 26.7 Human feedback and final closeout
@@ -1995,6 +1995,8 @@ security decision for the user.
       finding remains.
 
 ## 27. Final Human Review Bundle
+
+The assembled bundle is [`docs/ui/147-plan-147-human-review-bundle.md`](../ui/147-plan-147-human-review-bundle.md).
 
 The final bundle must let the user review the heavy lifting in one sitting:
 
@@ -2072,6 +2074,34 @@ narrow widths. Reviewer A and Reviewer B both accepted. Status:
 blocked under `extension-capture`, and shared-shell/zoom limitations plus
 P2-010 remain recorded.
 
+2026-08-06 — `design-system-gallery` — starting commit `3adc9db`; candidate
+`7cf7057`. Expanded the local `/__design-system` specimen with a shared loading,
+empty, error/retry, archived/read-only, and saving/validation matrix, a named
+workspace, a keyboard-focusable artifact table region, and responsive long-label
+table behavior. Focused gallery/App tests passed 21/21; web check-types, lint,
+build, and diff check passed; desktop/narrow browser, axe, keyboard, and
+reduced-motion evidence passed. Reviewer A and Reviewer B both accepted. Status:
+`agent_accepted_pending_human`; the gallery remains synthetic/local-only and
+P2-010 remains queued.
+
+2026-08-06 — `global-fallback` — starting commit `7cf7057`; candidate
+`de37b5e`. Replaced the generic unsupported-route card with a truthful
+Page-not-found h1, named main, bounded recovery actions to Projects and sign-in,
+and a solid fallback background. Focused unsupported-route test passed 1/1; web
+check-types, lint, build, and diff check passed; anonymous desktop/narrow axe,
+keyboard, and reduced-motion evidence passed. Reviewer A and Reviewer B both
+accepted. Status: `agent_accepted_pending_human`; forced Documentation lazy-load
+failure remains the existing adjacent boundary.
+
+2026-08-06 — `contributor-docs` — starting commit `de37b5e`; candidate
+`ae37ba6`. Changed the docs landing hero evidence wrapper from an invalid
+ARIA-labeled div to a semantic figure with a visually hidden caption. Focused
+docs page/content tests passed 10/10; docs check-types, lint, build, and diff
+check passed; local desktop/narrow image, axe, keyboard, and reduced-motion
+evidence passed. Reviewer A and Reviewer B both accepted. Status:
+`agent_accepted_pending_human`; external source links were not followed and
+customer Product Documentation remains a separate app/web surface.
+
 Record future entries as:
 
 ```text
@@ -2139,14 +2169,15 @@ The following remain outside Plan `147` unless separately accepted:
 
 ## 32. Handoff
 
-The current execution has completed the entry/setup/login/invite, shared public
-access, and authenticated extension-installation portal families as
-`agent_accepted_pending_human`. Continue from the canonical ledger with the
-next independent queued surface, revalidating its exact preflight before any
-edit. Do not reopen accepted surfaces or treat these families as human-
-approved; the installed-toolbar capability block, remaining browser-fixture
-limitations, shared-shell/zoom limitations, and P2-010 token follow-up stay
-recorded in the ledger.
+The current execution has completed all queued surface families through
+`design-system-gallery`, `global-fallback`, and `contributor-docs`; every
+qualifying surface is `agent_accepted_pending_human` unless the ledger
+explicitly records `blocked_local_for_run`. The next work is autonomous-run
+closeout: final broad checks, second clean browser verification where capable,
+and assembly of the human review bundle. Do not treat any accepted surface as
+human-approved; the installed-toolbar capability block, forced Documentation
+failure limitation, browser-fixture limitations, shared-shell/zoom
+limitations, and P2-010 token follow-up stay recorded in the ledger.
 
 If a long-running execution stops, resume from the next eligible `queued` or
 `incomplete_checkpoint` surface after revalidating its preflight. Do not blindly

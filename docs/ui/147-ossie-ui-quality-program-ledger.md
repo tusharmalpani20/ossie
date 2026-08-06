@@ -105,9 +105,9 @@ cookies, private URLs, or raw captured input are included here.
 | Deterministic synthetic role/content/lifecycle states seeded | fixture CLI summary recorded below; admin/viewer and published/redirect/gone/password cases available | complete |
 | Current-truth drift reconciled | CONTEXT/PRODUCT/README/roadmap/project status/docs content updated; stale scan narrowed to no known shipped-state claims | complete |
 | Route/surface/state ledger expanded | surface registry below; route audit identified P1-001 exact gap | complete |
-| Existing UI evidence classified | inventory/classification remains to be completed in evidence work package | in_progress |
-| External reference ledger revalidated | references recorded from Plan 147 and existing bounded adapter | in_progress |
-| Baseline visual scores and issue IDs recorded | P1-001 through P1-006 and P2 entries recorded; visual scoring remains queued per surface | in_progress |
+| Existing UI evidence classified | inventory/classification recorded in the surface registry and evidence rows | complete |
+| External reference ledger revalidated | references recorded from Plan 147 and existing bounded adapter | complete |
+| Baseline visual scores and issue IDs recorded | P1-001 through P1-006 and P2 entries recorded; all qualifying surface reviews have baseline/after scores or explicit limitations | complete |
 
 ## Surface ledger
 
@@ -134,9 +134,9 @@ review reports, final clean verification, and all required evidence.
 | `token-foundation` | Shared pattern / design system | web `/__design-system`, authenticated portal shell, auth entry, Demo workbench/editor, Documentation library, extension popup; default/hover/focus/disabled/selected/error/read-only/reduced-motion | `d638112` | `105fc5b` | 0 | `accept` — review A | `accept` — review B | token check; web 8/8 focused; extension 140/140; UI 7/7; affected typecheck/lint/build; browser desktop+narrow+popup; axe 0 violations | `agent_accepted_pending_human` | installed extension-toolbar capability is `blocked_local_for_run`; narrow axe has one incomplete probe over intentional table scroll |
 | `extension-installation` | Setup utility | extension check/auth/error/ready/download/update/remove | `7893091` | `1058dbd` | 0 | `accept` — review A | `accept` — review B | focused extension installation 22/22; full web 496/496 serial; web check-types/lint/build; authenticated ready-state browser matrix at desktop/narrow; axe 0/0; keyboard and reduced-motion checks; no target overflow | `agent_accepted_pending_human` | installed browser-toolbar/permission path remains unavailable and blocked under `extension-capture`; browser zoom controls remain environment-limited; shared portal-shell clipping and P2-010 remain separate |
 | `extension-capture` | Focused task utility | unconfigured/signed out/in/selection/recording/recovery/completion/error | `537b3d5` | `106705c` | 0 | `accept` — review A | `accept` — review B | focused extension 140/140; extension typecheck/lint/build; direct synthetic popup active/selection 360px and 180px proxy; axe 0 violations; no direct-popup browser errors | `blocked_local_for_run` | installed toolbar action/permission path unavailable in this runner; 180px has one incomplete contrast-background probe over overlapping long labels; Child 126 installed evidence remains prior evidence only |
-| `design-system-gallery` | Pattern gallery | `/__design-system`; patterns and state matrix; authenticated/local | `d638112` | — | 0 | — | — | — | `queued` | current route audit pending |
-| `global-fallback` | Shell/error state | unsupported route/not found/shell failure/recovery; anonymous/authenticated | `d638112` | — | 0 | — | — | — | `queued` | route audit pending |
-| `contributor-docs` | Separate documentation site | `apps/docs` landing/content; public | `d638112` | — | 0 | — | — | — | `queued` | lower-priority family |
+| `design-system-gallery` | Pattern gallery | `/__design-system`; patterns and state matrix; authenticated/local | `3adc9db` | `7cf7057` | 0 | `accept` — review A | `accept` — review B | focused gallery/App 21/21; web check-types/lint/build; local desktop/narrow browser matrix; axe 0/0; keyboard/reduced-motion checks; no page or section overflow | `agent_accepted_pending_human` | synthetic/local-only gallery; browser zoom controls remain environment-limited; P2-010 remains queued |
+| `global-fallback` | Shell/error state | unsupported route/not found/shell failure/recovery; anonymous/authenticated | `7cf7057` | `de37b5e` | 0 | `accept` — review A | `accept` — review B | focused unsupported route 1/1; web check-types/lint/build; anonymous `/unknown` desktop/narrow browser matrix; axe 0/0; keyboard/reduced-motion checks; no page overflow | `agent_accepted_pending_human` | forced Documentation lazy-load failure remains existing boundary coverage; browser zoom controls remain environment-limited; P2-010 remains queued |
+| `contributor-docs` | Separate documentation site | `apps/docs` landing/content; public | `de37b5e` | `ae37ba6` | 0 | `accept` — review A | `accept` — review B | focused docs page/content 10/10; docs check-types/lint/build; local desktop/narrow browser matrix; all four local images loaded; axe 0/0; keyboard/reduced-motion checks; no page overflow | `agent_accepted_pending_human` | external source links were not followed; browser zoom controls remain environment-limited; customer Product Documentation remains a separate app/web surface |
 
 Required states for each applicable internal surface: loading, empty,
 populated, error/retry, denied, read-only, archived/final/frozen, unsaved,
@@ -168,6 +168,9 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | `P2-013` | P2 | entry composition / accessibility | Login, First-run Setup, and organization Invite entry; public states at 1440px and 390px | surface preflight; shared shell had no named main, entry CSS used raw spacing, and Invite’s standard card could span the desktop viewport | implementer | 0 | accepted_pending_human | `f27714b` | named `Entry workspace`, readable responsive shell, constrained standard Invite card, browser login/setup/unavailable-invite matrix, axe 0/0, keyboard/reduced-motion, focused 22/22, full web 495/495, check-types/lint/build, and both reviews pass | setup-ready and loaded-invite browser states remain component-test coverage; browser zoom controls remain environment-limited; P2-010 remains queued |
 | `P2-014` | P2 | public access composition / accessibility | Shared public Project Version selector across Guide, Demo, and Documentation readers; anonymous, desktop/narrow | surface preflight; single-entry context was loose muted text and multi-entry select had generic Version naming/raw control values | implementer | 0 | accepted_pending_human | `8e38ee4` | Project Version chip, named multi-entry combobox, responsive tokenized control, valid Guide/unavailable Demo browser matrix, axe 0/0, reduced-motion, focused 16/16, full web 496/496, check-types/lint/build, and both reviews pass | multi-entry browser fixture unavailable; Demo/Documentation valid populated slugs unavailable in current disposable seed; P2-010 remains queued |
 | `P2-015` | P2 | extension installation composition / accessibility | Authenticated `/extension` ready state; desktop 1440px and narrow 390px | surface preflight; baseline had a Capture-tools contrast violation and an incomplete gradient-background probe over the download card | implementer | 0 | accepted_pending_human | `1058dbd` | named installation workspace, tokenized hierarchy and cards, authenticated desktop/narrow browser evidence, axe 0/0, keyboard/reduced-motion, focused 22/22, full web 496/496, check-types/lint/build, and both reviews pass | installed toolbar/permission path is unavailable in this runner; shared shell clipping, browser zoom, and P2-010 remain separate |
+| `P2-016` | P2 | design-system gallery composition / accessibility | Local `/__design-system`; desktop 1440px and narrow 390px | surface preflight; historical gallery had no state matrix, no named main, and a narrow table widened its section and triggered a scrollable-region violation | implementer | 0 | accepted_pending_human | `7cf7057` | shared loading/empty/error/read-only/validation matrix, named workspace, focusable labeled table region, responsive long-label table, axe 0/0, keyboard/reduced-motion, focused 21/21, web check-types/lint/build, and both reviews pass | gallery remains synthetic/local-only; P2-010 and browser zoom remain separate |
+| `P2-017` | P2 | global fallback composition / accessibility | Anonymous unsupported `/unknown`; desktop 1440px and narrow 390px | surface preflight; fallback had no level-one heading, generic portal copy, and no recovery action hierarchy | implementer | 0 | accepted_pending_human | `de37b5e` | Page-not-found h1, named main, Projects/sign-in recovery links, solid fallback background, axe 0/0, keyboard/reduced-motion, focused 1/1, web check-types/lint/build, and both reviews pass | forced Documentation lazy-load failure remains existing boundary coverage; P2-010 remains queued |
+| `P2-018` | P2 | contributor documentation composition / accessibility | Public `apps/docs` landing; desktop 1440px and narrow 390px | surface preflight; hero evidence used an invalid ARIA label on a plain div | implementer | 0 | accepted_pending_human | `ae37ba6` | semantic hero figure/caption, local evidence assets loaded, axe 0/0, keyboard/reduced-motion, focused docs 10/10, docs check-types/lint/build, and both reviews pass | external source links were not followed; docs app remains separate from customer Product Documentation |
 | `P2-001` | P2 | visual consistency | cross-product libraries/readers | plan issue register | implementer | 0 | queued | — | family review | exact route ownership pending |
 | `P2-002` | P2 | mobile composition | dense/authoring surfaces | plan issue register | implementer | 0 | queued | — | 390px/200% evidence | exact candidates pending |
 
@@ -209,6 +212,12 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | `8e38ee4` | `public-access` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-public-access-review-b.md` | none | multi-entry browser fixture and populated Demo/Documentation routes unavailable; browser zoom limitation; P2-010 remains queued | Project Version/public-link semantics, access boundary, selector keyboard naming, axe 0/0, reduced motion, focused 16/16, full 496/496, check-types/lint/build pass | accepted pending human |
 | `1058dbd` | `extension-installation` | A — visual/interaction | `accept` | `docs/ui/147-extension-installation-review-a.md` | none | installed toolbar/permission path unavailable; shared portal shell and browser zoom remain separate | installation workspace hierarchy, download prominence, install/connect/update grouping, narrow reflow, target no-overflow, and no blocking visual finding | accepted pending human |
 | `1058dbd` | `extension-installation` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-extension-installation-review-b.md` | none | installed toolbar/permission path unavailable and remains blocked under extension-capture; P2-010 remains queued | auth/download contract, no browser mutation, named workspace, keyboard, reduced motion, axe 0/0, focused 22/22, full 496/496, check-types/lint/build pass | accepted pending human |
+| `7cf7057` | `design-system-gallery` | A — visual/interaction | `accept` | `docs/ui/147-design-system-gallery-review-a.md` | none | synthetic/local-only gallery; browser zoom and P2-010 remain separate | shared state matrix, library/workbench/reader hierarchy, responsive table, long-label wrapping, no overflow, and no blocking visual finding | accepted pending human |
+| `7cf7057` | `design-system-gallery` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-design-system-gallery-review-b.md` | none | no production route/API/domain changes; P2-010 remains queued | synthetic truth, named main/regions, focusable table, axe 0/0, reduced motion, focused 21/21, web check-types/lint/build pass | accepted pending human |
+| `de37b5e` | `global-fallback` | A — visual/interaction | `accept` | `docs/ui/147-global-fallback-review-a.md` | none | forced lazy-load shell failure remains separate; browser zoom remains separate | Page-not-found hierarchy, recovery action clarity, narrow composition, no overflow, and no blocking visual finding | accepted pending human |
+| `de37b5e` | `global-fallback` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-global-fallback-review-b.md` | none | Documentation failure boundary remains existing coverage; P2-010 remains queued | route truth, safe recovery links, level-one heading, named main, axe 0/0, reduced motion, focused 1/1, web check-types/lint/build pass | accepted pending human |
+| `ae37ba6` | `contributor-docs` | A — visual/interaction | `accept` | `docs/ui/147-contributor-docs-review-a.md` | none | external source links not followed; browser zoom remains separate | contributor landing hierarchy, evidence figure clarity, narrow stacking, image loading, no overflow, and no blocking visual finding | accepted pending human |
+| `ae37ba6` | `contributor-docs` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-contributor-docs-review-b.md` | none | docs app remains separate from customer Documentation; external links not followed | source-of-truth boundary, semantic figure, axe 0/0, reduced motion, focused 10/10, docs typecheck/lint/build pass | accepted pending human |
 
 
 ## Reference ledger
@@ -281,6 +290,12 @@ domain, permission, lifecycle, publication, or URL authority.
 | `entry-onboarding` | invalid organization invite / desktop 1440×900 and narrow 390×900 | safe local invalid token `plan147-invalid`; no live invite created | agent-browser / Chromium; runner API 3022/web 3020 | 900px body, one main, 1 control, no overflow, axe 0/0 at both viewports; `docs/ui/147-entry-onboarding-before-invite-desktop.png` and `docs/ui/147-entry-onboarding-before-invite-narrow.png` | named `Entry workspace`, centered standard card 680px desktop / 358px narrow, target overflow 0, axe 0/0; `docs/ui/147-entry-onboarding-after-invite-desktop.png` and `docs/ui/147-entry-onboarding-after-invite-narrow.png` | no | reduced-motion matched; Ossie brand link remains keyboard-reachable | unavailable invite request remained truthful; no acceptance mutation or new browser errors | loaded new-user/existing-user and acceptance branches remain component-test coverage; standard width no longer becomes a desktop-wide banner | `f27714b` / 2026-08-06 |
 | `public-access` | anonymous valid Guide / desktop 1440×900 and narrow 390×900 | synthetic Plan 127 public Guide Publish Link; one included Project Version | agent-browser / Chromium; runner API 3022/web 3020 | 1,142px desktop / 900px narrow, 0 controls, one main, target overflow 0, axe 0/0; `docs/ui/147-public-access-before-guide-desktop.png` and `docs/ui/147-public-access-before-guide-narrow.png` | same document/control/a11y metrics; single entry is a visible `Project Version: Summer release` chip; `docs/ui/147-public-access-after-guide-desktop.png` and `docs/ui/147-public-access-after-guide-narrow.png` | no | reduced-motion matched; no selector keyboard interaction for the single-entry chip; focused test covers multi-entry combobox naming | public Guide request/asset requests rendered without new browser errors; no mutation requests | selector copy and styling now explicitly use Project Version and the chip has bounded surface treatment; Guide content/access/Revision semantics unchanged | `8e38ee4` / 2026-08-06 |
 | `public-access` | anonymous unavailable Demo / desktop 1440×900 and narrow 390×900 | local `plan128-public` currently returns published-demo unavailable in disposable seed | agent-browser / Chromium; runner API 3022/web 3020 | 900px body, one main, 0 controls, target overflow 0, axe 0/0; `docs/ui/147-public-access-before-demo-desktop.png` and `docs/ui/147-public-access-before-demo-narrow.png` | same truthful unavailable state, one main, target overflow 0, axe 0/0; `docs/ui/147-public-access-after-demo-desktop.png` and `docs/ui/147-public-access-after-demo-narrow.png` | no | reduced-motion matched; no selector present in unavailable state | unavailable request remained truthful; no new browser errors | no populated Demo claim; this route proves shared candidate does not disturb unavailable access messaging | `8e38ee4` / 2026-08-06 |
+| `design-system-gallery` | local synthetic pattern gallery / desktop 1440×900 | historical Child 121 gallery at `/__design-system`; no authenticated or private state | agent-browser / Chromium; web runner 3034 baseline and 3020 candidate | 1,066px body, one main, three regions, five controls, no desktop overflow, axe 0 violations / 0 incomplete; `docs/ui/147-design-system-gallery-before-desktop.png` | 1,373px body, one named main, five regions, seven controls, no page/section overflow, axe 0/0; `docs/ui/147-design-system-gallery-after-desktop.png` | no | reduced-motion enabled; synthetic state matrix and labeled artifact table visible | no API requests; no browser errors recorded | desktop workbench remains three-column; state matrix and table focus affordance are review-only examples | `7cf7057` / 2026-08-06 |
+| `design-system-gallery` | local synthetic pattern gallery / narrow 390×900 | same gallery; long Project Version table label | agent-browser / Chromium; web runner 3034 baseline and 3020 candidate | 1,680px body, one main, three regions, five controls, section overflow true from 720px table, axe 0 violations / 1 incomplete contrast-background probe; `docs/ui/147-design-system-gallery-before-narrow.png` | 2,955px body, one named main, five regions, seven controls, page/section overflow false, axe 0/0; `docs/ui/147-design-system-gallery-after-narrow.png` | no | reduced-motion enabled; Tab reached Retry state, New capture, and labeled artifact table; long labels wrap | no API requests; no browser errors recorded | narrow table now wraps within the viewport rather than creating hidden horizontal overflow | `7cf7057` / 2026-08-06 |
+| `global-fallback` | anonymous unsupported route / desktop 1440×900 | local `/unknown`; existing parser returns unsupported | agent-browser / Chromium; runner web 3020 | 900px body, one unlabeled main, no h1, one Ossie link, axe 1 violation / 1 incomplete; `docs/ui/147-global-fallback-before-desktop.png` | 900px body, named main, Page-not-found h1, three links, axe 0/0; `docs/ui/147-global-fallback-after-desktop.png` | no | reduced-motion enabled; no recovery link followed | no failed requests or browser errors after candidate | generic portal card becomes explicit Page-not-found recovery state; route parser and auth remain unchanged | `de37b5e` / 2026-08-06 |
+| `global-fallback` | anonymous unsupported route / narrow 390×900 | local `/unknown`; existing parser returns unsupported | agent-browser / Chromium; runner web 3032 baseline and 3020 candidate | 900px body, one unlabeled main, no h1, one Ossie link, axe 1 violation / 1 incomplete; `docs/ui/147-global-fallback-before-narrow.png` | 900px body, named main, Page-not-found h1, three links, axe 0/0; `docs/ui/147-global-fallback-after-narrow.png` | no | reduced-motion enabled; Tab reached Ossie, Open Projects, Sign in; no page overflow | no failed requests or browser errors after candidate | card remains bounded and links retain native keyboard semantics at 390px | `de37b5e` / 2026-08-06 |
+| `contributor-docs` | public docs landing / desktop 1440×900 | local `apps/docs` Next app; committed synthetic alpha image assets | agent-browser / Chromium; docs runner 3033 | 2,789px body, one main, six headings, nine links, no page overflow, all four images loaded, axe 0 violations / 1 incomplete invalid ARIA label; `docs/ui/147-contributor-docs-before-desktop.png` | same body/heading/link/image metrics, axe 0/0; `docs/ui/147-contributor-docs-after-desktop.png` | no | reduced-motion enabled; README and self-hosting links first in Tab path | no external links followed; local images loaded; no browser errors recorded | hero evidence is now a semantic figure with caption; docs/source-of-truth content unchanged | `ae37ba6` / 2026-08-06 |
+| `contributor-docs` | public docs landing / narrow 390×900 | same local `apps/docs` app and assets | agent-browser / Chromium; docs runner 3033 | 5,132px body, one main, six headings, nine links, no page overflow, all four images loaded, axe 0 violations / 1 incomplete invalid ARIA label; `docs/ui/147-contributor-docs-before-narrow.png` | same body/heading/link/image metrics, axe 0/0; `docs/ui/147-contributor-docs-after-narrow.png` | no | reduced-motion enabled; no page overflow; image assets loaded | no external links followed; no browser errors recorded | responsive stacking remains unchanged; only hero evidence semantics changed | `ae37ba6` / 2026-08-06 |
 
 | `extension-installation` | authenticated ready state / desktop 1440×900 | synthetic local owner session at `/extension`; bundle was not downloaded | agent-browser / Chromium; runner API 3022/web 3020 | 900px body, one main, 10 controls, four card-region headings, target overflow 0, axe 1 violation / 1 incomplete; `docs/ui/147-extension-installation-before-desktop.png` | 932px body, one main, 10 controls, named `Extension installation workspace`, target overflow 0, axe 0/0; `docs/ui/147-extension-installation-after-desktop.png` | no | reduced-motion enabled; download button remained unsubmitted | browser errors and failed local requests empty after candidate route; no bundle mutation | Capture-tools contrast and gradient probe were removed by tokenized muted text and a solid elevated card; installation instructions and runtime URL values remain unchanged | `1058dbd` / 2026-08-06 |
 | `extension-installation` | authenticated ready state / narrow 390×900 | same synthetic local owner session at `/extension`; bundle was not downloaded | agent-browser / Chromium; runner API 3022/web 3020 | 1,857px body, one main, 10 controls, target overflow 0, axe 1 violation / 1 incomplete; `docs/ui/147-extension-installation-before-narrow.png` | 1,923px body, one main, 10 controls, named `Extension installation workspace`, target overflow 0, axe 0/0; `docs/ui/147-extension-installation-after-narrow.png` | no | reduced-motion enabled; Tab path reached portal controls; no target content overflow | browser errors and failed local requests empty after candidate route; no bundle mutation | two-column install/connect cards stack at the narrow breakpoint; installed toolbar/permission path remains unavailable and is not claimed | `1058dbd` / 2026-08-06 |
@@ -1182,6 +1197,128 @@ domain, permission, lifecycle, publication, or URL authority.
   candidates, ledger truth, synthetic database state, and extension bundle,
   auth, and capture contracts.
 
+### design-system-gallery exact surface preflight
+
+- Actual HEAD/worktree before implementation: `3adc9db` in
+  `/home/ubuntu/ossie-plan147`, branch `agent/plan-147-ui-quality`; worktree
+  was clean. The candidate is `7cf7057` and changes only the local
+  `/__design-system` gallery, its CSS module, and the focused gallery test.
+- Surface and normal entries: local development `/__design-system` with
+  synthetic library, authoring workbench, reader, long-label, and shared state
+  examples. It is not authenticated and makes no API calls.
+- Current component graph: `DesignSystemReviewPage` composes existing
+  `@repo/ui` Badge, Button, Card, Alert, Input, Label, Select, and Separator
+  primitives. It owns only synthetic markup and CSS; no production route state
+  is consumed.
+- Baseline browser proof: desktop was 1,066px with one main, three regions,
+  five controls, and no section overflow; narrow was 1,680px with one main,
+  three regions, five controls, and section overflow from the table's 720px
+  minimum. Baseline axe was 0 violations / 0 incomplete desktop and 0
+  violations / 1 incomplete narrow contrast-background probe. Files are the
+  four `docs/ui/147-design-system-gallery-before-*.png` files.
+- Intended write set: named main, shared state matrix, focusable labeled table
+  region, responsive long-label table, tokenized gallery spacing, focused test,
+  browser evidence, and blind review records. No API, domain, permission,
+  tenant, persistence, or dependency behavior changes are authorized.
+- Explicitly out of scope: replacing `@repo/ui`, adding a component library,
+  authenticated product fixtures, browser zoom tooling, and global P2-010
+  token-family repair.
+- Accepted constraints: this remains a local review gallery; every state is
+  visibly synthetic; a narrow table may wrap rather than scroll when the
+  specimen's long-label state can remain readable.
+- Focused failing test added first: the gallery test requires a named main,
+  shared state matrix, and Retry state action; it failed before the candidate.
+- Browser verification: 1440×900 and 390×900, reduced motion, axe, keyboard Tab
+  path, no page/section overflow, console/request checks, and synthetic-only
+  content.
+- Reviewer A brief: inspect pattern hierarchy, state matrix usefulness,
+  desktop workbench density, long-label handling, and narrow recomposition.
+- Reviewer B brief: inspect synthetic truth, semantic regions/table focus,
+  state coverage, keyboard/axe/reduced-motion behavior, dependency boundary,
+  and exact diff scope.
+- Rollback boundary: revert only `7cf7057` and gallery evidence/review
+  records; preserve `3adc9db`, all accepted candidates, and the existing UI
+  primitives/token foundation.
+
+### global-fallback exact surface preflight
+
+- Actual HEAD/worktree before implementation: `7cf7057` in
+  `/home/ubuntu/ossie-plan147`, branch `agent/plan-147-ui-quality`; worktree
+  was clean. The candidate is `de37b5e` and changes only the final unsupported
+  App fallback, its CSS, and the route test.
+- Surface and normal entries: anonymous or authenticated unsupported paths such
+  as `/unknown`, with Page-not-found copy and recovery to existing Projects or
+  sign-in routes. Documentation lazy-load failure is an existing adjacent
+  boundary and remains separate.
+- Current component graph: `parsePortalRoute` returns `{ type: "unsupported" }`;
+  `App` owns the final fallback card, `OssieBrand` owns the portal identity,
+  and `portalDocumentTitle` already supplies `Page not found | Ossie`.
+- Baseline browser proof: desktop and narrow each had 900px body height, one
+  unlabeled main, no level-one heading, one brand link, axe one level-one
+  heading violation plus one gradient-background incomplete probe. Baseline
+  files are the four `docs/ui/147-global-fallback-before-*.png` files.
+- Intended write set: level-one heading, named main, truthful recovery copy,
+  existing Projects/sign-in links, solid fallback background, focused route
+  test, browser evidence, and blind review records. Route parsing, auth,
+  tenant, API, schema, public URL, and dependency behavior remain unchanged.
+- Explicitly out of scope: forced lazy-load failure injection, Documentation
+  route boundary redesign, browser zoom tooling, and P2-010 global token work.
+- Accepted constraints: unsupported routes must remain generic and non-leaky;
+  recovery actions must point only to existing safe entry routes.
+- Focused failing test added first: unsupported-route test requires the named
+  `Page not found workspace` main; it failed before the candidate.
+- Browser verification: `/unknown` at 1440×900 and 390×900, reduced motion,
+  axe, keyboard Tab path, no overflow, and console/request checks; no recovery
+  link followed.
+- Reviewer A brief: inspect heading/recovery hierarchy, bounded card density,
+  narrow behavior, and action prominence.
+- Reviewer B brief: inspect generic error truth, no metadata leakage, existing
+  route/auth boundaries, heading/landmark/keyboard/axe/reduced-motion behavior,
+  and exact diff scope.
+- Rollback boundary: revert only `de37b5e` and fallback evidence/review
+  records; preserve `7cf7057`, prior candidates, parser/title contracts, and
+  existing Documentation error boundary.
+
+### contributor-docs exact surface preflight
+
+- Actual HEAD/worktree before implementation: `de37b5e` in
+  `/home/ubuntu/ossie-plan147`, branch `agent/plan-147-ui-quality`; worktree
+  was clean. The candidate is `ae37ba6` and changes only the public `apps/docs`
+  hero evidence markup, CSS, and page test.
+- Surface and normal entries: local Next.js `apps/docs` landing page with
+  repository links, alpha capabilities, accepted target direction, committed
+  safe alpha screenshots, and limitations. It is contributor/operator docs,
+  not customer Product Documentation.
+- Current component graph: `apps/docs/app/page.tsx` owns the landing composition;
+  `docs-content.ts` owns source-link and capability copy; Next Image serves the
+  committed local brand and evidence assets available under the runner's docs
+  content path.
+- Baseline browser proof: desktop was 2,789px and narrow 5,132px, one main,
+  six headings, nine links, no page overflow, all four images loaded, axe 0
+  violations with one incomplete invalid ARIA-label-on-div probe. Baseline
+  files are the four `docs/ui/147-contributor-docs-before-*.png` files.
+- Intended write set: semantic hero figure/caption, visually hidden caption
+  style, focused page test, browser evidence, and blind review records. No
+  Product Documentation route, source-of-truth content, external-link target,
+  dependency, or product domain behavior changes are authorized.
+- Explicitly out of scope: following external GitHub links, migrating docs into
+  the customer Documentation app, new screenshots, browser zoom tooling, and
+  unrelated docs content refresh.
+- Accepted constraints: local evidence assets remain synthetic and safe; the
+  compact contributor hub continues to point to Markdown source docs.
+- Focused failing test added first: page test requires a semantic hero figure
+  and visually hidden caption; it failed before the candidate.
+- Browser verification: local docs app at 1440×900 and 390×900, reduced motion,
+  axe, keyboard Tab path, image completion, no page overflow, and no external
+  link navigation.
+- Reviewer A brief: inspect first-viewport hierarchy, evidence figure clarity,
+  source-link scanability, and narrow stacking.
+- Reviewer B brief: inspect contributor-docs boundary, semantic image caption,
+  local asset safety, keyboard/axe/reduced-motion behavior, and exact diff.
+- Rollback boundary: revert only `ae37ba6` and contributor-docs evidence/review
+  records; preserve `de37b5e`, current docs content, local assets, and the
+  separation from customer Product Documentation.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
@@ -1205,6 +1342,9 @@ domain, permission, lifecycle, publication, or URL authority.
 | 2026-08-06 | `f27714b` | `entry-onboarding` candidate | Entry shell, login/setup/invite composition, named main landmark, responsive standard width, keyboard/reduced-motion and truthful local browser evidence; focused 22/22, full web 495/495 serial, web check-types/lint/build, both read-only reviews accept | human review Plan 147 bundle; retain setup-ready and loaded-invite component-test limitation, browser zoom limitation, P2-010 token failure, and remaining queued families |
 | 2026-08-06 | `8e38ee4` | `public-access` candidate | Shared Project Version selector copy/semantics and tokenized responsive control; valid Guide/unavailable Demo browser and axe evidence; focused 16/16, full web 496/496 serial, web check-types/lint/build, both read-only reviews accept; multi-entry fixture remains component-test coverage | human review Plan 147 bundle; retain multi-entry and populated Demo/Documentation fixture limitations, browser zoom limitation, P2-010 token failure, and remaining queued families |
 | 2026-08-06 | `1058dbd` | `extension-installation` candidate | authenticated installation workspace hierarchy, named region, tokenized download/instruction cards, desktop/narrow browser and axe evidence; focused 22/22, full web 496/496 serial, web check-types/lint/build, both read-only reviews accept; installed toolbar remains unavailable and unclaimed | human review Plan 147 bundle; retain installed-toolbar/permission block under extension-capture, shared-shell clipping, browser zoom limitation, P2-010 token failure, and remaining queued families |
+| 2026-08-06 | `7cf7057` | `design-system-gallery` candidate | expanded local gallery with shared state matrix, named workspace, focusable table region, responsive long-label table, desktop/narrow axe and keyboard evidence; focused 21/21, web check-types/lint/build, both read-only reviews accept | human review Plan 147 bundle; retain synthetic/local-only boundary, browser zoom limitation, P2-010 token failure, and final human review |
+| 2026-08-06 | `de37b5e` | `global-fallback` candidate | unsupported route now has Page-not-found h1, named main, Projects/sign-in recovery, solid background, desktop/narrow axe and keyboard evidence; focused 1/1, web check-types/lint/build, both read-only reviews accept | human review Plan 147 bundle; retain forced Documentation failure boundary limitation, browser zoom limitation, P2-010 token failure, and final human review |
+| 2026-08-06 | `ae37ba6` | `contributor-docs` candidate | docs hero evidence is a semantic figure with caption; local desktop/narrow image, axe, keyboard and reduced-motion evidence; focused docs 10/10, docs check-types/lint/build, both read-only reviews accept | human review Plan 147 bundle; retain external-link non-navigation, separate customer Documentation boundary, browser zoom limitation, and final human review |
 
 ## Final bundle index
 
