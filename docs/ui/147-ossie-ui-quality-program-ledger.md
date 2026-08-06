@@ -1513,6 +1513,49 @@ domain, permission, lifecycle, publication, or URL authority.
   test/evidence/review records; preserve `b5b7924`, `8b45a4b`, and all prior
   accepted-pending-human candidates.
 
+### projects-state-semantics exact surface preflight
+
+- Actual HEAD/worktree before implementation: `e67d392` in
+  `/home/ubuntu/ossie-plan147`, branch `agent/plan-147-ui-quality`; worktree
+  was clean. This is cycle 2 for `projects-workspace`, limited to loading and
+  recoverable-error state semantics after the denied-state cycle 1.
+- Surface and normal entry: `/projects` through the existing Project list
+  loader. The `loading` branch currently renders only `Loading projects...`,
+  and the recoverable `error` branch renders only `Could not load projects.`
+  plus the existing Retry button. Loaded, empty, denied, and create behavior
+  remain outside this write set.
+- Current graph: `ProjectListPage` owns `LoadState`, `listProjects`, retry via
+  `reloadKey`, and the shared `PortalAppShell`; the existing tests already
+  exercise loading, generic failure, retry, and eventual loaded content. No
+  server/API adapter, route guard, permission, or data contract is changing.
+- Baseline truth: loading and error component states have no level-one heading;
+  the prior `/projects` browser route evidence proves the same shell and
+  viewport-safe navigation. Browser network routing can safely hold the local
+  projects request for loading and abort it for error without submitting a
+  mutation or using customer data.
+- Intended write set: loading/error semantic wrappers and status text, focused
+  Project list assertions, safe local loading/error browser evidence, blind
+  reviews, and Plan/ledger/bundle reconciliation. No API, auth, permission,
+  tenant, Project, Project Version, public-link, or navigation semantics may
+  change.
+- Explicitly out of scope: loaded/empty/create/denied state content, shared
+  shell CSS, retry implementation, server behavior, browser zoom tooling, and
+  unrelated Documentation or extension states.
+- Accepted constraints: loading uses a named `Projects` h1 plus a status
+  message; recoverable error uses the same h1, an alert message, and the
+  existing Retry action. The message remains truthful and the browser remains
+  local/synthetic only.
+- Focused failing tests to add first: the existing loading and generic-error
+  Project list tests must require a level-one `Projects` heading before the
+  implementation.
+- Reviewer A brief: inspect state hierarchy, loading/error readability, retry
+  prominence, desktop/narrow composition, and no visual drift in loaded states.
+  Reviewer B brief: inspect status/alert semantics, retry continuity, API/auth
+  boundary, keyboard/axe/network evidence, and exact diff.
+- Rollback boundary: revert only this cycle-2 state-semantics candidate and its
+  focused test/evidence/review records; preserve `e67d392`, the denied-state
+  cycle-1 candidate, the shared-shell candidate, and all prior records.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
