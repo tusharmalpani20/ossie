@@ -1945,7 +1945,7 @@ security decision for the user.
 
 ### 26.5 Surface-family rollout
 
-- [ ] Entry/setup/login/invite family.
+- [x] Entry/setup/login/invite family.
 - [ ] Organization members/invites/operations/compliance family.
 - [ ] Projects/Project workspace family.
 - [ ] Project Version/settings/activity/Carry Forward family.
@@ -2040,7 +2040,15 @@ history.
 
 ## 29. Implementation Log
 
-No implementation has started.
+2026-08-06 — `entry-onboarding` — starting commit `85363ea`; candidate
+`f27714b`. Composed the brand-only entry shell, login/setup/invite typography
+and responsive spacing, named the shared `Entry workspace` landmark, and
+bounded the standard Invite card. Focused entry tests passed 22/22; the full
+web suite passed 495/495; web check-types, lint, build, and diff check passed;
+desktop/narrow login, setup-complete, invalid-invite, axe, keyboard, and
+reduced-motion evidence passed. Reviewer A and Reviewer B both accepted. Status:
+`agent_accepted_pending_human`; setup-ready and loaded-invite browser states
+remain component-test coverage, and P2-010 remains queued.
 
 Record future entries as:
 
@@ -2109,11 +2117,12 @@ The following remain outside Plan `147` unless separately accepted:
 
 ## 32. Handoff
 
-The next executor should begin at section 26.1, not with visual code. It must
-first repair current truth, complete the route/state/evidence ledgers, and
-establish failing coverage for the Publication preview route and undefined
-token contract. It should then implement the five representative pilots and
-use their accepted patterns to drive the remaining surface families.
+The current execution has completed the entry/setup/login/invite family as
+`agent_accepted_pending_human`. Continue from the canonical ledger with the
+next independent queued surface, revalidating its exact preflight before any
+edit. Do not reopen accepted surfaces or treat this family as human-approved;
+the remaining browser-fixture limitations and P2-010 token follow-up stay
+recorded in the ledger.
 
 If a long-running execution stops, resume from the next eligible `queued` or
 `incomplete_checkpoint` surface after revalidating its preflight. Do not blindly

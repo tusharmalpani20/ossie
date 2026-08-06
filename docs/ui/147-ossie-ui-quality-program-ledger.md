@@ -117,7 +117,7 @@ review reports, final clean verification, and all required evidence.
 
 | Surface ID | Family / archetype | Exact routes, roles, and states | Starting commit | Candidate commit | Cycles | Reviewer A | Reviewer B | Verification | Status | Residual risk |
 | --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- |
-| `entry-onboarding` | Entry form | setup/login/invite; owner, existing member, invalid, unavailable, error | `d638112` | — | 0 | — | — | — | `queued` | route/state expansion pending |
+| `entry-onboarding` | Entry form | setup/login/invite; owner, existing member, invalid, unavailable, error | `85363ea` | `f27714b` | 0 | `accept` — review A | `accept` — review B | focused entry 22/22; full web 495/495 serial; web check-types/lint/build; login/setup/unavailable-invite browser matrix at desktop/narrow; axe 0/0; keyboard and reduced-motion checks | `agent_accepted_pending_human` | setup-ready and loaded-invite browser states remain component-test coverage because no safe seeded fixture exists; browser zoom controls remain environment-limited; pre-existing repository CSS-token check failure remains queued as P2-010 |
 | `organization-admin` | Administration/list | organization members/invites/compliance/Documentation operations; owner/admin/editor/viewer | `f125272` | `c4141a1` | 0 | `accept` — review A | `accept` — review B | focused organization-admin 13/13; full web 492/492 serial; web typecheck/lint/build/diff; authenticated owner/viewer members/compliance browser matrix; axe 0 violations; no browser errors or failed local requests | `agent_accepted_pending_human` | shared portal navigation clipping remains out of scope; browser zoom controls are environment-limited; no pre-change compliance desktop screenshot; one incomplete contrast-background probe over partially sampled metric values |
 | `projects-workspace` | Dense library/workspace | project library/workspace/create/archive; owner/admin/editor/viewer | `c6ee819` | `aefb9dd` | 0 | `accept` — review A | `accept` — review B | focused Project 17/17; full web 489/489 serial; web typecheck/lint/build; authenticated admin/viewer active/archived/create browser matrix; axe 0 violations; no browser errors or failed local requests | `agent_accepted_pending_human` | shared portal navigation clipping remains out of scope; browser zoom controls are environment-limited; one existing incomplete create-form textarea contrast probe |
 | `project-versions` | Context/admin/timeline | Project Version context/settings/create/reorder/default/archive/restore/activity/Carry Forward | `d34eafe` | `c93ca11` | 0 | `accept` — review A | `accept` — review B | focused Project Version 12/12; full web 493/493 serial; web typecheck/lint/build; authenticated owner/viewer active/non-default/archived browser matrix; axe 0 violations; no browser errors or failed local requests | `agent_accepted_pending_human` | shared portal navigation clipping remains out of scope; browser zoom controls are environment-limited; existing settings textarea probe; pre-existing repository CSS-token check failure is queued as P2-010 |
@@ -165,6 +165,7 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | `P2-010` | P2 | token consistency | existing Documentation reader/editor CSS fallback consumers surfaced during Project Version verification | `pnpm check-css-tokens` on 2026-08-06; names are outside Project Version CSS | coordinator | 0 | queued | — | Project Version CSS introduces no undefined token names; focused tests, typecheck, lint, and build pass | pre-existing `--ossie-color-link`, `--ossie-font-family-sans`, `--ossie-font-size-sm`, and `--ossie-radius-md` consumers remain for token-family follow-up |
 | `P2-011` | P2 | Capture composition | Capture list/create/detail, owner/viewer, 1440px and 390px | surface preflight; baseline showed raw Project ID presentation, weak list grouping, and loose detail hierarchy | implementer | 0 | accepted_pending_human | `f4a6010` | named list/detail workspace regions, responsive list/detail/create composition, owner/viewer browser matrix, axe, reduced-motion, no-overflow, focused 58/58, full web 494/494, check-types/lint/build, and both reviews pass | populated Event/Asset browser records remain unavailable in the disposable fixture; shared shell, zoom, and existing form probe remain separate |
 | `P2-012` | P2 | Guide family composition / accessibility | Guide list/editor/preview/Revision history/Revision preview, owner/editor/viewer, 1440px and 390px | surface preflight; editor baseline measured 110 controls and 5,217px at 390px; preview had one primary-link contrast violation | implementer | 0 | accepted_pending_human | `ae217d0` | named Guide/Revision workspace regions, responsive library/editor/preview/history composition, preview contrast correction, owner/viewer browser matrix, axe, reduced-motion, no-overflow, focused 19/19, full web 495/495, check-types/lint/build, and both reviews pass | active fixture media requests are blocked by existing dev CSP/API-origin setup; editor retains two existing incomplete contrast-background probes; shared shell and browser zoom remain separate |
+| `P2-013` | P2 | entry composition / accessibility | Login, First-run Setup, and organization Invite entry; public states at 1440px and 390px | surface preflight; shared shell had no named main, entry CSS used raw spacing, and Invite’s standard card could span the desktop viewport | implementer | 0 | accepted_pending_human | `f27714b` | named `Entry workspace`, readable responsive shell, constrained standard Invite card, browser login/setup/unavailable-invite matrix, axe 0/0, keyboard/reduced-motion, focused 22/22, full web 495/495, check-types/lint/build, and both reviews pass | setup-ready and loaded-invite browser states remain component-test coverage; browser zoom controls remain environment-limited; P2-010 remains queued |
 | `P2-001` | P2 | visual consistency | cross-product libraries/readers | plan issue register | implementer | 0 | queued | — | family review | exact route ownership pending |
 | `P2-002` | P2 | mobile composition | dense/authoring surfaces | plan issue register | implementer | 0 | queued | — | 390px/200% evidence | exact candidates pending |
 
@@ -200,6 +201,8 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | `f4a6010` | `capture-portal` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-capture-portal-review-b.md` | none | browser zoom limitation; one incomplete open-create-form contrast-background probe; pre-restart Vite HMR error history resolved by dedicated web-runner restart; P2-010 remains queued | owner/viewer controls, Capture/Event/Asset and immutability boundary, named regions, axe 0 violations, reduced motion, focused 58/58, full 494/494, lint/build pass | accepted pending human |
 | `ae217d0` | `guides-internal` | A — visual/interaction | `accept` | `docs/ui/147-guides-internal-review-a.md` | none | shared shell remains separate; browser media limitation retained for synthetic asset requests | Guide library/editor/preview hierarchy, 390px editor density, preview readability, Revision history framing, no-overflow, and no blocking visual finding | accepted pending human |
 | `ae217d0` | `guides-internal` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-guides-internal-review-b.md` | none | active fixture media blocked by existing dev CSP/API-origin setup; two editor incomplete contrast probes; browser zoom limitation; P2-010 remains queued | owner/viewer/editor boundary, draft/archive/immutable Revision semantics, preview contrast, named regions, axe, reduced motion, focused 19/19, full 495/495, check-types/lint/build pass | accepted pending human |
+| `f27714b` | `entry-onboarding` | A — visual/interaction | `accept` | `docs/ui/147-entry-onboarding-review-a.md` | none | browser zoom controls remain environment-limited; setup-ready and loaded-invite states are component-test coverage | entry hierarchy, login form, setup/invite state framing, 680px standard card, 390px reflow, and no blocking visual finding | accepted pending human |
+| `f27714b` | `entry-onboarding` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-entry-onboarding-review-b.md` | none | setup-ready and loaded-invite browser fixtures unavailable without additional local state; P2-010 remains queued | public-entry truth, no auth/setup/invite contract changes, keyboard, reduced motion, axe 0/0, focused 22/22, full 495/495, check-types/lint/build pass | accepted pending human |
 
 
 ## Reference ledger
@@ -267,6 +270,9 @@ domain, permission, lifecycle, publication, or URL authority.
 | `guides-internal` | authenticated owner/viewer immutable Revision history / desktop and narrow | two synthetic immutable Guide Revisions; owner and viewer role sessions | agent-browser / Chromium; runner API 3022/web 3020 | 900px desktop / 1,026px narrow, 27 controls, one main, axe 0/0; `docs/ui/147-guides-internal-before-revisions-desktop.png` and `docs/ui/147-guides-internal-before-revisions-narrow.png` | named Guide Revision history region, lifecycle-separated cards, 900px desktop / 1,138px narrow, 27 controls, target overflow 0, axe 0/0; `docs/ui/147-guides-internal-after-revisions-desktop.png` and `docs/ui/147-guides-internal-after-revisions-narrow.png` | no | owner Create checkpoint/Restore remain; viewer has neither; keyboard/reduced-motion checked | Revision/detail calls returned 200; no mutation submitted | immutable history and viewer read-only boundary remain API-owned | `ae217d0` / 2026-08-06 |
 | `guides-internal` | authenticated owner immutable Revision preview / desktop and narrow | synthetic Revision 1 with immutable Guide content | agent-browser / Chromium; runner API 3022/web 3020 | 900px desktop / narrow baseline not captured; 22 controls, one main, axe 0/0; `docs/ui/147-guides-internal-before-revision-preview-desktop.png` | named Guide Revision preview region, immutable notice/content, 900px desktop / 980px narrow, 22 controls, target overflow 0, axe 0/0; `docs/ui/147-guides-internal-after-revision-preview-desktop.png` and `docs/ui/147-guides-internal-after-revision-preview-narrow.png` | no | reduced-motion enabled; Back to Revision history remains reachable | Revision and asset requests returned 200 where allowed; no mutation requests | immutable content, Revision number, and history route remain unchanged | `ae217d0` / 2026-08-06 |
 | `guides-internal` | authenticated viewer active Guide / narrow 390×900 | synthetic viewer role with active Guide and Revision history | agent-browser / Chromium; runner API 3022/web 3020 | existing viewer route contract | Guide detail renders preview with Read only and no Edit/Publish mutation; Revision history has no Create checkpoint or Restore; axe 0/0, target overflow 0, named preview/history regions | no | reduced-motion and viewer route checks passed | viewer Guide/Revision calls returned 200; no mutation requests | viewer role remains read-only and never exposes authoring controls | `ae217d0` / 2026-08-06 |
+| `entry-onboarding` | public login / desktop 1440×900 and narrow 390×900 | local synthetic instance; no credentials recorded | agent-browser / Chromium; runner web 3020 | 900px body, one main, 4 controls, no overflow, axe 0/0 at both viewports; `docs/ui/147-entry-onboarding-before-login-desktop.png` and `docs/ui/147-entry-onboarding-before-login-narrow.png` | named `Entry workspace`, same 900px body/4 controls, target overflow 0, axe 0/0; `docs/ui/147-entry-onboarding-after-login-desktop.png` and `docs/ui/147-entry-onboarding-after-login-narrow.png` | no | reduced-motion matched; Tab reached brand, email, password, submit, then body | no new post-change browser errors reported; no form submitted | shell gains an accessible main name and tokenized spacing; login/API/navigation behavior unchanged | `f27714b` / 2026-08-06 |
+| `entry-onboarding` | public setup / desktop 1440×900 and narrow 390×900 | local synthetic instance reports setup already complete | agent-browser / Chromium; runner API 3022/web 3020 | 900px body, one main, 2 controls, no overflow, axe 0/0 at both viewports; `docs/ui/147-entry-onboarding-before-setup-desktop.png` and `docs/ui/147-entry-onboarding-before-setup-narrow.png` | named `Entry workspace`, same 900px body/2 controls, target overflow 0, axe 0/0; `docs/ui/147-entry-onboarding-after-setup-desktop.png` and `docs/ui/147-entry-onboarding-after-setup-narrow.png` | no | reduced-motion matched; sign-in link remains keyboard-reachable | setup status request rendered the truthful complete state; no setup mutation or new browser errors | ready/completion/error branches remain test coverage; no instance state was changed for evidence | `f27714b` / 2026-08-06 |
+| `entry-onboarding` | invalid organization invite / desktop 1440×900 and narrow 390×900 | safe local invalid token `plan147-invalid`; no live invite created | agent-browser / Chromium; runner API 3022/web 3020 | 900px body, one main, 1 control, no overflow, axe 0/0 at both viewports; `docs/ui/147-entry-onboarding-before-invite-desktop.png` and `docs/ui/147-entry-onboarding-before-invite-narrow.png` | named `Entry workspace`, centered standard card 680px desktop / 358px narrow, target overflow 0, axe 0/0; `docs/ui/147-entry-onboarding-after-invite-desktop.png` and `docs/ui/147-entry-onboarding-after-invite-narrow.png` | no | reduced-motion matched; Ossie brand link remains keyboard-reachable | unavailable invite request remained truthful; no acceptance mutation or new browser errors | loaded new-user/existing-user and acceptance branches remain component-test coverage; standard width no longer becomes a desktop-wide banner | `f27714b` / 2026-08-06 |
 
 ## Decision ledger
 
@@ -1008,6 +1014,60 @@ domain, permission, lifecycle, publication, or URL authority.
   Demo/Documentation candidates, ledger truth, synthetic database state, and
   all Guide/Revision/Publication contracts.
 
+### entry-onboarding exact surface preflight
+
+- Actual HEAD/worktree before implementation: `85363ea` in
+  `/home/ubuntu/ossie-plan147`, branch `agent/plan-147-ui-quality`; worktree
+  was clean. The candidate is `f27714b` and the source diff is limited to the
+  shared entry shell, entry CSS, invite card width, and one shell test.
+- Surface and normal entries: public `/login`, `/setup`, and
+  `/invites/:token`; login, first-run setup, and organization invite loading,
+  ready/complete/unavailable/error, new-user, and existing-user states. The
+  actual local instance reports `setup_required=false`, so the browser setup
+  route is the truthful already-complete state. No safe loaded-invite token was
+  seeded for browser evidence.
+- Current component/request graph: `EntryPageShell` owns the brand-only header
+  and public main wrapper; `LoginPage` owns login form state and safe next-path
+  navigation; `FirstRunSetupPage` owns public instance-status and setup form
+  state; `InviteAcceptPage` owns invite loading, acceptance, existing-user
+  sign-in, and new-user form state. Existing API helpers and route contracts
+  remain the authority.
+- Baseline browser proof: login, setup, and invalid invite each rendered one
+  main with no overflow and axe 0/0 at 1440×900 and 390×900. Login had four
+  controls; setup had two; unavailable invite had one. Baseline files are the
+  six `docs/ui/147-entry-onboarding-before-*.png` files.
+- Intended write set: named `Entry workspace` main landmark, tokenized shell
+  spacing and responsive min-height, login/setup/invite typography and form
+  spacing, standard Invite card width, the focused shell test, browser
+  evidence, and blind review records. No auth, setup, invite, cookie,
+  organization membership, tenant, API, schema, migration, or public URL
+  behavior changes are authorized.
+- Explicitly out of scope: setup-ready or loaded-invite browser fixture
+  creation, shared authenticated portal shell redesign, browser zoom tooling,
+  global token-family repair tracked as P2-010, and new dependencies.
+- Accepted constraints: brand-only public entry remains separate from portal
+  navigation; setup and invite state truth remains API-owned; component tests
+  cover branches unavailable in the safe local browser fixture; readable
+  standard entry content remains centered and bounded at desktop and reflows
+  at 390px.
+- Focused failing test added first: `EntryPageShell.test.tsx` requires the
+  shared main landmark to be named `Entry workspace`; it failed before the
+  shell change and passes in the candidate.
+- Browser verification: login, setup-complete, and invalid-invite routes at
+  1440×900 and 390×900; keyboard Tab path; reduced-motion media; axe; console
+  and page-error checks; no form or invite/setup mutation submitted. Ready,
+  loaded-invite, and acceptance branches remain component-test verification.
+- Reviewer A brief: inspect brand-only entry hierarchy, login form rhythm,
+  setup/invite state framing, readable desktop measure, and 390px reflow.
+- Reviewer B brief: inspect public-entry truth, auth/setup/invite boundaries,
+  no credential or tenant leakage, loading/error/read-only/acceptance branch
+  coverage, keyboard/axe/reduced-motion behavior, evidence safety, and exact
+  diff scope.
+- Rollback boundary: revert only `f27714b` and the entry evidence/review
+  records; preserve `85363ea`, all prior accepted-pending-human candidates,
+  ledger truth, synthetic database state, and existing auth/setup/invite
+  contracts.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
@@ -1028,6 +1088,7 @@ domain, permission, lifecycle, publication, or URL authority.
 | 2026-08-06 | `c93ca11` | `project-versions` candidate | Project Version management grouping, responsive create/edit/lifecycle cards, named workspace region, stacked narrow context identity; focused 12/12, full web 493/493 serial, web typecheck/lint/build, authenticated owner/viewer/active/archived browser and axe evidence, both read-only reviews accept | human review Plan 147 bundle; retain shared-shell clipping, browser zoom limitation, existing settings textarea probe, pre-existing repository CSS-token check failure, and remaining queued families |
 | 2026-08-06 | `f4a6010` | `capture-portal` candidate | Capture list/create/detail hierarchy, named workspace regions, tokenized responsive cards/metrics/upload framing, owner/viewer browser and axe evidence; focused 58/58, full web 494/494 serial, web lint/build, both read-only reviews accept; populated Event/Asset browser records unavailable and not fabricated | human review Plan 147 bundle; retain shared-shell clipping, browser zoom limitation, existing create-form contrast probe, pre-restart HMR runner incident, P2-010 token failure, and remaining queued families |
 | 2026-08-06 | `ae217d0` | `guides-internal` candidate | Guide list/editor/preview and immutable Revision composition, named workspace regions, responsive hierarchy, preview contrast correction, owner/viewer browser and axe evidence; focused 19/19, full web 495/495 serial, web check-types/lint/build, both read-only reviews accept; fixture media limitation recorded | human review Plan 147 bundle; retain shared-shell clipping, browser zoom limitation, editor incomplete contrast probes, existing dev CSP/API-origin media limitation, P2-010 token failure, and remaining queued families |
+| 2026-08-06 | `f27714b` | `entry-onboarding` candidate | Entry shell, login/setup/invite composition, named main landmark, responsive standard width, keyboard/reduced-motion and truthful local browser evidence; focused 22/22, full web 495/495 serial, web check-types/lint/build, both read-only reviews accept | human review Plan 147 bundle; retain setup-ready and loaded-invite component-test limitation, browser zoom limitation, P2-010 token failure, and remaining queued families |
 
 ## Final bundle index
 
