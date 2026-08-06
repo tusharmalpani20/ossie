@@ -772,6 +772,67 @@ domain, permission, lifecycle, publication, or URL authority.
   evidence/review records; preserve `537b3d5`, prior token evidence, all
   portal candidates, ledger truth, and the synthetic direct-popup fixture.
 
+### organization-admin exact surface preflight
+
+- Actual HEAD/worktree: `f125272` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; worktree was clean before this surface. The
+  baseline evidence covers authenticated synthetic owner administration and
+  only synthetic fixture members/compliance records.
+- Surface and normal entries: authenticated `/organization/members` and
+  `/organization/compliance`; owner/admin/editor/viewer role guards; populated,
+  empty, loading, forbidden, unauthenticated, error/retry, invite validation,
+  duplicate/revoke/copy failure, evidence filter/detail/retry/load-more,
+  keyboard, narrow/reflow, and reduced-motion states.
+- Current request/component graph: `App.tsx` resolves both routes;
+  `PortalAppShell` owns shared navigation, authentication, breadcrumb, and the
+  outer main landmark; `OrganizationMembersPage` owns member/invite loading,
+  one-time invite display, copy/revoke/error states; `ComplianceTimelinePage`
+  owns retained evidence filtering, pagination, detail disclosure, and error
+  states; existing `api.ts` organization/compliance adapters remain the only
+  request boundary in scope.
+- Baseline browser proof: authenticated synthetic owner at
+  `/organization/members` measured 1440px/body1440px, 900px document height,
+  13 interactive controls, and 0 axe violations / 0 incomplete items; at
+  390px it measured 390px/body390px, 1,128px document height, 13 controls,
+  and 0/0 axe. The visual baseline showed weak page grouping, dead page-level
+  CSS, and low-information member/invite cards. Baseline files are
+  `docs/ui/147-organization-admin-before-members-desktop.png` and
+  `docs/ui/147-organization-admin-before-members-narrow.png`.
+- The existing compliance baseline was captured at 390px before this candidate:
+  390px/body390px, 12,098px document height, 12 controls, and 0 axe
+  violations / 0 incomplete items. Its visual baseline showed an unbounded
+  evidence stream and weak card framing. Baseline file is
+  `docs/ui/147-organization-admin-before-compliance-narrow.png`; a separate
+  pre-change compliance desktop screenshot was not captured in this runner.
+- Intended write set: members workspace region/page measure and tokenized
+  cards/forms, compliance page measure and tokenized evidence cards, focused
+  member test, browser evidence, and blind review records. No organization
+  membership, invite token, compliance evidence, authorization, tenant, or
+  API contract is intended to change.
+- Explicitly out of scope: `PortalAppShell`/navigation redesign, server/schema/
+  API/migrations, shared UI dependency changes, new dependencies, project
+  compliance, invite-accept flow, and Documentation operations.
+- Accepted constraints: only organization owners can mutate member/invite
+  administration or view organization compliance; invite tokens are shown
+  once and remain synthetic; retained evidence remains immutable/read-only;
+  no private customer data may enter screenshots or review records.
+- Focused failing test to add first: the members route exposes one named
+  `Organization members` administration region while preserving the existing
+  member/invite/API contract tests.
+- Browser verification: members/compliance populated/empty/denied/error,
+  invite validation and copy/revoke guards, evidence filter/detail/retry,
+  1440px/390px/200% reflow, keyboard focus, reduced motion, axe,
+  console/network, and no unintended mutation.
+- Reviewer A brief: inspect admin hierarchy, invite form density, member and
+  pending-invite row framing, compliance timeline measure, retained-evidence
+  cards, narrow composition, and shared-shell boundary.
+- Reviewer B brief: inspect owner-only invite/compliance semantics, one-time
+  token/privacy boundary, immutable retained evidence, error/retry/filter
+  behavior, keyboard/axe/zoom/motion, and exact diff scope.
+- Rollback boundary: revert only the organization-admin candidate and its
+  evidence/review records; preserve `f125272`, prior candidates, ledger truth,
+  synthetic database state, and the existing compliance/member contracts.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |

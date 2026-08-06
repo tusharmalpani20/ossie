@@ -2,7 +2,13 @@
  * @fileoverview Tests for Organization member and invite management UI.
  */
 
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ApiClientError } from "../../lib/api";
 import { OrganizationMembersPage } from "./OrganizationMembersPage";
@@ -31,50 +37,63 @@ const members: OrganizationMember[] = [
   },
 ];
 
-const invites: OrganizationInvite[] = [{
-  id: "org_invite_1",
-  organization_id: "organization_1",
-  email: "pending@example.com",
-  role: "member",
-  status: "pending",
-  expires_at: "2026-06-22T10:00:00.000Z",
-  accepted_at: null,
-  accepted_user_id: null,
-  created_by_id: "org_user_1",
-  updated_by_id: "org_user_1",
-  created_at: "2026-06-15T10:00:00.000Z",
-  updated_at: "2026-06-15T10:00:00.000Z",
-}];
+const invites: OrganizationInvite[] = [
+  {
+    id: "org_invite_1",
+    organization_id: "organization_1",
+    email: "pending@example.com",
+    role: "member",
+    status: "pending",
+    expires_at: "2026-06-22T10:00:00.000Z",
+    accepted_at: null,
+    accepted_user_id: null,
+    created_by_id: "org_user_1",
+    updated_by_id: "org_user_1",
+    created_at: "2026-06-15T10:00:00.000Z",
+    updated_at: "2026-06-15T10:00:00.000Z",
+  },
+];
 
-const renderPage = (overrides: {
-  loadMembers?: () => Promise<{ members: OrganizationMember[] }>;
-  loadInvites?: () => Promise<{ invites: OrganizationInvite[] }>;
-  createInvite?: (input: { email: string; role?: "owner" | "member" }) => Promise<{
-    invite: OrganizationInvite;
-    invite_token: string;
-    invite_url: string;
-  }>;
-  revokeInvite?: (inviteId: string) => Promise<{ invite: OrganizationInvite }>;
-  copyText?: (text: string) => Promise<void>;
-  currentPath?: string;
-} = {}) => {
+const renderPage = (
+  overrides: {
+    loadMembers?: () => Promise<{ members: OrganizationMember[] }>;
+    loadInvites?: () => Promise<{ invites: OrganizationInvite[] }>;
+    createInvite?: (input: {
+      email: string;
+      role?: "owner" | "member";
+    }) => Promise<{
+      invite: OrganizationInvite;
+      invite_token: string;
+      invite_url: string;
+    }>;
+    revokeInvite?: (
+      inviteId: string,
+    ) => Promise<{ invite: OrganizationInvite }>;
+    copyText?: (text: string) => Promise<void>;
+    currentPath?: string;
+  } = {},
+) => {
   const loadMembers = overrides.loadMembers ?? vi.fn(async () => ({ members }));
   const loadInvites = overrides.loadInvites ?? vi.fn(async () => ({ invites }));
-  const createInvite = overrides.createInvite ?? vi.fn(async () => ({
-    invite: {
-      ...invites[0]!,
-      id: "org_invite_2",
-      email: "new@example.com",
-    },
-    invite_token: "plain-token",
-    invite_url: "http://localhost:5173/invites/plain-token",
-  }));
-  const revokeInvite = overrides.revokeInvite ?? vi.fn(async () => ({
-    invite: {
-      ...invites[0]!,
-      status: "revoked" as const,
-    },
-  }));
+  const createInvite =
+    overrides.createInvite ??
+    vi.fn(async () => ({
+      invite: {
+        ...invites[0]!,
+        id: "org_invite_2",
+        email: "new@example.com",
+      },
+      invite_token: "plain-token",
+      invite_url: "http://localhost:5173/invites/plain-token",
+    }));
+  const revokeInvite =
+    overrides.revokeInvite ??
+    vi.fn(async () => ({
+      invite: {
+        ...invites[0]!,
+        status: "revoked" as const,
+      },
+    }));
   const copyText = overrides.copyText ?? vi.fn(async () => undefined);
 
   render(
@@ -85,32 +104,71 @@ const renderPage = (overrides: {
       revokeInvite={revokeInvite}
       copyText={copyText}
       currentPath={overrides.currentPath}
-    />
+    />,
   );
 
   return { loadMembers, loadInvites, createInvite, revokeInvite, copyText };
 };
 
 describe("OrganizationMembersPage", () => {
+  it("labels the member administration workspace as one region", async () => {
+    renderPage();
+
+    expect(
+      await screen.findByRole("region", { name: "Organization members" }),
+    ).toBeInTheDocument();
+  });
+
   it("renders organization members and pending invites", async () => {
     const { loadMembers, loadInvites } = renderPage();
 
-    expect(screen.getByText("Loading organization members...")).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "Organization members" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Compliance timeline" })).toHaveAttribute("href", "/organization/compliance");
+    expect(
+      screen.getByText("Loading organization members..."),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Organization members" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Compliance timeline" }),
+    ).toHaveAttribute("href", "/organization/compliance");
 
     const memberRows = screen.getAllByTestId("organization-member-row");
     expect(within(memberRows[0]!).getByText("Owner User")).toBeInTheDocument();
-    expect(within(memberRows[0]!).getByText("owner@example.com")).toBeInTheDocument();
+    expect(
+      within(memberRows[0]!).getByText("owner@example.com"),
+    ).toBeInTheDocument();
     expect(within(memberRows[0]!).getByText("owner")).toBeInTheDocument();
     expect(within(memberRows[1]!).getByText("Member User")).toBeInTheDocument();
 
     const inviteRows = screen.getAllByTestId("organization-invite-row");
-    expect(within(inviteRows[0]!).getByText("pending@example.com")).toBeInTheDocument();
+    expect(
+      within(inviteRows[0]!).getByText("pending@example.com"),
+    ).toBeInTheDocument();
     expect(within(inviteRows[0]!).getByText("pending")).toBeInTheDocument();
-    expect(within(inviteRows[0]!).getByRole("button", { name: "Revoke invite for pending@example.com" })).toBeInTheDocument();
+    expect(
+      within(inviteRows[0]!).getByRole("button", {
+        name: "Revoke invite for pending@example.com",
+      }),
+    ).toBeInTheDocument();
     expect(loadMembers).toHaveBeenCalledWith();
     expect(loadInvites).toHaveBeenCalledWith();
+  });
+
+  it("keeps the forbidden state as a headed page", async () => {
+    renderPage({
+      loadMembers: async () => {
+        throw new ApiClientError({
+          kind: "forbidden",
+          status: 403,
+          type: "organization_members_forbidden",
+          message: "Owner required",
+        });
+      },
+    });
+
+    expect(
+      await screen.findByRole("heading", { name: "Organization members" }),
+    ).toBeInTheDocument();
   });
 
   it("creates an invite, shows the one-time invite link, and copies it", async () => {
@@ -126,15 +184,27 @@ describe("OrganizationMembersPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
 
-    await waitFor(() => expect(createInvite).toHaveBeenCalledWith({
-      email: "new@example.com",
-      role: "member",
-    }));
-    expect(await screen.findByText("Invite link created. Copy it now; the token is only shown once.")).toBeInTheDocument();
-    expect(screen.getByText("http://localhost:5173/invites/plain-token")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(createInvite).toHaveBeenCalledWith({
+        email: "new@example.com",
+        role: "member",
+      }),
+    );
+    expect(
+      await screen.findByText(
+        "Invite link created. Copy it now; the token is only shown once.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("http://localhost:5173/invites/plain-token"),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Copy invite link" }));
-    await waitFor(() => expect(copyText).toHaveBeenCalledWith("http://localhost:5173/invites/plain-token"));
+    await waitFor(() =>
+      expect(copyText).toHaveBeenCalledWith(
+        "http://localhost:5173/invites/plain-token",
+      ),
+    );
     expect(screen.getByText("Invite link copied.")).toBeInTheDocument();
   });
 
@@ -155,7 +225,9 @@ describe("OrganizationMembersPage", () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Copy invite link" }));
 
-    expect(await screen.findByText("Could not copy invite link.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Could not copy invite link."),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("http://localhost:5173/invites/plain-token"),
     ).toBeInTheDocument();
@@ -192,7 +264,11 @@ describe("OrganizationMembersPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
 
-    expect(await screen.findByText("An active invite already exists for this email.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "An active invite already exists for this email.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("keeps the legacy duplicate invite error mapping as a fallback", async () => {
@@ -213,7 +289,11 @@ describe("OrganizationMembersPage", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
 
-    expect(await screen.findByText("An active invite already exists for this email.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "An active invite already exists for this email.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("shows owner-only permission denial copy", async () => {
@@ -228,11 +308,16 @@ describe("OrganizationMembersPage", () => {
       },
     });
 
-    expect(await screen.findByText("Only organization owners can manage members and invites.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "Only organization owners can manage members and invites.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("revokes pending invites and reloads the list", async () => {
-    const loadInvites = vi.fn()
+    const loadInvites = vi
+      .fn()
       .mockResolvedValueOnce({ invites })
       .mockResolvedValueOnce({ invites: [] });
     const revokeInvite = vi.fn(async () => ({
@@ -244,9 +329,15 @@ describe("OrganizationMembersPage", () => {
     renderPage({ loadInvites, revokeInvite });
 
     await screen.findByRole("heading", { name: "Organization members" });
-    fireEvent.click(screen.getByRole("button", { name: "Revoke invite for pending@example.com" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Revoke invite for pending@example.com",
+      }),
+    );
 
-    await waitFor(() => expect(revokeInvite).toHaveBeenCalledWith("org_invite_1"));
+    await waitFor(() =>
+      expect(revokeInvite).toHaveBeenCalledWith("org_invite_1"),
+    );
     await waitFor(() => expect(loadInvites).toHaveBeenCalledTimes(2));
     expect(await screen.findByText("No pending invites.")).toBeInTheDocument();
   });
@@ -264,10 +355,12 @@ describe("OrganizationMembersPage", () => {
       },
     });
 
-    expect(await screen.findByText("Sign in to manage organization members.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Sign in to manage organization members."),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
-      "/login?next=%2Forganization%2Fmembers"
+      "/login?next=%2Forganization%2Fmembers",
     );
   });
 });

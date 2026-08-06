@@ -220,7 +220,10 @@ export const OrganizationMembersPage = ({
   if (state.status === "loading") {
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
-        <div className={styles.state}>Loading organization members...</div>
+        <div className={styles.state}>
+          <h1 className={styles.stateTitle}>Loading organization members</h1>
+          <p>Loading organization members...</p>
+        </div>
       </PortalShell>
     );
   }
@@ -229,7 +232,8 @@ export const OrganizationMembersPage = ({
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
         <div className={styles.state}>
-          <div>Sign in to manage organization members.</div>
+          <h1 className={styles.stateTitle}>Organization members</h1>
+          <p>Sign in to manage organization members.</p>
           <a className={styles.stateLink} href={signInUrl(currentPath)}>
             Sign in
           </a>
@@ -242,7 +246,8 @@ export const OrganizationMembersPage = ({
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
         <div className={styles.state}>
-          <div>Only organization owners can manage members and invites.</div>
+          <h1 className={styles.stateTitle}>Organization members</h1>
+          <p>Only organization owners can manage members and invites.</p>
         </div>
       </PortalShell>
     );
@@ -252,7 +257,8 @@ export const OrganizationMembersPage = ({
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
         <div className={styles.state}>
-          <div>Could not load organization members.</div>
+          <h1 className={styles.stateTitle}>Organization members</h1>
+          <p>Could not load organization members.</p>
           <Button
             variant="secondary"
             size="sm"
@@ -268,147 +274,166 @@ export const OrganizationMembersPage = ({
 
   return (
     <PortalShell performLogout={performLogout} navigate={navigate}>
-      <section className={styles.header}>
-        <div>
-          <div className={styles.eyebrow}>Organization</div>
-          <h1 className={styles.title}>Organization members</h1>
-        </div>
-        <a className={styles.complianceLink} href="/organization/compliance">
-          Compliance timeline
-        </a>
-      </section>
-
-      <Card className={styles.panel} aria-labelledby="invite-member-heading">
-        <CardHeader>
-          <h2 className={styles.sectionTitle} id="invite-member-heading">
-            Invite member
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <form className={styles.form} onSubmit={submitInvite}>
-            {formError ? (
-              <Alert variant="destructive">{formError}</Alert>
-            ) : null}
-            {message ? <Alert variant="success">{message}</Alert> : null}
-            {inviteUrl ? (
-              <div className={styles.inviteLink}>
-                <span>{inviteUrl}</span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  type="button"
-                  onClick={() => void copyInviteUrl()}
-                >
-                  Copy invite link
-                </Button>
-              </div>
-            ) : null}
-            <div className={styles.formGrid}>
-              <Label className={styles.field}>
-                <span>Invite email</span>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </Label>
-              <Label className={styles.field}>
-                <span>Invite role</span>
-                <select
-                  value={role}
-                  onChange={(event) =>
-                    setRole(event.target.value as OrganizationRole)
-                  }
-                >
-                  {inviteRoleOptions.map((organizationRole) => (
-                    <option key={organizationRole} value={organizationRole}>
-                      {organizationRole}
-                    </option>
-                  ))}
-                </select>
-              </Label>
+      <div className={styles.page}>
+        <section
+          className={styles.workspace}
+          aria-labelledby="organization-members-heading"
+        >
+          <header className={styles.header}>
+            <div>
+              <div className={styles.eyebrow}>Organization administration</div>
+              <h1 className={styles.title} id="organization-members-heading">
+                Organization members
+              </h1>
             </div>
-            <Button
-              className={styles.submitButton}
-              type="submit"
-              disabled={isSubmitting}
+            <a
+              className={styles.complianceLink}
+              href="/organization/compliance"
             >
-              {isSubmitting ? "Creating invite..." : "Create invite"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              Compliance timeline
+            </a>
+          </header>
 
-      <Card className={styles.panel} aria-labelledby="members-heading">
-        <CardHeader>
-          <h2 className={styles.sectionTitle} id="members-heading">
-            Members
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <div className={styles.rows}>
-            {state.members.map((member) => (
-              <article
-                className={styles.row}
-                data-testid="organization-member-row"
-                key={member.id}
-              >
-                <div>
-                  <h3 className={styles.rowTitle}>
-                    {member.display_name || member.email}
-                  </h3>
-                  <div className={styles.rowMeta}>{member.email}</div>
-                </div>
-                <Badge>{member.role}</Badge>
-              </article>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className={styles.panel} aria-labelledby="pending-invites-heading">
-        <CardHeader>
-          <h2 className={styles.sectionTitle} id="pending-invites-heading">
-            Pending invites
-          </h2>
-        </CardHeader>
-        <CardContent>
-          {state.invites.length === 0 ? (
-            <div className={styles.empty}>No pending invites.</div>
-          ) : (
-            <div className={styles.rows}>
-              {state.invites.map((invite) => (
-                <article
-                  className={styles.row}
-                  data-testid="organization-invite-row"
-                  key={invite.id}
-                >
-                  <div>
-                    <h3 className={styles.rowTitle}>{invite.email}</h3>
-                    <div className={styles.rowMeta}>
-                      Expires {new Date(invite.expires_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div className={styles.rowActions}>
-                    <Badge variant="warning">{invite.status}</Badge>
+          <Card
+            className={styles.panel}
+            aria-labelledby="invite-member-heading"
+          >
+            <CardHeader>
+              <h2 className={styles.sectionTitle} id="invite-member-heading">
+                Invite member
+              </h2>
+            </CardHeader>
+            <CardContent>
+              <form className={styles.form} onSubmit={submitInvite}>
+                {formError ? (
+                  <Alert variant="destructive">{formError}</Alert>
+                ) : null}
+                {message ? <Alert variant="success">{message}</Alert> : null}
+                {inviteUrl ? (
+                  <div className={styles.inviteLink}>
+                    <span>{inviteUrl}</span>
                     <Button
                       variant="secondary"
                       size="sm"
                       type="button"
-                      disabled={busyInviteId === invite.id}
-                      onClick={() => void revokePendingInvite(invite)}
+                      onClick={() => void copyInviteUrl()}
                     >
-                      {busyInviteId === invite.id
-                        ? "Revoking..."
-                        : `Revoke invite for ${invite.email}`}
+                      Copy invite link
                     </Button>
                   </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ) : null}
+                <div className={styles.formGrid}>
+                  <Label className={styles.field}>
+                    <span>Invite email</span>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                    />
+                  </Label>
+                  <Label className={styles.field}>
+                    <span>Invite role</span>
+                    <select
+                      value={role}
+                      onChange={(event) =>
+                        setRole(event.target.value as OrganizationRole)
+                      }
+                    >
+                      {inviteRoleOptions.map((organizationRole) => (
+                        <option key={organizationRole} value={organizationRole}>
+                          {organizationRole}
+                        </option>
+                      ))}
+                    </select>
+                  </Label>
+                </div>
+                <Button
+                  className={styles.submitButton}
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Creating invite..." : "Create invite"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className={styles.panel} aria-labelledby="members-heading">
+            <CardHeader>
+              <h2 className={styles.sectionTitle} id="members-heading">
+                Members
+              </h2>
+            </CardHeader>
+            <CardContent>
+              <div className={styles.rows}>
+                {state.members.map((member) => (
+                  <article
+                    className={styles.row}
+                    data-testid="organization-member-row"
+                    key={member.id}
+                  >
+                    <div>
+                      <h3 className={styles.rowTitle}>
+                        {member.display_name || member.email}
+                      </h3>
+                      <div className={styles.rowMeta}>{member.email}</div>
+                    </div>
+                    <Badge>{member.role}</Badge>
+                  </article>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={styles.panel}
+            aria-labelledby="pending-invites-heading"
+          >
+            <CardHeader>
+              <h2 className={styles.sectionTitle} id="pending-invites-heading">
+                Pending invites
+              </h2>
+            </CardHeader>
+            <CardContent>
+              {state.invites.length === 0 ? (
+                <div className={styles.empty}>No pending invites.</div>
+              ) : (
+                <div className={styles.rows}>
+                  {state.invites.map((invite) => (
+                    <article
+                      className={styles.row}
+                      data-testid="organization-invite-row"
+                      key={invite.id}
+                    >
+                      <div>
+                        <h3 className={styles.rowTitle}>{invite.email}</h3>
+                        <div className={styles.rowMeta}>
+                          Expires{" "}
+                          {new Date(invite.expires_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className={styles.rowActions}>
+                        <Badge variant="warning">{invite.status}</Badge>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          type="button"
+                          disabled={busyInviteId === invite.id}
+                          onClick={() => void revokePendingInvite(invite)}
+                        >
+                          {busyInviteId === invite.id
+                            ? "Revoking..."
+                            : `Revoke invite for ${invite.email}`}
+                        </Button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      </div>
     </PortalShell>
   );
 };

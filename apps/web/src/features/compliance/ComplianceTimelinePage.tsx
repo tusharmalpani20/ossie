@@ -150,197 +150,199 @@ export const ComplianceTimelinePage = ({
       performLogout={performLogout}
       navigate={navigate}
     >
-      <header className={styles.header}>
-        <div>
-          <div className={styles.eyebrow}>
-            {projectId
-              ? "Retained Project evidence"
-              : "Retained organization evidence"}
+      <div className={styles.page}>
+        <header className={styles.header}>
+          <div>
+            <div className={styles.eyebrow}>
+              {projectId
+                ? "Retained Project evidence"
+                : "Retained organization evidence"}
+            </div>
+            <h1 className={styles.title}>
+              {projectId ? "Project compliance" : "Compliance timeline"}
+            </h1>
           </div>
-          <h1 className={styles.title}>
-            {projectId ? "Project compliance" : "Compliance timeline"}
-          </h1>
-        </div>
-        <a
-          className={styles.backLink}
-          href={
-            projectId
-              ? `/projects/${encodeURIComponent(projectId)}`
-              : "/organization/members"
-          }
-        >
-          {projectId ? "Project workspace" : "Organization members"}
-        </a>
-      </header>
+          <a
+            className={styles.backLink}
+            href={
+              projectId
+                ? `/projects/${encodeURIComponent(projectId)}`
+                : "/organization/members"
+            }
+          >
+            {projectId ? "Project workspace" : "Organization members"}
+          </a>
+        </header>
 
-      {state.status === "unauthenticated" ? (
-        <StateMessage>
-          Sign in to view compliance evidence.{" "}
-          <a href={signInUrl(currentPath)}>Sign in</a>
-        </StateMessage>
-      ) : state.status === "forbidden" ? (
-        <StateMessage>
-          {projectId
-            ? "Only Project admins can view Project compliance evidence."
-            : "Only organization owners can view compliance evidence."}
-        </StateMessage>
-      ) : state.status === "not_found" ? (
-        <StateMessage>Project was not found.</StateMessage>
-      ) : state.status === "error" ? (
-        <StateMessage>
-          Could not load compliance evidence.{" "}
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => setReloadKey((value) => value + 1)}
-          >
-            Retry
-          </Button>
-        </StateMessage>
-      ) : state.status === "loading" ? (
-        <StateMessage>Loading retained evidence…</StateMessage>
-      ) : (
-        <>
-          <div className={styles.controls}>
-            <label className={styles.filter}>
-              Evidence kind
-              <select
-                value={kind}
-                onChange={(event) =>
-                  setKind(event.target.value as ComplianceKind)
-                }
-              >
-                <option value="all">All evidence</option>
-                <option value="audit">Audit</option>
-                <option value="access">Access</option>
-              </select>
-            </label>
-          </div>
-          <section
-            className={styles.totals}
-            aria-label="Retained evidence counts"
-          >
-            <Metric
-              label="Audit events"
-              value={state.response.totals.audit_events}
-            />
-            <Metric
-              label="Audit change items"
-              value={state.response.totals.audit_change_items}
-            />
-            <Metric
-              label="Access events"
-              value={state.response.totals.access_events}
-            />
-          </section>
-          {state.response.events.length === 0 ? (
-            <StateMessage>
-              No retained evidence matches this filter.
-            </StateMessage>
-          ) : (
-            <section
-              className={styles.timeline}
-              aria-label="Compliance evidence timeline"
+        {state.status === "unauthenticated" ? (
+          <StateMessage>
+            Sign in to view compliance evidence.{" "}
+            <a href={signInUrl(currentPath)}>Sign in</a>
+          </StateMessage>
+        ) : state.status === "forbidden" ? (
+          <StateMessage>
+            {projectId
+              ? "Only Project admins can view Project compliance evidence."
+              : "Only organization owners can view compliance evidence."}
+          </StateMessage>
+        ) : state.status === "not_found" ? (
+          <StateMessage>Project was not found.</StateMessage>
+        ) : state.status === "error" ? (
+          <StateMessage>
+            Could not load compliance evidence.{" "}
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setReloadKey((value) => value + 1)}
             >
-              {state.response.events.map((event) => (
-                <Card
-                  key={`${event.evidence_kind}-${event.id}`}
-                  className={styles.eventCard}
+              Retry
+            </Button>
+          </StateMessage>
+        ) : state.status === "loading" ? (
+          <StateMessage>Loading retained evidence…</StateMessage>
+        ) : (
+          <>
+            <div className={styles.controls}>
+              <label className={styles.filter}>
+                Evidence kind
+                <select
+                  value={kind}
+                  onChange={(event) =>
+                    setKind(event.target.value as ComplianceKind)
+                  }
                 >
-                  <CardContent>
-                    <div className={styles.eventHeader}>
-                      <div className={styles.badges}>
-                        <Badge>{event.evidence_kind}</Badge>
-                        <Badge>{event.outcome}</Badge>
+                  <option value="all">All evidence</option>
+                  <option value="audit">Audit</option>
+                  <option value="access">Access</option>
+                </select>
+              </label>
+            </div>
+            <section
+              className={styles.totals}
+              aria-label="Retained evidence counts"
+            >
+              <Metric
+                label="Audit events"
+                value={state.response.totals.audit_events}
+              />
+              <Metric
+                label="Audit change items"
+                value={state.response.totals.audit_change_items}
+              />
+              <Metric
+                label="Access events"
+                value={state.response.totals.access_events}
+              />
+            </section>
+            {state.response.events.length === 0 ? (
+              <StateMessage>
+                No retained evidence matches this filter.
+              </StateMessage>
+            ) : (
+              <section
+                className={styles.timeline}
+                aria-label="Compliance evidence timeline"
+              >
+                {state.response.events.map((event) => (
+                  <Card
+                    key={`${event.evidence_kind}-${event.id}`}
+                    className={styles.eventCard}
+                  >
+                    <CardContent>
+                      <div className={styles.eventHeader}>
+                        <div className={styles.badges}>
+                          <Badge>{event.evidence_kind}</Badge>
+                          <Badge>{event.outcome}</Badge>
+                        </div>
+                        <time dateTime={event.occurred_at}>
+                          {formatDate(event.occurred_at)}
+                        </time>
                       </div>
-                      <time dateTime={event.occurred_at}>
-                        {formatDate(event.occurred_at)}
-                      </time>
-                    </div>
-                    <h2 className={styles.action}>{event.action}</h2>
-                    <dl className={styles.meta}>
-                      <Meta
-                        label="Actor"
-                        value={`${event.actor_label} (${event.actor_type})`}
-                      />
-                      <Meta label="Source" value={event.source_type} />
-                      <Meta
-                        label="Root"
-                        value={`${event.root_resource_type}${event.root_resource_id ? ` · ${event.root_resource_id}` : ""}`}
-                      />
-                      {event.project_id ? (
-                        <Meta label="Project ID" value={event.project_id} />
-                      ) : null}
-                      {event.request_id ? (
-                        <Meta label="Request ID" value={event.request_id} />
-                      ) : null}
-                    </dl>
-                    {event.evidence_kind === "access" ? (
-                      <dl className={styles.accessContext}>
-                        {event.route_template ? (
-                          <Meta
-                            label="Route"
-                            value={`${event.http_method ?? ""} ${event.route_template}`.trim()}
-                          />
-                        ) : null}
-                        <Meta label="Surface" value={event.access_surface} />
+                      <h2 className={styles.action}>{event.action}</h2>
+                      <dl className={styles.meta}>
                         <Meta
-                          label="Authorization"
-                          value={`${event.authorization_type}${event.authorization_role ? ` · ${event.authorization_role}` : ""}`}
+                          label="Actor"
+                          value={`${event.actor_label} (${event.actor_type})`}
                         />
-                        {event.reason_code ? (
-                          <Meta label="Reason" value={event.reason_code} />
+                        <Meta label="Source" value={event.source_type} />
+                        <Meta
+                          label="Root"
+                          value={`${event.root_resource_type}${event.root_resource_id ? ` · ${event.root_resource_id}` : ""}`}
+                        />
+                        {event.project_id ? (
+                          <Meta label="Project ID" value={event.project_id} />
                         ) : null}
-                        {event.response_bytes !== null ? (
-                          <Meta
-                            label="Response size"
-                            value={`${new Intl.NumberFormat().format(event.response_bytes)} bytes`}
-                          />
+                        {event.request_id ? (
+                          <Meta label="Request ID" value={event.request_id} />
                         ) : null}
                       </dl>
-                    ) : (
-                      <details
-                        className={styles.disclosure}
-                        onToggle={(toggle) => {
-                          if (toggle.currentTarget.open)
-                            void loadDetail(event.id);
-                        }}
-                      >
-                        <summary>
-                          View {event.change_item_count} change{" "}
-                          {event.change_item_count === 1 ? "item" : "items"}
-                        </summary>
-                        <AuditDetail
-                          state={details[event.id]}
-                          retry={() => void loadDetail(event.id, true)}
-                        />
-                      </details>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </section>
-          )}
-          {state.response.page.has_more ? (
-            <div className={styles.pagination}>
-              {loadMoreError ? (
-                <span>Could not load the next page.</span>
-              ) : null}
-              <Button
-                variant="secondary"
-                disabled={loadingMore}
-                onClick={() => void loadMore()}
-              >
-                {loadingMore
-                  ? "Loading…"
-                  : loadMoreError
-                    ? "Retry Load More"
-                    : "Load More"}
-              </Button>
-            </div>
-          ) : null}
-        </>
-      )}
+                      {event.evidence_kind === "access" ? (
+                        <dl className={styles.accessContext}>
+                          {event.route_template ? (
+                            <Meta
+                              label="Route"
+                              value={`${event.http_method ?? ""} ${event.route_template}`.trim()}
+                            />
+                          ) : null}
+                          <Meta label="Surface" value={event.access_surface} />
+                          <Meta
+                            label="Authorization"
+                            value={`${event.authorization_type}${event.authorization_role ? ` · ${event.authorization_role}` : ""}`}
+                          />
+                          {event.reason_code ? (
+                            <Meta label="Reason" value={event.reason_code} />
+                          ) : null}
+                          {event.response_bytes !== null ? (
+                            <Meta
+                              label="Response size"
+                              value={`${new Intl.NumberFormat().format(event.response_bytes)} bytes`}
+                            />
+                          ) : null}
+                        </dl>
+                      ) : (
+                        <details
+                          className={styles.disclosure}
+                          onToggle={(toggle) => {
+                            if (toggle.currentTarget.open)
+                              void loadDetail(event.id);
+                          }}
+                        >
+                          <summary>
+                            View {event.change_item_count} change{" "}
+                            {event.change_item_count === 1 ? "item" : "items"}
+                          </summary>
+                          <AuditDetail
+                            state={details[event.id]}
+                            retry={() => void loadDetail(event.id, true)}
+                          />
+                        </details>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </section>
+            )}
+            {state.response.page.has_more ? (
+              <div className={styles.pagination}>
+                {loadMoreError ? (
+                  <span>Could not load the next page.</span>
+                ) : null}
+                <Button
+                  variant="secondary"
+                  disabled={loadingMore}
+                  onClick={() => void loadMore()}
+                >
+                  {loadingMore
+                    ? "Loading…"
+                    : loadMoreError
+                      ? "Retry Load More"
+                      : "Load More"}
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
     </Shell>
   );
 };
