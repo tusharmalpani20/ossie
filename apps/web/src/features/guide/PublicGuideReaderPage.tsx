@@ -40,6 +40,9 @@ export const PublicGuideReaderPage = ({
   const [state, setState] = useState<State>({ kind: "loading" }),
     [password, setPassword] = useState(""),
     [passwordError, setPasswordError] = useState<string | null>(null),
+    [failedAssetIds, setFailedAssetIds] = useState<Set<string>>(
+      () => new Set(),
+    ),
     [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
@@ -122,22 +125,27 @@ export const PublicGuideReaderPage = ({
   return (
     <main
       className={mode === "embed" ? styles.embed : styles.page}
-      aria-label={
-        mode === "embed" ? "Embedded published guide" : "Published guide"
-      }
+      aria-labelledby={mode === "embed" ? undefined : "public-guide-title"}
+      aria-label={mode === "embed" ? "Embedded published guide" : undefined}
     >
-      <header>
-        <div>
+      <header className={styles.header}>
+        <div className={styles.headerCopy}>
           <span className={styles.eyebrow}>Published guide</span>
-          <h1>{publication.revision.title}</h1>
-          {publication.revision.description && (
-            <p>{publication.revision.description}</p>
-          )}
+          <h1 id="public-guide-title">{publication.revision.title}</h1>
+          {publication.revision.description ? (
+            <p className={styles.description}>
+              {publication.revision.description}
+            </p>
+          ) : null}
         </div>
-        <PublicVersionSelector response={state.response} mode={mode} />
+        <div className={styles.versionControl}>
+          <PublicVersionSelector response={state.response} mode={mode} />
+        </div>
       </header>
       {publication.guide_blocks.length === 0 ? (
-        <p>This published guide does not have any blocks yet.</p>
+        <section className={styles.empty} aria-label="Published guide content">
+          <p>This published guide does not have any blocks yet.</p>
+        </section>
       ) : (
         <ol className={styles.blocks}>
           {publication.guide_blocks
@@ -150,16 +158,32 @@ export const PublicGuideReaderPage = ({
                   <>
                     <h3>{block.step.title}</h3>
                     {block.step.body && <p>{block.step.body}</p>}
-                    {block.step.display_capture_asset_id &&
-                      assets.get(block.step.display_capture_asset_id) && (
-                        <img
-                          src={
-                            assets.get(block.step.display_capture_asset_id)!
-                              .file_url
-                          }
-                          alt={`Screenshot for ${block.step.title}`}
-                        />
-                      )}
+                    {block.step.display_capture_asset_id
+                      ? (() => {
+                          const asset = assets.get(
+                            block.step.display_capture_asset_id,
+                          );
+                          if (!asset || failedAssetIds.has(asset.id))
+                            return (
+                              <p className={styles.missingMedia} role="status">
+                                Captured screenshot is unavailable.
+                              </p>
+                            );
+                          return (
+                            <img
+                              src={asset.file_url}
+                              alt={`Screenshot for ${block.step.title}`}
+                              onError={() =>
+                                setFailedAssetIds((current) => {
+                                  const next = new Set(current);
+                                  next.add(asset.id);
+                                  return next;
+                                })
+                              }
+                            />
+                          );
+                        })()
+                      : null}
                   </>
                 )}
               </li>

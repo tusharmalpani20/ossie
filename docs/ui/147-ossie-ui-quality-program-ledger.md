@@ -537,6 +537,63 @@ domain, permission, lifecycle, publication, or URL authority.
   review records; preserve `e97647e`/`4008ec7`, `aa3de94`, and all prior ledger
   truth.
 
+### guides-public exact surface preflight
+
+- Actual HEAD/worktree: `b4d8400` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; worktree was clean before this surface. New
+  files at baseline are limited to synthetic before screenshots.
+- Surface and normal entries: anonymous valid Guide reader `/p/plan127-public`,
+  its `/embed` form, seeded password/restricted/expired/revoked states, and an
+  unknown slug. Required states include loading, valid immutable blocks,
+  empty-guide content, password/invalid-password, access errors, missing or
+  broken Capture media, embed, 320/390px, keyboard, 200% reflow, and reduced
+  motion.
+- Current request/component graph: `App.tsx` resolves public Guide reader and
+  embed routes and mounts `PublicGuideReaderPage`; the page owns Publish Link
+  loading/password state, public Version context, immutable Guide Revision
+  block projection, and Capture-asset image presentation. `PublicVersionSelector`
+  owns the one-entry label or exact public Version navigation.
+- Baseline browser proof: after seeding the repository's synthetic Guide
+  fixture, anonymous `plan127-public` at 1440x900 measured
+  `scrollWidth=1440`, `bodyScrollWidth=1440`, 900px document height, and 0
+  interactive controls; at 390x844 it measured `scrollWidth=390`,
+  `bodyScrollWidth=390`, 844px document height, and 0 interactive controls.
+  Both had 0 axe violations and 0 incomplete items. The visual baseline showed
+  sparse unstyled reader chrome, a weak content measure, and an unframed Guide
+  block. Baseline files are `docs/ui/147-guide-public-before-desktop.png` and
+  `docs/ui/147-guide-public-before-narrow.png`.
+- Intended write set: public Guide title/version context and reader-frame
+  composition; token-driven responsive/reduced-motion CSS; empty and
+  missing/broken Capture-media presentation; focused reader tests; browser
+  evidence; and blind review records. No Guide Publication, Revision, block,
+  access, canonical URL, password, embed, tenant, or public snapshot contract
+  changes are intended.
+- Explicitly out of scope: server/schema/API/migrations, public-link semantics,
+  access/session policy, immutable Guide Revision content, editor/admin work,
+  new dependencies, shared Version-selector redesign, and unrelated reader or
+  portal-shell surfaces.
+- Accepted constraints: public readers must retain exact Guide Revision identity,
+  visible Project Version context, typed block semantics, truthful empty/access/
+  media-failure states, keyboard-native content, and no authoring vocabulary or
+  metadata leakage.
+- Focused failing test to add first: the public Guide shell owns the single
+  level-one title and labels the main reader by that title while preserving a
+  level-two block heading; the media-failure fallback is covered in the same
+  bounded reader test file.
+- Browser verification: valid reader/embed, Version context, empty guide,
+  password invalid retry, restricted/expired/revoked/unknown, missing/broken
+  media, desktop/390px/200% reflow, keyboard, reduced motion, axe, console/
+  network, and no private metadata or target-request leakage.
+- Reviewer A brief: inspect published context, reader measure, block hierarchy,
+  media framing, empty state, embed restraint, narrow composition, and calm
+  visual hierarchy.
+- Reviewer B brief: inspect exact Guide Publication/Revision/access/embed
+  behavior, no authoring leakage, password/error guards, media fallback,
+  keyboard/axe/zoom/reduced-motion behavior, and diff boundary.
+- Rollback boundary: revert only the guides-public candidate and its evidence/
+  review records; preserve `fff22eb`/`b4d8400`, all prior ledger truth, and the
+  seeded disposable fixture.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |

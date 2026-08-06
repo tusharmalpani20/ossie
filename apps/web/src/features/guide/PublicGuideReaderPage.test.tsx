@@ -31,6 +31,51 @@ describe("PublicGuideReaderPage", () => {
     ).toBeTruthy();
   });
 
+  it("gives the published guide shell one title and a readable block frame", async () => {
+    render(
+      <PublicGuideReaderPage
+        slug="link"
+        loadPublishLink={async () => ({
+          publish_link: {
+            entries: [
+              { project_version_name: "Docs", project_version_slug: "docs" },
+            ],
+          } as never,
+          selected_entry: { project_version_slug: "docs" } as never,
+          published_artifact: {
+            artifact_type: "guide",
+            publication_sequence: 1,
+            revision: {
+              title: "Install Ossie",
+              description: "A short immutable guide.",
+            } as never,
+            guide_blocks: [
+              {
+                id: "block_1",
+                block_index: 1,
+                title: "First step",
+                body: "Follow this step.",
+                step: null,
+              },
+            ] as never,
+            capture_assets: [],
+          },
+          canonical_public_url: "/p/link/versions/docs",
+        })}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("main", { name: "Install Ossie" }),
+    ).toHaveAttribute("aria-labelledby", "public-guide-title");
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Install Ossie" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "First step" }),
+    ).toBeVisible();
+  });
+
   it("keeps the password form available after an invalid password", async () => {
     const createViewerSession = vi.fn().mockRejectedValue(
       new ApiClientError({
@@ -65,5 +110,54 @@ describe("PublicGuideReaderPage", () => {
     );
     expect(screen.getByLabelText("Publish Link password")).toBeTruthy();
     await waitFor(() => expect(createViewerSession).toHaveBeenCalledOnce());
+  });
+
+  it("renders an explicit fallback when a published screenshot fails", async () => {
+    render(
+      <PublicGuideReaderPage
+        slug="link"
+        loadPublishLink={async () => ({
+          publish_link: {
+            entries: [
+              { project_version_name: "Docs", project_version_slug: "docs" },
+            ],
+          } as never,
+          selected_entry: { project_version_slug: "docs" } as never,
+          published_artifact: {
+            artifact_type: "guide",
+            publication_sequence: 1,
+            revision: { title: "Broken guide" } as never,
+            guide_blocks: [
+              {
+                id: "block_1",
+                block_index: 1,
+                title: null,
+                body: null,
+                step: {
+                  title: "Broken screenshot",
+                  body: null,
+                  display_capture_asset_id: "asset_1",
+                },
+              },
+            ] as never,
+            capture_assets: [
+              { id: "asset_1", file_url: "/broken.png" },
+            ] as never,
+          },
+          canonical_public_url: "/p/link/versions/docs",
+        })}
+      />,
+    );
+
+    fireEvent.error(
+      await screen.findByRole("img", {
+        name: "Screenshot for Broken screenshot",
+      }),
+    );
+    expect(
+      screen.getByRole("status", {
+        name: "",
+      }),
+    ).toHaveTextContent("Captured screenshot is unavailable.");
   });
 });
