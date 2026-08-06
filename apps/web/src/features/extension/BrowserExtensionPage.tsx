@@ -147,17 +147,23 @@ export const BrowserExtensionPage = ({
 
   return (
     <Shell performLogout={performLogout} navigate={navigate}>
-      <section className={styles.header}>
-        <div>
-          <div className={styles.eyebrow}>Capture tools</div>
-          <h1>Install the browser extension</h1>
-          <p className={styles.lede}>
-            Capture clicks and screenshots from Chrome or another Chromium-based
-            browser, then turn them into guides and interactive demos in Ossie.
-          </p>
-        </div>
-        <Badge>Manifest V3</Badge>
-      </section>
+      <section
+        aria-label="Extension installation workspace"
+        className={styles.workspace}
+      >
+        <header className={styles.header}>
+          <div>
+            <div className={styles.eyebrow}>Capture tools</div>
+            <h1 id="extension-installation-heading">
+              Install the browser extension
+            </h1>
+            <p className={styles.lede}>
+              Capture clicks and screenshots from Chrome or another Chromium-based
+              browser, then turn them into guides and interactive demos in Ossie.
+            </p>
+          </div>
+          <Badge>Manifest V3</Badge>
+        </header>
 
       <Card className={styles.downloadCard} aria-labelledby="download-heading">
         <CardHeader>
@@ -231,28 +237,29 @@ export const BrowserExtensionPage = ({
         </Card>
       </div>
 
-      <Card aria-labelledby="update-heading">
-        <CardHeader>
-          <h2 id="update-heading">Update or remove it</h2>
-        </CardHeader>
-        <CardContent className={styles.details}>
-          <p>
-            To update, download the latest ZIP, replace the files in the same
-            extracted folder, open <code>chrome://extensions</code>, and select
-            <strong> Reload</strong> on Ossie.
-          </p>
-          <p>
-            To remove it, select <strong>Remove</strong> on that same Chrome
-            page. Removing the extension clears its local session and capture
-            state, but it does not delete anything already stored in Ossie.
-          </p>
-          <p>
-            During an active capture, Ossie records supported clicks and visible
-            tab screenshots. It does not store passwords, typed input values, or
-            raw page HTML.
-          </p>
-        </CardContent>
-      </Card>
+        <Card aria-labelledby="update-heading">
+          <CardHeader>
+            <h2 id="update-heading">Update or remove it</h2>
+          </CardHeader>
+          <CardContent className={styles.details}>
+            <p>
+              To update, download the latest ZIP, replace the files in the same
+              extracted folder, open <code>chrome://extensions</code>, and select
+              <strong> Reload</strong> on Ossie.
+            </p>
+            <p>
+              To remove it, select <strong>Remove</strong> on that same Chrome
+              page. Removing the extension clears its local session and capture
+              state, but it does not delete anything already stored in Ossie.
+            </p>
+            <p>
+              During an active capture, Ossie records supported clicks and visible
+              tab screenshots. It does not store passwords, typed input values, or
+              raw page HTML.
+            </p>
+          </CardContent>
+        </Card>
+      </section>
     </Shell>
   );
 };

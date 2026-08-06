@@ -176,6 +176,9 @@ describe("App", () => {
       }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("region", { name: "Extension installation workspace" }),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole("button", { name: "Download extension" }),
     ).toBeInTheDocument();
   });
