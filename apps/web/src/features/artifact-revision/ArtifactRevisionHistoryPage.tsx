@@ -152,7 +152,15 @@ export const ArtifactRevisionHistoryPage = ({
   const base = `/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/${artifactSegment}/${encodeURIComponent(artifactId)}`;
 
   return (
-    <section className={styles.page}>
+    <section
+      className={styles.page}
+      role="region"
+      aria-label={
+        artifactType === "guide"
+          ? "Guide Revision history"
+          : "Interactive Demo Revision history"
+      }
+    >
       <div className={styles.heading}>
         <div>
           <p>Immutable authoring history</p>

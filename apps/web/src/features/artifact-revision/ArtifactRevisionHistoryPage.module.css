@@ -1,46 +1,98 @@
 .page {
   display: grid;
-  gap: 1rem;
+  gap: var(--ossie-space-4);
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--ossie-space-6);
 }
-.heading,
+
+.heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--ossie-space-5);
+  padding-bottom: var(--ossie-space-5);
+  border-bottom: 1px solid var(--ossie-color-border);
+}
+
+.heading h1 {
+  margin: var(--ossie-space-1) 0 0;
+  color: var(--ossie-color-text);
+  font-size: clamp(1.75rem, 1.4rem + 1vw, 2.25rem);
+  letter-spacing: -0.025em;
+}
+
+.heading p,
+.card span {
+  display: block;
+  margin: 0;
+  color: var(--ossie-color-muted);
+  font-size: var(--ossie-font-size-xs);
+}
+
+.list {
+  display: grid;
+  gap: var(--ossie-space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
 .card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--ossie-space-4);
+  padding: var(--ossie-space-4);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-card);
+  background: var(--ossie-color-surface);
 }
-.heading h1 {
-  margin: 0.15rem 0;
-}
-.heading p,
-.card span {
-  display: block;
-  color: var(--muted-foreground);
-}
-.list {
+
+.card > div:first-child {
   display: grid;
-  gap: 0.75rem;
-  padding: 0;
-  list-style: none;
+  gap: var(--ossie-space-1);
 }
-.card {
-  padding: 1rem;
-}
+
 .card > div:last-child {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: flex-end;
+  gap: var(--ossie-space-2);
 }
+
+.card a {
+  color: var(--ossie-color-accent);
+  font-weight: 750;
+}
+
 .empty {
-  padding: 1.25rem;
+  padding: var(--ossie-space-5);
+  border: 1px dashed var(--ossie-color-border-strong);
+  border-radius: var(--ossie-radius-card);
+  background: var(--ossie-color-surface);
+  color: var(--ossie-color-muted);
 }
+
 @media (max-width: 42rem) {
+  .page {
+    padding: var(--ossie-space-5) var(--ossie-space-4);
+  }
+
   .heading,
   .card {
     align-items: flex-start;
     flex-direction: column;
   }
+
   .card > div:last-child {
-    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
   }
 }

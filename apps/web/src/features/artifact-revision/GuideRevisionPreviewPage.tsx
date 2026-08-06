@@ -48,7 +48,11 @@ export const GuideRevisionPreviewPage = ({
   );
 
   return (
-    <article className={styles.page}>
+    <article
+      className={styles.page}
+      role="region"
+      aria-label="Guide Revision preview"
+    >
       <Alert>
         Immutable Revision {value.revision.revision_number} · Working Draft
         changes do not affect this preview.

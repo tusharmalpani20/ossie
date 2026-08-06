@@ -283,36 +283,52 @@ export const ProjectGuideListPage = ({
       versionSlug={versionSlug}
       renderShell={renderShell}
     >
-      <section className={styles.header}>
-        <div>
-          <div className={styles.eyebrow}>Project</div>
-          <h1 className={styles.title}>Guides</h1>
-          <p className={styles.description}>{projectId}</p>
-        </div>
-      </section>
-
-      <section className={styles.content} aria-labelledby="guides-heading">
-        <h2 className={styles.sectionTitle} id="guides-heading">
-          Project guides
-        </h2>
-        {state.guides.length === 0 ? (
-          <Card className={styles.empty}>No guides yet.</Card>
-        ) : (
-          <div className={styles.list}>
-            {state.guides.map((guide) => (
-              <GuideRow
-                key={guide.id}
-                guide={guide}
-                projectId={projectId}
-                versionSlug={versionSlug}
-                publishStatus={
-                  publishStatuses[guide.id] ?? { status: "checking" }
-                }
-              />
-            ))}
+      <div
+        className={styles.workspace}
+        role="region"
+        aria-label="Guides workspace"
+      >
+        <section className={styles.header}>
+          <div>
+            <div className={styles.eyebrow}>Project</div>
+            <h1 className={styles.title}>Guides</h1>
+            <p className={styles.description}>
+              Guides for this Project Version
+            </p>
           </div>
-        )}
-      </section>
+        </section>
+
+        <section className={styles.content} aria-labelledby="guides-heading">
+          <div className={styles.sectionHeader}>
+            <div>
+              <div className={styles.sectionEyebrow}>Library</div>
+              <h2 className={styles.sectionTitle} id="guides-heading">
+                Project guides
+              </h2>
+            </div>
+            <span className={styles.sectionMeta}>
+              {state.guides.length} {state.guides.length === 1 ? "guide" : "guides"}
+            </span>
+          </div>
+          {state.guides.length === 0 ? (
+            <Card className={styles.empty}>No guides yet.</Card>
+          ) : (
+            <div className={styles.list}>
+              {state.guides.map((guide) => (
+                <GuideRow
+                  key={guide.id}
+                  guide={guide}
+                  projectId={projectId}
+                  versionSlug={versionSlug}
+                  publishStatus={
+                    publishStatuses[guide.id] ?? { status: "checking" }
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </PortalShell>
   );
 };

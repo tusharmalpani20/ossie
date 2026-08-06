@@ -175,7 +175,11 @@ export const GuideEditorWorkbench = ({
     : -1;
 
   return (
-    <div className={styles.main}>
+    <div
+      className={styles.main}
+      role="region"
+      aria-label="Guide editor workspace"
+    >
       <section className={styles.header}>
         <div className={styles.titleRow}>
           <div>

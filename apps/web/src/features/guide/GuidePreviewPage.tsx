@@ -275,7 +275,11 @@ const GuidePreviewView = ({
   };
 
   return (
-    <div className={styles.main}>
+    <div
+      className={styles.main}
+      role="region"
+      aria-label="Guide preview workspace"
+    >
       <section className={styles.header}>
         <div>
           <div className={styles.eyebrow}>Guide preview</div>
@@ -317,7 +321,7 @@ const GuidePreviewView = ({
           </a>
           {canWrite ? (
             <a
-              className={`${buttonVariants({ variant: "primary" })} ${styles.actionLink}`}
+              className={`${buttonVariants({ variant: "primary" })} ${styles.primaryActionLink}`}
               href={guideUrl(projectId, guideId, versionSlug)}
             >
               Edit guide

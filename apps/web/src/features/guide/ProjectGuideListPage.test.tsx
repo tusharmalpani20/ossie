@@ -4,6 +4,26 @@ import { ProjectGuideListPage } from "./ProjectGuideListPage";
 
 const now = "2026-07-19T10:00:00.000Z";
 describe("ProjectGuideListPage", () => {
+  it("names the Guides workspace as one region", async () => {
+    render(
+      <ProjectGuideListPage
+        projectId="project_1"
+        projectVersionId="version_2"
+        versionSlug="q3"
+        renderShell={false}
+        loadGuides={async () => ({ guide_editions: [] })}
+        loadPublishLinks={async () => ({
+          publish_links: [],
+          next_cursor: null,
+        })}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("region", { name: "Guides workspace" }),
+    ).toBeInTheDocument();
+  });
+
   it("renders only Edition summaries returned for the selected Project Version", async () => {
     const loadGuides = vi.fn().mockResolvedValue({
       guide_editions: [
