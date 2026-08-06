@@ -4,7 +4,14 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
-Status: Complete — independently close-rechecked on 2026-08-05.
+Status: Complete — independently repaired and reverified on 2026-08-06 after
+the sensitive-redaction, curl, Go-import, and optional-parameter repairs in
+`4536268` and `2be1dcf`.
+
+Reopen finding: a shared deterministic sensitive-name policy now protects
+descriptor and generated-output boundaries; request examples omit optional
+undocumented values, preserve documented false/zero values, emit valid curl,
+and conditionally import Go body helpers.
 
 Selected contract: `documentation-request-example-v1` for descriptor version
 `1`, with the fixed registry order `curl`, `browser_fetch`, `node_fetch`,
@@ -651,6 +658,19 @@ end-of-child commit. Stage exact paths and preserve unrelated work.
   as a current Try-It request preview and receives no generated-example input.
 - Added the synthetic required-body POST fixture to exercise the unsupported
   state on public, draft, and Revision routes.
+
+### 2026-08-06 — reopened redaction and generator-contract repair
+
+- Reproduced schema-less and undeclared sensitive names surviving descriptor
+  admission, literal plus signs in curl continuations, unconditional Go
+  `bytes` imports, and fabricated optional parameter placeholders.
+- Centralized the sensitive-name policy and applied it at descriptor and
+  generated-output boundaries. Optional undocumented parameters are omitted;
+  documented false/zero values, required placeholders, arrays, and headers
+  retain the accepted contract. Curl and bodyless Go output are now parseable
+  by construction.
+- Added parser, public-boundary, and all-five-language regression coverage.
+  Domain 20-file/58-test, focused server, and full web suites pass.
 
 ## 22. Verification Record
 

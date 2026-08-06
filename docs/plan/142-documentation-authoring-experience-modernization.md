@@ -3,12 +3,16 @@
 Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
-Last execution close-recheck: 2026-08-05
+Last execution close-recheck: 2026-08-06
 
-Status: Complete — Tiptap `partial-adopt` for the recorded prose fields. The
-child was independently close-rechecked after the production build, full
-web/server regressions, dependency checks, fresh browser evidence, and final
-fixture reseed passed.
+Status: Complete — Tiptap `partial-adopt` reverified on 2026-08-06 after the
+stale metadata/Row-Version repair in `e13d7ca` and the caret-preservation
+regression fix in `1e3bc40`.
+
+Reopen finding: parent block identity, prose content, and metadata now sync
+without emitting `onChange`, while conflicting unsaved prose remains local.
+The regression covers sequential saves, heading/quote/callout metadata,
+read-only fields, and local-work preservation.
 
 Selected branch: prose-only(paragraph, heading, quote, callout,
 ordered_list/unordered_list item text). Tiptap owns transient inline prose
@@ -460,8 +464,26 @@ Stage exact paths and preserve unrelated work.
 - Moved the exact retained Tiptap packages from web devDependencies to
   dependencies and passed a frozen install.
 - Child `141` intake commits: `e4f8f81`, `6771cb6`, `47f8a35`, `39af63e`,
-  `8ae5480`, `7690f1d`. Child `142` implementation and closeout commits are
+  `8ae5487`, `7690f1d`. Child `142` implementation and closeout commits are
   recorded below after staging.
+
+### 2026-08-06 — reopened stale-metadata repair
+
+- Reproduced a first edit/save followed by a parent refresh and second edit;
+  the prose field previously retained stale source metadata and Row-Version
+  identity.
+- Added controlled parent synchronization with `emitUpdate: false`, preserving
+  local unsaved prose on a conflicting parent text update while applying clean
+  heading, quote, callout, identity, and metadata updates without spurious
+  `onChange`.
+- Added a regression that places the browser caret inside prose, applies an
+  external metadata-only update, and verifies the caret remains in place;
+  focused Page/editor tests passed 12/12 and the full web suite passed 92
+  files/479 tests after `1e3bc40`.
+- Added regression coverage for sequential Page saves, metadata updates,
+  read-only behavior, and unsupported conversion recovery. Focused Page/editor
+  tests and web type-check pass. Browser mount evidence is recorded in
+  `docs/ui/2026-08-06-documentation-post-v1-repair-browser-evidence.md`.
 
 ## 18. Verification Record
 

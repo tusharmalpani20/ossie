@@ -4,7 +4,12 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
-Status: Complete — independently close-rechecked on 2026-08-05.
+Status: Complete — integrated hardening reverified on 2026-08-06 after the
+scoped repairs in `4536268`, `e13d7ca`, `599e031`, `bf84791`, and `1e3bc40`.
+
+Reopen finding: prior evidence remains historical and is not being treated as
+proof of the repaired paths. This child owns the rerun of Chromium, a11y,
+security/privacy, performance, dependency, and broad regression checks.
 
 Parent:
 
@@ -512,6 +517,21 @@ exact paths and preserve unrelated work.
 - Preserved the unrelated Extension contrast finding and known dependency
   advisories as explicitly owned maintenance/QA limitations; no unrelated fix
   or dependency upgrade was folded into Child `145`.
+
+### 2026-08-06 — reopened integrated verification
+
+- Re-ran the repaired reader/editor/example paths against the disposable
+  fixture. Chromium recorded grouped navigation, adjacent links, keyboard
+  search, failure/retry, reduced motion, 320px/160px reflow, and zero axe
+  violations/incompletes after the public search input contrast fix.
+- Full web verification passed 92 files/479 tests; focused server parser and
+  Documentation integration tests passed; root type-check, lint, build, frozen
+  install, and license checks passed. `pnpm audit --prod` still reports the
+  existing fast-uri high, PostCSS moderate, and Babel low findings; no new
+  direct dependency was added.
+- The authenticated editor route still has the previously known draft input
+  contrast manual-review incompletes. Firefox/WebKit, screen reader, and
+  Go/gofmt remain truthful capability limits.
 
 ## 21. Verification Record
 

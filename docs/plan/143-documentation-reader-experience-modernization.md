@@ -4,10 +4,13 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
-Status: Complete — Fumadocs `partial-adopt` for the public exact-Publication
-page-tree, breadcrumb, and TOC primitives. Child `143` was independently
-close-rechecked on 2026-08-05 after full regressions, build/dependency review,
-fresh browser evidence, and final fixture reseed.
+Status: Complete — Fumadocs `partial-adopt` reverified on 2026-08-06 after the
+grouped-navigation, adjacent-link, and search-failure repairs in `599e031`.
+
+Reopen finding: the reader now preserves authorized `parent_id`/`position`,
+builds one deterministic privacy-safe tree for native and Fumadocs views,
+derives previous/next links from that tree, and handles retryable search errors
+with stale-overlap protection.
 
 Selected branch: fumadocs-headless(page-tree, breadcrumb, TOC primitives).
 The production adoption is limited to the public exact-Publication reader.
@@ -493,6 +496,21 @@ end-of-child commit. Stage exact paths and preserve unrelated work.
   moderate PostCSS/low Babel findings without claiming a clean audit.
 - Commits: `9bfb47a` (branch plan), `fa8abac` (projection/dependency),
   `218a34b` (lazy chrome), `7cd9558` (production adoption/proof removal).
+
+### 2026-08-06 — reopened grouped-navigation/search repair
+
+- Reproduced the public snapshot-to-reader projection dropping `parent_id` and
+  `position`, flattening groups, omitting adjacent links, and allowing search
+  failures to escape as unhandled rejections.
+- Preserved the server’s already-authorized grouped nodes through the web API
+  type, added deterministic malformed-node filtering and nested Fumadocs/native
+  tree rendering, and derived previous/next links from that same allowlist.
+- Added explicit search error/retry state and request sequencing so stale
+  overlapping responses are ignored. Focused reader, adapter, type, and full
+  web tests pass. Real grouped-fixture evidence is in
+  `docs/ui/2026-08-06-documentation-post-v1-repair-browser-evidence.md`.
+- Repair commits: `599e031` (reader contract) and `bf84791` (grouped fixture
+  and public accessibility boundary).
 
 ## 19. Verification Record
 

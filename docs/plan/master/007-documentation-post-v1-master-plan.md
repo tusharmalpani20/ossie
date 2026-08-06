@@ -2,11 +2,12 @@
 
 Date: 2026-07-31
 
-Last full sequence re-audit: 2026-08-05
+Last full sequence re-audit: 2026-08-06
 
-Status: Complete — independently close-reconciled on 2026-08-05. Children
-`141`–`145` implemented and verified the accepted post-V1 branches; Child `146`
-completed the final audit and records-only closeout.
+Status: Complete — independently repaired and close-reconciled on 2026-08-06.
+The 2026-08-05 closeout was reopened after six in-scope defects were found;
+the repaired runtime, broad/database/browser evidence, child records, repair
+ledger, commit map, limitations, and handoff now match current truth.
 
 Independent reservation re-audit: completed 2026-07-31 against Master `006`,
 child `140`, ADRs `0027`–`0034`, the current caller graph, current package
@@ -76,21 +77,19 @@ framework migration.
 
 ### 3.1 Implemented now
 
-Everything listed in section 2 is shipped. Tiptap and Fumadocs are not runtime
-dependencies. Generated examples currently remain the bounded placeholder
-examples shipped with child `137`, not the accepted multi-language registry.
+Everything listed in section 2 is shipped. Tiptap and Fumadocs are retained
+only in the bounded partial-adopt seams recorded by Children `141`–`143`.
+Generated examples are the bounded five-language placeholder registry from
+Child `144`; the registry remains inert and separate from Try-It.
 
-### 3.2 Selected next
+### 3.2 Closeout outcome
 
-- bounded Tiptap authoring adapter proof;
-- bounded Fumadocs reader adapter proof;
-- evidence-gated authoring modernization;
-- evidence-gated reader modernization;
-- deterministic curl, browser Fetch, Node.js, Python, and Go request examples;
-- extensible versioned language registry;
-- combined accessibility, browser, motion, performance, security, dependency,
-  and compatibility hardening;
-- independent final closeout.
+The repaired Tiptap, grouped reader, search, and request-example contracts are
+reverified across focused, broad, database, and browser checks. The six child
+records, evidence index, repair ledger, commit map, limitations, and handoff
+are synchronized to the complete 2026-08-06 outcome.
+The final Tiptap metadata-only sync check also preserves the active browser
+selection; its regression and fix are recorded in commit `1e3bc40`.
 
 ### 3.3 Accepted later, outside this master
 
@@ -896,6 +895,28 @@ The 2026-08-05 autonomous-execution re-audit then:
 - completed Child `145` hardening and Child `146` final reconciliation on
   2026-08-05; current-truth docs, evidence, limitations, commit scope, and
   Master closure state now match the shipped runtime.
+
+The 2026-08-06 independent repair audit reopened that claim and then closed
+it only after reproducing and fixing six defects:
+
+- descriptor and generated-output sensitive-name redaction now shares one
+  deterministic policy, including schema-less and undeclared nested values;
+- Tiptap prose fields synchronize parent metadata and Row-Version identity
+  without discarding conflicting local prose, moving the active caret, or
+  emitting sync changes;
+- request examples omit undocumented optional values, produce valid curl, and
+  conditionally import Go body helpers;
+- public grouped navigation preserves the authorized hierarchy and order,
+  derives adjacent links, and handles search errors/retries safely;
+- the seeded browser fixture, browser evidence, child plans, repair ledger,
+  and commit map were updated to current truth;
+- full web/server/domain, type, lint, build, frozen-install, database, and
+  Chromium verification passed, with known capability/advisory limits
+  explicitly retained.
+
+The final post-closure web recheck passed 92 files/479 tests after the caret
+regression fix in `1e3bc40`; focused Page/editor tests passed 12/12, and the
+root type-check, lint, and production build remained green.
 
 Planning-environment readiness on 2026-08-05 (refresh at execution):
 

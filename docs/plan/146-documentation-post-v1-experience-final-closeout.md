@@ -4,8 +4,10 @@ Date reserved: 2026-07-31
 
 Last implementation-readiness audit: 2026-08-05
 
-Status: Complete — independently close-rechecked on 2026-08-05. This was not
-a new feature child.
+Status: Complete — independently repaired and close-reconciled on 2026-08-06.
+The prior closeout was reopened for six in-scope defects; the second
+reconciliation now reflects the repaired runtime. This remains a closure
+child, not a new feature child.
 
 Parent:
 
@@ -92,6 +94,17 @@ tests” entry without exact test/evidence reference.
 | Current-truth docs                               | 141–145      | `CONTEXT.md`, domain decisions, ADRs, children, Master 007, `docs/ui/`                                                                                     | child closeout records; Child 145 evidence; current-truth scan                                                                 | Actual partial-adopt/shipped/deferred/rejected wording is recorded; final Master status remains pending this child                    | None at intake                                              |
 | Commits and worktree                             | 141–145      | commits `e4f8f81` through `886a396`; current worktree                                                                                                      | `git log`, `git status`, `git diff --check`, scoped commit review                                                              | Child commits are attributable and worktree is clean before this ledger edit                                                          | None at intake                                              |
 | Leftovers and future ownership                   | 145          | Child 145 section 22 and hardening evidence                                                                                                                | explicit S3/maintenance owners/triggers; optional engine/AT record                                                             | Every remaining item is classified as Master limitation or maintenance/operations; no unowned follow-up                               | None at intake                                              |
+
+### 3.2 Repair ledger
+
+| finding                                                                                                                        | owning child | implementation/test scope                                                                                                                            | evidence                                                                                                              | result                                                                                           | fix commit           |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------- |
+| Schema-less, undeclared, nested, array, and mixed-case sensitive values could survive descriptor admission or generated output | 144, 145     | Shared sensitive-name policy; Try-It descriptor sanitizer; all-language request-example boundary; parser and Documentation DB/publication assertions | Domain policy suite; OpenAPI parser suite; Documentation DB integration; public browser snapshot contains no sentinel | Fixed before descriptor persistence/freeze/public projection; non-sensitive values remain intact | `4536268`, `2be1dcf` |
+| Tiptap retained stale parent metadata/Row-Version identity after a save and refresh                                            | 142, 145     | Controlled prose-field synchronization; sequential Page save and metadata/read-only/local-work tests                                                 | Tiptap field/Page editor focused tests; authenticated synthetic editor mount                                          | Fixed without spurious `onChange`, caret movement, or loss of conflicting local prose             | `e13d7ca`, `1e3bc40` |
+| Curl continuations contained literal plus signs; bodyless Go imported `bytes`; optional undocumented params were fabricated    | 144, 145     | Generator context omission, curl join, conditional Go imports, required/sensitive/false/zero/array fixtures                                          | Domain request-example suite; shell/JS/Python checks where available; Go tooling limitation recorded                  | Fixed; outputs remain inert and deterministic                                                    | `4536268`            |
+| Authorized grouped reader navigation was flattened and native/Fumadocs projections could diverge                               | 143, 145     | Web snapshot typing; deterministic tree projection; orphan/cycle/duplicate/invalid-position filtering; grouped fixture                               | Adapter/UI suites; seeded public reader; axe/reflow/browser evidence                                                  | Fixed from one authorized tree; malformed nodes fail closed                                      | `599e031`, `bf84791` |
+| Required previous/next reader links were absent                                                                                | 143, 145     | Adjacent-page derivation and accessible canonical links in native/Fumadocs paths                                                                     | Adapter/UI suites; seeded `Next: API reference` browser evidence                                                      | Fixed from authorized ordered navigation, skipping groups and unavailable pages                  | `599e031`            |
+| Public search failure escaped as an unhandled rejection                                                                        | 143, 145     | Error/live state, retry behavior, request sequencing, whitespace/overlap tests                                                                       | Reader suite; intercepted browser failure/retry and keyboard search                                                   | Fixed; latest request wins and prior results are preserved on failure                            | `599e031`            |
 
 ## 4. Full Implementation Reconciliation
 
@@ -535,6 +548,50 @@ Only then set this child and Master `007` to Complete.
 - No additional runtime or product change was needed after reconciliation.
   Remaining items are classified below with owners and reopen triggers. The
   final records-only closeout updates this child and Master `007` together.
+
+### 2026-08-06 — reopened repair audit
+
+- Reopened the ledger after confirming the prior closeout overstated runtime
+  truth. The six finding classes were reproduced and repaired in commits
+  `4536268`, `599e031`, `e13d7ca`, `bf84791`, and `2be1dcf`.
+- Current verification is materially different from the prior record: full
+  web is 92 files/478 tests, domain is 20 files/58 tests, focused parser and
+  Documentation DB integration tests pass, grouped browser evidence is stored
+  at `docs/ui/2026-08-06-documentation-post-v1-repair-browser-evidence.md`, and
+  the Master/children remain open pending final ledger and closeout edits.
+
+### 2026-08-06 — final closure
+
+- Full web verification passed 92 files/479 tests; full non-DB server
+  verification passed 127 files/553 tests; Documentation domain verification
+  passed 20 files/58 tests; focused parser/fixture and Documentation DB
+  integration tests passed; root check-types, lint, web build, frozen install,
+  and web license checks passed.
+- Chromium evidence passed grouped navigation, adjacent links, keyboard
+  search, intercepted failure/retry, 1280px/320px/160px axe and reflow checks,
+  reduced motion, and the authenticated Tiptap mount. Known Firefox/WebKit,
+  screen-reader, Go/gofmt, and editor contrast manual-review limits remain
+  explicitly classified.
+- Final commit map includes the scoped repairs `4536268`, `599e031`,
+  `e13d7ca`, `1e3bc40`, `bf84791`, and `2be1dcf`; no migration, persistence authority,
+  public access rule, retention/deletion rule, or dependency decision changed.
+- Child `146` and Master `007` are complete. No user-input blocker or
+  unresolved in-scope S1/S2 remains.
+
+### 2026-08-06 — post-closure caret verification
+
+- A final TDD regression exposed that a metadata-only Tiptap replacement could
+  move an active browser caret even when prose content was unchanged. The
+  field now preserves the editor selection and restores the native browser
+  range with safe position clamping; sync remains `emitUpdate: false`.
+- Focused Page/editor tests passed 2 files/12 tests, and the final web suite
+  passed 92 files/479 tests. Root type-check, lint, and production web build
+  also passed. The authenticated browser mount remains covered by the evidence
+  file; this caret assertion is intentionally recorded as a unit regression,
+  not as a browser caret measurement.
+- The repair is committed as `1e3bc40`; no product authority, persistence,
+  permission, public-access, migration, retention, or deletion semantics
+  changed.
 
 ## 20. Verification Record
 
