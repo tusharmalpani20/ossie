@@ -1891,31 +1891,31 @@ security decision for the user.
 
 ### 26.1 Program setup and truth
 
-- [ ] Record execution worktree, branch, starting commit, tools, services, and
+- [x] Record execution worktree, branch, starting commit, tools, services, and
       synthetic fixtures.
-- [ ] Re-audit `AGENTS.md`, `CONTEXT.md`, ADRs, Plan `147`, predecessor `146`,
+- [x] Re-audit `AGENTS.md`, `CONTEXT.md`, ADRs, Plan `147`, predecessor `146`,
       code, tests, and worktree.
-- [ ] Positively identify or create the disposable local Plan `147` database;
+- [x] Positively identify or create the disposable local Plan `147` database;
       record its non-production proof without recording secrets.
-- [ ] Resolve and record current startup, seed/reseed, health-check, and login
+- [x] Resolve and record current startup, seed/reseed, health-check, and login
       verification commands.
-- [ ] Start the required local services, pass web/API health checks, and verify
+- [x] Start the required local services, pass web/API health checks, and verify
       the real synthetic login before capturing baselines.
-- [ ] Seed the deterministic role, content, lifecycle, public-link, and failure
+- [x] Seed the deterministic role, content, lifecycle, public-link, and failure
       states required by the first surface without touching existing unknown or
       shared data.
-- [ ] Create and link the canonical
+- [x] Create and link the canonical
       `docs/ui/147-ossie-ui-quality-program-ledger.md`.
-- [ ] Reconcile all section 8 current-truth drift.
-- [ ] Build the route/surface/state ledger with exact route strings and roles.
+- [x] Reconcile all section 8 current-truth drift.
+- [x] Build the route/surface/state ledger with exact route strings and roles.
 - [ ] Classify existing `docs/ui/` screenshots and reports.
 - [ ] Create/revalidate the external reference ledger.
 - [ ] Record baseline visual scores and issue IDs.
 
 ### 26.2 Blocking repairs
 
-- [ ] Add failing coverage for Documentation Publication preview routing.
-- [ ] Implement and browser-verify the accepted immutable Publication preview.
+- [x] Add failing coverage for Documentation Publication preview routing.
+- [x] Implement and browser-verify the accepted immutable Publication preview.
 - [ ] Inventory all custom-property definitions and live consumers.
 - [ ] Resolve confirmed undefined live variables through accepted semantic
       tokens.
