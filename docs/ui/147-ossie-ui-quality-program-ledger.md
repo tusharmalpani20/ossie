@@ -130,7 +130,7 @@ review reports, final clean verification, and all required evidence.
 | `documentation-authoring` | Authoring workbench | Site/Page draft authoring, comments, conflict, read-only, archived, validation | `d638112` | `8055143` | 0 | `accept` — review A | `accept` — review B | Site 4/4; Page 6/6 isolated; App-focused pass; web typecheck/lint/build; serial web 482/483 with unrelated Guide failure; authenticated desktop+narrow/keyboard/zoom/reduced-motion; axe 0 violations | `agent_accepted_pending_human` | viewer/archived browser session unavailable on isolated runner; component tests cover guards; unrelated Guide suite failure remains out of scope |
 | `documentation-previews` | Reader/admin | draft, exact Site Revision, exact Site Publication preview; internal roles | `d638112` | `001df10` | 0 | `accept` — review A | `accept` — review B | web 482/482; UI 7/7; web typecheck/lint/build; browser desktop+narrow+anonymous; axe 0 violations | `agent_accepted_pending_human` | P2 reader-chrome and shared-shell polish remain outside this correctness candidate |
 | `documentation-public` | Reader/API reference | Publication reader/search/TOC/operation/Try It/access challenge; anonymous/member | `d638112` | `0ea64b9` | 0 | `accept` — review A | `accept` — review B | focused reader/request/OpenAPI 20/20; full web 483/483 serial; web typecheck/lint/build/Prettier; anonymous desktop+narrow/keyboard/search/zoom/reduced-motion/route-variant/operation evidence; axe 0 violations and 0 incomplete | `agent_accepted_pending_human` | no deterministic seeded public-password route for browser screenshot; existing component tests cover challenge/retry; embed and shared access family remain separate |
-| `public-access` | Shared access challenge | public/restricted/password/expired/revoked/version selection; anonymous | `d638112` | — | 0 | — | — | — | `queued` | shared contract audit pending |
+| `public-access` | Shared access challenge | public/restricted/password/expired/revoked/version selection; anonymous | `85deae4` | `8e38ee4` | 0 | `accept` — review A | `accept` — review B | focused public-access/readers 16/16; full web 496/496 serial; web check-types/lint/build; anonymous valid Guide and unavailable Demo browser matrix at desktop/narrow; axe 0/0; reduced-motion and responsive selector checks | `agent_accepted_pending_human` | multi-entry browser fixture unavailable and remains component-test coverage; Demo/Documentation disposable slugs currently render truthful unavailable states; browser zoom controls remain environment-limited; P2-010 remains queued |
 | `token-foundation` | Shared pattern / design system | web `/__design-system`, authenticated portal shell, auth entry, Demo workbench/editor, Documentation library, extension popup; default/hover/focus/disabled/selected/error/read-only/reduced-motion | `d638112` | `105fc5b` | 0 | `accept` — review A | `accept` — review B | token check; web 8/8 focused; extension 140/140; UI 7/7; affected typecheck/lint/build; browser desktop+narrow+popup; axe 0 violations | `agent_accepted_pending_human` | installed extension-toolbar capability is `blocked_local_for_run`; narrow axe has one incomplete probe over intentional table scroll |
 | `extension-installation` | Setup utility | extension check/auth/error/ready/download/update/remove | `d638112` | — | 0 | — | — | — | `queued` | extension browser capability pending |
 | `extension-capture` | Focused task utility | unconfigured/signed out/in/selection/recording/recovery/completion/error | `537b3d5` | `106705c` | 0 | `accept` — review A | `accept` — review B | focused extension 140/140; extension typecheck/lint/build; direct synthetic popup active/selection 360px and 180px proxy; axe 0 violations; no direct-popup browser errors | `blocked_local_for_run` | installed toolbar action/permission path unavailable in this runner; 180px has one incomplete contrast-background probe over overlapping long labels; Child 126 installed evidence remains prior evidence only |
@@ -166,6 +166,7 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | `P2-011` | P2 | Capture composition | Capture list/create/detail, owner/viewer, 1440px and 390px | surface preflight; baseline showed raw Project ID presentation, weak list grouping, and loose detail hierarchy | implementer | 0 | accepted_pending_human | `f4a6010` | named list/detail workspace regions, responsive list/detail/create composition, owner/viewer browser matrix, axe, reduced-motion, no-overflow, focused 58/58, full web 494/494, check-types/lint/build, and both reviews pass | populated Event/Asset browser records remain unavailable in the disposable fixture; shared shell, zoom, and existing form probe remain separate |
 | `P2-012` | P2 | Guide family composition / accessibility | Guide list/editor/preview/Revision history/Revision preview, owner/editor/viewer, 1440px and 390px | surface preflight; editor baseline measured 110 controls and 5,217px at 390px; preview had one primary-link contrast violation | implementer | 0 | accepted_pending_human | `ae217d0` | named Guide/Revision workspace regions, responsive library/editor/preview/history composition, preview contrast correction, owner/viewer browser matrix, axe, reduced-motion, no-overflow, focused 19/19, full web 495/495, check-types/lint/build, and both reviews pass | active fixture media requests are blocked by existing dev CSP/API-origin setup; editor retains two existing incomplete contrast-background probes; shared shell and browser zoom remain separate |
 | `P2-013` | P2 | entry composition / accessibility | Login, First-run Setup, and organization Invite entry; public states at 1440px and 390px | surface preflight; shared shell had no named main, entry CSS used raw spacing, and Invite’s standard card could span the desktop viewport | implementer | 0 | accepted_pending_human | `f27714b` | named `Entry workspace`, readable responsive shell, constrained standard Invite card, browser login/setup/unavailable-invite matrix, axe 0/0, keyboard/reduced-motion, focused 22/22, full web 495/495, check-types/lint/build, and both reviews pass | setup-ready and loaded-invite browser states remain component-test coverage; browser zoom controls remain environment-limited; P2-010 remains queued |
+| `P2-014` | P2 | public access composition / accessibility | Shared public Project Version selector across Guide, Demo, and Documentation readers; anonymous, desktop/narrow | surface preflight; single-entry context was loose muted text and multi-entry select had generic Version naming/raw control values | implementer | 0 | accepted_pending_human | `8e38ee4` | Project Version chip, named multi-entry combobox, responsive tokenized control, valid Guide/unavailable Demo browser matrix, axe 0/0, reduced-motion, focused 16/16, full web 496/496, check-types/lint/build, and both reviews pass | multi-entry browser fixture unavailable; Demo/Documentation valid populated slugs unavailable in current disposable seed; P2-010 remains queued |
 | `P2-001` | P2 | visual consistency | cross-product libraries/readers | plan issue register | implementer | 0 | queued | — | family review | exact route ownership pending |
 | `P2-002` | P2 | mobile composition | dense/authoring surfaces | plan issue register | implementer | 0 | queued | — | 390px/200% evidence | exact candidates pending |
 
@@ -203,6 +204,8 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | `ae217d0` | `guides-internal` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-guides-internal-review-b.md` | none | active fixture media blocked by existing dev CSP/API-origin setup; two editor incomplete contrast probes; browser zoom limitation; P2-010 remains queued | owner/viewer/editor boundary, draft/archive/immutable Revision semantics, preview contrast, named regions, axe, reduced motion, focused 19/19, full 495/495, check-types/lint/build pass | accepted pending human |
 | `f27714b` | `entry-onboarding` | A — visual/interaction | `accept` | `docs/ui/147-entry-onboarding-review-a.md` | none | browser zoom controls remain environment-limited; setup-ready and loaded-invite states are component-test coverage | entry hierarchy, login form, setup/invite state framing, 680px standard card, 390px reflow, and no blocking visual finding | accepted pending human |
 | `f27714b` | `entry-onboarding` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-entry-onboarding-review-b.md` | none | setup-ready and loaded-invite browser fixtures unavailable without additional local state; P2-010 remains queued | public-entry truth, no auth/setup/invite contract changes, keyboard, reduced motion, axe 0/0, focused 22/22, full 495/495, check-types/lint/build pass | accepted pending human |
+| `8e38ee4` | `public-access` | A — visual/interaction | `accept` | `docs/ui/147-public-access-review-a.md` | none | multi-entry browser fixture unavailable; Demo/Documentation valid populated slugs unavailable in current seed | Project Version context chip, multi-entry selector hierarchy, narrow reflow, cross-reader consistency, and no blocking visual finding | accepted pending human |
+| `8e38ee4` | `public-access` | B — product/a11y/adversarial QA | `accept` | `docs/ui/147-public-access-review-b.md` | none | multi-entry browser fixture and populated Demo/Documentation routes unavailable; browser zoom limitation; P2-010 remains queued | Project Version/public-link semantics, access boundary, selector keyboard naming, axe 0/0, reduced motion, focused 16/16, full 496/496, check-types/lint/build pass | accepted pending human |
 
 
 ## Reference ledger
@@ -273,6 +276,8 @@ domain, permission, lifecycle, publication, or URL authority.
 | `entry-onboarding` | public login / desktop 1440×900 and narrow 390×900 | local synthetic instance; no credentials recorded | agent-browser / Chromium; runner web 3020 | 900px body, one main, 4 controls, no overflow, axe 0/0 at both viewports; `docs/ui/147-entry-onboarding-before-login-desktop.png` and `docs/ui/147-entry-onboarding-before-login-narrow.png` | named `Entry workspace`, same 900px body/4 controls, target overflow 0, axe 0/0; `docs/ui/147-entry-onboarding-after-login-desktop.png` and `docs/ui/147-entry-onboarding-after-login-narrow.png` | no | reduced-motion matched; Tab reached brand, email, password, submit, then body | no new post-change browser errors reported; no form submitted | shell gains an accessible main name and tokenized spacing; login/API/navigation behavior unchanged | `f27714b` / 2026-08-06 |
 | `entry-onboarding` | public setup / desktop 1440×900 and narrow 390×900 | local synthetic instance reports setup already complete | agent-browser / Chromium; runner API 3022/web 3020 | 900px body, one main, 2 controls, no overflow, axe 0/0 at both viewports; `docs/ui/147-entry-onboarding-before-setup-desktop.png` and `docs/ui/147-entry-onboarding-before-setup-narrow.png` | named `Entry workspace`, same 900px body/2 controls, target overflow 0, axe 0/0; `docs/ui/147-entry-onboarding-after-setup-desktop.png` and `docs/ui/147-entry-onboarding-after-setup-narrow.png` | no | reduced-motion matched; sign-in link remains keyboard-reachable | setup status request rendered the truthful complete state; no setup mutation or new browser errors | ready/completion/error branches remain test coverage; no instance state was changed for evidence | `f27714b` / 2026-08-06 |
 | `entry-onboarding` | invalid organization invite / desktop 1440×900 and narrow 390×900 | safe local invalid token `plan147-invalid`; no live invite created | agent-browser / Chromium; runner API 3022/web 3020 | 900px body, one main, 1 control, no overflow, axe 0/0 at both viewports; `docs/ui/147-entry-onboarding-before-invite-desktop.png` and `docs/ui/147-entry-onboarding-before-invite-narrow.png` | named `Entry workspace`, centered standard card 680px desktop / 358px narrow, target overflow 0, axe 0/0; `docs/ui/147-entry-onboarding-after-invite-desktop.png` and `docs/ui/147-entry-onboarding-after-invite-narrow.png` | no | reduced-motion matched; Ossie brand link remains keyboard-reachable | unavailable invite request remained truthful; no acceptance mutation or new browser errors | loaded new-user/existing-user and acceptance branches remain component-test coverage; standard width no longer becomes a desktop-wide banner | `f27714b` / 2026-08-06 |
+| `public-access` | anonymous valid Guide / desktop 1440×900 and narrow 390×900 | synthetic Plan 127 public Guide Publish Link; one included Project Version | agent-browser / Chromium; runner API 3022/web 3020 | 1,142px desktop / 900px narrow, 0 controls, one main, target overflow 0, axe 0/0; `docs/ui/147-public-access-before-guide-desktop.png` and `docs/ui/147-public-access-before-guide-narrow.png` | same document/control/a11y metrics; single entry is a visible `Project Version: Summer release` chip; `docs/ui/147-public-access-after-guide-desktop.png` and `docs/ui/147-public-access-after-guide-narrow.png` | no | reduced-motion matched; no selector keyboard interaction for the single-entry chip; focused test covers multi-entry combobox naming | public Guide request/asset requests rendered without new browser errors; no mutation requests | selector copy and styling now explicitly use Project Version and the chip has bounded surface treatment; Guide content/access/Revision semantics unchanged | `8e38ee4` / 2026-08-06 |
+| `public-access` | anonymous unavailable Demo / desktop 1440×900 and narrow 390×900 | local `plan128-public` currently returns published-demo unavailable in disposable seed | agent-browser / Chromium; runner API 3022/web 3020 | 900px body, one main, 0 controls, target overflow 0, axe 0/0; `docs/ui/147-public-access-before-demo-desktop.png` and `docs/ui/147-public-access-before-demo-narrow.png` | same truthful unavailable state, one main, target overflow 0, axe 0/0; `docs/ui/147-public-access-after-demo-desktop.png` and `docs/ui/147-public-access-after-demo-narrow.png` | no | reduced-motion matched; no selector present in unavailable state | unavailable request remained truthful; no new browser errors | no populated Demo claim; this route proves shared candidate does not disturb unavailable access messaging | `8e38ee4` / 2026-08-06 |
 
 ## Decision ledger
 
@@ -1068,6 +1073,59 @@ domain, permission, lifecycle, publication, or URL authority.
   ledger truth, synthetic database state, and existing auth/setup/invite
   contracts.
 
+### public-access exact surface preflight
+
+- Actual HEAD/worktree before implementation: `85deae4` in
+  `/home/ubuntu/ossie-plan147`, branch `agent/plan-147-ui-quality`; worktree
+  was clean. The candidate is `8e38ee4` and changes only the shared public
+  Project Version selector and its focused test.
+- Surface and normal entries: anonymous Guide `/p/plan127-public`, Demo
+  `/d/plan128-public`, Documentation `/docs/:slug`, their version forms and
+  embed variants, plus shared password/restricted/expired/revoked/unavailable
+  state branches already owned by each reader. Browser content currently
+  exposes one Guide Project Version; the Demo and Documentation slugs in this
+  disposable seed render truthful unavailable states.
+- Current component/request graph: `PublicVersionSelector` receives the
+  immutable `PublicPublishLinkResponse`, renders a single-entry Project Version
+  context or a multi-entry native select, and preserves the existing
+  `public_url` plus optional `/embed` navigation. Guide, Demo, and
+  Documentation reader pages own access/password/session state and remain
+  unchanged.
+- Baseline browser proof: valid Guide rendered one main, no target overflow,
+  axe 0/0, and a loose `Version: Summer release` label at 1440×900 and 390×900.
+  The available Demo slug rendered one-main truthful unavailable state with
+  axe 0/0 at both widths. Baseline files are the four
+  `docs/ui/147-public-access-before-*.png` files.
+- Intended write set: Project Version label copy, accessible multi-entry
+  combobox name, tokenized selector/chip CSS, focused selector tests, browser
+  evidence, and blind review records. No Publish Link, access, password,
+  viewer-session, Publication, Revision, Version-selection URL, tenant, API,
+  schema, migration, or dependency behavior changes are authorized.
+- Explicitly out of scope: creating a multi-entry or valid Demo/Documentation
+  browser fixture, changing reader access branches, browser zoom tooling,
+  global fallback repair tracked as P2-010, and redesigning the public readers
+  already accepted under their own surface candidates.
+- Accepted constraints: Project Version remains the domain term; native
+  select behavior remains the keyboard/accessibility authority; a one-entry
+  public link does not become an unnecessary interactive control; public
+  content and access state remain immutable/API-owned.
+- Focused failing tests added first: the single-entry selector names the
+  Project Version explicitly, and the multi-entry selector exposes the
+  `Public Project Version` combobox name; both failed before the candidate.
+- Browser verification: valid Guide and truthful unavailable Demo at
+  1440×900 and 390×900; reduced-motion media; axe; target no-overflow; console
+  and page-error checks. Multi-entry behavior remains component-test evidence
+  because the safe browser fixture has no multi-entry public link.
+- Reviewer A brief: inspect Project Version context chip, selector hierarchy,
+  native control styling, narrow reflow, and cross-reader quietness.
+- Reviewer B brief: inspect exact public-link/Version selection behavior,
+  access/password boundaries, no metadata or credential leakage, native
+  keyboard/axe/reduced-motion behavior, fixture integrity, and exact diff.
+- Rollback boundary: revert only `8e38ee4` and the public-access
+  evidence/review records; preserve `85deae4`, accepted Guide/Demo/Documentation
+  candidates, ledger truth, synthetic database state, and all public-link,
+  Publication, Revision, and Version-selection contracts.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
@@ -1089,6 +1147,7 @@ domain, permission, lifecycle, publication, or URL authority.
 | 2026-08-06 | `f4a6010` | `capture-portal` candidate | Capture list/create/detail hierarchy, named workspace regions, tokenized responsive cards/metrics/upload framing, owner/viewer browser and axe evidence; focused 58/58, full web 494/494 serial, web lint/build, both read-only reviews accept; populated Event/Asset browser records unavailable and not fabricated | human review Plan 147 bundle; retain shared-shell clipping, browser zoom limitation, existing create-form contrast probe, pre-restart HMR runner incident, P2-010 token failure, and remaining queued families |
 | 2026-08-06 | `ae217d0` | `guides-internal` candidate | Guide list/editor/preview and immutable Revision composition, named workspace regions, responsive hierarchy, preview contrast correction, owner/viewer browser and axe evidence; focused 19/19, full web 495/495 serial, web check-types/lint/build, both read-only reviews accept; fixture media limitation recorded | human review Plan 147 bundle; retain shared-shell clipping, browser zoom limitation, editor incomplete contrast probes, existing dev CSP/API-origin media limitation, P2-010 token failure, and remaining queued families |
 | 2026-08-06 | `f27714b` | `entry-onboarding` candidate | Entry shell, login/setup/invite composition, named main landmark, responsive standard width, keyboard/reduced-motion and truthful local browser evidence; focused 22/22, full web 495/495 serial, web check-types/lint/build, both read-only reviews accept | human review Plan 147 bundle; retain setup-ready and loaded-invite component-test limitation, browser zoom limitation, P2-010 token failure, and remaining queued families |
+| 2026-08-06 | `8e38ee4` | `public-access` candidate | Shared Project Version selector copy/semantics and tokenized responsive control; valid Guide/unavailable Demo browser and axe evidence; focused 16/16, full web 496/496 serial, web check-types/lint/build, both read-only reviews accept; multi-entry fixture remains component-test coverage | human review Plan 147 bundle; retain multi-entry and populated Demo/Documentation fixture limitations, browser zoom limitation, P2-010 token failure, and remaining queued families |
 
 ## Final bundle index
 

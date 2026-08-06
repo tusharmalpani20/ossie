@@ -1959,7 +1959,7 @@ security decision for the user.
 - [ ] Documentation review/assets/snippets/OpenAPI/portability family.
 - [ ] Documentation draft/Revision/Publication preview family.
 - [ ] Public Documentation reader/API-reference family.
-- [ ] Shared public access challenge/version-selection family.
+- [x] Shared public access challenge/version-selection family.
 - [ ] Extension installation portal family.
 - [ ] Extension popup/Capture/recovery/completion family.
 - [ ] Global unsupported/Page-not-found/shell-failure family.
@@ -2049,6 +2049,16 @@ desktop/narrow login, setup-complete, invalid-invite, axe, keyboard, and
 reduced-motion evidence passed. Reviewer A and Reviewer B both accepted. Status:
 `agent_accepted_pending_human`; setup-ready and loaded-invite browser states
 remain component-test coverage, and P2-010 remains queued.
+
+2026-08-06 — `public-access` — starting commit `85deae4`; candidate `8e38ee4`.
+Clarified the shared public Project Version selector, named its multi-entry
+combobox, and tokenized its responsive chip/control styling. Focused public
+reader/selector tests passed 16/16; the full web suite passed 496/496; web
+check-types, lint, build, and diff check passed; anonymous valid Guide and
+truthful unavailable Demo browser/a11y evidence passed at desktop and narrow
+widths. Reviewer A and Reviewer B both accepted. Status:
+`agent_accepted_pending_human`; multi-entry and populated Demo/Documentation
+browser fixtures remain unavailable, and P2-010 remains queued.
 
 Record future entries as:
 
