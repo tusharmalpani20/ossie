@@ -93,6 +93,11 @@ const LazyDocumentationRevisionPreviewPage = lazy(() =>
     (module) => ({ default: module.DocumentationRevisionPreviewPage }),
   ),
 );
+const LazyDocumentationPublicationPreviewPage = lazy(() =>
+  import("./features/documentation/DocumentationPublicationPreviewPage").then(
+    (module) => ({ default: module.DocumentationPublicationPreviewPage }),
+  ),
+);
 const LazyDocumentationCarryForwardPage = lazy(() =>
   import("./features/documentation/DocumentationCarryForwardPage").then(
     (module) => ({ default: module.DocumentationCarryForwardPage }),
@@ -866,6 +871,29 @@ export default function App() {
               versionSlug={route.versionSlug}
               siteId={route.siteId}
               revisionNumber={route.sequence!}
+            />
+          </DocumentationSuspense>
+        )}
+      </ProjectVersionRouteBoundary>
+    );
+  }
+
+  if (route.type === "documentation_publication_preview") {
+    return (
+      <ProjectVersionRouteBoundary
+        projectId={route.projectId}
+        versionSlug={route.versionSlug}
+        allowVersionOwnedContent
+        activeSection="documentation"
+        currentLabel="Documentation Publication"
+      >
+        {() => (
+          <DocumentationSuspense>
+            <LazyDocumentationPublicationPreviewPage
+              projectId={route.projectId}
+              versionSlug={route.versionSlug}
+              siteId={route.siteId}
+              publicationSequence={route.sequence!}
             />
           </DocumentationSuspense>
         )}

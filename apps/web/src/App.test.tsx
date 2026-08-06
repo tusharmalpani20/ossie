@@ -707,6 +707,105 @@ describe("App", () => {
     expect(screen.getAllByRole("button", { name: "Sign out" })).toHaveLength(1);
   });
 
+  it("renders exact Documentation Publication preview routes", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/projects/project_1/versions/main/documentation/site_1/publications/4",
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = input.toString();
+        if (url.endsWith("/api/v1/public/instance"))
+          return jsonResponse(readyInstanceStatus);
+        if (url.endsWith("/versions/resolve/main"))
+          return jsonResponse({
+            resolution: "canonical",
+            project_version: mainProjectVersion,
+          });
+        if (url.endsWith("/versions"))
+          return jsonResponse({ project_versions: [mainProjectVersion] });
+        if (url.endsWith("/api/v1/projects/project_1"))
+          return jsonResponse(writableProjectResponse);
+        if (url.endsWith("/documentation-sites/site_1/publications"))
+          return jsonResponse({
+            publications: [
+              {
+                id: "publication_4",
+                publication_sequence: 4,
+                revision_number: 9,
+                published_at: "2026-08-01T00:00:00.000Z",
+              },
+            ],
+          });
+        if (url.endsWith("/documentation-sites/site_1/revisions/9"))
+          return jsonResponse({
+            revision: {
+              site: {
+                id: "site_1",
+                name: "Product docs",
+                description: "Immutable public documentation",
+              },
+              revision: {
+                id: "revision_9",
+                revision_number: 9,
+                created_at: "2026-08-01T00:00:00.000Z",
+                home_page_id: "page_1",
+                primary_language: "en",
+              },
+              pages: [
+                {
+                  id: "page_1",
+                  title: "Install",
+                  description: null,
+                  canonical_path: "install",
+                  blocks: [
+                    {
+                      id: "block_1",
+                      kind: "paragraph",
+                      position: 1,
+                      expected_version: 1,
+                      text: "Frozen Publication content",
+                    },
+                  ],
+                },
+              ],
+              navigation: {
+                nodes: [
+                  {
+                    id: "navigation_1",
+                    kind: "page",
+                    page_id: "page_1",
+                    label: "Install",
+                    parent_id: null,
+                    position: 1,
+                  },
+                ],
+              },
+              openapi_operations: [],
+              snippets: [],
+            },
+          });
+        return jsonResponse(
+          { error: { message: `Unexpected URL: ${url}` } },
+          404,
+        );
+      }),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Product docs — immutable Publication 4",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Frozen Publication content")).toBeInTheDocument();
+    expect(screen.getByText(/Revision 9/)).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Sign out" })).toHaveLength(1);
+  });
+
   it("renders project guide list routes", async () => {
     window.history.pushState(
       {},

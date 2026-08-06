@@ -1533,7 +1533,33 @@ export type DocumentationRevisionSnapshot = {
     name: string;
     description: string | null;
   };
-  revision: DocumentationRevisionSummary;
+  revision: DocumentationRevisionSummary & {
+    home_page_id?: string;
+    primary_language?: string;
+  };
+  pages?: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    canonical_path: string;
+    blocks: DocumentationBlock[];
+  }>;
+  navigation?: {
+    nodes: Array<{
+      id: string;
+      kind: "page" | "group";
+      page_id: string | null;
+      label: string | null;
+      parent_id?: string | null;
+      position?: number;
+    }>;
+  };
+  snippets?: Array<{
+    id: string;
+    name: string;
+    status: "active" | "archived";
+    blocks: DocumentationBlock[];
+  }>;
   openapi_operations: DocumentationOpenApiOperation[];
 };
 
@@ -1596,6 +1622,36 @@ export const listDocumentationPublications = (
   ).then((response) =>
     json<{ publications: DocumentationPublicationSummary[] }>(response),
   );
+
+/** Resolve a Publication to the exact immutable Revision it names. */
+export const getDocumentationPublication = async (
+  projectId: string,
+  versionSlug: string,
+  siteId: string,
+  publicationSequence: number,
+) => {
+  const { publications } = await listDocumentationPublications(
+    projectId,
+    versionSlug,
+    siteId,
+  );
+  const publication = publications.find(
+    (candidate) => candidate.publication_sequence === publicationSequence,
+  );
+  if (!publication)
+    throw new DocumentationApiError(
+      404,
+      "documentation_publication_not_found",
+      "Documentation Publication was not found",
+    );
+  const { revision } = await getDocumentationRevision(
+    projectId,
+    versionSlug,
+    siteId,
+    publication.revision_number,
+  );
+  return { publication, revision };
+};
 
 export const listDocumentationPublishLinks = (
   projectId: string,
