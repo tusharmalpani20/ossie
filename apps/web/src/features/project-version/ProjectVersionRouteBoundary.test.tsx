@@ -99,6 +99,18 @@ describe("ProjectVersionRouteBoundary", () => {
     ).toBeInTheDocument();
   });
 
+  it("names the Project Version workspace as one region", async () => {
+    render(
+      <ProjectVersionRouteBoundary projectId="project_1" versionSlug="main" />,
+    );
+
+    expect(
+      await screen.findByRole("region", {
+        name: "Project Version workspace",
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("lets nested Project Version list routes own the active shell section", async () => {
     render(
       <ProjectVersionRouteBoundary

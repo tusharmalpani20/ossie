@@ -836,6 +836,54 @@ domain, permission, lifecycle, publication, or URL authority.
   evidence/review records; preserve `f125272`, prior candidates, ledger truth,
   synthetic database state, and the existing compliance/member contracts.
 
+### project-versions exact surface preflight
+
+- Actual HEAD/worktree: `d34eafe` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; the worktree was clean before this surface. The
+  baseline uses only the deterministic synthetic Plan 125 project and its
+  active/default, active/non-default, and archived Project Version fixtures.
+- Scope: authenticated owner `/projects/01K12500000000000000000002/settings`
+  Project Versions management and
+  `/projects/01K12500000000000000000002/versions/main` Project Version
+  workspace. Existing create, update, reorder, Default, archive/restore,
+  canonical-slug, Carry Forward, and Project Version context contracts remain
+  in scope for verification; no lifecycle or permission semantics are being
+  redefined.
+- Baseline browser proof at 1440px: settings measured 1,440px body width,
+  2,235px document height, 55 interactive controls, one main landmark, and 0
+  axe violations with one existing incomplete textarea contrast-background
+  probe. The workspace measured 1,440px body width, 900px document height, 23
+  interactive controls, one main landmark, and 0 axe violations / 0 incomplete
+  items. Baseline files are
+  `docs/ui/147-project-versions-before-settings-desktop.png` and
+  `docs/ui/147-project-versions-before-workspace-desktop.png`.
+- Baseline browser proof at 390px: settings measured 390px body width,
+  3,755px document height, 55 controls, one main landmark, and 0 axe
+  violations with the same one incomplete textarea probe. The workspace
+  measured 390px body width, 1,088px document height, 23 controls, one main
+  landmark, and 0 axe violations / 0 incomplete items. Existing portal
+  navigation items extend beyond the viewport as a shared-shell scroll
+  behavior; the Project Version content itself is the bounded target.
+  Baseline files are
+  `docs/ui/147-project-versions-before-settings-narrow.png` and
+  `docs/ui/147-project-versions-before-workspace-narrow.png`.
+- Intended write set: Project Version management hierarchy and responsive
+  form/list/card styling, workspace hierarchy and responsive cards/context,
+  focused landmark/state tests, browser evidence, and blind review records.
+  No Project, Project Version, Capture, Edition, Revision, Publication,
+  organization authorization, tenant-isolation, immutable-content, or public
+  URL behavior changes are authorized by this slice.
+- Reviewer A brief: inspect Project Version identity, lifecycle hierarchy,
+  create/edit density, active/archived grouping, workspace navigation cards,
+  narrow composition, and shared-shell boundary.
+- Reviewer B brief: inspect Project Version ownership and permissions, Default
+  and archive invariants, permanent former-slug privacy/link semantics,
+  Carry Forward boundary, error/retry behavior, keyboard/axe/zoom/motion, and
+  exact diff scope.
+- Rollback boundary: revert only the Project Version candidate and its
+  evidence/review records; preserve `d34eafe`, prior candidates, ledger truth,
+  synthetic database state, and the existing Project Version API contracts.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |

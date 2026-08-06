@@ -188,14 +188,18 @@ export const ProjectVersionRouteBoundary = ({
 
 /** Renders the Project Version workspace when no child route owns content. */
 const VersionWorkspace = ({ project, selected }: Loaded) => (
-  <section className={styles.workspace}>
-    <div>
+  <section
+    className={styles.workspace}
+    role="region"
+    aria-label="Project Version workspace"
+  >
+    <div className={styles.intro}>
       <p className={styles.eyebrow}>Project Version workspace</p>
-      <h1>{selected.name}</h1>
+      <h1 id="project-version-workspace-heading">{selected.name}</h1>
       {selected.description ? (
-        <p>{selected.description}</p>
+        <p className={styles.description}>{selected.description}</p>
       ) : (
-        <p>No description yet.</p>
+        <p className={styles.description}>No description yet.</p>
       )}
       <dl className={styles.metadata}>
         <div>

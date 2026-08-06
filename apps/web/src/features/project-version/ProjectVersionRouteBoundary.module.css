@@ -3,6 +3,7 @@
   background: var(--background);
   color: var(--foreground);
 }
+
 .main {
   width: min(72rem, calc(100% - 2rem));
   margin: 0 auto;
@@ -10,52 +11,133 @@
   display: grid;
   gap: 1.25rem;
 }
+
 .state {
   display: grid;
   gap: 0.75rem;
+  max-width: 42rem;
 }
+
 .workspace {
   display: grid;
-  gap: 1.5rem;
-}
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted-foreground);
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-.metadata {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: 1rem;
-}
-.metadata div {
+  gap: 1.75rem;
   min-width: 0;
 }
-.metadata dt {
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
+
+.intro {
+  display: grid;
+  gap: 0.75rem;
 }
-.metadata dd {
-  margin: 0.25rem 0 0;
+
+.eyebrow {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.intro h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 1.35rem + 1vw, 2.5rem);
+  letter-spacing: -0.035em;
+  line-height: 1.08;
   overflow-wrap: anywhere;
 }
+
+.description {
+  max-width: 48rem;
+  margin: 0;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.metadata {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0.25rem 0 0;
+}
+
+.metadata div {
+  min-width: 0;
+  padding: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+}
+
+.metadata dt {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.metadata dd {
+  margin: 0.35rem 0 0;
+  overflow-wrap: anywhere;
+}
+
 .cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.875rem;
 }
+
 .linkCard,
 .empty {
-  padding: 1rem;
+  min-width: 0;
+  padding: 1.125rem;
 }
+
+.linkCard {
+  display: flex;
+  min-height: 8rem;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .linkCard h2 {
-  margin-top: 0;
+  margin: 0;
   font-size: 1rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
-@media (max-width: 48rem) {
+
+.linkCard a {
+  margin-top: auto;
+  font-weight: 650;
+}
+
+.empty {
+  margin: 0;
+  border: 1px dashed var(--border);
+  color: var(--muted-foreground);
+  line-height: 1.55;
+}
+
+@media (max-width: 64rem) {
+  .metadata,
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 42rem) {
+  .metadata,
   .cards {
     grid-template-columns: 1fr;
+  }
+
+  .metadata div {
+    padding: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace {
+    scroll-behavior: auto;
   }
 }

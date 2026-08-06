@@ -260,147 +260,153 @@ const VersionList = ({
     success: string,
   ) => Promise<void>;
   onProjectChange?: (project: Project) => void;
-}) => (
-  <section>
-    <h3>{title}</h3>
-    {versions.length === 0 ? (
-      <p>No {title.toLowerCase()} Project Versions.</p>
-    ) : (
-      <div className={styles.list}>
-        {versions.map((version, index) => (
-          <article className={styles.version} key={version.id}>
-            <div className={styles.versionHeader}>
-              <strong>{version.name}</strong>
-              {version.is_default ? <Badge>Default</Badge> : null}
-              {version.status === "archived" ? <Badge>Archived</Badge> : null}
-            </div>
-            <div className={styles.details}>
-              <span>/{version.slug}</span>
-              <span>{version.release_date ?? "No release date"}</span>
-            </div>
-            {version.aliases.length ? (
-              <p className={styles.aliases}>
-                Permanent former slugs:{" "}
-                {version.aliases.map(({ slug }) => `/${slug}`).join(", ")}
-              </p>
-            ) : null}
-            <VersionEdit
-              project={project}
-              version={version}
-              busy={busy}
-              mutate={mutate}
-            />
-            <div className={styles.actions}>
-              {move ? (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={busy !== null || index === 0}
-                    onClick={() => move(version, -1)}
-                  >
-                    Move up
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={busy !== null || index === versions.length - 1}
-                    onClick={() => move(version, 1)}
-                  >
-                    Move down
-                  </Button>
-                </>
+}) => {
+  const headingId = `project-versions-${title.toLowerCase()}`;
+
+  return (
+    <section className={styles.group} aria-labelledby={headingId}>
+      <h3 id={headingId}>{title}</h3>
+      {versions.length === 0 ? (
+        <p className={styles.empty}>
+          No {title.toLowerCase()} Project Versions.
+        </p>
+      ) : (
+        <div className={styles.list}>
+          {versions.map((version, index) => (
+            <article className={styles.version} key={version.id}>
+              <div className={styles.versionHeader}>
+                <strong>{version.name}</strong>
+                {version.is_default ? <Badge>Default</Badge> : null}
+                {version.status === "archived" ? <Badge>Archived</Badge> : null}
+              </div>
+              <div className={styles.details}>
+                <span>/{version.slug}</span>
+                <span>{version.release_date ?? "No release date"}</span>
+              </div>
+              {version.aliases.length ? (
+                <p className={styles.aliases}>
+                  Permanent former slugs:{" "}
+                  {version.aliases.map(({ slug }) => `/${slug}`).join(", ")}
+                </p>
               ) : null}
-              {version.status === "active" && !version.is_default ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={busy !== null}
-                  onClick={() => {
-                    if (
-                      !window.confirm(
-                        `Set ${version.name} as the Default Project Version? Existing content will not move.`,
+              <VersionEdit
+                project={project}
+                version={version}
+                busy={busy}
+                mutate={mutate}
+              />
+              <div className={styles.actions}>
+                {move ? (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={busy !== null || index === 0}
+                      onClick={() => move(version, -1)}
+                    >
+                      Move up
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={busy !== null || index === versions.length - 1}
+                      onClick={() => move(version, 1)}
+                    >
+                      Move down
+                    </Button>
+                  </>
+                ) : null}
+                {version.status === "active" && !version.is_default ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busy !== null}
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          `Set ${version.name} as the Default Project Version? Existing content will not move.`,
+                        )
                       )
-                    )
-                      return;
-                    void mutate(
-                      version.id,
-                      async () => {
-                        const response = await setDefaultProjectVersion(
-                          project.id,
+                        return;
+                      void mutate(
+                        version.id,
+                        async () => {
+                          const response = await setDefaultProjectVersion(
+                            project.id,
+                            version.id,
+                            {
+                              expected_version: version.version,
+                              expected_project_row_version: project.version,
+                            },
+                          );
+                          onProjectChange?.(response.project);
+                        },
+                        "Default Project Version changed.",
+                      );
+                    }}
+                  >
+                    Set Default
+                  </Button>
+                ) : null}
+                {version.status === "active" && version.is_default ? (
+                  <span className={styles.actionNote}>
+                    Default Project Version cannot be archived.
+                  </span>
+                ) : null}
+                {version.status === "active" ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busy !== null || version.is_default}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Archive ${version.name}? It will become read-only.`,
+                        )
+                      )
+                        void mutate(
                           version.id,
-                          {
-                            expected_version: version.version,
-                            expected_project_row_version: project.version,
-                          },
+                          () =>
+                            archiveProjectVersion(
+                              project.id,
+                              version.id,
+                              version.version,
+                            ),
+                          "Project Version archived.",
                         );
-                        onProjectChange?.(response.project);
-                      },
-                      "Default Project Version changed.",
-                    );
-                  }}
-                >
-                  Set Default
-                </Button>
-              ) : null}
-              {version.status === "active" && version.is_default ? (
-                <span className={styles.actionNote}>
-                  Default Project Version cannot be archived.
-                </span>
-              ) : null}
-              {version.status === "active" ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={busy !== null || version.is_default}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Archive ${version.name}? It will become read-only.`,
-                      )
-                    )
+                    }}
+                  >
+                    Archive
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busy !== null}
+                    onClick={() =>
                       void mutate(
                         version.id,
                         () =>
-                          archiveProjectVersion(
+                          restoreProjectVersion(
                             project.id,
                             version.id,
                             version.version,
                           ),
-                        "Project Version archived.",
-                      );
-                  }}
-                >
-                  Archive
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={busy !== null}
-                  onClick={() =>
-                    void mutate(
-                      version.id,
-                      () =>
-                        restoreProjectVersion(
-                          project.id,
-                          version.id,
-                          version.version,
-                        ),
-                      "Project Version restored.",
-                    )
-                  }
-                >
-                  Restore
-                </Button>
-              )}
-            </div>
-          </article>
-        ))}
-      </div>
-    )}
-  </section>
-);
+                        "Project Version restored.",
+                      )
+                    }
+                  >
+                    Restore
+                  </Button>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+};
 
 const VersionEdit = ({
   project,
@@ -453,6 +459,7 @@ const VersionEdit = ({
       <Button
         size="sm"
         variant="secondary"
+        className={styles.editAction}
         disabled={
           busy !== null ||
           (name.trim() === version.name &&
@@ -486,6 +493,7 @@ const VersionEdit = ({
       <Button
         size="sm"
         variant="secondary"
+        className={styles.editAction}
         disabled={busy !== null || slug === version.slug}
         onClick={() => {
           if (
