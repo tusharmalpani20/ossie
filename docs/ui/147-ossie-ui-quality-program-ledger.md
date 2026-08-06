@@ -660,6 +660,57 @@ domain, permission, lifecycle, publication, or URL authority.
   evidence/review records; preserve `c6ee819`, all prior public candidates,
   ledger truth, and the seeded disposable fixture.
 
+### documentation-admin exact surface preflight
+
+- Actual HEAD/worktree: `57226fa` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; worktree was clean before this surface. New
+  files at baseline are limited to synthetic before screenshots.
+- Surface and normal entries: authenticated `/organization/documentation`;
+  Organization owner, admin, editor, and viewer sessions; loading, populated,
+  over-limit, save, row-version conflict, save failure, read-only, keyboard,
+  narrow/reflow, and reduced-motion states. Only an owner receives the
+  `can_manage_limits` mutation permission from the existing API contract.
+- Current request/component graph: `App.tsx` resolves the route and its
+  Documentation suspense boundary; `PortalAppShell` owns the shared portal
+  main landmark, navigation, authentication, and breadcrumb; this page owns
+  the usage summary, limit draft, status messages, and conflict handling;
+  `getDocumentationOperations` and `updateDocumentationLimits` remain the
+  only API calls in scope.
+- Baseline browser proof: authenticated synthetic Plan 125 admin at 1440x900
+  measured `scrollWidth=1440`, `bodyScrollWidth=1440`, 900px document height,
+  and 12 interactive controls; at 390x844 it measured `scrollWidth=390`,
+  `bodyScrollWidth=390`, 1,315px document height, and 12 interactive
+  controls. Both had three axe violations from the page's nested main
+  landmark. The visual baseline showed an ungrouped metric field, oversized
+  policy form, and shared portal navigation clipping at narrow width.
+  Baseline files are `docs/ui/147-documentation-admin-before-desktop.png` and
+  `docs/ui/147-documentation-admin-before-narrow.png`.
+- Intended write set: Documentation operations page landmark/composition,
+  usage and limits grouping, token-driven responsive/reduced-motion CSS,
+  focused tests, browser evidence, and blind review records. No limits,
+  version-conflict, permission, Organization, Documentation, or API contract
+  is intended to change.
+- Explicitly out of scope: `PortalAppShell`/navigation redesign, server/schema/
+  API/migrations, shared UI dependency changes, new dependencies, and
+  project-level Documentation Site/editor/reader surfaces.
+- Accepted constraints: Organization product limits retain their existing
+  owner-only mutation boundary; over-limit content remains retained and only
+  new growth is blocked; no private usage or Organization metadata is added.
+- Focused failing test to add first: the usage summary and owner-only product
+  limit controls expose distinct named administration regions.
+- Browser verification: populated and over-limit usage, save/conflict/failure
+  behavior, viewer read-only rendering, 1440px/390px/200% reflow, keyboard,
+  reduced motion, axe, console/network, and no unintended limit mutation.
+- Reviewer A brief: inspect administration hierarchy, metric grouping, policy
+  form density, alert prominence, narrow composition, and shared-shell
+  boundary.
+- Reviewer B brief: inspect owner-only mutation semantics, over-limit truth,
+  conflict/error behavior, Organization boundary, keyboard/axe/zoom/motion,
+  and exact diff scope.
+- Rollback boundary: revert only the documentation-admin candidate and its
+  evidence/review records; preserve `57226fa`, all prior candidates, ledger
+  truth, and the seeded disposable fixture.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |

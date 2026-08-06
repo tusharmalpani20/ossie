@@ -115,125 +115,169 @@ export const OrganizationDocumentationOperationsPage = ({
       activeSection="organization_documentation"
       currentLabel="Documentation operations"
     >
-      <main className={styles.page} data-current-path={currentPath}>
-        <header>
-          <p className={styles.eyebrow}>Organization</p>
+      <div className={styles.page} data-current-path={currentPath}>
+        <header className={styles.header}>
+          <p className={styles.eyebrow}>Organization administration</p>
           <h1>Documentation operations</h1>
-          <p>
+          <p className={styles.lede}>
             Review active usage, retained storage, and Organization product
             limits.
           </p>
         </header>
-        <p role="status" aria-live="polite">
+        <p className={styles.status} role="status" aria-live="polite">
           {status}
         </p>
         {summary ? (
           <>
-            <section className={styles.grid} aria-label="Documentation usage">
-              {[
-                ["Active Sites", summary.usage.active_sites],
-                ["Active Pages", summary.usage.active_pages],
-                ["Retained revisions", summary.usage.retained_revisions],
-                ["Retained publications", summary.usage.retained_publications],
-                ["Retained file bytes", summary.usage.retained_file_bytes],
-                [
-                  "Ready import inspections",
-                  summary.usage.active_import_inspections,
-                ],
-                ["Open review requests", summary.usage.open_review_requests],
-              ].map(([label, value]) => (
-                <Card key={label}>
-                  <CardHeader>
-                    <h2 className={styles.cardTitle}>{label}</h2>
-                  </CardHeader>
-                  <CardContent>
-                    <strong className={styles.metric}>
-                      {Number(value).toLocaleString()}
-                    </strong>
-                  </CardContent>
-                </Card>
-              ))}
+            <section
+              className={styles.usageSection}
+              aria-label="Documentation usage"
+            >
+              <div className={styles.sectionHeader}>
+                <p className={styles.sectionEyebrow}>Current footprint</p>
+                <h2 className={styles.sectionTitle}>Usage overview</h2>
+                <p className={styles.sectionDescription}>
+                  Active content and retained Documentation records for this
+                  Organization.
+                </p>
+              </div>
+              <div className={styles.grid}>
+                {[
+                  ["Active Sites", summary.usage.active_sites],
+                  ["Active Pages", summary.usage.active_pages],
+                  ["Retained revisions", summary.usage.retained_revisions],
+                  [
+                    "Retained publications",
+                    summary.usage.retained_publications,
+                  ],
+                  ["Retained file bytes", summary.usage.retained_file_bytes],
+                  [
+                    "Ready import inspections",
+                    summary.usage.active_import_inspections,
+                  ],
+                  ["Open review requests", summary.usage.open_review_requests],
+                ].map(([label, value]) => (
+                  <Card key={label}>
+                    <CardHeader>
+                      <h3 className={styles.cardTitle}>{label}</h3>
+                    </CardHeader>
+                    <CardContent>
+                      <strong className={styles.metric}>
+                        {Number(value).toLocaleString()}
+                      </strong>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </section>
             {state("active_sites")?.state === "over_limit" ||
             state("active_pages")?.state === "over_limit" ? (
-              <Alert>
-                Existing content is retained. Archive or reduce active content;
-                only new growth is blocked while usage is over a limit.
-              </Alert>
+              <div className={styles.alert}>
+                <Alert>
+                  Existing content is retained. Archive or reduce active
+                  content; only new growth is blocked while usage is over a
+                  limit.
+                </Alert>
+              </div>
             ) : null}
             {summary.permissions.can_manage_limits && draft ? (
-              <Card>
-                <CardHeader>
-                  <h2 className={styles.cardTitle}>Product limits</h2>
-                </CardHeader>
-                <CardContent>
-                  <form className={styles.form} onSubmit={submit}>
-                    <fieldset>
-                      <legend>Active Documentation Sites</legend>
-                      <Label>
-                        <input
-                          type="checkbox"
-                          checked={draft.sitesUnlimited}
-                          onChange={(event) =>
-                            setDraft({
-                              ...draft,
-                              sitesUnlimited: event.target.checked,
-                            })
-                          }
-                        />{" "}
-                        Unlimited product quota
-                      </Label>
-                      {!draft.sitesUnlimited ? (
-                        <Input
-                          aria-label="Active Site limit"
-                          type="number"
-                          min={1}
-                          required
-                          value={draft.sites}
-                          onChange={(event) =>
-                            setDraft({ ...draft, sites: event.target.value })
-                          }
-                        />
-                      ) : null}
-                    </fieldset>
-                    <fieldset>
-                      <legend>Active Documentation Pages</legend>
-                      <Label>
-                        <input
-                          type="checkbox"
-                          checked={draft.pagesUnlimited}
-                          onChange={(event) =>
-                            setDraft({
-                              ...draft,
-                              pagesUnlimited: event.target.checked,
-                            })
-                          }
-                        />{" "}
-                        Unlimited product quota
-                      </Label>
-                      {!draft.pagesUnlimited ? (
-                        <Input
-                          aria-label="Active Page limit"
-                          type="number"
-                          min={1}
-                          required
-                          value={draft.pages}
-                          onChange={(event) =>
-                            setDraft({ ...draft, pages: event.target.value })
-                          }
-                        />
-                      ) : null}
-                    </fieldset>
-                    <Button type="submit" disabled={busy}>
-                      {busy ? "Saving…" : "Save limits"}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+              <section
+                className={styles.limitsSection}
+                aria-label="Product limits"
+              >
+                <Card>
+                  <CardHeader>
+                    <p className={styles.sectionEyebrow}>Organization policy</p>
+                    <h2 className={styles.sectionTitle}>Product limits</h2>
+                    <p className={styles.sectionDescription}>
+                      Set the active Site and Page quotas for this Organization.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <form className={styles.form} onSubmit={submit}>
+                      <div className={styles.limitGrid}>
+                        <fieldset className={styles.limitFieldset}>
+                          <legend>Active Documentation Sites</legend>
+                          <p className={styles.fieldDescription}>
+                            The number of active Documentation Sites.
+                          </p>
+                          <Label>
+                            <input
+                              type="checkbox"
+                              checked={draft.sitesUnlimited}
+                              onChange={(event) =>
+                                setDraft({
+                                  ...draft,
+                                  sitesUnlimited: event.target.checked,
+                                })
+                              }
+                            />{" "}
+                            Unlimited product quota
+                          </Label>
+                          {!draft.sitesUnlimited ? (
+                            <Input
+                              aria-label="Active Site limit"
+                              type="number"
+                              min={1}
+                              required
+                              value={draft.sites}
+                              onChange={(event) =>
+                                setDraft({
+                                  ...draft,
+                                  sites: event.target.value,
+                                })
+                              }
+                            />
+                          ) : null}
+                        </fieldset>
+                        <fieldset className={styles.limitFieldset}>
+                          <legend>Active Documentation Pages</legend>
+                          <p className={styles.fieldDescription}>
+                            The number of active Documentation Pages.
+                          </p>
+                          <Label>
+                            <input
+                              type="checkbox"
+                              checked={draft.pagesUnlimited}
+                              onChange={(event) =>
+                                setDraft({
+                                  ...draft,
+                                  pagesUnlimited: event.target.checked,
+                                })
+                              }
+                            />{" "}
+                            Unlimited product quota
+                          </Label>
+                          {!draft.pagesUnlimited ? (
+                            <Input
+                              aria-label="Active Page limit"
+                              type="number"
+                              min={1}
+                              required
+                              value={draft.pages}
+                              onChange={(event) =>
+                                setDraft({
+                                  ...draft,
+                                  pages: event.target.value,
+                                })
+                              }
+                            />
+                          ) : null}
+                        </fieldset>
+                      </div>
+                      <div className={styles.formActions}>
+                        <Button type="submit" disabled={busy}>
+                          {busy ? "Saving…" : "Save limits"}
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              </section>
             ) : null}
           </>
         ) : null}
-      </main>
+      </div>
     </PortalAppShell>
   );
 };

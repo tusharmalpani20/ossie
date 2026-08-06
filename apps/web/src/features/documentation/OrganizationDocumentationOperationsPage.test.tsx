@@ -47,6 +47,21 @@ const summary = {
 };
 
 describe("OrganizationDocumentationOperationsPage", () => {
+  it("exposes usage and limits as distinct administration regions", async () => {
+    render(
+      <OrganizationDocumentationOperationsPage
+        load={async () => summary}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("region", { name: "Documentation usage" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Product limits" }),
+    ).toBeInTheDocument();
+  });
+
   it("shows retained over-limit state and saves explicit unlimited limits", async () => {
     const update = vi.fn(async () => ({
       limits: { ...summary.limits, active_pages_limit: null, version: 2 },
