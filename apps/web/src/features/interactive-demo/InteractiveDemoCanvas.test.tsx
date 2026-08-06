@@ -1,8 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { InteractiveDemoCanvas } from "./InteractiveDemoCanvas";
 
 describe("InteractiveDemoCanvas", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it("selects and keyboard-adjusts normalized Hotspot geometry", () => {
     const onSelect = vi.fn();
     const onGeometryChange = vi.fn();
@@ -35,6 +37,16 @@ describe("InteractiveDemoCanvas", () => {
       x: 0.11,
       y: 0.2,
       width: 0.3,
+      height: 0.1,
+    });
+
+    fireEvent.keyDown(screen.getByRole("button", { name: "Resize Continue" }), {
+      key: "ArrowRight",
+    });
+    expect(onGeometryChange).toHaveBeenLastCalledWith("hotspot_1", {
+      x: 0.1,
+      y: 0.2,
+      width: 0.31,
       height: 0.1,
     });
   });
@@ -74,9 +86,52 @@ describe("InteractiveDemoCanvas", () => {
       />,
     );
 
-    fireEvent.error(screen.getByRole("img", { name: "Broken captured screen" }));
+    fireEvent.error(
+      screen.getByRole("img", { name: "Broken captured screen" }),
+    );
     expect(screen.getByText("Captured screen is unavailable.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
+  });
+
+  it("hydrates an authenticated cross-origin background before rendering controls", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(["synthetic image"], { type: "image/png" }), {
+        status: 200,
+      }),
+    );
+    const createObjectURL = vi.fn(() => "blob:scene");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectURL,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectURL,
+    });
+
+    render(
+      <InteractiveDemoCanvas
+        sceneTitle="Remote"
+        backgroundUrl="http://localhost:3022/asset.png"
+        hotspots={[]}
+        selectedHotspotId={null}
+        onSelect={() => undefined}
+        onGeometryChange={() => undefined}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith("http://localhost:3022/asset.png", {
+        credentials: "include",
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
+    expect(
+      screen.getByRole("img", { name: "Remote captured screen" }),
+    ).toHaveAttribute("src", "blob:scene");
   });
 
   it("uses the projected background dimensions for the authoring canvas", () => {

@@ -48,7 +48,10 @@ export const InteractiveDemoRenderer = ({
   const [sceneId, setSceneId] = useState(orderedScenes[0]?.id ?? null);
   const [history, setHistory] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState("");
-  const [failedBackgroundKey, setFailedBackgroundKey] = useState<
+  const [failedBackgroundKey, setFailedBackgroundKey] = useState<string | null>(
+    null,
+  );
+  const [resolvedBackgroundUrl, setResolvedBackgroundUrl] = useState<
     string | null
   >(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -70,6 +73,65 @@ export const InteractiveDemoRenderer = ({
     headingRef.current?.focus();
   }, [sceneId]);
 
+  const sceneTitle = scene
+    ? (scene.title ?? `Scene ${scene.sceneIndex}`)
+    : title;
+  const backgroundAsset = scene?.backgroundAssetId
+    ? assetsById.get(scene.backgroundAssetId)
+    : null;
+  const backgroundUrl = backgroundAsset?.fileUrl;
+  const backgroundKey =
+    scene && backgroundUrl && backgroundAsset
+      ? `${scene.id}:${backgroundAsset.id}:${backgroundUrl}`
+      : null;
+  const sameOriginBackground = backgroundUrl
+    ? new URL(backgroundUrl, window.location.href).origin ===
+      window.location.origin
+    : false;
+  const displayBackgroundUrl = sameOriginBackground
+    ? backgroundUrl
+    : resolvedBackgroundUrl;
+  const backgroundAvailable =
+    Boolean(displayBackgroundUrl) && failedBackgroundKey !== backgroundKey;
+
+  useEffect(() => {
+    if (!backgroundUrl || sameOriginBackground) {
+      setResolvedBackgroundUrl(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+    let objectUrl: string | null = null;
+    setResolvedBackgroundUrl(null);
+
+    void fetch(backgroundUrl, {
+      credentials: "include",
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Captured screen request failed");
+        return response.blob();
+      })
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        if (active) setResolvedBackgroundUrl(objectUrl);
+        else URL.revokeObjectURL(objectUrl);
+      })
+      .catch(() => {
+        if (active) {
+          setResolvedBackgroundUrl(null);
+          setFailedBackgroundKey(backgroundKey);
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [backgroundKey, backgroundUrl, sameOriginBackground]);
+
   if (!scene) {
     return (
       <section className={styles.viewer} aria-label={title}>
@@ -79,18 +141,6 @@ export const InteractiveDemoRenderer = ({
       </section>
     );
   }
-
-  const sceneTitle = scene.title ?? `Scene ${scene.sceneIndex}`;
-  const backgroundAsset = scene.backgroundAssetId
-    ? assetsById.get(scene.backgroundAssetId)
-    : null;
-  const backgroundUrl = backgroundAsset?.fileUrl;
-  const backgroundKey =
-    backgroundUrl && backgroundAsset
-      ? `${scene.id}:${backgroundAsset.id}:${backgroundUrl}`
-      : null;
-  const backgroundAvailable =
-    Boolean(backgroundUrl) && failedBackgroundKey !== backgroundKey;
 
   const activate = (hotspot: InteractiveDemoRenderHotspot) => {
     const target = hotspot.targetSceneId
@@ -156,7 +206,7 @@ export const InteractiveDemoRenderer = ({
       >
         {backgroundAvailable ? (
           <img
-            src={backgroundUrl}
+            src={displayBackgroundUrl!}
             alt={`${sceneTitle} captured screen`}
             onError={() => setFailedBackgroundKey(backgroundKey)}
           />

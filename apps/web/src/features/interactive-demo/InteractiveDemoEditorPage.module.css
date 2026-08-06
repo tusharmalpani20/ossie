@@ -284,19 +284,23 @@
   }
 }
 .sceneRail {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
   gap: var(--ossie-space-2);
-  overflow-x: auto;
+  max-height: 13rem;
+  overflow-y: auto;
   margin-bottom: var(--ossie-space-3);
   padding: var(--ossie-space-1);
 }
 
 .sceneRail button {
-  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 3rem;
   padding: var(--ossie-space-2) var(--ossie-space-3);
   border: 1px solid var(--ossie-color-border);
   border-radius: var(--ossie-radius-control);
   background: var(--ossie-color-surface);
+  text-align: start;
 }
 
 .sceneRail button[aria-current="true"] {

@@ -145,6 +145,9 @@ describe("InteractiveDemoEditorPage", () => {
         loadScenes={async () => emptyScenes}
       />,
     );
+    const publishingHistory = await screen.findByText("Publishing & history");
+    expect(publishingHistory).toBeInTheDocument();
+    fireEvent.click(publishingHistory);
     expect(
       await screen.findByRole("button", { name: "Publish this draft" }),
     ).toBeEnabled();
@@ -156,14 +159,17 @@ describe("InteractiveDemoEditorPage", () => {
       edition: { ...detail.edition, status: "archived", version: 4 },
     });
     render(
-      <InteractiveDemoEditorPage
-        projectId="project_1"
-        projectVersionId="version_1"
-        interactiveDemoId="demo_1"
-        loadDemo={async () => detail}
-        loadScenes={async () => emptyScenes}
-        changeEditionStatus={changeEditionStatus}
-      />,
+      <main>
+        <InteractiveDemoEditorPage
+          projectId="project_1"
+          projectVersionId="version_1"
+          interactiveDemoId="demo_1"
+          loadDemo={async () => detail}
+          loadScenes={async () => emptyScenes}
+          changeEditionStatus={changeEditionStatus}
+          renderShell={false}
+        />
+      </main>,
     );
     (await screen.findByRole("button", { name: "Archive demo" })).click();
     expect(changeEditionStatus).toHaveBeenCalledWith(
@@ -176,6 +182,7 @@ describe("InteractiveDemoEditorPage", () => {
     expect(
       await screen.findByRole("button", { name: "Restore demo" }),
     ).toBeInTheDocument();
+    expect(document.querySelectorAll("main")).toHaveLength(1);
   });
 
   it("creates the first Scene with the current Working Draft Row Version", async () => {

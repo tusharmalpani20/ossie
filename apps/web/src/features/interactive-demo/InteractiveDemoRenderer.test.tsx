@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { InteractiveDemoRenderer } from "./InteractiveDemoRenderer";
 
 const scenes = [
@@ -34,6 +34,8 @@ const scenes = [
 ];
 
 describe("InteractiveDemoRenderer", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it("projects Hotspots over the captured screen and follows Transitions", () => {
     render(
       <InteractiveDemoRenderer
@@ -133,5 +135,49 @@ describe("InteractiveDemoRenderer", () => {
     fireEvent.error(screen.getByRole("img", { name: "Start captured screen" }));
     expect(screen.getByText("Captured screen is unavailable.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
+  });
+
+  it("hydrates an authenticated cross-origin background for read-only playback", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(["synthetic image"], { type: "image/png" }), {
+        status: 200,
+      }),
+    );
+    const createObjectURL = vi.fn(() => "blob:scene");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectURL,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectURL,
+    });
+
+    render(
+      <InteractiveDemoRenderer
+        title="Remote demo"
+        scenes={scenes}
+        assets={[
+          {
+            id: "asset_1",
+            fileUrl: "http://localhost:3022/asset.png",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith("http://localhost:3022/asset.png", {
+        credentials: "include",
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
+    expect(
+      screen.getByRole("img", { name: "Start captured screen" }),
+    ).toHaveAttribute("src", "blob:scene");
+    expect(screen.getByRole("button", { name: "Continue" })).toBeVisible();
   });
 });

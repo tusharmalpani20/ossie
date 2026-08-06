@@ -388,6 +388,80 @@ domain, permission, lifecycle, publication, or URL authority.
   records; preserve `8055143`/`b93715c`, the semantic-token candidate, the
   Publication preview candidate, and all prior ledger truth.
 
+### P1-005 exact surface preflight
+
+- Actual HEAD/worktree: `0028eca` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; worktree clean before this surface.
+- Surface and normal entries: authenticated project-admin/editor Interactive
+  Demo editor
+  `/projects/01K12500000000000000000002/versions/summer-release/interactive-demos/01K12802000000000000000001`,
+  plus the seeded empty and archived Edition routes, preview, and Revision
+  history links. Required states include active/empty/archived/read-only,
+  viewer/editor permission, loading/error/retry, unsaved/saving/failure,
+  Working Draft conflict, 12-scene/Hotspot navigation, protected/broken/missing
+  assets, pointer movement/resizing, keyboard movement/resizing, narrow/reflow,
+  zoom, and reduced motion.
+- Current request/component graph: `App.tsx` resolves the internal route and
+  mounts `InteractiveDemoEditorPage`; the page loads the immutable Edition
+  identity plus mutable Working Draft, Scenes, Hotspots, and optional Capture
+  assets. `InteractiveDemoWorkbench` owns metadata, lifecycle, publication
+  controls, and the scene-stage shell; `InteractiveDemoSceneEditor` owns the
+  selected Scene's contextual inspector; `InteractiveDemoCanvas` owns pointer
+  movement, pointer resize, Hotspot selection, and keyboard movement. Read-only
+  and archived guards route through `InteractiveDemoReadOnlyPage`.
+- Baseline browser proof: seeded synthetic Plan 128 active Demo at 1440x900
+  measured `scrollWidth=1440`, `bodyScrollWidth=1440`, 2,823px document height,
+  and 101 interactive controls. At 390x844 it measured
+  `scrollWidth=390`, `bodyScrollWidth=390`, 4,683px document height, and 101
+  interactive controls. Both had 0 axe violations, 1 incomplete contrast probe
+  over three existing textareas, and no page overflow. The browser screenshot
+  showed the permanent metadata/Publishing sidebar, a clipped horizontal
+  12-scene rail, and the Stage below a competing action stack. Baseline files
+  are `docs/ui/147-interactive-demo-before-desktop.png` and
+  `docs/ui/147-interactive-demo-before-narrow.png`.
+- Intended write set: Demo workbench composition and semantic ownership;
+  contextual publication/history disclosure; Scene navigator/stage/inspector
+  hierarchy; explicit keyboard resize behavior for the existing resize handle;
+  bounded narrow layout, focus, token, and reduced-motion rules; authenticated
+  Capture-asset hydration for editor and read-only playback; the archived-shell
+  landmark correction; focused Canvas/Renderer/workbench tests; browser
+  evidence; and blind review records. No server, schema, API, Publication,
+  Revision, Project Version, authorization, tenant, Capture-source, or mutation
+  contract changes are intended.
+- Explicitly out of scope: database/migrations, API routes or payloads,
+  lifecycle/permission/public-link semantics, immutable Revision/Publication
+  content, Fumadocs/public readers, new dependencies, broad portal-shell
+  redesign, or silent mutation/error handling changes.
+- Accepted constraints: Stage remains the dominant working region; Scene
+  navigation is a named owned control; Inspector controls remain contextual to
+  the selected Scene/Hotspot; publication/history administration is available
+  through an explicit disclosure; pointer behavior remains intact; keyboard
+  movement and resize both have visible/focusable alternatives; empty,
+  protected, broken, archived, read-only, conflict, and destructive states
+  remain truthful and guarded.
+- Focused failing tests to add first: the existing Canvas resize handle accepts
+  Arrow-key geometry changes with the same normalized clamp contract as pointer
+  resize; the workbench exposes a named publication/history disclosure; the
+  authenticated renderer hydrates cross-origin Capture assets; and the
+  read-only shell contributes no nested `main` landmark.
+- Browser verification: authenticated active/empty/archived/read-only routes
+  at desktop and 390px; stage/navigator/inspector keyboard path; pointer and
+  keyboard move/resize; publication/history disclosure; loading/error/conflict
+  and protected/broken asset states through fixture/components; preview and
+  Revision history; 200% reflow; reduced motion; axe; console/network; and no
+  unintended mutation outside explicitly exercised local fixture controls.
+- Reviewer A brief: inspect stage dominance, scene navigator legibility,
+  inspector context, action hierarchy, geometry feedback, pointer/keyboard
+  interaction, narrow composition, and zoom/reflow.
+- Reviewer B brief: inspect Edition/Working Draft identity, active/archived/
+  viewer guards, publication/history disclosure, conflict/destructive copy,
+  protected assets, tenant/permission/mutation boundaries, keyboard/axe/
+  reduced-motion/error behavior, exact diff boundary, and asset credential
+  handling.
+- Rollback boundary: revert only the P1-005 candidate and its evidence/review
+  records; preserve `0ea64b9`/`0028eca`, `8055143`/`b93715c`, the token
+  candidate, the Publication preview candidate, and all prior ledger truth.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |

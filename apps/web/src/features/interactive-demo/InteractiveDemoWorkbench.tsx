@@ -134,18 +134,6 @@ export const InteractiveDemoWorkbench = ({
             </div>
           ) : null}
         </section>
-
-        <ArtifactPublishingPanel
-          projectId={projectId}
-          projectVersionId={demo.project_version_id}
-          artifactType="interactive_demo"
-          artifactId={interactiveDemoId}
-          editionVersion={demo.version}
-          workingDraftVersion={workingDraftVersion}
-          publicationReadOnly={demo.status === "archived"}
-          aggregateMutationPending={pendingAction !== null || conflict}
-          runAggregateMutation={runAggregateMutation}
-        />
       </aside>
 
       <section aria-labelledby="demo-scenes-heading" className={styles.stage}>
@@ -164,5 +152,22 @@ export const InteractiveDemoWorkbench = ({
         {children}
       </section>
     </div>
+
+    <details className={styles.adminDisclosure}>
+      <summary>Publishing &amp; history</summary>
+      <div className={styles.adminPanel}>
+        <ArtifactPublishingPanel
+          projectId={projectId}
+          projectVersionId={demo.project_version_id}
+          artifactType="interactive_demo"
+          artifactId={interactiveDemoId}
+          editionVersion={demo.version}
+          workingDraftVersion={workingDraftVersion}
+          publicationReadOnly={demo.status === "archived"}
+          aggregateMutationPending={pendingAction !== null || conflict}
+          runAggregateMutation={runAggregateMutation}
+        />
+      </div>
+    </details>
   </>
 );

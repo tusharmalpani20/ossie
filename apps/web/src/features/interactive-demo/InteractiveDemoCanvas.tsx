@@ -42,6 +42,9 @@ export const InteractiveDemoCanvas = ({
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [imageFailed, setImageFailed] = useState(false);
+  const [resolvedBackgroundUrl, setResolvedBackgroundUrl] = useState<
+    string | null
+  >(null);
   const pointerOperationRef = useRef<{
     mode: "move" | "resize";
     hotspot: DemoCanvasHotspot;
@@ -51,7 +54,50 @@ export const InteractiveDemoCanvas = ({
     height: number;
   } | null>(null);
 
-  useEffect(() => setImageFailed(false), [backgroundUrl]);
+  useEffect(() => {
+    setImageFailed(false);
+    if (!backgroundUrl) {
+      setResolvedBackgroundUrl(null);
+      return;
+    }
+
+    const resolvedUrl = new URL(backgroundUrl, window.location.href);
+    if (resolvedUrl.origin === window.location.origin) {
+      setResolvedBackgroundUrl(backgroundUrl);
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+    let objectUrl: string | null = null;
+    setResolvedBackgroundUrl(null);
+
+    void fetch(backgroundUrl, {
+      credentials: "include",
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Captured screen request failed");
+        return response.blob();
+      })
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        if (active) setResolvedBackgroundUrl(objectUrl);
+        else URL.revokeObjectURL(objectUrl);
+      })
+      .catch(() => {
+        if (active) {
+          setResolvedBackgroundUrl(null);
+          setImageFailed(true);
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [backgroundUrl]);
 
   useEffect(() => {
     const move = (event: globalThis.PointerEvent) => {
@@ -137,6 +183,26 @@ export const InteractiveDemoCanvas = ({
     });
   };
 
+  const adjustResize = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    hotspot: DemoCanvasHotspot,
+  ) => {
+    const amount = event.shiftKey ? 0.05 : 0.01;
+    let { width, height } = hotspot;
+    if (event.key === "ArrowLeft") width -= amount;
+    else if (event.key === "ArrowRight") width += amount;
+    else if (event.key === "ArrowUp") height -= amount;
+    else if (event.key === "ArrowDown") height += amount;
+    else return;
+    event.preventDefault();
+    onGeometryChange(hotspot.id, {
+      x: hotspot.x,
+      y: hotspot.y,
+      width: clamp(width, 0.01, 1 - hotspot.x),
+      height: clamp(height, 0.01, 1 - hotspot.y),
+    });
+  };
+
   return (
     <div
       className={styles.canvas}
@@ -149,10 +215,10 @@ export const InteractiveDemoCanvas = ({
           : undefined
       }
     >
-      {backgroundUrl && !imageFailed ? (
+      {resolvedBackgroundUrl && !imageFailed ? (
         <>
           <img
-            src={backgroundUrl}
+            src={resolvedBackgroundUrl}
             alt={`${sceneTitle} captured screen`}
             onError={() => setImageFailed(true)}
           />
@@ -181,6 +247,7 @@ export const InteractiveDemoCanvas = ({
                 <button
                   aria-label={`Resize ${hotspot.label ?? "Hotspot"}`}
                   className={styles.resizeHandle}
+                  onKeyDown={(event) => adjustResize(event, hotspot)}
                   onPointerDown={(event) =>
                     startPointerOperation(event, hotspot, "resize")
                   }

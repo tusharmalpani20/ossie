@@ -46,7 +46,7 @@ export const InteractiveDemoReadOnlyPage = ({
         navigate={navigate}
       />
     ) : null}
-    <main className={styles.main}>
+    <div className={styles.main}>
       <header className={styles.header}>
         <div>
           <span>Interactive demo · read only</span>
@@ -112,7 +112,7 @@ export const InteractiveDemoReadOnlyPage = ({
         linkManagementReadOnly={!canWrite}
         showMutationControls={canWrite}
       />
-    </main>
+    </div>
   </div>
 );
 import type { CaptureAssetWithFileUrl } from "@repo/types/capture";

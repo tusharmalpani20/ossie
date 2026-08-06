@@ -29,8 +29,8 @@
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
-  gap: var(--ossie-space-5);
+  grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr);
+  gap: var(--ossie-space-6);
   margin-top: var(--ossie-space-5);
   align-items: start;
 }
@@ -51,6 +51,29 @@
 
 .stage {
   min-width: 0;
+}
+
+.adminDisclosure {
+  margin-top: var(--ossie-space-5);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-lg);
+  background: var(--ossie-color-surface);
+}
+
+.adminDisclosure summary {
+  cursor: pointer;
+  padding: var(--ossie-space-4) var(--ossie-space-5);
+  color: var(--ossie-color-text);
+  font-weight: 700;
+}
+
+.adminDisclosure summary:focus-visible {
+  outline: 3px solid var(--ossie-color-focus);
+  outline-offset: -3px;
+}
+
+.adminPanel {
+  padding: 0 var(--ossie-space-5) var(--ossie-space-5);
 }
 
 .stageHeader {
@@ -74,5 +97,9 @@
   .stageHeader {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .adminPanel {
+    padding-inline: var(--ossie-space-4);
   }
 }
