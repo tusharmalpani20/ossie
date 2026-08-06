@@ -1,18 +1,55 @@
 .field {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+  display: grid;
+  gap: var(--ossie-space-1);
+  min-width: min(100%, 14rem);
+  color: var(--ossie-color-text);
+  font-size: 13px;
+  font-weight: 700;
 }
+
+.field span {
+  color: var(--ossie-color-muted);
+  font-size: var(--ossie-font-size-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .field select {
-  min-height: 2.25rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.5rem;
-  background: white;
-  padding: 0.35rem 0.65rem;
-  color: #0f172a;
+  min-height: 40px;
+  max-width: 100%;
+  border: 1px solid var(--ossie-color-border-strong);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface);
+  padding: 0 var(--ossie-space-3);
+  color: var(--ossie-color-text);
+  font-weight: 650;
 }
+
+.field select:focus-visible {
+  outline: 3px solid var(--ossie-color-focus);
+  outline-offset: 2px;
+}
+
 .label {
-  font-size: 0.875rem;
-  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--ossie-space-3);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface-subtle);
+  color: var(--ossie-color-text);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  .field {
+    width: 100%;
+  }
+
+  .field select {
+    width: 100%;
+  }
 }

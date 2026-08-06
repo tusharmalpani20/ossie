@@ -12,13 +12,14 @@ export const PublicVersionSelector = ({
   if (entries.length === 1)
     return (
       <span className={styles.label}>
-        Version: {entries[0]!.project_version_name}
+        Project Version: {entries[0]!.project_version_name}
       </span>
     );
   return (
     <label className={styles.field}>
-      <span>Version</span>
+      <span>Project Version</span>
       <select
+        aria-label="Public Project Version"
         value={response.selected_entry.project_version_slug}
         onChange={(event) => {
           const entry = entries.find(
