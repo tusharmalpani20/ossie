@@ -82,6 +82,50 @@ describe("DocumentationTiptapProseField", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it("preserves the caret when external metadata updates the prose node", async () => {
+    const onChange = vi.fn();
+    const initial = {
+      id: "heading-caret",
+      kind: "heading" as const,
+      level: 2 as const,
+      position: 1,
+      expected_version: 1,
+      text: "Keep this caret",
+    };
+    const { rerender } = render(
+      <DocumentationTiptapProseField
+        block={initial}
+        readOnly={false}
+        ariaLabel="Caret heading"
+        onChange={onChange}
+      />,
+    );
+    const field = await screen.findByRole("textbox", { name: "Caret heading" });
+    const textNode = field.querySelector("h2")?.firstChild;
+    expect(textNode).toBeInstanceOf(Text);
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.setStart(textNode!, 5);
+    range.collapse(true);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    rerender(
+      <DocumentationTiptapProseField
+        block={{ ...initial, level: 3, expected_version: 2 }}
+        readOnly={false}
+        ariaLabel="Caret heading"
+        onChange={onChange}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(field.querySelector("h2")).toHaveAttribute("level", "3"),
+    );
+    expect(window.getSelection()?.anchorOffset).toBe(5);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("syncs externally updated callout metadata without emitting during sync", async () => {
     const onChange = vi.fn();
     const initial = {

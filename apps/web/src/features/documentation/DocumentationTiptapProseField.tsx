@@ -196,9 +196,68 @@ export const DocumentationTiptapProseField = ({
           currentSignature === previousSignature) ||
         (currentSignature === incomingSignature && metadataChanged)
       ) {
+        let selection: { from: number; to: number } | null = null;
+        let preserveNativeSelection = false;
+        if (currentSignature === incomingSignature && metadataChanged) {
+          selection = {
+            from: editor.state.selection.from,
+            to: editor.state.selection.to,
+          };
+          const nativeSelection = editor.view.dom.ownerDocument.getSelection();
+          const nativeRange = nativeSelection?.rangeCount
+            ? nativeSelection.getRangeAt(0)
+            : null;
+          if (
+            nativeRange &&
+            editor.view.dom.contains(nativeRange.startContainer) &&
+            editor.view.dom.contains(nativeRange.endContainer)
+          ) {
+            try {
+              preserveNativeSelection = true;
+              selection = {
+                from: editor.view.posAtDOM(
+                  nativeRange.startContainer,
+                  nativeRange.startOffset,
+                ),
+                to: editor.view.posAtDOM(
+                  nativeRange.endContainer,
+                  nativeRange.endOffset,
+                ),
+              };
+            } catch {
+              // Keep the editor selection if the browser range is stale.
+            }
+          }
+        }
         editor.commands.setContent(documentationBlocksToTiptapProse([block]), {
           emitUpdate: false,
         });
+        if (selection && editor.state.doc.content.size > 0) {
+          const maxPosition = editor.state.doc.content.size;
+          const clampPosition = (position: number) =>
+            Math.max(1, Math.min(position, maxPosition));
+          const from = clampPosition(selection.from);
+          const to = clampPosition(selection.to);
+          editor.commands.setTextSelection({
+            from: Math.min(from, to),
+            to: Math.max(from, to),
+          });
+          if (preserveNativeSelection) {
+            try {
+              const start = editor.view.domAtPos(Math.min(from, to));
+              const end = editor.view.domAtPos(Math.max(from, to));
+              const range = editor.view.dom.ownerDocument.createRange();
+              range.setStart(start.node, start.offset);
+              range.setEnd(end.node, end.offset);
+              const nativeSelection =
+                editor.view.dom.ownerDocument.getSelection();
+              nativeSelection?.removeAllRanges();
+              nativeSelection?.addRange(range);
+            } catch {
+              // Keep the editor selection if the browser range is stale.
+            }
+          }
+        }
         sourceRef.current = [block];
       } else if (currentSignature === incomingSignature) {
         sourceRef.current = [block];
