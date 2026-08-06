@@ -21,6 +21,7 @@ were committed.
 
 - agent-browser `0.33.1`;
 - headless Chrome for Testing `151.0.7922.47`;
+- Playwright `1.62.1` with Firefox `153.0` and WebKit `26.5`;
 - Web `http://127.0.0.1:3000` and API `http://127.0.0.1:3002`;
 - axe-core `4.12.1`.
 
@@ -41,6 +42,12 @@ again.` without a page error or unhandled browser error. Removing the abort
 - `agent-browser errors` was empty. Console output contained only Vite/React
   development informational messages.
 
+The same public-reader title/navigation/search smoke passed in Firefox 153.0
+and WebKit 26.5. Both had no page errors or failed requests. Firefox reported
+the Vite/Zod development CSP `unsafe-eval` warning; WebKit reported the
+standard meta `frame-ancestors` warning. These development warnings were
+recorded, not suppressed or reclassified as clean console output.
+
 ## Authoring and boundary evidence
 
 - The authenticated synthetic Page editor mounted the Tiptap prose field with
@@ -58,6 +65,8 @@ again.` without a page error or unhandled browser error. Removing the abort
 
 ## Evidence limits
 
-Firefox, WebKit, and an installed screen reader were unavailable. Go/gofmt was
+This is bounded public-reader coverage, not a full Firefox/WebKit surface
+matrix. No installed screen reader was available, so no interactive
+screen-reader validation or human contrast approval is claimed. Go/gofmt was
 also unavailable, so no Go parser result is claimed. These limitations do not
 cover the focused TypeScript/domain/server tests or the Chromium checks above.

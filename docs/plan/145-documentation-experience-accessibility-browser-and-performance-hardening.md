@@ -5,7 +5,8 @@ Date reserved: 2026-07-31
 Last implementation-readiness audit: 2026-08-05
 
 Status: Complete — integrated hardening reverified on 2026-08-06 after the
-scoped repairs in `4536268`, `e13d7ca`, `599e031`, `bf84791`, and `1e3bc40`.
+scoped repairs in `4536268`, `e13d7ca`, `599e031`, `bf84791`, `1e3bc40`,
+`4fe5792`, and `41d85a4`.
 
 Reopen finding: prior evidence remains historical and is not being treated as
 proof of the repaired paths. This child owns the rerun of Chromium, a11y,
@@ -530,14 +531,26 @@ exact paths and preserve unrelated work.
   existing fast-uri high, PostCSS moderate, and Babel low findings; no new
   direct dependency was added.
 - The authenticated editor route still has the previously known draft input
-  contrast manual-review incompletes. Firefox/WebKit, screen reader, and
-  Go/gofmt remain truthful capability limits.
+  contrast manual-review incompletes. Public reader smoke also passed in
+  Firefox 153.0 and WebKit 26.5; full cross-browser surface coverage, screen
+  reader, and Go/gofmt validation remain unclaimed.
+
+### 2026-08-06 — final Master 007 finding recheck
+
+- Header count/byte limits now run after generated `Content-Type`; exact
+  boundary and overflow tests are covered by `4fe5792`.
+- The public reader metadata/title test now waits explicitly for its title
+  effect in `41d85a4`.
+- Firefox/WebKit public-reader smoke passed with no page errors or failed
+  requests. Firefox logged Vite/Zod CSP `unsafe-eval` development warnings;
+  WebKit logged the standard meta `frame-ancestors` warning. Neither warning
+  was treated as a product pass or hidden.
 
 ## 21. Verification Record
 
 ### Automated
 
-- `pnpm --filter @repo/documentation-domain test`: 20 files / 55 tests passed.
+- `pnpm --filter @repo/documentation-domain test`: 20 files / 60 tests passed.
 - Documentation server focused tests: 5 files / 39 tests passed.
 - `pnpm --filter web test -- --reporter=verbose`: 91 files / 469 tests passed.
 - Web and Documentation-domain check-types/lint passed; Documentation-domain
@@ -567,18 +580,21 @@ exact paths and preserve unrelated work.
   Extension, empty Guide/Demo lists, and missing public/embed Guide/Demo
   states. The Extension axe contrast violation is explicitly not claimed as a
   Documentation pass and is maintenance/QA-owned.
-- Firefox/WebKit bounded attempts failed because agent-browser `0.33.1` only
-  supports Chrome/Lightpanda here and no Firefox/WebKit binary is installed.
-  No screen-reader stack was installed; no AT pass is claimed.
+- Playwright Firefox 153.0 and WebKit 26.5 public-reader smoke passed for
+  title, grouped navigation, adjacent link, search result, console/page-error,
+  and failed-request checks. This is bounded reader coverage, not a full
+  surface matrix.
+- No screen-reader stack was installed; no AT pass is claimed.
 
 ## 22. Leftovers And Handoff
 
 No user-input blocker exists. No in-scope S1/S2 remains. Every leftover is
 classified below:
 
-- **Master `007` complete limitation — maintenance/QA owner:** Firefox,
-  WebKit, and real screen-reader coverage; reopen on an environment with the
-  relevant engine or AT installed.
+- **Master `007` complete limitation — maintenance/QA owner:** broader
+  Firefox/WebKit surface coverage and real screen-reader coverage; bounded
+  public-reader Firefox/WebKit smoke passed, but no full cross-browser or AT
+  pass is claimed.
 - **Master `007` complete limitation — maintenance/QA owner:** Go/gofmt parser
   coverage; reopen when Go tooling is available.
 - **Master `007` complete limitation — evidence owner:** the draft editor’s

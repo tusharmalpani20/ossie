@@ -100,11 +100,13 @@ tests” entry without exact test/evidence reference.
 | finding                                                                                                                        | owning child | implementation/test scope                                                                                                                            | evidence                                                                                                              | result                                                                                           | fix commit           |
 | ------------------------------------------------------------------------------------------------------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------- |
 | Schema-less, undeclared, nested, array, and mixed-case sensitive values could survive descriptor admission or generated output | 144, 145     | Shared sensitive-name policy; Try-It descriptor sanitizer; all-language request-example boundary; parser and Documentation DB/publication assertions | Domain policy suite; OpenAPI parser suite; Documentation DB integration; public browser snapshot contains no sentinel | Fixed before descriptor persistence/freeze/public projection; non-sensitive values remain intact | `4536268`, `2be1dcf` |
-| Tiptap retained stale parent metadata/Row-Version identity after a save and refresh                                            | 142, 145     | Controlled prose-field synchronization; sequential Page save and metadata/read-only/local-work tests                                                 | Tiptap field/Page editor focused tests; authenticated synthetic editor mount                                          | Fixed without spurious `onChange`, caret movement, or loss of conflicting local prose             | `e13d7ca`, `1e3bc40` |
+| Tiptap retained stale parent metadata/Row-Version identity after a save and refresh                                            | 142, 145     | Controlled prose-field synchronization; sequential Page save and metadata/read-only/local-work tests                                                 | Tiptap field/Page editor focused tests; authenticated synthetic editor mount                                          | Fixed without spurious `onChange`, caret movement, or loss of conflicting local prose            | `e13d7ca`, `1e3bc40` |
 | Curl continuations contained literal plus signs; bodyless Go imported `bytes`; optional undocumented params were fabricated    | 144, 145     | Generator context omission, curl join, conditional Go imports, required/sensitive/false/zero/array fixtures                                          | Domain request-example suite; shell/JS/Python checks where available; Go tooling limitation recorded                  | Fixed; outputs remain inert and deterministic                                                    | `4536268`            |
 | Authorized grouped reader navigation was flattened and native/Fumadocs projections could diverge                               | 143, 145     | Web snapshot typing; deterministic tree projection; orphan/cycle/duplicate/invalid-position filtering; grouped fixture                               | Adapter/UI suites; seeded public reader; axe/reflow/browser evidence                                                  | Fixed from one authorized tree; malformed nodes fail closed                                      | `599e031`, `bf84791` |
 | Required previous/next reader links were absent                                                                                | 143, 145     | Adjacent-page derivation and accessible canonical links in native/Fumadocs paths                                                                     | Adapter/UI suites; seeded `Next: API reference` browser evidence                                                      | Fixed from authorized ordered navigation, skipping groups and unavailable pages                  | `599e031`            |
 | Public search failure escaped as an unhandled rejection                                                                        | 143, 145     | Error/live state, retry behavior, request sequencing, whitespace/overlap tests                                                                       | Reader suite; intercepted browser failure/retry and keyboard search                                                   | Fixed; latest request wins and prior results are preserved on failure                            | `599e031`            |
+| Generated header count/byte limits ran before body-derived `Content-Type` was added                                            | 144, 145     | Post-body header admission; exact count/UTF-8 byte boundary and overflow fixtures                                                                    | Domain request-example suite; full domain/web/server/database verification                                            | Fixed; limits apply to the complete generated header set                                         | `4fe5792`            |
+| Public reader title assertion raced the snapshot metadata effect                                                               | 143, 145     | Explicit effect-aware `waitFor` around `document.title`                                                                                              | Public reader focused suite; Firefox/WebKit public-reader smoke                                                       | Fixed as test timing stabilization; no runtime metadata semantics changed                        | `41d85a4`            |
 
 ## 4. Full Implementation Reconciliation
 
@@ -554,8 +556,9 @@ Only then set this child and Master `007` to Complete.
 - Reopened the ledger after confirming the prior closeout overstated runtime
   truth. The six finding classes were reproduced and repaired in commits
   `4536268`, `599e031`, `e13d7ca`, `bf84791`, and `2be1dcf`.
-- Current verification is materially different from the prior record: full
-  web is 92 files/478 tests, domain is 20 files/58 tests, focused parser and
+- At this reopened-audit checkpoint, verification was materially different from
+  the prior record: full web was 92 files/478 tests, domain was 20 files/58
+  tests, focused parser and
   Documentation DB integration tests pass, grouped browser evidence is stored
   at `docs/ui/2026-08-06-documentation-post-v1-repair-browser-evidence.md`, and
   the Master/children remain open pending final ledger and closeout edits.
@@ -564,7 +567,7 @@ Only then set this child and Master `007` to Complete.
 
 - Full web verification passed 92 files/479 tests; full non-DB server
   verification passed 127 files/553 tests; Documentation domain verification
-  passed 20 files/58 tests; focused parser/fixture and Documentation DB
+  passed 20 files/60 tests; focused parser/fixture and Documentation DB
   integration tests passed; root check-types, lint, web build, frozen install,
   and web license checks passed.
 - Chromium evidence passed grouped navigation, adjacent links, keyboard
@@ -573,7 +576,7 @@ Only then set this child and Master `007` to Complete.
   screen-reader, Go/gofmt, and editor contrast manual-review limits remain
   explicitly classified.
 - Final commit map includes the scoped repairs `4536268`, `599e031`,
-  `e13d7ca`, `1e3bc40`, `bf84791`, and `2be1dcf`; no migration, persistence authority,
+  `e13d7ca`, `1e3bc40`, `bf84791`, `2be1dcf`, `4fe5792`, and `41d85a4`; no migration, persistence authority,
   public access rule, retention/deletion rule, or dependency decision changed.
 - Child `146` and Master `007` are complete. No user-input blocker or
   unresolved in-scope S1/S2 remains.
@@ -593,15 +596,29 @@ Only then set this child and Master `007` to Complete.
   permission, public-access, migration, retention, or deletion semantics
   changed.
 
+### 2026-08-06 — final header/title finding recheck
+
+- The generated-header count/byte repair and title-effect test stabilization
+  are closed in `4fe5792` and `41d85a4`; both focused suites are green.
+- Final verification passed: web 92 files/479 tests, server 127 files/553
+  tests, domain 20 files/60 tests, Documentation DB integration 11 tests,
+  root type-check 13 tasks, lint 14 tasks/0 errors, production build, and
+  frozen install.
+- Public-reader title/navigation/search smoke passed in Chromium, Firefox
+  153.0, and WebKit 26.5. Firefox’s Vite/Zod CSP development warnings and
+  WebKit’s meta `frame-ancestors` warning are recorded; no page errors or
+  failed requests occurred. No screen-reader or human contrast approval is
+  claimed.
+
 ## 20. Verification Record
 
 ### Automated and repository
 
-- Child 145’s final verification remains authoritative for the integrated
-  runtime: domain 20 files / 55 tests; focused server 5 files / 39 tests; web
-  91 files / 469 tests; root check-types 13 successful tasks; root lint 14
-  successful tasks, 0 errors, 89 pre-existing server warnings; web/domain
-  type-check/lint/build passed; final web build and manifest passed.
+- Child 145’s integrated verification is superseded by the final recheck:
+  domain 20 files / 60 tests; server 127 files / 553 tests; web 92 files /
+  479 tests; root check-types 13 successful tasks; root lint 14 successful
+  tasks, 0 errors, 89 pre-existing server warnings; web/domain type-check,
+  lint, build, database integration, frozen install, and license checks passed.
 - `pnpm install --frozen-lockfile --ignore-scripts` and
   `pnpm licenses list --filter web` passed. `pnpm audit --prod` remains
   non-zero only for the recorded existing `fast-uri` high, PostCSS moderate,
@@ -645,8 +662,9 @@ Only then set this child and Master `007` to Complete.
 No user-input blocker remains. All remaining items are classified in the
 required bands:
 
-- **Master `007` complete limitations:** optional Firefox/WebKit and real AT
-  coverage (maintenance/QA owner, reopen when engines/AT are installed);
+- **Master `007` complete limitations:** broader Firefox/WebKit surface
+  coverage and real AT coverage (bounded public-reader smoke passed in all
+  three engines; no full cross-browser or screen-reader pass is claimed);
   Go/gofmt parsing (maintenance/QA owner, reopen when Go tooling is
   available); and the existing draft textarea contrast incomplete check
   (evidence owner, reopen on a concrete violation or shared editor style

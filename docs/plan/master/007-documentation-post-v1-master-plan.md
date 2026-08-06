@@ -90,6 +90,9 @@ records, evidence index, repair ledger, commit map, limitations, and handoff
 are synchronized to the complete 2026-08-06 outcome.
 The final Tiptap metadata-only sync check also preserves the active browser
 selection; its regression and fix are recorded in commit `1e3bc40`.
+Generated header count and UTF-8 byte limits are enforced after body-derived
+`Content-Type` insertion, with boundary/overflow coverage in `4fe5792`; the
+public-reader title assertion now waits for its metadata effect in `41d85a4`.
 
 ### 3.3 Accepted later, outside this master
 
@@ -897,7 +900,8 @@ The 2026-08-05 autonomous-execution re-audit then:
   Master closure state now match the shipped runtime.
 
 The 2026-08-06 independent repair audit reopened that claim and then closed
-it only after reproducing and fixing six defects:
+it after reproducing and fixing six initial defect classes plus two final
+residual findings:
 
 - descriptor and generated-output sensitive-name redaction now shares one
   deterministic policy, including schema-less and undeclared nested values;
@@ -905,18 +909,26 @@ it only after reproducing and fixing six defects:
   without discarding conflicting local prose, moving the active caret, or
   emitting sync changes;
 - request examples omit undocumented optional values, produce valid curl, and
-  conditionally import Go body helpers;
+  conditionally import Go body helpers, and enforce complete generated-header
+  count/byte limits after `Content-Type` insertion;
 - public grouped navigation preserves the authorized hierarchy and order,
   derives adjacent links, and handles search errors/retries safely;
+- the public-reader metadata/title regression waits explicitly for the title
+  effect instead of relying on render timing (`41d85a4`);
+- generated header count and UTF-8 byte limits run after body-derived
+  `Content-Type` insertion and reject exact overflow cases;
 - the seeded browser fixture, browser evidence, child plans, repair ledger,
   and commit map were updated to current truth;
 - full web/server/domain, type, lint, build, frozen-install, database, and
   Chromium verification passed, with known capability/advisory limits
   explicitly retained.
 
-The final post-closure web recheck passed 92 files/479 tests after the caret
-regression fix in `1e3bc40`; focused Page/editor tests passed 12/12, and the
-root type-check, lint, and production build remained green.
+The final post-closure web recheck passed 92 files/479 tests; server passed 127
+files/553 tests; Documentation domain passed 20 files/60 tests; Documentation
+DB integration passed 11 tests. Focused Page/editor tests passed 12/12, root
+type-check/lint/build/frozen-install checks remained green, and the bounded
+public-reader smoke passed in Chromium, Firefox 153.0, and WebKit 26.5. No
+screen-reader or human contrast approval is claimed.
 
 Planning-environment readiness on 2026-08-05 (refresh at execution):
 

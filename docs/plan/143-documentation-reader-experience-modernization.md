@@ -5,7 +5,8 @@ Date reserved: 2026-07-31
 Last implementation-readiness audit: 2026-08-05
 
 Status: Complete — Fumadocs `partial-adopt` reverified on 2026-08-06 after the
-grouped-navigation, adjacent-link, and search-failure repairs in `599e031`.
+grouped-navigation, adjacent-link, search-failure, and metadata-effect test
+repairs in `599e031`, `bf84791`, and `41d85a4`.
 
 Reopen finding: the reader now preserves authorized `parent_id`/`position`,
 builds one deterministic privacy-safe tree for native and Fumadocs views,
@@ -512,6 +513,13 @@ end-of-child commit. Stage exact paths and preserve unrelated work.
 - Repair commits: `599e031` (reader contract) and `bf84791` (grouped fixture
   and public accessibility boundary).
 
+### 2026-08-06 — metadata-effect test stabilization
+
+- Replaced the immediate `document.title` assertion with an explicit
+  `waitFor`, so the test waits for the snapshot metadata effect rather than
+  depending on incidental render timing.
+- Test-only repair commit: `41d85a4`.
+
 ## 19. Verification Record
 
 ### Automated verification
@@ -548,8 +556,14 @@ axe, accessibility tree, console/error scans, 320px/160px reflow, reduced
 motion, proof-query removal, and lazy chunk abort/recovery. Axe reported zero
 violations and the final fixture was reseeded clean.
 
-Firefox/WebKit and an installed screen reader were unavailable and are not
-claimed as passed.
+The public reader title/navigation/search smoke was additionally exercised in
+Playwright Firefox 153.0 and WebKit 26.5; both completed without page errors or
+failed requests. Full cross-browser surface coverage and screen-reader testing
+remain unclaimed.
+
+Final focused reader verification passed 6/6; the complete web suite passed 92
+files/479 tests. The Firefox CSP development warning and WebKit meta
+`frame-ancestors` warning are recorded in the shared repair evidence.
 
 ## 20. Leftovers And Handoff
 
@@ -565,6 +579,6 @@ No in-scope reader leftovers remain. Child `144` receives:
 - confirmation that generated examples must remain inert and separate from
   mutable Try-It configuration, which remains unchanged.
 
-No reader defects are disguised as Child `144` work. The audit findings and
-unavailable browser/AT engines are recorded limitations or separately owned
-maintenance, not blockers to the accepted reader branch.
+No reader defects are disguised as Child `144` work. The remaining broader
+browser/AT coverage limits are recorded separately and are not blockers to the
+accepted reader branch.

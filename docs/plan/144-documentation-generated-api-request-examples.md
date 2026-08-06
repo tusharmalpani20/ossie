@@ -5,13 +5,14 @@ Date reserved: 2026-07-31
 Last implementation-readiness audit: 2026-08-05
 
 Status: Complete — independently repaired and reverified on 2026-08-06 after
-the sensitive-redaction, curl, Go-import, and optional-parameter repairs in
-`4536268` and `2be1dcf`.
+the sensitive-redaction, curl, Go-import, optional-parameter, and final header
+limit repairs in `4536268`, `2be1dcf`, and `4fe5792`.
 
 Reopen finding: a shared deterministic sensitive-name policy now protects
 descriptor and generated-output boundaries; request examples omit optional
 undocumented values, preserve documented false/zero values, emit valid curl,
-and conditionally import Go body helpers.
+conditionally import Go body helpers, and enforce header count/byte ceilings
+after the generated `Content-Type` header is present.
 
 Selected contract: `documentation-request-example-v1` for descriptor version
 `1`, with the fixed registry order `curl`, `browser_fetch`, `node_fetch`,
@@ -672,6 +673,14 @@ end-of-child commit. Stage exact paths and preserve unrelated work.
 - Added parser, public-boundary, and all-five-language regression coverage.
   Domain 20-file/58-test, focused server, and full web suites pass.
 
+### 2026-08-06 — final generated-header limit repair
+
+- Reproduced header count and UTF-8 byte overflow that passed because the
+  safety checks ran before body-derived `Content-Type` was appended.
+- Moved both checks after body normalization and `Content-Type` insertion.
+  Added exact-boundary and overflow regressions for both count and byte limits.
+- Repair commit: `4fe5792`.
+
 ## 22. Verification Record
 
 2026-08-05:
@@ -692,6 +701,9 @@ end-of-child commit. Stage exact paths and preserve unrelated work.
   docs/ui/2026-08-05-documentation-request-examples-browser-evidence.md.
 - Independent close-recheck: no S1/S2 defect; no route, migration, wire field,
   persistence, target request, credential, or package-install behavior added.
+- Final verification: Documentation domain 20 files/60 tests, web 92 files/479
+  tests, server 127 files/553 tests, Documentation DB integration 11 tests;
+  root type-check, lint, production build, and frozen install passed.
 
 ## 23. Leftovers And Handoff
 
