@@ -18,7 +18,7 @@ describe("EntryPageShell", () => {
       "href",
       "/projects",
     );
-    expect(screen.getByRole("main")).toContainElement(
+    expect(screen.getByRole("main", { name: "Entry workspace" })).toContainElement(
       screen.getByRole("heading", { name: "Entry content" }),
     );
     expect(

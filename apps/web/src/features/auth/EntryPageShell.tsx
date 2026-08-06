@@ -22,7 +22,10 @@ export const EntryPageShell = ({
         <OssieBrand />
       </a>
     </header>
-    <main className={width === "standard" ? styles.mainStandard : styles.main}>
+    <main
+      aria-label="Entry workspace"
+      className={width === "standard" ? styles.mainStandard : styles.main}
+    >
       {children}
     </main>
   </div>

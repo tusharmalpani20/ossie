@@ -1,18 +1,23 @@
 .state {
-  padding: 24px;
+  width: 100%;
+  max-width: 680px;
+  box-sizing: border-box;
+  padding: var(--ossie-space-6);
   border: 1px solid var(--ossie-color-border);
   border-radius: var(--ossie-radius-card);
   background: var(--ossie-color-surface);
   color: var(--ossie-color-muted);
+  line-height: 1.5;
   text-align: center;
 }
 
 .card {
   width: 100%;
+  max-width: 680px;
 }
 
 .eyebrow {
-  margin-bottom: 8px;
+  margin-bottom: var(--ossie-space-2);
   color: var(--ossie-color-muted);
   font-size: 12px;
   font-weight: 700;
@@ -23,11 +28,12 @@
   margin: 0;
   color: var(--ossie-color-text);
   font-size: 28px;
-  line-height: 1.2;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .copy {
-  margin: 14px 0 0;
+  margin: var(--ossie-space-3) 0 0;
   color: var(--ossie-color-muted);
   line-height: 1.5;
 }
@@ -35,14 +41,14 @@
 .details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 20px;
+  gap: var(--ossie-space-3);
+  margin-top: var(--ossie-space-5);
 }
 
 .details div {
   display: grid;
-  gap: 4px;
-  padding: 12px;
+  gap: var(--ossie-space-1);
+  padding: var(--ossie-space-3);
   border: 1px solid var(--ossie-color-border);
   border-radius: var(--ossie-radius-card);
 }
@@ -62,13 +68,13 @@
 .form,
 .existingUser {
   display: grid;
-  gap: 14px;
-  margin-top: 20px;
+  gap: var(--ossie-space-4);
+  margin-top: var(--ossie-space-5);
 }
 
 .field {
   display: grid;
-  gap: 6px;
+  gap: var(--ossie-space-1);
   color: var(--ossie-color-text);
   font-size: 14px;
   font-weight: 700;
@@ -77,7 +83,7 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--ossie-space-2);
   align-items: center;
 }
 
@@ -85,8 +91,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
-  padding: 0 14px;
+  min-height: 40px;
+  padding: 0 var(--ossie-space-4);
   border: 1px solid var(--ossie-color-border-strong);
   border-radius: var(--ossie-radius-control);
   background: var(--ossie-color-surface);
@@ -104,7 +110,7 @@
 }
 
 .error {
-  margin-top: 16px;
+  margin-top: var(--ossie-space-4);
 }
 
 @media (max-width: 640px) {

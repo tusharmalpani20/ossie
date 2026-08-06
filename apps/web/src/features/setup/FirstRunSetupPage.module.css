@@ -2,11 +2,12 @@
   margin: 0;
   color: var(--ossie-color-text);
   font-size: 24px;
-  line-height: 1.2;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .copy {
-  margin: 0;
+  margin: var(--ossie-space-2) 0 0;
   color: var(--ossie-color-muted);
   font-size: 14px;
   line-height: 1.5;
@@ -14,14 +15,14 @@
 
 .form {
   display: grid;
-  gap: 14px;
+  gap: var(--ossie-space-4);
 }
 
 .field {
   display: grid;
-  gap: 6px;
+  gap: var(--ossie-space-1);
   color: var(--ossie-color-text);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -33,4 +34,10 @@
 
 .link:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 22px;
+  }
 }

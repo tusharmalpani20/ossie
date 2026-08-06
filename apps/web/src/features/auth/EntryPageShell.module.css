@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   min-height: 64px;
-  padding: 0 24px;
+  padding: 0 max(16px, calc((100vw - 1200px) / 2));
   border-bottom: 1px solid var(--ossie-color-border);
   background: var(--ossie-color-surface);
 }
@@ -28,7 +28,9 @@
 .mainStandard {
   display: grid;
   place-items: start center;
-  padding: 80px 24px 40px;
+  min-height: calc(100vh - 64px);
+  box-sizing: border-box;
+  padding: clamp(48px, 8vh, 88px) 24px 48px;
 }
 
 .main > *,
@@ -42,11 +44,18 @@
 
 @media (max-width: 760px) {
   .topbar {
-    padding: 12px 16px;
+    min-height: 56px;
   }
 
   .main,
   .mainStandard {
+    min-height: calc(100vh - 56px);
     padding: 40px 16px 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page {
+    scroll-behavior: auto;
   }
 }
