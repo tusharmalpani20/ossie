@@ -14,6 +14,18 @@ describe("DesignSystemReviewPage", () => {
     expect(
       screen.getByRole("heading", { name: "Design system review" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("main", { name: "Design system review workspace" }),
+    ).toBeInTheDocument();
+
+    const states = screen.getByRole("region", {
+      name: "Shared state matrix",
+    });
+    expect(within(states).getByText("Loading")).toBeInTheDocument();
+    expect(within(states).getByText("Archived / read-only")).toBeInTheDocument();
+    expect(
+      within(states).getByRole("button", { name: "Retry state" }),
+    ).toBeInTheDocument();
 
     const library = screen.getByRole("region", {
       name: "Library operations direction",

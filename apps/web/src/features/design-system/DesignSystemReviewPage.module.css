@@ -1,8 +1,8 @@
 .page {
   display: grid;
-  gap: 28px;
+  gap: var(--ossie-space-6);
   min-height: 100vh;
-  padding: 32px;
+  padding: var(--ossie-space-6);
   background: var(--ossie-color-background);
   color: var(--ossie-color-text);
   font-family: var(--ossie-font-sans);
@@ -10,7 +10,7 @@
 
 .hero {
   display: grid;
-  gap: 10px;
+  gap: var(--ossie-space-3);
   max-width: 76ch;
   min-width: 0;
 }
@@ -34,9 +34,57 @@
   overflow-wrap: anywhere;
 }
 
+.stateGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--ossie-space-3);
+}
+
+.stateCard {
+  display: grid;
+  align-content: start;
+  gap: var(--ossie-space-3);
+  min-width: 0;
+  padding: var(--ossie-space-4);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-card);
+  background: var(--ossie-color-surface);
+}
+
+.stateCardHeader {
+  display: grid;
+  align-content: start;
+  gap: var(--ossie-space-2);
+}
+
+.stateCard h3 {
+  margin: 0;
+  color: var(--ossie-color-text);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.stateCard p {
+  font-size: 0.9rem;
+}
+
+.stateActions {
+  display: grid;
+  gap: var(--ossie-space-2);
+}
+
+.stateActions [role="status"] {
+  padding: var(--ossie-space-2) var(--ossie-space-3);
+  font-size: 0.82rem;
+}
+
 .section {
   display: grid;
-  gap: 14px;
+  gap: var(--ossie-space-3);
+  min-width: 0;
+}
+
+.section > * {
   min-width: 0;
 }
 
@@ -45,17 +93,22 @@
   flex-wrap: wrap;
   align-items: end;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--ossie-space-3);
+  min-width: 0;
+}
+
+.sectionHeader > div {
   min-width: 0;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--ossie-space-2);
 }
 
 .tableWrap {
+  min-width: 0;
   overflow-x: auto;
 }
 
@@ -119,11 +172,29 @@
 
 @media (max-width: 760px) {
   .page {
-    padding: 18px;
+    padding: var(--ossie-space-4);
   }
 
   .workbench {
     grid-template-columns: 1fr;
+  }
+
+  .table {
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .table th,
+  .table td {
+    overflow-wrap: anywhere;
+  }
+
+  .sectionHeader > div {
+    flex-basis: 100%;
+  }
+
+  .stateGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -133,5 +204,11 @@
   .page *::after {
     scroll-behavior: auto !important;
     transition-duration: 0ms !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .stateGrid {
+    grid-template-columns: 1fr;
   }
 }

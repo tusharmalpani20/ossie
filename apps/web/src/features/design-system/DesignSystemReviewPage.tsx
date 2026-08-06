@@ -33,10 +33,46 @@ const artifactRows = [
   },
 ];
 
+const stateRows = [
+  {
+    title: "Loading",
+    status: "In progress",
+    description: "Keep the task frame stable while a slow request resolves.",
+    variant: "warning" as const,
+  },
+  {
+    title: "Empty",
+    status: "No records",
+    description: "Explain what belongs here and keep the next useful action close.",
+    variant: "default" as const,
+  },
+  {
+    title: "Error / retry",
+    status: "Action needed",
+    description: "Name the failure without leaking request or tenant details.",
+    variant: "destructive" as const,
+  },
+  {
+    title: "Archived / read-only",
+    status: "Read only",
+    description: "Keep content available while removing write affordances.",
+    variant: "default" as const,
+  },
+  {
+    title: "Saving / validation",
+    status: "Guarded",
+    description: "Show progress and point to the field or rule that blocks save.",
+    variant: "warning" as const,
+  },
+];
+
 /** Renders synthetic representative UI directions for child 121 review. */
 export function DesignSystemReviewPage() {
   return (
-    <main className={styles.page}>
+    <main
+      aria-label="Design system review workspace"
+      className={styles.page}
+    >
       <header className={styles.hero}>
         <Badge>Child 121</Badge>
         <h1>Design system review</h1>
@@ -45,6 +81,44 @@ export function DesignSystemReviewPage() {
           no authenticated state, no private API calls, and no customer data.
         </p>
       </header>
+
+      <section
+        aria-labelledby="state-matrix-heading"
+        className={styles.section}
+        role="region"
+      >
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2 id="state-matrix-heading">Shared state matrix</h2>
+            <p>
+              Reusable states keep loading, empty, error, read-only, and
+              validation behavior legible across product families.
+            </p>
+          </div>
+          <Button size="sm" variant="secondary" disabled>
+            Save changes
+          </Button>
+        </div>
+        <div className={styles.stateGrid}>
+          {stateRows.map((state) => (
+            <article className={styles.stateCard} key={state.title}>
+              <div className={styles.stateCardHeader}>
+                <h3>{state.title}</h3>
+                <Badge variant={state.variant}>{state.status}</Badge>
+              </div>
+              <p>{state.description}</p>
+              {state.title === "Error / retry" ? (
+                <div className={styles.stateActions}>
+                  <Alert variant="destructive">Request failed safely.</Alert>
+                  <Button size="sm" variant="secondary">
+                    Retry state
+                  </Button>
+                </div>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section
         aria-labelledby="library-direction"
@@ -62,7 +136,12 @@ export function DesignSystemReviewPage() {
           <CardHeader>
             <CardTitle>Project knowledge</CardTitle>
           </CardHeader>
-          <CardContent className={styles.tableWrap}>
+          <CardContent
+            aria-label="Scrollable artifact table"
+            className={styles.tableWrap}
+            role="region"
+            tabIndex={0}
+          >
             <table className={styles.table}>
               <thead>
                 <tr>
