@@ -426,6 +426,9 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByText("Sign in to view projects."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Projects", level: 1 }),
+    ).toBeVisible();
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/login?next=%2Fprojects%3Fview%3Drecent",

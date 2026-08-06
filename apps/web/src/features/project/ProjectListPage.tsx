@@ -220,12 +220,15 @@ export const ProjectListPage = ({
   if (state.status === "unauthenticated") {
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
-        <div className={styles.state}>
-          <div>Sign in to view projects.</div>
+        <section className={styles.state} aria-labelledby="projects-access-heading">
+          <h1 className={styles.stateTitle} id="projects-access-heading">
+            Projects
+          </h1>
+          <p className={styles.stateMessage}>Sign in to view projects.</p>
           <a className={styles.stateLink} href={signInUrl(currentPath)}>
             Sign in
           </a>
-        </div>
+        </section>
       </PortalShell>
     );
   }
