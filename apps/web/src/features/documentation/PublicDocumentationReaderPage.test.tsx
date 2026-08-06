@@ -115,7 +115,7 @@ describe("PublicDocumentationReaderPage", () => {
       "src",
       "/api/v1/public/publish-links/product-docs/documentation/assets/asset/file",
     );
-    expect(document.title).toBe("Install · Product docs");
+    await waitFor(() => expect(document.title).toBe("Install · Product docs"));
     expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute(
       "href",
       expect.stringContaining("/docs/product-docs/install"),
