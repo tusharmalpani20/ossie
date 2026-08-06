@@ -81,6 +81,17 @@ const descriptor: DocumentationTryItRequestDescriptor = {
   unsupported_reasons: [],
 };
 
+const header_parameter = (name: string, example: string) => ({
+  name,
+  location: "header" as const,
+  required: false,
+  value_type: "string" as const,
+  is_array: false,
+  explode: false,
+  sensitive: false,
+  example,
+});
+
 describe("documentation request example policy", () => {
   it("keeps the fixed registry order and generates every inert language", () => {
     expect(DOCUMENTATION_REQUEST_EXAMPLE_CONTRACT_VERSION).toBe(
@@ -296,6 +307,61 @@ describe("documentation request example policy", () => {
       expect(noHeaderCurl.code).not.toContain("--header");
       expect(noHeaderCurl.code).not.toContain("--data-raw");
     }
+  });
+
+  it("enforces the header count after adding Content-Type", () => {
+    const boundary = generate_documentation_request_example(
+      {
+        ...descriptor,
+        path: "/pets",
+        parameters: Array.from({ length: 49 }, (_, index) =>
+          header_parameter(`X-Header-${index}`, "value"),
+        ),
+        security: { bearer: false, api_key_header_names: [] },
+      },
+      "curl",
+    );
+    expect(boundary.status).toBe("generated");
+    if (boundary.status === "generated") {
+      expect(boundary.code).toContain("Content-Type: application/json");
+    }
+
+    const overflow = generate_documentation_request_example(
+      {
+        ...descriptor,
+        path: "/pets",
+        parameters: Array.from({ length: 50 }, (_, index) =>
+          header_parameter(`X-Header-${index}`, "value"),
+        ),
+        security: { bearer: false, api_key_header_names: [] },
+      },
+      "curl",
+    );
+    expect(overflow).toMatchObject({ status: "unsupported" });
+  });
+
+  it("enforces the header byte limit after adding Content-Type", () => {
+    const boundary = generate_documentation_request_example(
+      {
+        ...descriptor,
+        path: "/pets",
+        parameters: [header_parameter("X", "x".repeat(32_736))],
+        security: { bearer: false, api_key_header_names: [] },
+      },
+      "curl",
+    );
+    expect(boundary.status).toBe("generated");
+
+    const overflow = generate_documentation_request_example(
+      {
+        ...descriptor,
+        path: "/pets",
+        parameters: [header_parameter("X", "x".repeat(32_737))],
+        security: { bearer: false, api_key_header_names: [] },
+      },
+      "curl",
+    );
+    expect(overflow).toMatchObject({ status: "unsupported" });
   });
 
   it("returns bounded unsupported results instead of inventing required input", () => {

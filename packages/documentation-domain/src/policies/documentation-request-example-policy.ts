@@ -390,6 +390,10 @@ const request_context = (
     if (!safe_header_name(name)) return null;
     headers[name] = "<API_KEY>";
   }
+  const body = body_for(descriptor.request_body);
+  if (body.unsupported) return null;
+  if (body.body !== null)
+    headers["Content-Type"] = descriptor.request_body!.media_type;
   if (Object.keys(headers).length > MAX_HEADERS) return null;
   if (
     byte_length(
@@ -399,11 +403,6 @@ const request_context = (
     ) > MAX_HEADER_BYTES
   )
     return null;
-
-  const body = body_for(descriptor.request_body);
-  if (body.unsupported) return null;
-  if (body.body !== null)
-    headers["Content-Type"] = descriptor.request_body!.media_type;
   const url = `${PLACEHOLDER_ORIGIN}${path}${query.length ? `?${query.join("&")}` : ""}`;
   if (byte_length(url) > 8 * 1024) return null;
   return { url, method: descriptor.method, headers, body: body.body };
