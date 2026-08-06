@@ -596,7 +596,7 @@ export const CaptureWorkspace = ({
               </p>
             ) : null}
           </CaptureStatusPanel>
-          <div className="actions">
+          <div className="actions" role="group" aria-label="Capture actions">
             {isAutomaticCapture ? (
               <Button
                 className="secondary"
@@ -669,12 +669,14 @@ export const CaptureWorkspace = ({
           ) : null}
           {startError ? <div className="error">{startError}</div> : null}
           {finishError ? <div className="error">{finishError}</div> : null}
-          <Button
-            disabled={busy || !selectedProjectVersion}
-            onClick={() => void handleStartCapture()}
-          >
-            {starting ? "Starting..." : "Start capture"}
-          </Button>
+          <div className="actions" role="group" aria-label="Capture actions">
+            <Button
+              disabled={busy || !selectedProjectVersion}
+              onClick={() => void handleStartCapture()}
+            >
+              {starting ? "Starting..." : "Start capture"}
+            </Button>
+          </div>
         </CaptureContextPanel>
       ) : null}
 

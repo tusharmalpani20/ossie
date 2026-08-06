@@ -23,6 +23,9 @@ describe("CaptureWorkspace accessibility", () => {
     expect(await screen.findAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByLabelText("Project")).toBeInTheDocument();
     expect(screen.getByLabelText("Project Version")).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Capture actions" }),
+    ).toBeInTheDocument();
     expect(document.querySelector("[tabindex]:not([tabindex='0'])")).toBeNull();
   });
 });

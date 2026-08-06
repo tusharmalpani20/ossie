@@ -714,6 +714,61 @@ domain, permission, lifecycle, publication, or URL authority.
   evidence/review records; preserve `57226fa`, all prior candidates, ledger
   truth, and the seeded disposable fixture.
 
+### extension-capture exact surface preflight
+
+- Actual HEAD/worktree: `537b3d5` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; worktree was clean before this surface. The
+  direct-popup fixture is repository-approved synthetic evidence and the
+  installed toolbar remains a separate capability check.
+- Surface and normal entries: the extension popup root with configured,
+  signed-out, signed-in Project/Project Version selection, active automatic or
+  manual Capture, paused, recovery, completion, error, and local-clear states;
+  extension owner/editor Project access and archived/unavailable contexts.
+  The normal installed entry is the browser toolbar action, with local Vite
+  popup preview as the reproducible fallback.
+- Current request/component graph: `App` owns extension bootstrap, auth,
+  Project/Project Version loading, Capture Session lifecycle, background
+  commands, and local recovery persistence; `CaptureWorkspace` owns the popup
+  capture hierarchy and action state; `PopupShell`, `CaptureContextPanel`,
+  `CaptureStatusPanel`, and `LocalCaptureRecovery` own the popup composition;
+  server Capture Session/Event/Asset contracts and extension permissions remain
+  unchanged.
+- Baseline browser proof: repository-approved direct popup fixture at 360x600
+  active Capture measured viewport/body width 360px, popup scroll height 795px,
+  and 8 interactive controls; axe reported 0 violations and 0 incomplete
+  items, with no browser errors. Baseline file is
+  `docs/ui/147-extension-capture-before-active.png`. Existing Child 126
+  evidence covers signed-out, selection, active, 320px, and 180px direct-popup
+  states; no installed toolbar proof is claimed for this run.
+- Intended write set: capture action-group semantics, compact action-group
+  wrapping, responsive/reduced-motion popup CSS, focused accessibility test,
+  direct-popup evidence, and blind review records. No Capture Session/Event/
+  Asset, Project Version, permission, privacy, extension manifest, API, or
+  background-command contract is intended to change.
+- Explicitly out of scope: installed toolbar/permission automation unavailable
+  in this runner, server/schema/API changes, new dependencies, target-page
+  capture fixtures, and portal Capture detail composition.
+- Accepted constraints: Capture remains source-material creation governed by
+  existing Project Version and Project access; local clear explicitly does not
+  cancel or delete the server Capture Session; no customer URL, token, cookie,
+  or captured input may enter evidence.
+- Focused failing test to add first: the selection and active popup expose a
+  named `Capture actions` group containing the current Start/Capture/Finish
+  controls.
+- Browser verification: configured selection and active states, 360px,
+  320px, 180px 200%-proxy reflow, keyboard focus, reduced motion, axe,
+  console/network, local-clear confirmation, and installed-toolbar capability
+  status.
+- Reviewer A brief: inspect compact utility hierarchy, Capture context,
+  Project Version identity, action grouping, recovery affordance, narrow
+  wrapping, and popup restraint.
+- Reviewer B brief: inspect Capture Session/Event/Asset semantics, Project and
+  Project Version permissions, local/server recovery boundary, privacy,
+  keyboard/axe/zoom/motion behavior, and exact diff scope.
+- Rollback boundary: revert only the extension-capture candidate and its
+  evidence/review records; preserve `537b3d5`, prior token evidence, all
+  portal candidates, ledger truth, and the synthetic direct-popup fixture.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
