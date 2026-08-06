@@ -1408,6 +1408,57 @@ domain, permission, lifecycle, publication, or URL authority.
   records; preserve `24b2395`, the token-foundation follow-up, and all prior
   surface implementations.
 
+### shared-shell-mobile exact surface preflight
+
+- Actual HEAD/worktree before implementation: `a83f2ae` in
+  `/home/ubuntu/ossie-plan147`, branch `agent/plan-147-ui-quality`; worktree
+  was clean. This bounded follow-up targets the shared `PortalAppShell`
+  responsive navigation and will preserve all prior candidate commits.
+- Surface and normal entries: `PortalAppShell` on portal routes, with the safe
+  local `/projects` entry used for browser evidence and the existing component
+  fixture carrying Project Version/project-admin and viewer contexts. The
+  affected normal shell states are navigation, breadcrumbs, sign-out, denied
+  content, and narrow reflow; route labels and active-link semantics remain
+  unchanged.
+- Current graph: `PortalAppShell.tsx` builds links through
+  `buildPortalNavigation`, renders `PortalTopbar`, and owns the portal main
+  landmark; `PortalAppShell.module.css` changes from a desktop grid to a
+  horizontally scrollable `width: max-content` nav at `max-width: 860px`.
+  All portal pages import this shell; no child page or API adapter is in the
+  write set.
+- Baseline browser proof: local `/projects` at 1440×900 has body/document
+  width 1440 and a 199px portal nav; at 390×900 body/document width is 390 but
+  the portal nav is 837px wide, visibly truncating labels. Baseline screenshots
+  are `docs/ui/147-shared-shell-before-desktop.png` and
+  `docs/ui/147-shared-shell-before-narrow.png`. The truthful unauthenticated
+  `/projects` state has one pre-existing moderate axe heading violation; this
+  candidate does not change the route content or claim that unrelated issue is
+  fixed.
+- Intended write set: `PortalAppShell.module.css`, one focused responsive CSS
+  contract test, candidate desktop/narrow/320px browser evidence, blind review
+  reports, and Plan/ledger/bundle reconciliation. No navigation labels, route
+  ownership, authentication, permissions, Project Version, API, persistence,
+  tenant, public-link, or domain semantics may change.
+- Explicitly out of scope: PortalTopbar redesign, adding/removing portal
+  destinations, authenticated fixture seeding, installed extension-toolbar
+  verification, actual browser-zoom tooling, and unrelated page composition.
+- Accepted constraints: desktop keeps the existing two-column shell; narrow
+  navigation must wrap within the viewport with no horizontal scroll region,
+  preserve visible focus and accessible names, and remain usable at 320px. A
+  viewport/CSS zoom proxy is supplemental only because this environment does
+  not expose a browser zoom control.
+- Focused failing test to add first: a source-level responsive contract must
+  require the narrow navigation to use an intrinsic-width-safe wrapping layout
+  and must reject the current `width: max-content` overflow contract.
+- Reviewer A brief: inspect mobile navigation hierarchy, label wrapping,
+  desktop preservation, focus visibility, 320px composition, and screenshot
+  difference. Reviewer B brief: inspect route/auth/permission boundary,
+  accessible navigation semantics, keyboard order, axe/console/network truth,
+  exact CSS scope, and no changes to product destinations.
+- Rollback boundary: revert only the shared-shell candidate and its focused
+  test/evidence/review records; preserve `a83f2ae`, all prior accepted-pending-
+  human candidates, and the queued P2-002 status until final acceptance.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
