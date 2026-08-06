@@ -64,19 +64,39 @@ figure and caption while preserving its source-of-truth boundary.
 The four live undefined token consumers now resolve through the canonical
 semantic token source without changing their rendered fallback values.
 
+### Shared foundation — `9e53e20`
+
+- [Review A](./147-shared-foundation-review-a.md)
+- [Review B](./147-shared-foundation-review-b.md)
+- [Parent desktop](./147-shared-primitives-baseline-desktop.png), [candidate desktop](./147-shared-primitives-candidate-desktop.png)
+- [Parent narrow](./147-shared-primitives-baseline-narrow.png), [candidate narrow](./147-shared-primitives-candidate-narrow.png)
+
+Shared `@repo/ui` primitives now resolve equivalent defaults through semantic
+Ossie tokens. The local gallery documents command hierarchy and synthetic
+state/list/workbench/drawer/reader/access/compact-extension patterns. The
+follow-up also removes only five `.page`/`.main` CSS declaration pairs proven
+orphaned by a source-consumer audit. Both blind reviews accept pending human
+review; the gallery is synthetic/local-only and the installed toolbar remains
+blocked in this environment.
+
 ## Verification summary
 
-- Final web suite: 93 files, 496 tests passed.
+- Final web suite: 94 files, 497 tests passed.
 - Final docs suite: 4 files, 13 tests passed.
-- Affected web and docs typechecks, lint, builds, and diff checks passed.
+- Shared UI tests: 4 files, 11 tests passed; focused shared-foundation web
+  tests: 45/45.
+- Extension suite: 19 files, 140 tests passed; web and extension typechecks,
+  lint, builds, and diff checks passed.
 - Browser evidence used Chromium, local runner URLs, synthetic fixtures, and
   reduced-motion media at 1440×900 and 390×900.
-- Final closeout browser audits for the three latest surfaces report axe 0
-  violations / 0 incomplete checks, no page overflow, and keyboard paths as
-  recorded in their reviews.
-- `pnpm check-css-tokens` now passes with 127 definitions and 122 consumers;
-  the four P2-010 aliases were resolved in `59fd07f` and have follow-up
-  evidence/reviews in the ledger.
+- Final closeout browser audits for the shared-foundation parent/candidate
+  comparison report axe 0 violations / 0 incomplete checks, no page overflow,
+  reduced-motion and keyboard paths as recorded in the reviews. Earlier latest
+  surfaces retain their own evidence in the ledger.
+- `pnpm check-css-tokens` passes with 130 definitions and 123 consumers in the
+  current candidate. The four P2-010 aliases passed at 127/122 in `59fd07f`;
+  the shared-foundation candidate adds semantic token coverage and now records
+  the current 130/123 result.
 
 ## Human review decisions still required
 
@@ -85,6 +105,9 @@ semantic token source without changing their rendered fallback values.
 - Decide dispositions for remaining queued P2 issues and the broader
   shared-shell/200%-zoom follow-up; P2-010 itself is resolved pending human
   review of the candidate.
+- Review the shared-foundation parent/candidate comparison, especially the
+  command hierarchy, synthetic drawer/access/reader patterns, compact
+  extension states, and the five proven dead-CSS removals.
 - Rerun the installed extension toolbar/permission path in a capable browser
   environment before changing `extension-capture` from
   `blocked_local_for_run`.

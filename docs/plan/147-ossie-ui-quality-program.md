@@ -1926,11 +1926,11 @@ security decision for the user.
 ### 26.3 Shared foundation
 
 - [x] Establish one semantic token authority.
-- [ ] Migrate shared primitives from generic/raw values where equivalent tokens
+- [x] Migrate shared primitives from generic/raw values where equivalent tokens
       exist.
-- [ ] Identify and remove only proven dead CSS.
-- [ ] Define primary/secondary/overflow/destructive command hierarchy.
-- [ ] Define shared state, list, workbench, drawer, reader, and access patterns.
+- [x] Identify and remove only proven dead CSS.
+- [x] Define primary/secondary/overflow/destructive command hierarchy.
+- [x] Define shared state, list, workbench, drawer, reader, and access patterns.
 - [x] Expand `/__design-system` with production patterns and state matrices.
 - [x] Test portal, extension, and shared UI consumers.
 
@@ -1961,7 +1961,8 @@ security decision for the user.
 - [x] Public Documentation reader/API-reference family.
 - [x] Shared public access challenge/version-selection family.
 - [x] Extension installation portal family.
-- [ ] Extension popup/Capture/recovery/completion family.
+- [x] Extension popup/Capture/recovery/completion family; installed-toolbar
+      verification remains `blocked_local_for_run`.
 - [x] Global unsupported/Page-not-found/shell-failure family.
 - [x] Contributor/operator `apps/docs` family.
 
@@ -2114,6 +2115,22 @@ desktop/narrow axe and no-overflow evidence passed; Reviewer A and Reviewer B
 both accepted. Status: `agent_accepted_pending_human`; P2-010 is resolved and
 installed-toolbar capability remains a separate local block.
 
+2026-08-06 — `shared-foundation` — starting commit `24b2395`; first candidate
+`adef71a`; follow-up candidate `9e53e20`. Migrated the shared UI primitives to
+semantic Ossie tokens, added typed command/state/list/workbench/drawer/reader/
+access/compact-extension specimens to the local design-system gallery, and
+removed only five CSS `.page`/`.main` declaration pairs proven orphaned by a
+source-consumer audit. TDD focused UI tests passed 11/11; focused web tests
+passed 45/45; the final web suite passed 94 files / 497 tests; extension passed
+19 files / 140 tests; web and extension typechecks, lint, and builds passed;
+`pnpm check-css-tokens` passed with 130 definitions / 123 consumers; diff check
+passed. Exact parent/candidate desktop and narrow browser evidence passed with
+no overflow, reduced motion, keyboard focus, and axe 0 violations / 0
+incomplete. Reviewer A and Reviewer B both accepted. Status:
+`agent_accepted_pending_human`; the gallery remains synthetic/local-only,
+installed-toolbar verification remains `blocked_local_for_run`, and broader
+200% zoom/raw CSS review remains in section 26.6.
+
 Record future entries as:
 
 ```text
@@ -2182,14 +2199,15 @@ The following remain outside Plan `147` unless separately accepted:
 ## 32. Handoff
 
 The autonomous execution has completed all queued surface families through
-`design-system-gallery`, `global-fallback`, and `contributor-docs`; every
-qualifying surface is `agent_accepted_pending_human` unless the ledger
-explicitly records `blocked_local_for_run`. The next action is human review of
-the assembled bundle, followed by disposition and bounded implementation of
-any accepted human findings. Do not treat any accepted surface as
-human-approved; the installed-toolbar capability block, forced Documentation
-failure limitation, browser-fixture limitations, shared-shell/zoom
-limitations, and broader raw CSS cleanup stay recorded in the ledger.
+`design-system-gallery`, `global-fallback`, `contributor-docs`, and the bounded
+`shared-foundation` follow-up; every qualifying surface is
+`agent_accepted_pending_human` unless the ledger explicitly records
+`blocked_local_for_run`. The next action is human review of the assembled
+bundle, followed by disposition and bounded implementation of any accepted
+human findings. Do not treat any accepted surface as human-approved; the
+installed-toolbar capability block, forced Documentation failure limitation,
+browser-fixture limitations, shared-shell/zoom limitations, and broader raw
+CSS review stay recorded in the ledger.
 
 If a long-running execution stops, resume from the next eligible `queued` or
 `incomplete_checkpoint` surface after revalidating its preflight. Do not blindly
