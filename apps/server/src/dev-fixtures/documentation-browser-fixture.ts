@@ -258,8 +258,17 @@ export const seed_documentation_browser_fixture = async () => {
           expected_version: 1,
           nodes: [
             {
-              id: "01K13200000000000000000004",
+              id: "01K13200000000000000000008",
               parent_id: null,
+              kind: "group",
+              label: "Guides",
+              page_id: null,
+              position: 1,
+              expected_version: null,
+            },
+            {
+              id: "01K13200000000000000000004",
+              parent_id: "01K13200000000000000000008",
               kind: "page",
               label: null,
               page_id: home.id,
@@ -268,7 +277,7 @@ export const seed_documentation_browser_fixture = async () => {
             },
             {
               id: "01K13200000000000000000005",
-              parent_id: null,
+              parent_id: "01K13200000000000000000008",
               kind: "page",
               label: null,
               page_id: reference.id,

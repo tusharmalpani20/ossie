@@ -390,6 +390,11 @@ export const PublicDocumentationReaderPage = ({
           <input
             id="documentation-search"
             type="search"
+            style={{
+              backgroundColor: "#fff",
+              border: "1px solid #374151",
+              color: "#111827",
+            }}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />

@@ -149,12 +149,7 @@ describe("DB-backed Documentation repository", () => {
            size_bytes,original_name,checksum_sha256,created_by_id,updated_by_id)
          VALUES ($1,$2,'local','try-it-openapi','application/json',2,
                  'openapi.json',$3,$4,$4)`,
-        [
-          fileId,
-          scope.organization_id,
-          sourceDigest,
-          scope.actor_org_user_id,
-        ],
+        [fileId, scope.organization_id, sourceDigest, scope.actor_org_user_id],
       );
       await client.query(
         `INSERT INTO documentation_schema.openapi_source
@@ -1171,6 +1166,18 @@ describe("DB-backed Documentation repository", () => {
             get: {
               operationId: "listWidgets",
               summary: "List widgets",
+              parameters: [
+                {
+                  name: "X-Api-Key",
+                  in: "header",
+                  schema: { type: "string", example: "api-secret" },
+                },
+                {
+                  name: "Authorization",
+                  in: "header",
+                  schema: { type: "string", example: "auth-secret" },
+                },
+              ],
               responses: { "200": { description: "OK" } },
             },
           },
@@ -1205,6 +1212,8 @@ describe("DB-backed Documentation repository", () => {
         destination_key: "get-widgets-listwidgets",
       }),
     ]);
+    expect(JSON.stringify(appliedSource.json())).not.toContain("api-secret");
+    expect(JSON.stringify(appliedSource.json())).not.toContain("auth-secret");
     const comment = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/pages/${page.json().page.id}/comments`,
@@ -1383,6 +1392,8 @@ describe("DB-backed Documentation repository", () => {
     expect(JSON.stringify(publicBefore.json())).not.toContain(
       "Please clarify this installation step.",
     );
+    expect(JSON.stringify(publicBefore.json())).not.toContain("api-secret");
+    expect(JSON.stringify(publicBefore.json())).not.toContain("auth-secret");
     const passwordPublication = await app.inject({
       method: "POST",
       url: `/api/v1/projects/${scope.project_id}/versions/main/documentation-sites/${response.json().site.id}/publications`,

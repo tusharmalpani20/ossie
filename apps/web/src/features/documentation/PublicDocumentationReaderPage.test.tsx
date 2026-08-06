@@ -120,6 +120,9 @@ describe("PublicDocumentationReaderPage", () => {
       "href",
       expect.stringContaining("/docs/product-docs/install"),
     );
+    expect(screen.getByRole("searchbox")).toHaveStyle({
+      backgroundColor: "rgb(255, 255, 255)",
+    });
 
     fireEvent.change(screen.getByRole("searchbox"), {
       target: { value: "install" },
