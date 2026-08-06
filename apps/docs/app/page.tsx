@@ -40,7 +40,10 @@ export default function Home() {
             </a>
           </div>
         </div>
-        <div className={styles.heroPreview} aria-label="Current alpha evidence">
+        <figure className={styles.heroPreview}>
+          <figcaption id="hero-evidence-caption" className={styles.visuallyHidden}>
+            Current alpha evidence
+          </figcaption>
           <Image
             src={evidenceItems[0]!.src}
             alt="Project workspace showing capture, guide, and interactive demo entry points."
@@ -49,7 +52,7 @@ export default function Home() {
             loading="eager"
             priority
           />
-        </div>
+        </figure>
       </section>
 
       <section

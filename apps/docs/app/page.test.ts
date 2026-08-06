@@ -19,6 +19,11 @@ describe("docs page component", () => {
     expect(pageSource).toContain('alt="Ossie purple octopus mascot"');
   });
 
+  it("gives the hero evidence a semantic caption", () => {
+    expect(pageSource).toContain('<figure className={styles.heroPreview}');
+    expect(pageSource).toContain('className={styles.visuallyHidden}');
+  });
+
   it("does not repeat the hero evidence image in the lazy evidence grid", () => {
     expect(pageSource).toContain("evidenceItems.slice(1).map");
   });
