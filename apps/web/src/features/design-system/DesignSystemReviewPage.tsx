@@ -2,7 +2,7 @@
  * @fileoverview Dev-only design system review surface with synthetic examples.
  */
 
-import { Alert, AlertDescription, AlertTitle } from "@repo/ui/alert";
+import { Alert, AlertDescription } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
@@ -127,7 +127,9 @@ export function DesignSystemReviewPage() {
               long labels keep stable dimensions.
             </p>
             <Alert>
-              <AlertTitle>Draft is read-only</AlertTitle>
+              <h4 className="mb-1 font-semibold leading-none tracking-normal">
+                Draft is read-only
+              </h4>
               <AlertDescription>
                 Archived Project Versions keep content readable and block
                 authoring actions.

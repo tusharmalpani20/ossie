@@ -30,6 +30,12 @@ describe("DesignSystemReviewPage", () => {
     });
     expect(within(workbench).getByText("Navigator")).toBeInTheDocument();
     expect(within(workbench).getByText("Inspector")).toBeInTheDocument();
+    expect(
+      within(workbench).getByRole("heading", {
+        level: 4,
+        name: "Draft is read-only",
+      }),
+    ).toBeInTheDocument();
 
     const reader = screen.getByRole("region", {
       name: "Reader viewer direction",

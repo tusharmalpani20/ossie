@@ -12,6 +12,7 @@
   display: grid;
   gap: 10px;
   max-width: 76ch;
+  min-width: 0;
 }
 
 .hero h1,
@@ -30,11 +31,13 @@
   margin: 0;
   color: var(--ossie-color-muted);
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .section {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .sectionHeader {
@@ -43,6 +46,7 @@
   align-items: end;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
 .actions {

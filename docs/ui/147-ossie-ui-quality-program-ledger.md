@@ -2,7 +2,7 @@
 
 Date opened: 2026-08-06
 Plan: `docs/plan/147-ossie-ui-quality-program.md`
-Status: `agent_accepted_pending_human`
+Status: `in_preflight`
 
 This is the canonical mutable surface, issue, reference, decision, and
 evidence ledger for Plan 147. It contains only synthetic fixture identifiers,
@@ -125,6 +125,7 @@ review reports, final clean verification, and all required evidence.
 | `documentation-previews` | Reader/admin | draft, exact Site Revision, exact Site Publication preview; internal roles | `d638112` | `001df10` | 0 | `accept` — review A | `accept` — review B | web 482/482; UI 7/7; web typecheck/lint/build; browser desktop+narrow+anonymous; axe 0 violations | `agent_accepted_pending_human` | P2 reader-chrome and shared-shell polish remain outside this correctness candidate |
 | `documentation-public` | Reader/API reference | Publication reader/search/TOC/operation/Try It/access challenge; anonymous/member | `d638112` | — | 0 | — | — | — | `queued` | P1-004 pending |
 | `public-access` | Shared access challenge | public/restricted/password/expired/revoked/version selection; anonymous | `d638112` | — | 0 | — | — | — | `queued` | shared contract audit pending |
+| `token-foundation` | Shared pattern / design system | web `/__design-system`, authenticated portal shell, auth entry, Demo workbench/editor, Documentation library, extension popup; default/hover/focus/disabled/selected/error/read-only/reduced-motion | `d638112` | — | 0 | — | — | — | `in_review` | P1-002 candidate pending immutable commit; confirmed consumers now resolve through the shared token source |
 | `extension-installation` | Setup utility | extension check/auth/error/ready/download/update/remove | `d638112` | — | 0 | — | — | — | `queued` | extension browser capability pending |
 | `extension-capture` | Focused task utility | unconfigured/signed out/in/selection/recording/recovery/completion/error | `d638112` | — | 0 | — | — | — | `queued` | real toolbar evidence pending |
 | `design-system-gallery` | Pattern gallery | `/__design-system`; patterns and state matrix; authenticated/local | `d638112` | — | 0 | — | — | — | `queued` | current route audit pending |
@@ -144,7 +145,7 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | Finding ID | Severity | Category | Surface / route / state / viewport | Evidence | Owner | Cycle | Disposition | Fix commit | Verification | Residual risk |
 | --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- |
 | `P1-001` | P1 | correctness / route | Documentation Publication preview | Plan audit; `routes.ts`, `portalRouteMetadata.ts`, `App.tsx`; existing authenticated `GET .../publications` plus immutable `GET .../revisions/:revision_number` contract | implementer | 0 | accepted_pending_human | `001df10` | route + component tests green; authenticated and anonymous browser paths verified; both reviews accept | no new server/public route; exact Publication identity and its named Revision remain coupled |
-| `P1-002` | P1 | token system | Demo/auth/Documentation live CSS | Plan audit; undefined token inventory | implementer | 0 | open | — | definition/consumer inventory required | token blast radius unverified |
+| `P1-002` | P1 | token system | Demo/auth/Documentation live CSS | Plan audit; undefined token inventory; current CSS consumer/definition inventory | implementer | 0 | in_review | candidate pending commit | `check-css-tokens` passes; affected tests/builds and browser token/a11y evidence pass | narrow gallery axe has one incomplete contrast check caused by partially obscured horizontal table text; no violations |
 | `P1-003` | P1 | composition / architecture | Documentation authoring 390px | Plan audit; mega-form evidence | implementer | 0 | open | — | browser route/state evidence required | capability ownership unverified |
 | `P1-004` | P1 | reader composition | public Documentation reader 390px | Plan audit; committed reader evidence | implementer | 0 | open | — | browser reader matrix required | public UX remains unfinished |
 | `P1-005` | P1 | workbench hierarchy / interaction | Interactive Demo editor | Plan audit; stage/navigator/inspector evidence | implementer | 0 | open | — | keyboard/direct-manipulation evidence required | resize alternative unverified |
@@ -179,14 +180,59 @@ domain, permission, lifecycle, publication, or URL authority.
 | `documentation-previews` | authenticated Publication 1 / desktop 1280px | synthetic Plan 125 fixture; Publication 1 → Revision 1 | agent-browser / Chromium; runner API 3022/web 3020 | route previously fell to generic portal fallback | implementation renders exact Publication/Revision identity and frozen pages; `docs/ui/147-publication-preview-after.png` | no | keyboard Tab reached Projects; reduced-motion media set; narrow overflow check `scrollWidth=clientWidth` | browser errors empty; authenticated calls succeeded; no failed requests observed | internal preview stays authenticated and does not use public link URL | `001df10` / 2026-08-06 |
 | `documentation-previews` | authenticated Publication 1 / narrow 390×844 | synthetic Plan 125 fixture; Publication 1 → Revision 1 | agent-browser / Chromium | route previously fell to generic portal fallback | content and identity remain present at narrow width; `docs/ui/147-publication-preview-narrow.png`; page scroll width equals viewport width | no | reduced-motion media set; keyboard path exercised | no browser errors recorded | portal navigation remains a shared shell concern outside P1-001 | `001df10` / 2026-08-06 |
 | `documentation-previews` | anonymous internal Publication 1 | same synthetic local route | separate agent-browser session | no internal route branch | explicit `Sign in to view this Project Version.` gate | no | not applicable | no browser errors recorded | internal route did not leak Publication metadata to anonymous user | `001df10` / 2026-08-06 |
+| `token-foundation` | authenticated `/__design-system` / desktop 1280px | synthetic design-system gallery; no auth data or customer content | agent-browser / Chromium; runner web 3020 | partial duplicated tokens and undefined consumers | shared computed tokens resolve (`space2=8px`, `background=#f7f8fb`, border alias resolves); axe 0 violations / 36 passes; `docs/ui/147-token-foundation-desktop.png` | no | keyboard reached New capture; reduced-motion enabled for final pass | browser errors empty; console only Vite/React development notices and a transient runner reconnect during HMR | no visual baseline approved; gallery remains a synthetic pattern surface | candidate pending / 2026-08-06 |
+| `token-foundation` | authenticated `/__design-system` / narrow 390×844 | same synthetic design-system gallery | agent-browser / Chromium | long copy clipped in narrow gallery and one h5 heading skipped level | heading is h4; descriptive copy intrinsic width is 354px; document width equals viewport; axe 0 violations / 37 passes; `docs/ui/147-token-foundation-narrow.png` | no | reduced-motion enabled; keyboard path exercised; axe incomplete contrast check is limited to text partially obscured by intentional horizontal table scroll | browser errors empty; no failed requests after runner restart | table remains an intentional horizontal-scroll pattern at narrow width | candidate pending / 2026-08-06 |
+| `token-foundation` | extension popup root / 360px normal | deterministic unconfigured extension state; no credentials | agent-browser / Chromium served by local extension Vite 3030 | browser toolbar install unavailable in this environment | Connect instance state renders with shared token CSS; axe 0 violations / 27 passes; `docs/ui/147-token-extension.png` | no | semantic form labels; actual browser toolbar path unavailable and not claimed | browser errors empty | local Vite popup preview is evidence of app rendering, not installed-extension toolbar evidence | candidate pending / 2026-08-06 |
 
 ## Decision ledger
 
 | Decision | Recommendation / rationale | Alternatives | Scope | Status |
 | --- | --- | --- | --- | --- |
 | Browser evidence tooling | Continue with repository-approved `agent-browser`; do not add Playwright/axe without the Plan 147 dependency gate and user approval | dependency decision packet later | evidence only | accepted within plan |
-| Token authority | Use existing semantic Ossie tokens in shared UI/web/extension and map legacy consumers explicitly | new token system or silent raw values | shared styling | pending implementation preflight |
+| Token authority | Designate `packages/ui/src/tokens.css` as the canonical semantic Ossie token source; web and extension import it, while legacy generic names become explicit aliases | duplicate app-local definitions or silent raw values | shared styling | accepted within Plan 147 scope; implementation pending |
 | Database | Reset only local `ossie_test` via guarded testing commands and seed existing deterministic fixtures | a new Plan 147 namespace if existing fixture coverage is insufficient | local verification | pending command evidence |
+
+### P1-002 exact surface preflight
+
+- Actual HEAD/worktree: `c0d4577` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; worktree clean before this surface.
+- Surface and normal entries: `/__design-system`, authenticated portal/auth
+  shell, Interactive Demo workbench/editor, Documentation Site library, and
+  the extension popup. Roles/states include anonymous entry, authenticated
+  member roles, default/hover/focus/disabled/selected/error/read-only, and
+  reduced motion.
+- Current graph: `apps/web/src/index.css` and `apps/extension/src/index.css`
+  define partial duplicated Ossie tokens; 58 CSS files consume them. Confirmed
+  undefined live names are the Plan 147 P1-002 list (`ossie-space-*`, missing
+  radii/colors/font size, and generic border/background aliases).
+- Intended write set: `packages/ui/src/tokens.css`, its package export, web and
+  extension root CSS imports/removal of duplicated definitions, confirmed
+  generic-consumer aliases, repository token-check script and package command,
+  focused token-check test, and token evidence/review records. A bounded
+  design-system heading-level and narrow intrinsic-width repair was added after
+  browser evidence exposed an existing gallery-only accessibility/reflow issue.
+- Explicitly out of scope: visual redesign, changing domain/permission/tenant
+  behavior, server/schema/API/migrations, dependency installation, broad raw
+  color cleanup, docs contributor-app tokens, and any change to extension
+  permissions or popup behavior.
+- Accepted constraints: Quiet Versioned Workbench tokens from `PRODUCT.md` and
+  `DESIGN.md`; focus/contrast/reduced-motion behavior must remain intact; no
+  undefined fallback is allowed to become a new semantic value without an
+  explicit design mapping.
+- Focused failing command: `node scripts/check-css-tokens.mjs`; expected to
+  fail on the confirmed P1-002 names before token mapping.
+- Browser evidence: authenticated `/__design-system` and representative
+  portal/Demo/Documentation routes at 1440×900, 390×844, keyboard focus, and
+  reduced-motion; extension normal popup route where the local capability is
+  available. No new dependency or schema/API gate is required.
+- Reviewer A brief: inspect token-driven hierarchy, focus visibility, spacing,
+  radii, contrast, density, responsive composition, and whether the mapping
+  preserves Quiet Versioned Workbench intent.
+- Reviewer B brief: inspect CSS scope, token definition/consumer completeness,
+  browser states, accessibility audit, extension/portal parity, no permission
+  or public-link regression, and exact diff boundary.
+- Rollback boundary: revert the token candidate commit; preserve c0d4577 and
+  the accepted Publication preview candidate.
 
 ## Checkpoints
 
