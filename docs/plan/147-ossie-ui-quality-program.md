@@ -1908,16 +1908,16 @@ security decision for the user.
       `docs/ui/147-ossie-ui-quality-program-ledger.md`.
 - [x] Reconcile all section 8 current-truth drift.
 - [x] Build the route/surface/state ledger with exact route strings and roles.
-- [ ] Classify existing `docs/ui/` screenshots and reports.
-- [ ] Create/revalidate the external reference ledger.
-- [ ] Record baseline visual scores and issue IDs.
+- [x] Classify existing `docs/ui/` screenshots and reports.
+- [x] Create/revalidate the external reference ledger.
+- [x] Record baseline visual scores and issue IDs.
 
 ### 26.2 Blocking repairs
 
 - [x] Add failing coverage for Documentation Publication preview routing.
 - [x] Implement and browser-verify the accepted immutable Publication preview.
 - [x] Inventory all custom-property definitions and live consumers.
-- [x] Resolve confirmed undefined live variables through accepted semantic
+- [ ] Resolve confirmed undefined live variables through accepted semantic
       tokens.
 - [x] Add a repository check for newly undefined Ossie variables.
 - [x] Recheck focus, contrast, spacing, radii, and Demo interaction after token
@@ -1925,40 +1925,40 @@ security decision for the user.
 
 ### 26.3 Shared foundation
 
-- [ ] Establish one semantic token authority.
+- [x] Establish one semantic token authority.
 - [ ] Migrate shared primitives from generic/raw values where equivalent tokens
       exist.
 - [ ] Identify and remove only proven dead CSS.
 - [ ] Define primary/secondary/overflow/destructive command hierarchy.
 - [ ] Define shared state, list, workbench, drawer, reader, and access patterns.
 - [x] Expand `/__design-system` with production patterns and state matrices.
-- [ ] Test portal, extension, and shared UI consumers.
+- [x] Test portal, extension, and shared UI consumers.
 
 ### 26.4 Representative pilots
 
 - [ ] Projects library pilot completes both reviews.
-- [ ] Interactive Demo workbench pilot completes both reviews.
-- [ ] Public Product Documentation reader pilot completes both reviews.
-- [ ] Documentation administration pilot completes both reviews.
-- [ ] Active extension Capture pilot completes both reviews.
-- [ ] Consolidate approved pilot patterns before family rollout.
+- [x] Interactive Demo workbench pilot completes both reviews.
+- [x] Public Product Documentation reader pilot completes both reviews.
+- [x] Documentation administration pilot completes both reviews.
+- [x] Active extension Capture pilot completes both reviews; installed-toolbar verification remains blocked locally.
+- [x] Consolidate approved pilot patterns before family rollout.
 
 ### 26.5 Surface-family rollout
 
 - [x] Entry/setup/login/invite family.
-- [ ] Organization members/invites/operations/compliance family.
-- [ ] Projects/Project workspace family.
-- [ ] Project Version/settings/activity/Carry Forward family.
-- [ ] Capture library/detail/recovery family.
-- [ ] Guide library/editor/preview/history/publishing family.
-- [ ] Public Guide reader/embed family.
-- [ ] Demo library/editor/preview/history/publishing family.
-- [ ] Public Demo viewer/embed family.
-- [ ] Documentation Site library/operations family.
-- [ ] Documentation Site/Page authoring family.
-- [ ] Documentation review/assets/snippets/OpenAPI/portability family.
-- [ ] Documentation draft/Revision/Publication preview family.
-- [ ] Public Documentation reader/API-reference family.
+- [x] Organization members/invites/operations/compliance family.
+- [x] Projects/Project workspace family.
+- [x] Project Version/settings/activity/Carry Forward family.
+- [x] Capture library/detail/recovery family.
+- [x] Guide library/editor/preview/history/publishing family.
+- [x] Public Guide reader/embed family.
+- [x] Demo library/editor/preview/history/publishing family.
+- [x] Public Demo viewer/embed family.
+- [x] Documentation Site library/operations family.
+- [x] Documentation Site/Page authoring family.
+- [x] Documentation review/assets/snippets/OpenAPI/portability family.
+- [x] Documentation draft/Revision/Publication preview family.
+- [x] Public Documentation reader/API-reference family.
 - [x] Shared public access challenge/version-selection family.
 - [x] Extension installation portal family.
 - [ ] Extension popup/Capture/recovery/completion family.
@@ -1978,7 +1978,7 @@ security decision for the user.
 - [x] Reconcile plan, current-truth docs, evidence, commits, limitations, and
       handoff.
 - [x] Assemble final human review bundle.
-- [ ] Keep final status `agent_accepted_pending_human` until user review.
+- [x] Keep final status `agent_accepted_pending_human` until user review.
 
 ### 26.7 Human feedback and final closeout
 
@@ -2169,12 +2169,12 @@ The following remain outside Plan `147` unless separately accepted:
 
 ## 32. Handoff
 
-The current execution has completed all queued surface families through
+The autonomous execution has completed all queued surface families through
 `design-system-gallery`, `global-fallback`, and `contributor-docs`; every
 qualifying surface is `agent_accepted_pending_human` unless the ledger
-explicitly records `blocked_local_for_run`. The next work is autonomous-run
-closeout: final broad checks, second clean browser verification where capable,
-and assembly of the human review bundle. Do not treat any accepted surface as
+explicitly records `blocked_local_for_run`. The next action is human review of
+the assembled bundle, followed by disposition and bounded implementation of
+any accepted human findings. Do not treat any accepted surface as
 human-approved; the installed-toolbar capability block, forced Documentation
 failure limitation, browser-fixture limitations, shared-shell/zoom
 limitations, and P2-010 token follow-up stay recorded in the ledger.
