@@ -2147,6 +2147,19 @@ browser route retains its pre-existing missing-h1 axe finding, authenticated
 role contexts remain component-test coverage, actual browser zoom is
 unavailable, and P2-001 plus the broader 26.6 matrix remain open.
 
+2026-08-06 — `projects-denied` — starting commit `b5b7924`; preflight commit
+`9612c49`; cycle-1 candidate `3a8fad4` following `aefb9dd`. Added a semantic
+level-one `Projects` heading and labeled recovery section to the existing
+unauthenticated Project list state while preserving the sign-in sentence and
+safe `next` URL. The failing denied-state assertion passed after the change;
+Project list + shell focused tests passed 20/20; the clean full web suite passed
+95 files / 498 tests; web check-types, lint, build, token check 130/123, and
+diff check passed. Desktop/narrow browser evidence passed axe 0/0, no overflow,
+keyboard/reduced-motion, and local request/console checks. Reviewer A and
+Reviewer B both accepted. Status: `agent_accepted_pending_human`; authenticated
+owner/viewer browser fixtures, actual browser zoom, P2-001, and the broader
+26.6 matrix remain open.
+
 Record future entries as:
 
 ```text

@@ -93,12 +93,25 @@ truthful unauthenticated `/projects` state; its unrelated missing-h1 axe finding
 and the unavailable real browser-zoom control remain recorded rather than
 overstated.
 
+### Projects denied state — `3a8fad4`
+
+- [Review A](./147-projects-denied-review-a.md)
+- [Review B](./147-projects-denied-review-b.md)
+- [Before desktop](./147-projects-denied-before-desktop.png), [after desktop](./147-projects-denied-after-desktop.png)
+- [Before narrow](./147-projects-denied-before-narrow.png), [after narrow](./147-projects-denied-after-narrow.png)
+
+The unauthenticated Project list recovery card now has a semantic level-one
+`Projects` heading while preserving the existing sign-in copy and safe `next`
+URL. The state is axe-clean at desktop and narrow widths, and both blind
+reviews accept pending human review.
+
 ## Verification summary
 
 - Final web suite: 95 files, 498 tests passed.
 - Final docs suite: 4 files, 13 tests passed.
 - Shared UI tests: 4 files, 11 tests passed; focused shared-foundation web
   tests: 45/45.
+- Latest Project list + shared-shell focused tests: 20/20.
 - Extension suite: 19 files, 140 tests passed; web and extension typechecks,
   lint, builds, and diff checks passed.
 - Browser evidence used Chromium, local runner URLs, synthetic fixtures, and
@@ -125,6 +138,9 @@ overstated.
 - Review the shared-shell desktop/narrow/320px comparison and the intentional
   narrow navigation reflow; confirm the recorded `/projects` heading and zoom
   limitations are acceptable residuals.
+- Review the Projects denied-state before/after pair and confirm the heading and
+  sign-in recovery hierarchy without treating the unauthenticated route as
+  authenticated fixture evidence.
 - Rerun the installed extension toolbar/permission path in a capable browser
   environment before changing `extension-capture` from
   `blocked_local_for_run`.
