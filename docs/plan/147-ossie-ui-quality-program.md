@@ -1916,11 +1916,11 @@ security decision for the user.
 
 - [x] Add failing coverage for Documentation Publication preview routing.
 - [x] Implement and browser-verify the accepted immutable Publication preview.
-- [ ] Inventory all custom-property definitions and live consumers.
-- [ ] Resolve confirmed undefined live variables through accepted semantic
+- [x] Inventory all custom-property definitions and live consumers.
+- [x] Resolve confirmed undefined live variables through accepted semantic
       tokens.
-- [ ] Add a repository check for newly undefined Ossie variables.
-- [ ] Recheck focus, contrast, spacing, radii, and Demo interaction after token
+- [x] Add a repository check for newly undefined Ossie variables.
+- [x] Recheck focus, contrast, spacing, radii, and Demo interaction after token
       repair.
 
 ### 26.3 Shared foundation
