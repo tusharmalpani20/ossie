@@ -121,7 +121,7 @@ review reports, final clean verification, and all required evidence.
 | `demos-internal` | Library/direct-manipulation workbench | Demo library/editor/scenes/hotspots/preview/Revisions/publishing | `d638112` | — | 0 | — | — | — | `queued` | route/state expansion pending |
 | `demos-public` | Viewer/embed | valid/password/restricted/revoked/expired/unknown/embed; anonymous | `d638112` | — | 0 | — | — | — | `queued` | route/state expansion pending |
 | `documentation-admin` | Library/workbench/admin | Site library/operations/review/assets/snippets/OpenAPI/portability/publishing | `d638112` | — | 0 | — | — | — | `queued` | P1-003 pending |
-| `documentation-authoring` | Authoring workbench | Site/Page draft authoring, comments, conflict, read-only, archived, validation | `d638112` | — | 0 | — | — | — | `queued` | P1-003 pending |
+| `documentation-authoring` | Authoring workbench | Site/Page draft authoring, comments, conflict, read-only, archived, validation | `d638112` | — | 0 | — | — | — | `in_preflight` | P1-003 exact route/state preflight recorded |
 | `documentation-previews` | Reader/admin | draft, exact Site Revision, exact Site Publication preview; internal roles | `d638112` | `001df10` | 0 | `accept` — review A | `accept` — review B | web 482/482; UI 7/7; web typecheck/lint/build; browser desktop+narrow+anonymous; axe 0 violations | `agent_accepted_pending_human` | P2 reader-chrome and shared-shell polish remain outside this correctness candidate |
 | `documentation-public` | Reader/API reference | Publication reader/search/TOC/operation/Try It/access challenge; anonymous/member | `d638112` | — | 0 | — | — | — | `queued` | P1-004 pending |
 | `public-access` | Shared access challenge | public/restricted/password/expired/revoked/version selection; anonymous | `d638112` | — | 0 | — | — | — | `queued` | shared contract audit pending |
@@ -146,7 +146,7 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- |
 | `P1-001` | P1 | correctness / route | Documentation Publication preview | Plan audit; `routes.ts`, `portalRouteMetadata.ts`, `App.tsx`; existing authenticated `GET .../publications` plus immutable `GET .../revisions/:revision_number` contract | implementer | 0 | accepted_pending_human | `001df10` | route + component tests green; authenticated and anonymous browser paths verified; both reviews accept | no new server/public route; exact Publication identity and its named Revision remain coupled |
 | `P1-002` | P1 | token system | Demo/auth/Documentation live CSS | Plan audit; undefined token inventory; current CSS consumer/definition inventory | implementer | 0 | accepted_pending_human | `105fc5b` | `check-css-tokens` passes; affected tests/builds and browser token/a11y evidence pass; both reviews accept | narrow gallery axe has one incomplete contrast check caused by partially obscured horizontal table text; no violations |
-| `P1-003` | P1 | composition / architecture | Documentation authoring 390px | Plan audit; mega-form evidence | implementer | 0 | open | — | browser route/state evidence required | capability ownership unverified |
+| `P1-003` | P1 | composition / architecture | Documentation authoring 390px | Plan audit; authenticated baseline measured at 6,845 CSS px and 136 interactive controls | implementer | 0 | in_progress | — | browser route/state evidence required | capability ownership unverified |
 | `P1-004` | P1 | reader composition | public Documentation reader 390px | Plan audit; committed reader evidence | implementer | 0 | open | — | browser reader matrix required | public UX remains unfinished |
 | `P1-005` | P1 | workbench hierarchy / interaction | Interactive Demo editor | Plan audit; stage/navigator/inspector evidence | implementer | 0 | open | — | keyboard/direct-manipulation evidence required | resize alternative unverified |
 | `P1-006` | P1 | current truth | repository status/docs | Plan section 8 scan | coordinator | 0 | open | — | text scan and doc diff | stale guidance may misdirect execution |
@@ -235,6 +235,74 @@ domain, permission, lifecycle, publication, or URL authority.
   or public-link regression, and exact diff boundary.
 - Rollback boundary: revert the token candidate commit; preserve c0d4577 and
   the accepted Publication preview candidate.
+
+### P1-003 exact surface preflight
+
+- Actual HEAD/worktree: `70e1a25` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; the only current untracked files are the two
+  synthetic baseline screenshots named in the evidence ledger below.
+- Surface and normal entries: authenticated Site route
+  `/projects/:projectId/versions/:versionSlug/documentation/:siteId`, with
+  dedicated Page entry links at `/pages/:pageId`. Roles are project admin,
+  editor, and viewer; required states are populated, no Pages, loading,
+  load/retry failure, active, archived/read-only, saving/status, review,
+  conflict/validation, and long-content/narrow reflow.
+- Current request/component graph: `App.tsx` resolves project and Project
+  Version permissions; `DocumentationSiteEditorPage` loads the saved draft plus
+  Revision/Publication summaries; it currently mounts lifecycle, Page lifecycle,
+  review, structure, snippets, assets, portability, checkpoint, OpenAPI, and
+  publishing panels in one document. Existing child panels own their current
+  API calls, permission props, mutation guards, and status messages. The Page
+  route separately owns block editing, autosave conflict preservation,
+  comments, assets, metadata, and bounded prose/typed graph adapters.
+- Baseline browser proof: synthetic Plan 125 admin at 1440×900 measured
+  `scrollHeight=4743`, `scrollWidth=1440`, and 136 interactive controls; at
+  390×844 measured `scrollHeight=6845`, `scrollWidth=390`, and 136 interactive
+  controls. Narrow axe 4.12.1 reported 0 violations, 45 passes, and one
+  incomplete color-contrast probe on the existing block textarea because it was
+  partially obscured during the audit. Baseline screenshots are
+  `docs/ui/147-documentation-authoring-before.png` and
+  `docs/ui/147-documentation-authoring-before-narrow.png`; browser errors were
+  empty after the testing API was restored on the disposable database.
+- Intended write set: a Site workbench shell and CSS module; explicit Author,
+  Site settings, Review, Content, Import/export, and Publish task ownership;
+  accessible tab/task navigation with a persistent status bar; focused
+  component tests; browser evidence and blind review records. Existing child
+  panels remain the implementation authority for all operations and are moved
+  behind intentional task boundaries without changing their request contracts.
+- Explicitly out of scope: server/schema/API/migrations, relational
+  Documentation graph changes, Tiptap/Fumadocs authority, permissions or tenant
+  checks, public URLs/access challenges, immutable Revision/Publication output,
+  block IDs/comments/assets/references, Try It origin/credential policy,
+  dependency installation, and redesign of the separate Page editor route.
+- Accepted constraints: preserve Site Edition/Working Draft/Revision/Publication
+  language and immutability; viewer and archived states must not expose mutation
+  controls; status/error/validation blockers remain visible in the active task
+  and persistent workbench status bar; dedicated Page editing remains the normal
+  content canvas for Page blocks.
+- Focused failing test to add first: the Site workbench must expose the
+  Author task by default, keep Page navigation available, move lifecycle and
+  publishing controls behind named task tabs, and retain the saved-draft status
+  bar while switching tasks. The existing Site component tests will be updated
+  only where their assertions depended on all panels being simultaneously
+  mounted.
+- Browser verification: authenticated admin and viewer routes at 1440×900 and
+  390×844; active, no Pages, archived/read-only, and a failed-load injection;
+  keyboard Tab/Enter task switching; 200% zoom/reflow; reduced motion; axe;
+  console and failed-request review; Page editor smoke path to preserve the
+  dedicated canvas. Anonymous internal access remains a separate gate and is
+  not changed by this candidate.
+- Reviewer A brief: inspect hierarchy, task naming, navigator/canvas/inspector
+  ownership, density, responsive task navigation, focus/selected states,
+  persistent status treatment, and whether recurring authoring is visibly
+  distinct from administration and publication.
+- Reviewer B brief: inspect every previously mounted capability and permission
+  state, active/archived/viewer guards, loading/error/status visibility,
+  keyboard/axe/zoom/reduced-motion behavior, exact diff boundary, and absence of
+  API/domain/public-link/immutability regressions.
+- Rollback boundary: revert only the P1-003 candidate and its evidence/review
+  records; preserve `70e1a25`, the semantic-token candidate, the Publication
+  preview candidate, and the current-truth reconciliation.
 
 ## Checkpoints
 

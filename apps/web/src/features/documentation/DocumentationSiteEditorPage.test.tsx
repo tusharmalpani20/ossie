@@ -3,6 +3,61 @@ import { describe, expect, it, vi } from "vitest";
 import { DocumentationSiteEditorPage } from "./DocumentationSiteEditorPage";
 
 describe("DocumentationSiteEditorPage", () => {
+  it("separates authoring from administration while keeping the workbench status visible", async () => {
+    render(
+      <DocumentationSiteEditorPage
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canWrite
+        canPublish
+        loadPreview={async () => ({
+          preview: {
+            site: { id: "site", name: "Product docs", description: null },
+            working_draft: { id: "draft", home_page_id: "page", version: 3 },
+            pages: [
+              {
+                id: "page",
+                title: "Install",
+                canonical_path: "install",
+                version: 2,
+                blocks: [],
+              },
+            ],
+            navigation: { version: 1, nodes: [] },
+            routing: { version: 1, aliases: [], rules: [] },
+            openapi_operations: [],
+          },
+        })}
+      />,
+    );
+
+    expect(await screen.findByRole("tab", { name: "Author" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("link", { name: "Install" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Edition lifecycle" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Publish" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: "Documentation workbench status" }),
+    ).toHaveTextContent("Saved draft loaded.");
+
+    fireEvent.click(screen.getByRole("tab", { name: "Publish" }));
+    expect(
+      await screen.findByRole("heading", { name: "Publish" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: "Documentation workbench status" }),
+    ).toHaveTextContent("Saved draft loaded.");
+    fireEvent.click(screen.getByRole("tab", { name: "Author" }));
+    expect(screen.getByRole("link", { name: "Install" })).toBeInTheDocument();
+  });
+
   it("loads the saved draft, exposes page navigation, and checkpoints it", async () => {
     const createRevision = vi.fn(async () => ({
       revision: { id: "revision-1", revision_number: 1 },
@@ -41,6 +96,7 @@ describe("DocumentationSiteEditorPage", () => {
       "href",
       "/projects/project/versions/main/documentation/site/pages/page",
     );
+    fireEvent.click(screen.getByRole("tab", { name: "Publish" }));
     fireEvent.click(screen.getByRole("button", { name: "Create revision" }));
     await waitFor(() =>
       expect(createRevision).toHaveBeenCalledWith(
