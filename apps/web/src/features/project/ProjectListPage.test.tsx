@@ -100,8 +100,17 @@ describe("ProjectListPage", () => {
 
     expect(screen.getByText("Loading projects...")).toBeInTheDocument();
     expect(
-      await screen.findByRole("heading", { name: "Projects" }),
+      screen.getByRole("heading", { name: "Projects", level: 1 }),
+    ).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Loading projects...");
+    expect(
+      await screen.findByRole("heading", {
+        name: "Archived onboarding demos",
+      }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Projects", level: 1 }),
+    ).toBeVisible();
 
     const rows = screen.getAllByRole("article");
     expect(
@@ -186,7 +195,7 @@ describe("ProjectListPage", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("heading", { name: "Projects" }),
+      await screen.findByRole("region", { name: "Project library" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "New Project" }));
 
@@ -209,7 +218,7 @@ describe("ProjectListPage", () => {
     const { createProject } = renderPage();
 
     expect(
-      await screen.findByRole("heading", { name: "Projects" }),
+      await screen.findByRole("region", { name: "Project library" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "New Project" }));
     fireEvent.change(screen.getByLabelText("Project name"), {
@@ -233,7 +242,7 @@ describe("ProjectListPage", () => {
     renderPage({ createProject, navigate });
 
     expect(
-      await screen.findByRole("heading", { name: "Projects" }),
+      await screen.findByRole("region", { name: "Project library" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "New Project" }));
     fireEvent.change(screen.getByLabelText("Project name"), {
@@ -267,7 +276,7 @@ describe("ProjectListPage", () => {
     });
 
     expect(
-      await screen.findByRole("heading", { name: "Projects" }),
+      await screen.findByRole("region", { name: "Project library" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "New Project" }));
     fireEvent.change(screen.getByLabelText("Project name"), {
@@ -306,7 +315,7 @@ describe("ProjectListPage", () => {
     });
 
     expect(
-      await screen.findByRole("heading", { name: "Projects" }),
+      await screen.findByRole("region", { name: "Project library" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "New Project" }));
     fireEvent.change(screen.getByLabelText("Project name"), {
@@ -332,7 +341,7 @@ describe("ProjectListPage", () => {
     });
 
     expect(
-      await screen.findByRole("heading", { name: "Projects" }),
+      await screen.findByRole("region", { name: "Project library" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "New Project" }));
     fireEvent.change(screen.getByLabelText("Project name"), {
@@ -361,7 +370,7 @@ describe("ProjectListPage", () => {
     });
 
     expect(
-      await screen.findByRole("heading", { name: "Projects" }),
+      await screen.findByRole("region", { name: "Project library" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "New Project" }));
     fireEvent.change(screen.getByLabelText("Project name"), {
@@ -386,7 +395,7 @@ describe("ProjectListPage", () => {
     renderPage({ createProject, navigate });
 
     expect(
-      await screen.findByRole("heading", { name: "Projects" }),
+      await screen.findByRole("region", { name: "Project library" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "New Project" }));
     fireEvent.change(screen.getByLabelText("Project name"), {
@@ -446,6 +455,12 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByText("Could not load projects."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Projects", level: 1 }),
+    ).toBeVisible();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not load projects.",
+    );
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => expect(loadProjects).toHaveBeenCalledTimes(2));

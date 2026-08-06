@@ -233,10 +233,12 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Projects" }),
+      await screen.findByRole("heading", {
+        name: "Internal onboarding demos",
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Internal onboarding demos" }),
+      screen.getByRole("heading", { name: "Projects", level: 1 }),
     ).toBeInTheDocument();
   });
 

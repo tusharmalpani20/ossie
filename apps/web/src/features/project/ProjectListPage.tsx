@@ -212,7 +212,14 @@ export const ProjectListPage = ({
   if (state.status === "loading") {
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
-        <div className={styles.state}>Loading projects...</div>
+        <section className={styles.state} aria-labelledby="projects-loading-heading">
+          <h1 className={styles.stateTitle} id="projects-loading-heading">
+            Projects
+          </h1>
+          <p className={styles.stateMessage} role="status">
+            Loading projects...
+          </p>
+        </section>
       </PortalShell>
     );
   }
@@ -236,8 +243,13 @@ export const ProjectListPage = ({
   if (state.status === "error") {
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
-        <div className={styles.state}>
-          <div>Could not load projects.</div>
+        <section className={styles.state} aria-labelledby="projects-error-heading">
+          <h1 className={styles.stateTitle} id="projects-error-heading">
+            Projects
+          </h1>
+          <p className={styles.stateMessage} role="alert">
+            Could not load projects.
+          </p>
           <Button
             variant="secondary"
             size="sm"
@@ -246,7 +258,7 @@ export const ProjectListPage = ({
           >
             Retry
           </Button>
-        </div>
+        </section>
       </PortalShell>
     );
   }
