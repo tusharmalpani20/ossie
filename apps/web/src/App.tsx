@@ -1175,17 +1175,21 @@ export default function App() {
           <OssieBrand />
         </a>
       </header>
-      <main className={styles.main}>
+      <main aria-label="Page not found workspace" className={styles.main}>
         <Card className={styles.emptyState}>
           <CardHeader>
-            <CardTitle className={styles.title}>Ossie portal</CardTitle>
+            <h1 className={styles.title}>Page not found</h1>
           </CardHeader>
           <CardContent>
-            <p>
-              Open the project list, a project workspace, capture session list,
-              capture session, guide list, guide link, or interactive demo link
-              to continue.
-            </p>
+            <p>The route you opened is not part of the Ossie portal.</p>
+            <div className={styles.recoveryActions}>
+              <a className={styles.recoveryPrimary} href="/projects">
+                Open Projects
+              </a>
+              <a className={styles.recoverySecondary} href="/login">
+                Sign in
+              </a>
+            </div>
           </CardContent>
         </Card>
       </main>

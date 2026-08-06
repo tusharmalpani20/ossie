@@ -1,8 +1,6 @@
 .page {
   min-height: 100vh;
-  background:
-    linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.96)),
-    #f8fafc;
+  background: #f8fafc;
   color: #0f172a;
 }
 
@@ -49,4 +47,36 @@
   margin: 0;
   color: #64748b;
   line-height: 1.5;
+}
+
+.recoveryActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.recoveryPrimary,
+.recoverySecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.recoveryPrimary {
+  border-color: #0f172a;
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.recoverySecondary {
+  background: #ffffff;
+  color: #0f172a;
 }

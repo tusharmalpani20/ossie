@@ -1031,12 +1031,16 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      screen.getByRole("heading", { name: "Ossie portal" }),
+      screen.getByRole("main", { name: "Page not found workspace" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Open the project list, a project workspace, capture session list, capture session, guide list, guide link, or interactive demo link to continue.",
-      ),
+      screen.getByRole("heading", { name: "Page not found" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText("The route you opened is not part of the Ossie portal."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open Projects" }),
+    ).toHaveAttribute("href", "/projects");
   });
 });
