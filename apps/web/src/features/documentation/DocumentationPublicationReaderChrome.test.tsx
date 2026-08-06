@@ -34,16 +34,26 @@ const source = {
   ],
   navigation: [
     {
+      id: "group-guides",
+      kind: "group" as const,
+      label: "Guides",
+      position: 1,
+    },
+    {
       id: "nav-install",
       kind: "page" as const,
       pageId: "page-install",
       label: "Install",
+      parentId: "group-guides",
+      position: 1,
     },
     {
       id: "nav-reference",
       kind: "page" as const,
       pageId: "page-reference",
       label: "Reference",
+      parentId: "group-guides",
+      position: 2,
     },
   ],
 };
@@ -75,16 +85,21 @@ describe("DocumentationPublicationReaderChrome", () => {
       "href",
       "/docs/product/reference",
     );
+    expect(screen.getAllByText("Guides")).not.toHaveLength(0);
+    expect(
+      screen.getByRole("link", { name: "Next: Reference" }),
+    ).toHaveAttribute("rel", "next");
     expect(
       screen.getByRole("navigation", { name: "Documentation breadcrumb" }),
     ).toHaveTextContent("Install");
     expect(
       screen.getByRole("navigation", { name: "On this page" }),
     ).toHaveTextContent("Setup");
-    expect(screen.getByRole("heading", { name: "Install" })).toBeInTheDocument();
-    expect(screen.getByTestId("documentation-publication-reader-chrome")).toHaveAttribute(
-      "data-resource-class",
-      "publication",
-    );
+    expect(
+      screen.getByRole("heading", { name: "Install" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("documentation-publication-reader-chrome"),
+    ).toHaveAttribute("data-resource-class", "publication");
   });
 });

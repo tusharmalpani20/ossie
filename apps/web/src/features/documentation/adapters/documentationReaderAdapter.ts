@@ -20,6 +20,8 @@ type ReaderSourceNavigation = {
   kind: "page" | "group";
   pageId?: string | null;
   label?: string | null;
+  parentId?: string | null;
+  position?: number;
 };
 
 export type DocumentationReaderProjectionSource = {
@@ -51,6 +53,8 @@ export type DocumentationReaderProjection = {
     kind: "page" | "group";
     pageId?: string | null;
     label: string;
+    parentId: string | null;
+    position: number;
   }>;
 };
 
@@ -74,29 +78,43 @@ export const buildDocumentationReaderProjection = (
   source: DocumentationReaderProjectionSource,
 ): DocumentationReaderProjection => {
   const pagesById = new Map(source.pages.map((page) => [page.id, page]));
-  const navigation: DocumentationReaderProjection["navigation"] =
-    source.navigation.flatMap(
-      (node): DocumentationReaderProjection["navigation"] => {
-        if (node.kind === "group")
-          return [
-            {
-              id: node.id,
-              kind: node.kind,
-              label: node.label ?? "Documentation",
-            },
-          ];
-        const page = node.pageId ? pagesById.get(node.pageId) : undefined;
-        if (!page) return [];
+  const seenNavigationIds = new Set<string>();
+  const navigation = source.navigation.flatMap(
+    (node, index): DocumentationReaderProjection["navigation"] => {
+      if (!node.id || seenNavigationIds.has(node.id)) return [];
+      seenNavigationIds.add(node.id);
+      const position =
+        node.position === undefined
+          ? index + 1
+          : Number.isSafeInteger(node.position) && node.position > 0
+            ? node.position
+            : null;
+      if (position === null) return [];
+      const parentId = node.parentId ?? null;
+      if (node.kind === "group")
         return [
           {
             id: node.id,
             kind: node.kind,
-            pageId: page.id,
-            label: node.label ?? page.title,
+            label: node.label ?? "Documentation",
+            parentId,
+            position,
           },
         ];
-      },
-    );
+      const page = node.pageId ? pagesById.get(node.pageId) : undefined;
+      if (!page) return [];
+      return [
+        {
+          id: node.id,
+          kind: node.kind,
+          pageId: page.id,
+          label: node.label ?? page.title,
+          parentId,
+          position,
+        },
+      ];
+    },
+  );
   return {
     resourceClass: source.resourceClass,
     selectedPageId: source.selectedPageId,
@@ -111,45 +129,141 @@ export const buildDocumentationReaderProjection = (
   };
 };
 
+const buildReaderNavigationChildren = (
+  projection: DocumentationReaderProjection,
+): PageTree.Node[] => {
+  const groupIds = new Set(
+    projection.navigation
+      .filter((node) => node.kind === "group")
+      .map((node) => node.id),
+  );
+  const validNavigation = projection.navigation.filter(
+    (node) => node.parentId === null || groupIds.has(node.parentId),
+  );
+  const byParent = new Map<string | null, typeof validNavigation>();
+  for (const node of validNavigation) {
+    const siblings = byParent.get(node.parentId) ?? [];
+    siblings.push(node);
+    byParent.set(node.parentId, siblings);
+  }
+  for (const siblings of byParent.values()) {
+    siblings.sort(
+      (left, right) =>
+        left.position - right.position || left.id.localeCompare(right.id),
+    );
+  }
+
+  const pagesById = new Map(projection.pages.map((page) => [page.id, page]));
+  const emittedUrls = new Set<string>();
+  const buildChildren = (
+    parentId: string | null,
+    ancestors: ReadonlySet<string>,
+  ): PageTree.Node[] =>
+    (byParent.get(parentId) ?? []).flatMap((node): PageTree.Node[] => {
+      if (ancestors.has(node.id)) return [];
+      if (node.kind === "group") {
+        const nextAncestors = new Set(ancestors);
+        nextAncestors.add(node.id);
+        return [
+          {
+            type: "folder" as const,
+            $id: node.id,
+            name: node.label,
+            children: buildChildren(node.id, nextAncestors),
+          },
+        ];
+      }
+      const page = node.pageId ? pagesById.get(node.pageId) : undefined;
+      if (!page || emittedUrls.has(page.url)) return [];
+      emittedUrls.add(page.url);
+      return [
+        {
+          type: "page" as const,
+          $id: node.id,
+          name: node.label,
+          url: page.url,
+        },
+      ];
+    });
+
+  return buildChildren(null, new Set());
+};
+
+export const buildDocumentationReaderNavigationTree = (
+  projection: DocumentationReaderProjection,
+): PageTree.Root => ({
+  type: "root",
+  name: "Documentation",
+  children: buildReaderNavigationChildren(projection),
+});
+
 export const buildFumadocsPageTree = (
   projection: DocumentationReaderProjection,
 ): PageTree.Root => {
-  const pagesById = new Map(projection.pages.map((page) => [page.id, page]));
+  const tree = buildDocumentationReaderNavigationTree(projection);
   const urls = new Set<string>();
-  const children: PageTree.Node[] = [];
-
-  for (const navigation of projection.navigation) {
-    if (navigation.kind === "group") {
-      children.push({
-        type: "folder",
-        $id: navigation.id,
-        name: navigation.label,
-        children: [],
-      });
-      continue;
+  const collectPageUrls = (nodes: PageTree.Node[]) => {
+    for (const node of nodes) {
+      if (node.type === "page") urls.add(node.url);
+      if (node.type === "folder") collectPageUrls(node.children);
     }
-    const page = navigation.pageId
-      ? pagesById.get(navigation.pageId)
-      : undefined;
-    if (!page) continue;
-    if (urls.has(page.url))
-      throw new Error(`Duplicate reader URL: ${page.url}`);
-    urls.add(page.url);
-    children.push({
-      type: "page",
-      $id: navigation.id,
-      name: navigation.label,
-      url: page.url,
-    });
-  }
+  };
+  collectPageUrls(tree.children);
 
   const selected = projection.pages.find(
     (page) => page.id === projection.selectedPageId,
   );
   if (!selected || !urls.has(selected.url))
-    throw new Error("Selected reader Page is not present in authorized navigation");
+    throw new Error(
+      "Selected reader Page is not present in authorized navigation",
+    );
 
-  return { type: "root", name: "Documentation", children };
+  return tree;
+};
+
+export type DocumentationReaderAdjacentPage = {
+  id: string;
+  title: string;
+  url: string;
+};
+
+export const getDocumentationReaderAdjacentPages = (
+  projection: DocumentationReaderProjection,
+  tree: PageTree.Root,
+): {
+  previous: DocumentationReaderAdjacentPage | null;
+  next: DocumentationReaderAdjacentPage | null;
+} => {
+  const navigationById = new Map(
+    projection.navigation.map((node) => [node.id, node]),
+  );
+  const pagesById = new Map(projection.pages.map((page) => [page.id, page]));
+  const ordered: DocumentationReaderAdjacentPage[] = [];
+  const collectPages = (nodes: PageTree.Node[]) => {
+    for (const node of nodes) {
+      if (node.type === "folder") {
+        collectPages(node.children);
+        continue;
+      }
+      if (node.type !== "page" || !node.$id) continue;
+      const navigation = navigationById.get(node.$id);
+      const page = navigation?.pageId
+        ? pagesById.get(navigation.pageId)
+        : undefined;
+      if (page) ordered.push({ id: page.id, title: page.title, url: page.url });
+    }
+  };
+  collectPages(tree.children);
+  const selectedIndex = ordered.findIndex(
+    (page) => page.id === projection.selectedPageId,
+  );
+  return {
+    previous: selectedIndex > 0 ? ordered[selectedIndex - 1]! : null,
+    next:
+      selectedIndex >= 0 && selectedIndex < ordered.length - 1
+        ? ordered[selectedIndex + 1]!
+        : null,
+  };
 };
 
 export const getDocumentationReaderBreadcrumb = (

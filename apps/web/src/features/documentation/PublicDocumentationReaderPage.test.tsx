@@ -1,7 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PublicDocumentationReaderPage } from "./PublicDocumentationReaderPage";
-import { DocumentationApiError } from "../../lib/documentationApi";
+import {
+  DocumentationApiError,
+  searchPublicDocumentation,
+} from "../../lib/documentationApi";
+
+type SearchResult = Awaited<
+  ReturnType<typeof searchPublicDocumentation>
+>["results"][number];
 
 describe("PublicDocumentationReaderPage", () => {
   afterEach(() => {
@@ -9,6 +16,23 @@ describe("PublicDocumentationReaderPage", () => {
       .querySelectorAll("[data-documentation-metadata]")
       .forEach((node) => node.remove());
     vi.restoreAllMocks();
+  });
+
+  const loadMinimalSnapshot = async () => ({
+    site: { name: "Product docs", description: null },
+    revision: { primary_language: "en-US", home_page_id: "page" },
+    pages: [{ id: "page", title: "Home", canonical_path: "home" }],
+    navigation: [
+      { id: "nav", kind: "page" as const, page_id: "page", label: null },
+    ],
+    openapi_operations: [],
+    page: {
+      id: "page",
+      title: "Home",
+      description: null,
+      canonical_path: "home",
+      blocks: [],
+    },
   });
 
   it("renders the exact publication, metadata, navigation, and safe blocks", async () => {
@@ -203,5 +227,87 @@ describe("PublicDocumentationReaderPage", () => {
     expect(createViewerSession).toHaveBeenCalledWith("protected-docs", {
       password: "safe local password",
     });
+  });
+
+  it("shows a truthful search error, clears loading, and supports retry", async () => {
+    const search = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("network unavailable"))
+      .mockResolvedValueOnce({ results: [] });
+    render(
+      <PublicDocumentationReaderPage
+        slug="product-docs"
+        loadPage={loadMinimalSnapshot}
+        search={search}
+      />,
+    );
+
+    const input = await screen.findByRole("searchbox");
+    fireEvent.change(input, { target: { value: "home" } });
+    fireEvent.submit(screen.getByRole("search"));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Search is unavailable",
+    );
+    expect(screen.queryByText("Searching…")).not.toBeInTheDocument();
+
+    fireEvent.submit(screen.getByRole("search"));
+    expect(await screen.findByText("0 results")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("ignores stale overlapping search responses and does not search whitespace", async () => {
+    const deferred: Array<{
+      query: string;
+      resolve: (value: { results: SearchResult[] }) => void;
+    }> = [];
+    const search = vi.fn(
+      (_slug: string, _version: string | undefined, query: string) =>
+        new Promise<{ results: SearchResult[] }>((resolve) => {
+          deferred.push({ query, resolve });
+        }),
+    );
+    render(
+      <PublicDocumentationReaderPage
+        slug="product-docs"
+        loadPage={loadMinimalSnapshot}
+        search={search}
+      />,
+    );
+
+    const input = await screen.findByRole("searchbox");
+    fireEvent.change(input, { target: { value: "   " } });
+    fireEvent.submit(screen.getByRole("search"));
+    expect(search).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: "first" } });
+    fireEvent.submit(screen.getByRole("search"));
+    fireEvent.change(input, { target: { value: "second" } });
+    fireEvent.submit(screen.getByRole("search"));
+    expect(search).toHaveBeenCalledTimes(2);
+
+    deferred[0]!.resolve({
+      results: [
+        {
+          page_id: "first",
+          title: "First result",
+          excerpt: "stale",
+          canonical_path: "first",
+        },
+      ],
+    });
+    await waitFor(() =>
+      expect(screen.queryByText("First result")).not.toBeInTheDocument(),
+    );
+    deferred[1]!.resolve({
+      results: [
+        {
+          page_id: "second",
+          title: "Second result",
+          excerpt: "current",
+          canonical_path: "second",
+        },
+      ],
+    });
+    expect(await screen.findByText("Second result")).toBeInTheDocument();
   });
 });

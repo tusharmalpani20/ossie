@@ -316,9 +316,7 @@ export const rebuildDocumentationProjection = (
       headers: { "content-type": "application/json" },
       body: JSON.stringify(input),
     },
-  ).then((response) =>
-    json<DocumentationProjectionRebuildReceipt>(response),
-  );
+  ).then((response) => json<DocumentationProjectionRebuildReceipt>(response));
 
 export type DocumentationDiscoveryPolicy = {
   publish_link_id: string;
@@ -1091,6 +1089,8 @@ export type PublicDocumentationSnapshot = {
     kind: "page" | "group";
     page_id: string | null;
     label: string | null;
+    parent_id?: string | null;
+    position?: number;
   }>;
   openapi_operations: Array<{
     destination_key: string;

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import {
   DocumentationCanonicalRedirect,
   DocumentationApiError,
@@ -16,6 +17,12 @@ import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiO
 import { LazyDocumentationRequestExamples } from "./LazyDocumentationRequestExamples";
 import { LazyDocumentationPublicationReaderChrome } from "./LazyDocumentationPublicationReaderChrome";
 import { readDocumentationInitialDocument } from "../../lib/documentationInitialDocument";
+import {
+  buildDocumentationReaderNavigationTree,
+  buildDocumentationReaderProjection,
+  buildFumadocsPageTree,
+  getDocumentationReaderAdjacentPages,
+} from "./adapters/documentationReaderAdapter";
 
 type SearchResult = Awaited<
   ReturnType<typeof searchPublicDocumentation>
@@ -29,6 +36,63 @@ type Props = {
   search?: typeof searchPublicDocumentation;
   createViewerSession?: typeof createPublicDocumentationViewerSession;
 };
+
+type ReaderNavigationTree = ReturnType<
+  typeof buildDocumentationReaderNavigationTree
+>;
+
+const renderNativeNavigation = (
+  nodes: ReaderNavigationTree["children"],
+  selectedPagePath: string,
+): ReactNode => (
+  <ul>
+    {nodes.map((node) => {
+      if (node.type === "page")
+        return (
+          <li key={node.$id ?? node.url}>
+            <a
+              aria-current={node.url === selectedPagePath ? "page" : undefined}
+              href={node.url}
+            >
+              {node.name}
+            </a>
+          </li>
+        );
+      if (node.type === "folder")
+        return (
+          <li key={node.$id ?? String(node.name)}>
+            <span>{node.name}</span>
+            {renderNativeNavigation(node.children, selectedPagePath)}
+          </li>
+        );
+      return null;
+    })}
+  </ul>
+);
+
+const renderAdjacentNavigation = (
+  adjacent: ReturnType<typeof getDocumentationReaderAdjacentPages>,
+): ReactNode =>
+  adjacent.previous || adjacent.next ? (
+    <nav aria-label="Documentation page navigation">
+      <ul>
+        {adjacent.previous ? (
+          <li>
+            <a href={adjacent.previous.url} rel="prev">
+              Previous: {adjacent.previous.title}
+            </a>
+          </li>
+        ) : null}
+        {adjacent.next ? (
+          <li>
+            <a href={adjacent.next.url} rel="next">
+              Next: {adjacent.next.title}
+            </a>
+          </li>
+        ) : null}
+      </ul>
+    </nav>
+  ) : null;
 
 export const PublicDocumentationReaderPage = ({
   slug,
@@ -54,6 +118,8 @@ export const PublicDocumentationReaderPage = ({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const searchRequestRef = useRef(0);
   const pageBase = useMemo(
     () =>
       versionSlug
@@ -133,12 +199,18 @@ export const PublicDocumentationReaderPage = ({
   const submitSearch = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!query.trim()) return;
+    const requestId = searchRequestRef.current + 1;
+    searchRequestRef.current = requestId;
+    setSearchError(null);
     setSearching(true);
     try {
       const response = await search(slug, versionSlug, query.trim());
-      setResults(response.results);
+      if (searchRequestRef.current === requestId) setResults(response.results);
+    } catch {
+      if (searchRequestRef.current === requestId)
+        setSearchError("Search is unavailable. Try again.");
     } finally {
-      setSearching(false);
+      if (searchRequestRef.current === requestId) setSearching(false);
     }
   };
 
@@ -204,11 +276,26 @@ export const PublicDocumentationReaderPage = ({
       kind: node.kind,
       pageId: node.page_id,
       label: node.label,
+      parentId: node.parent_id,
+      position: node.position,
     })),
   };
-  const selectedPageIsInAuthorizedNavigation = snapshot.navigation.some(
-    (node) => node.kind === "page" && node.page_id === snapshot.page.id,
-  );
+  const readerProjection = buildDocumentationReaderProjection(readerSource);
+  const readerNavigationTree =
+    buildDocumentationReaderNavigationTree(readerProjection);
+  const authorizedReaderTree = (() => {
+    try {
+      return buildFumadocsPageTree(readerProjection);
+    } catch {
+      return null;
+    }
+  })();
+  const adjacent = authorizedReaderTree
+    ? getDocumentationReaderAdjacentPages(
+        readerProjection,
+        authorizedReaderTree,
+      )
+    : { previous: null, next: null };
   const readerContent = (
     <>
       <h1>{snapshot.page.title}</h1>
@@ -279,28 +366,17 @@ export const PublicDocumentationReaderPage = ({
   const nativeReader = (
     <div>
       <nav aria-label="Documentation navigation">
-        <ul>
-          {snapshot.navigation
-            .filter((node) => node.kind === "page")
-            .map((node) => {
-              const page = snapshot.pages.find(
-                (candidate) => candidate.id === node.page_id,
-              );
-              return page ? (
-                <li key={node.id}>
-                  <a href={pageUrl(page.canonical_path)}>
-                    {node.label ?? page.title}
-                  </a>
-                </li>
-              ) : null;
-            })}
-        </ul>
+        {renderNativeNavigation(
+          readerNavigationTree.children,
+          readerProjection.selectedPagePath,
+        )}
       </nav>
       <main id="main-content">
         <p>
           <a href={pageBase}>Documentation</a>
         </p>
         {readerContent}
+        {renderAdjacentNavigation(adjacent)}
       </main>
     </div>
   );
@@ -319,13 +395,14 @@ export const PublicDocumentationReaderPage = ({
           />
           <button type="submit">Search</button>
         </form>
-        <p role="status">
+        <p role="status" aria-live="polite">
           {searching
             ? "Searching…"
             : results
               ? `${results.length} ${results.length === 1 ? "result" : "results"}`
               : ""}
         </p>
+        {searchError ? <p role="alert">{searchError}</p> : null}
         {results ? (
           <ul>
             {results.map((result) => (
@@ -339,7 +416,7 @@ export const PublicDocumentationReaderPage = ({
           </ul>
         ) : null}
       </header>
-      {selectedPageIsInAuthorizedNavigation ? (
+      {authorizedReaderTree ? (
         <LazyDocumentationPublicationReaderChrome
           fallback={nativeReader}
           source={readerSource}

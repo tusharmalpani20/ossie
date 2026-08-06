@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import {
   buildDocumentationReaderProjection,
   buildFumadocsPageTree,
+  getDocumentationReaderAdjacentPages,
   type DocumentationReaderProjectionSource,
 } from "./adapters/documentationReaderAdapter";
 
@@ -22,9 +23,7 @@ const renderPageTree = (
         return (
           <li key={node.$id ?? node.url}>
             <a
-              aria-current={
-                node.url === selectedPagePath ? "page" : undefined
-              }
+              aria-current={node.url === selectedPagePath ? "page" : undefined}
               href={node.url}
             >
               {node.name}
@@ -54,6 +53,7 @@ export const DocumentationPublicationReaderChrome = ({
 }) => {
   const projection = buildDocumentationReaderProjection(source);
   const tree = buildFumadocsPageTree(projection);
+  const adjacent = getDocumentationReaderAdjacentPages(projection, tree);
   const breadcrumb = useBreadcrumb(projection.selectedPagePath, tree, {
     includePage: true,
   });
@@ -86,6 +86,26 @@ export const DocumentationPublicationReaderChrome = ({
             </ol>
           </nav>
           {children}
+          {adjacent.previous || adjacent.next ? (
+            <nav aria-label="Documentation page navigation">
+              <ul>
+                {adjacent.previous ? (
+                  <li>
+                    <a href={adjacent.previous.url} rel="prev">
+                      Previous: {adjacent.previous.title}
+                    </a>
+                  </li>
+                ) : null}
+                {adjacent.next ? (
+                  <li>
+                    <a href={adjacent.next.url} rel="next">
+                      Next: {adjacent.next.title}
+                    </a>
+                  </li>
+                ) : null}
+              </ul>
+            </nav>
+          ) : null}
         </main>
         {toc.length > 0 ? (
           <aside>
