@@ -18,6 +18,7 @@ export * from "./policies/documentation-carry-forward-policy";
 export * from "./policies/documentation-lifecycle-policy";
 export * from "./policies/documentation-review-policy";
 export * from "./policies/documentation-try-it-policy";
+export * from "./policies/documentation-sensitive-name-policy";
 export * from "./policies/documentation-request-example-policy";
 export * from "./policies/documentation-operational-policy";
 export * from "./policies/documentation-origin-policy";

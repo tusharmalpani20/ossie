@@ -167,6 +167,42 @@ describe("documentation Try-It policy", () => {
     });
   });
 
+  it("redacts recognized sensitive names in schema-less and undeclared nested values", () => {
+    const [descriptor] = derive_documentation_try_it_descriptors({
+      openapi: "3.1.0",
+      info: { title: "Pets", version: "1" },
+      paths: {
+        "/pets": {
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  example: {
+                    profile: {
+                      Password: "schema-less-secret",
+                      displayName: "Ada",
+                      nested: [{ access_token: "array-secret", label: "safe" }],
+                    },
+                    undeclared: { API_KEY: "undeclared-secret" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(descriptor?.request_body?.example).toEqual({
+      profile: {
+        Password: "<SENSITIVE_VALUE>",
+        displayName: "Ada",
+        nested: [{ access_token: "<SENSITIVE_VALUE>", label: "safe" }],
+      },
+      undeclared: { API_KEY: "<SENSITIVE_VALUE>" },
+    });
+  });
+
   it("refuses remote or structurally excessive schemas", () => {
     const [remote] = derive_documentation_try_it_descriptors({
       openapi: "3.1.0",

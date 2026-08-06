@@ -105,4 +105,50 @@ copy: *info
       /^[a-f0-9]{64}$/u,
     );
   });
+
+  it("stores only redacted request examples in the inspection descriptor", () => {
+    const parsed = parse_documentation_openapi(
+      Buffer.from(
+        JSON.stringify({
+          openapi: "3.1.0",
+          info: { title: "Pets", version: "1" },
+          paths: {
+            "/pets": {
+              post: {
+                requestBody: {
+                  required: true,
+                  content: {
+                    "application/json": {
+                      example: {
+                        displayName: "Ada",
+                        profile: {
+                          refreshToken: "refresh-secret",
+                          cookie: "cookie-secret",
+                        },
+                        rows: [{ api_key: "api-secret", label: "safe" }],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }),
+      ),
+      "application/json",
+    );
+
+    const descriptor = parsed.summary.operations[0]?.request_descriptor;
+    expect(descriptor?.request_body?.example).toEqual({
+      displayName: "Ada",
+      profile: {
+        refreshToken: "<SENSITIVE_VALUE>",
+        cookie: "<SENSITIVE_VALUE>",
+      },
+      rows: [{ api_key: "<SENSITIVE_VALUE>", label: "safe" }],
+    });
+    expect(JSON.stringify(descriptor)).not.toContain("refresh-secret");
+    expect(JSON.stringify(descriptor)).not.toContain("cookie-secret");
+    expect(JSON.stringify(descriptor)).not.toContain("api-secret");
+  });
 });

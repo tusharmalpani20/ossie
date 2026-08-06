@@ -1,6 +1,5 @@
-import type {
-  DocumentationTryItRequestDescriptor,
-} from "@repo/types";
+import type { DocumentationTryItRequestDescriptor } from "@repo/types";
+import { is_documentation_sensitive_name } from "./documentation-sensitive-name-policy";
 
 export const DOCUMENTATION_REQUEST_EXAMPLE_CONTRACT_VERSION =
   "documentation-request-example-v1" as const;
@@ -66,7 +65,8 @@ const MAX_JSON_NODES = 10_000;
 const is_record = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
-const byte_length = (value: string) => new TextEncoder().encode(value).byteLength;
+const byte_length = (value: string) =>
+  new TextEncoder().encode(value).byteLength;
 
 const has_control_character = (value: string) =>
   [...value].some((character) => {
@@ -74,7 +74,8 @@ const has_control_character = (value: string) =>
     return code <= 31 || code === 127;
   });
 
-const unsupported_reason = "This operation cannot produce a safe request example.";
+const unsupported_reason =
+  "This operation cannot produce a safe request example.";
 const unsupported_output_reason =
   "The generated example exceeds its safety limits.";
 
@@ -102,10 +103,7 @@ const is_language_id = (
 
 const is_placeholder = (value: string) => /^<[A-Z][A-Z0-9_]*>$/u.test(value);
 
-const placeholder_for = (
-  location: "path" | "query" | "header",
-  name: string,
-) =>
+const placeholder_for = (location: "path" | "query" | "header", name: string) =>
   `<${location.toUpperCase()}_${name
     .toUpperCase()
     .replaceAll(/[^A-Z0-9]+/gu, "_")
@@ -114,8 +112,7 @@ const placeholder_for = (
 const encode_component = (value: string) =>
   is_placeholder(value) ? value : encodeURIComponent(value);
 
-const shell_quote = (value: string) =>
-  `'${value.replaceAll("'", "'\"'\"'")}'`;
+const shell_quote = (value: string) => `'${value.replaceAll("'", "'\"'\"'")}'`;
 
 const python_quote = (value: unknown) => JSON.stringify(value);
 
@@ -136,26 +133,37 @@ type JsonSchemaLike = {
   items?: JsonSchemaLike;
 };
 
-type JsonSafe = null | string | number | boolean | JsonSafe[] | {
-  [key: string]: JsonSafe;
-};
+type JsonSafe =
+  | null
+  | string
+  | number
+  | boolean
+  | JsonSafe[]
+  | {
+      [key: string]: JsonSafe;
+    };
 
 const is_json_safe = (value: unknown): value is JsonSafe => {
   if (value === null || typeof value === "string" || typeof value === "boolean")
     return true;
   if (typeof value === "number") return Number.isFinite(value);
   if (Array.isArray(value)) return value.every(is_json_safe);
-  if (is_record(value))
-    return Object.values(value).every(is_json_safe);
+  if (is_record(value)) return Object.values(value).every(is_json_safe);
   return false;
 };
 
-const stable_json = (value: unknown, depth = 0, nodes = { count: 0 }): string | null => {
+const stable_json = (
+  value: unknown,
+  depth = 0,
+  nodes = { count: 0 },
+): string | null => {
   nodes.count += 1;
   if (depth > MAX_JSON_DEPTH || nodes.count > MAX_JSON_NODES) return null;
   if (!is_json_safe(value)) return null;
   if (Array.isArray(value)) {
-    const entries = value.map((entry) => stable_json_value(entry, depth + 1, nodes));
+    const entries = value.map((entry) =>
+      stable_json_value(entry, depth + 1, nodes),
+    );
     if (entries.some((entry) => entry === undefined)) return null;
     return JSON.stringify(entries);
   }
@@ -179,7 +187,9 @@ const stable_json_value = (
   nodes.count += 1;
   if (depth > MAX_JSON_DEPTH || nodes.count > MAX_JSON_NODES) return undefined;
   if (Array.isArray(value)) {
-    const output = value.map((entry) => stable_json_value(entry, depth + 1, nodes));
+    const output = value.map((entry) =>
+      stable_json_value(entry, depth + 1, nodes),
+    );
     return output.some((entry) => entry === undefined)
       ? undefined
       : (output as JsonSafe[]);
@@ -199,15 +209,26 @@ const stable_json_value = (
 const sanitized_body_value = (
   value: unknown,
   schema: JsonSchemaLike | null,
+  property_name: string | null = null,
   depth = 0,
   nodes = { count: 0 },
 ): JsonSafe | undefined => {
   nodes.count += 1;
   if (depth > MAX_JSON_DEPTH || nodes.count > MAX_JSON_NODES) return undefined;
-  if (schema?.sensitive) return "<SENSITIVE_VALUE>";
+  if (
+    schema?.sensitive ||
+    (property_name !== null && is_documentation_sensitive_name(property_name))
+  )
+    return "<SENSITIVE_VALUE>";
   if (Array.isArray(value)) {
     const output = value.map((entry) =>
-      sanitized_body_value(entry, schema?.items ?? null, depth + 1, nodes),
+      sanitized_body_value(
+        entry,
+        schema?.items ?? null,
+        null,
+        depth + 1,
+        nodes,
+      ),
     );
     return output.some((entry) => entry === undefined)
       ? undefined
@@ -220,6 +241,7 @@ const sanitized_body_value = (
       const entry = sanitized_body_value(
         value[key],
         properties[key] ?? null,
+        key,
         depth + 1,
         nodes,
       );
@@ -320,7 +342,9 @@ const request_context = (
     const parameter = path_parameters.get(name);
     if (!parameter) return null;
     const value =
-      parameter.sensitive || parameter.example === undefined
+      parameter.sensitive ||
+      parameter.example === undefined ||
+      parameter.example === null
         ? placeholder_for("path", name)
         : String(parameter.example);
     path = path.replace(`{${name}}`, encode_component(value));
@@ -330,12 +354,15 @@ const request_context = (
   const headers: Record<string, string> = {};
   for (const parameter of parameters) {
     const key = `${parameter.location}:${parameter.name}`;
-    if (seen.has(key) || has_control_character(parameter.name))
-      return null;
+    if (seen.has(key) || has_control_character(parameter.name)) return null;
     seen.add(key);
     if (parameter.location === "path") continue;
+    const has_documented_value =
+      parameter.example !== undefined && parameter.example !== null;
+    if (!has_documented_value && !parameter.required && !parameter.sensitive)
+      continue;
     const value =
-      parameter.sensitive || parameter.example === undefined
+      parameter.sensitive || !has_documented_value
         ? placeholder_for(parameter.location, parameter.name)
         : String(parameter.example);
     if (parameter.location === "query") {
@@ -353,10 +380,12 @@ const request_context = (
         );
       continue;
     }
-    if (!safe_header_name(parameter.name) || !safe_header_value(value)) return null;
+    if (!safe_header_name(parameter.name) || !safe_header_value(value))
+      return null;
     headers[parameter.name] = value;
   }
-  if (descriptor.security.bearer) headers.Authorization = "Bearer <BEARER_TOKEN>";
+  if (descriptor.security.bearer)
+    headers.Authorization = "Bearer <BEARER_TOKEN>";
   for (const name of descriptor.security.api_key_header_names) {
     if (!safe_header_name(name)) return null;
     headers[name] = "<API_KEY>";
@@ -373,7 +402,8 @@ const request_context = (
 
   const body = body_for(descriptor.request_body);
   if (body.unsupported) return null;
-  if (body.body !== null) headers["Content-Type"] = descriptor.request_body!.media_type;
+  if (body.body !== null)
+    headers["Content-Type"] = descriptor.request_body!.media_type;
   const url = `${PLACEHOLDER_ORIGIN}${path}${query.length ? `?${query.join("&")}` : ""}`;
   if (byte_length(url) > 8 * 1024) return null;
   return { url, method: descriptor.method, headers, body: body.body };
@@ -391,7 +421,7 @@ const curl = ({ url, method, headers, body }: ExampleContext) =>
     ]),
     ...(body === null ? [] : ["--data-raw", shell_quote(body)]),
     shell_quote(url),
-  ].join(" \\\n+  ");
+  ].join(" \\\n  ");
 
 const fetch_code = ({ url, method, headers, body }: ExampleContext) =>
   [
@@ -412,27 +442,34 @@ const python = ({ url, method, headers, body }: ExampleContext) =>
     "import urllib.request",
     "",
     `request = urllib.request.Request(${python_quote(url)},`,
-    ...(body === null ? [] : [`    data=${python_quote(body)}.encode("utf-8"),`]),
+    ...(body === null
+      ? []
+      : [`    data=${python_quote(body)}.encode("utf-8"),`]),
     `    method=${python_quote(method)},`,
     `    headers=${python_quote(headers)},`,
     ")",
     "with urllib.request.urlopen(request) as response:",
-    "    print(response.read().decode(\"utf-8\"))",
+    '    print(response.read().decode("utf-8"))',
   ].join("\n");
 
 const go = ({ url, method, headers, body }: ExampleContext) => {
-  const body_line = body === null ? "nil" : `bytes.NewBuffer([]byte(${JSON.stringify(body)}))`;
+  const body_line =
+    body === null ? "nil" : `bytes.NewBuffer([]byte(${JSON.stringify(body)}))`;
+  const imports = [
+    ...(body === null ? [] : ['\t"bytes"']),
+    '\t"fmt"',
+    '\t"io"',
+    '\t"net/http"',
+  ];
   const header_lines = Object.entries(headers).map(
-    ([name, value]) => `\treq.Header.Set(${JSON.stringify(name)}, ${JSON.stringify(value)})`,
+    ([name, value]) =>
+      `\treq.Header.Set(${JSON.stringify(name)}, ${JSON.stringify(value)})`,
   );
   return [
     "package main",
     "",
     "import (",
-    '\t"bytes"',
-    '\t"fmt"',
-    '\t"io"',
-    '\t"net/http"',
+    ...imports,
     ")",
     "",
     "func main() {",
@@ -492,15 +529,13 @@ const REGISTRY: readonly DocumentationRequestExampleRegistryEntry[] = [
   },
 ] as const;
 
-export const documentation_request_example_registry = REGISTRY.map(
-  (entry) => ({
-    id: entry.id,
-    display_name: entry.display_name,
-    runtime: entry.runtime,
-    syntax: entry.syntax,
-    file_extension: entry.file_extension,
-  }),
-);
+export const documentation_request_example_registry = REGISTRY.map((entry) => ({
+  id: entry.id,
+  display_name: entry.display_name,
+  runtime: entry.runtime,
+  syntax: entry.syntax,
+  file_extension: entry.file_extension,
+}));
 
 export const generate_documentation_request_example = (
   descriptor_input: DocumentationTryItRequestDescriptor | unknown,
@@ -521,7 +556,8 @@ export const generate_documentation_request_example = (
   )
     return unsupported(descriptor_version, language_id);
   try {
-    const descriptor = descriptor_input as unknown as DocumentationTryItRequestDescriptor;
+    const descriptor =
+      descriptor_input as unknown as DocumentationTryItRequestDescriptor;
     const context = request_context(descriptor);
     if (!context) return unsupported(1, language_id);
     const entry = REGISTRY.find((candidate) => candidate.id === language_id);

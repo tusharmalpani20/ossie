@@ -17,6 +17,7 @@ import type {
 } from "@repo/types";
 import { DocumentationDomainError } from "../errors/documentation-domain-error";
 import { is_forbidden_documentation_public_hostname } from "./documentation-origin-policy";
+import { is_documentation_sensitive_name } from "./documentation-sensitive-name-policy";
 
 export { DocumentationDomainError };
 
@@ -92,16 +93,12 @@ const destination_key = (method: string, path: string, operation_id?: string) =>
     .replace(/[^a-z0-9]+/gu, "-")
     .replace(/^-|-$/gu, "");
 
-const sensitive_name = (name: string) =>
-  /(?:authorization|cookie|credential|secret|token|password|api[-_ ]?key|session)/iu.test(
-    name,
-  );
-
 const has_own = (value: object, key: PropertyKey): boolean =>
   Object.prototype.hasOwnProperty.call(value, key);
 
 const is_documented_primitive = (value: unknown): value is Primitive =>
-  (typeof value === "string" && byte_length(value) <= DOCUMENTATION_TRY_IT_FIELD_VALUE_MAX_BYTES) ||
+  (typeof value === "string" &&
+    byte_length(value) <= DOCUMENTATION_TRY_IT_FIELD_VALUE_MAX_BYTES) ||
   (typeof value === "number" && Number.isFinite(value)) ||
   typeof value === "boolean";
 
@@ -136,7 +133,10 @@ const json_schema_descriptor = (
   nodes = { count: 0 },
 ): DocumentationTryItJsonSchemaDescriptor | null => {
   nodes.count += 1;
-  if (depth > DOCUMENTATION_TRY_IT_JSON_DEPTH_MAX || nodes.count > DOCUMENTATION_TRY_IT_JSON_NODES_MAX)
+  if (
+    depth > DOCUMENTATION_TRY_IT_JSON_DEPTH_MAX ||
+    nodes.count > DOCUMENTATION_TRY_IT_JSON_NODES_MAX
+  )
     return null;
   if (!is_record(input)) return null;
   if (
@@ -161,7 +161,8 @@ const json_schema_descriptor = (
   )
     return null;
   const sensitive =
-    (property_name !== null && sensitive_name(property_name)) ||
+    (property_name !== null &&
+      is_documentation_sensitive_name(property_name)) ||
     input.format === "password" ||
     input.writeOnly === true;
   const descriptor: DocumentationTryItJsonSchemaDescriptor = {
@@ -171,7 +172,8 @@ const json_schema_descriptor = (
   };
   if (type === "object" && input.properties !== undefined) {
     if (!is_record(input.properties)) return null;
-    const properties: Record<string, DocumentationTryItJsonSchemaDescriptor> = {};
+    const properties: Record<string, DocumentationTryItJsonSchemaDescriptor> =
+      {};
     for (const [name, child] of Object.entries(input.properties)) {
       const parsed = json_schema_descriptor(child, name, depth + 1, nodes);
       if (!parsed) return null;
@@ -196,15 +198,19 @@ const json_schema_descriptor = (
     if (
       !Array.isArray(input.enum) ||
       input.enum.some(
-        (value) =>
-          value !== null &&
-          !is_documented_primitive(value),
+        (value) => value !== null && !is_documented_primitive(value),
       )
     )
       return null;
-    descriptor.enum = input.enum.slice(0, 100) as (string | number | boolean | null)[];
+    descriptor.enum = input.enum.slice(0, 100) as (
+      | string
+      | number
+      | boolean
+      | null
+    )[];
   }
-  return byte_length(JSON.stringify(descriptor)) > DOCUMENTATION_TRY_IT_REQUEST_BODY_MAX_BYTES
+  return byte_length(JSON.stringify(descriptor)) >
+    DOCUMENTATION_TRY_IT_REQUEST_BODY_MAX_BYTES
     ? null
     : descriptor;
 };
@@ -212,19 +218,34 @@ const json_schema_descriptor = (
 const sanitize_documented_json = (
   value: unknown,
   schema: DocumentationTryItJsonSchemaDescriptor | null,
+  property_name: string | null = null,
   depth = 0,
   nodes = { count: 0 },
 ): unknown | undefined => {
   nodes.count += 1;
-  if (depth > DOCUMENTATION_TRY_IT_JSON_DEPTH_MAX || nodes.count > DOCUMENTATION_TRY_IT_JSON_NODES_MAX)
+  if (
+    depth > DOCUMENTATION_TRY_IT_JSON_DEPTH_MAX ||
+    nodes.count > DOCUMENTATION_TRY_IT_JSON_NODES_MAX
+  )
     return undefined;
-  if (schema?.sensitive) return "<SENSITIVE_VALUE>";
+  if (
+    schema?.sensitive ||
+    (property_name !== null && is_documentation_sensitive_name(property_name))
+  )
+    return "<SENSITIVE_VALUE>";
   if (value === null || typeof value === "string" || typeof value === "boolean")
     return value;
-  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (typeof value === "number")
+    return Number.isFinite(value) ? value : undefined;
   if (Array.isArray(value)) {
     const result = value.map((entry) =>
-      sanitize_documented_json(entry, schema?.items ?? null, depth + 1, nodes),
+      sanitize_documented_json(
+        entry,
+        schema?.items ?? null,
+        null,
+        depth + 1,
+        nodes,
+      ),
     );
     return result.some((entry) => entry === undefined) ? undefined : result;
   }
@@ -235,6 +256,7 @@ const sanitize_documented_json = (
     const sanitized = sanitize_documented_json(
       entry,
       properties[name] ?? null,
+      name,
       depth + 1,
       nodes,
     );
@@ -310,7 +332,7 @@ const parameter_descriptor = (
   )
     return null;
   const sensitive =
-    sensitive_name(input.name) ||
+    is_documentation_sensitive_name(input.name) ||
     input.schema.format === "password" ||
     input.schema.writeOnly === true ||
     item_schema.format === "password" ||
@@ -416,7 +438,8 @@ export const derive_documentation_try_it_descriptors = (
           const has_example =
             has_own(media_entry, "example") ||
             (is_record(raw_schema) &&
-              (has_own(raw_schema, "example") || has_own(raw_schema, "default")));
+              (has_own(raw_schema, "example") ||
+                has_own(raw_schema, "default")));
           const sanitized_example = has_example
             ? sanitize_documented_json(raw_example, schema)
             : undefined;

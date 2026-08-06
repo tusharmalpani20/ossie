@@ -111,6 +111,16 @@ describe("documentation request example policy", () => {
       expect(JSON.stringify(result)).not.toContain("super-secret");
       expect(JSON.stringify(result)).toContain("SENSITIVE_VALUE");
     }
+
+    const bodyfulGo = generate_documentation_request_example(
+      descriptor,
+      "go_net_http",
+    );
+    expect(bodyfulGo).toMatchObject({ status: "generated" });
+    if (bodyfulGo.status === "generated") {
+      expect(bodyfulGo.code).toContain('"bytes"');
+      expect(bodyfulGo.code).toContain("bytes.NewBuffer");
+    }
   });
 
   it("is deterministic and keeps live Try-It values out of the result", () => {
@@ -119,6 +129,173 @@ describe("documentation request example policy", () => {
     expect(second).toEqual(first);
     expect(JSON.stringify(first)).not.toContain("api.internal.example");
     expect(JSON.stringify(first)).not.toContain("attempt-token");
+  });
+
+  it("redacts sensitive names again at the public example boundary", () => {
+    const schemaLessDescriptor: DocumentationTryItRequestDescriptor = {
+      ...descriptor,
+      request_body: {
+        required: true,
+        media_type: "application/json",
+        schema: {
+          type: "object",
+          nullable: false,
+          sensitive: false,
+        },
+        example: {
+          profile: {
+            refreshToken: "refresh-secret",
+            displayName: "Ada",
+            entries: [{ session: "session-secret", label: "safe" }],
+          },
+          Authorization: "authorization-secret",
+        },
+      },
+    };
+
+    for (const languageId of DOCUMENTATION_REQUEST_EXAMPLE_LANGUAGE_IDS) {
+      const result = generate_documentation_request_example(
+        schemaLessDescriptor,
+        languageId,
+      );
+      expect(result.status).toBe("generated");
+      expect(JSON.stringify(result)).not.toContain("refresh-secret");
+      expect(JSON.stringify(result)).not.toContain("session-secret");
+      expect(JSON.stringify(result)).not.toContain("authorization-secret");
+      expect(JSON.stringify(result)).toContain("displayName");
+      expect(JSON.stringify(result)).toContain("SENSITIVE_VALUE");
+    }
+  });
+
+  it("omits optional undocumented parameters but keeps required, zero, false, and exploded values", () => {
+    const result = generate_documentation_request_example(
+      {
+        ...descriptor,
+        method: "GET",
+        path: "/pets/{petId}",
+        parameters: [
+          {
+            name: "petId",
+            location: "path",
+            required: true,
+            value_type: "string",
+            is_array: false,
+            explode: false,
+            sensitive: false,
+          },
+          {
+            name: "required-filter",
+            location: "query",
+            required: true,
+            value_type: "string",
+            is_array: false,
+            explode: true,
+            sensitive: false,
+          },
+          {
+            name: "optional-filter",
+            location: "query",
+            required: false,
+            value_type: "string",
+            is_array: false,
+            explode: true,
+            sensitive: false,
+          },
+          {
+            name: "zero",
+            location: "query",
+            required: false,
+            value_type: "integer",
+            is_array: false,
+            explode: true,
+            sensitive: false,
+            example: 0,
+          },
+          {
+            name: "flags",
+            location: "query",
+            required: false,
+            value_type: "boolean",
+            is_array: true,
+            explode: true,
+            sensitive: false,
+            example: false,
+          },
+          {
+            name: "optional-header",
+            location: "header",
+            required: false,
+            value_type: "string",
+            is_array: false,
+            explode: false,
+            sensitive: false,
+          },
+          {
+            name: "X-Enabled",
+            location: "header",
+            required: false,
+            value_type: "boolean",
+            is_array: false,
+            explode: false,
+            sensitive: false,
+            example: false,
+          },
+        ],
+        request_body: null,
+        security: { bearer: false, api_key_header_names: [] },
+      },
+      "curl",
+    );
+
+    expect(result).toMatchObject({ status: "generated" });
+    if (result.status !== "generated") return;
+    expect(result.code).toContain("<PATH_PETID>");
+    expect(result.code).toContain("<QUERY_REQUIRED_FILTER>");
+    expect(result.code).toContain("zero=0");
+    expect(result.code).toContain("flags=false");
+    expect(result.code).toContain("X-Enabled: false");
+    expect(result.code).not.toContain("OPTIONAL_FILTER");
+    expect(result.code).not.toContain("OPTIONAL_HEADER");
+    expect(result.code).not.toMatch(/\\\n\+/u);
+
+    const bodylessGo = generate_documentation_request_example(
+      {
+        ...descriptor,
+        method: "GET",
+        path: "/pets",
+        parameters: [],
+        request_body: null,
+        security: { bearer: false, api_key_header_names: [] },
+      },
+      "go_net_http",
+    );
+    expect(bodylessGo).toMatchObject({ status: "generated" });
+    if (bodylessGo.status === "generated") {
+      expect(bodylessGo.code).not.toContain('"bytes"');
+      expect(bodylessGo.code).toContain(
+        'http.NewRequest("GET", "https://api.example.com/pets", nil)',
+      );
+    }
+
+    const noHeaderCurl = generate_documentation_request_example(
+      {
+        ...descriptor,
+        method: "GET",
+        path: "/status",
+        parameters: [],
+        request_body: null,
+        security: { bearer: false, api_key_header_names: [] },
+      },
+      "curl",
+    );
+    expect(noHeaderCurl).toMatchObject({ status: "generated" });
+    if (noHeaderCurl.status === "generated") {
+      expect(noHeaderCurl.code).toBe(
+        "curl \\\n  --fail-with-body \\\n  --request \\\n  GET \\\n  'https://api.example.com/status'",
+      );
+      expect(noHeaderCurl.code).not.toContain("--header");
+      expect(noHeaderCurl.code).not.toContain("--data-raw");
+    }
   });
 
   it("returns bounded unsupported results instead of inventing required input", () => {
