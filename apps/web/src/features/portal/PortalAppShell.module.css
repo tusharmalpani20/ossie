@@ -112,14 +112,20 @@
   .sidebar {
     border-bottom: 1px solid var(--ossie-color-border);
     border-right: 0;
-    overflow-x: auto;
     padding: 10px 14px;
   }
 
   .nav {
-    display: flex;
-    width: max-content;
-    min-width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+    width: auto;
+    min-width: 0;
+  }
+
+  .navItem,
+  .navItemActive {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .contextBar {
