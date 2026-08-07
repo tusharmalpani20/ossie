@@ -1998,7 +1998,14 @@ authenticated Documentation authoring/Page editor/draft-preview/Review Inbox
 states (including the localized Review Inbox landmark repair), while
 installed extension-toolbar activation, direct-manipulation breadth, and
 unclaimed loading/denied/populated states remain explicitly limited or
-separately evidenced.
+separately evidenced. The authenticated Capture portal was also exercised in
+separate synthetic owner/viewer sessions at native 200% across active/named/
+archived lists, completed/empty/capturing/canceled/archived details, owner
+controls, viewer read-only controls, and an aborted-list error with Retry;
+these sampled states were axe-clean and stayed within the 525px CSS viewport.
+The shared Project Version context header visibly splits its label at this
+zoom despite no document overflow, so that shell limitation remains recorded
+for human disposition rather than being silently changed in this bounded pass.
 
 ### 26.7 Human feedback and final closeout
 
@@ -2421,6 +2428,24 @@ found were axe 0/0. Keyboard reached the gallery Retry action and table region,
 then the Login email field. Zoom was restored to 100%, browser storage cleared,
 and the dedicated web service stopped. This supplements but does not close the
 broader 26.6 matrix.
+
+2026-08-07 — native 200% Capture portal continuation — source candidate
+`f4a6010`; evidence-only continuation recorded in `70b4259`. Separate synthetic
+owner and viewer sessions covered active, named, and archived Capture lists;
+completed, empty, capturing, canceled, and archived details; owner-only create
+guide/demo and upload controls; viewer read-only boundaries; and an exact list
+API abort followed by the truthful error/Retry state and successful recovery.
+The sampled documents stayed within a 525px CSS viewport at
+`devicePixelRatio=2`, all audits reported axe 0/0, the owner keyboard path
+reached the first Capture link after New Capture Session, and completed-detail
+final-path requests returned 200. Screenshots were visually inspected; no
+mutation was submitted. The native-200% shared Project Version context header
+visibly split its label inside the constrained shell despite no document
+overflow, so it remains a human disposition rather than an unscoped shell
+change. Zoom was restored to 100%, storage cleared, services stopped, and the
+Documentation fixture was reseeded. No new blind-review cycle is claimed for
+this evidence-only continuation, and it does not close the broader 26.6 matrix
+or infer Plan 147 completion.
 
 Record future entries as:
 

@@ -435,6 +435,20 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   [Page editor](./147-continuation-auth-documentation-page-editor-zoom-200.png),
   [preview](./147-continuation-auth-documentation-preview-zoom-200.png), and
   [viewer Review Inbox](./147-continuation-viewer-documentation-review-inbox-zoom-200.png).
+- Capture portal continuation: separate synthetic owner and viewer sessions
+  covered active/named/archived Capture lists, completed/empty/capturing/
+  canceled/archived details, owner controls, viewer read-only boundaries, and
+  an aborted list request with truthful error/Retry recovery at native 200%
+  (`dpr=2`, 525px CSS viewport). Sampled states were axe 0/0 with no document
+  overflow; the owner keyboard path reached the first Capture link after New
+  Capture Session, completed-detail final-path requests returned 200, and no
+  mutation was submitted. Evidence: [owner list](./147-continuation-auth-capture-list-zoom-200.png),
+  [completed detail](./147-continuation-auth-capture-completed-detail-zoom-200.png),
+  [empty detail](./147-continuation-auth-capture-empty-detail-zoom-200.png),
+  [viewer detail](./147-continuation-viewer-capture-detail-zoom-200.png), and
+  [error/retry](./147-continuation-auth-capture-error-zoom-200.png). The shared
+  Project Version context header visibly splits its label at this zoom despite
+  no document overflow; that shell residual remains for human disposition.
 
 The browser zoom was restored to 100%, extension storage was cleared, the
 dedicated services were stopped, and the disposable database was reseeded with
