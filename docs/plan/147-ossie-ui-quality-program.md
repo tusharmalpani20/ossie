@@ -1992,9 +1992,10 @@ required matrix: native 200% evidence is now separately recorded for the
 Documentation reader/operation, Interactive Demo reader/embed/access states,
 direct extension popup, and supplemental authenticated Projects/Documentation
 states, isolated anonymous Documentation reader, and the Guide reader/embed/
-editor/viewer/access samples, while installed extension-toolbar activation,
-direct-manipulation breadth, and unclaimed loading/denied/populated states
-remain explicitly limited or separately evidenced.
+editor/viewer/access samples, plus shared foundation/entry/fallback samples,
+while installed extension-toolbar activation, direct-manipulation breadth,
+and unclaimed loading/denied/populated states remain explicitly limited or
+separately evidenced.
 
 ### 26.7 Human feedback and final closeout
 
@@ -2371,6 +2372,18 @@ covered the same Guide as `Read only` with no Save/Archive/Publish/Delete
 controls and axe 0/0. No mutation was submitted. Zoom was restored to 100%,
 browser storage cleared, services stopped, and the final Documentation fixture
 was reseeded. This supplements but does not close the broader 26.6 matrix.
+
+2026-08-07 — native 200% shared foundation/entry/fallback evidence — source
+candidates `9e53e20`, `f27714b`, and `de37b5e`; evidence-only continuation
+recorded in the next checkpoint. The local synthetic Design System gallery,
+real `/login`, and unsupported-route fallback were exercised at native Chrome
+Page zoom 200% with reduced motion. The gallery stayed within a 517px document
+width and its artifact table had equal client/scroll widths; axe retained one
+known synthetic contrast-background incomplete probe, while Login and Page not
+found were axe 0/0. Keyboard reached the gallery Retry action and table region,
+then the Login email field. Zoom was restored to 100%, browser storage cleared,
+and the dedicated web service stopped. This supplements but does not close the
+broader 26.6 matrix.
 
 Record future entries as:
 

@@ -402,6 +402,17 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   0/0, and no Save/Archive/Publish/Delete controls. Evidence:
   [editor](./147-continuation-auth-guide-editor-zoom-200.png) and
   [viewer](./147-continuation-auth-guide-viewer-zoom-200.png).
+- Shared foundation gallery: the local synthetic Design System review rendered
+  at native 200% with document width 517px and an artifact table whose client
+  and scroll widths were both 484px. Keyboard reached Retry and the table
+  region; axe reported 0 violations and one known synthetic
+  contrast-background incomplete probe. Evidence:
+  [gallery](./147-continuation-design-system-zoom-200.png).
+- Entry and fallback: `/login` rendered at native 200% with axe 0/0 and the
+  keyboard path reached the Email field; `/unknown-plan147` rendered a truthful
+  Page not found h1, safe Projects/Sign in recovery links, width 525px, and axe
+  0/0. Evidence: [login](./147-continuation-login-zoom-200.png) and
+  [fallback](./147-continuation-unknown-fallback-zoom-200.png).
 
 The browser zoom was restored to 100%, extension storage was cleared, the
 dedicated services were stopped, and the disposable database was reseeded with
