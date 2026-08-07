@@ -1644,6 +1644,55 @@ domain, permission, lifecycle, publication, or URL authority.
   the existing Publication-preview review finding, and the final bundle. Do not
   manufacture an immutable candidate for an undefined cross-product scope.
 
+### internal-library-state-semantics exact surface preflight
+
+- Actual HEAD/worktree: `66b2a4f` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; the worktree was clean before this preflight.
+- Exact route/component owners:
+  - `/projects/:projectId/versions/:versionSlug/capture-sessions` → existing
+    `ProjectVersionRouteBoundary` → `ProjectCaptureSessionListPage`.
+  - `/projects/:projectId/versions/:versionSlug/guides` → existing
+    `ProjectVersionRouteBoundary` → `ProjectGuideListPage`.
+  - `/projects/:projectId/versions/:versionSlug/interactive-demos` → existing
+    `ProjectVersionRouteBoundary` → `ProjectInteractiveDemoListPage`.
+  - `/projects/:projectId/versions/:versionSlug/documentation` → existing
+    Documentation route → `ProjectDocumentationSiteListPage`.
+- Current state graph: Capture, Guide, and Interactive Demo list pages each
+  own loading, unauthenticated, not-found, generic-error, retry, and loaded
+  branches. Documentation Sites owns loading, error, and loaded/empty branches;
+  its outer route owns authentication and Project Version access.
+- Intended write set: focused tests and local CSS/JSX state wrappers in these
+  four list components, browser evidence, two blind reviews, and ledger/plan/
+  bundle reconciliation. No API calls, persistence, server/schema, Project or
+  Project Version data, membership, tenant, permission, public-link,
+  Publication/Revision/Capture immutability, mutation handler, or route parser
+  changes are authorized.
+- Accepted state rule: each transient branch receives one page-level h1 naming
+  its library; loading remains the existing copy with `role=status`; generic
+  errors remain the existing copy with `role=alert`; sign-in, not-found, and
+  Retry copy/behavior remain unchanged. Documentation Sites retains its
+  existing loading/error copy and only gains the same page heading semantics.
+- Explicitly out of scope: loaded list/card composition, empty-state copy,
+  create/import/publish controls, Project Version context, shared-shell CSS,
+  public readers, the unresolved P2-001 route choice, browser zoom tooling, and
+  all domain/permission behavior.
+- Focused failing tests to add first: loading and recoverable-error assertions
+  for all four list owners, plus the unauthenticated/not-found headings for
+  Capture, Guide, and Interactive Demo.
+- Browser verification: exact authenticated synthetic Project Version routes
+  at desktop and narrow widths where the fixture/login remains available;
+  otherwise component evidence must be labeled as such. Check axe, no
+  overflow, reduced motion, keyboard Retry/sign-in reachability, console, and
+  local request failures without submitting mutations.
+- Reviewer A brief: inspect state hierarchy, transient-message prominence,
+  narrow composition, and parity across the four library families.
+- Reviewer B brief: inspect auth/not-found/error truthfulness, retry continuity,
+  role/tenant/Project Version boundaries, axe/keyboard/motion behavior, and the
+  exact diff for absence of API/domain changes.
+- Rollback boundary: revert only this library-state candidate and its focused
+  evidence/review records; preserve all prior candidates, P2-001’s
+  `needs_human_surface` status, and the seeded disposable fixture.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
