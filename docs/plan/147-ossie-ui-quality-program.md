@@ -1978,11 +1978,19 @@ security decision for the user.
 - [ ] Resolve all P0/P1 issues.
 - [ ] Review every remaining P2/P3 disposition and residual risk.
 - [x] Run final focused and broad engineering verification.
-- [ ] Run second clean browser pass.
+- [x] Run second clean browser pass.
 - [x] Reconcile plan, current-truth docs, evidence, commits, limitations, and
       handoff.
 - [x] Assemble final human review bundle.
 - [x] Keep final status `agent_accepted_pending_human` until user review.
+
+The second clean pass is recorded in the evidence ledger and bundle. It covers
+fresh authenticated desktop entry/library routes, authenticated tablet/mobile
+representatives, the seeded anonymous Guide and embed routes, and truthful
+anonymous unavailable Documentation/Demo routes. It does not close the
+required matrix: actual 200% browser zoom, installed extension toolbar,
+direct-manipulation coverage, and unclaimed loading/denied/populated states
+remain explicitly limited or separately evidenced.
 
 ### 26.7 Human feedback and final closeout
 
@@ -2238,6 +2246,26 @@ Reviewer A and Reviewer B both accepted. Status:
 screenshots remain explicitly unclaimed because the runner cannot safely delay
 responses, while P2-001, `/projects/:projectId` route ownership, browser zoom,
 extension toolbar, and the broader 26.6 matrix remain separate.
+
+2026-08-07 — final engineering gates and second clean browser pass — starting
+commit `221517a`; documentation/evidence follow-up. The exact repository-wide
+`pnpm -r --if-present test` run passed across all active workspaces. `pnpm
+check-types` passed 14/14 packages; `pnpm lint` passed 13/13 packages with 89
+existing server warnings and zero errors; `pnpm build` passed 13/13 packages;
+`git diff --check` passed. A fresh authenticated Chromium session covered
+`/projects`, Capture Sessions, Guides, Interactive Demos, and Documentation
+Sites at 1440px; Documentation Sites at 1024px; and Guides at 390px. Each
+sample had one expected h1, one main, axe 0/0, no page errors, reduced motion,
+and no tested viewport overflow; the mobile Tab path focused Skip to main
+content. A separate fresh anonymous session covered the valid Guide and embed
+routes plus truthful unavailable Documentation and Demo routes, all with axe
+0/0 and no page errors. A CSS `zoom=2` mobile probe retained a 390px document
+width, but is recorded only as a proxy because actual browser zoom is not
+available. Screenshots are linked from the evidence ledger and human bundle.
+This is supplemental evidence, not a claim that the broader 26.6 matrix or
+the installed extension toolbar is complete. Status remains
+`agent_accepted_pending_human` pending human review and the unresolved
+workspace-route/P2-001 decisions.
 
 Record future entries as:
 

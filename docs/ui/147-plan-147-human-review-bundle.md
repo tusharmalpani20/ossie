@@ -194,9 +194,43 @@ tenant, public-link, Publication/Revision, Capture immutability, or mutation
 behavior changed. P2-001 and the unresolved Project workspace route ownership
 remain human-surface decisions.
 
+## Final second clean browser pass — 2026-08-07
+
+Fresh Chromium sessions added a final representative pass without changing
+fixtures or submitting mutations.
+
+- Authenticated desktop 1440×900: `/projects`, Capture Sessions, Guides,
+  Interactive Demos, and Documentation Sites. Each rendered one expected h1
+  and one main; axe reported 0 violations / 0 incomplete; no page errors were
+  reported. Screenshots: [Projects](./147-second-pass-projects-desktop.png),
+  [Capture](./147-second-pass-capture-desktop.png),
+  [Guides](./147-second-pass-guides-desktop.png),
+  [Interactive demos](./147-second-pass-demos-desktop.png), and
+  [Documentation](./147-second-pass-documentation-desktop.png).
+- Authenticated responsive representatives: Documentation Sites at 1024×768
+  and Guides at 390×844. Both had axe 0/0, one main, the expected h1, and
+  document width equal to the viewport. The mobile Tab path focused Skip to
+  main content. Evidence: [tablet](./147-second-pass-documentation-tablet-1024.png),
+  [mobile](./147-second-pass-guides-mobile-390.png).
+- Anonymous public boundary: the seeded valid Guide and its embed route passed
+  axe 0/0 with one main and no page errors at 1440px. Evidence:
+  [Guide](./147-second-pass-public-guide-desktop.png) and
+  [embed](./147-second-pass-public-guide-embed.png).
+- Anonymous unavailable boundary: the current fixture truthfully rendered
+  unavailable Documentation and missing Demo states, both axe-clean with no
+  page errors. These are not populated-reader evidence. Evidence:
+  [Documentation unavailable](./147-second-pass-public-documentation-unavailable.png)
+  and [Demo unavailable](./147-second-pass-public-demo-unavailable.png).
+- A mobile CSS `zoom=2` probe retained a 390px document width and is linked as
+  [proxy evidence](./147-second-pass-guides-mobile-css-zoom-2.png). This is not
+  a claim of actual browser zoom support. The installed extension toolbar,
+  direct-manipulation matrix, and unclaimed loading/denied/populated states
+  remain open or separately limited in the ledger.
+
 ## Verification summary
 
 - Final web suite: 95 files, 507 tests passed.
+- Exact recursive workspace test run: all active workspace suites passed.
 - Final docs suite: 4 files, 13 tests passed.
 - Shared UI tests: 4 files, 11 tests passed; focused shared-foundation web
   tests: 45/45.
@@ -213,6 +247,13 @@ remain human-surface decisions.
   lint, builds, and diff checks passed.
 - Browser evidence used Chromium, local runner URLs, synthetic fixtures, and
   reduced-motion media at 1440×900 and 390×900.
+- Final clean browser pass also covered a 1024×768 authenticated route and
+  anonymous valid/embed/unavailable public boundaries; all sampled routes had
+  axe 0/0 and no page errors. The CSS zoom probe is supplemental only; actual
+  200% browser zoom remains unavailable.
+- Repository-wide `pnpm check-types` passed 14/14 packages, `pnpm lint` passed
+  13/13 packages with 89 existing server warnings and zero errors, `pnpm build`
+  passed 13/13 packages, and `git diff --check` passed.
 - Final closeout browser audits for the shared-foundation parent/candidate
   comparison report axe 0 violations / 0 incomplete checks, no page overflow,
   reduced-motion and keyboard paths as recorded in the reviews. Earlier latest
