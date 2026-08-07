@@ -448,7 +448,9 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   [viewer detail](./147-continuation-viewer-capture-detail-zoom-200.png), and
   [error/retry](./147-continuation-auth-capture-error-zoom-200.png). The shared
   Project Version context header visibly splits its label at this zoom despite
-  no document overflow; that shell residual remains for human disposition.
+  no document overflow in this earlier capture pass; the bounded follow-up
+  `2eb2ce8` resolves that split and is recorded in the Project Version evidence
+  immediately below.
 - Project Version continuation: separate synthetic owner and viewer sessions
   covered Main/Summer release/Archived release workspaces, owner settings and
   Project Version management, empty Carry Forward, controlled versions-load
@@ -463,9 +465,16 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   [settings error](./147-continuation-auth-project-version-settings-error-zoom-200.png),
   [viewer workspace](./147-continuation-viewer-project-version-workspace-zoom-200.png),
   and [viewer settings denied](./147-continuation-viewer-project-settings-denied-zoom-200.png).
-  The shared Project Version context identity visibly splits at this zoom
-  despite no document overflow; that shell residual remains for human
-  disposition.
+  The follow-up `2eb2ce8` then moved the narrow identity into a stacked layout:
+  owner Main and Summer release, separate viewer Main, and owner 390px reflow
+  all kept the project name, selected Project Version, and status badge readable
+  beside Manage Versions with axe 0/0 and no overflow. Evidence:
+  [fixed Main](./147-continuation-project-version-context-fixed-main-zoom-200.png),
+  [fixed Summer release](./147-continuation-project-version-context-fixed-summer-zoom-200.png),
+  [fixed viewer](./147-continuation-project-version-context-fixed-viewer-zoom-200.png),
+  and [fixed narrow](./147-continuation-project-version-context-fixed-owner-narrow.png).
+  This is a bounded CSS follow-up with no new blind-review cycle; human review
+  still covers the broader shell and Plan 147 bundle.
 
 - Organization administration continuation: separate synthetic owner and
   viewer sessions covered members/invites, compliance timeline, Documentation

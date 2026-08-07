@@ -2007,8 +2007,11 @@ The Project Version family was also rechecked at native 200% for owner and
 viewer Main/Summer release/Archived release workspaces, owner settings and
 management, empty Carry Forward, controlled versions-load error/Retry, and
 viewer denied/read-only boundaries. Those samples also stayed within the
-525px CSS viewport; the shared context identity split remains the same
-human-held shell limitation.
+525px CSS viewport. A bounded follow-up in `2eb2ce8` moved the narrow context
+identity into a stacked layout; owner Main/Summer release, separate viewer
+Main, and owner 390px reflow rechecks kept the Project Version name and status
+badge readable beside Manage Versions with axe 0/0 and no overflow. The
+broader shell and zoom matrix remain open for human review.
 The Organization administration family was additionally exercised at native
 200% for owner members/invites, compliance timeline, Documentation Operations
 usage/limits, owner members error/Retry, and viewer denied/read-only states.
@@ -2032,9 +2035,6 @@ height, four loaded image elements, axe 0/0, reduced motion, no horizontal
 overflow, and a keyboard path through README and self-hosting links. External
 source links were not followed; this remains separate from customer-authored
 Product Documentation.
-The shared Project Version context header visibly splits its label at this
-zoom despite no document overflow, so that shell limitation remains recorded
-for human disposition rather than being silently changed in this bounded pass.
 
 ### 26.7 Human feedback and final closeout
 
@@ -2540,6 +2540,19 @@ through README and self-hosting links; external links were not followed.
 Screenshots were visually inspected. No new blind-review cycle is claimed for
 this evidence continuation or bounded accessibility follow-up; the broader
 26.6 matrix, toolbar-icon limitation, and human closeout remain open.
+
+2026-08-07 — native 200% Project Version context reflow follow-up — source
+candidate `c93ca11`; implementation follow-up `2eb2ce8`. A TDD red/green CSS
+contract moved the shared Project Version identity into a stacked narrow layout
+at the existing `52rem` breakpoint while preserving the Project Version,
+Default/Archived, selector, Manage Versions, and permission semantics. Owner
+Main and Summer release contexts, a separate viewer Main context, and owner
+390px reflow were rechecked with native Page zoom 200% owner/viewer evidence
+(`devicePixelRatio=2`, 525px CSS viewport) and 390px CSS evidence. All sampled
+states were axe 0/0 with no overflow; final paths were GET-only apart from
+synthetic login, and no product mutation was submitted. The prior split inside
+`Main` is resolved. No new blind-review cycle is claimed for this bounded CSS
+follow-up; the broader 26.6 matrix and human closeout remain open.
 
 Record future entries as:
 
