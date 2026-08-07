@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Plan 147 · Human Review</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f6f8;
+        --surface: #ffffff;
+        --surface-muted: #eef2f4;
+        --ink: #17212b;
+        --muted: #5d6b76;
+        --line: #d8e0e5;
+        --accent: #155e75;
+        --accent-soft: #e2f3f7;
+        --warning: #8a4b08;
+        --warning-soft: #fff3df;
+        --danger: #9f2d2d;
+        --danger-soft: #fdeaea;
+        --success: #176642;
+        --success-soft: #e5f5ec;
+        --shadow: 0 8px 24px rgba(20, 38, 50, 0.08);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        line-height: 1.5;
+      }
+      a { color: var(--accent); }
+      a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+        outline: 3px solid #f0b429;
+        outline-offset: 3px;
+      }
+      .skip-link {
+        position: absolute;
+        left: 12px;
+        top: -48px;
+        z-index: 10;
+        padding: 8px 12px;
+        background: var(--ink);
+        color: #fff;
+        border-radius: 4px;
+      }
+      .skip-link:focus { top: 12px; }
+      .topbar {
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.96);
+      }
+      .topbar-inner, .shell {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+      .topbar-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 56px;
+        gap: 16px;
+      }
+      .brand {
+        color: var(--ink);
+        font-size: 0.92rem;
+        font-weight: 750;
+        letter-spacing: 0.01em;
+        text-decoration: none;
+      }
+      .brand span { color: var(--muted); font-weight: 500; }
+      .topbar a:last-child { font-size: 0.86rem; }
+      main { padding: 34px 0 80px; }
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+        gap: 24px;
+        align-items: end;
+        margin-bottom: 24px;
+      }
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--accent);
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+      h1, h2, h3, p { margin-top: 0; }
+      h1 {
+        max-width: 720px;
+        margin-bottom: 10px;
+        font-size: clamp(2rem, 4vw, 3.15rem);
+        line-height: 1.06;
+        letter-spacing: -0.035em;
+      }
+      h2 { margin-bottom: 8px; font-size: 1.45rem; letter-spacing: -0.02em; }
+      h3 { margin-bottom: 6px; font-size: 1rem; }
+      .lede { max-width: 720px; margin-bottom: 0; color: var(--muted); font-size: 1.02rem; }
+      .status-card {
+        padding: 18px;
+        border: 1px solid #b7dbe2;
+        border-left: 4px solid var(--accent);
+        border-radius: 8px;
+        background: var(--accent-soft);
+      }
+      .status-card strong { display: block; margin: 8px 0 2px; font-size: 1.05rem; }
+      .status-card small { color: #315663; }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #d3ebf0;
+        color: #174b5a;
+        font-size: 0.75rem;
+        font-weight: 750;
+        letter-spacing: 0.02em;
+      }
+      .anchor-nav {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        margin: 0 0 24px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 4px 14px rgba(20, 38, 50, 0.04);
+      }
+      .anchor-nav a {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        border-radius: 4px;
+        color: var(--muted);
+        font-size: 0.84rem;
+        font-weight: 650;
+        text-decoration: none;
+      }
+      .anchor-nav a:hover { background: var(--surface-muted); color: var(--ink); }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 34px;
+      }
+      .metric {
+        min-height: 108px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+      .metric strong { display: block; margin-bottom: 3px; font-size: 1.42rem; }
+      .metric span { color: var(--muted); font-size: 0.86rem; }
+      .section { margin-top: 42px; scroll-margin-top: 74px; }
+      .section-intro { max-width: 780px; color: var(--muted); }
+      .panel {
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+      .decision-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      fieldset {
+        min-width: 0;
+        margin: 0;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+      legend { padding: 0 6px; font-weight: 800; }
+      .decision-note { margin: 0 0 12px; color: var(--muted); font-size: 0.9rem; }
+      .choice {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        margin: 9px 0;
+        font-size: 0.9rem;
+      }
+      .choice input { flex: 0 0 auto; margin-top: 4px; accent-color: var(--accent); }
+      .decision-wide { grid-column: 1 / -1; }
+      textarea {
+        display: block;
+        width: 100%;
+        min-height: 92px;
+        resize: vertical;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        color: var(--ink);
+        background: #fcfdfd;
+        font: inherit;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      button {
+        padding: 9px 14px;
+        border: 1px solid var(--accent);
+        border-radius: 5px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 750;
+      }
+      button.secondary { border-color: var(--line); background: #fff; color: var(--ink); }
+      button:hover { filter: brightness(1.06); }
+      .save-status { color: var(--success); font-size: 0.86rem; }
+      .callout {
+        margin-top: 14px;
+        padding: 13px 15px;
+        border-left: 3px solid var(--warning);
+        background: var(--warning-soft);
+        color: #68400d;
+        font-size: 0.9rem;
+      }
+      .source-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .source-card {
+        display: block;
+        min-height: 82px;
+        padding: 13px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        text-decoration: none;
+      }
+      .source-card strong { display: block; color: var(--ink); font-size: 0.9rem; }
+      .source-card span { color: var(--muted); font-size: 0.78rem; }
+      .source-card:hover { border-color: #8abec8; background: #fbfeff; }
+      .gallery-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 16px 0;
+      }
+      .search {
+        width: min(420px, 100%);
+        padding: 9px 11px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: #fff;
+        color: var(--ink);
+        font: inherit;
+      }
+      .gallery-count { color: var(--muted); font-size: 0.86rem; }
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .evidence-card {
+        overflow: hidden;
+        margin: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+      .evidence-card a { display: block; background: #e7ecef; }
+      .evidence-card img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
+        object-position: top;
+      }
+      .evidence-card figcaption {
+        padding: 10px 12px 12px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        overflow-wrap: anywhere;
+      }
+      .evidence-card figcaption a { display: inline; background: none; }
+      .evidence-card.missing { border-color: #e7b2b2; background: var(--danger-soft); }
+      .empty {
+        grid-column: 1 / -1;
+        padding: 24px;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        color: var(--muted);
+        text-align: center;
+      }
+      .checklist {
+        display: grid;
+        gap: 9px;
+        padding: 0;
+        list-style: none;
+      }
+      .checklist label {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 11px 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+      }
+      .checklist input { margin-top: 4px; accent-color: var(--accent); }
+      details { margin-top: 18px; }
+      summary { cursor: pointer; font-weight: 750; }
+      pre {
+        max-height: 560px;
+        overflow: auto;
+        margin: 12px 0 0;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #18242c;
+        color: #edf4f5;
+        font: 0.78rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .footer {
+        margin-top: 46px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.83rem;
+      }
+      @media (max-width: 900px) {
+        .hero, .decision-grid { grid-template-columns: 1fr; }
+        .decision-wide { grid-column: auto; }
+        .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .source-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 560px) {
+        .topbar-inner, .shell { width: min(100% - 22px, 1180px); }
+        main { padding-top: 24px; }
+        .metrics, .source-grid, .gallery { grid-template-columns: 1fr; }
+        .panel { padding: 16px; }
+        .anchor-nav { margin-right: -2px; margin-left: -2px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="#main">OSSIE <span>/ Plan 147 review</span></a>
+        <a href="./147-plan-147-human-review-bundle.md">Open source bundle</a>
+      </div>
+    </header>
+
+    <main id="main" class="shell">
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Plan 147 · UI quality program</p>
+          <h1 id="page-title">Human review workspace</h1>
+          <p class="lede">A single place to inspect the recorded evidence, review visual baselines, and make the decisions needed before this plan can close.</p>
+        </div>
+        <aside class="status-card" aria-label="Current plan status">
+          <span class="pill">Agent accepted</span>
+          <strong>Human closeout required</strong>
+          <small>Tests and evidence are prepared; completion remains intentionally gated.</small>
+        </aside>
+      </section>
+
+      <nav class="anchor-nav" aria-label="Review sections">
+        <a href="#decisions">Decisions</a>
+        <a href="#sources">Source files</a>
+        <a href="#evidence">Screenshots</a>
+        <a href="#checklist">Closeout checklist</a>
+        <a href="#bundle-text">Bundle text</a>
+      </nav>
+
+      <section class="metrics" aria-label="Review summary">
+        <div class="metric"><strong>0</strong><span>known test or build failures</span></div>
+        <div class="metric"><strong id="screenshotMetric">…</strong><span>linked screenshots loaded</span></div>
+        <div class="metric"><strong>4</strong><span>decision areas to resolve</span></div>
+        <div class="metric"><strong>1</strong><span>environment capability blocked</span></div>
+      </section>
+
+      <section id="decisions" class="section" aria-labelledby="decisions-title">
+        <h2 id="decisions-title">Decisions needed</h2>
+        <p class="section-intro">Choose the disposition that matches your review. These selections are saved only in this browser; they are not submitted to the server.</p>
+        <div class="panel">
+          <form id="decisionForm">
+            <div class="decision-grid">
+              <fieldset>
+                <legend>1. Project route ownership</legend>
+                <p class="decision-note">For <code>/projects/:projectId</code>, the current route renders the legacy redirect fallback. This is a product/route-ownership decision.</p>
+                <label class="choice"><input type="radio" name="route" value="keep-redirect" /> Keep <code>LegacyProjectRedirect</code> as the route owner.</label>
+                <label class="choice"><input type="radio" name="route" value="mount-workspace" /> Mount <code>ProjectWorkspacePage</code> as the route owner.</label>
+                <label class="choice"><input type="radio" name="route" value="defer" /> Defer this decision and keep the candidate open.</label>
+              </fieldset>
+
+              <fieldset>
+                <legend>2. P2/P3 and residual findings</legend>
+                <p class="decision-note">Review P2-001, P2-006, and the remaining residuals against the screenshots and linked blind reviews.</p>
+                <label class="choice"><input type="radio" name="findings" value="accept" /> Accept the recorded dispositions and close these findings.</label>
+                <label class="choice"><input type="radio" name="findings" value="follow-up" /> Send selected findings through another bounded implementation cycle.</label>
+                <label class="choice"><input type="radio" name="findings" value="product-decision" /> Hold for a broader product/design decision.</label>
+              </fieldset>
+
+              <fieldset>
+                <legend>3. Visual baselines</legend>
+                <p class="decision-note">Inspect the gallery for shared foundation, shared shell, public reader, and Projects fallback changes.</p>
+                <label class="choice"><input type="radio" name="baselines" value="accept" /> Accept the visual differences shown.</label>
+                <label class="choice"><input type="radio" name="baselines" value="follow-up" /> Request a visual follow-up before closeout.</label>
+                <label class="choice"><input type="radio" name="baselines" value="unclear" /> I need more context before deciding.</label>
+              </fieldset>
+
+              <fieldset>
+                <legend>4. Extension toolbar evidence</legend>
+                <p class="decision-note">The page and extension flow were checked, but toolbar-icon activation was unavailable in this environment.</p>
+                <label class="choice"><input type="radio" name="extension" value="verify-later" /> Verify the real toolbar popup in a capable browser environment.</label>
+                <label class="choice"><input type="radio" name="extension" value="accept-blocked" /> Accept this capability as blocked for this run.</label>
+              </fieldset>
+
+              <fieldset class="decision-wide">
+                <legend>Reviewer notes</legend>
+                <p class="decision-note">Record findings or instructions for the next bounded cycle. Do not paste credentials, cookies, private URLs, or customer data.</p>
+                <textarea id="reviewNotes" name="notes" placeholder="What should be accepted, changed, or checked next?"></textarea>
+              </fieldset>
+            </div>
+            <div class="actions">
+              <button type="submit">Save review locally</button>
+              <button class="secondary" id="copySummary" type="button">Copy decision summary</button>
+              <span class="save-status" id="saveStatus" role="status" aria-live="polite"></span>
+            </div>
+          </form>
+          <div class="callout"><strong>Closeout rule:</strong> the plan stays incomplete until the human decisions are recorded, accepted findings are verified, and the final reconciliation is complete.</div>
+        </div>
+      </section>
+
+      <section id="sources" class="section" aria-labelledby="sources-title">
+        <h2 id="sources-title">Source files</h2>
+        <p class="section-intro">These are the canonical records behind this dashboard.</p>
+        <div class="source-grid">
+          <a class="source-card" href="./147-plan-147-human-review-bundle.md"><strong>Human review bundle</strong><span>Primary review record and decision prompts</span></a>
+          <a class="source-card" href="./147-ossie-ui-quality-program-ledger.md"><strong>Canonical ledger</strong><span>Findings, evidence, checkpoints, and rollback notes</span></a>
+          <a class="source-card" href="./147-project-workspace-legacy-fallback-review-a.md"><strong>Blind review A</strong><span>Project fallback candidate review</span></a>
+          <a class="source-card" href="./147-project-workspace-legacy-fallback-review-b.md"><strong>Blind review B</strong><span>Independent Project fallback review</span></a>
+          <a class="source-card" href="/plan147-plan/147-ossie-ui-quality-program.md"><strong>Active child plan</strong><span>Acceptance criteria and completion checklist</span></a>
+        </div>
+      </section>
+
+      <section id="evidence" class="section" aria-labelledby="evidence-title">
+        <h2 id="evidence-title">Screenshot evidence</h2>
+        <p class="section-intro">The gallery is generated from every PNG/JPEG link in the human-review bundle. Select an image to open the full-size evidence file.</p>
+        <div class="panel">
+          <div class="gallery-toolbar">
+            <label for="evidenceFilter">Filter screenshots</label>
+            <input class="search" id="evidenceFilter" type="search" placeholder="Try: public, zoom, projects, extension" />
+            <span class="gallery-count" id="galleryCount" role="status" aria-live="polite">Loading evidence…</span>
+          </div>
+          <div id="gallery" class="gallery" aria-live="polite"><div class="empty">Loading linked screenshots from the bundle…</div></div>
+        </div>
+      </section>
+
+      <section id="checklist" class="section" aria-labelledby="checklist-title">
+        <h2 id="checklist-title">Closeout checklist</h2>
+        <p class="section-intro">These checkboxes are a private local aid for the human reviewer. They do not close the plan automatically.</p>
+        <div class="panel">
+          <ul class="checklist">
+            <li><label><input type="checkbox" data-check="evidence" /> I reviewed the evidence and screenshots relevant to my decision.</label></li>
+            <li><label><input type="checkbox" data-check="route" /> I recorded a route-ownership decision or explicitly deferred it.</label></li>
+            <li><label><input type="checkbox" data-check="findings" /> I recorded dispositions for P2/P3 and residual findings.</label></li>
+            <li><label><input type="checkbox" data-check="visual" /> I reviewed the visual baselines and noted any follow-up.</label></li>
+            <li><label><input type="checkbox" data-check="extension" /> I recorded the extension-toolbar decision and its evidence limitation.</label></li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="bundle-text" class="section" aria-labelledby="bundle-title">
+        <h2 id="bundle-title">Bundle text</h2>
+        <p class="section-intro">The raw Markdown is loaded below for quick reference. Use the source link above if you want the original file directly.</p>
+        <details class="panel">
+          <summary>Show the complete human-review bundle text</summary>
+          <pre id="rawBundle">Loading bundle text…</pre>
+        </details>
+      </section>
+
+      <footer class="footer">
+        This dashboard is a review aid for synthetic Plan 147 evidence. It does not change Ossie data or record a human decision on the server.
+      </footer>
+    </main>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var stateKey = "ossie-plan147-review-dashboard-v1";
+        var bundlePath = "./147-plan-147-human-review-bundle.md";
+        var gallery = document.getElementById("gallery");
+        var galleryCount = document.getElementById("galleryCount");
+        var screenshotMetric = document.getElementById("screenshotMetric");
+        var filter = document.getElementById("evidenceFilter");
+        var form = document.getElementById("decisionForm");
+        var saveStatus = document.getElementById("saveStatus");
+        var rawBundle = document.getElementById("rawBundle");
+        var cards = [];
+
+        function humanize(value) {
+          return value
+            .replace(/^\.\//, "")
+            .replace(/\.(png|jpe?g|webp|gif)$/i, "")
+            .replace(/[-_]+/g, " ")
+            .replace(/\b\w/g, function (letter) { return letter.toUpperCase(); });
+        }
+
+        function saveState() {
+          var state = {
+            notes: document.getElementById("reviewNotes").value,
+            decisions: {},
+            checks: {}
+          };
+          Array.prototype.forEach.call(form.querySelectorAll("input[type=radio]:checked"), function (input) {
+            state.decisions[input.name] = input.value;
+          });
+          Array.prototype.forEach.call(document.querySelectorAll("[data-check]"), function (input) {
+            state.checks[input.getAttribute("data-check")] = input.checked;
+          });
+          try { localStorage.setItem(stateKey, JSON.stringify(state)); } catch (error) {}
+          saveStatus.textContent = "Saved locally in this browser.";
+        }
+
+        function restoreState() {
+          var stored;
+          try { stored = JSON.parse(localStorage.getItem(stateKey) || "null"); } catch (error) { stored = null; }
+          if (!stored) return;
+          document.getElementById("reviewNotes").value = stored.notes || "";
+          Object.keys(stored.decisions || {}).forEach(function (name) {
+            var input = form.querySelector("input[name=" + name + "][value=" + stored.decisions[name] + "]");
+            if (input) input.checked = true;
+          });
+          Object.keys(stored.checks || {}).forEach(function (name) {
+            var input = document.querySelector("[data-check=" + name + "]");
+            if (input) input.checked = Boolean(stored.checks[name]);
+          });
+          saveStatus.textContent = "Restored your local review.";
+        }
+
+        function renderGallery(query) {
+          var normalized = (query || "").trim().toLowerCase();
+          var visible = 0;
+          cards.forEach(function (card) {
+            var shown = !normalized || card.dataset.search.indexOf(normalized) !== -1;
+            card.hidden = !shown;
+            if (shown) visible += 1;
+          });
+          galleryCount.textContent = visible + " of " + cards.length + " screenshots shown";
+        }
+
+        function addEvidence(path) {
+          var figure = document.createElement("figure");
+          figure.className = "evidence-card";
+          figure.dataset.search = (path + " " + humanize(path)).toLowerCase();
+
+          var link = document.createElement("a");
+          link.href = path;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.setAttribute("aria-label", "Open full-size evidence: " + humanize(path));
+
+          var image = document.createElement("img");
+          image.loading = "lazy";
+          image.src = path;
+          image.alt = "Evidence screenshot: " + humanize(path);
+          image.addEventListener("error", function () {
+            figure.classList.add("missing");
+          });
+          link.appendChild(image);
+
+          var caption = document.createElement("figcaption");
+          caption.textContent = humanize(path);
+          figure.appendChild(link);
+          figure.appendChild(caption);
+          gallery.appendChild(figure);
+          cards.push(figure);
+        }
+
+        function loadBundle() {
+          fetch(bundlePath, { cache: "no-store" })
+            .then(function (response) {
+              if (!response.ok) throw new Error("Bundle returned " + response.status);
+              return response.text();
+            })
+            .then(function (markdown) {
+              rawBundle.textContent = markdown;
+              var matches = markdown.match(/\]\((\.\/[^)\s]+\.(?:png|jpe?g|webp|gif))\)/gi) || [];
+              var unique = [];
+              matches.forEach(function (match) {
+                var path = match.slice(2, -1);
+                if (unique.indexOf(path) === -1) unique.push(path);
+              });
+              gallery.innerHTML = "";
+              unique.forEach(addEvidence);
+              screenshotMetric.textContent = String(unique.length);
+              renderGallery(filter.value);
+            })
+            .catch(function (error) {
+              rawBundle.textContent = "Unable to load the bundle: " + error.message;
+              gallery.innerHTML = '<div class="empty">The bundle could not be loaded. Open the source Markdown directly or check the server path.</div>';
+              galleryCount.textContent = "Evidence unavailable";
+              screenshotMetric.textContent = "—";
+            });
+        }
+
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          saveState();
+        });
+        document.getElementById("copySummary").addEventListener("click", function () {
+          var lines = ["Plan 147 human review", ""];
+          Array.prototype.forEach.call(form.querySelectorAll("fieldset"), function (fieldset) {
+            var selected = fieldset.querySelector("input[type=radio]:checked");
+            lines.push(fieldset.querySelector("legend").textContent + ": " + (selected ? selected.parentElement.textContent.trim() : "Not decided"));
+          });
+          lines.push("", "Notes:", document.getElementById("reviewNotes").value || "None");
+          var summary = lines.join("\n");
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(summary).then(function () {
+              saveStatus.textContent = "Decision summary copied.";
+            }).catch(function () { saveStatus.textContent = "Copy was blocked; use Save instead."; });
+          } else {
+            saveStatus.textContent = "Clipboard is unavailable; use Save instead.";
+          }
+        });
+        filter.addEventListener("input", function () { renderGallery(filter.value); });
+        Array.prototype.forEach.call(document.querySelectorAll("[data-check]"), function (input) {
+          input.addEventListener("change", saveState);
+        });
+        restoreState();
+        loadBundle();
+      }());
+    </script>
+  </body>
+</html>
