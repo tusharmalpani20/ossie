@@ -153,6 +153,18 @@ adding reader chrome, or selecting another exact route pair are materially
 different choices. The issue is recorded as `needs_human_surface`; no broad
 cross-product rewrite or baseline change was made.
 
+### Additional public-route hardening pass — `3397152`
+
+- [Guide tablet evidence](./147-hardening-guide-tablet-1024.png), [Guide mobile evidence](./147-hardening-guide-mobile-390.png)
+- [Documentation unavailable tablet evidence](./147-hardening-documentation-unavailable-tablet-1024.png), [Demo unavailable tablet evidence](./147-hardening-demo-unavailable-tablet-1024.png)
+
+The second clean pass exercised the synthetic public Guide at 1024px and 390px,
+plus truthful unavailable Documentation and Demo routes. Body/document widths
+matched the viewport; reduced-motion, CSS zoom reflow probes, axe, and console
+checks were recorded in the ledger. The current disposable fixture does not
+provide valid Documentation or Demo publications, so those routes are not
+claimed as populated-reader evidence.
+
 ## Verification summary
 
 - Final web suite: 95 files, 498 tests passed.
