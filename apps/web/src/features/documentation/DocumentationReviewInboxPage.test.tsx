@@ -33,5 +33,8 @@ describe("Documentation Review inbox", () => {
     );
     expect(await screen.findByText(/Product docs/)).toBeInTheDocument();
     expect(screen.getByText(/1 unread/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Documentation review inbox" }),
+    ).toBeInTheDocument();
   });
 });

@@ -34,8 +34,13 @@ export const DocumentationReviewInboxPage = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, projectId, versionSlug]);
   return (
-    <main className={styles.panel}>
-      <h1>Documentation review inbox</h1>
+    <section
+      className={styles.panel}
+      aria-labelledby="documentation-review-inbox-heading"
+    >
+      <h1 id="documentation-review-inbox-heading">
+        Documentation review inbox
+      </h1>
       <p role="status" aria-live="polite">
         {status}
       </p>
@@ -109,6 +114,6 @@ export const DocumentationReviewInboxPage = ({
           Load more notifications
         </Button>
       ) : null}
-    </main>
+    </section>
   );
 };
