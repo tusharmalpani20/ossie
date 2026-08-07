@@ -2362,7 +2362,7 @@ and dedicated services stopped. This supplements but does not close the
 broader 26.6 matrix.
 
 2026-08-07 — native 200% Interactive Demo internal hardening evidence — source
-candidate `e97647e`; evidence-only continuation recorded in the next checkpoint.
+candidate `e97647e`; evidence-only continuation recorded in `2354803`.
 With the guarded synthetic Plan 128 fixture, a real editor login covered the
 active workbench at native Page zoom 200%, including keyboard Scene 1→Scene 2
 selection without a mutation, and the immutable Working Draft preview and
