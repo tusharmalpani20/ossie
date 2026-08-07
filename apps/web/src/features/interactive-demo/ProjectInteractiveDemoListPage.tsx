@@ -110,7 +110,20 @@ export const ProjectInteractiveDemoListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>Loading interactive demos...</div>
+        <section
+          className={styles.state}
+          aria-labelledby="interactive-demos-state-heading"
+        >
+          <h1
+            className={styles.stateTitle}
+            id="interactive-demos-state-heading"
+          >
+            Interactive demos
+          </h1>
+          <p className={styles.stateMessage} role="status">
+            Loading interactive demos...
+          </p>
+        </section>
       </PortalShell>
     );
   }
@@ -124,12 +137,23 @@ export const ProjectInteractiveDemoListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>
-          <div>Sign in to view interactive demos.</div>
+        <section
+          className={styles.state}
+          aria-labelledby="interactive-demos-state-heading"
+        >
+          <h1
+            className={styles.stateTitle}
+            id="interactive-demos-state-heading"
+          >
+            Interactive demos
+          </h1>
+          <p className={styles.stateMessage}>
+            Sign in to view interactive demos.
+          </p>
           <a className={styles.stateLink} href={signInUrl(currentPath)}>
             Sign in
           </a>
-        </div>
+        </section>
       </PortalShell>
     );
   }
@@ -143,7 +167,18 @@ export const ProjectInteractiveDemoListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>Project was not found.</div>
+        <section
+          className={styles.state}
+          aria-labelledby="interactive-demos-state-heading"
+        >
+          <h1
+            className={styles.stateTitle}
+            id="interactive-demos-state-heading"
+          >
+            Interactive demos
+          </h1>
+          <p className={styles.stateMessage}>Project was not found.</p>
+        </section>
       </PortalShell>
     );
   }
@@ -157,15 +192,26 @@ export const ProjectInteractiveDemoListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>
-          <div>Could not load interactive demos.</div>
+        <section
+          className={styles.state}
+          aria-labelledby="interactive-demos-state-heading"
+        >
+          <h1
+            className={styles.stateTitle}
+            id="interactive-demos-state-heading"
+          >
+            Interactive demos
+          </h1>
+          <p className={styles.stateMessage} role="alert">
+            Could not load interactive demos.
+          </p>
           <Button
             variant="secondary"
             onClick={() => setReloadKey((key) => key + 1)}
           >
             Retry
           </Button>
-        </div>
+        </section>
       </PortalShell>
     );
   }

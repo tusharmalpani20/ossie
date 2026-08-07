@@ -3,6 +3,56 @@ import { describe, expect, it, vi } from "vitest";
 import { ProjectDocumentationSiteListPage } from "./ProjectDocumentationSiteListPage";
 
 describe("ProjectDocumentationSiteListPage", () => {
+  it("announces loading and error states with a page heading", async () => {
+    const pendingSites = new Promise<{ documentation_sites: [] }>(() => undefined);
+    const { rerender } = render(
+      <ProjectDocumentationSiteListPage
+        projectId="project"
+        versionSlug="main"
+        canManage={false}
+        loadSites={async () => pendingSites}
+        loadReviewInbox={async () => ({
+          unread_count: 0,
+          items: [],
+          next_cursor: null,
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Documentation Sites", level: 1 }),
+    ).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Loading Documentation Sites…",
+    );
+
+    rerender(
+      <ProjectDocumentationSiteListPage
+        projectId="project-error"
+        versionSlug="main"
+        canManage={false}
+        loadSites={async () => {
+          throw new Error("Network failed");
+        }}
+        loadReviewInbox={async () => ({
+          unread_count: 0,
+          items: [],
+          next_cursor: null,
+        })}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Documentation Sites",
+        level: 1,
+      }),
+    ).toBeVisible();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Documentation Sites could not be loaded.",
+    );
+  });
+
   it("shows an actionable Admin empty state and creates the first Site", async () => {
     const createSite = vi.fn(async () => ({
       site: { id: "site", name: "Product docs", description: null },

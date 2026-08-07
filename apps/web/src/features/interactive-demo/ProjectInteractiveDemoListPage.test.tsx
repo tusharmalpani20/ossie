@@ -1,9 +1,87 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { ApiClientError } from "../../lib/api";
 import { ProjectInteractiveDemoListPage } from "./ProjectInteractiveDemoListPage";
 
 const now = "2026-07-19T10:00:00.000Z";
 describe("ProjectInteractiveDemoListPage", () => {
+  it("announces the loading state with a page heading and status", () => {
+    render(
+      <ProjectInteractiveDemoListPage
+        projectId="project_1"
+        projectVersionId="version_2"
+        versionSlug="q3"
+        renderShell={false}
+        loadDemos={() => new Promise(() => undefined)}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Interactive demos",
+        level: 1,
+      }),
+    ).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Loading interactive demos...",
+    );
+  });
+
+  it.each([
+    [
+      "unauthenticated",
+      new ApiClientError({
+        kind: "unauthenticated",
+        status: 401,
+        type: "unauthenticated",
+        message: "Authentication is required",
+      }),
+      "Sign in to view interactive demos.",
+    ],
+    [
+      "not found",
+      new ApiClientError({
+        kind: "not_found",
+        status: 404,
+        type: "project_not_found",
+        message: "Project was not found",
+      }),
+      "Project was not found.",
+    ],
+    [
+      "generic error",
+      new Error("Network failed"),
+      "Could not load interactive demos.",
+    ],
+  ])(
+    "names the %s state and preserves its message",
+    async (_, error, message) => {
+      render(
+        <ProjectInteractiveDemoListPage
+          projectId="project_1"
+          projectVersionId="version_2"
+          versionSlug="q3"
+          renderShell={false}
+          loadDemos={async () => {
+            throw error;
+          }}
+        />,
+      );
+
+      expect(
+        await screen.findByRole("heading", {
+          name: "Interactive demos",
+          level: 1,
+        }),
+      ).toBeVisible();
+      const messageNode =
+        error instanceof Error && !(error instanceof ApiClientError)
+          ? screen.getByRole("alert")
+          : screen.getByText(message);
+      expect(messageNode).toHaveTextContent(message);
+    },
+  );
+
   it("renders Edition summaries for the selected Project Version", async () => {
     const loadDemos = vi.fn().mockResolvedValue({
       interactive_demo_editions: [

@@ -140,9 +140,19 @@ describe("ProjectCaptureSessionListPage", () => {
   it("renders capture sessions in response order with detail links", async () => {
     const { loadCaptureSessions } = renderPage();
 
-    expect(screen.getByText("Loading capture sessions...")).toBeInTheDocument();
     expect(
-      await screen.findByRole("heading", { name: "Capture sessions" }),
+      screen.getByRole("heading", {
+        name: "Capture sessions",
+        level: 1,
+      }),
+    ).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Loading capture sessions...",
+    );
+    expect(
+      await screen.findByRole("region", {
+        name: "Capture sessions workspace",
+      }),
     ).toBeInTheDocument();
 
     const rows = screen.getAllByRole("article");
@@ -277,7 +287,9 @@ describe("ProjectCaptureSessionListPage", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("heading", { name: "Capture sessions" }),
+      await screen.findByRole("region", {
+        name: "Capture sessions workspace",
+      }),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "New Capture Session" }),
@@ -301,7 +313,9 @@ describe("ProjectCaptureSessionListPage", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("heading", { name: "Capture sessions" }),
+      await screen.findByRole("region", {
+        name: "Capture sessions workspace",
+      }),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "New Capture Session" }),
@@ -330,7 +344,9 @@ describe("ProjectCaptureSessionListPage", () => {
     const { createCaptureSession } = renderPage();
 
     expect(
-      await screen.findByRole("heading", { name: "Capture sessions" }),
+      await screen.findByRole("region", {
+        name: "Capture sessions workspace",
+      }),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "New Capture Session" }),
@@ -360,7 +376,9 @@ describe("ProjectCaptureSessionListPage", () => {
     renderPage({ createCaptureSession, navigate });
 
     expect(
-      await screen.findByRole("heading", { name: "Capture sessions" }),
+      await screen.findByRole("region", {
+        name: "Capture sessions workspace",
+      }),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "New Capture Session" }),
@@ -400,7 +418,9 @@ describe("ProjectCaptureSessionListPage", () => {
     });
 
     expect(
-      await screen.findByRole("heading", { name: "Capture sessions" }),
+      await screen.findByRole("region", {
+        name: "Capture sessions workspace",
+      }),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "New Capture Session" }),
@@ -443,7 +463,9 @@ describe("ProjectCaptureSessionListPage", () => {
     });
 
     expect(
-      await screen.findByRole("heading", { name: "Capture sessions" }),
+      await screen.findByRole("region", {
+        name: "Capture sessions workspace",
+      }),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "New Capture Session" }),
@@ -481,7 +503,9 @@ describe("ProjectCaptureSessionListPage", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Capture sessions" }),
+      await screen.findByRole("region", {
+        name: "Capture sessions workspace",
+      }),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "New Capture Session" }),
@@ -517,7 +541,9 @@ describe("ProjectCaptureSessionListPage", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Capture sessions" }),
+      await screen.findByRole("region", {
+        name: "Capture sessions workspace",
+      }),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "New Capture Session" }),
@@ -548,7 +574,9 @@ describe("ProjectCaptureSessionListPage", () => {
     renderPage({ createCaptureSession, navigate });
 
     expect(
-      await screen.findByRole("heading", { name: "Capture sessions" }),
+      await screen.findByRole("region", {
+        name: "Capture sessions workspace",
+      }),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "New Capture Session" }),
@@ -596,6 +624,9 @@ describe("ProjectCaptureSessionListPage", () => {
     expect(
       await screen.findByText("Sign in to view capture sessions."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Capture sessions", level: 1 }),
+    ).toBeVisible();
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/login?next=%2Fprojects%2Fproject_1%2Fcapture-sessions",
@@ -619,6 +650,9 @@ describe("ProjectCaptureSessionListPage", () => {
     expect(
       await screen.findByText("Project was not found."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Capture sessions", level: 1 }),
+    ).toBeVisible();
   });
 
   it("renders generic errors and supports retry", async () => {
@@ -632,6 +666,12 @@ describe("ProjectCaptureSessionListPage", () => {
     expect(
       await screen.findByText("Could not load capture sessions."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Capture sessions", level: 1 }),
+    ).toBeVisible();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not load capture sessions.",
+    );
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => expect(loadCaptureSessions).toHaveBeenCalledTimes(2));

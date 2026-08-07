@@ -213,7 +213,14 @@ export const ProjectGuideListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>Loading guides...</div>
+        <section className={styles.state} aria-labelledby="guides-state-heading">
+          <h1 className={styles.stateTitle} id="guides-state-heading">
+            Guides
+          </h1>
+          <p className={styles.stateMessage} role="status">
+            Loading guides...
+          </p>
+        </section>
       </PortalShell>
     );
   }
@@ -227,12 +234,15 @@ export const ProjectGuideListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>
-          <div>Sign in to view guides.</div>
+        <section className={styles.state} aria-labelledby="guides-state-heading">
+          <h1 className={styles.stateTitle} id="guides-state-heading">
+            Guides
+          </h1>
+          <p className={styles.stateMessage}>Sign in to view guides.</p>
           <a className={styles.stateLink} href={signInUrl(currentPath)}>
             Sign in
           </a>
-        </div>
+        </section>
       </PortalShell>
     );
   }
@@ -246,7 +256,12 @@ export const ProjectGuideListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>Project was not found.</div>
+        <section className={styles.state} aria-labelledby="guides-state-heading">
+          <h1 className={styles.stateTitle} id="guides-state-heading">
+            Guides
+          </h1>
+          <p className={styles.stateMessage}>Project was not found.</p>
+        </section>
       </PortalShell>
     );
   }
@@ -260,8 +275,13 @@ export const ProjectGuideListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>
-          <div>Could not load guides.</div>
+        <section className={styles.state} aria-labelledby="guides-state-heading">
+          <h1 className={styles.stateTitle} id="guides-state-heading">
+            Guides
+          </h1>
+          <p className={styles.stateMessage} role="alert">
+            Could not load guides.
+          </p>
           <Button
             variant="secondary"
             size="sm"
@@ -270,7 +290,7 @@ export const ProjectGuideListPage = ({
           >
             Retry
           </Button>
-        </div>
+        </section>
       </PortalShell>
     );
   }

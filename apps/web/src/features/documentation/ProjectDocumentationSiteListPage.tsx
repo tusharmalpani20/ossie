@@ -95,9 +95,33 @@ export const ProjectDocumentationSiteListPage = ({
   };
 
   if (status === "loading")
-    return <p role="status">Loading Documentation Sites…</p>;
+    return (
+      <section
+        className={styles.state}
+        aria-labelledby="documentation-sites-state-heading"
+      >
+        <h1 className={styles.stateTitle} id="documentation-sites-state-heading">
+          Documentation Sites
+        </h1>
+        <p className={styles.stateMessage} role="status">
+          Loading Documentation Sites…
+        </p>
+      </section>
+    );
   if (status === "error")
-    return <p role="alert">Documentation Sites could not be loaded.</p>;
+    return (
+      <section
+        className={styles.state}
+        aria-labelledby="documentation-sites-state-heading"
+      >
+        <h1 className={styles.stateTitle} id="documentation-sites-state-heading">
+          Documentation Sites
+        </h1>
+        <p className={styles.stateMessage} role="alert">
+          Documentation Sites could not be loaded.
+        </p>
+      </section>
+    );
 
   return (
     <div className={styles.page}>

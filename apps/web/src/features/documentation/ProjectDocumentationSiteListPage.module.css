@@ -4,6 +4,26 @@
   width: 100%;
 }
 
+.state {
+  display: grid;
+  gap: var(--ossie-space-2);
+  max-width: 40rem;
+  margin: 4rem auto 0;
+  text-align: center;
+}
+
+.stateTitle {
+  margin: 0;
+  color: var(--ossie-color-text);
+  font-size: 1.25rem;
+  line-height: 1.25;
+}
+
+.stateMessage {
+  margin: 0;
+  color: var(--ossie-color-muted);
+}
+
 .header {
   align-items: end;
   display: flex;

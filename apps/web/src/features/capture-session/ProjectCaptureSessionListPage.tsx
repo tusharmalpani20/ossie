@@ -282,7 +282,17 @@ export const ProjectCaptureSessionListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>Loading capture sessions...</div>
+        <section
+          className={styles.state}
+          aria-labelledby="capture-sessions-state-heading"
+        >
+          <h1 className={styles.stateTitle} id="capture-sessions-state-heading">
+            Capture sessions
+          </h1>
+          <p className={styles.stateMessage} role="status">
+            Loading capture sessions...
+          </p>
+        </section>
       </PortalShell>
     );
   }
@@ -296,12 +306,18 @@ export const ProjectCaptureSessionListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>
-          <div>Sign in to view capture sessions.</div>
+        <section
+          className={styles.state}
+          aria-labelledby="capture-sessions-state-heading"
+        >
+          <h1 className={styles.stateTitle} id="capture-sessions-state-heading">
+            Capture sessions
+          </h1>
+          <p className={styles.stateMessage}>Sign in to view capture sessions.</p>
           <a className={styles.stateLink} href={signInUrl(currentPath)}>
             Sign in
           </a>
-        </div>
+        </section>
       </PortalShell>
     );
   }
@@ -315,7 +331,15 @@ export const ProjectCaptureSessionListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>Project was not found.</div>
+        <section
+          className={styles.state}
+          aria-labelledby="capture-sessions-state-heading"
+        >
+          <h1 className={styles.stateTitle} id="capture-sessions-state-heading">
+            Capture sessions
+          </h1>
+          <p className={styles.stateMessage}>Project was not found.</p>
+        </section>
       </PortalShell>
     );
   }
@@ -329,8 +353,16 @@ export const ProjectCaptureSessionListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <div className={styles.state}>
-          <div>Could not load capture sessions.</div>
+        <section
+          className={styles.state}
+          aria-labelledby="capture-sessions-state-heading"
+        >
+          <h1 className={styles.stateTitle} id="capture-sessions-state-heading">
+            Capture sessions
+          </h1>
+          <p className={styles.stateMessage} role="alert">
+            Could not load capture sessions.
+          </p>
           <Button
             variant="secondary"
             size="sm"
@@ -339,7 +371,7 @@ export const ProjectCaptureSessionListPage = ({
           >
             Retry
           </Button>
-        </div>
+        </section>
       </PortalShell>
     );
   }
