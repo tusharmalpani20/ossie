@@ -2585,6 +2585,33 @@ semantic change was introduced; Project workspace route ownership, P2-001,
 installed-toolbar activation, the broader matrix, and human closeout remain
 open.
 
+2026-08-07 — `projects-workspace` route-neutral legacy fallback continuation —
+starting commit `8a07b34`; candidate `879a1bd`. TDD red/green added App tests
+for the unresolved loading request and 404 failure response, then the minimal
+`LegacyProjectRedirect` fallback gained a named level-one heading plus
+`role=status`/`role=alert`; the existing fetch, successful Project Version
+redirect, URL suffix/search/hash handling, and terminal not-found behavior are
+unchanged. Focused App/workspace verification passed 31/31. Real anonymous
+Chromium at `/projects/project_1` preserved the URL and expected Project 401;
+desktop 1440×900, narrow 390×844, and native Chrome Page zoom 200%
+(`devicePixelRatio=2`, 525px CSS width) had no horizontal overflow and axe
+0/0, with no page errors beyond expected development notices. Evidence is in
+the three linked screenshots and the two bounded continuation reviews
+`147-project-workspace-legacy-fallback-review-a.md` and
+`147-project-workspace-legacy-fallback-review-b.md`. This is a route-neutral
+fallback correction, not acceptance or mounting of `ProjectWorkspacePage`;
+the Project workspace family/P2-006 remains `needs_human_surface` pending a
+human route-ownership decision. Broad gates for the candidate are rerun below.
+Final broad gates then passed: `pnpm -r --if-present test` passed all active
+workspace suites, including web 95 files/511 tests, server 127 files/553 tests,
+extension 19 files/140 tests, and docs 4 files/13 tests; `pnpm check-types`
+passed 13/13 tasks; `pnpm lint` passed 14/14 with the existing 89 server
+warnings and zero errors; `pnpm build` passed 13/13 with the existing web
+chunk-size warning; `pnpm check-css-tokens` passed 130 definitions/123
+consumers; and `git diff --check` passed. The repository-required `rtk`
+prefix remains unavailable, so direct-command fallbacks were used and
+recorded.
+
 Record future entries as:
 
 ```text

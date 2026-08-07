@@ -140,6 +140,32 @@ axe result is claimed. Review A records the cycle as incomplete; Review B
 requires human direction on whether the legacy route should be replaced,
 wrapped, or left canonical.
 
+### Legacy Project redirect fallback — `879a1bd` — bounded continuation
+
+- [Review A](./147-project-workspace-legacy-fallback-review-a.md)
+- [Review B](./147-project-workspace-legacy-fallback-review-b.md)
+- [Desktop evidence](./147-project-workspace-legacy-fallback-after-desktop-1440.png)
+- [Narrow evidence](./147-project-workspace-legacy-fallback-after-mobile-390.png)
+- [Native 200% evidence](./147-project-workspace-legacy-fallback-after-native-200-525px.png)
+- [Canonical ledger evidence](./147-ossie-ui-quality-program-ledger.md#evidence-ledger)
+
+This route-neutral continuation repairs only the fallback presentation that is
+actually mounted by the existing `/projects/:projectId` route. TDD added
+loading and failed-request assertions; the focused App/workspace run passed
+31/31. Anonymous Chromium kept the existing URL and received the expected
+Project `401`; the fallback now exposes `Opening Project` plus `role=status`
+while waiting, or `Project not found` plus `role=alert` after failure. Desktop,
+390px narrow, and native Chrome Page zoom 200% (`dpr=2`, 525px CSS width) had
+equal client/scroll widths and axe 0 violations, with no page errors beyond
+expected development notices. No redirect target, API, permission, tenant,
+Project Version, Publication, public-link, immutable-content, or mutation
+behavior changed.
+
+Both bounded continuation reviews accept this presentation correction pending
+human review. The `projects-workspace` family and P2-006 remain
+`needs_human_surface`: this evidence does not mount or accept
+`ProjectWorkspacePage`, and route ownership still requires human direction.
+
 ### P2-001 cross-product consistency — needs human surface
 
 - [Canonical scope preflight](./147-ossie-ui-quality-program-ledger.md#p2-001-cross-product-consistency-scope-preflight)
@@ -357,6 +383,18 @@ This is verification-only evidence. It introduces no new candidate, screenshot,
 product behavior, permission, domain, or mutation claim. The Project workspace
 route decision, P2-001 scope decision, installed-toolbar activation block,
 broader cross-product matrix, and required human closeout remain open.
+
+## Final broad gate rerun for the bounded fallback — 2026-08-07
+
+After candidate `879a1bd`, the repository gates passed again: recursive tests
+passed all active suites (web 95 files/511 tests, server 127 files/553 tests,
+extension 19 files/140 tests, docs 4 files/13 tests); `pnpm check-types` passed
+13/13 tasks; `pnpm lint` passed 14/14 with the existing 89 server warnings and
+zero errors; `pnpm build` passed 13/13 with the existing web chunk-size warning;
+`pnpm check-css-tokens` passed 130 definitions/123 consumers; and
+`git diff --check` passed. Direct commands were used because `rtk` remains
+unavailable. This closes engineering verification for the bounded fallback,
+not the broader Plan 147 matrix or human review.
 
 ## Native 200% browser-zoom verification — 2026-08-07
 
