@@ -2247,8 +2247,9 @@ screenshots remain explicitly unclaimed because the runner cannot safely delay
 responses, while P2-001, `/projects/:projectId` route ownership, browser zoom,
 extension toolbar, and the broader 26.6 matrix remain separate.
 
-2026-08-07 — final engineering gates and second clean browser pass — starting
-commit `221517a`; documentation/evidence follow-up. The exact repository-wide
+2026-08-07 — final engineering gates and second clean browser pass — source
+verification commit `221517a`; closeout documentation/screenshots commit
+`6c26074`. The exact repository-wide
 `pnpm -r --if-present test` run passed across all active workspaces. `pnpm
 check-types` passed 14/14 packages; `pnpm lint` passed 13/13 packages with 89
 existing server warnings and zero errors; `pnpm build` passed 13/13 packages;
