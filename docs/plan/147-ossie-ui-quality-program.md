@@ -1993,7 +1993,9 @@ Documentation reader/operation, Interactive Demo reader/embed/access states,
 direct extension popup, and supplemental authenticated Projects/Documentation
 states, isolated anonymous Documentation reader, and the Guide reader/embed/
 editor/viewer/access samples, plus shared foundation/entry/fallback samples,
-the Interactive Demo editor/preview/Revision/viewer/lifecycle samples, while
+the Interactive Demo editor/preview/Revision/viewer/lifecycle samples, and the
+authenticated Documentation authoring/Page editor/draft-preview/Review Inbox
+states (including the localized Review Inbox landmark repair), while
 installed extension-toolbar activation, direct-manipulation breadth, and
 unclaimed loading/denied/populated states remain explicitly limited or
 separately evidenced.
@@ -2373,6 +2375,27 @@ read-only states; all sampled documents stayed within 517px and were axe 0/0.
 Zoom was restored to 100%, browser storage cleared, services stopped, and the
 final Documentation fixture was reseeded. This supplements but does not close
 the broader 26.6 matrix.
+
+2026-08-07 — native 200% Documentation authoring/review continuation and
+landmark repair — source candidate `8055143`; implementation/evidence commit
+`ab10940`. Separate synthetic owner and viewer sessions covered the Site
+workbench Author/Site settings/Review/Content states, Install Page editor,
+saved-draft preview, and Review Inbox at native Chrome Page zoom 200% with
+`devicePixelRatio=2`, a 525px CSS viewport, and no horizontal overflow. The
+owner and viewer preview, Review Inbox, and viewer authoring/Page states were
+axe 0/0; Content and Page editor retained only known overlapped-background
+textarea probes. The initial Review Inbox audit found three moderate nested,
+duplicate, and unnamed `main` landmarks. TDD red/green coverage changed only
+the route-owned content to a labeled section, and both role sessions were
+rechecked at native 200% with axe 0/0. No mutation was submitted; screenshots
+were visually inspected, zoom was restored to 100%, browser storage cleared,
+services stopped, and the Documentation fixture remained the final disposable
+database state. This is bounded evidence and a localized accessibility repair;
+it does not close the broader 26.6 matrix or infer Plan 147 completion.
+
+The repair is a localized continuation of the previously reviewed
+`documentation-authoring` candidate; no new blind-review cycle is claimed, and
+the prior review artifacts remain the review record for that family.
 
 2026-08-07 — native 200% Guide-family hardening evidence — source candidate
 `953a7fa`, evidence-only continuation recorded in `2922665`. With

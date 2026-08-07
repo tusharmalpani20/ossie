@@ -424,6 +424,17 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   [Revisions](./147-continuation-auth-demo-revisions-zoom-200.png),
   [viewer](./147-continuation-auth-demo-viewer-zoom-200.png), and
   [archived](./147-continuation-auth-demo-archived-zoom-200.png).
+- Documentation authoring/review continuation: separate synthetic owner and
+  viewer sessions covered the Site workbench task states, Install Page editor,
+  saved-draft preview, and Review Inbox at native 200% (`dpr=2`, 525px CSS
+  viewport, no horizontal overflow). Author/Review, preview, viewer states,
+  and the repaired Review Inbox were axe 0/0; Content and Page editor retain
+  known overlapped-background textarea probes. The initial Review Inbox
+  nested-main finding was fixed test-first in `ab10940` and rechecked in both
+  roles. No mutation was submitted. Evidence: [author](./147-continuation-auth-documentation-author-zoom-200.png),
+  [Page editor](./147-continuation-auth-documentation-page-editor-zoom-200.png),
+  [preview](./147-continuation-auth-documentation-preview-zoom-200.png), and
+  [viewer Review Inbox](./147-continuation-viewer-documentation-review-inbox-zoom-200.png).
 
 The browser zoom was restored to 100%, extension storage was cleared, the
 dedicated services were stopped, and the disposable database was reseeded with
