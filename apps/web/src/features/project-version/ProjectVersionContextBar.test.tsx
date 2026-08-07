@@ -2,9 +2,25 @@
  * @fileoverview Project Version context bar tests.
  */
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectVersionContextBar } from "./ProjectVersionContextBar";
+
+const contextBarStyles = readFileSync(
+  resolve("src/features/project-version/ProjectVersionContextBar.module.css"),
+  "utf8",
+);
+
+const narrowContextStart = contextBarStyles.indexOf("@media (max-width: 52rem)");
+const narrowContextEnd = contextBarStyles.indexOf(
+  "@media (max-width: 32rem)",
+);
+const narrowContextStyles = contextBarStyles.slice(
+  narrowContextStart,
+  narrowContextEnd,
+);
 
 const project = {
   id: "project_1",
@@ -21,6 +37,20 @@ const main = {
 };
 
 describe("ProjectVersionContextBar", () => {
+  it("keeps Project Version identity readable beside actions at narrow widths", () => {
+    expect(narrowContextStyles).toContain(".identity {");
+    expect(narrowContextStyles).toContain("display: grid;");
+    expect(narrowContextStyles).toContain(
+      "grid-template-columns: minmax(0, 1fr) auto;",
+    );
+    expect(narrowContextStyles).toContain(
+      ".identity > span:first-child {\n    grid-column: 1 / -1;",
+    );
+    expect(narrowContextStyles).toContain(
+      ".identity > span[aria-hidden=\"true\"] {\n    display: none;",
+    );
+  });
+
   it("shows textual Default/Archived context and navigates canonically", () => {
     const navigate = vi.fn();
     render(

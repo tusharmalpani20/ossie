@@ -73,12 +73,6 @@
   .selector select {
     width: 100%;
   }
-}
-
-@media (max-width: 32rem) {
-  .bar {
-    grid-template-columns: 1fr;
-  }
 
   .identity {
     display: grid;
@@ -102,6 +96,12 @@
 
   .identity > strong + span {
     grid-column: 2;
+  }
+}
+
+@media (max-width: 32rem) {
+  .bar {
+    grid-template-columns: 1fr;
   }
 
   .bar > a,
