@@ -290,6 +290,28 @@ verified without inventing a combined fixture or changing product data.
   and the smoke suite passed 1/1 file and 2/2 tests. No runtime server, API,
   domain, permission, or UI behavior changed.
 
+## Public reader viewport continuation — 2026-08-07
+
+Separate disposable fixture runs added public tablet and 320px evidence without
+claiming a combined Documentation/Demo database state. The Documentation
+fixture was seeded, exercised anonymously at 1024×768 and 320×844, then the
+Interactive Demo fixture was seeded and exercised anonymously at the same
+viewports plus its 1024px embed route. All sampled states had axe 0/0, equal
+client/scroll/body widths, reduced motion enabled, and no page errors beyond
+expected Vite/React development notices. Documentation’s first Tab focused
+`Skip to content`; Demo’s narrow first Tab reached the public Version selector.
+Public requests returned 200, no mutation or target request was submitted, and
+the Documentation fixture was reseeded after the Demo pass. Evidence:
+[Documentation tablet](./147-public-documentation-tablet-1024.png),
+[Documentation 320px](./147-public-documentation-narrow-320.png),
+[Demo tablet](./147-public-demo-tablet-1024.png),
+[Demo 320px](./147-public-demo-narrow-320.png), and
+[Demo embed tablet](./147-public-demo-embed-tablet-1024.png).
+
+This is evidence-only hardening; it adds no immutable candidate and therefore
+does not create a new blind-review cycle. It supplements, but does not close,
+the broader 26.6 matrix or the required human review.
+
 ## Supplemental extension verification — 2026-08-07
 
 Chromium was launched with the built unpacked MV3 extension from

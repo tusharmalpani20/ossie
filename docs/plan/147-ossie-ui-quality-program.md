@@ -2612,6 +2612,18 @@ consumers; and `git diff --check` passed. The repository-required `rtk`
 prefix remains unavailable, so direct-command fallbacks were used and
 recorded.
 
+2026-08-07 — public reader viewport evidence continuation — no new candidate;
+separate disposable Documentation and Interactive Demo fixture runs exercised
+anonymous valid readers at 1024×768 and 320×844, plus the Demo embed at
+1024×768. Documentation and Demo requests returned 200; each sampled state had
+axe 0/0, no client/scroll/body overflow, reduced motion, no page errors beyond
+development notices, and no mutation or target request. Documentation’s first
+Tab reached `Skip to content`; Demo’s narrow first Tab reached the public
+Project Version selector. The Documentation fixture was reseeded after the
+Demo pass. Evidence is recorded in the ledger and bundle; this continuation
+does not create a candidate or blind-review cycle and does not close the
+broader 26.6 matrix.
+
 Record future entries as:
 
 ```text
