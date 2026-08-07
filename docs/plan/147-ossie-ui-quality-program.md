@@ -2219,6 +2219,26 @@ Tablet/mobile screenshots and limitations are linked from the bundle and
 ledger. This is supplemental evidence only, not a new surface candidate or a
 claim that missing valid Documentation/Demo fixtures are populated.
 
+2026-08-07 — `internal-library-state-semantics` — starting commit `66b2a4f`;
+preflight commit `ab99b5a`; candidate `ce1d373`; route-test synchronization
+follow-up `b159eed`. Added one page-level heading to each loading,
+unauthenticated/not-found, and generic-error branch owned by the Capture
+Sessions, Guide, and Interactive Demo list pages; added the same heading
+semantics to Documentation Sites loading/error branches. Existing copy,
+sign-in URLs, not-found behavior, Retry behavior, API calls, and route
+boundaries remain unchanged. The TDD red run recorded 11 expected failures;
+the focused four-owner suite passed 34/34, App route tests passed 20/20, and
+the clean full web suite passed 95 files / 507 tests. Web typecheck, lint,
+production build, CSS-token check 130/123, and diff check passed. Authenticated
+synthetic browser error states were captured for all four exact routes at
+1440px with axe 0/0 and no page errors; Documentation also passed at 390px
+with reduced motion, no overflow, axe 0/0, and Tab focus on the Skip link.
+Reviewer A and Reviewer B both accepted. Status:
+`agent_accepted_pending_human`; loading and unauthenticated/not-found browser
+screenshots remain explicitly unclaimed because the runner cannot safely delay
+responses, while P2-001, `/projects/:projectId` route ownership, browser zoom,
+extension toolbar, and the broader 26.6 matrix remain separate.
+
 Record future entries as:
 
 ```text

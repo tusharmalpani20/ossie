@@ -165,9 +165,38 @@ checks were recorded in the ledger. The current disposable fixture does not
 provide valid Documentation or Demo publications, so those routes are not
 claimed as populated-reader evidence.
 
+### Internal library transient states — `ce1d373` / `b159eed`
+
+- [Review A](./147-internal-library-state-semantics-review-a.md)
+- [Review B](./147-internal-library-state-semantics-review-b.md)
+- [Capture Sessions error state](./147-internal-library-state-error-capture-sessions-desktop.png)
+- [Guides error state](./147-internal-library-state-error-guides-desktop.png)
+- [Interactive Demos error state](./147-internal-library-state-error-interactive-demos-desktop.png)
+- [Documentation Sites error state](./147-internal-library-state-error-documentation-sites-desktop.png)
+- [Documentation Sites narrow reduced-motion state](./147-internal-library-state-error-documentation-sites-mobile-390.png)
+
+The bounded candidate gives each internal library owner a page-level heading in
+its loading and recoverable transient branches, retains existing message copy,
+and exposes loading/error announcements through `role=status`/`role=alert`.
+Capture, Guide, and Demo sign-in/not-found branches retain their existing
+recovery behavior. Documentation Sites retains its existing loading/error
+behavior and gains the same heading treatment. The TDD red run recorded 11
+expected failures; the focused four-owner suite passed 34/34, App route tests
+20/20, and the clean web suite 95 files / 507 tests. Web typecheck, lint, build,
+CSS-token check, and diff check pass. Authenticated synthetic error states for
+all four routes are axe-clean at 1440px; Documentation also passed at 390px
+with reduced motion, no overflow, and keyboard focus on the skip link.
+
+Loading and unauthenticated/not-found browser screenshots are intentionally not
+claimed: the runner cannot safely delay local responses, and the browser pass
+used the authenticated synthetic fixture. No API, route parser, permission,
+tenant, public-link, Publication/Revision, Capture immutability, or mutation
+behavior changed. P2-001 and the unresolved Project workspace route ownership
+remain human-surface decisions.
+
 ## Verification summary
 
-- Final web suite: 95 files, 498 tests passed.
+- Final web suite: 95 files, 507 tests passed.
 - Final docs suite: 4 files, 13 tests passed.
 - Shared UI tests: 4 files, 11 tests passed; focused shared-foundation web
   tests: 45/45.
@@ -176,7 +205,7 @@ claimed as populated-reader evidence.
 - Latest ProjectWorkspacePage state tests: 9/9; adjacent Project list and
   shared-shell tests: 21/21. Normal-route browser verification is incomplete
   because App maps `/projects/:projectId` to `LegacyProjectRedirect`.
-- Post-candidate clean engineering gates pass: web 95 files / 498 tests,
+- Post-candidate clean engineering gates pass: web 95 files / 507 tests,
   check-types, lint, production build, CSS-token check 130/123, and diff check.
 - Latest Project list + shared-shell focused tests: 20/20 (prior denied-state
   checkpoint).
