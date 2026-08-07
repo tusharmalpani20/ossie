@@ -224,8 +224,9 @@ fixtures or submitting mutations.
   [Documentation unavailable](./147-second-pass-public-documentation-unavailable.png)
   and [Demo unavailable](./147-second-pass-public-demo-unavailable.png).
 - A mobile CSS `zoom=2` probe retained a 390px document width and is linked as
-  [proxy evidence](./147-second-pass-guides-mobile-css-zoom-2.png). This is not
-  a claim of actual browser zoom support. The installed extension toolbar,
+  [proxy evidence](./147-second-pass-guides-mobile-css-zoom-2.png). This was
+  not a native zoom claim for that earlier pass. The later native 200% evidence
+  and its remaining scope are recorded below; the installed extension toolbar,
   direct-manipulation matrix, and unclaimed loading/denied/populated states
   remain open or separately limited in the ledger.
 
@@ -312,8 +313,8 @@ database was reseeded with the Documentation fixture.
   reduced-motion media at 1440×900 and 390×900.
 - Final clean browser pass also covered a 1024×768 authenticated route and
   anonymous valid/embed/unavailable public boundaries; all sampled routes had
-  axe 0/0 and no page errors. The CSS zoom probe is supplemental only; actual
-  200% browser zoom remains unavailable.
+  axe 0/0 and no page errors. Its CSS zoom probe was supplemental only; native
+  200% evidence is now recorded separately below.
 - Supplemental seeded public-boundary verification also covered valid
   Documentation reader/operation and Interactive Demo reader/embed/password/
   access states at desktop and narrow widths; all sampled states were axe 0/0
@@ -337,13 +338,39 @@ database was reseeded with the Documentation fixture.
   the shared-foundation candidate adds semantic token coverage and now records
   the current 130/123 result.
 
+## Native 200% browser-zoom verification — 2026-08-07
+
+Chromium’s actual Page zoom control was set through `chrome://settings/appearance`
+to 200% ([settings proof](./147-continuation-native-zoom-settings-200.png)). The
+runtime reported `devicePixelRatio=2` and a 525px CSS viewport, which
+distinguishes this evidence from the earlier CSS-zoom proxy.
+
+- Documentation reader: `Install` rendered with one main and one h1; document
+  client/scroll width was 517px with no visible horizontal overflow; Skip to
+  content received focus; axe reported 0 violations and one existing incomplete
+  overlapped-background contrast probe. Evidence:
+  [reader](./147-continuation-public-documentation-zoom-200.png).
+- Documentation operation: `GET /widgets`, Request examples, and Request
+  rendered at the same native zoom with client/scroll width 517px; axe reported
+  0 violations / 0 incomplete and no final-path request failures. Evidence:
+  [operation](./147-continuation-public-documentation-operation-zoom-200.png).
+- Extension popup: direct extension-origin Connect and authenticated Ready to
+  capture states rendered at `devicePixelRatio=2`, client/scroll width 517px,
+  axe 0/0, and no overflow. Evidence:
+  [Connect](./147-continuation-extension-connect-zoom-200.png) and
+  [Ready](./147-continuation-extension-ready-zoom-200.png).
+
+The browser zoom was restored to 100%, extension storage was cleared, and the
+dedicated services were stopped. These are bounded samples; they do not close
+the complete 26.6 responsive/state/direct-manipulation matrix.
+
 ## Human review decisions still required
 
 - Review the final bundle and visual differences; agent acceptance is not human
   approval.
-- Decide dispositions for remaining queued P2 issues and the broader
-  shared-shell/200%-zoom follow-up; P2-010 itself is resolved pending human
-  review of the candidate.
+- Decide dispositions for remaining queued P2 issues and review the native
+  200% samples plus broader zoom coverage; P2-010 itself is resolved pending
+  human review of the candidate.
 - Review the shared-foundation parent/candidate comparison, especially the
   command hierarchy, synthetic drawer/access/reader patterns, compact
   extension states, and the five proven dead-CSS removals.

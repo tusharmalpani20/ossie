@@ -1988,9 +1988,11 @@ The second clean pass is recorded in the evidence ledger and bundle. It covers
 fresh authenticated desktop entry/library routes, authenticated tablet/mobile
 representatives, the seeded anonymous Guide and embed routes, and truthful
 anonymous unavailable Documentation/Demo routes. It does not close the
-required matrix: actual 200% browser zoom, installed extension toolbar,
-direct-manipulation coverage, and unclaimed loading/denied/populated states
-remain explicitly limited or separately evidenced.
+required matrix: native 200% evidence is now separately recorded for the
+Documentation reader/operation and direct extension popup, while installed
+extension-toolbar activation, direct-manipulation breadth, and unclaimed
+loading/denied/populated states remain explicitly limited or separately
+evidenced.
 
 ### 26.7 Human feedback and final closeout
 
@@ -2155,8 +2157,8 @@ navigation axe 0/0, keyboard traversal, reduced motion, and local request/
 console checks. Reviewer A and Reviewer B both accepted. Status:
 `agent_accepted_pending_human`; the truthful unauthenticated `/projects`
 browser route retains its pre-existing missing-h1 axe finding, authenticated
-role contexts remain component-test coverage, actual browser zoom is
-unavailable, and P2-001 plus the broader 26.6 matrix remain open.
+role contexts remain component-test coverage, native browser zoom was not part
+of this candidate run, and P2-001 plus the broader 26.6 matrix remain open.
 
 2026-08-06 — `projects-denied` — starting commit `b5b7924`; preflight commit
 `9612c49`; cycle-1 candidate `3a8fad4` following `aefb9dd`. Added a semantic
@@ -2168,8 +2170,8 @@ Project list + shell focused tests passed 20/20; the clean full web suite passed
 diff check passed. Desktop/narrow browser evidence passed axe 0/0, no overflow,
 keyboard/reduced-motion, and local request/console checks. Reviewer A and
 Reviewer B both accepted. Status: `agent_accepted_pending_human`; authenticated
-owner/viewer browser fixtures, actual browser zoom, P2-001, and the broader
-26.6 matrix remain open.
+owner/viewer browser fixtures, native browser zoom for this candidate, P2-001,
+and the broader 26.6 matrix remain open.
 
 2026-08-06 — `projects-state-semantics` — starting commit `e67d392`; preflight
 commit `36d77f6`; cycle-2 candidate `aa6f892`. Added a semantic `Projects`
@@ -2184,8 +2186,8 @@ narrow error-state browser evidence passed axe 0/0, no overflow, and keyboard
 focus for Retry. The browser router could abort or immediately answer the local
 request but could not safely delay it, so no loading screenshot is claimed.
 Reviewer A and Reviewer B both accepted. Status: `agent_accepted_pending_human`;
-authenticated owner/viewer browser fixtures, actual browser zoom, P2-001, and
-the broader 26.6 matrix remain open.
+authenticated owner/viewer browser fixtures, native browser zoom for this
+candidate, P2-001, and the broader 26.6 matrix remain open.
 
 2026-08-07 — `projects-workspace-state-semantics` — starting commit `00628d1`;
 preflight commit `c8a7d56`; cycle-3 candidate `e94d6a9` (final allowed cycle).
@@ -2244,8 +2246,8 @@ with reduced motion, no overflow, axe 0/0, and Tab focus on the Skip link.
 Reviewer A and Reviewer B both accepted. Status:
 `agent_accepted_pending_human`; loading and unauthenticated/not-found browser
 screenshots remain explicitly unclaimed because the runner cannot safely delay
-responses, while P2-001, `/projects/:projectId` route ownership, browser zoom,
-extension toolbar, and the broader 26.6 matrix remain separate.
+responses, while P2-001, `/projects/:projectId` route ownership, broader native
+zoom coverage, extension toolbar, and the broader 26.6 matrix remain separate.
 
 2026-08-07 — final engineering gates and second clean browser pass — source
 verification commit `221517a`; closeout documentation/screenshots commit
@@ -2261,8 +2263,9 @@ and no tested viewport overflow; the mobile Tab path focused Skip to main
 content. A separate fresh anonymous session covered the valid Guide and embed
 routes plus truthful unavailable Documentation and Demo routes, all with axe
 0/0 and no page errors. A CSS `zoom=2` mobile probe retained a 390px document
-width, but is recorded only as a proxy because actual browser zoom is not
-available. Screenshots are linked from the evidence ledger and human bundle.
+width and was recorded only as a proxy for that pass because native browser
+zoom was not yet exercised. Screenshots are linked from the evidence ledger
+and human bundle.
 This is supplemental evidence, not a claim that the broader 26.6 matrix or
 the installed extension toolbar is complete. Status remains
 `agent_accepted_pending_human` pending human review and the unresolved
@@ -2322,6 +2325,20 @@ storage was cleared and the disposable database was reseeded with the
 Documentation fixture. The browser CLI still cannot activate the browser
 toolbar icon itself, so `extension-capture` remains `blocked_local_for_run` for
 that exact check; no toolbar-popup claim or human approval was inferred.
+
+2026-08-07 — native 200% zoom hardening evidence — source candidate
+`106705c`; evidence-only continuation, no runtime code change. Chromium’s
+actual Page zoom control was set through `chrome://settings/appearance` to
+200%, producing `devicePixelRatio=2` and a 525px CSS viewport. The synthetic
+anonymous Documentation reader and `GET /widgets` operation were exercised at
+that zoom with no visible horizontal overflow; the operation route passed axe
+0 violations / 0 incomplete, while the reader retained one existing incomplete
+overlapped-background contrast probe. Skip-to-content focus, reduced motion,
+and successful local requests were verified. The unpacked extension Connect
+and authenticated Ready states were also exercised at native 200% with axe
+0/0 and no overflow. The browser zoom was restored to 100%, extension storage
+was cleared, dedicated services were stopped, and no broader 26.6 checkbox was
+closed from these bounded samples.
 
 Record future entries as:
 
