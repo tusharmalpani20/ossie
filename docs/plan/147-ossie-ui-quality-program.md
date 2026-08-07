@@ -2288,6 +2288,19 @@ folded into Plan 147 UI work. Status remains
 `agent_accepted_pending_human`; no human-owned route, product, permission,
 public-link, or extension-toolbar decision was inferred.
 
+2026-08-07 — server fixture test-contract reconciliation — starting commit
+`806205b`; test-only candidate `7982142`. The initial disposable DB run found
+the Documentation fixture test expected one operation while the fixture’s two
+declared OpenAPI operations produced two. Updated only
+`apps/server/src/dev-fixtures/documentation-browser-fixture.db.integration.test.ts`
+from `operations: 1` to `operations: 2`; no runtime server, API, domain,
+permission, or UI file changed. The guarded focused fixture test passed 1/1;
+the full server DB suite then passed 24/24 files and 88/88 tests, and the smoke
+suite passed 1/1 file and 2/2 tests. This was a reversible verification-contract
+repair, not a Plan 147 surface candidate, so no visual candidate or blind review
+was created. Status remains `agent_accepted_pending_human`; all human-owned
+route/design/extension decisions remain unchanged.
+
 Record future entries as:
 
 ```text

@@ -256,20 +256,20 @@ verified without inventing a combined fixture or changing product data.
   [password](./147-continuation-public-demo-password.png),
   [invalid password](./147-continuation-public-demo-password-invalid.png).
 - The final disposable database was reseeded with the Documentation fixture.
-  The server smoke suite passed 1 file / 2 tests. The server DB suite passed
-  23/24 files and 87/88 tests; its only failure is the pre-existing
-  Documentation fixture assertion expecting one operation while the unchanged
-  fixture produces two. No server files differ between `d638112` and the
-  current branch, so this is recorded as an unrelated engineering limitation,
-  not silently folded into the UI candidates.
+  The initial DB run exposed a stale fixture assertion (`operations: 1` versus
+  the fixture’s two declared OpenAPI operations). The test-only repair is
+  isolated in commit `7982142`; the focused fixture
+  test passed 1/1, the rerun server DB suite passed 24/24 files and 88/88 tests,
+  and the smoke suite passed 1/1 file and 2/2 tests. No runtime server, API,
+  domain, permission, or UI behavior changed.
 
 ## Verification summary
 
 - Final web suite: 95 files, 507 tests passed.
 - Exact recursive workspace test run: all active workspace suites passed.
-- Server smoke: 1 file / 2 tests passed. Server DB integration: 23/24 files,
-  87/88 tests passed; one unchanged Documentation fixture-count assertion is
-  recorded as a pre-existing limitation in the ledger.
+- Server smoke: 1 file / 2 tests passed. Server DB integration: 24/24 files,
+  88/88 tests passed after the isolated fixture-test contract repair in
+  `7982142`.
 - Final docs suite: 4 files, 13 tests passed.
 - Shared UI tests: 4 files, 11 tests passed; focused shared-foundation web
   tests: 45/45.
