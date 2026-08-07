@@ -1947,7 +1947,10 @@ security decision for the user.
 
 - [x] Entry/setup/login/invite family.
 - [x] Organization members/invites/operations/compliance family.
-- [x] Projects/Project workspace family.
+- [ ] Projects/Project workspace family — final workspace transient-state cycle
+      is `needs_human_surface` because the normal project route is still owned
+      by `LegacyProjectRedirect`; prior Project library/denied/list-state
+      candidates remain recorded in the ledger.
 - [x] Project Version/settings/activity/Carry Forward family.
 - [x] Capture library/detail/recovery family.
 - [x] Guide library/editor/preview/history/publishing family.
@@ -2175,6 +2178,26 @@ request but could not safely delay it, so no loading screenshot is claimed.
 Reviewer A and Reviewer B both accepted. Status: `agent_accepted_pending_human`;
 authenticated owner/viewer browser fixtures, actual browser zoom, P2-001, and
 the broader 26.6 matrix remain open.
+
+2026-08-07 — `projects-workspace-state-semantics` — starting commit `00628d1`;
+preflight commit `c8a7d56`; cycle-3 candidate `e94d6a9` (final allowed cycle).
+Added semantic `Projects` headings to `ProjectWorkspacePage` loading,
+unauthenticated, not-found, and recoverable-error branches; loading now exposes
+`role=status`, and recoverable error exposes `role=alert`, while existing
+sign-in, not-found, and Retry behavior remains unchanged. Red tests passed
+before implementation; the focused workspace suite passed 9/9 and adjacent
+Project list/shell tests passed 21/21. The route recheck found that `App.tsx`
+still maps `/projects/:projectId` to `LegacyProjectRedirect`, so the actual
+browser route rendered the existing unauthenticated 401 fallback rather than
+`ProjectWorkspacePage`; no runtime candidate screenshot or axe result is
+claimed. Reviewer A marked the cycle incomplete and Reviewer B marked
+`needs_human_surface`. Route ownership must be decided before this candidate
+can be accepted or wired into the normal route. Status remains
+`agent_accepted_pending_human` for the program; the surface is
+`needs_human_surface`.
+The post-candidate clean web suite passed 95 files / 498 tests; web check-types,
+lint, build, CSS-token check (130 definitions / 123 consumers), and diff check
+also passed.
 
 Record future entries as:
 

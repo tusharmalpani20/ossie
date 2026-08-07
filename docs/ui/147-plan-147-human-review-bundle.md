@@ -3,15 +3,16 @@
 Status: `agent_accepted_pending_human`  
 Execution worktree: `/home/ubuntu/ossie-plan147`  
 Branch: `agent/plan-147-ui-quality`  
-Date: 2026-08-06
+Date: 2026-08-07
 
 ## Executive outcome
 
-The autonomous UI-quality run has completed every queued surface family in the
-canonical ledger. Qualifying candidates have immutable source commits, before
-and after browser evidence where the environment allowed it, two read-only
-review reports, focused verification, and recorded residual risk. Plan 147 is
-not human-approved and is intentionally not marked complete.
+The autonomous UI-quality run has produced immutable candidates and review
+records for the planned surface families. The final Projects workspace state
+cycle is intentionally incomplete: `ProjectWorkspacePage` is not mounted by
+the normal `/projects/:projectId` route, so its browser behavior cannot be
+claimed without a route-ownership decision. Plan 147 is not human-approved and
+is intentionally not marked complete.
 
 ## Start here
 
@@ -122,6 +123,21 @@ delay the local API response, so loading has deterministic component-test
 evidence and no fabricated browser screenshot. Both blind reviews accept
 pending human review.
 
+### Project workspace transient states — `e94d6a9` — needs human surface
+
+- [Review A](./147-project-workspace-state-semantics-review-a.md)
+- [Review B](./147-project-workspace-state-semantics-review-b.md)
+- [Canonical preflight and route finding](./147-ossie-ui-quality-program-ledger.md#projects-workspace-state-semantics-exact-surface-preflight)
+
+`ProjectWorkspacePage` now has focused semantic contracts for loading,
+unauthenticated, not-found, and recoverable-error branches: 9/9 tests pass, the
+loading message is `role=status`, and the recoverable error is `role=alert`.
+The real `/projects/project_1` route is still owned by `LegacyProjectRedirect`
+and rendered the existing 401 fallback, so no candidate screenshot or runtime
+axe result is claimed. Review A records the cycle as incomplete; Review B
+requires human direction on whether the legacy route should be replaced,
+wrapped, or left canonical.
+
 ## Verification summary
 
 - Final web suite: 95 files, 498 tests passed.
@@ -130,6 +146,11 @@ pending human review.
   tests: 45/45.
 - Latest ProjectListPage state tests: 17/17; App route tests: 20/20; adjacent
   shared-shell tests: 4/4.
+- Latest ProjectWorkspacePage state tests: 9/9; adjacent Project list and
+  shared-shell tests: 21/21. Normal-route browser verification is incomplete
+  because App maps `/projects/:projectId` to `LegacyProjectRedirect`.
+- Post-candidate clean engineering gates pass: web 95 files / 498 tests,
+  check-types, lint, production build, CSS-token check 130/123, and diff check.
 - Latest Project list + shared-shell focused tests: 20/20 (prior denied-state
   checkpoint).
 - Extension suite: 19 files, 140 tests passed; web and extension typechecks,
@@ -161,6 +182,10 @@ pending human review.
 - Review the Projects denied-state before/after pair and confirm the heading and
   sign-in recovery hierarchy without treating the unauthenticated route as
   authenticated fixture evidence.
+- Decide the route ownership for `/projects/:projectId` before accepting or
+  wiring `ProjectWorkspacePage` transient-state semantics; the final-cycle
+  candidate has no truthful runtime browser evidence and is marked
+  `needs_human_surface`.
 - Rerun the installed extension toolbar/permission path in a capable browser
   environment before changing `extension-capture` from
   `blocked_local_for_run`.
