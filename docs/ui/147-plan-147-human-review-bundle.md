@@ -449,6 +449,23 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   [error/retry](./147-continuation-auth-capture-error-zoom-200.png). The shared
   Project Version context header visibly splits its label at this zoom despite
   no document overflow; that shell residual remains for human disposition.
+- Project Version continuation: separate synthetic owner and viewer sessions
+  covered Main/Summer release/Archived release workspaces, owner settings and
+  Project Version management, empty Carry Forward, controlled versions-load
+  error/Retry recovery, viewer read-only workspace, and denied settings at
+  native 200% (`dpr=2`, 525px CSS viewport). Sampled documents had no
+  horizontal overflow; workspace, Carry Forward, and denied settings were axe
+  0/0, while settings retained only the known overlapped-background textarea
+  probe. The final read paths returned 200, no mutation was submitted, and the
+  screenshots were visually inspected. Evidence: [context](./147-continuation-auth-project-version-context-zoom-200.png),
+  [settings](./147-continuation-auth-project-version-settings-zoom-200.png),
+  [Carry Forward](./147-continuation-auth-project-version-carry-forward-zoom-200.png),
+  [settings error](./147-continuation-auth-project-version-settings-error-zoom-200.png),
+  [viewer workspace](./147-continuation-viewer-project-version-workspace-zoom-200.png),
+  and [viewer settings denied](./147-continuation-viewer-project-settings-denied-zoom-200.png).
+  The shared Project Version context identity visibly splits at this zoom
+  despite no document overflow; that shell residual remains for human
+  disposition.
 
 The browser zoom was restored to 100%, extension storage was cleared, the
 dedicated services were stopped, and the disposable database was reseeded with
