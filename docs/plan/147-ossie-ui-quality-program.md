@@ -2268,6 +2268,26 @@ the installed extension toolbar is complete. Status remains
 `agent_accepted_pending_human` pending human review and the unresolved
 workspace-route/P2-001 decisions.
 
+2026-08-07 — supplemental public-boundary and server verification — source
+commit `806205b`; evidence-only continuation, no runtime code change. The
+disposable Documentation fixture was freshly seeded and its valid public
+reader passed at 1440px and 390px with axe 0/0, reduced motion, no overflow,
+keyboard skip focus, and a valid `GET /widgets` operation route; alias and
+redirect canonicalization plus the truthful gone state were also rechecked.
+The disposable Interactive Demo fixture was then freshly seeded and its valid
+reader/embed passed at 1440px and 390px with axe 0/0, no overflow, reduced
+motion, keyboard Scene transition, password gate/invalid-password retry, and
+restricted/expired/revoked boundaries. The two fixture families are mutually
+exclusive and the final disposable database was reseeded with the
+Documentation fixture. The server smoke suite passed 1 file / 2 tests. The
+server DB suite passed 23/24 files and 87/88 tests; its one failure is the
+unchanged baseline Documentation fixture assertion expecting one operation
+while the fixture currently produces two. Because `d638112..HEAD` contains no
+server-file diff, this unrelated test mismatch remains recorded rather than
+folded into Plan 147 UI work. Status remains
+`agent_accepted_pending_human`; no human-owned route, product, permission,
+public-link, or extension-toolbar decision was inferred.
+
 Record future entries as:
 
 ```text

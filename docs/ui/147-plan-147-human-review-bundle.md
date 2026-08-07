@@ -161,9 +161,10 @@ cross-product rewrite or baseline change was made.
 The second clean pass exercised the synthetic public Guide at 1024px and 390px,
 plus truthful unavailable Documentation and Demo routes. Body/document widths
 matched the viewport; reduced-motion, CSS zoom reflow probes, axe, and console
-checks were recorded in the ledger. The current disposable fixture does not
-provide valid Documentation or Demo publications, so those routes are not
-claimed as populated-reader evidence.
+checks were recorded in the ledger. The disposable fixture active during that
+pass did not provide valid Documentation or Demo publications, so those routes
+were not claimed as populated-reader evidence; the later supplemental seeded
+pass provides the separate valid-reader evidence below.
 
 ### Internal library transient states — `ce1d373` / `b159eed`
 
@@ -216,9 +217,10 @@ fixtures or submitting mutations.
   axe 0/0 with one main and no page errors at 1440px. Evidence:
   [Guide](./147-second-pass-public-guide-desktop.png) and
   [embed](./147-second-pass-public-guide-embed.png).
-- Anonymous unavailable boundary: the current fixture truthfully rendered
-  unavailable Documentation and missing Demo states, both axe-clean with no
-  page errors. These are not populated-reader evidence. Evidence:
+- Anonymous unavailable boundary: the fixture active during that pass
+  truthfully rendered unavailable Documentation and missing Demo states, both
+  axe-clean with no page errors. Those screenshots are not populated-reader
+  evidence. Evidence:
   [Documentation unavailable](./147-second-pass-public-documentation-unavailable.png)
   and [Demo unavailable](./147-second-pass-public-demo-unavailable.png).
 - A mobile CSS `zoom=2` probe retained a 390px document width and is linked as
@@ -227,10 +229,47 @@ fixtures or submitting mutations.
   direct-manipulation matrix, and unclaimed loading/denied/populated states
   remain open or separately limited in the ledger.
 
+## Supplemental public-boundary verification — 2026-08-07
+
+After the prior pass, the guarded disposable fixture seeders were used
+separately so valid Documentation and Interactive Demo publications could be
+verified without inventing a combined fixture or changing product data.
+
+- Documentation fixture: the valid public reader passed at 1440×900 and
+  390×844 with axe 0/0, reduced motion, no overflow, and keyboard focus on
+  Skip to content. The public `GET /widgets` operation passed at 390px with
+  axe 0/0 and inert request examples. `/install` and `/setup` canonicalized to
+  `/install-guide`; `/obsolete` stayed an unavailable state. Evidence:
+  [reader desktop](./147-continuation-public-documentation-desktop.png),
+  [reader mobile](./147-continuation-public-documentation-mobile-390.png),
+  and [operation](./147-continuation-public-documentation-operation-mobile-390.png).
+- Interactive Demo fixture: the valid reader and `/embed` passed at 1440px;
+  the reader passed at 390px with axe 0/0, no overflow, and keyboard Enter
+  advancing from Published start to Published finish. Evidence:
+  [reader desktop](./147-continuation-public-demo-desktop.png),
+  [embed](./147-continuation-public-demo-embed.png),
+  [mobile](./147-continuation-public-demo-mobile-390.png), and
+  [finish state](./147-continuation-public-demo-finish.png).
+- The Demo password gate and safe invalid-password retry were axe-clean with
+  no recorded secret; restricted, expired, and revoked links were also
+  rechecked axe-clean with truthful one-main states. Evidence:
+  [password](./147-continuation-public-demo-password.png),
+  [invalid password](./147-continuation-public-demo-password-invalid.png).
+- The final disposable database was reseeded with the Documentation fixture.
+  The server smoke suite passed 1 file / 2 tests. The server DB suite passed
+  23/24 files and 87/88 tests; its only failure is the pre-existing
+  Documentation fixture assertion expecting one operation while the unchanged
+  fixture produces two. No server files differ between `d638112` and the
+  current branch, so this is recorded as an unrelated engineering limitation,
+  not silently folded into the UI candidates.
+
 ## Verification summary
 
 - Final web suite: 95 files, 507 tests passed.
 - Exact recursive workspace test run: all active workspace suites passed.
+- Server smoke: 1 file / 2 tests passed. Server DB integration: 23/24 files,
+  87/88 tests passed; one unchanged Documentation fixture-count assertion is
+  recorded as a pre-existing limitation in the ledger.
 - Final docs suite: 4 files, 13 tests passed.
 - Shared UI tests: 4 files, 11 tests passed; focused shared-foundation web
   tests: 45/45.
@@ -251,6 +290,11 @@ fixtures or submitting mutations.
   anonymous valid/embed/unavailable public boundaries; all sampled routes had
   axe 0/0 and no page errors. The CSS zoom probe is supplemental only; actual
   200% browser zoom remains unavailable.
+- Supplemental seeded public-boundary verification also covered valid
+  Documentation reader/operation and Interactive Demo reader/embed/password/
+  access states at desktop and narrow widths; all sampled states were axe 0/0
+  with no page errors. Documentation and Demo fixtures were seeded separately
+  and are not claimed as one combined database state.
 - Repository-wide `pnpm check-types` passed 14/14 packages, `pnpm lint` passed
   13/13 packages with 89 existing server warnings and zero errors, `pnpm build`
   passed 13/13 packages, and `git diff --check` passed.
