@@ -493,6 +493,26 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   [owner archived](./147-continuation-auth-projects-archived-zoom-200.png),
   [owner error](./147-continuation-auth-projects-error-zoom-200.png), and
   [viewer workspace redirect](./147-continuation-viewer-project-workspace-redirect-zoom-200.png).
+- Extension-installation continuation: the authenticated synthetic owner
+  rendered `/extension` ready and download-error states at native 200%
+  (`dpr=2`, 525px CSS viewport), downloaded the ZIP with a 200 response, and
+  rechecked a forced auth-check failure. That failure initially exposed a
+  missing level-one heading; bounded TDD follow-up `fc8071c` added the visible
+  `Browser extension` heading, and the recheck reported axe 0/0, no overflow,
+  reduced motion, and a Skip-link keyboard path. This does not claim toolbar
+  icon activation or change `extension-capture` from `blocked_local_for_run`.
+  Evidence: [ready](./147-continuation-extension-installation-ready-zoom-200.png),
+  [content](./147-continuation-extension-installation-content-zoom-200.png),
+  and [auth-check error](./147-continuation-extension-installation-error-zoom-200.png).
+- Contributor/operator docs continuation: public `apps/docs` rendered at
+  native 200% (`dpr=2`, 525px CSS viewport, 4,798px document height) with axe
+  0/0, four loaded image elements, no horizontal overflow, reduced motion, and
+  a keyboard path through README and self-hosting links. External source links
+  were not followed, and this remains separate from customer-authored Product
+  Documentation. Evidence: [top](./147-continuation-contributor-docs-top-zoom-200.png),
+  [alpha](./147-continuation-contributor-docs-alpha-zoom-200.png),
+  [source docs](./147-continuation-contributor-docs-source-zoom-200.png), and
+  [limitations](./147-continuation-contributor-docs-limitations-zoom-200.png).
 
 The browser zoom was restored to 100%, extension storage was cleared, the
 dedicated services were stopped, and the disposable database was reseeded with

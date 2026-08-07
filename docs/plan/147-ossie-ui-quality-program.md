@@ -2020,6 +2020,18 @@ The valid seeded `/projects/:projectId` entry redirected through the existing
 `LegacyProjectRedirect` into the Project Version workspace and was axe-clean;
 this does not mount or accept the separate `ProjectWorkspacePage` candidate,
 so its route-ownership hold remains unchanged.
+The authenticated extension-installation portal was additionally exercised at
+native 200% for ready, ZIP download, download-error, and forced auth-check-error
+states. The auth-check error initially exposed a missing level-one heading;
+`fc8071c` added that bounded semantic heading test-first, and the browser
+recheck reported axe 0/0 with no overflow. The direct toolbar-icon activation
+limitation remains under `extension-capture`.
+The public contributor/operator `apps/docs` landing page was also exercised at
+native 200% with `devicePixelRatio=2`, a 525px CSS viewport, 4,798px document
+height, four loaded image elements, axe 0/0, reduced motion, no horizontal
+overflow, and a keyboard path through README and self-hosting links. External
+source links were not followed; this remains separate from customer-authored
+Product Documentation.
 The shared Project Version context header visibly splits its label at this
 zoom despite no document overflow, so that shell limitation remains recorded
 for human disposition rather than being silently changed in this bounded pass.
@@ -2511,7 +2523,23 @@ axe 0/0; it is evidence of current shipped routing, not acceptance or mounting
 of the separate `ProjectWorkspacePage` candidate. No mutation was submitted;
 zoom was restored to 100%, browser storage cleared, services stopped, and the
 Documentation fixture was reseeded. The route-ownership hold, broader 26.6
-matrix, and human review remain open. No new blind-review cycle is claimed.
+ matrix, and human review remain open. No new blind-review cycle is claimed.
+
+2026-08-07 — native 200% extension-installation and contributor-docs
+continuation — source candidate `1058dbd` / `ae37ba6`; the bounded extension
+follow-up is `fc8071c`. The authenticated synthetic owner `/extension` route
+covered ready, ZIP download, download-error, and forced auth-check-error states
+at native Chrome Page zoom 200% (`devicePixelRatio=2`, 525px CSS viewport).
+The forced auth-check error initially exposed a missing level-one heading;
+TDD red/green added the `Browser extension` heading, and the recheck reported
+axe 0/0 with no overflow. ZIP download returned 200; reduced-motion and the
+Skip-link keyboard path were exercised. The public `apps/docs` landing page
+rendered at native 200% with axe 0/0, 525px CSS width, 4,798px document
+height, four loaded images, no overflow, reduced motion, and a keyboard path
+through README and self-hosting links; external links were not followed.
+Screenshots were visually inspected. No new blind-review cycle is claimed for
+this evidence continuation or bounded accessibility follow-up; the broader
+26.6 matrix, toolbar-icon limitation, and human closeout remain open.
 
 Record future entries as:
 
