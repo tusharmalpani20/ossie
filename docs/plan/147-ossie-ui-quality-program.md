@@ -2375,7 +2375,7 @@ was reseeded. This supplements but does not close the broader 26.6 matrix.
 
 2026-08-07 — native 200% shared foundation/entry/fallback evidence — source
 candidates `9e53e20`, `f27714b`, and `de37b5e`; evidence-only continuation
-recorded in the next checkpoint. The local synthetic Design System gallery,
+recorded in `c84f897`. The local synthetic Design System gallery,
 real `/login`, and unsupported-route fallback were exercised at native Chrome
 Page zoom 200% with reduced motion. The gallery stayed within a 517px document
 width and its artifact table had equal client/scroll widths; axe retained one
