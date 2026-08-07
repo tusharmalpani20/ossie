@@ -2199,6 +2199,17 @@ The post-candidate clean web suite passed 95 files / 498 tests; web check-types,
 lint, build, CSS-token check (130 definitions / 123 consumers), and diff check
 also passed.
 
+2026-08-07 — `P2-001` scope preflight — starting commit `9468dcf`; no candidate.
+The remaining queued issue is defined only as “cross-product libraries/readers”
+and has no exact route, role, state, viewport, or owning component. The clearest
+concrete finding is the accepted Publication-preview review’s question of
+whether the bounded `DocumentationPublicationPreviewPage` should share
+navigation/TOC treatment with the public `PublicDocumentationReaderPage`.
+Retaining the bounded preview, extending it with reader chrome, and selecting a
+different narrower cross-product study are materially different directions.
+The issue is therefore recorded as `needs_human_surface`; no code, baseline,
+API, domain, permission, public-link, or immutable-content behavior changed.
+
 Record future entries as:
 
 ```text

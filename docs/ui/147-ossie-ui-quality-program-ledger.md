@@ -173,7 +173,7 @@ canonical/redirect/gone, embed, and private-metadata leakage checks.
 | `P2-016` | P2 | design-system gallery composition / accessibility | Local `/__design-system`; desktop 1440px and narrow 390px | surface preflight; historical gallery had no state matrix, no named main, and a narrow table widened its section and triggered a scrollable-region violation | implementer | 0 | accepted_pending_human | `7cf7057` | shared loading/empty/error/read-only/validation matrix, named workspace, focusable labeled table region, responsive long-label table, axe 0/0, keyboard/reduced-motion, focused 21/21, web check-types/lint/build, and both reviews pass | gallery remains synthetic/local-only; P2-010 is resolved in `59fd07f`; broader raw CSS cleanup and browser zoom remain separate |
 | `P2-017` | P2 | global fallback composition / accessibility | Anonymous unsupported `/unknown`; desktop 1440px and narrow 390px | surface preflight; fallback had no level-one heading, generic portal copy, and no recovery action hierarchy | implementer | 0 | accepted_pending_human | `de37b5e` | Page-not-found h1, named main, Projects/sign-in recovery links, solid fallback background, axe 0/0, keyboard/reduced-motion, focused 1/1, web check-types/lint/build, and both reviews pass | forced Documentation lazy-load failure remains existing boundary coverage; P2-010 is resolved in `59fd07f`; broader raw CSS cleanup remains separate |
 | `P2-018` | P2 | contributor documentation composition / accessibility | Public `apps/docs` landing; desktop 1440px and narrow 390px | surface preflight; hero evidence used an invalid ARIA label on a plain div | implementer | 0 | accepted_pending_human | `ae37ba6` | semantic hero figure/caption, local evidence assets loaded, axe 0/0, keyboard/reduced-motion, focused docs 10/10, docs check-types/lint/build, and both reviews pass | external source links were not followed; docs app remains separate from customer Product Documentation |
-| `P2-001` | P2 | visual consistency | cross-product libraries/readers | plan issue register | implementer | 0 | queued | — | family review | exact route ownership pending |
+| `P2-001` | P2 | visual consistency | cross-product libraries/readers | plan issue register and scope preflight below | coordinator | 0 | needs_human_surface | — | no implementation candidate; exact route/state/viewport ownership is not defined | the strongest concrete finding is the Documentation Publication preview versus public reader navigation/TOC boundary; choosing a shared chrome or preserving the bounded preview is a product/design decision; do not start a broad cross-product rewrite without that direction |
 | `P2-002` | P2 | mobile composition | shared authenticated portal shell / 1440px, 390px, and 320px | shared-shell-mobile preflight; PortalAppShell navigation measured 837px wide inside a 390px viewport | implementer | 0 | accepted_pending_human | `8b45a4b` | focused shell 6/6; full web 95/498; web typecheck/lint/build; 1440px/390px/320px browser evidence; focused navigation axe 0/0; keyboard and reduced-motion checks; both reviews accept | actual browser zoom control unavailable; unauthenticated `/projects` is the truthful browser state and authenticated role contexts remain component-test coverage; P2-001 and the broader matrix remain separate |
 
 ## Review ledger
@@ -1613,6 +1613,33 @@ domain, permission, lifecycle, publication, or URL authority.
   focused test/evidence/review records; preserve `aa6f892`, `3a8fad4`,
   `8b45a4b`, and all prior accepted-pending-human records.
 
+### P2-001 cross-product consistency scope preflight
+
+- Actual HEAD/worktree: `9468dcf` in `/home/ubuntu/ossie-plan147`, branch
+  `agent/plan-147-ui-quality`; the worktree was clean before this audit.
+- Current registry truth: the shipped library and reader families have
+  independent route/state records and accepted-pending-human candidates;
+  P2-001 is the only remaining queued issue. Its canonical row names only
+  “cross-product libraries/readers” and does not identify exact routes, roles,
+  states, viewport evidence, or an owning component.
+- Concrete source finding: Reviewer A’s accepted Publication-preview review
+  identifies a later decision about whether the bounded
+  `DocumentationPublicationPreviewPage` should share navigation/TOC treatment
+  with the public `PublicDocumentationReaderPage`. The preview’s current
+  bounded composition is an intentional route-repair constraint, not a proven
+  defect. Other family reviews record consistency as a score/residual, not a
+  single implementation owner.
+- Safe alternatives: (1) retain the bounded preview and close P2-001 as a
+  documented intentional difference; (2) explicitly authorize a paired
+  preview/public-reader chrome study with exact routes and states; or (3)
+  define a different, narrower cross-product surface before implementation.
+  Options (2) and (3) change accepted route composition and require human
+  direction. No code, screenshot baseline, API, domain, permission, public-link,
+  or immutable-content behavior was changed in this preflight.
+- Disposition: `needs_human_surface`; preserve the queued family candidates,
+  the existing Publication-preview review finding, and the final bundle. Do not
+  manufacture an immutable candidate for an undefined cross-product scope.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
@@ -1648,7 +1675,8 @@ domain, permission, lifecycle, publication, or URL authority.
 
 ## Final bundle index
 
-To be assembled before autonomous-run milestone handoff:
+Assembled in [`docs/ui/147-plan-147-human-review-bundle.md`](./147-plan-147-human-review-bundle.md)
+for autonomous-run milestone handoff:
 
 - executive outcome and remaining decisions;
 - complete surface status registry;

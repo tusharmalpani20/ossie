@@ -11,8 +11,10 @@ The autonomous UI-quality run has produced immutable candidates and review
 records for the planned surface families. The final Projects workspace state
 cycle is intentionally incomplete: `ProjectWorkspacePage` is not mounted by
 the normal `/projects/:projectId` route, so its browser behavior cannot be
-claimed without a route-ownership decision. Plan 147 is not human-approved and
-is intentionally not marked complete.
+claimed without a route-ownership decision. P2-001 is also held at
+`needs_human_surface` because its only scope definition is “cross-product
+libraries/readers,” with no exact route owner. Plan 147 is not human-approved
+and is intentionally not marked complete.
 
 ## Start here
 
@@ -138,6 +140,19 @@ axe result is claimed. Review A records the cycle as incomplete; Review B
 requires human direction on whether the legacy route should be replaced,
 wrapped, or left canonical.
 
+### P2-001 cross-product consistency — needs human surface
+
+- [Canonical scope preflight](./147-ossie-ui-quality-program-ledger.md#p2-001-cross-product-consistency-scope-preflight)
+- [Publication preview Review A finding](./147-documentation-publication-preview-review-a.md)
+
+P2-001 is not an implementation candidate. Its ledger definition names only
+“cross-product libraries/readers.” The concrete retained finding asks whether
+the bounded Documentation Publication preview should share navigation/TOC
+treatment with the public Documentation reader. Keeping the bounded preview,
+adding reader chrome, or selecting another exact route pair are materially
+different choices. The issue is recorded as `needs_human_surface`; no broad
+cross-product rewrite or baseline change was made.
+
 ## Verification summary
 
 - Final web suite: 95 files, 498 tests passed.
@@ -186,6 +201,10 @@ wrapped, or left canonical.
   wiring `ProjectWorkspacePage` transient-state semantics; the final-cycle
   candidate has no truthful runtime browser evidence and is marked
   `needs_human_surface`.
+- Decide P2-001’s exact route/state scope: preserve the bounded Publication
+  preview, authorize a paired preview/public-reader chrome study, or name a
+  different narrow cross-product route pair. Do not accept a broad consistency
+  rewrite without that scope decision.
 - Rerun the installed extension toolbar/permission path in a capable browser
   environment before changing `extension-capture` from
   `blocked_local_for_run`.
