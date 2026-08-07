@@ -55,7 +55,7 @@ describe("Documentation browser fixture database seed", () => {
       sites: 2,
       pages: 3,
       comments: 1,
-      operations: 1,
+      operations: 2,
       snippets: 1,
       revision_snippets: 2,
       revision_assets: 2,
