@@ -467,6 +467,21 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   despite no document overflow; that shell residual remains for human
   disposition.
 
+- Organization administration continuation: separate synthetic owner and
+  viewer sessions covered members/invites, compliance timeline, Documentation
+  Operations usage/limits, owner members error/Retry recovery, and viewer
+  denied/read-only states at native 200% (`dpr=2`, 525px CSS viewport). Samples
+  stayed within 525px with no page errors; members and denied states were axe
+  0/0, while compliance and Documentation Operations retained the known metric
+  contrast/background or short-text incomplete probes. No mutation was
+  submitted. Evidence: [owner members](./147-continuation-auth-organization-members-zoom-200.png),
+  [members error](./147-continuation-auth-organization-members-error-zoom-200.png),
+  [owner compliance](./147-continuation-auth-organization-compliance-zoom-200.png),
+  [owner Documentation Operations](./147-continuation-auth-organization-documentation-operations-zoom-200.png),
+  [viewer members denied](./147-continuation-viewer-organization-members-denied-zoom-200.png),
+  [viewer compliance denied](./147-continuation-viewer-organization-compliance-denied-zoom-200.png),
+  and [viewer Documentation Operations](./147-continuation-viewer-organization-documentation-operations-zoom-200.png).
+
 The browser zoom was restored to 100%, extension storage was cleared, the
 dedicated services were stopped, and the disposable database was reseeded with
 the Documentation fixture. These are bounded samples; they do not close the

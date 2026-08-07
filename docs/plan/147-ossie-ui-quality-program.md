@@ -2009,6 +2009,11 @@ management, empty Carry Forward, controlled versions-load error/Retry, and
 viewer denied/read-only boundaries. Those samples also stayed within the
 525px CSS viewport; the shared context identity split remains the same
 human-held shell limitation.
+The Organization administration family was additionally exercised at native
+200% for owner members/invites, compliance timeline, Documentation Operations
+usage/limits, owner members error/Retry, and viewer denied/read-only states.
+These samples stayed within the 525px CSS viewport; the known compliance and
+Documentation Operations metric probes remain explicitly incomplete.
 The shared Project Version context header visibly splits its label at this
 zoom despite no document overflow, so that shell limitation remains recorded
 for human disposition rather than being silently changed in this bounded pass.
@@ -2472,6 +2477,21 @@ identity visibly splits inside the constrained shell at this zoom, so it
 remains a human disposition rather than an unscoped shell change. No new
 blind-review cycle is claimed for this evidence-only continuation, and it does
 not close the broader 26.6 matrix or infer Plan 147 completion.
+
+2026-08-07 — native 200% Organization administration continuation — source
+candidate `c4141a1`; evidence-only continuation recorded in `48ac394`. Separate
+synthetic owner and viewer sessions covered Organization members/invites,
+compliance timeline, Documentation Operations usage/limits, owner members
+error/Retry recovery, and viewer denied/read-only boundaries at native Chrome
+Page zoom 200% (`devicePixelRatio=2`, 525px CSS viewport). Sampled documents
+stayed within 525px with no page errors; owner members, viewer members denied,
+and viewer compliance denied were axe 0/0, while compliance and Documentation
+Operations retained the known metric contrast/background or short-text
+incomplete probes. Screenshots were visually inspected; no mutation was
+submitted. Zoom was restored to 100%, browser storage cleared, services
+stopped, and the Documentation fixture was reseeded. No new blind-review cycle
+is claimed for this evidence-only continuation, and it does not close the
+broader 26.6 matrix or infer Plan 147 completion.
 
 Record future entries as:
 
