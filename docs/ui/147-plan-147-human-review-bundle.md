@@ -367,6 +367,23 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   native 200% with widths no greater than 525px and axe 0/0. No successful
   password submission or mutation was attempted. Evidence:
   [invalid retry](./147-continuation-public-demo-password-zoom-200-invalid.png).
+- Authenticated owner boundary: a real same-origin synthetic admin login landed
+  on `/projects` and rendered the Project library at `devicePixelRatio=2` with
+  client/scroll width 517px and axe 0/0. Evidence:
+  [Projects](./147-continuation-auth-projects-zoom-200.png).
+- Authenticated Documentation Operations: the owner state rendered usage and
+  Owner-only Product limits at the same native zoom with width 517px and no
+  overflow. Axe reported 0 violations and the known one incomplete
+  metric-number/overlapped-background contrast probe. Evidence:
+  [owner](./147-continuation-auth-documentation-operations-zoom-200.png).
+- Viewer Documentation Operations: a separate synthetic viewer session rendered
+  the read-only usage state at native 200%; the Owner-only Save limits control
+  was absent, with the same known axe incomplete metric probe and no overflow.
+  Evidence: [viewer](./147-continuation-viewer-documentation-operations-zoom-200.png).
+- Anonymous public boundary: a fresh unauthenticated browser context rendered
+  the Documentation reader at native 200% with no portal chrome, axe 0/0, no
+  overflow, and Tab focus on Skip to content. Evidence:
+  [anonymous reader](./147-continuation-anonymous-documentation-zoom-200.png).
 - Extension popup: direct extension-origin Connect and authenticated Ready to
   capture states rendered at `devicePixelRatio=2`, client/scroll width 517px,
   axe 0/0, and no overflow. Evidence:

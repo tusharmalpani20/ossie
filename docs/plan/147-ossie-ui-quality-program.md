@@ -1990,9 +1990,11 @@ representatives, the seeded anonymous Guide and embed routes, and truthful
 anonymous unavailable Documentation/Demo routes. It does not close the
 required matrix: native 200% evidence is now separately recorded for the
 Documentation reader/operation, Interactive Demo reader/embed/access states,
-and direct extension popup, while installed extension-toolbar activation,
-direct-manipulation breadth, and unclaimed loading/denied/populated states
-remain explicitly limited or separately evidenced.
+direct extension popup, and supplemental authenticated Projects/Documentation
+states plus an isolated anonymous Documentation reader, while installed
+extension-toolbar activation, direct-manipulation breadth, and unclaimed
+loading/denied/populated states remain explicitly limited or separately
+evidenced.
 
 ### 26.7 Human feedback and final closeout
 
@@ -2342,6 +2344,20 @@ unpacked extension Connect and authenticated Ready states were also exercised
 at native 200% with axe 0/0 and no overflow. The browser zoom was restored to
 100%, extension storage was cleared, dedicated services were stopped, and no
 broader 26.6 checkbox was closed from these bounded samples.
+
+2026-08-07 — supplemental authenticated native 200% boundary evidence — source
+candidate `106705c`, evidence-only continuation recorded in `2a3bd18`. A real
+same-origin synthetic admin login reached `/projects` and
+`/organization/documentation` at native Chrome Page zoom 200%; a separate
+synthetic viewer session reached Documentation Operations without Owner-only
+limit controls. All sampled documents stayed within a 517px client/scroll
+width, and Projects passed axe 0/0. Documentation Operations retained the
+known axe incomplete metric-number/overlapped-background contrast probe and no
+violations. A fresh anonymous session separately rechecked the public
+Documentation reader at native 200%, with no portal chrome, axe 0/0, and Tab
+focus on Skip to content. Zoom was restored to 100%, browser storage cleared,
+and dedicated services stopped. This supplements but does not close the
+broader 26.6 matrix.
 
 Record future entries as:
 
