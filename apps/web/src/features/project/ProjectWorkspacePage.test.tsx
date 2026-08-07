@@ -62,6 +62,12 @@ describe("ProjectWorkspacePage", () => {
 
     expect(screen.getByText("Loading project...")).toBeInTheDocument();
     expect(
+      screen.getByRole("heading", { name: "Projects", level: 1 }),
+    ).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Loading project...",
+    );
+    expect(
       await screen.findByRole("heading", { name: "Internal onboarding demos" }),
     ).toBeInTheDocument();
     expect(
@@ -216,6 +222,9 @@ describe("ProjectWorkspacePage", () => {
     expect(
       await screen.findByText("Sign in to view this project."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Projects", level: 1 }),
+    ).toBeVisible();
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/login?next=%2Fprojects%2Fproject_1%3Ftab%3Doverview",
@@ -239,6 +248,9 @@ describe("ProjectWorkspacePage", () => {
     expect(
       await screen.findByText("Project was not found."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Projects", level: 1 }),
+    ).toBeVisible();
   });
 
   it("signs out from the project workspace", async () => {
@@ -286,6 +298,12 @@ describe("ProjectWorkspacePage", () => {
     expect(
       await screen.findByText("Could not load project."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Projects", level: 1 }),
+    ).toBeVisible();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not load project.",
+    );
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() => expect(loadProject).toHaveBeenCalledTimes(2));

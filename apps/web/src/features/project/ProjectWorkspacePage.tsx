@@ -118,7 +118,14 @@ export const ProjectWorkspacePage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <div className={styles.state}>Loading project...</div>
+        <section className={styles.state} aria-labelledby="projects-loading-heading">
+          <h1 className={styles.stateTitle} id="projects-loading-heading">
+            Projects
+          </h1>
+          <p className={styles.stateMessage} role="status">
+            Loading project...
+          </p>
+        </section>
       </PortalShell>
     );
   }
@@ -130,12 +137,15 @@ export const ProjectWorkspacePage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <div className={styles.state}>
-          <div>Sign in to view this project.</div>
+        <section className={styles.state} aria-labelledby="projects-access-heading">
+          <h1 className={styles.stateTitle} id="projects-access-heading">
+            Projects
+          </h1>
+          <p className={styles.stateMessage}>Sign in to view this project.</p>
           <a className={styles.stateLink} href={signInUrl(currentPath)}>
             Sign in
           </a>
-        </div>
+        </section>
       </PortalShell>
     );
   }
@@ -147,7 +157,12 @@ export const ProjectWorkspacePage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <div className={styles.state}>Project was not found.</div>
+        <section className={styles.state} aria-labelledby="projects-not-found-heading">
+          <h1 className={styles.stateTitle} id="projects-not-found-heading">
+            Projects
+          </h1>
+          <p className={styles.stateMessage}>Project was not found.</p>
+        </section>
       </PortalShell>
     );
   }
@@ -159,8 +174,13 @@ export const ProjectWorkspacePage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <div className={styles.state}>
-          <div>Could not load project.</div>
+        <section className={styles.state} aria-labelledby="projects-error-heading">
+          <h1 className={styles.stateTitle} id="projects-error-heading">
+            Projects
+          </h1>
+          <p className={styles.stateMessage} role="alert">
+            Could not load project.
+          </p>
           <Button
             variant="secondary"
             size="sm"
@@ -169,7 +189,7 @@ export const ProjectWorkspacePage = ({
           >
             Retry
           </Button>
-        </div>
+        </section>
       </PortalShell>
     );
   }
