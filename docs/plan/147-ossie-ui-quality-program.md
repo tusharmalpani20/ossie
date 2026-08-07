@@ -2301,6 +2301,15 @@ repair, not a Plan 147 surface candidate, so no visual candidate or blind review
 was created. Status remains `agent_accepted_pending_human`; all human-owned
 route/design/extension decisions remain unchanged.
 
+2026-08-07 — post-repair repository gates — source commit `7982142`. The
+latest `pnpm -r --if-present test` passed across active workspaces, including
+server 127 files / 553 tests and web 95 files / 507 tests. `pnpm check-types`
+passed 13/13 tasks; `pnpm lint` passed 14/14 tasks with 89 existing server
+warnings and zero errors; `pnpm build` passed 13/13 tasks; CSS-token check
+passed 130 definitions / 123 consumers; and `git diff --check` passed. This
+replaces the earlier pre-repair counts in the final verification record; no
+runtime behavior changed.
+
 Record future entries as:
 
 ```text

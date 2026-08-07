@@ -295,9 +295,10 @@ verified without inventing a combined fixture or changing product data.
   access states at desktop and narrow widths; all sampled states were axe 0/0
   with no page errors. Documentation and Demo fixtures were seeded separately
   and are not claimed as one combined database state.
-- Repository-wide `pnpm check-types` passed 14/14 packages, `pnpm lint` passed
-  13/13 packages with 89 existing server warnings and zero errors, `pnpm build`
-  passed 13/13 packages, and `git diff --check` passed.
+- Latest repository gates: `pnpm check-types` passed 13/13 tasks, `pnpm lint`
+  passed 14/14 tasks with 89 existing server warnings and zero errors, `pnpm
+  build` passed 13/13 tasks, CSS-token check passed 130/123, and `git diff
+  --check` passed.
 - Final closeout browser audits for the shared-foundation parent/candidate
   comparison report axe 0 violations / 0 incomplete checks, no page overflow,
   reduced-motion and keyboard paths as recorded in the reviews. Earlier latest
