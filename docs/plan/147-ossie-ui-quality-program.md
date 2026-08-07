@@ -2624,6 +2624,18 @@ Demo pass. Evidence is recorded in the ledger and bundle; this continuation
 does not create a candidate or blind-review cycle and does not close the
 broader 26.6 matrix.
 
+2026-08-07 — Guide public viewport evidence continuation — no new candidate;
+the separate disposable Guide fixture exercised the valid anonymous reader at
+1024×768 and 320×844 and its embed at 1024×768. All sampled states retained
+one main and the expected heading, reported axe 0/0, stayed within
+client/scroll/body widths, used
+reduced motion, and had no page errors beyond development notices. The static
+Guide has no focusable controls, so the first Tab left focus on body and is
+recorded as a limitation. No mutation or target request was submitted, and
+the Documentation fixture was reseeded afterward. Evidence is recorded in
+the ledger and bundle; this does not create a candidate/review cycle or close
+the broader 26.6 matrix.
+
 Record future entries as:
 
 ```text

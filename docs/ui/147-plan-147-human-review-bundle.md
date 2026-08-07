@@ -312,6 +312,23 @@ This is evidence-only hardening; it adds no immutable candidate and therefore
 does not create a new blind-review cycle. It supplements, but does not close,
 the broader 26.6 matrix or the required human review.
 
+## Guide public viewport continuation — 2026-08-07
+
+The separate disposable Guide fixture added a valid anonymous Guide reader at
+1024×768 and 320×844, plus its embed at 1024×768. All sampled states retained
+one main and the expected `Plan 127 active Guide` heading, stayed within their
+client/scroll/body widths,
+reported axe 0/0, and had no page errors beyond expected development notices.
+The static Guide has no focusable controls, so the first Tab left focus on the
+body; this is recorded rather than overstated as an interaction path. No
+mutation or target request was submitted, and the Documentation fixture was
+reseeded after this pass. Evidence: [Guide tablet](./147-public-guide-tablet-1024.png),
+[Guide 320px](./147-public-guide-narrow-320.png), and
+[Guide embed tablet](./147-public-guide-embed-tablet-1024.png).
+
+This is evidence-only hardening and does not create a new blind-review cycle or
+close the broader 26.6 matrix.
+
 ## Supplemental extension verification — 2026-08-07
 
 Chromium was launched with the built unpacked MV3 extension from
