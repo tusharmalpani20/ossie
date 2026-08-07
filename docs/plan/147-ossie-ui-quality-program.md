@@ -2310,6 +2310,19 @@ passed 130 definitions / 123 consumers; and `git diff --check` passed. This
 replaces the earlier pre-repair counts in the final verification record; no
 runtime behavior changed.
 
+2026-08-07 — supplemental unpacked-extension lifecycle verification — source
+candidate `106705c`; evidence-only continuation, no runtime code change. A
+fresh Chromium launch loaded the built MV3 extension from `apps/extension/dist`,
+showed Ossie enabled with the `Pin to toolbar` control, and exercised the direct
+extension-origin Connect, synthetic sign-in, Project/Project Version selection,
+Capture start, completion, and portal-detail flow. Extension and portal axe
+audits were 0/0; the final successful path returned login 200, Project/Project
+Version reads 200, Capture Session create 201, and completion 200. Extension
+storage was cleared and the disposable database was reseeded with the
+Documentation fixture. The browser CLI still cannot activate the browser
+toolbar icon itself, so `extension-capture` remains `blocked_local_for_run` for
+that exact check; no toolbar-popup claim or human approval was inferred.
+
 Record future entries as:
 
 ```text

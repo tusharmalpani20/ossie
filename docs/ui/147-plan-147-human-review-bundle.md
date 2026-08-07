@@ -263,6 +263,30 @@ verified without inventing a combined fixture or changing product data.
   and the smoke suite passed 1/1 file and 2/2 tests. No runtime server, API,
   domain, permission, or UI behavior changed.
 
+## Supplemental extension verification — 2026-08-07
+
+Chromium was launched with the built unpacked MV3 extension from
+`apps/extension/dist`. The real extension details page showed Ossie enabled and
+exposed the `Pin to toolbar` control. Evidence: [pinned extension details](./147-continuation-extension-pinned.png).
+
+The direct extension-origin popup then passed the synthetic Connect instance,
+sign-in, Project/Project Version selection, Ready to capture, Start capture,
+and Finish/open-portal flow. Evidence: [Connect](./147-continuation-extension-connect.png),
+[Ready to capture](./147-continuation-extension-ready.png), and the resulting
+[portal Capture detail](./147-continuation-extension-capture-portal.png).
+The extension and portal states each reported axe 0/0. The final successful
+request path returned login 200, Project/Project Version reads 200, Capture
+Session create 201, and completion 200. Two earlier safe 401 login probes were
+from setup before switching the server to the disposable testing profile; they
+were corrected before the evidence path and are not candidate failures.
+
+This is truthful installed-build and direct extension-origin evidence, not a
+claim that the browser toolbar icon itself was activated: the CLI can load and
+pin the extension but cannot click browser chrome. The surface therefore stays
+`blocked_local_for_run` for that remaining toolbar-icon check. Extension
+storage was cleared, dedicated services were stopped, and the disposable
+database was reseeded with the Documentation fixture.
+
 ## Verification summary
 
 - Final web suite: 95 files, 507 tests passed.
@@ -295,6 +319,11 @@ verified without inventing a combined fixture or changing product data.
   access states at desktop and narrow widths; all sampled states were axe 0/0
   with no page errors. Documentation and Demo fixtures were seeded separately
   and are not claimed as one combined database state.
+- Supplemental extension verification loaded and enabled the unpacked build,
+  exercised direct extension-origin Connect/sign-in/selection/Capture completion,
+  and verified the resulting portal Capture detail at axe 0/0. Toolbar-icon
+  activation remains explicitly unclaimed because browser chrome is not
+  controllable through this CLI.
 - Latest repository gates: `pnpm check-types` passed 13/13 tasks, `pnpm lint`
   passed 14/14 tasks with 89 existing server warnings and zero errors, `pnpm
   build` passed 13/13 tasks, CSS-token check passed 130/123, and `git diff
@@ -332,9 +361,10 @@ verified without inventing a combined fixture or changing product data.
   preview, authorize a paired preview/public-reader chrome study, or name a
   different narrow cross-product route pair. Do not accept a broad consistency
   rewrite without that scope decision.
-- Rerun the installed extension toolbar/permission path in a capable browser
-  environment before changing `extension-capture` from
-  `blocked_local_for_run`.
+- Rerun the browser toolbar-icon popup path in a capable browser environment
+  before changing `extension-capture` from `blocked_local_for_run`; the
+  unpacked load, enabled state, pin configuration, and direct extension-origin
+  lifecycle are now separately evidenced.
 - Review whether any accepted-pending-human candidate needs another bounded
   cycle; do not silently update screenshot baselines.
 
