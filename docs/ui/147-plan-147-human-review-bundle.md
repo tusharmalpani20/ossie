@@ -316,7 +316,8 @@ database was reseeded with the Documentation fixture.
 
 ## Verification summary
 
-- Final web suite: 95 files, 507 tests passed.
+- Earlier clean baseline: 95 web files / 507 tests. Current candidate suite:
+  95 web files / 511 tests passed.
 - Exact recursive workspace test run: all active workspace suites passed.
 - Server smoke: 1 file / 2 tests passed. Server DB integration: 24/24 files,
   88/88 tests passed after the isolated fixture-test contract repair in
@@ -329,7 +330,7 @@ database was reseeded with the Documentation fixture.
 - Latest ProjectWorkspacePage state tests: 9/9; adjacent Project list and
   shared-shell tests: 21/21. Normal-route browser verification is incomplete
   because App maps `/projects/:projectId` to `LegacyProjectRedirect`.
-- Post-candidate clean engineering gates pass: web 95 files / 507 tests,
+- Post-candidate clean engineering gates pass: web 95 files / 511 tests,
   check-types, lint, production build, CSS-token check 130/123, and diff check.
 - Latest Project list + shared-shell focused tests: 20/20 (prior denied-state
   checkpoint).
