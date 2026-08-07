@@ -228,10 +228,23 @@ const LegacyProjectRedirect = ({
     );
   return (
     <div className={styles.page}>
-      <main className={styles.main}>
-        {failed
-          ? "Project was not found."
-          : "Opening the Default Project Version..."}
+      <main
+        className={styles.main}
+        aria-labelledby={
+          failed ? "project-redirect-error" : "project-redirect-loading"
+        }
+      >
+        <h1
+          className={styles.title}
+          id={failed ? "project-redirect-error" : "project-redirect-loading"}
+        >
+          {failed ? "Project not found" : "Opening Project"}
+        </h1>
+        <p role={failed ? "alert" : "status"}>
+          {failed
+            ? "Project was not found."
+            : "Opening the Default Project Version..."}
+        </p>
       </main>
     </div>
   );

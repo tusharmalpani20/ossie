@@ -434,6 +434,55 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
+  it("announces the legacy Project redirect loading state", async () => {
+    window.history.pushState({}, "", "/projects/project_1");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (input.toString().endsWith("/api/v1/public/instance")) {
+          return jsonResponse(readyInstanceStatus);
+        }
+
+        return new Promise<Response>(() => undefined);
+      }),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Opening Project" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Opening the Default Project Version...",
+    );
+  });
+
+  it("announces a missing Project from the legacy redirect as an error state", async () => {
+    window.history.pushState({}, "", "/projects/project_1");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (input.toString().endsWith("/api/v1/public/instance")) {
+          return jsonResponse(readyInstanceStatus);
+        }
+
+        return jsonResponse(
+          { error: { message: "Project was not found" } },
+          404,
+        );
+      }),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Project not found" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Project was not found.",
+    );
+  });
+
   it("renders project settings routes", async () => {
     window.history.pushState(
       {},
@@ -1043,8 +1092,9 @@ describe("App", () => {
     expect(
       screen.getByText("The route you opened is not part of the Ossie portal."),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Open Projects" }),
-    ).toHaveAttribute("href", "/projects");
+    expect(screen.getByRole("link", { name: "Open Projects" })).toHaveAttribute(
+      "href",
+      "/projects",
+    );
   });
 });
