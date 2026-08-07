@@ -138,9 +138,12 @@ export const BrowserExtensionPage = ({
   if (authState === "error") {
     return (
       <Shell performLogout={performLogout} navigate={navigate}>
-        <Alert variant="destructive">
-          Extension access could not be checked. Reload this page to try again.
-        </Alert>
+        <section className={styles.state} aria-labelledby="extension-error-heading">
+          <h1 id="extension-error-heading">Browser extension</h1>
+          <Alert variant="destructive">
+            Extension access could not be checked. Reload this page to try again.
+          </Alert>
+        </section>
       </Shell>
     );
   }

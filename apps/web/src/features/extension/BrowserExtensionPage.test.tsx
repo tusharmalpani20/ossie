@@ -60,4 +60,26 @@ describe("BrowserExtensionPage", () => {
       await screen.findByRole("button", { name: "Download extension" }),
     ).toBeInTheDocument();
   });
+
+  it("keeps the auth-check error state headed", async () => {
+    render(
+      <BrowserExtensionPage
+        checkAuth={async () => {
+          throw new Error("temporary auth failure");
+        }}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        "Extension access could not be checked. Reload this page to try again.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Browser extension",
+      }),
+    ).toBeInTheDocument();
+  });
 });

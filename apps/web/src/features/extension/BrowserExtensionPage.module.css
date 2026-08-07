@@ -118,6 +118,13 @@
   color: var(--ossie-color-muted);
 }
 
+.state h1 {
+  margin: 0;
+  color: var(--ossie-color-text);
+  font-size: clamp(1.65rem, 3vw, 2.25rem);
+  line-height: 1.12;
+}
+
 .state a {
   width: fit-content;
   color: var(--ossie-color-focus);
