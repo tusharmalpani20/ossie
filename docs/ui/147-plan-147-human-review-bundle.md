@@ -105,13 +105,33 @@ The unauthenticated Project list recovery card now has a semantic level-one
 URL. The state is axe-clean at desktop and narrow widths, and both blind
 reviews accept pending human review.
 
+### Projects loading and recoverable error — `aa6f892`
+
+- [Review A](./147-projects-state-semantics-review-a.md)
+- [Review B](./147-projects-state-semantics-review-b.md)
+- [Error desktop](./147-projects-state-error-after-desktop.png)
+- [Error narrow](./147-projects-state-error-after-narrow.png)
+
+The Project list loading and recoverable-error states now retain a semantic
+`Projects` h1. Loading is announced through `role=status`; the error message is
+announced through `role=alert`, and the existing Retry action is unchanged.
+ProjectListPage, App, and shell focused checks pass 17/17, 20/20, and 4/4;
+the clean web suite passes 95 files / 498 tests. Desktop and narrow error
+browser evidence is axe-clean with no overflow. This runner cannot safely
+delay the local API response, so loading has deterministic component-test
+evidence and no fabricated browser screenshot. Both blind reviews accept
+pending human review.
+
 ## Verification summary
 
 - Final web suite: 95 files, 498 tests passed.
 - Final docs suite: 4 files, 13 tests passed.
 - Shared UI tests: 4 files, 11 tests passed; focused shared-foundation web
   tests: 45/45.
-- Latest Project list + shared-shell focused tests: 20/20.
+- Latest ProjectListPage state tests: 17/17; App route tests: 20/20; adjacent
+  shared-shell tests: 4/4.
+- Latest Project list + shared-shell focused tests: 20/20 (prior denied-state
+  checkpoint).
 - Extension suite: 19 files, 140 tests passed; web and extension typechecks,
   lint, builds, and diff checks passed.
 - Browser evidence used Chromium, local runner URLs, synthetic fixtures, and

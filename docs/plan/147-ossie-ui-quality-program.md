@@ -2160,6 +2160,22 @@ Reviewer B both accepted. Status: `agent_accepted_pending_human`; authenticated
 owner/viewer browser fixtures, actual browser zoom, P2-001, and the broader
 26.6 matrix remain open.
 
+2026-08-06 — `projects-state-semantics` — starting commit `e67d392`; preflight
+commit `36d77f6`; cycle-2 candidate `aa6f892`. Added a semantic `Projects`
+heading to the loading and recoverable-error Project list states, exposed the
+loading message as `role=status` and the error message as `role=alert`, and
+preserved the existing Retry action and loader/retry contracts. The new
+loading/error assertions were red before implementation and green afterward;
+ProjectListPage passed 17/17, App passed 20/20, and the adjacent shell tests
+passed 4/4. The clean full web suite passed 95 files / 498 tests; web
+typecheck, lint, build, token check 130/123, and diff check passed. Desktop and
+narrow error-state browser evidence passed axe 0/0, no overflow, and keyboard
+focus for Retry. The browser router could abort or immediately answer the local
+request but could not safely delay it, so no loading screenshot is claimed.
+Reviewer A and Reviewer B both accepted. Status: `agent_accepted_pending_human`;
+authenticated owner/viewer browser fixtures, actual browser zoom, P2-001, and
+the broader 26.6 matrix remain open.
+
 Record future entries as:
 
 ```text
