@@ -389,6 +389,19 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   axe 0/0, and no overflow. Evidence:
   [Connect](./147-continuation-extension-connect-zoom-200.png) and
   [Ready](./147-continuation-extension-ready-zoom-200.png).
+- Guide family: the valid public reader and embed rendered at native 200% with
+  `devicePixelRatio=2`, client/scroll width 517px, axe 0/0, and no overflow.
+  Restricted, expired, revoked, and password-invalid states remained truthful,
+  axe-clean, and within 525px; no successful password submission was attempted.
+  Evidence: [reader](./147-continuation-public-guide-zoom-200.png),
+  [embed](./147-continuation-public-guide-embed-zoom-200.png), and
+  [invalid password](./147-continuation-public-guide-password-invalid-zoom-200.png).
+- Guide editor/viewer boundary: the real synthetic editor rendered the active
+  Guide at native 200% with width 517px and the known two-textarea incomplete
+  contrast probe; the separate viewer rendered `Read only`, width 517px, axe
+  0/0, and no Save/Archive/Publish/Delete controls. Evidence:
+  [editor](./147-continuation-auth-guide-editor-zoom-200.png) and
+  [viewer](./147-continuation-auth-guide-viewer-zoom-200.png).
 
 The browser zoom was restored to 100%, extension storage was cleared, the
 dedicated services were stopped, and the disposable database was reseeded with

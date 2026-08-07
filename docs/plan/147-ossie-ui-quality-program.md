@@ -1991,10 +1991,10 @@ anonymous unavailable Documentation/Demo routes. It does not close the
 required matrix: native 200% evidence is now separately recorded for the
 Documentation reader/operation, Interactive Demo reader/embed/access states,
 direct extension popup, and supplemental authenticated Projects/Documentation
-states plus an isolated anonymous Documentation reader, while installed
-extension-toolbar activation, direct-manipulation breadth, and unclaimed
-loading/denied/populated states remain explicitly limited or separately
-evidenced.
+states, isolated anonymous Documentation reader, and the Guide reader/embed/
+editor/viewer/access samples, while installed extension-toolbar activation,
+direct-manipulation breadth, and unclaimed loading/denied/populated states
+remain explicitly limited or separately evidenced.
 
 ### 26.7 Human feedback and final closeout
 
@@ -2358,6 +2358,19 @@ Documentation reader at native 200%, with no portal chrome, axe 0/0, and Tab
 focus on Skip to content. Zoom was restored to 100%, browser storage cleared,
 and dedicated services stopped. This supplements but does not close the
 broader 26.6 matrix.
+
+2026-08-07 — native 200% Guide-family hardening evidence — source candidate
+`953a7fa`, evidence-only continuation recorded in the next checkpoint. With
+the guarded synthetic Plan 127 Guide fixture, isolated anonymous Chromium
+covered the valid reader and embed, password invalid retry, and
+restricted/expired/revoked access states at native Page zoom 200%; all sampled
+states were axe-clean and stayed within 517–525px client/scroll widths. A real
+same-origin editor login then covered the active Guide editor at `dpr=2` with
+the known two-textarea incomplete contrast probe; a separate viewer login
+covered the same Guide as `Read only` with no Save/Archive/Publish/Delete
+controls and axe 0/0. No mutation was submitted. Zoom was restored to 100%,
+browser storage cleared, services stopped, and the final Documentation fixture
+was reseeded. This supplements but does not close the broader 26.6 matrix.
 
 Record future entries as:
 
