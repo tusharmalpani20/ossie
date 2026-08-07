@@ -2014,6 +2014,12 @@ The Organization administration family was additionally exercised at native
 usage/limits, owner members error/Retry, and viewer denied/read-only states.
 These samples stayed within the 525px CSS viewport; the known compliance and
 Documentation Operations metric probes remain explicitly incomplete.
+The Projects library was also exercised at native 200% for active, empty
+archived, create-form, controlled list-error/Retry, and owner/viewer states.
+The valid seeded `/projects/:projectId` entry redirected through the existing
+`LegacyProjectRedirect` into the Project Version workspace and was axe-clean;
+this does not mount or accept the separate `ProjectWorkspacePage` candidate,
+so its route-ownership hold remains unchanged.
 The shared Project Version context header visibly splits its label at this
 zoom despite no document overflow, so that shell limitation remains recorded
 for human disposition rather than being silently changed in this bounded pass.
@@ -2492,6 +2498,20 @@ submitted. Zoom was restored to 100%, browser storage cleared, services
 stopped, and the Documentation fixture was reseeded. No new blind-review cycle
 is claimed for this evidence-only continuation, and it does not close the
 broader 26.6 matrix or infer Plan 147 completion.
+
+2026-08-07 — native 200% Projects library continuation — source candidate
+`e94d6a9`; evidence-only continuation recorded in `f167ee5`. Separate
+synthetic owner and viewer sessions covered active Projects, the empty
+archived filter, owner create-form visibility, controlled Project-list
+error/Retry recovery, viewer active/archived states, and a valid seeded
+`/projects/:projectId` entry at native Chrome Page zoom 200%
+(`devicePixelRatio=2`, 525px CSS viewport). The valid entry followed the
+existing `LegacyProjectRedirect` into the Project Version workspace and was
+axe 0/0; it is evidence of current shipped routing, not acceptance or mounting
+of the separate `ProjectWorkspacePage` candidate. No mutation was submitted;
+zoom was restored to 100%, browser storage cleared, services stopped, and the
+Documentation fixture was reseeded. The route-ownership hold, broader 26.6
+matrix, and human review remain open. No new blind-review cycle is claimed.
 
 Record future entries as:
 

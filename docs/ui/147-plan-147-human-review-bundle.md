@@ -481,6 +481,18 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   [viewer members denied](./147-continuation-viewer-organization-members-denied-zoom-200.png),
   [viewer compliance denied](./147-continuation-viewer-organization-compliance-denied-zoom-200.png),
   and [viewer Documentation Operations](./147-continuation-viewer-organization-documentation-operations-zoom-200.png).
+- Projects library continuation: separate synthetic owner and viewer sessions
+  covered active Projects, the empty archived filter, owner create-form
+  visibility, controlled Project-list error/Retry recovery, viewer active/
+  archived states, and a valid seeded `/projects/:projectId` entry at native
+  200% (`dpr=2`, 525px CSS viewport). The valid entry followed the existing
+  `LegacyProjectRedirect` into the Project Version workspace and was axe 0/0;
+  this is current-route evidence, not acceptance or mounting of the separate
+  `ProjectWorkspacePage` candidate. No mutation was submitted. Evidence:
+  [owner active](./147-continuation-auth-projects-active-zoom-200.png),
+  [owner archived](./147-continuation-auth-projects-archived-zoom-200.png),
+  [owner error](./147-continuation-auth-projects-error-zoom-200.png), and
+  [viewer workspace redirect](./147-continuation-viewer-project-workspace-redirect-zoom-200.png).
 
 The browser zoom was restored to 100%, extension storage was cleared, the
 dedicated services were stopped, and the disposable database was reseeded with
