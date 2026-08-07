@@ -618,7 +618,9 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Capture sessions" }),
+      await screen.findByRole("heading", {
+        name: "Create department workflow",
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Create department workflow" }),
@@ -852,7 +854,7 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Guides" }),
+      await screen.findByRole("heading", { name: "Department guide" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Department guide" }),
@@ -912,7 +914,7 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Interactive demos" }),
+      await screen.findByText("Department setup demo"),
     ).toBeInTheDocument();
     expect(screen.getByText("Department setup demo")).toBeInTheDocument();
   });
