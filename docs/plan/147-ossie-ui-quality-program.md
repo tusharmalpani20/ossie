@@ -1996,9 +1996,13 @@ editor/viewer/access samples, plus shared foundation/entry/fallback samples,
 the Interactive Demo editor/preview/Revision/viewer/lifecycle samples, and the
 authenticated Documentation authoring/Page editor/draft-preview/Review Inbox
 states (including the localized Review Inbox landmark repair), while
-installed extension-toolbar activation, direct-manipulation breadth, and
-unclaimed loading/denied/populated states remain explicitly limited or
-separately evidenced. The authenticated Capture portal was also exercised in
+installed extension-toolbar activation and unclaimed loading/denied/populated
+states remain explicitly limited or separately evidenced. Native direct
+manipulation is now additionally evidenced in the Interactive Demo editor: a
+real resize-handle drag and hotspot move at 200% changed only local geometry,
+and reload restored the persisted geometry because no Save action was used;
+the complete direct-manipulation matrix remains open. The authenticated
+Capture portal was also exercised in
 separate synthetic owner/viewer sessions at native 200% across active/named/
 archived lists, completed/empty/capturing/canceled/archived details, owner
 controls, viewer read-only controls, and an aborted-list error with Retry;
@@ -2553,6 +2557,19 @@ states were axe 0/0 with no overflow; final paths were GET-only apart from
 synthetic login, and no product mutation was submitted. The prior split inside
 `Main` is resolved. No new blind-review cycle is claimed for this bounded CSS
 follow-up; the broader 26.6 matrix and human closeout remain open.
+
+2026-08-07 — native 200% Interactive Demo direct-manipulation continuation —
+source candidate `e97647e`; evidence-only continuation. The authenticated
+synthetic owner editor rendered at native Page zoom 200% (`devicePixelRatio=2`,
+525px CSS viewport). A real pointer interaction used the Hotspot 1 resize
+handle, then a real pointer drag moved the hotspot; the local geometry changed
+without a request. Reload restored the persisted `100%` geometry because no
+Save action was used, preserving Working Draft and mutation boundaries. Axe
+reported 0 violations with the known three-textarea incomplete probe, there
+was no horizontal overflow or browser error, and final paths were GET-only.
+Screenshots were visually inspected. No new blind-review cycle is claimed for
+this evidence-only continuation; the broader direct-manipulation/state matrix,
+toolbar capability, and human closeout remain open.
 
 Record future entries as:
 

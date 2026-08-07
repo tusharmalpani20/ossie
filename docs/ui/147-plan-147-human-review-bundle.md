@@ -424,6 +424,12 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   [Revisions](./147-continuation-auth-demo-revisions-zoom-200.png),
   [viewer](./147-continuation-auth-demo-viewer-zoom-200.png), and
   [archived](./147-continuation-auth-demo-archived-zoom-200.png).
+  A supplemental native-200% direct-manipulation pass used the real Hotspot 1
+  resize handle and pointer drag, changing only local geometry; reload restored
+  the persisted `100%` geometry because no Save action was used. The sample
+  remained within 525px with axe 0 violations plus the known three-textarea
+  incomplete probe, and final paths were GET-only. Evidence: [resize](./147-continuation-auth-demo-direct-manip-zoom-200-resize.png)
+  and [move](./147-continuation-auth-demo-direct-manip-zoom-200-move.png).
 - Documentation authoring/review continuation: separate synthetic owner and
   viewer sessions covered the Site workbench task states, Install Page editor,
   saved-draft preview, and Review Inbox at native 200% (`dpr=2`, 525px CSS
