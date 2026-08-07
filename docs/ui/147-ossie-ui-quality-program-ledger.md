@@ -1561,6 +1561,48 @@ domain, permission, lifecycle, publication, or URL authority.
   focused test/evidence/review records; preserve `e67d392`, the denied-state
   cycle-1 candidate, the shared-shell candidate, and all prior records.
 
+### projects-workspace-state-semantics exact surface preflight
+
+- Actual HEAD/worktree before implementation: `00628d1` in
+  `/home/ubuntu/ossie-plan147`, branch `agent/plan-147-ui-quality`; worktree
+  was clean. This is cycle 3, the final allowed cycle for `projects-workspace`,
+  limited to its loading, unauthenticated, not-found, and recoverable-error
+  branches after the Project list state-semantics cycle.
+- Surface and normal entry: `/projects/:projectId` through the existing Project
+  workspace route. `ProjectWorkspacePage` owns `LoadState`, `getProject`, and
+  retry via `reloadKey`; `PortalAppShell` owns the shared shell and main
+  landmark. Loaded workspace links, Project Version context, settings,
+  membership, tenant, and permission semantics remain outside the write set.
+- Baseline truth: loading, unauthenticated, not-found, and recoverable-error
+  branches use generic state containers without a page-level `Projects` h1.
+  The existing Retry action and safe sign-in `next` URL are already covered by
+  component tests. Browser evidence will use only the truthful local 401 route
+  and an intentionally aborted local Project request for error state.
+- Intended write set: state-branch semantic wrappers and status/error text,
+  focused workspace assertions, safe local browser evidence, two blind reviews,
+  and Plan/ledger/bundle reconciliation. No API, auth, role, tenant, Project,
+  Project Version, public-link, immutability, or navigation contract may change.
+- Explicitly out of scope: loaded workspace composition and links, settings,
+  membership, activity/compliance, shared-shell CSS, retry implementation,
+  server/database behavior, browser zoom tooling, and unrelated feature states.
+- Accepted constraints: each transient workspace branch keeps one `Projects`
+  h1; loading uses `role=status`; recoverable error uses `role=alert`; denied
+  and not-found copy remains truthful and retains its existing recovery or
+  terminal behavior. This is a reversible accessibility/state-composition
+  correction, not a new Project semantic.
+- Focused failing tests to add first: loading, unauthenticated, not-found, and
+  generic-error workspace tests must require a level-one `Projects` heading;
+  loading/error tests must require their status/alert semantics.
+- Reviewer A brief: inspect state hierarchy, recovery clarity, desktop/narrow
+  composition, loaded-state visual parity, and whether the final cycle stays
+  inside the workspace state boundary.
+- Reviewer B brief: inspect auth/not-found/error truthfulness, retry continuity,
+  keyboard/axe/network evidence, exact diff, and absence of Project/Project
+  Version/tenant/permission changes.
+- Rollback boundary: revert only this cycle-3 workspace state candidate and its
+  focused test/evidence/review records; preserve `aa6f892`, `3a8fad4`,
+  `8b45a4b`, and all prior accepted-pending-human records.
+
 ## Checkpoints
 
 | Date/time | Commit | Surface/state | Result | Next command |
