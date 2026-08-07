@@ -2571,6 +2571,20 @@ Screenshots were visually inspected. No new blind-review cycle is claimed for
 this evidence-only continuation; the broader direct-manipulation/state matrix,
 toolbar capability, and human closeout remain open.
 
+2026-08-07 — fresh broad engineering gate rerun — source commit `4edbcba`;
+verification-only continuation. `pnpm -r --if-present test` passed all active
+workspace suites (including web 95 files/509 tests, server 127 files/553
+tests, extension 19 files/140 tests, and docs 4 files/13 tests). `pnpm
+check-types` passed 13/13 tasks; `pnpm lint` passed 14/14 tasks with the
+existing 89 server warnings and zero errors; `pnpm build` passed 13/13 tasks
+with only the existing web chunk-size warning; `pnpm check-css-tokens` passed
+130 definitions/123 consumers; and `git diff --check` passed. The repository
+required `rtk` prefix remains unavailable, so these exact direct-command
+fallbacks are recorded. No source candidate, browser claim, or product
+semantic change was introduced; Project workspace route ownership, P2-001,
+installed-toolbar activation, the broader matrix, and human closeout remain
+open.
+
 Record future entries as:
 
 ```text

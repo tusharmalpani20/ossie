@@ -338,6 +338,26 @@ database was reseeded with the Documentation fixture.
   the shared-foundation candidate adds semantic token coverage and now records
   the current 130/123 result.
 
+## Fresh broad engineering gate rerun — 2026-08-07
+
+From the clean source worktree at `4edbcba`, the mandatory repository gates were
+rerun sequentially with direct commands because `rtk` remains unavailable:
+
+- `pnpm -r --if-present test` passed all active workspace suites, including web
+  95 files/509 tests, server 127 files/553 tests, extension 19 files/140 tests,
+  and docs 4 files/13 tests.
+- `pnpm check-types` passed 13/13 tasks.
+- `pnpm lint` passed 14/14 tasks with the existing 89 server warnings and zero
+  errors.
+- `pnpm build` passed 13/13 tasks; the existing web chunk-size warning remains.
+- `pnpm check-css-tokens` passed 130 definitions/123 consumers.
+- `git diff --check` passed.
+
+This is verification-only evidence. It introduces no new candidate, screenshot,
+product behavior, permission, domain, or mutation claim. The Project workspace
+route decision, P2-001 scope decision, installed-toolbar activation block,
+broader cross-product matrix, and required human closeout remain open.
+
 ## Native 200% browser-zoom verification — 2026-08-07
 
 Chromium’s actual Page zoom control was set through `chrome://settings/appearance`
