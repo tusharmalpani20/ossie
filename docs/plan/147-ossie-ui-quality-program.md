@@ -2210,6 +2210,15 @@ different narrower cross-product study are materially different directions.
 The issue is therefore recorded as `needs_human_surface`; no code, baseline,
 API, domain, permission, public-link, or immutable-content behavior changed.
 
+2026-08-07 — cross-product hardening evidence — documentation commit `37aa532`.
+Ran a second clean anonymous public-route pass at 1024px and 390px with
+reduced-motion and CSS-zoom reflow probes. The valid synthetic Guide remained
+within viewport width with axe 0/0; current Documentation and Demo fixtures
+truthfully rendered unavailable states with axe 0/0 and no browser errors.
+Tablet/mobile screenshots and limitations are linked from the bundle and
+ledger. This is supplemental evidence only, not a new surface candidate or a
+claim that missing valid Documentation/Demo fixtures are populated.
+
 Record future entries as:
 
 ```text
