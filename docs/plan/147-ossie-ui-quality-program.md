@@ -2360,7 +2360,7 @@ and dedicated services stopped. This supplements but does not close the
 broader 26.6 matrix.
 
 2026-08-07 — native 200% Guide-family hardening evidence — source candidate
-`953a7fa`, evidence-only continuation recorded in the next checkpoint. With
+`953a7fa`, evidence-only continuation recorded in `2922665`. With
 the guarded synthetic Plan 127 Guide fixture, isolated anonymous Chromium
 covered the valid reader and embed, password invalid retry, and
 restricted/expired/revoked access states at native Page zoom 200%; all sampled
