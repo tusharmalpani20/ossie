@@ -413,6 +413,17 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   Page not found h1, safe Projects/Sign in recovery links, width 525px, and axe
   0/0. Evidence: [login](./147-continuation-login-zoom-200.png) and
   [fallback](./147-continuation-unknown-fallback-zoom-200.png).
+- Interactive Demo internal family: the authenticated editor rendered the
+  active workbench at native 200% with 517px document width; keyboard Enter
+  changed Scene 1 to Scene 2 without a mutation, while the editor retained the
+  known three-textarea incomplete contrast probe. Working Draft preview and
+  Revision history were axe 0/0. A separate viewer session had no write
+  controls, and empty/archived states remained read-only and axe 0/0. Evidence:
+  [editor](./147-continuation-auth-demo-editor-zoom-200.png),
+  [preview](./147-continuation-auth-demo-preview-zoom-200.png),
+  [Revisions](./147-continuation-auth-demo-revisions-zoom-200.png),
+  [viewer](./147-continuation-auth-demo-viewer-zoom-200.png), and
+  [archived](./147-continuation-auth-demo-archived-zoom-200.png).
 
 The browser zoom was restored to 100%, extension storage was cleared, the
 dedicated services were stopped, and the disposable database was reseeded with

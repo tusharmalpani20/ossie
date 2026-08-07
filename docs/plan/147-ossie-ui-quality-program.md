@@ -1993,8 +1993,9 @@ Documentation reader/operation, Interactive Demo reader/embed/access states,
 direct extension popup, and supplemental authenticated Projects/Documentation
 states, isolated anonymous Documentation reader, and the Guide reader/embed/
 editor/viewer/access samples, plus shared foundation/entry/fallback samples,
-while installed extension-toolbar activation, direct-manipulation breadth,
-and unclaimed loading/denied/populated states remain explicitly limited or
+the Interactive Demo editor/preview/Revision/viewer/lifecycle samples, while
+installed extension-toolbar activation, direct-manipulation breadth, and
+unclaimed loading/denied/populated states remain explicitly limited or
 separately evidenced.
 
 ### 26.7 Human feedback and final closeout
@@ -2359,6 +2360,19 @@ Documentation reader at native 200%, with no portal chrome, axe 0/0, and Tab
 focus on Skip to content. Zoom was restored to 100%, browser storage cleared,
 and dedicated services stopped. This supplements but does not close the
 broader 26.6 matrix.
+
+2026-08-07 — native 200% Interactive Demo internal hardening evidence — source
+candidate `e97647e`; evidence-only continuation recorded in the next checkpoint.
+With the guarded synthetic Plan 128 fixture, a real editor login covered the
+active workbench at native Page zoom 200%, including keyboard Scene 1→Scene 2
+selection without a mutation, and the immutable Working Draft preview and
+Revision history. The editor retained its known three-textarea incomplete
+contrast probe; preview and Revisions were axe 0/0. A separate viewer session
+covered the active editor without write controls, plus empty and archived
+read-only states; all sampled documents stayed within 517px and were axe 0/0.
+Zoom was restored to 100%, browser storage cleared, services stopped, and the
+final Documentation fixture was reseeded. This supplements but does not close
+the broader 26.6 matrix.
 
 2026-08-07 — native 200% Guide-family hardening evidence — source candidate
 `953a7fa`, evidence-only continuation recorded in `2922665`. With
