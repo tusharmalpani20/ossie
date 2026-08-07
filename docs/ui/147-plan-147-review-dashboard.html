@@ -560,6 +560,7 @@
         <a href="#decisions">Your decisions</a>
         <a href="#evidence">All screenshots</a>
         <a href="#checklist">Closeout</a>
+        <a href="#submission">Send review</a>
         <a href="#bundle-text">Bundle text</a>
       </nav>
 
@@ -706,6 +707,22 @@
             <li><label><input type="checkbox" data-check="visual" /> I reviewed the visual baselines and noted any follow-up.</label></li>
             <li><label><input type="checkbox" data-check="extension" /> I recorded the extension-toolbar decision and its evidence limitation.</label></li>
           </ul>
+        </div>
+      </section>
+
+      <section id="submission" class="section" aria-labelledby="submission-title">
+        <h2 id="submission-title">Finish and send your review</h2>
+        <p class="section-intro">When you are finished, export a new HTML review file. It will contain every verdict, option, comment, checklist state, and evidence link so it can be sent back and reviewed again.</p>
+        <div class="panel">
+          <div class="review-guide">
+            <strong>Important:</strong> browsers cannot overwrite the original HTML file served by this website. “Finish and export review” creates a review-submission HTML file on your computer. Send that downloaded file back to me; I can read its embedded review data and continue from the same decisions.
+          </div>
+          <div class="actions">
+            <button id="exportReview" type="button">Finish and export review</button>
+            <button class="secondary" id="importReviewButton" type="button">Import saved review</button>
+            <input id="importReview" type="file" accept=".html,.htm,text/html" hidden />
+            <span class="save-status" id="exportStatus" role="status" aria-live="polite">No review file exported yet.</span>
+          </div>
         </div>
       </section>
 
@@ -1017,7 +1034,7 @@
           decisionMetric.textContent = String(selected + document.querySelectorAll("#decisionForm input[type=radio]:checked").length);
         }
 
-        function saveState() {
+        function collectState() {
           var state = {
             notes: document.getElementById("reviewNotes").value,
             decisions: {},
@@ -1037,14 +1054,10 @@
           Array.prototype.forEach.call(document.querySelectorAll("textarea[data-review-note]"), function (input) {
             state.reviewNotes[input.dataset.reviewNote] = input.value;
           });
-          try { localStorage.setItem(stateKey, JSON.stringify(state)); } catch (error) {}
-          saveStatus.textContent = "Saved locally in this browser.";
-          updateReviewProgress();
+          return state;
         }
 
-        function restoreState() {
-          var stored;
-          try { stored = JSON.parse(localStorage.getItem(stateKey) || "null"); } catch (error) { stored = null; }
+        function applyState(stored) {
           if (!stored) return;
           document.getElementById("reviewNotes").value = stored.notes || "";
           Object.keys(stored.decisions || {}).forEach(function (name) {
@@ -1063,8 +1076,22 @@
             var input = document.querySelector("textarea[data-review-note=" + name + "]");
             if (input) input.value = stored.reviewNotes[name] || "";
           });
-          saveStatus.textContent = "Restored your local review.";
           updateReviewProgress();
+        }
+
+        function saveState() {
+          var state = collectState();
+          try { localStorage.setItem(stateKey, JSON.stringify(state)); } catch (error) {}
+          saveStatus.textContent = "Saved locally in this browser.";
+          updateReviewProgress();
+        }
+
+        function restoreState() {
+          var stored;
+          try { stored = JSON.parse(localStorage.getItem(stateKey) || "null"); } catch (error) { stored = null; }
+          if (!stored) return;
+          applyState(stored);
+          saveStatus.textContent = "Restored your local review.";
         }
 
         function renderGallery(query) {
@@ -1133,11 +1160,102 @@
             });
         }
 
+        function escapeHtml(value) {
+          var entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" };
+          return String(value == null ? "" : value).replace(/[&<>"']/g, function (character) {
+            return entities[character];
+          });
+        }
+
+        function buildReviewExport() {
+          var data = collectState();
+          data.schema = "ossie-plan147-human-review/v1";
+          data.exportedAt = new Date().toISOString();
+          data.sourceUrl = location.href;
+          data.reviewItems = reviewItems;
+          data.evidenceLinks = Array.prototype.map.call(document.querySelectorAll(".evidence-card a"), function (link) {
+            return link.href;
+          });
+          var embeddedData = JSON.stringify(data).replace(/</g, "\\u003c");
+          var reviewRows = reviewItems.map(function (item) {
+            var selected = document.querySelector("input[data-review-id=" + item.id + "]:checked");
+            var note = document.querySelector("textarea[data-review-note=" + item.id + "]");
+            var verdict = selected ? reviewChoiceLabel(selected.value) : "Not decided";
+            return "<tr><th>" + escapeHtml(item.title) + "</th><td>" + escapeHtml(verdict) + "</td><td>" + escapeHtml(item.myComment) + (note && note.value.trim() ? "<br><strong>Reviewer comment:</strong> " + escapeHtml(note.value.trim()) : "") + "</td></tr>";
+          }).join("");
+          var planRows = Array.prototype.map.call(form.querySelectorAll("fieldset"), function (fieldset) {
+            var selected = fieldset.querySelector("input[type=radio]:checked");
+            if (!selected) return "";
+            return "<tr><th>" + escapeHtml(fieldset.querySelector("legend").textContent) + "</th><td>" + escapeHtml(selected.parentElement.textContent.trim()) + "</td></tr>";
+          }).join("");
+          var checklistRows = Array.prototype.map.call(document.querySelectorAll("[data-check]"), function (input) {
+            return "<li>" + (input.checked ? "☑" : "☐") + " " + escapeHtml(input.parentElement.textContent.trim()) + "</li>";
+          }).join("");
+          var evidenceRows = Array.prototype.map.call(document.querySelectorAll(".evidence-card a"), function (link) {
+            return "<li><a href=\"" + escapeHtml(link.href) + "\">" + escapeHtml(link.querySelector("img").alt) + "</a></li>";
+          }).join("");
+          var html = [
+            "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Plan 147 review submission</title>",
+            "<style>body{margin:0;padding:32px;background:#f4f6f8;color:#17212b;font:16px/1.5 system-ui,sans-serif}main{max-width:1000px;margin:auto}section{margin:24px 0;padding:22px;border:1px solid #d8e0e5;border-radius:8px;background:#fff}h1{line-height:1.1}h2{margin-top:0}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #d8e0e5;text-align:left;vertical-align:top}th{width:28%}a{color:#155e75}li{margin:6px 0}.meta{color:#5d6b76}.note{white-space:pre-wrap}</style></head><body><main>",
+            "<h1>Plan 147 human review submission</h1>",
+            "<p class=\"meta\">Exported: " + escapeHtml(data.exportedAt) + "<br>Source dashboard: " + escapeHtml(data.sourceUrl) + "</p>",
+            "<section><h2>Before / now review decisions</h2><table><thead><tr><th>Item</th><th>Reviewer verdict</th><th>Agent recommendation and comments</th></tr></thead><tbody>" + reviewRows + "</tbody></table></section>",
+            "<section><h2>Plan-level decisions</h2><table>" + (planRows || "<tr><td colspan=\"2\">No plan-level decisions selected.</td></tr>") + "</table><h3>Reviewer notes</h3><p class=\"note\">" + escapeHtml(data.notes || "None") + "</p></section>",
+            "<section><h2>Closeout checklist</h2><ul>" + checklistRows + "</ul></section>",
+            "<section><h2>Evidence links</h2><p>This submission contains the decisions and notes; the original synthetic screenshots remain available through these links.</p><ul>" + evidenceRows + "</ul></section>",
+            "<section><h2>Machine-readable review data</h2><p>The embedded JSON below lets the review be imported back into the dashboard.</p><script type=\"application/json\" id=\"plan147-review-data\">" + embeddedData + "<\/script></section>",
+            "</main></body></html>"
+          ].join("");
+          window.__lastReviewExport = html;
+          return html;
+        }
+
+        function exportReviewFile() {
+          var html = buildReviewExport();
+          var blob = new Blob([html], { type: "text/html;charset=utf-8" });
+          var url = URL.createObjectURL(blob);
+          var link = document.createElement("a");
+          var stamp = new Date().toISOString().replace(/[:.]/g, "-");
+          link.href = url;
+          link.download = "147-plan-147-human-review-submission-" + stamp + ".html";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+          var unanswered = reviewItems.length - document.querySelectorAll("input[data-review-id]:checked").length;
+          document.getElementById("exportStatus").textContent = unanswered ? "Exported. " + unanswered + " item verdicts are still undecided." : "Exported. Send the downloaded HTML file back for review.";
+        }
+
+        function importReviewFile(file) {
+          var reader = new FileReader();
+          reader.onload = function () {
+            try {
+              var documentCopy = new DOMParser().parseFromString(reader.result, "text/html");
+              var dataNode = documentCopy.getElementById("plan147-review-data");
+              if (!dataNode) throw new Error("This file does not contain Plan 147 review data.");
+              applyState(JSON.parse(dataNode.textContent));
+              saveState();
+              document.getElementById("exportStatus").textContent = "Imported review choices and notes from " + file.name + ".";
+            } catch (error) {
+              document.getElementById("exportStatus").textContent = "Import failed: " + error.message;
+            }
+          };
+          reader.readAsText(file);
+        }
+
         form.addEventListener("submit", function (event) {
           event.preventDefault();
           saveState();
         });
         document.getElementById("saveReviewCards").addEventListener("click", saveState);
+        document.getElementById("exportReview").addEventListener("click", exportReviewFile);
+        document.getElementById("importReviewButton").addEventListener("click", function () {
+          document.getElementById("importReview").click();
+        });
+        document.getElementById("importReview").addEventListener("change", function (event) {
+          if (event.target.files && event.target.files[0]) importReviewFile(event.target.files[0]);
+          event.target.value = "";
+        });
         function copyText(value, successMessage) {
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(value).then(function () {
