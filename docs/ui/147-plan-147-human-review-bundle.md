@@ -354,15 +354,29 @@ distinguishes this evidence from the earlier CSS-zoom proxy.
   rendered at the same native zoom with client/scroll width 517px; axe reported
   0 violations / 0 incomplete and no final-path request failures. Evidence:
   [operation](./147-continuation-public-documentation-operation-zoom-200.png).
+- Interactive Demo reader: the valid synthetic Publication rendered at
+  `devicePixelRatio=2` with client/scroll width 517px, axe 0/0, and no visible
+  overflow. Tab reached Continue and Enter advanced from Published start to
+  Published finish. Evidence: [start](./147-continuation-public-demo-zoom-200-start.png)
+  and [finish](./147-continuation-public-demo-zoom-200-finish.png).
+- Interactive Demo embed: the immutable playback frame rendered at the same
+  native zoom with client/scroll width 517px, axe 0/0, and no final-path
+  request failures. Evidence: [embed](./147-continuation-public-demo-embed-zoom-200.png).
+- Interactive Demo access boundaries: the password gate and safe invalid retry,
+  plus restricted, expired, and revoked links, retained truthful states at
+  native 200% with widths no greater than 525px and axe 0/0. No successful
+  password submission or mutation was attempted. Evidence:
+  [invalid retry](./147-continuation-public-demo-password-zoom-200-invalid.png).
 - Extension popup: direct extension-origin Connect and authenticated Ready to
   capture states rendered at `devicePixelRatio=2`, client/scroll width 517px,
   axe 0/0, and no overflow. Evidence:
   [Connect](./147-continuation-extension-connect-zoom-200.png) and
   [Ready](./147-continuation-extension-ready-zoom-200.png).
 
-The browser zoom was restored to 100%, extension storage was cleared, and the
-dedicated services were stopped. These are bounded samples; they do not close
-the complete 26.6 responsive/state/direct-manipulation matrix.
+The browser zoom was restored to 100%, extension storage was cleared, the
+dedicated services were stopped, and the disposable database was reseeded with
+the Documentation fixture. These are bounded samples; they do not close the
+complete 26.6 responsive/state/direct-manipulation matrix.
 
 ## Human review decisions still required
 

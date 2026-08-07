@@ -1989,10 +1989,10 @@ fresh authenticated desktop entry/library routes, authenticated tablet/mobile
 representatives, the seeded anonymous Guide and embed routes, and truthful
 anonymous unavailable Documentation/Demo routes. It does not close the
 required matrix: native 200% evidence is now separately recorded for the
-Documentation reader/operation and direct extension popup, while installed
-extension-toolbar activation, direct-manipulation breadth, and unclaimed
-loading/denied/populated states remain explicitly limited or separately
-evidenced.
+Documentation reader/operation, Interactive Demo reader/embed/access states,
+and direct extension popup, while installed extension-toolbar activation,
+direct-manipulation breadth, and unclaimed loading/denied/populated states
+remain explicitly limited or separately evidenced.
 
 ### 26.7 Human feedback and final closeout
 
@@ -2334,11 +2334,14 @@ anonymous Documentation reader and `GET /widgets` operation were exercised at
 that zoom with no visible horizontal overflow; the operation route passed axe
 0 violations / 0 incomplete, while the reader retained one existing incomplete
 overlapped-background contrast probe. Skip-to-content focus, reduced motion,
-and successful local requests were verified. The unpacked extension Connect
-and authenticated Ready states were also exercised at native 200% with axe
-0/0 and no overflow. The browser zoom was restored to 100%, extension storage
-was cleared, dedicated services were stopped, and no broader 26.6 checkbox was
-closed from these bounded samples.
+and successful local requests were verified. The Interactive Demo reader and
+embed were also exercised at native 200% with axe 0/0, no overflow, and a
+keyboard-only Start→Finish Scene transition; password invalid retry and
+restricted/expired/revoked boundaries remained truthful and axe-clean. The
+unpacked extension Connect and authenticated Ready states were also exercised
+at native 200% with axe 0/0 and no overflow. The browser zoom was restored to
+100%, extension storage was cleared, dedicated services were stopped, and no
+broader 26.6 checkbox was closed from these bounded samples.
 
 Record future entries as:
 
