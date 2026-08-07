@@ -632,6 +632,27 @@ dedicated services were stopped, and the disposable database was reseeded with
 the Documentation fixture. These are bounded samples; they do not close the
 complete 26.6 responsive/state/direct-manipulation matrix.
 
+## Objective coverage audit — 2026-08-07
+
+This table maps the explicit execution objective to the current authoritative
+evidence. `Complete` means the requirement is proven for the scope named;
+`limited` means the bounded evidence and limitation are recorded; `pending`
+means human direction or review is still required.
+
+| Objective requirement | Current evidence | Status |
+| --- | --- | --- |
+| Use approved baseline and a dedicated implementation worktree | Starting commit `d638112` and branch/worktree `/home/ubuntu/ossie-plan147` are recorded in the ledger; original `/home/ubuntu/ossie` remains clean | complete |
+| Reconcile product truth, ADRs, design direction, and domain invariants | `CONTEXT.md`, accepted ADRs, Plan 147 preflight, and surface preflights are recorded; no candidate changed Project, Project Version, Membership, Capture, Revision, Publication, or public-link semantics | complete for executed candidates |
+| Use a disposable local database and deterministic synthetic fixture graph | Guarded local `ossie_test`; Documentation, Guide, Interactive Demo, Capture, and role-specific fixture runs are recorded; final state was reseeded with Documentation fixture | complete for executed browser runs |
+| Start and health-check local services | API `/healthz`/`/readyz`, Vite root, isolated ports, cleanup, and base-service preservation are recorded in the ledger | complete for executed runs |
+| Verify real setup, login, authenticated, public, password, embed, and extension entry points | Authenticated synthetic sessions, public/password/embed routes, direct unpacked extension-origin flow, and installation portal are evidenced | limited: browser-toolbar icon activation remains `blocked_local_for_run` |
+| Work through shipped surfaces with bounded candidates and truthful status | Surface ledger, issue ledger, rollback boundaries, immutable candidates, evidence-only continuations, and `agent_accepted_pending_human`/`needs_human_surface`/`blocked_local_for_run` statuses are current | complete for autonomous scope; broader matrix remains open |
+| Send immutable candidates to two blind read-only reviewers and cap cycles at three | Review ledger contains A/B reports for each immutable candidate; `projects-workspace` stopped at final cycle 3 and remains human-directed | complete for executed candidates |
+| Maintain screenshots, findings, verification, commits, checkpoints, and rollback information | Canonical ledger, implementation log, evidence rows, linked screenshots, review artifacts, exact commits, and rollback notes are assembled here and in the Plan | complete for recorded scope |
+| Run focused and broad engineering verification | Current candidate rerun: recursive tests web 95/511, server 127/553, extension 19/140, docs 4/13; typecheck 13/13; lint 14/14; build 13/13; CSS tokens 130/123; diff check passed | complete |
+| Complete the full 26.6 desktop/tablet/mobile/200%/extension and state matrix | Bounded desktop, tablet, mobile, native-200%, keyboard, reduced-motion, public/auth/embed, and direct-manipulation samples are recorded | limited: complete matrix, loading/denied/populated breadth, toolbar icon, and some known axe probes remain open |
+| Complete human feedback and final closeout | Bundle is assembled and statuses are truthful | pending: route ownership, P2/P3 dispositions, human findings, accepted-baseline decisions, and Plan 147 closeout |
+
 ## Human review decisions still required
 
 - Review the final bundle and visual differences; agent acceptance is not human

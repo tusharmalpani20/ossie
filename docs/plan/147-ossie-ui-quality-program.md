@@ -2636,6 +2636,15 @@ the Documentation fixture was reseeded afterward. Evidence is recorded in
 the ledger and bundle; this does not create a candidate/review cycle or close
 the broader 26.6 matrix.
 
+2026-08-07 — objective coverage audit — the human-review bundle now maps each
+explicit objective requirement to current evidence and labels it complete,
+limited, or pending. The audit confirms the preflight/worktree/database/service
+controls, executed-surface review/rollback records, current broad gates, and
+truthful status vocabulary. It preserves the remaining limits: the complete
+26.6 matrix, installed toolbar-icon activation, known bounded axe probes,
+Project workspace route ownership, P2/P3 dispositions, and section 26.7 human
+closeout.
+
 Record future entries as:
 
 ```text
