@@ -558,7 +558,7 @@ complete 26.6 responsive/state/direct-manipulation matrix.
 
 - Review the final bundle and visual differences; agent acceptance is not human
   approval.
-- Decide dispositions for remaining queued P2 issues and review the native
+- Decide dispositions for remaining P2 issues and residual risks, and review the native
   200% samples plus broader zoom coverage; P2-010 itself is resolved pending
   human review of the candidate.
 - Review the shared-foundation parent/candidate comparison, especially the
