@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   listDocumentationAssets,
   transitionDocumentationAsset,
@@ -33,6 +34,8 @@ export const DocumentationAssetLibrary = ({
   const [assets, setAssets] = useState<DocumentationAsset[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [status, setStatus] = useState("Loading Assets…");
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   const load = () =>
     listAssets(projectId, versionSlug, siteId, {
@@ -53,15 +56,19 @@ export const DocumentationAssetLibrary = ({
 
   useEffect(() => {
     let active = true;
+    setLoadError(false);
     load().catch(() => {
-      if (active) setStatus("Assets could not be loaded.");
+      if (active) {
+        setLoadError(true);
+        setStatus("Assets could not be loaded.");
+      }
     });
     return () => {
       active = false;
     };
     // The injected loader is the stable dependency for this panel.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listAssets, projectId, siteId, versionSlug]);
+  }, [listAssets, loadAttempt, projectId, siteId, versionSlug]);
 
   const upload = async (file?: File) => {
     if (!file) return;
@@ -115,6 +122,28 @@ export const DocumentationAssetLibrary = ({
       setStatus("Asset rename conflicted or the name is unavailable.");
     }
   };
+
+  if (loadError) {
+    return (
+      <section aria-labelledby="documentation-assets-heading">
+        <h2 id="documentation-assets-heading">Assets</h2>
+        <StatusPanel
+          tone="error"
+          title="Could not load Documentation Assets."
+          description="The Asset library is unavailable right now."
+          action={
+            <Button
+              type="button"
+              onClick={() => setLoadAttempt((value) => value + 1)}
+            >
+              Try again
+            </Button>
+          }
+          titleAs="h3"
+        />
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="documentation-assets-heading">

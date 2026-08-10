@@ -8,6 +8,7 @@ import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   acceptPublicOrganizationInvite,
   ApiClientError,
@@ -58,6 +59,7 @@ export const InviteAcceptPage = ({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -78,7 +80,7 @@ export const InviteAcceptPage = ({
     return () => {
       active = false;
     };
-  }, [loadInvite, token]);
+  }, [loadInvite, token, reloadKey]);
 
   const accept = async (input: AcceptOrganizationInviteInput) => {
     setIsSubmitting(true);
@@ -118,7 +120,13 @@ export const InviteAcceptPage = ({
   if (state.status === "loading") {
     return (
       <InviteShell>
-        <div className={styles.state}>Loading invite...</div>
+        <StatusPanel
+          className={styles.state}
+          tone="loading"
+          title="Loading invite"
+          description="Loading invite..."
+          titleAs="h1"
+        />
       </InviteShell>
     );
   }
@@ -126,12 +134,13 @@ export const InviteAcceptPage = ({
   if (state.status === "unavailable") {
     return (
       <InviteShell>
-        <Card className={styles.card}>
-          <CardHeader>
-            <h1 className={styles.title}>Invite unavailable</h1>
-            <p className={styles.copy}>This invite is no longer available.</p>
-          </CardHeader>
-        </Card>
+        <StatusPanel
+          className={styles.state}
+          tone="not-found"
+          title="Invite unavailable"
+          description="This invite is no longer available."
+          titleAs="h1"
+        />
       </InviteShell>
     );
   }
@@ -139,12 +148,21 @@ export const InviteAcceptPage = ({
   if (state.status === "error") {
     return (
       <InviteShell>
-        <Card className={styles.card}>
-          <CardHeader>
-            <h1 className={styles.title}>Invite unavailable</h1>
-            <p className={styles.copy}>Could not load this invite.</p>
-          </CardHeader>
-        </Card>
+        <StatusPanel
+          className={styles.state}
+          tone="error"
+          title="Invite unavailable"
+          description="Could not load this invite."
+          action={
+            <Button
+              type="button"
+              onClick={() => setReloadKey((value) => value + 1)}
+            >
+              Try again
+            </Button>
+          }
+          titleAs="h1"
+        />
       </InviteShell>
     );
   }

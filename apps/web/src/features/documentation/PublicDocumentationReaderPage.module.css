@@ -70,7 +70,6 @@
   color: var(--reader-text);
   font-size: 1.125rem;
   font-weight: 760;
-  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
   text-decoration: none;
 }
@@ -313,9 +312,8 @@
 
 .article h1 {
   margin: 0;
-  font-size: clamp(2rem, 4vw, 3rem);
-  letter-spacing: -0.035em;
-  line-height: 1.08;
+  font-size: var(--ossie-font-size-xl);
+  line-height: var(--ossie-line-height-tight);
   overflow-wrap: anywhere;
 }
 
@@ -323,8 +321,7 @@
 .article h3,
 .article h4 {
   margin: 1.8em 0 0.55em;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: var(--ossie-line-height-tight);
   overflow-wrap: anywhere;
 }
 
@@ -480,9 +477,14 @@
   display: grid;
   min-height: 100vh;
   place-items: center;
-  padding: 24px;
+  gap: var(--ossie-space-5, 20px);
+  padding: var(--ossie-space-6, 24px);
   background: var(--reader-canvas);
   color: var(--reader-text);
+}
+
+.gatePanel {
+  width: min(100%, 40rem);
 }
 
 .gateCard {

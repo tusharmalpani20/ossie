@@ -10,6 +10,7 @@ import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   createOrganizationInvite,
@@ -220,10 +221,13 @@ export const OrganizationMembersPage = ({
   if (state.status === "loading") {
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
-        <div className={styles.state}>
-          <h1 className={styles.stateTitle}>Loading organization members</h1>
-          <p>Loading organization members...</p>
-        </div>
+        <StatusPanel
+          className={styles.state}
+          tone="loading"
+          title="Loading organization members"
+          description="Loading organization members..."
+          titleAs="h1"
+        />
       </PortalShell>
     );
   }
@@ -231,13 +235,18 @@ export const OrganizationMembersPage = ({
   if (state.status === "unauthenticated") {
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
-        <div className={styles.state}>
-          <h1 className={styles.stateTitle}>Organization members</h1>
-          <p>Sign in to manage organization members.</p>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>
-            Sign in
-          </a>
-        </div>
+        <StatusPanel
+          className={styles.state}
+          tone="forbidden"
+          title="Organization members"
+          description="Sign in to manage organization members."
+          action={
+            <a className={styles.stateLink} href={signInUrl(currentPath)}>
+              Sign in
+            </a>
+          }
+          titleAs="h1"
+        />
       </PortalShell>
     );
   }
@@ -245,10 +254,13 @@ export const OrganizationMembersPage = ({
   if (state.status === "forbidden") {
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
-        <div className={styles.state}>
-          <h1 className={styles.stateTitle}>Organization members</h1>
-          <p>Only organization owners can manage members and invites.</p>
-        </div>
+        <StatusPanel
+          className={styles.state}
+          tone="forbidden"
+          title="Organization members"
+          description="Only organization owners can manage members and invites."
+          titleAs="h1"
+        />
       </PortalShell>
     );
   }
@@ -256,18 +268,23 @@ export const OrganizationMembersPage = ({
   if (state.status === "error") {
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
-        <div className={styles.state}>
-          <h1 className={styles.stateTitle}>Organization members</h1>
-          <p>Could not load organization members.</p>
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            onClick={() => setReloadKey((key) => key + 1)}
-          >
-            Retry
-          </Button>
-        </div>
+        <StatusPanel
+          className={styles.state}
+          tone="error"
+          title="Organization members"
+          description="Could not load organization members."
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Retry
+            </Button>
+          }
+          titleAs="h1"
+        />
       </PortalShell>
     );
   }

@@ -7,6 +7,11 @@
   color: var(--ossie-color-text);
 }
 
+.state {
+  width: min(100%, 42rem);
+  margin: 0 auto;
+}
+
 .header {
   display: grid;
   gap: var(--ossie-space-2);
@@ -16,8 +21,8 @@
 
 .header h1 {
   margin: 0;
-  font-size: clamp(1.75rem, 3vw, 2.5rem);
-  line-height: 1.1;
+  font-size: var(--ossie-font-size-xl);
+  line-height: var(--ossie-line-height-tight);
 }
 
 .eyebrow,

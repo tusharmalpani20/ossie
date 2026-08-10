@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { Button } from "@repo/ui/button";
 import {
   getDocumentationPreview,
   type DocumentationDraftPreview,
 } from "../../lib/documentationApi";
 import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
+import { StatusPanel } from "@repo/ui/status-panel";
 
 type Props = {
   projectId: string;
@@ -22,8 +24,11 @@ export const DocumentationDraftPreviewPage = ({
     null,
   );
   const [failed, setFailed] = useState(false);
+  const [reload, setReload] = useState(0);
   useEffect(() => {
     let active = true;
+    setFailed(false);
+    setPreview(null);
     loadPreview(projectId, versionSlug, siteId)
       .then(({ preview: loaded }) => {
         if (active) setPreview(loaded);
@@ -34,10 +39,31 @@ export const DocumentationDraftPreviewPage = ({
     return () => {
       active = false;
     };
-  }, [loadPreview, projectId, siteId, versionSlug]);
+  }, [loadPreview, projectId, reload, siteId, versionSlug]);
 
-  if (failed) return <p role="alert">Saved draft preview is unavailable.</p>;
-  if (!preview) return <p role="status">Loading saved draft preview…</p>;
+  if (failed)
+    return (
+      <StatusPanel
+        tone="error"
+        title="Saved draft preview unavailable"
+        description="Saved draft preview is unavailable."
+        action={
+          <Button type="button" onClick={() => setReload((value) => value + 1)}>
+            Try again
+          </Button>
+        }
+        titleAs="h1"
+      />
+    );
+  if (!preview)
+    return (
+      <StatusPanel
+        tone="loading"
+        title="Loading saved draft preview"
+        description="Reading the latest server-saved Documentation state."
+        titleAs="h1"
+      />
+    );
   return (
     <section aria-labelledby="documentation-preview-heading">
       <header>

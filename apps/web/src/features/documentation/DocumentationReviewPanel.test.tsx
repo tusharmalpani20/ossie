@@ -38,6 +38,131 @@ describe("Documentation Review panel", () => {
     cancellation: null,
   };
 
+  it("prevents duplicate Review Request pagination and offers retry after failure", async () => {
+    const loadRequests = vi
+      .fn()
+      .mockResolvedValueOnce({ review_requests: [], next_cursor: "cursor" })
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ review_requests: [], next_cursor: null });
+    render(
+      <DocumentationReviewPanel
+        projectId="project"
+        versionSlug="v1"
+        siteId="site"
+        latestRevision={null}
+        canRequest={false}
+        canManagePolicy={false}
+        loadPolicy={vi.fn().mockResolvedValue({
+          id: "policy",
+          mode: "optional",
+          required_approvals: 1,
+          require_maintainer_approval: false,
+          maintainer_org_user_ids: [],
+          version: 1,
+        })}
+        loadRequests={loadRequests}
+        loadEvidence={vi.fn().mockResolvedValue({ evidence: [], next_cursor: null })}
+      />,
+    );
+    const loadMore = await screen.findByRole("button", {
+      name: "Load more Review Requests",
+    });
+    fireEvent.click(loadMore);
+    fireEvent.click(loadMore);
+    expect(loadMore).toBeDisabled();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "More Review Requests could not be loaded.",
+    );
+    expect(loadRequests).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole("button", { name: "Load more Review Requests" }));
+    await waitFor(() => expect(loadRequests).toHaveBeenCalledTimes(3));
+  });
+
+  it("ignores a pagination response that belongs to an older request filter", async () => {
+    let resolveMore:
+      | ((value: {
+          review_requests: Array<typeof detail.review_request>;
+          next_cursor: string | null;
+        }) => void)
+      | undefined;
+    const loadRequests = vi
+      .fn()
+      .mockResolvedValueOnce({ review_requests: [], next_cursor: "cursor" })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveMore = resolve;
+          }),
+      )
+      .mockResolvedValue({ review_requests: [], next_cursor: null });
+    render(
+      <DocumentationReviewPanel
+        projectId="project"
+        versionSlug="v1"
+        siteId="site"
+        latestRevision={null}
+        canRequest={false}
+        canManagePolicy={false}
+        loadPolicy={vi.fn().mockResolvedValue({
+          id: "policy",
+          mode: "optional",
+          required_approvals: 1,
+          require_maintainer_approval: false,
+          maintainer_org_user_ids: [],
+          version: 1,
+        })}
+        loadRequests={loadRequests}
+        loadEvidence={vi.fn().mockResolvedValue({ evidence: [], next_cursor: null })}
+      />,
+    );
+    await screen.findByRole("button", { name: "Load more Review Requests" });
+    fireEvent.click(screen.getByRole("button", { name: "Load more Review Requests" }));
+    fireEvent.change(screen.getByLabelText("Request status"), {
+      target: { value: "open" },
+    });
+    await waitFor(() => expect(loadRequests).toHaveBeenCalledTimes(3));
+    resolveMore?.({ review_requests: [detail.review_request], next_cursor: null });
+    await waitFor(() => expect(screen.queryByText(/Request 2: Revision 3/)).not.toBeInTheDocument());
+  });
+
+  it("shows a retry boundary when the initial review workflow cannot load", async () => {
+    const loadPolicy = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({
+        id: "policy",
+        mode: "optional" as const,
+        required_approvals: 1,
+        require_maintainer_approval: false,
+        maintainer_org_user_ids: [],
+        version: 1,
+      });
+    const loadRequests = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ review_requests: [], next_cursor: null });
+    render(
+      <DocumentationReviewPanel
+        projectId="project"
+        versionSlug="v1"
+        siteId="site"
+        latestRevision={null}
+        canRequest={false}
+        canManagePolicy={false}
+        loadPolicy={loadPolicy}
+        loadRequests={loadRequests}
+        loadEvidence={vi.fn().mockResolvedValue({ evidence: [], next_cursor: null })}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Could not load Documentation review." })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Policy: Optional")).toBeInTheDocument();
+    expect(loadPolicy).toHaveBeenCalledTimes(2);
+    expect(loadRequests).toHaveBeenCalledTimes(2);
+  });
+
+
   it("shows the safe structural summary and uses actor-specific cancellation permission", async () => {
     render(
       <DocumentationReviewPanel

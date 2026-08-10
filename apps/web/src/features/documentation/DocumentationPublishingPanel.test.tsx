@@ -5,6 +5,90 @@ import { DocumentationPublishingPanel } from "./DocumentationPublishingPanel";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("DocumentationPublishingPanel", () => {
+  it("disables publishing and offers retry when the review gate is unavailable", async () => {
+    const loadReviewGate = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({
+        site_revision_id: "revision",
+        policy_mode: "optional" as const,
+        policy_version: 1,
+        outcome: "not_required" as const,
+        override_available_to_actor: false,
+      });
+    render(
+      <DocumentationPublishingPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canPublish
+        loadRevisions={async () => ({
+          revisions: [
+            { id: "revision", revision_number: 1, created_at: "2026-07-30T00:00:00.000Z" },
+          ],
+        })}
+        loadPublications={async () => ({ publications: [] })}
+        loadPublishLinks={async () => ({ publish_links: [] })}
+        loadReviewGate={loadReviewGate}
+      />,
+    );
+
+    expect(await screen.findByText("Review gate unavailable. Publishing is disabled until it is checked again.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry review gate" }));
+    expect(await screen.findByText("Review gate: not required")).toBeInTheDocument();
+    expect(loadReviewGate).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the publication task actionable when its history fails to load", async () => {
+    const loadRevisions = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ revisions: [] });
+    render(
+      <DocumentationPublishingPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canPublish
+        loadOperations={async () => ({
+          limits: {
+            active_sites_limit: null,
+            active_pages_limit: null,
+            version: 0,
+            updated_at: null,
+            retained_file_bytes_limit: null,
+            retained_revisions_limit: null,
+            retained_publications_limit: null,
+          },
+          usage: {
+            active_sites: 0,
+            active_pages: 0,
+            retained_file_bytes: 0,
+            retained_revisions: 0,
+            retained_publications: 0,
+            active_import_inspections: 0,
+            open_review_requests: 0,
+          },
+          states: [],
+          permissions: { can_manage_limits: false },
+          generated_at: "2026-07-31T00:00:00.000Z",
+        })}
+        loadRevisions={loadRevisions}
+        loadPublications={async () => ({ publications: [] })}
+        loadPublishLinks={async () => ({ publish_links: [] })}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Could not load Documentation publishing.",
+      }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("No Revisions yet.")).toBeInTheDocument();
+    expect(loadRevisions).toHaveBeenCalledTimes(2);
+  });
+
   it("discovers Organization Owner recovery permission independently of project access source", async () => {
     render(
       <DocumentationPublishingPanel
@@ -220,6 +304,13 @@ describe("DocumentationPublishingPanel", () => {
         })}
         loadPublications={async () => ({ publications: [] })}
         loadPublishLinks={async () => ({ publish_links: [] })}
+        loadReviewGate={async () => ({
+          site_revision_id: "revision",
+          policy_mode: "optional",
+          policy_version: 1,
+          outcome: "not_required",
+          override_available_to_actor: false,
+        })}
         publish={publish}
       />,
     );
@@ -317,12 +408,20 @@ describe("DocumentationPublishingPanel", () => {
             },
           ],
         })}
+        loadReviewGate={async () => ({
+          site_revision_id: "revision-2",
+          policy_mode: "optional",
+          policy_version: 1,
+          outcome: "not_required",
+          override_available_to_actor: false,
+        })}
         publish={publish}
         rollback={rollback}
       />,
     );
 
     expect(await screen.findByText("Live: Publication 1")).toBeInTheDocument();
+    expect(await screen.findByText("Review gate: not required")).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", {
         name: "Publish Revision 2 to existing link",

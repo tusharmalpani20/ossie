@@ -1,5 +1,7 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   createDocumentationRevision,
   getDocumentationPreview,
@@ -123,7 +125,13 @@ const DocumentationNavigator = ({
         ))}
       </ul>
     ) : (
-      <p className={styles.emptyState}>No Pages yet.</p>
+      <StatusPanel
+        className={styles.navigatorEmpty}
+        tone="empty"
+        title="No Pages yet."
+        description="Create the first Page to give this Documentation Site a home."
+        titleAs="h2"
+      />
     )}
     <p className={styles.navigatorHint}>
       Page blocks, metadata, comments, and conflict recovery live in the
@@ -216,7 +224,6 @@ const DocumentationTaskTabs = ({ activeTask, onChange }: TaskTabsProps) => {
               role="tab"
               aria-label={task.label}
               aria-selected={selected}
-              aria-controls={`documentation-task-panel-${task.id}`}
               tabIndex={selected ? 0 : -1}
               onClick={() => onChange(task.id)}
               onKeyDown={(event) => {
@@ -256,6 +263,8 @@ type SiteEditorProps = {
   effectiveCanPublish: boolean;
   revisions: DocumentationRevisionSummary[];
   publications: DocumentationPublicationSummary[];
+  metadataError: boolean;
+  retryMetadata: () => void;
   setPreviewRefreshCount: Dispatch<SetStateAction<number>>;
   setCheckpointCount: Dispatch<SetStateAction<number>>;
   setStatus: Dispatch<SetStateAction<string>>;
@@ -278,6 +287,8 @@ const DocumentationTaskPanel = ({
   effectiveCanPublish,
   revisions,
   publications,
+  metadataError,
+  retryMetadata,
   setPreviewRefreshCount,
   setCheckpointCount,
   setStatus,
@@ -452,6 +463,14 @@ const DocumentationTaskPanel = ({
         <section aria-labelledby="documentation-portability-heading">
           <h3 id="documentation-portability-heading">Saved artifacts</h3>
           <p>Imports never overwrite a non-empty Site.</p>
+          {metadataError ? (
+            <Alert variant="destructive" role="alert">
+              Revision and Publication history could not be loaded.
+              <Button type="button" onClick={retryMetadata}>
+                Try again
+              </Button>
+            </Alert>
+          ) : null}
           <a
             href={documentationPackageExportUrl(
               projectId,
@@ -609,6 +628,7 @@ export const DocumentationSiteEditorPage = ({
     null,
   );
   const [status, setStatus] = useState("Loading saved draft…");
+  const [loadError, setLoadError] = useState(false);
   const [activeTask, setActiveTask] = useState<WorkbenchTask>("author");
   const [checkpointCount, setCheckpointCount] = useState(0);
   const [previewRefreshCount, setPreviewRefreshCount] = useState(0);
@@ -618,9 +638,12 @@ export const DocumentationSiteEditorPage = ({
   const [publications, setPublications] = useState<
     DocumentationPublicationSummary[]
   >([]);
+  const [metadataError, setMetadataError] = useState(false);
+  const [metadataRetry, setMetadataRetry] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setLoadError(false);
     loadPreview(projectId, versionSlug, siteId)
       .then(({ preview: loaded }) => {
         if (!active) return;
@@ -628,7 +651,10 @@ export const DocumentationSiteEditorPage = ({
         setStatus("Saved draft loaded.");
       })
       .catch(() => {
-        if (active) setStatus("Documentation Site could not be loaded.");
+        if (active) {
+          setLoadError(true);
+          setStatus("Documentation Site could not be loaded.");
+        }
       });
     return () => {
       active = false;
@@ -637,6 +663,7 @@ export const DocumentationSiteEditorPage = ({
 
   useEffect(() => {
     let active = true;
+    setMetadataError(false);
     Promise.all([
       listDocumentationRevisions(projectId, versionSlug, siteId),
       listDocumentationPublications(projectId, versionSlug, siteId),
@@ -646,13 +673,41 @@ export const DocumentationSiteEditorPage = ({
         setRevisions(revisionResult.revisions);
         setPublications(publicationResult.publications);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setMetadataError(true);
+      });
     return () => {
       active = false;
     };
-  }, [checkpointCount, projectId, siteId, versionSlug]);
+  }, [checkpointCount, metadataRetry, projectId, siteId, versionSlug]);
 
-  if (!preview) return <p role="status">{status}</p>;
+  if (!preview)
+    return (
+      <StatusPanel
+        className={styles.state}
+        tone={loadError ? "error" : "loading"}
+        title={
+          loadError
+            ? "Documentation Site unavailable"
+            : "Loading Documentation Site"
+        }
+        description={status}
+        action={
+          loadError ? (
+            <Button
+              type="button"
+              onClick={() => {
+                setPreview(null);
+                setPreviewRefreshCount((current) => current + 1);
+              }}
+            >
+              Try again
+            </Button>
+          ) : undefined
+        }
+        titleAs="h1"
+      />
+    );
 
   const base = `/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/${encodeURIComponent(siteId)}`;
   const editionEffectiveStatus =
@@ -699,6 +754,8 @@ export const DocumentationSiteEditorPage = ({
           effectiveCanPublish={effectiveCanPublish}
           revisions={revisions}
           publications={publications}
+          metadataError={metadataError}
+          retryMetadata={() => setMetadataRetry((current) => current + 1)}
           setPreviewRefreshCount={setPreviewRefreshCount}
           setCheckpointCount={setCheckpointCount}
           setStatus={setStatus}

@@ -12,6 +12,11 @@
   color: var(--workbench-text);
 }
 
+.state {
+  width: min(100%, 42rem);
+  margin: var(--ossie-space-6) auto 0;
+}
+
 .header,
 .taskNavigation,
 .navigator,
@@ -228,12 +233,9 @@
   line-height: 1.45;
 }
 
-.emptyState {
-  margin: var(--ossie-space-4, 16px) 0;
-  padding: var(--ossie-space-3, 12px);
-  border: 1px dashed var(--workbench-strong-border);
-  border-radius: var(--ossie-radius-sm, 6px);
-  color: var(--workbench-muted);
+.navigatorEmpty {
+  margin-top: var(--ossie-space-4, 16px);
+  padding: var(--ossie-space-4, 16px);
 }
 
 .canvas {

@@ -1,14 +1,6 @@
 .state {
   width: 100%;
   max-width: 680px;
-  box-sizing: border-box;
-  padding: var(--ossie-space-6);
-  border: 1px solid var(--ossie-color-border);
-  border-radius: var(--ossie-radius-card);
-  background: var(--ossie-color-surface);
-  color: var(--ossie-color-muted);
-  line-height: 1.5;
-  text-align: center;
 }
 
 .card {
@@ -27,9 +19,8 @@
 .title {
   margin: 0;
   color: var(--ossie-color-text);
-  font-size: 28px;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  font-size: var(--ossie-font-size-xl);
+  line-height: var(--ossie-line-height-tight);
 }
 
 .copy {

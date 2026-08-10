@@ -15,6 +15,40 @@ describe("DocumentationPageEditor", () => {
     return field;
   };
 
+  it("offers retry when the Documentation Page cannot be loaded", async () => {
+    const loadPage = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({
+        page: {
+          id: "page",
+          title: "Home",
+          canonical_path: "home",
+          version: 1,
+          blocks: [],
+        },
+      });
+    render(
+      <DocumentationPageEditor
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        pageId="page"
+        canWrite={false}
+        loadPage={loadPage}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Could not load Documentation Page.",
+      }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByRole("heading", { name: "Home" })).toBeInTheDocument();
+    expect(loadPage).toHaveBeenCalledTimes(2);
+  });
+
   it("edits relational blocks and reports truthful save state", async () => {
     const savePage = vi
       .fn()

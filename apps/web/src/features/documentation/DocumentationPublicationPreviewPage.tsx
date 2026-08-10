@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Button } from "@repo/ui/button";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   getDocumentationPublication,
   type DocumentationPublicationSummary,
@@ -27,6 +29,7 @@ export const DocumentationPublicationPreviewPage = ({
   const [revision, setRevision] =
     useState<DocumentationRevisionSnapshot | null>(null);
   const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -49,16 +52,34 @@ export const DocumentationPublicationPreviewPage = ({
     loadPublication,
     projectId,
     publicationSequence,
+    retry,
     siteId,
     versionSlug,
   ]);
 
   if (failed)
     return (
-      <p role="alert">The immutable Documentation Publication is unavailable.</p>
+      <StatusPanel
+        tone="error"
+        title="Documentation Publication unavailable"
+        description="The immutable Documentation Publication is unavailable."
+        action={
+          <Button type="button" onClick={() => setRetry((value) => value + 1)}>
+            Try again
+          </Button>
+        }
+        titleAs="h1"
+      />
     );
   if (!publication || !revision)
-    return <p role="status">Loading immutable Documentation Publication…</p>;
+    return (
+      <StatusPanel
+        tone="loading"
+        title="Loading Documentation Publication"
+        description="Opening the immutable Revision snapshot."
+        titleAs="h1"
+      />
+    );
 
   const pages = revision.pages ?? [];
   const snippets = revision.snippets ?? [];

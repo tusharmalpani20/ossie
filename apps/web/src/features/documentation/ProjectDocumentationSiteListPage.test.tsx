@@ -90,6 +90,33 @@ describe("ProjectDocumentationSiteListPage", () => {
     expect(await screen.findByText("Product docs")).toBeInTheDocument();
   });
 
+  it("announces Documentation Site creation failures without losing the form", async () => {
+    render(
+      <ProjectDocumentationSiteListPage
+        projectId="project"
+        versionSlug="main"
+        canManage
+        loadSites={async () => ({ documentation_sites: [] })}
+        createSite={async () => {
+          throw new Error("offline");
+        }}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Create Site" }));
+    fireEvent.change(screen.getByLabelText("Site name"), {
+      target: { value: "Product docs" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Documentation Site" }));
+
+    expect(
+      await screen.findByRole("alert", {
+        name: "Documentation Site creation failed",
+      }),
+    ).toHaveTextContent("Could not create Documentation Site.");
+    expect(screen.getByLabelText("Site name")).toBeInTheDocument();
+  });
+
   it("keeps the Viewer list read-only", async () => {
     render(
       <ProjectDocumentationSiteListPage

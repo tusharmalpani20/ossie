@@ -3,6 +3,47 @@ import { describe, expect, it, vi } from "vitest";
 import { DocumentationSiteEditorPage } from "./DocumentationSiteEditorPage";
 
 describe("DocumentationSiteEditorPage", () => {
+  it("gives the workbench an explicit loading state", () => {
+    render(
+      <DocumentationSiteEditorPage
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canWrite
+        canPublish
+        loadPreview={() => new Promise(() => undefined)}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Loading Documentation Site" }),
+    ).toBeInTheDocument();
+  });
+
+  it("explains when the saved Documentation Site cannot be loaded", async () => {
+    render(
+      <DocumentationSiteEditorPage
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canWrite
+        canPublish
+        loadPreview={async () => {
+          throw new Error("offline");
+        }}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Documentation Site unavailable",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Documentation Site could not be loaded.",
+    );
+  });
+
   it("separates authoring from administration while keeping the workbench status visible", async () => {
     render(
       <DocumentationSiteEditorPage

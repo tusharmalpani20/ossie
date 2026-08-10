@@ -10,6 +10,8 @@ import {
 } from "../../lib/documentationTryItApi";
 import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiOperationExperience";
 import { LazyDocumentationRequestExamples } from "./LazyDocumentationRequestExamples";
+import { StatusPanel } from "@repo/ui/status-panel";
+import { Button } from "@repo/ui/button";
 
 type Props = {
   projectId: string;
@@ -47,10 +49,12 @@ export const DocumentationRevisionPreviewPage = ({
     useState<DocumentationRevisionSnapshot | null>(null);
   const [selectedKey, setSelectedKey] = useState("");
   const [failed, setFailed] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let active = true;
     setFailed(false);
+    setRevision(null);
     loadRevision(projectId, versionSlug, siteId, revisionNumber)
       .then(({ revision: loaded }) => {
         if (active) setRevision(loaded);
@@ -61,7 +65,7 @@ export const DocumentationRevisionPreviewPage = ({
     return () => {
       active = false;
     };
-  }, [loadRevision, projectId, revisionNumber, siteId, versionSlug]);
+  }, [loadRevision, projectId, reload, revisionNumber, siteId, versionSlug]);
 
   const operations = useMemo(
     () => (revision ? executableOperations(revision) : []),
@@ -73,10 +77,26 @@ export const DocumentationRevisionPreviewPage = ({
 
   if (failed)
     return (
-      <p role="alert">The immutable Documentation Revision is unavailable.</p>
+      <StatusPanel
+        tone="error"
+        title="The immutable Documentation Revision is unavailable."
+        action={
+          <Button type="button" onClick={() => setReload((value) => value + 1)}>
+            Try again
+          </Button>
+        }
+        titleAs="h1"
+      />
     );
   if (!revision)
-    return <p role="status">Loading immutable Documentation Revision…</p>;
+    return (
+      <StatusPanel
+        tone="loading"
+        title="Loading immutable Documentation Revision"
+        description="Opening the read-only snapshot."
+        titleAs="h1"
+      />
+    );
 
   return (
     <section aria-labelledby="documentation-revision-heading">

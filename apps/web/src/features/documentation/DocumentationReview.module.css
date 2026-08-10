@@ -1,35 +1,36 @@
 .panel {
   display: grid;
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--border, #d7dce2);
-  border-radius: 0.75rem;
+  gap: var(--ossie-space-4);
+  padding: var(--ossie-space-4);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-card);
+  background: var(--ossie-color-surface);
 }
 
 .status {
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  background: var(--muted, #f4f6f8);
+  padding: var(--ossie-space-2) var(--ossie-space-3);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface-subtle);
 }
 
 .candidateList,
 .requestList,
 .inboxList {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--ossie-space-2);
   padding: 0;
   list-style: none;
 }
 
 .candidate {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--ossie-space-2);
   align-items: center;
 }
 
 @media (max-width: 320px) {
   .panel {
-    padding: 0.75rem;
+    padding: var(--ossie-space-3);
   }
 }
 

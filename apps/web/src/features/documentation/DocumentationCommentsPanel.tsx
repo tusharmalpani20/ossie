@@ -37,6 +37,7 @@ export const DocumentationCommentsPanel = ({
   const [body, setBody] = useState("");
   const [replies, setReplies] = useState<Record<string, string>>({});
   const [status, setStatus] = useState("Loading private comments…");
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -57,57 +58,78 @@ export const DocumentationCommentsPanel = ({
   const addThread = async () => {
     const value = body.trim();
     if (!value) return;
-    const { thread } = await createThread(
-      projectId,
-      versionSlug,
-      siteId,
-      pageId,
-      value,
-    );
-    setThreads((current) => [...current, { ...thread, replies: [] }]);
-    setBody("");
-    setStatus("Private comment added.");
+    setPendingAction("add-thread");
+    try {
+      const { thread } = await createThread(
+        projectId,
+        versionSlug,
+        siteId,
+        pageId,
+        value,
+      );
+      setThreads((current) => [...current, { ...thread, replies: [] }]);
+      setBody("");
+      setStatus("Private comment added.");
+    } catch {
+      setStatus("Private comment could not be added. Retry.");
+    } finally {
+      setPendingAction(null);
+    }
   };
 
   const addReply = async (thread: DocumentationCommentThread) => {
     const value = replies[thread.id]?.trim();
     if (!value) return;
-    const { reply } = await createReply(
-      projectId,
-      versionSlug,
-      siteId,
-      thread.id,
-      value,
-    );
-    setThreads((current) =>
-      current.map((candidate) =>
-        candidate.id === thread.id
-          ? { ...candidate, replies: [...candidate.replies, reply] }
-          : candidate,
-      ),
-    );
-    setReplies((current) => ({ ...current, [thread.id]: "" }));
-    setStatus("Reply added.");
+    setPendingAction(`reply-${thread.id}`);
+    try {
+      const { reply } = await createReply(
+        projectId,
+        versionSlug,
+        siteId,
+        thread.id,
+        value,
+      );
+      setThreads((current) =>
+        current.map((candidate) =>
+          candidate.id === thread.id
+            ? { ...candidate, replies: [...candidate.replies, reply] }
+            : candidate,
+        ),
+      );
+      setReplies((current) => ({ ...current, [thread.id]: "" }));
+      setStatus("Reply added.");
+    } catch {
+      setStatus("Reply could not be added. Retry.");
+    } finally {
+      setPendingAction(null);
+    }
   };
 
   const transition = async (thread: DocumentationCommentThread) => {
     const next = thread.state === "open" ? "resolve" : "reopen";
-    const { thread: updated } = await transitionThread(
-      projectId,
-      versionSlug,
-      siteId,
-      thread.id,
-      thread.version,
-      next,
-    );
-    setThreads((current) =>
-      current.map((candidate) =>
-        candidate.id === thread.id
-          ? { ...candidate, ...updated, replies: candidate.replies }
-          : candidate,
-      ),
-    );
-    setStatus(next === "resolve" ? "Comment resolved." : "Comment reopened.");
+    setPendingAction(`transition-${thread.id}`);
+    try {
+      const { thread: updated } = await transitionThread(
+        projectId,
+        versionSlug,
+        siteId,
+        thread.id,
+        thread.version,
+        next,
+      );
+      setThreads((current) =>
+        current.map((candidate) =>
+          candidate.id === thread.id
+            ? { ...candidate, ...updated, replies: candidate.replies }
+            : candidate,
+        ),
+      );
+      setStatus(next === "resolve" ? "Comment resolved." : "Comment reopened.");
+    } catch {
+      setStatus("Comment could not be updated. Retry.");
+    } finally {
+      setPendingAction(null);
+    }
   };
 
   return (
@@ -122,7 +144,12 @@ export const DocumentationCommentsPanel = ({
             value={body}
             onChange={(event) => setBody(event.target.value)}
           />
-          <Button onClick={() => void addThread()}>Add comment</Button>
+          <Button
+            disabled={pendingAction !== null}
+            onClick={() => void addThread()}
+          >
+            Add comment
+          </Button>
         </div>
       ) : null}
       {threads.length ? (
@@ -147,8 +174,16 @@ export const DocumentationCommentsPanel = ({
                       }))
                     }
                   />
-                  <Button onClick={() => void addReply(thread)}>Reply</Button>
-                  <Button onClick={() => void transition(thread)}>
+                  <Button
+                    disabled={pendingAction !== null}
+                    onClick={() => void addReply(thread)}
+                  >
+                    Reply
+                  </Button>
+                  <Button
+                    disabled={pendingAction !== null}
+                    onClick={() => void transition(thread)}
+                  >
                     {thread.state === "open" ? "Resolve" : "Reopen"}
                   </Button>
                 </>

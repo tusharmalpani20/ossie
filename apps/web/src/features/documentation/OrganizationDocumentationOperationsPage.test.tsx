@@ -105,4 +105,21 @@ describe("OrganizationDocumentationOperationsPage", () => {
       screen.queryByRole("button", { name: "Save limits" }),
     ).not.toBeInTheDocument();
   });
+
+  it("makes usage-load failures actionable", async () => {
+    const load = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(summary);
+    render(<OrganizationDocumentationOperationsPage load={load} />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Documentation usage unavailable" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Documentation usage could not be loaded.",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("Active Sites")).toBeInTheDocument();
+  });
 });

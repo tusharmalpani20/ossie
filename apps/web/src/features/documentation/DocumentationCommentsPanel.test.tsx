@@ -82,4 +82,28 @@ describe("DocumentationCommentsPanel", () => {
     expect(await screen.findByText("Private review note")).toBeInTheDocument();
     expect(screen.queryByLabelText("New comment")).not.toBeInTheDocument();
   });
+
+  it("reports failed comment mutations and preserves the draft for retry", async () => {
+    const createThread = vi.fn().mockRejectedValue(new Error("offline"));
+    render(
+      <DocumentationCommentsPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        pageId="page"
+        canComment
+        loadComments={async () => ({ comments: [] })}
+        createThread={createThread}
+      />,
+    );
+    const input = await screen.findByLabelText("New comment");
+    fireEvent.change(input, { target: { value: "Keep this note" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add comment" }));
+
+    expect(
+      await screen.findByRole("status"),
+    ).toHaveTextContent("Private comment could not be added. Retry.");
+    expect(input).toHaveValue("Keep this note");
+    expect(createThread).toHaveBeenCalledOnce();
+  });
 });

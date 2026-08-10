@@ -32,6 +32,24 @@ const revision = {
 };
 
 describe("DocumentationRevisionPreviewPage", () => {
+  it("announces the immutable Revision load", () => {
+    render(
+      <DocumentationRevisionPreviewPage
+        projectId="project"
+        versionSlug="v1"
+        siteId="site"
+        revisionNumber={3}
+        loadRevision={() => new Promise(() => undefined)}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Loading immutable Documentation Revision",
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("binds the request builder to the exact immutable Revision", async () => {
     const loadRevision = vi.fn().mockResolvedValue({ revision });
     const loadTryItConfiguration = vi.fn().mockResolvedValue({

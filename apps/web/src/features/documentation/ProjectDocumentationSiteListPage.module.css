@@ -5,11 +5,8 @@
 }
 
 .state {
-  display: grid;
-  gap: var(--ossie-space-2);
-  max-width: 40rem;
-  margin: 4rem auto 0;
-  text-align: center;
+  width: min(100%, 40rem);
+  margin: var(--ossie-space-6) auto 0;
 }
 
 .stateTitle {
@@ -27,6 +24,8 @@
 .header {
   align-items: end;
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--ossie-space-4);
   justify-content: space-between;
 }
 
@@ -43,8 +42,8 @@
 }
 
 .empty {
-  border: 1px dashed var(--color-border-strong);
-  padding: 2rem;
+  width: min(100%, 40rem);
+  margin: var(--ossie-space-6) auto 0;
 }
 
 .list {
@@ -63,4 +62,11 @@
   justify-content: space-between;
   min-height: 3rem;
   text-decoration: none;
+}
+
+@media (max-width: 40rem) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

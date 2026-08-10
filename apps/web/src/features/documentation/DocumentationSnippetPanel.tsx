@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   createDocumentationSnippet,
   getDocumentationSnippet,
@@ -45,6 +46,8 @@ export const DocumentationSnippetPanel = ({
   const [name, setName] = useState("");
   const [selectedName, setSelectedName] = useState("");
   const [status, setStatus] = useState("Loading Snippets…");
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const selected = snippets.find((snippet) => snippet.id === selectedId);
   const proofMode =
     typeof window === "undefined"
@@ -57,6 +60,7 @@ export const DocumentationSnippetPanel = ({
 
   useEffect(() => {
     let active = true;
+    setLoadError(false);
     listSnippets(projectId, versionSlug, siteId, "all")
       .then(({ snippets: loaded }) => {
         if (!active) return;
@@ -65,12 +69,15 @@ export const DocumentationSnippetPanel = ({
         setStatus(loaded.length ? "Snippets loaded." : "No Snippets yet.");
       })
       .catch(() => {
-        if (active) setStatus("Snippets could not be loaded.");
+        if (active) {
+          setLoadError(true);
+          setStatus("Snippets could not be loaded.");
+        }
       });
     return () => {
       active = false;
     };
-  }, [listSnippets, projectId, siteId, versionSlug]);
+  }, [listSnippets, loadAttempt, projectId, siteId, versionSlug]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -173,6 +180,28 @@ export const DocumentationSnippetPanel = ({
       setStatus("Snippet lifecycle change failed.");
     }
   };
+
+  if (loadError) {
+    return (
+      <section aria-labelledby="documentation-snippets-heading">
+        <h2 id="documentation-snippets-heading">Snippets</h2>
+        <StatusPanel
+          tone="error"
+          title="Could not load Documentation snippets."
+          description="The Snippet library is unavailable right now."
+          action={
+            <Button
+              type="button"
+              onClick={() => setLoadAttempt((value) => value + 1)}
+            >
+              Try again
+            </Button>
+          }
+          titleAs="h3"
+        />
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="documentation-snippets-heading">

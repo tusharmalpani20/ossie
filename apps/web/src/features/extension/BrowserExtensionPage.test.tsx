@@ -82,4 +82,20 @@ describe("BrowserExtensionPage", () => {
       }),
     ).toBeInTheDocument();
   });
+
+  it("can retry a temporary auth-check failure", async () => {
+    const checkAuth = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("temporary auth failure"))
+      .mockResolvedValueOnce(undefined);
+    render(<BrowserExtensionPage checkAuth={checkAuth} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Try again" }),
+    );
+    expect(
+      await screen.findByRole("button", { name: "Download extension" }),
+    ).toBeInTheDocument();
+    expect(checkAuth).toHaveBeenCalledTimes(2);
+  });
 });

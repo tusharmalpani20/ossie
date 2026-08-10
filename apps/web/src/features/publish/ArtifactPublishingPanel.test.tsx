@@ -121,6 +121,21 @@ describe("ArtifactPublishingPanel", () => {
     vi.mocked(updateArtifactPublishLink).mockResolvedValue({} as never);
   });
 
+  it("keeps a publishing load failure actionable", async () => {
+    vi.mocked(listArtifactPublications).mockRejectedValueOnce(
+      new Error("offline"),
+    );
+    renderPanel();
+
+    expect(
+      await screen.findByRole("heading", { name: "Could not load publishing." }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(
+      await screen.findByText("Project Version history"),
+    ).toBeInTheDocument();
+  });
+
   it("does not gate publishing to the Default Project Version", async () => {
     render(
       <ArtifactPublishingPanel

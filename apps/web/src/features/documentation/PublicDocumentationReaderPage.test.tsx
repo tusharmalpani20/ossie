@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PublicDocumentationReaderPage } from "./PublicDocumentationReaderPage";
 import {
   DocumentationApiError,
@@ -11,11 +11,23 @@ type SearchResult = Awaited<
 >["results"][number];
 
 describe("PublicDocumentationReaderPage", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        disconnect() {}
+        observe() {}
+        unobserve() {}
+      },
+    );
+  });
+
   afterEach(() => {
     document.head
       .querySelectorAll("[data-documentation-metadata]")
       .forEach((node) => node.remove());
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   const loadMinimalSnapshot = async () => ({
@@ -33,6 +45,20 @@ describe("PublicDocumentationReaderPage", () => {
       canonical_path: "home",
       blocks: [],
     },
+  });
+
+  it("gives the public reader a clear loading state", () => {
+    render(
+      <PublicDocumentationReaderPage
+        slug="product-docs"
+        loadPage={() => new Promise(() => undefined)}
+        search={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Loading Documentation" }),
+    ).toBeInTheDocument();
   });
 
   it("renders the exact publication, metadata, navigation, and safe blocks", async () => {
@@ -150,7 +176,11 @@ describe("PublicDocumentationReaderPage", () => {
       <PublicDocumentationReaderPage
         slug="missing"
         loadPage={vi.fn(async () => {
-          throw new Error("not found");
+          throw new DocumentationApiError(
+            404,
+            "publish_link_not_found",
+            "Publish Link was not found",
+          );
         })}
         search={vi.fn()}
       />,
@@ -158,7 +188,44 @@ describe("PublicDocumentationReaderPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Documentation unavailable" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("region")).toHaveAccessibleName(
+      "Documentation unavailable",
+    );
     expect(screen.queryByText("Product docs")).not.toBeInTheDocument();
+  });
+
+  it("offers retry for a transient public Documentation failure", async () => {
+    const snapshot = await loadMinimalSnapshot();
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        disconnect() {}
+        observe() {}
+        unobserve() {}
+      },
+    );
+    const loadPage = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("temporary"))
+      .mockResolvedValue(snapshot);
+    render(
+      <PublicDocumentationReaderPage
+        slug="product-docs"
+        loadPage={loadPage}
+        search={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Could not load Documentation",
+      }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(
+      await screen.findByRole("heading", { name: "Home" }),
+    ).toBeInTheDocument();
+    expect(loadPage).toHaveBeenCalledTimes(2);
   });
 
   it("uses the native operation-route fallback without logging an adapter error", async () => {
@@ -230,7 +297,9 @@ describe("PublicDocumentationReaderPage", () => {
         createViewerSession={createViewerSession}
       />,
     );
-    fireEvent.change(await screen.findByLabelText("Publish Link password"), {
+    const passwordInput = await screen.findByLabelText("Publish Link password");
+    expect(passwordInput).toHaveAttribute("autocomplete", "current-password");
+    fireEvent.change(passwordInput, {
       target: { value: "safe local password" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
@@ -238,6 +307,53 @@ describe("PublicDocumentationReaderPage", () => {
     expect(createViewerSession).toHaveBeenCalledWith("protected-docs", {
       password: "safe local password",
     });
+  });
+
+  it("announces an invalid Documentation password and allows retry", async () => {
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        disconnect() {}
+        observe() {}
+        unobserve() {}
+      },
+    );
+    const loadPage = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new DocumentationApiError(
+          401,
+          "publish_link_password_required",
+          "Password required",
+        ),
+      )
+      .mockResolvedValue(await loadMinimalSnapshot());
+    const createViewerSession = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("invalid password"))
+      .mockResolvedValueOnce(undefined);
+    render(
+      <PublicDocumentationReaderPage
+        slug="protected-docs"
+        loadPage={loadPage}
+        search={vi.fn()}
+        createViewerSession={createViewerSession}
+      />,
+    );
+    const passwordInput = await screen.findByLabelText("Publish Link password");
+    fireEvent.change(passwordInput, { target: { value: "wrong password" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Password is invalid.",
+    );
+    expect(loadPage).toHaveBeenCalledTimes(1);
+
+    fireEvent.change(passwordInput, { target: { value: "correct password" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(
+      await screen.findByRole("heading", { name: "Home" }),
+    ).toBeInTheDocument();
+    expect(loadPage).toHaveBeenCalledTimes(2);
   });
 
   it("shows a truthful search error, clears loading, and supports retry", async () => {

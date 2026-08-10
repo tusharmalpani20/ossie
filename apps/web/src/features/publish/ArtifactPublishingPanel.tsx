@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PublishLink, PublishedArtifact } from "@repo/types/publish";
+import { Alert } from "@repo/ui/alert";
+import { Button } from "@repo/ui/button";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   createArtifactPublishLink,
   listArtifactPublications,
@@ -43,6 +46,9 @@ export const ArtifactPublishingPanel = ({
     [links, setLinks] = useState<PublishLink[]>([]),
     [selected, setSelected] = useState<string[]>([]),
     [busy, setBusy] = useState(false),
+    [loading, setLoading] = useState(true),
+    [loadError, setLoadError] = useState(false),
+    [hasLoaded, setHasLoaded] = useState(false),
     [message, setMessage] = useState(""),
     [name, setName] = useState("Public link"),
     [newLinkWithPublish, setNewLinkWithPublish] = useState(false),
@@ -77,23 +83,33 @@ export const ArtifactPublishingPanel = ({
     [links],
   );
   const load = useCallback(async () => {
-    const [history, linkList] = await Promise.all([
-      listArtifactPublications(
-        projectId,
-        artifactType,
-        artifactId,
-        projectVersionId,
-      ),
-      listArtifactPublishLinks(
-        projectId,
-        artifactType,
-        artifactId,
-        projectVersionId,
-      ),
-    ]);
-    setPublications(history.publications);
-    setLinks(linkList.publish_links);
-    setSelected([]);
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const [history, linkList] = await Promise.all([
+        listArtifactPublications(
+          projectId,
+          artifactType,
+          artifactId,
+          projectVersionId,
+        ),
+        listArtifactPublishLinks(
+          projectId,
+          artifactType,
+          artifactId,
+          projectVersionId,
+        ),
+      ]);
+      setPublications(history.publications);
+      setLinks(linkList.publish_links);
+      setSelected([]);
+      setHasLoaded(true);
+    } catch (error) {
+      setLoadError(true);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   }, [projectId, projectVersionId, artifactType, artifactId]);
   useEffect(() => {
     void load().catch(() => setMessage("Could not load publishing."));
@@ -383,6 +399,39 @@ export const ArtifactPublishingPanel = ({
         )}
       </header>
       {message && <p role="status">{message}</p>}
+      {loadError && hasLoaded ? (
+        <Alert variant="destructive" role="alert">
+          Publishing could not be refreshed. Try again to check the latest
+          Publications and Publish Links.
+          <Button type="button" onClick={() => void load().catch(() => undefined)}>
+            Try again
+          </Button>
+        </Alert>
+      ) : null}
+      {loadError && !hasLoaded ? (
+        <StatusPanel
+          tone="error"
+          title="Could not load publishing."
+          description="Publication history and Publish Links are unavailable right now."
+          action={
+            <Button
+              type="button"
+              onClick={() => void load().catch(() => undefined)}
+            >
+              Try again
+            </Button>
+          }
+          titleAs="h3"
+        />
+      ) : !hasLoaded && loading ? (
+        <StatusPanel
+          tone="loading"
+          title="Loading publishing"
+          description="Checking Publications and Publish Links for this artifact."
+          titleAs="h3"
+        />
+      ) : null}
+      {hasLoaded || (!loadError && !loading) ? <>
       <div className={styles.history}>
         <strong>Project Version history</strong>
         {publications.length ? (
@@ -782,6 +831,7 @@ export const ArtifactPublishingPanel = ({
           </button>
         </dialog>
       )}
+      </> : null}
     </section>
   );
 };

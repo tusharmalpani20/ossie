@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@repo/ui/button";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   createDocumentationReviewRequest,
   cancelDocumentationReview,
@@ -87,8 +88,18 @@ export const DocumentationReviewPanel = ({
     override_reason: string | null;
   } | null>(null);
   const [status, setStatus] = useState("Loading review workflow…");
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const requestSequence = useRef(0);
 
   const refresh = async () => {
+    const sequence = ++requestSequence.current;
+    setLoadError(false);
+    setLoadingMore(false);
+    setLoadMoreError(null);
+    setStatus("Loading review workflow…");
     const [loadedPolicy, loadedRequests, loadedEvidence] = await Promise.all([
       loadPolicy(projectId, versionSlug, siteId),
       loadRequests(
@@ -103,6 +114,7 @@ export const DocumentationReviewPanel = ({
         next_cursor: null,
       })),
     ]);
+    if (sequence !== requestSequence.current) return;
     setPolicy(loadedPolicy);
     setRequests(loadedRequests.review_requests);
     setRequestCursor(loadedRequests.next_cursor);
@@ -116,18 +128,30 @@ export const DocumentationReviewPanel = ({
         versionSlug,
         siteId,
       );
+      if (sequence !== requestSequence.current) return;
       setCandidates(loadedCandidates.candidates);
     }
     setStatus("Review workflow loaded.");
   };
 
   useEffect(() => {
-    void refresh().catch(() =>
-      setStatus("Review workflow could not be loaded."),
-    );
+    const sequence = requestSequence.current + 1;
+    void refresh().catch(() => {
+      if (sequence === requestSequence.current) {
+        setLoadError(true);
+        setStatus("Review workflow could not be loaded.");
+      }
+    });
     // Inputs identify the complete route scope.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, versionSlug, siteId, requestStatus, requestParticipation]);
+  }, [
+    loadAttempt,
+    projectId,
+    versionSlug,
+    siteId,
+    requestStatus,
+    requestParticipation,
+  ]);
 
   useEffect(() => {
     const handleGateChange = (event: Event) => {
@@ -276,6 +300,24 @@ export const DocumentationReviewPanel = ({
       aria-labelledby="documentation-review-heading"
     >
       <h2 id="documentation-review-heading">Review and approval</h2>
+      {loadError ? (
+        <StatusPanel
+          tone="error"
+          title="Could not load Documentation review."
+          description="Review policy and request history are unavailable right now."
+          action={
+            <Button
+              type="button"
+              onClick={() => setLoadAttempt((value) => value + 1)}
+            >
+              Try again
+            </Button>
+          }
+          titleAs="h3"
+        />
+      ) : null}
+      {!loadError ? (
+        <>
       <p>
         Policy:{" "}
         {policy?.mode === "approval_required"
@@ -371,7 +413,10 @@ export const DocumentationReviewPanel = ({
             Request status
             <select
               value={requestStatus}
-              onChange={(event) => setRequestStatus(event.target.value)}
+              onChange={(event) => {
+                requestSequence.current += 1;
+                setRequestStatus(event.target.value);
+              }}
             >
               <option value="all">All statuses</option>
               <option value="open">Open</option>
@@ -386,7 +431,10 @@ export const DocumentationReviewPanel = ({
             Participation
             <select
               value={requestParticipation}
-              onChange={(event) => setRequestParticipation(event.target.value)}
+              onChange={(event) => {
+                requestSequence.current += 1;
+                setRequestParticipation(event.target.value);
+              }}
             >
               <option value="all">All requests</option>
               <option value="assigned_to_me">Assigned to me</option>
@@ -405,18 +453,33 @@ export const DocumentationReviewPanel = ({
         ))}
       </ul>
       {requestCursor ? (
+        <>
         <Button
+          disabled={loadingMore}
           onClick={() => {
+            if (loadingMore) return;
+            const sequence = ++requestSequence.current;
+            const filterAtRequest = requestStatus;
+            const participationAtRequest = requestParticipation;
+            const cursorAtRequest = requestCursor;
+            setLoadingMore(true);
+            setLoadMoreError(null);
             setStatus("Loading more Review Requests…");
             void loadRequests(
               projectId,
               versionSlug,
               siteId,
-              requestStatus,
-              requestParticipation,
-              requestCursor,
+              filterAtRequest,
+              participationAtRequest,
+              cursorAtRequest,
             )
               .then((loaded) => {
+                if (
+                  sequence !== requestSequence.current ||
+                  filterAtRequest !== requestStatus ||
+                  participationAtRequest !== requestParticipation
+                )
+                  return;
                 setRequests((current) => [
                   ...current,
                   ...loaded.review_requests,
@@ -424,13 +487,21 @@ export const DocumentationReviewPanel = ({
                 setRequestCursor(loaded.next_cursor);
                 setStatus("More Review Requests loaded.");
               })
-              .catch(() =>
-                setStatus("More Review Requests could not be loaded."),
-              );
+              .catch(() => {
+                if (sequence !== requestSequence.current) return;
+                const message = "More Review Requests could not be loaded.";
+                setStatus(message);
+                setLoadMoreError(message);
+              })
+              .finally(() => {
+                if (sequence === requestSequence.current) setLoadingMore(false);
+              });
           }}
         >
-          Load more Review Requests
+          {loadingMore ? "Loading more Review Requests…" : "Load more Review Requests"}
         </Button>
+        {loadMoreError ? <p role="alert">{loadMoreError}</p> : null}
+        </>
       ) : null}
       {detail ? (
         <section aria-labelledby="documentation-review-detail-heading">
@@ -608,10 +679,12 @@ export const DocumentationReviewPanel = ({
               </li>
             ))}
           </ul>
-        ) : (
+      ) : (
           <p>Legacy publication — no review evidence recorded.</p>
         )}
       </section>
+      </>
+      ) : null}
       <p className={styles.status} role="status" aria-live="polite">
         {status}
       </p>

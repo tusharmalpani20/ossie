@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
 import { Label } from "@repo/ui/label";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   applyDocumentationOpenApi,
   getDocumentationOpenApiSource,
@@ -28,6 +29,7 @@ type Props = {
   inspect?: typeof inspectDocumentationOpenApi;
   apply?: typeof applyDocumentationOpenApi;
   loadSource?: typeof getDocumentationOpenApiSource;
+  loadTryItPolicy?: typeof getDocumentationTryItPolicy;
   loadTryItConfiguration?: (
     operationKey: string,
   ) => ReturnType<typeof getDocumentationTryItConfiguration>;
@@ -53,6 +55,7 @@ export const DocumentationOpenApiPanel = ({
   inspect = inspectDocumentationOpenApi,
   apply = applyDocumentationOpenApi,
   loadSource = getDocumentationOpenApiSource,
+  loadTryItPolicy = getDocumentationTryItPolicy,
   loadTryItConfiguration = (operationKey) =>
     getDocumentationTryItConfiguration(
       projectId,
@@ -83,6 +86,10 @@ export const DocumentationOpenApiPanel = ({
   );
   const [serverCandidates, setServerCandidates] = useState<string[]>([]);
   const [tryItVersion, setTryItVersion] = useState<number | null>(null);
+  const [tryItPolicyState, setTryItPolicyState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [tryItPolicyAttempt, setTryItPolicyAttempt] = useState(0);
   const [tryItEnabled, setTryItEnabled] = useState(false);
   const [approvedOrigin, setApprovedOrigin] = useState("");
   const [basePath, setBasePath] = useState("/");
@@ -93,9 +100,12 @@ export const DocumentationOpenApiPanel = ({
   const [operationPage, setOperationPage] = useState(0);
   const [selectedRequestOperationKey, setSelectedRequestOperationKey] =
     useState("");
+  const [sourceLoadError, setSourceLoadError] = useState(false);
+  const [sourceLoadAttempt, setSourceLoadAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setSourceLoadError(false);
     loadSource(projectId, versionSlug, siteId)
       .then((result) => {
         if (!active || !result) return;
@@ -107,17 +117,34 @@ export const DocumentationOpenApiPanel = ({
           (current) => current || result.operations[0]?.destination_key || "",
         );
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) {
+          setSourceLoadError(true);
+          setStatus("OpenAPI source could not be loaded.");
+        }
+      });
     return () => {
       active = false;
     };
-  }, [loadSource, projectId, siteId, versionSlug]);
+  }, [loadSource, projectId, siteId, sourceLoadAttempt, versionSlug]);
 
   useEffect(() => {
     let active = true;
-    getDocumentationTryItPolicy(projectId, versionSlug, siteId)
+    setTryItPolicyState("loading");
+    loadTryItPolicy(projectId, versionSlug, siteId)
       .then(({ policy }) => {
-        if (!active || !policy) return;
+        if (!active) return;
+        setTryItPolicyState("ready");
+        if (!policy) {
+          setTryItVersion(null);
+          setTryItEnabled(false);
+          setApprovedOrigin("");
+          setBasePath("/");
+          setAllowBearer(false);
+          setApiKeyHeaderName("");
+          setAllowedOperations([]);
+          return;
+        }
         setTryItVersion(policy.version);
         setTryItEnabled(policy.status === "enabled");
         setApprovedOrigin(policy.approved_origin ?? "");
@@ -126,11 +153,15 @@ export const DocumentationOpenApiPanel = ({
         setApiKeyHeaderName(policy.api_key_header_name ?? "");
         setAllowedOperations(policy.operation_destination_keys);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!active) return;
+        setTryItPolicyState("error");
+        setStatus("Try It policy could not be loaded.");
+      });
     return () => {
       active = false;
     };
-  }, [projectId, siteId, versionSlug]);
+  }, [loadTryItPolicy, projectId, siteId, tryItPolicyAttempt, versionSlug]);
 
   const inspectFile = async () => {
     if (!file) return;
@@ -166,6 +197,10 @@ export const DocumentationOpenApiPanel = ({
   };
 
   const saveTryItPolicy = async () => {
+    if (tryItPolicyState !== "ready") {
+      setStatus("Try It policy is still loading. Retry before saving.");
+      return;
+    }
     if (
       tryItEnabled &&
       !window.confirm(
@@ -242,6 +277,28 @@ export const DocumentationOpenApiPanel = ({
     executableOperations.find(
       (operation) => operation.destination_key === selectedRequestOperationKey,
     ) ?? executableOperations[0];
+
+  if (sourceLoadError) {
+    return (
+      <section aria-labelledby="documentation-openapi-heading">
+        <h2 id="documentation-openapi-heading">OpenAPI reference</h2>
+        <StatusPanel
+          tone="error"
+          title="Could not load Documentation OpenAPI."
+          description="The saved OpenAPI source is unavailable right now."
+          action={
+            <Button
+              type="button"
+              onClick={() => setSourceLoadAttempt((value) => value + 1)}
+            >
+              Try again
+            </Button>
+          }
+          titleAs="h3"
+        />
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="documentation-openapi-heading">
@@ -361,6 +418,31 @@ export const DocumentationOpenApiPanel = ({
             </>
           ) : null}
           {canManageTryIt ? (
+            tryItPolicyState === "error" ? (
+              <StatusPanel
+                tone="error"
+                title="Try It policy unavailable"
+                description="The saved browser-direct request policy could not be checked, so it cannot be changed yet."
+                action={
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setTryItPolicyAttempt((value) => value + 1);
+                    }}
+                  >
+                    Retry Try It policy
+                  </Button>
+                }
+                titleAs="h3"
+              />
+            ) : tryItPolicyState === "loading" ? (
+              <StatusPanel
+                tone="loading"
+                title="Loading Try It policy"
+                description="Checking the saved browser-direct request policy."
+                titleAs="h3"
+              />
+            ) : (
             <>
               <label>
                 <input
@@ -480,6 +562,7 @@ export const DocumentationOpenApiPanel = ({
                 Save Try It policy
               </Button>
             </>
+            )
           ) : (
             <p>Only a Project Admin can change this security policy.</p>
           )}

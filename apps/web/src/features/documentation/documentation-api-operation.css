@@ -1,6 +1,6 @@
 .documentation-api-operation {
   border: 1px solid var(--color-border, #cbd5e1);
-  border-radius: 0.75rem;
+  border-radius: var(--ossie-radius-card);
   margin-block: 2rem;
   padding: 1rem;
 }
@@ -39,7 +39,7 @@
 .documentation-api-operation__confirmation {
   background: var(--color-surface, #fff);
   border: 1px solid var(--color-border, #cbd5e1);
-  border-radius: 0.75rem;
+  border-radius: var(--ossie-radius-card);
   color: inherit;
   inset: 0;
   margin: auto;
@@ -55,7 +55,7 @@
 
 .documentation-request-examples {
   border: 1px solid var(--color-border, #cbd5e1);
-  border-radius: 0.75rem;
+  border-radius: var(--ossie-radius-card);
   margin-block: 1.5rem;
   padding: 1rem;
 }

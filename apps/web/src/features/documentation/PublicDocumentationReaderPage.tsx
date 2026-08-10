@@ -12,6 +12,7 @@ import {
   getPublicDocumentationTryItConfiguration,
   reportPublicDocumentationTryItAttempt,
 } from "../../lib/documentationTryItApi";
+import { StatusPanel } from "@repo/ui/status-panel";
 import { DocumentationBlockRenderer } from "./DocumentationBlockRenderer";
 import { LazyDocumentationApiOperationExperience } from "./LazyDocumentationApiOperationExperience";
 import { LazyDocumentationRequestExamples } from "./LazyDocumentationRequestExamples";
@@ -107,6 +108,15 @@ const renderAdjacentNavigation = (
     </nav>
   ) : null;
 
+const isUnavailablePublicationError = (error: unknown) =>
+  error instanceof DocumentationApiError &&
+  [
+    "publish_link_not_found",
+    "publish_link_not_public",
+    "publish_link_expired",
+    "documentation_artifact_publication_not_found",
+  ].includes(error.type);
+
 export const PublicDocumentationReaderPage = ({
   slug,
   versionSlug,
@@ -124,6 +134,7 @@ export const PublicDocumentationReaderPage = ({
   );
   const skipInitialLoad = useRef(initialSnapshot !== null);
   const [unavailable, setUnavailable] = useState(false);
+  const [transientError, setTransientError] = useState(false);
   const [passwordRequired, setPasswordRequired] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -153,6 +164,7 @@ export const PublicDocumentationReaderPage = ({
         if (active) {
           setPasswordRequired(false);
           setUnavailable(false);
+          setTransientError(false);
           setSnapshot(loaded);
         }
       })
@@ -169,7 +181,14 @@ export const PublicDocumentationReaderPage = ({
           setPasswordRequired(true);
           return;
         }
-        setUnavailable(true);
+        setPasswordRequired(false);
+        if (isUnavailablePublicationError(error)) {
+          setUnavailable(true);
+          setTransientError(false);
+        } else {
+          setUnavailable(false);
+          setTransientError(true);
+        }
       });
     return () => {
       active = false;
@@ -242,17 +261,28 @@ export const PublicDocumentationReaderPage = ({
   if (passwordRequired)
     return (
       <main className={styles.gate} id="main-content">
+        <StatusPanel
+          className={styles.gatePanel}
+          tone="forbidden"
+          title="Password required"
+          description="Enter the Publish Link password to continue reading."
+          titleAs="h1"
+        />
         <form
           className={styles.gateCard}
           onSubmit={(event) => void unlock(event)}
         >
           <p className={styles.eyebrow}>Protected Publication</p>
-          <h1>Password required</h1>
-          <p>Enter the Publish Link password to continue reading.</p>
           <label>
             Publish Link password
             <input
+              id="documentation-publish-link-password"
               aria-label="Publish Link password"
+              aria-invalid={passwordError ? "true" : undefined}
+              aria-describedby={
+                passwordError ? "documentation-password-error" : undefined
+              }
+              autoComplete="current-password"
               type="password"
               value={password}
               onChange={(event) => {
@@ -261,25 +291,59 @@ export const PublicDocumentationReaderPage = ({
               }}
             />
           </label>
-          {passwordError ? <p role="alert">{passwordError}</p> : null}
+          {passwordError ? (
+            <p id="documentation-password-error" role="alert">
+              {passwordError}
+            </p>
+          ) : null}
           <button type="submit">Continue</button>
         </form>
       </main>
     );
-  if (unavailable)
+  if (unavailable || transientError)
     return (
       <main className={styles.gate} id="main-content">
-        <div className={styles.gateCard}>
-          <p className={styles.eyebrow}>Public Documentation</p>
-          <h1>Documentation unavailable</h1>
-          <p>This link is unavailable or you do not have access.</p>
-        </div>
+        <StatusPanel
+          className={styles.gatePanel}
+          tone={transientError ? "error" : "not-found"}
+          title={
+            transientError
+              ? "Could not load Documentation"
+              : "Documentation unavailable"
+          }
+          description={
+            transientError
+              ? "The published page could not be loaded. Try again."
+              : "This link is unavailable or you do not have access."
+          }
+          action={
+            transientError ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setTransientError(false);
+                  setSnapshot(null);
+                  setRetry((value) => value + 1);
+                }}
+              >
+                Try again
+              </button>
+            ) : null
+          }
+          titleAs="h1"
+        />
       </main>
     );
   if (!snapshot)
     return (
-      <main className={styles.loading} id="main-content" role="status">
-        Loading Documentation…
+      <main className={styles.loading} id="main-content">
+        <StatusPanel
+          className={styles.gatePanel}
+          tone="loading"
+          title="Loading Documentation"
+          description="Preparing the published page and its navigation."
+          titleAs="h1"
+        />
       </main>
     );
   const operationBase = `${pageBase}/operations`;

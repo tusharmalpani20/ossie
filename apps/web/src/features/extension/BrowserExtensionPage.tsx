@@ -7,6 +7,7 @@ import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader } from "@repo/ui/card";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   downloadExtensionBundle,
@@ -80,6 +81,7 @@ export const BrowserExtensionPage = ({
   const [authState, setAuthState] = useState<AuthState>("checking");
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -93,7 +95,7 @@ export const BrowserExtensionPage = ({
     return () => {
       active = false;
     };
-  }, [checkAuth]);
+  }, [checkAuth, retry]);
 
   const downloadExtension = async () => {
     setIsDownloading(true);
@@ -117,9 +119,13 @@ export const BrowserExtensionPage = ({
   if (authState === "checking") {
     return (
       <Shell performLogout={performLogout} navigate={navigate}>
-        <p className={styles.state} aria-live="polite">
-          Checking extension access…
-        </p>
+        <StatusPanel
+          className={styles.state}
+          tone="loading"
+          title="Checking extension access"
+          description="Checking extension access…"
+          titleAs="h1"
+        />
       </Shell>
     );
   }
@@ -127,10 +133,14 @@ export const BrowserExtensionPage = ({
   if (authState === "unauthenticated") {
     return (
       <Shell performLogout={performLogout} navigate={navigate}>
-        <div className={styles.state}>
-          <p>Sign in to download the Ossie browser extension.</p>
-          <a href={signInUrl(currentPath)}>Sign in</a>
-        </div>
+        <StatusPanel
+          className={styles.state}
+          tone="forbidden"
+          title="Sign in to download the Ossie browser extension"
+          description="Your session is not authorized to access the extension bundle."
+          action={<a href={signInUrl(currentPath)}>Sign in</a>}
+          titleAs="h1"
+        />
       </Shell>
     );
   }
@@ -138,12 +148,18 @@ export const BrowserExtensionPage = ({
   if (authState === "error") {
     return (
       <Shell performLogout={performLogout} navigate={navigate}>
-        <section className={styles.state} aria-labelledby="extension-error-heading">
-          <h1 id="extension-error-heading">Browser extension</h1>
-          <Alert variant="destructive">
-            Extension access could not be checked. Reload this page to try again.
-          </Alert>
-        </section>
+        <StatusPanel
+          className={styles.state}
+          tone="error"
+          title="Browser extension"
+          description="Extension access could not be checked. Reload this page to try again."
+          action={
+            <Button type="button" onClick={() => setRetry((value) => value + 1)}>
+              Try again
+            </Button>
+          }
+          titleAs="h1"
+        />
       </Shell>
     );
   }

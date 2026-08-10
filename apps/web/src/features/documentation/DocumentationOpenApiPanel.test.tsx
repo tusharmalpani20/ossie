@@ -5,6 +5,60 @@ import { DocumentationOpenApiPanel } from "./DocumentationOpenApiPanel";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("DocumentationOpenApiPanel", () => {
+  it("offers retry when the Documentation OpenAPI source cannot load", async () => {
+    const loadSource = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(null);
+    render(
+      <DocumentationOpenApiPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canWrite={false}
+        loadSource={loadSource}
+      />,
+    );
+    expect(await screen.findByRole("heading", { name: "Could not load Documentation OpenAPI." })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(loadSource).toHaveBeenCalledTimes(2));
+  });
+
+  it("keeps Try It policy controls unavailable until policy loading recovers", async () => {
+    const loadTryItPolicy = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ policy: null });
+    render(
+      <DocumentationOpenApiPanel
+        projectId="project"
+        versionSlug="main"
+        siteId="site"
+        canWrite
+        canManageTryIt
+        loadSource={async () => ({
+          source: { id: "source", version: 1 },
+          operations: [],
+        })}
+        loadTryItPolicy={loadTryItPolicy}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Try It policy unavailable",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Save Try It policy" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry Try It policy" }));
+    await waitFor(() => expect(loadTryItPolicy).toHaveBeenCalledTimes(2));
+    expect(
+      await screen.findByRole("button", { name: "Save Try It policy" }),
+    ).toBeInTheDocument();
+  });
+
   it("inspects a bounded File and applies the recognized source", async () => {
     const inspect = vi.fn(async () => ({
       inspection: {

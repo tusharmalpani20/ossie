@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
+import { Alert } from "@repo/ui/alert";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   createDocumentationSite,
   listDocumentationSites,
@@ -36,7 +38,9 @@ export const ProjectDocumentationSiteListPage = ({
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
   const [reviewUnreadCount, setReviewUnreadCount] = useState(0);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -53,7 +57,7 @@ export const ProjectDocumentationSiteListPage = ({
     return () => {
       active = false;
     };
-  }, [loadSites, projectId, versionSlug]);
+  }, [loadSites, projectId, reloadKey, versionSlug]);
 
   useEffect(() => {
     let active = true;
@@ -69,58 +73,60 @@ export const ProjectDocumentationSiteListPage = ({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const created = await createSite(projectId, versionSlug, {
-      name,
-      description: null,
-      primary_language: "en-US",
-      initial_home_page: { title: "Home", path: "home" },
-    });
-    setSites((current) => [
-      ...current,
-      {
-        id: created.site.id,
-        name: created.site.name,
-        description: created.site.description ?? null,
-        edition_id: created.edition.id,
-        primary_language: created.edition.primary_language,
-        version: 1,
-        edition_version: 1,
-        status: "active",
-        effective_status: "active",
-        read_only_reason: null,
-        updated_at: new Date().toISOString(),
-      },
-    ]);
-    setCreating(false);
+    setCreateError(null);
+    try {
+      const created = await createSite(projectId, versionSlug, {
+        name,
+        description: null,
+        primary_language: "en-US",
+        initial_home_page: { title: "Home", path: "home" },
+      });
+      setSites((current) => [
+        ...current,
+        {
+          id: created.site.id,
+          name: created.site.name,
+          description: created.site.description ?? null,
+          edition_id: created.edition.id,
+          primary_language: created.edition.primary_language,
+          version: 1,
+          edition_version: 1,
+          status: "active",
+          effective_status: "active",
+          read_only_reason: null,
+          updated_at: new Date().toISOString(),
+        },
+      ]);
+      setCreating(false);
+    } catch {
+      setCreateError("Could not create Documentation Site.");
+    }
   };
 
   if (status === "loading")
     return (
-      <section
+      <StatusPanel
         className={styles.state}
-        aria-labelledby="documentation-sites-state-heading"
-      >
-        <h1 className={styles.stateTitle} id="documentation-sites-state-heading">
-          Documentation Sites
-        </h1>
-        <p className={styles.stateMessage} role="status">
-          Loading Documentation Sites…
-        </p>
-      </section>
+        tone="loading"
+        title="Documentation Sites"
+        description="Loading Documentation Sites…"
+        titleAs="h1"
+      />
     );
   if (status === "error")
     return (
-      <section
+      <StatusPanel
         className={styles.state}
-        aria-labelledby="documentation-sites-state-heading"
-      >
-        <h1 className={styles.stateTitle} id="documentation-sites-state-heading">
-          Documentation Sites
-        </h1>
-        <p className={styles.stateMessage} role="alert">
-          Documentation Sites could not be loaded.
-        </p>
-      </section>
+        tone="error"
+        title="Documentation Sites"
+        description="Documentation Sites could not be loaded."
+        action={
+          <Button type="button" onClick={() => setReloadKey((current) => current + 1)}>
+            Try again
+          </Button>
+        }
+        titleAs="h1"
+      />
     );
 
   return (
@@ -151,6 +157,15 @@ export const ProjectDocumentationSiteListPage = ({
       </header>
       {creating ? (
         <form className={styles.form} onSubmit={submit}>
+          {createError ? (
+            <Alert
+              variant="destructive"
+              role="alert"
+              aria-label="Documentation Site creation failed"
+            >
+              {createError}
+            </Alert>
+          ) : null}
           <Label htmlFor="documentation-site-name">Site name</Label>
           <Input
             id="documentation-site-name"
@@ -166,14 +181,17 @@ export const ProjectDocumentationSiteListPage = ({
         <p role="note">{importUnavailableReason}</p>
       ) : null}
       {sites.length === 0 ? (
-        <section className={styles.empty}>
-          <h2>No Documentation Sites yet</h2>
-          <p>
-            {canManage
+        <StatusPanel
+          className={styles.empty}
+          tone="empty"
+          title="No Documentation Sites yet"
+          description={
+            canManage
               ? "Create a version-aware Site for product and API knowledge."
-              : "No writable Documentation Site is available in this Project Version."}
-          </p>
-        </section>
+              : "No writable Documentation Site is available in this Project Version."
+          }
+          titleAs="h2"
+        />
       ) : (
         <ul className={styles.list}>
           {sites.map((site) => (

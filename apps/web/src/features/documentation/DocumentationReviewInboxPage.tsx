@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
+import { Alert } from "@repo/ui/alert";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   listDocumentationReviewInbox,
   markDocumentationReviewNotificationRead,
@@ -23,16 +25,61 @@ export const DocumentationReviewInboxPage = ({
   const [inbox, setInbox] = useState<Inbox | null>(null);
   const [filter, setFilter] = useState<"unread" | "read" | "all">("unread");
   const [status, setStatus] = useState("Loading review inbox…");
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [markingId, setMarkingId] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const refresh = () =>
     loadInbox(projectId, versionSlug, filter).then((loaded) => {
       setInbox(loaded);
+      setError(false);
       setStatus(`${loaded.unread_count} unread review notifications.`);
     });
   useEffect(() => {
-    void refresh().catch(() => setStatus("Review inbox could not be loaded."));
+    setError(false);
+    void refresh().catch(() => {
+      setError(true);
+      setStatus("Review inbox could not be loaded.");
+    });
     // Route scope owns refresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, projectId, versionSlug]);
+  }, [filter, projectId, retry, versionSlug]);
+  if (error)
+    return (
+      <StatusPanel
+        tone="error"
+        title="Documentation review inbox"
+        description={status}
+        action={
+          <Button type="button" onClick={() => setRetry((value) => value + 1)}>
+            Try again
+          </Button>
+        }
+        titleAs="h1"
+      />
+    );
+  if (!inbox)
+    return (
+      <StatusPanel
+        tone="loading"
+        title="Loading Documentation review inbox"
+        description="Checking review notifications for this Project Version."
+        titleAs="h1"
+      />
+    );
+  const markNotificationRead = async (notificationId: string, version: number) => {
+    setMutationError(null);
+    setMarkingId(notificationId);
+    try {
+      await markRead(projectId, versionSlug, notificationId, version);
+      await refresh();
+    } catch {
+      setMutationError("Review notification could not be marked as read.");
+    } finally {
+      setMarkingId(null);
+    }
+  };
   return (
     <section
       className={styles.panel}
@@ -44,6 +91,11 @@ export const DocumentationReviewInboxPage = ({
       <p role="status" aria-live="polite">
         {status}
       </p>
+      {mutationError ? (
+        <Alert variant="destructive" role="alert">
+          {mutationError}
+        </Alert>
+      ) : null}
       <fieldset>
         <legend>Inbox status</legend>
         {(["unread", "read", "all"] as const).map((value) => (
@@ -72,16 +124,12 @@ export const DocumentationReviewInboxPage = ({
             {notification.type}
             {notification.status === "unread" ? (
               <Button
+                disabled={markingId === notification.id}
                 onClick={() =>
-                  void markRead(
-                    projectId,
-                    versionSlug,
-                    notification.id,
-                    notification.version,
-                  ).then(refresh)
+                  void markNotificationRead(notification.id, notification.version)
                 }
               >
-                Mark read
+                {markingId === notification.id ? "Marking read…" : "Mark read"}
               </Button>
             ) : null}
           </li>
@@ -89,7 +137,10 @@ export const DocumentationReviewInboxPage = ({
       </ul>
       {inbox?.next_cursor ? (
         <Button
+          disabled={loadingMore}
           onClick={() => {
+            setMutationError(null);
+            setLoadingMore(true);
             setStatus("Loading more review notifications…");
             void loadInbox(
               projectId,
@@ -106,12 +157,14 @@ export const DocumentationReviewInboxPage = ({
                   `${loaded.unread_count} unread review notifications.`,
                 );
               })
-              .catch(() =>
-                setStatus("More review notifications could not be loaded."),
-              );
+              .catch(() => {
+                setStatus("More review notifications could not be loaded.");
+                setMutationError("More review notifications could not be loaded.");
+              })
+              .finally(() => setLoadingMore(false));
           }}
         >
-          Load more notifications
+          {loadingMore ? "Loading more…" : "Load more notifications"}
         </Button>
       ) : null}
     </section>

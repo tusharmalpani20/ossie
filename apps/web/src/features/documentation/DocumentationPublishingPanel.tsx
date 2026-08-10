@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   createDocumentationPublication,
   getDocumentationOperations,
@@ -78,10 +79,17 @@ export const DocumentationPublishingPanel = ({
   const [password, setPassword] = useState("");
   const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
   const [status, setStatus] = useState("Loading Revision history…");
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataLoadError, setDataLoadError] = useState(false);
+  const [dataLoadAttempt, setDataLoadAttempt] = useState(0);
   const [selectedRevisionId, setSelectedRevisionId] = useState("");
   const [reviewGate, setReviewGate] = useState<Awaited<
     ReturnType<typeof getDocumentationReviewGate>
   > | null>(null);
+  const [reviewGateState, setReviewGateState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [reviewGateAttempt, setReviewGateAttempt] = useState(0);
   const [overrideReason, setOverrideReason] = useState("");
   const [overrideConfirmed, setOverrideConfirmed] = useState(false);
   const [linkTryItPolicy, setLinkTryItPolicy] = useState<Awaited<
@@ -114,6 +122,8 @@ export const DocumentationPublishingPanel = ({
 
   useEffect(() => {
     let active = true;
+    setDataLoading(true);
+    setDataLoadError(false);
     Promise.all([
       loadRevisions(projectId, versionSlug, siteId),
       loadPublications(projectId, versionSlug, siteId),
@@ -132,14 +142,19 @@ export const DocumentationPublishingPanel = ({
             ? "Select the latest exact Revision to publish."
             : "Create a Revision before publishing.",
         );
+        setDataLoading(false);
       })
       .catch(() => {
-        if (active) setStatus("Revision history could not be loaded.");
+        if (!active) return;
+        setDataLoading(false);
+        setDataLoadError(true);
+        setStatus("Revision history could not be loaded.");
       });
     return () => {
       active = false;
     };
   }, [
+    dataLoadAttempt,
     loadPublishLinks,
     loadPublications,
     loadRevisions,
@@ -149,15 +164,26 @@ export const DocumentationPublishingPanel = ({
   ]);
 
   useEffect(() => {
-    if (!selectedRevisionId) return;
+    if (!selectedRevisionId) {
+      setReviewGate(null);
+      setReviewGateState("ready");
+      return;
+    }
     let active = true;
+    setReviewGate(null);
+    setReviewGateState("loading");
     const refreshGate = () =>
       loadReviewGate(projectId, versionSlug, siteId, selectedRevisionId)
         .then((gate) => {
-          if (active) setReviewGate(gate);
+          if (!active) return;
+          setReviewGate(gate);
+          setReviewGateState("ready");
         })
         .catch(() => {
-          if (active) setReviewGate(null);
+          if (!active) return;
+          setReviewGate(null);
+          setReviewGateState("error");
+          setStatus("Review gate could not be checked. Publishing is disabled.");
         });
     void refreshGate();
     const handleGateChange = (event: Event) => {
@@ -176,7 +202,14 @@ export const DocumentationPublishingPanel = ({
         handleGateChange,
       );
     };
-  }, [loadReviewGate, projectId, selectedRevisionId, siteId, versionSlug]);
+  }, [
+    loadReviewGate,
+    projectId,
+    reviewGateAttempt,
+    selectedRevisionId,
+    siteId,
+    versionSlug,
+  ]);
 
   useEffect(() => {
     const link = publishLinks[0];
@@ -224,11 +257,14 @@ export const DocumentationPublishingPanel = ({
   const selectedRevision =
     revisions.find((revision) => revision.id === selectedRevisionId) ?? null;
   const gateBlocked =
+    reviewGateState !== "ready" ||
     reviewGate?.outcome === "approval_missing" ||
     reviewGate?.outcome === "approval_pending" ||
     reviewGate?.outcome === "invalidated";
   const reviewOverride =
     gateBlocked &&
+    reviewGateState === "ready" &&
+    reviewGate !== null &&
     canOverrideReview &&
     overrideConfirmed &&
     overrideReason.trim().length >= 20
@@ -241,6 +277,10 @@ export const DocumentationPublishingPanel = ({
   const publishRevision = async () => {
     const revision = selectedRevision;
     if (!revision || !name.trim() || !slug.trim()) return;
+    if (reviewGateState !== "ready" || !reviewGate) {
+      setStatus("Publishing is disabled until the Review gate is checked again.");
+      return;
+    }
     setStatus(
       "Preparing the exact Publication; the live link is unchanged until success…",
     );
@@ -283,6 +323,10 @@ export const DocumentationPublishingPanel = ({
     const link = publishLinks[0];
     const entry = link?.entries[0];
     if (!revision || !link || !entry) return;
+    if (reviewGateState !== "ready" || !reviewGate) {
+      setStatus("Publishing is disabled until the Review gate is checked again.");
+      return;
+    }
     setStatus(
       "Preparing the exact Publication; the live link is unchanged until success…",
     );
@@ -359,6 +403,10 @@ export const DocumentationPublishingPanel = ({
       setStatus(
         `Review gate loaded for rollback Publication ${publication.publication_sequence}. Confirm the rollback again.`,
       );
+      return;
+    }
+    if (reviewGateState !== "ready" || !reviewGate) {
+      setStatus("Rollback is disabled until the Review gate is checked again.");
       return;
     }
     setStatus(
@@ -547,6 +595,30 @@ export const DocumentationPublishingPanel = ({
       <h2 id="documentation-publishing-heading">
         Revision history and publication
       </h2>
+      {dataLoadError ? (
+        <StatusPanel
+          tone="error"
+          title="Could not load Documentation publishing."
+          description="Revision history and Publish Links are unavailable right now."
+          action={
+            <Button
+              type="button"
+              onClick={() => setDataLoadAttempt((value) => value + 1)}
+            >
+              Try again
+            </Button>
+          }
+          titleAs="h3"
+        />
+      ) : dataLoading ? (
+        <StatusPanel
+          tone="loading"
+          title="Loading Documentation publishing"
+          description="Checking Revision history and Publish Links."
+          titleAs="h3"
+        />
+      ) : null}
+      {!dataLoading && !dataLoadError ? <>
       {revisions.length ? (
         <>
           <Label htmlFor="documentation-publication-revision">
@@ -567,13 +639,28 @@ export const DocumentationPublishingPanel = ({
               </option>
             ))}
           </select>
-          <p>
-            Review gate:{" "}
-            {reviewGate
-              ? reviewGate.outcome.replaceAll("_", " ")
-              : "Loading gate status"}
-          </p>
-          {gateBlocked && canOverrideReview ? (
+          {reviewGateState === "error" ? (
+            <div role="alert">
+              <p>
+                Review gate unavailable. Publishing is disabled until it is
+                checked again.
+              </p>
+              <Button
+                type="button"
+                onClick={() => setReviewGateAttempt((value) => value + 1)}
+              >
+                Retry review gate
+              </Button>
+            </div>
+          ) : (
+            <p>
+              Review gate:{" "}
+              {reviewGate
+                ? reviewGate.outcome.replaceAll("_", " ")
+                : "Loading gate status"}
+            </p>
+          )}
+          {gateBlocked && reviewGateState === "ready" && canOverrideReview ? (
             <>
               <Label htmlFor="documentation-review-override-reason">
                 Admin override reason (at least 20 characters)
@@ -800,6 +887,7 @@ export const DocumentationPublishingPanel = ({
         </a>
       ) : null}
       <p role="status">{status}</p>
+      </> : null}
     </section>
   );
 };

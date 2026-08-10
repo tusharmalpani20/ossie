@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@repo/ui/button";
 import { Card } from "@repo/ui/card";
+import { StatusPanel } from "@repo/ui/status-panel";
 import type { ProjectVersion } from "@repo/types/project-version";
 import {
   carryForwardDocumentationSites,
@@ -35,6 +36,8 @@ export const DocumentationCarryForwardPage = ({
     "idle" | "loading" | "ready" | "saving" | "error"
   >("idle");
   const [message, setMessage] = useState("");
+  const [sourceLoadError, setSourceLoadError] = useState(false);
+  const [sourceLoadAttempt, setSourceLoadAttempt] = useState(0);
   const [result, setResult] = useState<
     Awaited<ReturnType<typeof carryForwardDocumentationSites>>["items"] | null
   >(null);
@@ -54,6 +57,7 @@ export const DocumentationCarryForwardPage = ({
     setSelected([]);
     setConfirmed(false);
     setMessage("");
+    setSourceLoadError(false);
     setResult(null);
     retry.current = null;
     if (!sourceId) {
@@ -68,9 +72,10 @@ export const DocumentationCarryForwardPage = ({
       })
       .catch(() => {
         setMessage("Source Documentation Sites could not be loaded.");
+        setSourceLoadError(true);
         setState("error");
       });
-  }, [loadOptions, projectId, sourceId, target.slug]);
+  }, [loadOptions, projectId, sourceId, sourceLoadAttempt, target.slug]);
 
   const submit = async () => {
     const selections = options
@@ -92,6 +97,7 @@ export const DocumentationCarryForwardPage = ({
     retry.current = { fingerprint, key };
     setState("saving");
     setMessage("");
+    setSourceLoadError(false);
     setResult(null);
     try {
       const response = await carry(
@@ -142,7 +148,22 @@ export const DocumentationCarryForwardPage = ({
           Carry-Forward is unavailable for this role or target lifecycle state.
         </p>
       ) : null}
-      {state === "error" ? (
+      {sourceLoadError ? (
+        <StatusPanel
+          tone="error"
+          title="Source Documentation Sites unavailable"
+          description={message}
+          action={
+            <Button
+              type="button"
+              onClick={() => setSourceLoadAttempt((value) => value + 1)}
+            >
+              Try again
+            </Button>
+          }
+          titleAs="h2"
+        />
+      ) : state === "error" ? (
         <div ref={errorRef} role="alert" tabIndex={-1} className={styles.error}>
           <h2>Carry-Forward needs attention</h2>
           <p>{message}</p>
@@ -180,7 +201,14 @@ export const DocumentationCarryForwardPage = ({
           ) : null}
         </select>
       </label>
-      {state === "loading" ? <p role="status">Loading source Sites…</p> : null}
+      {state === "loading" ? (
+        <StatusPanel
+          tone="loading"
+          title="Loading source Sites"
+          description="Checking the Documentation Sites available to carry forward."
+          titleAs="h2"
+        />
+      ) : null}
       {sourceId && state !== "loading" && options.length === 0 ? (
         <Card>
           No Documentation Sites are available in this source Version.

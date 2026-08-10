@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ComplianceAuditEventDetailResponse,
   ComplianceAuditState,
@@ -8,6 +8,7 @@ import type {
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent } from "@repo/ui/card";
+import { StatusPanel, type StatusPanelTone } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   getComplianceAuditEvent,
@@ -94,14 +95,25 @@ export const ComplianceTimelinePage = ({
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
   const [details, setDetails] = useState<Record<string, DetailState>>({});
+  const eventsRequestRef = useRef(0);
 
   useEffect(() => {
+    const requestId = eventsRequestRef.current + 1;
+    eventsRequestRef.current = requestId;
     let active = true;
     setState({ status: "loading" });
+    setLoadingMore(false);
+    setLoadMoreError(false);
     setDetails({});
     resolvedLoadEvents({ kind })
-      .then((response) => active && setState({ status: "loaded", response }))
-      .catch((error: unknown) => active && setState(pageStateFromError(error)));
+      .then((response) => {
+        if (active && eventsRequestRef.current === requestId)
+          setState({ status: "loaded", response });
+      })
+      .catch((error: unknown) => {
+        if (active && eventsRequestRef.current === requestId)
+          setState(pageStateFromError(error));
+      });
     return () => {
       active = false;
     };
@@ -109,24 +121,28 @@ export const ComplianceTimelinePage = ({
 
   const loadMore = async () => {
     if (state.status !== "loaded" || !state.response.page.next_cursor) return;
+    const requestId = eventsRequestRef.current + 1;
+    eventsRequestRef.current = requestId;
+    const currentResponse = state.response;
     setLoadingMore(true);
     setLoadMoreError(false);
     try {
       const next = await resolvedLoadEvents({
         kind,
-        cursor: state.response.page.next_cursor,
+        cursor: currentResponse.page.next_cursor ?? undefined,
       });
+      if (eventsRequestRef.current !== requestId) return;
       setState({
         status: "loaded",
         response: {
           ...next,
-          events: [...state.response.events, ...next.events],
+          events: [...currentResponse.events, ...next.events],
         },
       });
     } catch {
-      setLoadMoreError(true);
+      if (eventsRequestRef.current === requestId) setLoadMoreError(true);
     } finally {
-      setLoadingMore(false);
+      if (eventsRequestRef.current === requestId) setLoadingMore(false);
     }
   };
 
@@ -175,31 +191,48 @@ export const ComplianceTimelinePage = ({
         </header>
 
         {state.status === "unauthenticated" ? (
-          <StateMessage>
-            Sign in to view compliance evidence.{" "}
-            <a href={signInUrl(currentPath)}>Sign in</a>
-          </StateMessage>
+          <StateMessage
+            tone="forbidden"
+            title="Sign in to view compliance evidence"
+            description={
+              <>
+                Your session is required to view retained evidence.{" "}
+                <a href={signInUrl(currentPath)}>Sign in</a>
+              </>
+            }
+          />
         ) : state.status === "forbidden" ? (
-          <StateMessage>
-            {projectId
-              ? "Only Project admins can view Project compliance evidence."
-              : "Only organization owners can view compliance evidence."}
-          </StateMessage>
+          <StateMessage
+            tone="forbidden"
+            title="Compliance evidence is restricted"
+            description={
+              projectId
+                ? "Only Project admins can view Project compliance evidence."
+                : "Only organization owners can view compliance evidence."
+            }
+          />
         ) : state.status === "not_found" ? (
-          <StateMessage>Project was not found.</StateMessage>
+          <StateMessage tone="not-found" title="Project was not found." />
         ) : state.status === "error" ? (
-          <StateMessage>
-            Could not load compliance evidence.{" "}
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setReloadKey((value) => value + 1)}
-            >
-              Retry
-            </Button>
-          </StateMessage>
+          <StateMessage
+            tone="error"
+            title="Could not load compliance evidence"
+            action={
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setReloadKey((value) => value + 1)}
+              >
+                Retry
+              </Button>
+            }
+          />
         ) : state.status === "loading" ? (
-          <StateMessage>Loading retained evidence…</StateMessage>
+          <StateMessage
+            tone="loading"
+            title="Loading retained evidence"
+            description="Retrieving immutable audit and access evidence."
+          />
         ) : (
           <>
             <div className={styles.controls}>
@@ -235,9 +268,11 @@ export const ComplianceTimelinePage = ({
               />
             </section>
             {state.response.events.length === 0 ? (
-              <StateMessage>
-                No retained evidence matches this filter.
-              </StateMessage>
+              <StateMessage
+                tone="empty"
+                title="No retained evidence matches this filter."
+                description="Try another evidence kind or return later as new evidence is recorded."
+              />
             ) : (
               <section
                 className={styles.timeline}
@@ -325,7 +360,7 @@ export const ComplianceTimelinePage = ({
             {state.response.page.has_more ? (
               <div className={styles.pagination}>
                 {loadMoreError ? (
-                  <span>Could not load the next page.</span>
+                  <span role="alert">Could not load the next page.</span>
                 ) : null}
                 <Button
                   variant="secondary"
@@ -355,10 +390,14 @@ const AuditDetail = ({
   retry: () => void;
 }) => {
   if (!state || state.status === "loading")
-    return <p className={styles.detailState}>Loading Audit changes…</p>;
+    return (
+      <p className={styles.detailState} role="status">
+        Loading Audit changes…
+      </p>
+    );
   if (state.status === "error")
     return (
-      <p className={styles.detailState}>
+      <p className={styles.detailState} role="alert">
         Could not load Audit changes.{" "}
         <Button size="sm" variant="secondary" onClick={retry}>
           Retry
@@ -413,8 +452,25 @@ const Metric = ({ label, value }: { label: string; value: number }) => (
     </CardContent>
   </Card>
 );
-const StateMessage = ({ children }: { children: ReactNode }) => (
-  <div className={styles.state}>{children}</div>
+const StateMessage = ({
+  tone,
+  title,
+  description,
+  action,
+}: {
+  tone: StatusPanelTone;
+  title: string;
+  description?: ReactNode;
+  action?: ReactNode;
+}) => (
+  <StatusPanel
+    className={styles.state}
+    tone={tone}
+    title={title}
+    description={description}
+    action={action}
+    titleAs="h2"
+  />
 );
 const Shell = ({
   children,

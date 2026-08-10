@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
@@ -22,6 +23,7 @@ import { DocumentationCommentsPanel } from "./DocumentationCommentsPanel";
 import { DocumentationPortabilityPanel } from "./DocumentationPortabilityPanel";
 import { LazyDocumentationAdapterProofPanel } from "./LazyDocumentationAdapterProofPanel";
 import { getDocumentationAdapterProofMode } from "./adapters/documentationAdapterProof";
+import { StatusPanel } from "@repo/ui/status-panel";
 
 type Props = {
   projectId: string;
@@ -51,6 +53,10 @@ export const DocumentationPageEditor = ({
   autosaveDelayMs = 800,
 }: Props) => {
   const [page, setPage] = useState<DocumentationPage | null>(null);
+  const [pageLoadError, setPageLoadError] = useState(false);
+  const [pageLoadAttempt, setPageLoadAttempt] = useState(0);
+  const [auxiliaryLoadError, setAuxiliaryLoadError] = useState(false);
+  const [auxiliaryLoadAttempt, setAuxiliaryLoadAttempt] = useState(0);
   const [blocks, setBlocks] = useState<DocumentationBlock[]>([]);
   const [saveState, setSaveState] = useState<
     "saved" | "unsaved" | "saving" | "conflict" | "error"
@@ -100,6 +106,8 @@ export const DocumentationPageEditor = ({
 
   useEffect(() => {
     let active = true;
+    setPage(null);
+    setPageLoadError(false);
     loadPage(projectId, versionSlug, siteId, pageId)
       .then((result) => {
         if (active) {
@@ -110,16 +118,21 @@ export const DocumentationPageEditor = ({
         }
       })
       .catch(() => {
-        if (active) setSaveState("error");
+        if (active) setPageLoadError(true);
       });
     return () => {
       active = false;
     };
-  }, [loadPage, pageId, projectId, siteId, versionSlug]);
+  }, [loadPage, pageId, pageLoadAttempt, projectId, siteId, versionSlug]);
 
   useEffect(() => {
     if (!canWrite) return;
     let active = true;
+    setAuxiliaryLoadError(false);
+    setSnippetOptions([]);
+    setAssetOptions([]);
+    setGuidePublicationOptions([]);
+    setDemoPublicationOptions([]);
     Promise.all([
       listDocumentationSnippets(projectId, versionSlug, siteId, "active"),
       listDocumentationAssets(projectId, versionSlug, siteId, {
@@ -168,14 +181,26 @@ export const DocumentationPageEditor = ({
           })),
         );
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setAuxiliaryLoadError(true);
+      });
     return () => {
       active = false;
     };
-  }, [canWrite, loadOptions, projectId, siteId, versionSlug]);
+  }, [
+    auxiliaryLoadAttempt,
+    canWrite,
+    loadOptions,
+    projectId,
+    siteId,
+    versionSlug,
+  ]);
 
   useEffect(() => {
     let active = true;
+    setPageOptions([]);
+    setOpenApiOptions([]);
+    setDraftVersion(null);
     loadOptions(projectId, versionSlug, siteId)
       .then(({ preview }) => {
         if (!active) return;
@@ -195,11 +220,13 @@ export const DocumentationPageEditor = ({
           })),
         );
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setAuxiliaryLoadError(true);
+      });
     return () => {
       active = false;
     };
-  }, [canWrite, loadOptions, projectId, siteId, versionSlug]);
+  }, [auxiliaryLoadAttempt, canWrite, loadOptions, projectId, siteId, versionSlug]);
 
   const save = useCallback(async () => {
     if (!page) return;
@@ -225,7 +252,29 @@ export const DocumentationPageEditor = ({
     return () => window.clearTimeout(timeout);
   }, [autosaveDelayMs, canWrite, save, saveState]);
 
-  if (!page) return <p role="status">Loading Documentation Page…</p>;
+  if (pageLoadError)
+    return (
+      <StatusPanel
+        tone="error"
+        title="Could not load Documentation Page."
+        description="The Page is unavailable right now. Try again to continue editing."
+        action={
+          <Button onClick={() => setPageLoadAttempt((value) => value + 1)}>
+            Try again
+          </Button>
+        }
+        titleAs="h1"
+      />
+    );
+  if (!page)
+    return (
+      <StatusPanel
+        tone="loading"
+        title="Loading Documentation Page"
+        description="Opening the Page editor and its current draft."
+        titleAs="h1"
+      />
+    );
   const addImage = async () => {
     if (!imageFile || !imageAlt.trim()) return;
     setAssetStatus("Uploading image…");
@@ -283,6 +332,18 @@ export const DocumentationPageEditor = ({
     <section aria-labelledby="documentation-page-heading">
       <p>Documentation Page</p>
       <h1 id="documentation-page-heading">{page.title}</h1>
+      {auxiliaryLoadError ? (
+        <Alert variant="destructive" role="alert">
+          Some Page editor references could not be loaded. Retry to restore
+          snippets, assets, Publications, and API choices.
+          <Button
+            type="button"
+            onClick={() => setAuxiliaryLoadAttempt((value) => value + 1)}
+          >
+            Retry editor references
+          </Button>
+        </Alert>
+      ) : null}
       {canWrite ? (
         <section aria-labelledby="documentation-page-details-heading">
           <h2 id="documentation-page-details-heading">Page details</h2>

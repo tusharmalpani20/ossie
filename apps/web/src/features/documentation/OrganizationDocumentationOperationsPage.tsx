@@ -4,6 +4,7 @@ import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   DocumentationApiError,
   getDocumentationOperations,
@@ -44,9 +45,12 @@ export const OrganizationDocumentationOperationsPage = ({
   const [draft, setDraft] = useState<LimitDraft | null>(null);
   const [status, setStatus] = useState("Loading Documentation usage…");
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setLoadError(false);
     load()
       .then((result) => {
         if (!active) return;
@@ -55,12 +59,15 @@ export const OrganizationDocumentationOperationsPage = ({
         setStatus("Documentation usage is up to date.");
       })
       .catch(() => {
-        if (active) setStatus("Documentation usage could not be loaded.");
+        if (active) {
+          setLoadError(true);
+          setStatus("Documentation usage could not be loaded.");
+        }
       });
     return () => {
       active = false;
     };
-  }, [load]);
+  }, [load, retry]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -109,6 +116,27 @@ export const OrganizationDocumentationOperationsPage = ({
 
   const state = (dimension: "active_sites" | "active_pages") =>
     summary?.states.find((candidate) => candidate.dimension === dimension);
+
+  if (loadError && !summary)
+    return (
+      <PortalAppShell
+        activeSection="organization_documentation"
+        currentLabel="Documentation operations"
+      >
+        <StatusPanel
+          className={styles.state}
+          tone="error"
+          title="Documentation usage unavailable"
+          description={status}
+          action={
+            <Button type="button" onClick={() => setRetry((value) => value + 1)}>
+              Try again
+            </Button>
+          }
+          titleAs="h1"
+        />
+      </PortalAppShell>
+    );
 
   return (
     <PortalAppShell
