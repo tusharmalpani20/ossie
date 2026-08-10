@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
-    <title>Plan 147 · Human Review</title>
+    <title>Plan 147 · Whole-app Human Review</title>
     <style>
       :root {
         color-scheme: light;
@@ -23,19 +23,35 @@
         --success: #176642;
         --success-soft: #e5f5ec;
         --shadow: 0 8px 24px rgba(20, 38, 50, 0.08);
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
       }
 
-      * { box-sizing: border-box; }
-      html { scroll-behavior: smooth; }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
       body {
         margin: 0;
         background: var(--bg);
         color: var(--ink);
         line-height: 1.5;
       }
-      a { color: var(--accent); }
-      a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+      a {
+        color: var(--accent);
+      }
+      a:focus-visible,
+      button:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible {
         outline: 3px solid #f0b429;
         outline-offset: 3px;
       }
@@ -49,12 +65,15 @@
         color: #fff;
         border-radius: 4px;
       }
-      .skip-link:focus { top: 12px; }
+      .skip-link:focus {
+        top: 12px;
+      }
       .topbar {
         border-bottom: 1px solid var(--line);
         background: rgba(255, 255, 255, 0.96);
       }
-      .topbar-inner, .shell {
+      .topbar-inner,
+      .shell {
         width: min(1180px, calc(100% - 32px));
         margin: 0 auto;
       }
@@ -72,9 +91,16 @@
         letter-spacing: 0.01em;
         text-decoration: none;
       }
-      .brand span { color: var(--muted); font-weight: 500; }
-      .topbar a:last-child { font-size: 0.86rem; }
-      main { padding: 34px 0 80px; }
+      .brand span {
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .topbar a:last-child {
+        font-size: 0.86rem;
+      }
+      main {
+        padding: 34px 0 80px;
+      }
       .hero {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
@@ -90,7 +116,12 @@
         letter-spacing: 0.11em;
         text-transform: uppercase;
       }
-      h1, h2, h3, p { margin-top: 0; }
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
       h1 {
         max-width: 720px;
         margin-bottom: 10px;
@@ -98,9 +129,21 @@
         line-height: 1.06;
         letter-spacing: -0.035em;
       }
-      h2 { margin-bottom: 8px; font-size: 1.45rem; letter-spacing: -0.02em; }
-      h3 { margin-bottom: 6px; font-size: 1rem; }
-      .lede { max-width: 720px; margin-bottom: 0; color: var(--muted); font-size: 1.02rem; }
+      h2 {
+        margin-bottom: 8px;
+        font-size: 1.45rem;
+        letter-spacing: -0.02em;
+      }
+      h3 {
+        margin-bottom: 6px;
+        font-size: 1rem;
+      }
+      .lede {
+        max-width: 720px;
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 1.02rem;
+      }
       .status-card {
         padding: 18px;
         border: 1px solid #b7dbe2;
@@ -108,8 +151,14 @@
         border-radius: 8px;
         background: var(--accent-soft);
       }
-      .status-card strong { display: block; margin: 8px 0 2px; font-size: 1.05rem; }
-      .status-card small { color: #315663; }
+      .status-card strong {
+        display: block;
+        margin: 8px 0 2px;
+        font-size: 1.05rem;
+      }
+      .status-card small {
+        color: #315663;
+      }
       .pill {
         display: inline-flex;
         align-items: center;
@@ -142,7 +191,10 @@
         font-weight: 650;
         text-decoration: none;
       }
-      .anchor-nav a:hover { background: var(--surface-muted); color: var(--ink); }
+      .anchor-nav a:hover {
+        background: var(--surface-muted);
+        color: var(--ink);
+      }
       .metrics {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -156,10 +208,23 @@
         border-radius: 8px;
         background: var(--surface);
       }
-      .metric strong { display: block; margin-bottom: 3px; font-size: 1.42rem; }
-      .metric span { color: var(--muted); font-size: 0.86rem; }
-      .section { margin-top: 42px; scroll-margin-top: 74px; }
-      .section-intro { max-width: 780px; color: var(--muted); }
+      .metric strong {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 1.42rem;
+      }
+      .metric span {
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+      .section {
+        margin-top: 42px;
+        scroll-margin-top: 74px;
+      }
+      .section-intro {
+        max-width: 780px;
+        color: var(--muted);
+      }
       .panel {
         padding: 22px;
         border: 1px solid var(--line);
@@ -179,8 +244,15 @@
         border: 1px solid var(--line);
         border-radius: 8px;
       }
-      legend { padding: 0 6px; font-weight: 800; }
-      .decision-note { margin: 0 0 12px; color: var(--muted); font-size: 0.9rem; }
+      legend {
+        padding: 0 6px;
+        font-weight: 800;
+      }
+      .decision-note {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
       .choice {
         display: flex;
         align-items: flex-start;
@@ -188,8 +260,14 @@
         margin: 9px 0;
         font-size: 0.9rem;
       }
-      .choice input { flex: 0 0 auto; margin-top: 4px; accent-color: var(--accent); }
-      .decision-wide { grid-column: 1 / -1; }
+      .choice input {
+        flex: 0 0 auto;
+        margin-top: 4px;
+        accent-color: var(--accent);
+      }
+      .decision-wide {
+        grid-column: 1 / -1;
+      }
       textarea {
         display: block;
         width: 100%;
@@ -219,9 +297,18 @@
         font: inherit;
         font-weight: 750;
       }
-      button.secondary { border-color: var(--line); background: #fff; color: var(--ink); }
-      button:hover { filter: brightness(1.06); }
-      .save-status { color: var(--success); font-size: 0.86rem; }
+      button.secondary {
+        border-color: var(--line);
+        background: #fff;
+        color: var(--ink);
+      }
+      button:hover {
+        filter: brightness(1.06);
+      }
+      .save-status {
+        color: var(--success);
+        font-size: 0.86rem;
+      }
       .callout {
         margin-top: 14px;
         padding: 13px 15px;
@@ -238,7 +325,9 @@
         border-radius: 8px;
         background: var(--accent-soft);
       }
-      .review-guide p:last-child { margin-bottom: 0; }
+      .review-guide p:last-child {
+        margin-bottom: 0;
+      }
       .scope-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -251,14 +340,20 @@
         border-radius: 8px;
         background: var(--surface);
       }
-      .scope-panel.open { border-top-color: var(--warning); }
-      .scope-panel h3 { margin-bottom: 10px; }
+      .scope-panel.open {
+        border-top-color: var(--warning);
+      }
+      .scope-panel h3 {
+        margin-bottom: 10px;
+      }
       .scope-panel ul {
         margin: 0;
         padding-left: 20px;
         color: var(--muted);
       }
-      .scope-panel li + li { margin-top: 8px; }
+      .scope-panel li + li {
+        margin-top: 8px;
+      }
       .comparison-list {
         display: grid;
         gap: 18px;
@@ -278,8 +373,14 @@
         padding: 18px 20px 14px;
         border-bottom: 1px solid var(--line);
       }
-      .review-card-header h3 { margin-bottom: 4px; }
-      .review-card-header p { margin-bottom: 0; color: var(--muted); font-size: 0.9rem; }
+      .review-card-header h3 {
+        margin-bottom: 4px;
+      }
+      .review-card-header p {
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
       .agent-take {
         flex: 0 0 auto;
         max-width: 230px;
@@ -288,10 +389,21 @@
         font-size: 0.78rem;
         font-weight: 750;
       }
-      .agent-take.yes { background: var(--success-soft); color: var(--success); }
-      .agent-take.follow-up { background: var(--warning-soft); color: var(--warning); }
-      .agent-take.no { background: var(--danger-soft); color: var(--danger); }
-      .review-card-body { padding: 18px 20px 20px; }
+      .agent-take.yes {
+        background: var(--success-soft);
+        color: var(--success);
+      }
+      .agent-take.follow-up {
+        background: var(--warning-soft);
+        color: var(--warning);
+      }
+      .agent-take.no {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+      .review-card-body {
+        padding: 18px 20px 20px;
+      }
       .comparison-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -321,8 +433,12 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
       }
-      .comparison-images figure { margin: 0; }
-      .comparison-images a { display: block; }
+      .comparison-images figure {
+        margin: 0;
+      }
+      .comparison-images a {
+        display: block;
+      }
       .comparison-images img {
         display: block;
         width: 100%;
@@ -356,7 +472,9 @@
         color: #315663;
         font-size: 0.9rem;
       }
-      .review-comment strong { color: var(--ink); }
+      .review-comment strong {
+        color: var(--ink);
+      }
       .review-controls {
         display: flex;
         align-items: center;
@@ -366,7 +484,10 @@
         padding-top: 13px;
         border-top: 1px solid var(--line);
       }
-      .review-controls strong { margin-right: 4px; font-size: 0.86rem; }
+      .review-controls strong {
+        margin-right: 4px;
+        font-size: 0.86rem;
+      }
       .review-choice {
         display: inline-flex;
         align-items: center;
@@ -374,12 +495,89 @@
         color: var(--muted);
         font-size: 0.84rem;
       }
-      .review-choice input { accent-color: var(--accent); }
-      .review-source { margin-top: 10px; font-size: 0.8rem; }
+      .review-choice input {
+        accent-color: var(--accent);
+      }
+      .review-source {
+        margin-top: 10px;
+        font-size: 0.8rem;
+      }
       .review-summary {
         margin-left: auto;
         color: var(--success);
         font-size: 0.82rem;
+      }
+      .route-table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+      .route-table {
+        width: 100%;
+        min-width: 980px;
+        border-collapse: collapse;
+        font-size: 0.86rem;
+      }
+      .route-table th,
+      .route-table td {
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        background: var(--surface);
+      }
+      .route-table th {
+        color: var(--muted);
+        font-size: 0.74rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .route-table tr:last-child td {
+        border-bottom: 0;
+      }
+      .route-table code {
+        overflow-wrap: anywhere;
+        color: #315663;
+        font-size: 0.78rem;
+      }
+      .route-owner {
+        min-width: 180px;
+      }
+      .route-followup {
+        min-width: 260px;
+        color: var(--muted);
+      }
+      .route-controls {
+        min-width: 250px;
+      }
+      .route-choice-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px 10px;
+        margin-bottom: 8px;
+      }
+      .route-choice {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        white-space: nowrap;
+      }
+      .route-choice input {
+        accent-color: var(--accent);
+      }
+      .route-note {
+        min-height: 52px;
+        padding: 7px 9px;
+        font-size: 0.8rem;
+      }
+      .route-status {
+        margin-top: 12px;
+        color: var(--success);
+        font-size: 0.84rem;
       }
       .status-list {
         display: grid;
@@ -393,8 +591,14 @@
         border-radius: 6px;
         background: var(--surface);
       }
-      .status-list strong { display: block; font-size: 0.85rem; }
-      .status-list span { color: var(--muted); font-size: 0.78rem; }
+      .status-list strong {
+        display: block;
+        font-size: 0.85rem;
+      }
+      .status-list span {
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
       .source-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -409,9 +613,19 @@
         background: var(--surface);
         text-decoration: none;
       }
-      .source-card strong { display: block; color: var(--ink); font-size: 0.9rem; }
-      .source-card span { color: var(--muted); font-size: 0.78rem; }
-      .source-card:hover { border-color: #8abec8; background: #fbfeff; }
+      .source-card strong {
+        display: block;
+        color: var(--ink);
+        font-size: 0.9rem;
+      }
+      .source-card span {
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+      .source-card:hover {
+        border-color: #8abec8;
+        background: #fbfeff;
+      }
       .gallery-toolbar {
         display: flex;
         align-items: center;
@@ -429,7 +643,10 @@
         color: var(--ink);
         font: inherit;
       }
-      .gallery-count { color: var(--muted); font-size: 0.86rem; }
+      .gallery-count {
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
       .gallery {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -442,7 +659,10 @@
         border-radius: 8px;
         background: var(--surface);
       }
-      .evidence-card a { display: block; background: #e7ecef; }
+      .evidence-card a {
+        display: block;
+        background: #e7ecef;
+      }
       .evidence-card img {
         display: block;
         width: 100%;
@@ -456,8 +676,14 @@
         font-size: 0.78rem;
         overflow-wrap: anywhere;
       }
-      .evidence-card figcaption a { display: inline; background: none; }
-      .evidence-card.missing { border-color: #e7b2b2; background: var(--danger-soft); }
+      .evidence-card figcaption a {
+        display: inline;
+        background: none;
+      }
+      .evidence-card.missing {
+        border-color: #e7b2b2;
+        background: var(--danger-soft);
+      }
       .empty {
         grid-column: 1 / -1;
         padding: 24px;
@@ -481,9 +707,17 @@
         border-radius: 6px;
         background: var(--surface);
       }
-      .checklist input { margin-top: 4px; accent-color: var(--accent); }
-      details { margin-top: 18px; }
-      summary { cursor: pointer; font-weight: 750; }
+      .checklist input {
+        margin-top: 4px;
+        accent-color: var(--accent);
+      }
+      details {
+        margin-top: 18px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 750;
+      }
       pre {
         max-height: 560px;
         overflow: auto;
@@ -493,7 +727,12 @@
         border-radius: 6px;
         background: #18242c;
         color: #edf4f5;
-        font: 0.78rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font:
+          0.78rem/1.55 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Consolas,
+          monospace;
         white-space: pre-wrap;
         overflow-wrap: anywhere;
       }
@@ -505,29 +744,78 @@
         font-size: 0.83rem;
       }
       @media (max-width: 900px) {
-        .hero, .decision-grid { grid-template-columns: 1fr; }
-        .decision-wide { grid-column: auto; }
-        .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .source-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .scope-grid, .comparison-grid { grid-template-columns: 1fr; }
-        .status-list { grid-template-columns: 1fr; }
+        .hero,
+        .decision-grid {
+          grid-template-columns: 1fr;
+        }
+        .decision-wide {
+          grid-column: auto;
+        }
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .source-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .gallery {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .scope-grid,
+        .comparison-grid {
+          grid-template-columns: 1fr;
+        }
+        .status-list {
+          grid-template-columns: 1fr;
+        }
       }
       @media (max-width: 560px) {
-        .topbar-inner, .shell { width: min(100% - 22px, 1180px); }
-        main { padding-top: 24px; }
-        .metrics, .source-grid, .gallery { grid-template-columns: 1fr; }
-        .panel { padding: 16px; }
-        .anchor-nav { margin-right: -2px; margin-left: -2px; }
-        .review-card-header { display: block; }
-        .agent-take { margin-top: 12px; max-width: none; }
-        .review-card-body { padding: 15px; }
-        .comparison-images { grid-template-columns: 1fr; }
-        .review-summary { width: 100%; margin-left: 0; }
+        .topbar-inner,
+        .shell {
+          width: min(100% - 22px, 1180px);
+        }
+        main {
+          padding-top: 24px;
+        }
+        .metrics,
+        .source-grid,
+        .gallery {
+          grid-template-columns: 1fr;
+        }
+        .panel {
+          padding: 16px;
+        }
+        .anchor-nav {
+          margin-right: -2px;
+          margin-left: -2px;
+        }
+        .review-card-header {
+          display: block;
+        }
+        .agent-take {
+          margin-top: 12px;
+          max-width: none;
+        }
+        .review-card-body {
+          padding: 15px;
+        }
+        .comparison-images {
+          grid-template-columns: 1fr;
+        }
+        .review-summary {
+          width: 100%;
+          margin-left: 0;
+        }
       }
       @media (prefers-reduced-motion: reduce) {
-        html { scroll-behavior: auto; }
-        *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+        html {
+          scroll-behavior: auto;
+        }
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
       }
     </style>
   </head>
@@ -535,7 +823,9 @@
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar">
       <div class="topbar-inner">
-        <a class="brand" href="#main">OSSIE <span>/ Plan 147 review</span></a>
+        <a class="brand" href="#main"
+          >OSSIE <span>/ Plan 147 whole-app review</span></a
+        >
         <a href="./147-plan-147-human-review-bundle.md">Open source bundle</a>
       </div>
     </header>
@@ -543,19 +833,27 @@
     <main id="main" class="shell">
       <section class="hero" aria-labelledby="page-title">
         <div>
-          <p class="eyebrow">Plan 147 · UI quality program</p>
-          <h1 id="page-title">Human review workspace</h1>
-          <p class="lede">A single place to inspect the recorded evidence, review visual baselines, and make the decisions needed before this plan can close.</p>
+          <p class="eyebrow">Plan 147 · Whole-app UI quality pass</p>
+          <h1 id="page-title">Review the whole Ossie app</h1>
+          <p class="lede">
+            Use the app end to end, then come here once to compare the recorded
+            before/now evidence, judge the full experience, and leave the final
+            notes for the next pass.
+          </p>
         </div>
         <aside class="status-card" aria-label="Current plan status">
-          <span class="pill">Agent accepted</span>
-          <strong>Human closeout required</strong>
-          <small>Tests and evidence are prepared; completion remains intentionally gated.</small>
+          <span class="pill">Whole-app candidate</span>
+          <strong>One human review at the end</strong>
+          <small
+            >The implementation and evidence are prepared; the plan remains open
+            until your review and any follow-ups are complete.</small
+          >
         </aside>
       </section>
 
       <nav class="anchor-nav" aria-label="Review sections">
         <a href="#scope-status">What was addressed</a>
+        <a href="#route-coverage">Every route</a>
         <a href="#comparison-review">Before / now</a>
         <a href="#decisions">Your decisions</a>
         <a href="#evidence">All screenshots</a>
@@ -565,170 +863,567 @@
       </nav>
 
       <section class="metrics" aria-label="Review summary">
-        <div class="metric"><strong>0</strong><span>known test or build failures</span></div>
-        <div class="metric"><strong id="reviewMetric">…</strong><span>before/now items to review</span></div>
-        <div class="metric"><strong id="screenshotMetric">…</strong><span>linked screenshots loaded</span></div>
-        <div class="metric"><strong id="decisionMetric">0</strong><span>your review choices saved</span></div>
+        <div class="metric">
+          <strong>95 / 548</strong><span>current web files / tests passed</span>
+        </div>
+        <div class="metric">
+          <strong id="reviewMetric">…</strong
+          ><span>before/now items to review</span>
+        </div>
+        <div class="metric">
+          <strong>39</strong><span>individual web route types listed</span>
+        </div>
+        <div class="metric">
+          <strong id="screenshotMetric">…</strong
+          ><span>linked screenshots loaded</span>
+        </div>
+        <div class="metric">
+          <strong id="decisionMetric">0</strong
+          ><span>your review choices saved</span>
+        </div>
       </section>
 
       <section id="scope-status" class="section" aria-labelledby="scope-title">
         <h2 id="scope-title">First: what this part addressed</h2>
-        <p class="section-intro">You do not need to understand every test. This run is a UI-quality pass: it checked and tightened presentation, accessibility, responsive behavior, and evidence around existing Ossie workflows. It did not redesign the product or change its domain rules.</p>
+        <p class="section-intro">
+          You do not need to understand every test. This run is an ambitious
+          UI-quality pass across the shipped app: it checked and tightened
+          spacing, padding, buttons, cards, typography, mascot-led
+          illustrations, accessibility, responsive behavior, and evidence around
+          existing Ossie workflows. It did not change Ossie’s domain rules,
+          authorization boundaries, or immutable-data behavior.
+        </p>
         <div class="review-guide">
-          <strong>How to review:</strong> For each item below, read the one-sentence change, compare <strong>Before</strong> with <strong>Now</strong>, read my recommendation, then choose <strong>Yes</strong>, <strong>No</strong>, or <strong>Needs follow-up</strong>. “Evidence only” items are checks, not product changes to approve.
+          <strong>How to review:</strong> For each item below, read the
+          one-sentence change, compare <strong>Before</strong> with
+          <strong>Now</strong>, read my recommendation, then choose
+          <strong>Yes</strong>, <strong>No</strong>, or
+          <strong>Needs follow-up</strong>. “Evidence only” items are checks,
+          not product changes to approve.
         </div>
         <div class="scope-grid">
           <div class="scope-panel">
             <h3>Addressed in this run</h3>
             <ul>
-              <li>Improved semantic headings and announcements for fallback, loading, and recoverable error states.</li>
-              <li>Improved narrow shared navigation wrapping, token consistency, and bounded shared UI presentation.</li>
-              <li>Added public Documentation, Demo, Guide, embed, zoom, keyboard, and reduced-motion evidence using synthetic fixtures.</li>
-              <li>Ran focused and broad tests, type checks, lint, builds, CSS-token checks, browser checks, and two blind reviews for immutable candidates.</li>
+              <li>
+                Applied a shared spacing, padding, radius, button, card, and
+                type-token language across the shipped surface families reached
+                by the candidate pass.
+              </li>
+              <li>
+                Selected and documented a local system-sans typography stack,
+                then checked hierarchy and readability at desktop, narrow
+                mobile, and native 200% zoom.
+              </li>
+              <li>
+                Added the Ossie mascot to shared loading, empty, error,
+                forbidden, and not-found states, with clear recovery actions and
+                semantic announcements.
+              </li>
+              <li>
+                Covered portal, Projects, Project Workspace, Project Version,
+                Capture, Guides, Demos, Documentation, organization/admin,
+                extension, setup, auth, and contributor surfaces.
+              </li>
+              <li>
+                Ran focused/grouped tests, type checks, lint, builds, CSS-token
+                checks, browser checks, and two independent agent reviews for
+                the meaningful candidates; the exhaustive route inventory is the
+                remaining closure check.
+              </li>
             </ul>
           </div>
           <div class="scope-panel open" id="scope-open">
             <h3>Still open after this review</h3>
             <ul>
-              <li>The normal <code>/projects/:projectId</code> route still needs a human decision: legacy redirect or Project Workspace.</li>
-              <li>P2-001, P2-006, P2-010, residuals, and the accepted visual baselines need dispositions.</li>
-              <li>The complete desktop/tablet/mobile/200%/state matrix is not fully covered.</li>
-              <li>Real browser-toolbar icon activation remains blocked in this environment.</li>
-              <li>After your decisions, accepted follow-ups need implementation, verification, and final Plan 147 reconciliation.</li>
+              <li>
+                You still need to judge the complete experience and record Yes,
+                No, Needs follow-up, or Not reviewed for each evidence group.
+              </li>
+              <li>
+                Any remaining P2/P3, residual, visual-baseline, or
+                product-direction finding needs a disposition in the final
+                notes.
+              </li>
+              <li>
+                The complete desktop/tablet/mobile/200%/state matrix is not
+                fully covered, so the dashboard keeps those limits visible.
+              </li>
+              <li>
+                Real browser-toolbar icon activation remains blocked in this
+                environment and needs capable-browser verification if it matters
+                to closeout.
+              </li>
+              <li>
+                After your review, accepted follow-ups need implementation,
+                verification, and final Plan 147 reconciliation.
+              </li>
             </ul>
           </div>
         </div>
         <div class="status-list">
-          <div><strong>Already done</strong><span>Evidence, tests, candidate reviews, commits, and rollback records.</span></div>
-          <div><strong>You decide</strong><span>Accept, reject, or request follow-up for the visible changes and open product questions.</span></div>
-          <div><strong>Then we finish</strong><span>Apply accepted follow-ups, rerun checks, and close the plan only when no required work remains.</span></div>
+          <div>
+            <strong>Already done</strong
+            ><span
+              >Evidence, tests, candidate reviews, commits, and rollback
+              records.</span
+            >
+          </div>
+          <div>
+            <strong>You decide</strong
+            ><span
+              >Accept, reject, or request follow-up for the visible changes and
+              open product questions.</span
+            >
+          </div>
+          <div>
+            <strong>Then we finish</strong
+            ><span
+              >Apply accepted follow-ups, rerun checks, and close the plan only
+              when no required work remains.</span
+            >
+          </div>
         </div>
       </section>
 
-      <section id="comparison-review" class="section" aria-labelledby="comparison-title">
-        <h2 id="comparison-title">Before / now: my review</h2>
-        <p class="section-intro">These are the meaningful surface changes and evidence groups from this run. The page will populate the cards from the recorded evidence so you can inspect the actual files.</p>
+      <section
+        id="route-coverage"
+        class="section"
+        aria-labelledby="route-coverage-title"
+      >
+        <h2 id="route-coverage-title">Every shipped web route</h2>
+        <p class="section-intro">
+          This is the exhaustive route-level review. The rows below are not
+          representative samples: they are every route type parsed by the web
+          app, including legacy/canonical variants, previews, public readers,
+          embeds, the design-system gallery, and the unsupported fallback.
+          Review each route after using the app, then add a specific note when
+          something needs changing.
+        </p>
+        <div class="review-guide">
+          <strong>Current engineering status:</strong> all 39 route owners have
+          focused tests, while browser evidence is still grouped for several
+          families. A route is not considered finished just because its family
+          card above has evidence.
+          <a href="./147-exhaustive-route-coverage.md"
+            >Open the full route and nested-section contract</a
+          >.
+        </div>
+        <div class="route-table-wrap">
+          <table class="route-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Route</th>
+                <th>Path shape</th>
+                <th>Owner</th>
+                <th>What still needs checking</th>
+                <th>Your review</th>
+              </tr>
+            </thead>
+            <tbody id="routeCoverageRows">
+              <tr>
+                <td colspan="6" class="empty">Loading the route inventory…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p
+          id="routeReviewProgress"
+          class="route-status"
+          role="status"
+          aria-live="polite"
+        >
+          Loading route review choices…
+        </p>
+        <div class="actions">
+          <button id="saveRouteReviews" type="button">
+            Save route review choices
+          </button>
+        </div>
+      </section>
+
+      <section
+        id="comparison-review"
+        class="section"
+        aria-labelledby="comparison-title"
+      >
+        <h2 id="comparison-title">Before / now: whole-app review</h2>
+        <p class="section-intro">
+          These cards are grouped visual summaries, not a substitute for
+          route-by-route coverage. Compare Before with Now, read the
+          recommendation, then record your own verdict and optional comment.
+          Open the
+          <a href="./147-exhaustive-route-coverage.md"
+            >exhaustive route and section inventory</a
+          >
+          to see every shipped route and the exact evidence still required. You
+          can save, export, and revisit the same review.
+        </p>
         <div id="reviewCards" class="comparison-list">
           <div class="empty">Loading before/now review cards…</div>
         </div>
         <div class="actions">
-          <button id="saveReviewCards" type="button">Save these review choices</button>
-          <button class="secondary" id="copyAllSummary" type="button">Copy all review choices</button>
-          <span class="review-summary" id="reviewProgress" role="status" aria-live="polite">Loading review choices…</span>
+          <button id="saveReviewCards" type="button">
+            Save these review choices
+          </button>
+          <button class="secondary" id="copyAllSummary" type="button">
+            Copy all review choices
+          </button>
+          <span
+            class="review-summary"
+            id="reviewProgress"
+            role="status"
+            aria-live="polite"
+            >Loading review choices…</span
+          >
         </div>
       </section>
 
       <section id="decisions" class="section" aria-labelledby="decisions-title">
-        <h2 id="decisions-title">Your plan-level decisions</h2>
-        <p class="section-intro">The cards above cover visual/product-change acceptance. These additional decisions control what happens next. They are saved only in this browser; they are not submitted to the server.</p>
+        <h2 id="decisions-title">Your whole-app review decisions</h2>
+        <p class="section-intro">
+          The cards above summarize surface families. The
+          <a href="./147-exhaustive-route-coverage.md">exhaustive inventory</a>
+          governs whether every individual route, nested section, and applicable
+          state has been addressed. These additional decisions capture the
+          overall direction and what should happen next. They are saved in this
+          browser and embedded in the exported HTML; they are not submitted to
+          the server.
+        </p>
         <div class="panel">
           <form id="decisionForm">
             <div class="decision-grid">
               <fieldset>
-                <legend>1. Project route ownership</legend>
-                <p class="decision-note">For <code>/projects/:projectId</code>, the current route renders the legacy redirect fallback. This is a product/route-ownership decision.</p>
-                <label class="choice"><input type="radio" name="route" value="keep-redirect" /> Keep <code>LegacyProjectRedirect</code> as the route owner.</label>
-                <label class="choice"><input type="radio" name="route" value="mount-workspace" /> Mount <code>ProjectWorkspacePage</code> as the route owner.</label>
-                <label class="choice"><input type="radio" name="route" value="defer" /> Defer this decision and keep the candidate open.</label>
+                <legend>1. Project Workspace route direction</legend>
+                <p class="decision-note">
+                  The approved whole-app continuation mounts
+                  <code>ProjectWorkspacePage</code> on the normal
+                  <code>/projects/:projectId</code> route while preserving
+                  access and Project Version semantics.
+                </p>
+                <label class="choice"
+                  ><input type="radio" name="route" value="mount-workspace" />
+                  Accept the current Project Workspace route direction.</label
+                >
+                <label class="choice"
+                  ><input
+                    type="radio"
+                    name="route"
+                    value="follow-up-workspace"
+                  />
+                  Request a focused Project Workspace follow-up.</label
+                >
+                <label class="choice"
+                  ><input type="radio" name="route" value="defer" /> Defer this
+                  decision and keep the candidate open.</label
+                >
               </fieldset>
 
               <fieldset>
                 <legend>2. P2/P3 and residual findings</legend>
-                <p class="decision-note">Review P2-001, P2-006, and the remaining residuals against the screenshots and linked blind reviews.</p>
-                <label class="choice"><input type="radio" name="findings" value="accept" /> Accept the recorded dispositions and close these findings.</label>
-                <label class="choice"><input type="radio" name="findings" value="follow-up" /> Send selected findings through another bounded implementation cycle.</label>
-                <label class="choice"><input type="radio" name="findings" value="product-decision" /> Hold for a broader product/design decision.</label>
+                <p class="decision-note">
+                  Review the recorded P2/P3 findings, residuals, and any issue
+                  you discover while using the whole app against the screenshots
+                  and linked blind reviews.
+                </p>
+                <label class="choice"
+                  ><input type="radio" name="findings" value="accept" /> Accept
+                  the recorded dispositions and close these findings.</label
+                >
+                <label class="choice"
+                  ><input type="radio" name="findings" value="follow-up" /> Send
+                  selected findings through another bounded implementation
+                  cycle.</label
+                >
+                <label class="choice"
+                  ><input
+                    type="radio"
+                    name="findings"
+                    value="product-decision"
+                  />
+                  Hold for a broader product/design decision.</label
+                >
               </fieldset>
 
               <fieldset>
                 <legend>3. Visual baselines</legend>
-                <p class="decision-note">Inspect the gallery for shared foundation, shared shell, public reader, and Projects fallback changes.</p>
-                <label class="choice"><input type="radio" name="baselines" value="accept" /> Accept the visual differences shown.</label>
-                <label class="choice"><input type="radio" name="baselines" value="follow-up" /> Request a visual follow-up before closeout.</label>
-                <label class="choice"><input type="radio" name="baselines" value="unclear" /> I need more context before deciding.</label>
+                <p class="decision-note">
+                  Inspect the full gallery for shared foundation, typography,
+                  mascot states, shell, readers, authoring surfaces, Projects,
+                  extension, and admin changes.
+                </p>
+                <label class="choice"
+                  ><input type="radio" name="baselines" value="accept" /> Accept
+                  the visual differences shown.</label
+                >
+                <label class="choice"
+                  ><input type="radio" name="baselines" value="follow-up" />
+                  Request a visual follow-up before closeout.</label
+                >
+                <label class="choice"
+                  ><input type="radio" name="baselines" value="unclear" /> I
+                  need more context before deciding.</label
+                >
               </fieldset>
 
               <fieldset>
                 <legend>4. Extension toolbar evidence</legend>
-                <p class="decision-note">The page and extension flow were checked, but toolbar-icon activation was unavailable in this environment.</p>
-                <label class="choice"><input type="radio" name="extension" value="verify-later" /> Verify the real toolbar popup in a capable browser environment.</label>
-                <label class="choice"><input type="radio" name="extension" value="accept-blocked" /> Accept this capability as blocked for this run.</label>
+                <p class="decision-note">
+                  The page and extension flow were checked, but toolbar-icon
+                  activation was unavailable in this environment.
+                </p>
+                <label class="choice"
+                  ><input type="radio" name="extension" value="verify-later" />
+                  Verify the real toolbar popup in a capable browser
+                  environment.</label
+                >
+                <label class="choice"
+                  ><input
+                    type="radio"
+                    name="extension"
+                    value="accept-blocked"
+                  />
+                  Accept this capability as blocked for this run.</label
+                >
               </fieldset>
 
               <fieldset class="decision-wide">
                 <legend>Reviewer notes</legend>
-                <p class="decision-note">Record findings or instructions for the next bounded cycle. Do not paste credentials, cookies, private URLs, or customer data.</p>
-                <textarea id="reviewNotes" name="notes" placeholder="What should be accepted, changed, or checked next?"></textarea>
+                <p class="decision-note">
+                  Record findings or instructions for the next bounded cycle. Do
+                  not paste credentials, cookies, private URLs, or customer
+                  data.
+                </p>
+                <textarea
+                  id="reviewNotes"
+                  name="notes"
+                  placeholder="What should be accepted, changed, or checked next?"
+                ></textarea>
               </fieldset>
             </div>
             <div class="actions">
               <button type="submit">Save review locally</button>
-              <button class="secondary" id="copySummary" type="button">Copy decision summary</button>
-              <span class="save-status" id="saveStatus" role="status" aria-live="polite"></span>
+              <button class="secondary" id="copySummary" type="button">
+                Copy decision summary
+              </button>
+              <span
+                class="save-status"
+                id="saveStatus"
+                role="status"
+                aria-live="polite"
+              ></span>
             </div>
           </form>
-          <div class="callout"><strong>Closeout rule:</strong> the plan stays incomplete until the human decisions are recorded, accepted findings are verified, and the final reconciliation is complete.</div>
+          <div class="callout">
+            <strong>Closeout rule:</strong> the plan stays incomplete until the
+            human decisions are recorded, accepted findings are verified, and
+            the final reconciliation is complete.
+          </div>
         </div>
       </section>
 
       <section id="sources" class="section" aria-labelledby="sources-title">
         <h2 id="sources-title">Source files</h2>
-        <p class="section-intro">These are the canonical records behind this dashboard.</p>
+        <p class="section-intro">
+          These are the canonical records behind this dashboard.
+        </p>
         <div class="source-grid">
-          <a class="source-card" href="./147-plan-147-human-review-bundle.md"><strong>Human review bundle</strong><span>Primary review record and decision prompts</span></a>
-          <a class="source-card" href="./147-ossie-ui-quality-program-ledger.md"><strong>Canonical ledger</strong><span>Findings, evidence, checkpoints, and rollback notes</span></a>
-          <a class="source-card" href="./147-project-workspace-legacy-fallback-review-a.md"><strong>Blind review A</strong><span>Project fallback candidate review</span></a>
-          <a class="source-card" href="./147-project-workspace-legacy-fallback-review-b.md"><strong>Blind review B</strong><span>Independent Project fallback review</span></a>
-          <a class="source-card" href="/plan147-plan/147-ossie-ui-quality-program.md"><strong>Active child plan</strong><span>Acceptance criteria and completion checklist</span></a>
+          <a class="source-card" href="./147-plan-147-human-review-bundle.md"
+            ><strong>Human review bundle</strong
+            ><span>Primary review record and decision prompts</span></a
+          >
+          <a class="source-card" href="./147-exhaustive-route-coverage.md"
+            ><strong>Exhaustive route inventory</strong
+            ><span
+              >Every route, page owner, nested section, and required state</span
+            ></a
+          >
+          <a class="source-card" href="./147-ossie-ui-quality-program-ledger.md"
+            ><strong>Canonical ledger</strong
+            ><span>Findings, evidence, checkpoints, and rollback notes</span></a
+          >
+          <a
+            class="source-card"
+            href="./147-project-workspace-legacy-fallback-review-a.md"
+            ><strong>Blind review A</strong
+            ><span>Project fallback candidate review</span></a
+          >
+          <a
+            class="source-card"
+            href="./147-project-workspace-legacy-fallback-review-b.md"
+            ><strong>Blind review B</strong
+            ><span>Independent Project fallback review</span></a
+          >
+          <a
+            class="source-card"
+            href="/plan147-plan/147-ossie-ui-quality-program.md"
+            ><strong>Active child plan</strong
+            ><span>Acceptance criteria and completion checklist</span></a
+          >
+          <a class="source-card" href="./147-typography-selection.md"
+            ><strong>Typography decision</strong
+            ><span>Selected stack, rationale, and constraints</span></a
+          >
+          <a class="source-card" href="./147-whole-app-review-a.md"
+            ><strong>Latest whole-app audit A</strong
+            ><span
+              >Independent final candidate review and P2 follow-ups</span
+            ></a
+          >
+          <a class="source-card" href="./147-whole-app-review-b.md"
+            ><strong>Latest whole-app audit B</strong
+            ><span
+              >Independent final candidate review and reconciliation</span
+            ></a
+          >
+          <a class="source-card" href="./147-exhaustive-route-audit-a.md"
+            ><strong>Exhaustive route audit A</strong
+            ><span>Independent internal-route and nested-section audit</span></a
+          >
+          <a class="source-card" href="./147-exhaustive-route-audit-b.md"
+            ><strong>Exhaustive route audit B</strong
+            ><span>Independent public, extension, and fallback audit</span></a
+          >
+          <a class="source-card" href="./147-previous-human-review-input.md"
+            ><strong>Previous human review input</strong
+            ><span
+              >Spacing, font, mascot, public-reader, and route priorities
+              carried forward</span
+            ></a
+          >
+        </div>
+        <div class="review-guide">
+          <strong>Latest independent audit outcome:</strong> both reviewers
+          found no P0 or P1 blocker. Reviewer A recorded five P2 follow-ups;
+          Reviewer B recorded one P2 accessibility concern and confirmed the
+          earlier recovery findings. The current worktree includes the
+          reconciled gate, policy, public-demo, comment-feedback, landmark,
+          radius, and alert fixes. Read both linked reports before deciding
+          whether any remaining follow-up is acceptable.
         </div>
       </section>
 
       <section id="evidence" class="section" aria-labelledby="evidence-title">
         <h2 id="evidence-title">Screenshot evidence</h2>
-        <p class="section-intro">The gallery is generated from every PNG/JPEG link in the human-review bundle. Select an image to open the full-size evidence file.</p>
+        <p class="section-intro">
+          The gallery is generated from every PNG/JPEG link in the human-review
+          bundle. Select an image to open the full-size evidence file.
+        </p>
         <div class="panel">
           <div class="gallery-toolbar">
             <label for="evidenceFilter">Filter screenshots</label>
-            <input class="search" id="evidenceFilter" type="search" placeholder="Try: public, zoom, projects, extension" />
-            <span class="gallery-count" id="galleryCount" role="status" aria-live="polite">Loading evidence…</span>
+            <input
+              class="search"
+              id="evidenceFilter"
+              type="search"
+              placeholder="Try: public, zoom, projects, extension"
+            />
+            <span
+              class="gallery-count"
+              id="galleryCount"
+              role="status"
+              aria-live="polite"
+              >Loading evidence…</span
+            >
           </div>
-          <div id="gallery" class="gallery" aria-live="polite"><div class="empty">Loading linked screenshots from the bundle…</div></div>
+          <div id="gallery" class="gallery" aria-live="polite">
+            <div class="empty">Loading linked screenshots from the bundle…</div>
+          </div>
         </div>
       </section>
 
       <section id="checklist" class="section" aria-labelledby="checklist-title">
         <h2 id="checklist-title">Closeout checklist</h2>
-        <p class="section-intro">These checkboxes are a private local aid for the human reviewer. They do not close the plan automatically.</p>
+        <p class="section-intro">
+          These checkboxes are a private local aid for the human reviewer. They
+          do not close the plan automatically.
+        </p>
         <div class="panel">
           <ul class="checklist">
-            <li><label><input type="checkbox" data-check="evidence" /> I reviewed the evidence and screenshots relevant to my decision.</label></li>
-            <li><label><input type="checkbox" data-check="route" /> I recorded a route-ownership decision or explicitly deferred it.</label></li>
-            <li><label><input type="checkbox" data-check="findings" /> I recorded dispositions for P2/P3 and residual findings.</label></li>
-            <li><label><input type="checkbox" data-check="visual" /> I reviewed the visual baselines and noted any follow-up.</label></li>
-            <li><label><input type="checkbox" data-check="extension" /> I recorded the extension-toolbar decision and its evidence limitation.</label></li>
+            <li>
+              <label
+                ><input type="checkbox" data-check="evidence" /> I reviewed the
+                evidence and screenshots relevant to my decision.</label
+              >
+            </li>
+            <li>
+              <label
+                ><input type="checkbox" data-check="route" /> I recorded a
+                route-ownership decision or explicitly deferred it.</label
+              >
+            </li>
+            <li>
+              <label
+                ><input type="checkbox" data-check="findings" /> I recorded
+                dispositions for P2/P3 and residual findings.</label
+              >
+            </li>
+            <li>
+              <label
+                ><input type="checkbox" data-check="visual" /> I reviewed the
+                visual baselines and noted any follow-up.</label
+              >
+            </li>
+            <li>
+              <label
+                ><input type="checkbox" data-check="extension" /> I recorded the
+                extension-toolbar decision and its evidence limitation.</label
+              >
+            </li>
           </ul>
         </div>
       </section>
 
-      <section id="submission" class="section" aria-labelledby="submission-title">
+      <section
+        id="submission"
+        class="section"
+        aria-labelledby="submission-title"
+      >
         <h2 id="submission-title">Finish and send your review</h2>
-        <p class="section-intro">When you are finished, export a new HTML review file. It will contain every verdict, option, comment, checklist state, and evidence link so it can be sent back and reviewed again.</p>
+        <p class="section-intro">
+          When you are finished, export a new HTML review file. It will contain
+          every verdict, option, comment, checklist state, and evidence link so
+          it can be sent back and reviewed again.
+        </p>
         <div class="panel">
           <div class="review-guide">
-            <strong>Important:</strong> browsers cannot overwrite the original HTML file served by this website. “Finish and export review” creates a review-submission HTML file on your computer. Send that downloaded file back to me; I can read its embedded review data and continue from the same decisions.
+            <strong>Important:</strong> browsers cannot overwrite the original
+            HTML file served by this website. “Finish and export review” creates
+            a review-submission HTML file on your computer. Send that downloaded
+            file back to me; I can read its embedded review data and continue
+            from the same decisions.
           </div>
           <div class="actions">
-            <button id="exportReview" type="button">Finish and export review</button>
-            <button class="secondary" id="importReviewButton" type="button">Import saved review</button>
-            <input id="importReview" type="file" accept=".html,.htm,text/html" hidden />
-            <span class="save-status" id="exportStatus" role="status" aria-live="polite">No review file exported yet.</span>
+            <button id="exportReview" type="button">
+              Finish and export review
+            </button>
+            <button class="secondary" id="importReviewButton" type="button">
+              Import saved review
+            </button>
+            <input
+              id="importReview"
+              type="file"
+              accept=".html,.htm,text/html"
+              hidden
+            />
+            <span
+              class="save-status"
+              id="exportStatus"
+              role="status"
+              aria-live="polite"
+              >No review file exported yet.</span
+            >
           </div>
         </div>
       </section>
 
       <section id="bundle-text" class="section" aria-labelledby="bundle-title">
         <h2 id="bundle-title">Bundle text</h2>
-        <p class="section-intro">The raw Markdown is loaded below for quick reference. Use the source link above if you want the original file directly.</p>
+        <p class="section-intro">
+          The raw Markdown is loaded below for quick reference. Use the source
+          link above if you want the original file directly.
+        </p>
         <details class="panel">
           <summary>Show the complete human-review bundle text</summary>
           <pre id="rawBundle">Loading bundle text…</pre>
@@ -736,7 +1431,8 @@
       </section>
 
       <footer class="footer">
-        This dashboard is a review aid for synthetic Plan 147 evidence. It does not change Ossie data or record a human decision on the server.
+        This dashboard is a review aid for synthetic Plan 147 evidence. It does
+        not change Ossie data or record a human decision on the server.
       </footer>
     </main>
 
@@ -744,7 +1440,7 @@
       (function () {
         "use strict";
 
-        var stateKey = "ossie-plan147-review-dashboard-v1";
+        var stateKey = "ossie-plan147-review-dashboard-whole-app-v2";
         var bundlePath = "./147-plan-147-human-review-bundle.md";
         var gallery = document.getElementById("gallery");
         var galleryCount = document.getElementById("galleryCount");
@@ -762,141 +1458,749 @@
           {
             id: "design-system-gallery",
             title: "Design-system gallery",
-            change: "Added shared loading, empty, error, read-only, and validation examples; long labels now stay inside the narrow layout.",
+            change:
+              "Added shared loading, empty, error, read-only, and validation examples; long labels now stay inside the narrow layout.",
             myVerdict: "yes",
-            myComment: "Yes. This is a bounded reference improvement that makes shared states easier to inspect without changing a customer workflow. It is a synthetic gallery, so it should remain a reference rather than become a new product screen by itself.",
+            myComment:
+              "Yes. This is a bounded reference improvement that makes shared states easier to inspect without changing a customer workflow. It is a synthetic gallery, so it should remain a reference rather than become a new product screen by itself.",
             source: "./147-design-system-gallery-review-a.md",
-            before: ["./147-design-system-gallery-before-desktop.png", "./147-design-system-gallery-before-narrow.png"],
-            now: ["./147-design-system-gallery-after-desktop.png", "./147-design-system-gallery-after-narrow.png"]
+            before: [
+              "./147-design-system-gallery-before-desktop.png",
+              "./147-design-system-gallery-before-narrow.png",
+            ],
+            now: [
+              "./147-design-system-gallery-after-desktop.png",
+              "./147-design-system-gallery-after-narrow.png",
+            ],
           },
           {
             id: "global-fallback",
             title: "Global fallback",
-            change: "Unsupported routes now have a truthful Page-not-found heading and safe Projects/sign-in recovery links.",
+            change:
+              "Unsupported routes now have a truthful Page-not-found heading and safe Projects/sign-in recovery links.",
             myVerdict: "yes",
-            myComment: "Yes. The change improves orientation and recovery while preserving route ownership and the existing safe navigation behavior.",
+            myComment:
+              "Yes. The change improves orientation and recovery while preserving route ownership and the existing safe navigation behavior.",
             source: "./147-global-fallback-review-a.md",
-            before: ["./147-global-fallback-before-desktop.png", "./147-global-fallback-before-narrow.png"],
-            now: ["./147-global-fallback-after-desktop.png", "./147-global-fallback-after-narrow.png"]
+            before: [
+              "./147-global-fallback-before-desktop.png",
+              "./147-global-fallback-before-narrow.png",
+            ],
+            now: [
+              "./147-global-fallback-after-desktop.png",
+              "./147-global-fallback-after-narrow.png",
+            ],
           },
           {
             id: "contributor-docs",
             title: "Contributor and operator docs",
-            change: "The public docs landing page now uses a semantic hero figure and caption while preserving the source-of-truth boundary.",
+            change:
+              "The public docs landing page now uses a semantic hero figure and caption while preserving the source-of-truth boundary.",
             myVerdict: "yes",
-            myComment: "Yes. This is a small semantic and visual clarification with low behavioral risk. I would accept it as-is unless the human reviewer sees a specific caption or spacing issue.",
+            myComment:
+              "Yes. This is a small semantic and visual clarification with low behavioral risk. I would accept it as-is unless the human reviewer sees a specific caption or spacing issue.",
             source: "./147-contributor-docs-review-a.md",
-            before: ["./147-contributor-docs-before-desktop.png", "./147-contributor-docs-before-narrow.png"],
-            now: ["./147-contributor-docs-after-desktop.png", "./147-contributor-docs-after-narrow.png"]
+            before: [
+              "./147-contributor-docs-before-desktop.png",
+              "./147-contributor-docs-before-narrow.png",
+            ],
+            now: [
+              "./147-contributor-docs-after-desktop.png",
+              "./147-contributor-docs-after-narrow.png",
+            ],
           },
           {
             id: "token-foundation",
             title: "Token foundation",
-            change: "Four live undefined token consumers now resolve through the canonical semantic token source; rendered fallback values were preserved.",
+            change:
+              "Four live undefined token consumers now resolve through the canonical semantic token source; rendered fallback values were preserved.",
             myVerdict: "yes",
-            myComment: "Yes. This is an implementation-quality correction rather than a visual redesign. The important acceptance point is that the rendered fallback values did not change unexpectedly.",
+            myComment:
+              "Yes. This is an implementation-quality correction rather than a visual redesign. The important acceptance point is that the rendered fallback values did not change unexpectedly.",
             source: "./147-token-foundation-followup-review-a.md",
-            beforeNote: "No before screenshot was retained because this was a token-source correction. The recorded behavior was the same rendered fallback value before the change.",
-            now: ["./147-token-foundation-followup-desktop.png", "./147-token-foundation-followup-narrow.png"]
+            beforeNote:
+              "No before screenshot was retained because this was a token-source correction. The recorded behavior was the same rendered fallback value before the change.",
+            now: [
+              "./147-token-foundation-followup-desktop.png",
+              "./147-token-foundation-followup-narrow.png",
+            ],
           },
           {
             id: "shared-foundation",
             title: "Shared foundation",
-            change: "Shared UI primitives now resolve equivalent defaults through semantic Ossie tokens; five proven orphaned CSS declaration pairs were removed.",
+            change:
+              "Shared UI primitives now resolve equivalent defaults through semantic Ossie tokens; five proven orphaned CSS declaration pairs were removed.",
             myVerdict: "yes",
-            myComment: "Yes, with one caveat: the gallery is synthetic and the installed toolbar is still blocked. The token/default cleanup is bounded and the parent/candidate comparison is the right evidence to judge.",
+            myComment:
+              "Yes, with one caveat: the gallery is synthetic and the installed toolbar is still blocked. The token/default cleanup is bounded and the parent/candidate comparison is the right evidence to judge.",
             source: "./147-shared-foundation-review-a.md",
-            before: ["./147-shared-primitives-baseline-desktop.png", "./147-shared-primitives-baseline-narrow.png"],
-            now: ["./147-shared-primitives-candidate-desktop.png", "./147-shared-primitives-candidate-narrow.png"]
+            before: [
+              "./147-shared-primitives-baseline-desktop.png",
+              "./147-shared-primitives-baseline-narrow.png",
+            ],
+            now: [
+              "./147-shared-primitives-candidate-desktop.png",
+              "./147-shared-primitives-candidate-narrow.png",
+            ],
           },
           {
             id: "shared-shell",
             title: "Shared shell at narrow widths",
-            change: "Portal navigation now wraps inside the viewport at 390px and 320px; desktop remains unchanged.",
+            change:
+              "Portal navigation now wraps inside the viewport at 390px and 320px; desktop remains unchanged.",
             myVerdict: "yes",
-            myComment: "Yes. This is a concrete responsive improvement: the navigation remains usable instead of overflowing. The missing-h1 and unavailable native browser-zoom probes are recorded residuals, not hidden.",
+            myComment:
+              "Yes. This is a concrete responsive improvement: the navigation remains usable instead of overflowing. The missing-h1 and unavailable native browser-zoom probes are recorded residuals, not hidden.",
             source: "./147-shared-shell-mobile-review-a.md",
-            before: ["./147-shared-shell-before-desktop.png", "./147-shared-shell-before-narrow.png"],
-            now: ["./147-shared-shell-after-desktop.png", "./147-shared-shell-after-narrow.png", "./147-shared-shell-after-320.png"]
+            before: [
+              "./147-shared-shell-before-desktop.png",
+              "./147-shared-shell-before-narrow.png",
+            ],
+            now: [
+              "./147-shared-shell-after-desktop.png",
+              "./147-shared-shell-after-narrow.png",
+              "./147-shared-shell-after-320.png",
+            ],
           },
           {
             id: "projects-denied",
             title: "Projects denied state",
-            change: "The unauthenticated Projects recovery card now has a semantic level-one Projects heading while preserving sign-in copy and the safe next URL.",
+            change:
+              "The unauthenticated Projects recovery card now has a semantic level-one Projects heading while preserving sign-in copy and the safe next URL.",
             myVerdict: "yes",
-            myComment: "Yes. It improves screen-reader and page orientation without changing authorization, tenant isolation, or recovery behavior. This is the cleanest product-facing candidate in the bundle.",
+            myComment:
+              "Yes. It improves screen-reader and page orientation without changing authorization, tenant isolation, or recovery behavior. This is the cleanest product-facing candidate in the bundle.",
             source: "./147-projects-denied-review-a.md",
-            before: ["./147-projects-denied-before-desktop.png", "./147-projects-denied-before-narrow.png"],
-            now: ["./147-projects-denied-after-desktop.png", "./147-projects-denied-after-narrow.png"]
+            before: [
+              "./147-projects-denied-before-desktop.png",
+              "./147-projects-denied-before-narrow.png",
+            ],
+            now: [
+              "./147-projects-denied-after-desktop.png",
+              "./147-projects-denied-after-narrow.png",
+            ],
           },
           {
             id: "projects-state-semantics",
             title: "Projects loading and recoverable error",
-            change: "Loading is announced with role=status; the recoverable error is announced with role=alert; the existing Retry action is unchanged.",
+            change:
+              "Loading is announced with role=status; the recoverable error is announced with role=alert; the existing Retry action is unchanged.",
             myVerdict: "yes",
-            myComment: "Yes. The semantics are appropriate and narrow. The loading branch has component-test evidence, but no browser screenshot was invented because the local runner could not safely delay the API.",
+            myComment:
+              "Yes. The semantics are appropriate and narrow. The loading branch has component-test evidence, but no browser screenshot was invented because the local runner could not safely delay the API.",
             source: "./147-projects-state-semantics-review-a.md",
-            beforeNote: "No before screenshot was used for the loading/error state. The candidate is a semantic behavior correction, and the loading browser probe was not safely reproducible in this runner.",
-            now: ["./147-projects-state-error-after-desktop.png", "./147-projects-state-error-after-narrow.png"]
+            beforeNote:
+              "No before screenshot was used for the loading/error state. The candidate is a semantic behavior correction, and the loading browser probe was not safely reproducible in this runner.",
+            now: [
+              "./147-projects-state-error-after-desktop.png",
+              "./147-projects-state-error-after-narrow.png",
+            ],
           },
           {
             id: "legacy-fallback",
             title: "Legacy Project redirect fallback",
-            change: "The currently mounted /projects/:projectId fallback now exposes Opening Project while waiting and Project not found after failure, with status/alert announcements.",
+            change:
+              "The currently mounted /projects/:projectId fallback now exposes Opening Project while waiting and Project not found after failure, with status/alert announcements.",
             myVerdict: "yes",
-            myComment: "Yes to this bounded fallback correction. It preserves the existing API, 401 behavior, redirect target, URL suffixes, permissions, and Project Version semantics. This does not approve ProjectWorkspacePage itself.",
+            myComment:
+              "Yes to this bounded fallback correction. It preserves the existing API, 401 behavior, redirect target, URL suffixes, permissions, and Project Version semantics. This does not approve ProjectWorkspacePage itself.",
             source: "./147-project-workspace-legacy-fallback-review-a.md",
-            beforeNote: "The route was not a truthful Project Workspace surface: the existing route hit the legacy 401 fallback. The bundle therefore records the mounted behavior and its limitations instead of fabricating a before screenshot.",
-            now: ["./147-project-workspace-legacy-fallback-after-desktop-1440.png", "./147-project-workspace-legacy-fallback-after-mobile-390.png", "./147-project-workspace-legacy-fallback-after-native-200-525px.png"]
+            beforeNote:
+              "The route was not a truthful Project Workspace surface: the existing route hit the legacy 401 fallback. The bundle therefore records the mounted behavior and its limitations instead of fabricating a before screenshot.",
+            now: [
+              "./147-project-workspace-legacy-fallback-after-desktop-1440.png",
+              "./147-project-workspace-legacy-fallback-after-mobile-390.png",
+              "./147-project-workspace-legacy-fallback-after-native-200-525px.png",
+            ],
           },
           {
             id: "project-workspace-route",
             title: "Project Workspace route ownership",
-            change: "ProjectWorkspacePage has semantic contracts and tests, but the normal /projects/:projectId route does not mount it.",
-            myVerdict: "follow-up",
-            myComment: "Not a yes/no implementation approval yet. I recommend keeping this open until a human decides whether the legacy redirect remains canonical or ProjectWorkspacePage should own the route. This decision changes product route semantics.",
+            change:
+              "The approved Project Workspace route-owner direction is wired into the normal /projects/:projectId route while preserving Project Version and access semantics.",
+            myVerdict: "yes",
+            myComment:
+              "Review the route as a complete workspace experience. The remaining human question is whether the visual hierarchy and state treatment feel right, not whether the route owner is still undefined.",
             source: "./147-project-workspace-state-semantics-review-a.md",
-            beforeNote: "Current runtime truth: /projects/:projectId is owned by LegacyProjectRedirect and an anonymous request receives the existing 401 fallback.",
-            nowNote: "Candidate truth: ProjectWorkspacePage has focused loading, unauthenticated, not-found, and recoverable-error contracts, but no truthful runtime browser evidence until route ownership is decided."
+            beforeNote:
+              "Earlier evidence recorded the route-ownership gap and legacy fallback behavior; that direction is now superseded by the approved whole-app continuation.",
+            now: [
+              "./147-continuation-auth-projects-active-zoom-200.png",
+              "./147-project-workspace-legacy-fallback-after-native-200-525px.png",
+            ],
           },
           {
             id: "public-reader-evidence",
             title: "Public Documentation, Demo, Guide, and embeds",
-            change: "Added evidence-only tablet, 320px, embed, keyboard, reduced-motion, and overflow checks using separate synthetic fixtures.",
+            change:
+              "Added evidence-only tablet, 320px, embed, keyboard, reduced-motion, and overflow checks using separate synthetic fixtures.",
             myVerdict: "yes",
-            myComment: "Yes as evidence. These are not new product candidates to accept; they show that the sampled public boundaries are usable and axe-clean. The broader 26.6 matrix remains incomplete.",
+            myComment:
+              "Yes as evidence. These are not new product candidates to accept; they show that the sampled public boundaries are usable and axe-clean. The broader 26.6 matrix remains incomplete.",
             source: "./147-public-documentation-tablet-1024.png",
-            beforeNote: "No product before/after change was made in this continuation. These are evidence-only checks against the existing public reader and embed surfaces.",
-            now: ["./147-public-documentation-tablet-1024.png", "./147-public-demo-tablet-1024.png", "./147-public-guide-tablet-1024.png", "./147-public-demo-embed-tablet-1024.png", "./147-public-guide-embed-tablet-1024.png"]
+            beforeNote:
+              "No product before/after change was made in this continuation. These are evidence-only checks against the existing public reader and embed surfaces.",
+            now: [
+              "./147-public-documentation-tablet-1024.png",
+              "./147-public-demo-tablet-1024.png",
+              "./147-public-guide-tablet-1024.png",
+              "./147-public-demo-embed-tablet-1024.png",
+              "./147-public-guide-embed-tablet-1024.png",
+            ],
           },
           {
             id: "extension-evidence",
             title: "Extension capture evidence",
-            change: "Verified the unpacked extension, direct extension-origin Connect/sign-in/project selection/capture flow, and portal handoff; browser-toolbar icon activation remains unavailable.",
+            change:
+              "Verified the unpacked extension, direct extension-origin Connect/sign-in/project selection/capture flow, and portal handoff; browser-toolbar icon activation remains unavailable.",
             myVerdict: "follow-up",
-            myComment: "Needs follow-up for full acceptance. The direct extension-origin lifecycle is good evidence, but the required browser-chrome toolbar popup was not actually clicked. That limitation must remain visible.",
+            myComment:
+              "Needs follow-up for full acceptance. The direct extension-origin lifecycle is good evidence, but the required browser-chrome toolbar popup was not actually clicked. That limitation must remain visible.",
             source: "./147-continuation-extension-ready.png",
-            beforeNote: "No product before/after candidate was made. The remaining gap is environment capability, not a claimed UI improvement.",
-            now: ["./147-continuation-extension-pinned.png", "./147-continuation-extension-connect.png", "./147-continuation-extension-ready.png", "./147-continuation-extension-capture-portal.png"]
+            beforeNote:
+              "No product before/after candidate was made. The remaining gap is environment capability, not a claimed UI improvement.",
+            now: [
+              "./147-continuation-extension-pinned.png",
+              "./147-continuation-extension-connect.png",
+              "./147-continuation-extension-ready.png",
+              "./147-continuation-extension-capture-portal.png",
+            ],
           },
           {
             id: "p2-001-scope",
             title: "P2-001 cross-product consistency",
-            change: "The finding is deliberately not implemented broadly because its scope only says cross-product libraries/readers.",
+            change:
+              "The finding is deliberately not implemented broadly because its scope only says cross-product libraries/readers.",
             myVerdict: "follow-up",
-            myComment: "Needs a human scope decision. My recommendation is to name one exact route/state pair for the next bounded study instead of approving a broad consistency rewrite.",
+            myComment:
+              "Needs a human scope decision. My recommendation is to name one exact route/state pair for the next bounded study instead of approving a broad consistency rewrite.",
             source: "./147-documentation-publication-preview-review-a.md",
-            beforeNote: "The retained finding did not name an exact route owner or state pair, so there is no honest before screenshot to compare.",
-            nowNote: "Current status is needs_human_surface. A human must choose the narrow route/state scope before implementation can be accepted."
-          }
+            beforeNote:
+              "The retained finding did not name an exact route owner or state pair, so there is no honest before screenshot to compare.",
+            nowNote:
+              "Current status is needs_human_surface. A human must choose the narrow route/state scope before implementation can be accepted.",
+          },
+          {
+            id: "whole-app-auth-entry",
+            title: "Authentication, setup, and entry states",
+            change:
+              "Entry, login, setup, invite, and browser-extension entry states now use clearer hierarchy, shared spacing, visible status feedback, and responsive cards.",
+            myVerdict: "yes",
+            myComment:
+              "Review the first-run and recovery hierarchy as one family. The changes are presentation-only and preserve the existing authentication and setup boundaries.",
+            source: "./147-ossie-ui-quality-program-ledger.md",
+            beforeNote:
+              "No single before screenshot represents every entry state; the prior family was reviewed through route and component evidence.",
+            now: [
+              "./147-continuation-login-zoom-200.png",
+              "./147-continuation-extension-installation-ready-zoom-200.png",
+            ],
+          },
+          {
+            id: "whole-app-portal-shell",
+            title: "Portal shell and navigation",
+            change:
+              "Shared shell spacing, navigation wrapping, page headers, actions, and narrow-width behavior were brought into one tokenized system.",
+            myVerdict: "yes",
+            myComment:
+              "Check whether the shell feels calm and usable at narrow widths while keeping the navigation discoverable.",
+            source: "./147-shared-shell-mobile-review-a.md",
+            before: [
+              "./147-shared-shell-before-desktop.png",
+              "./147-shared-shell-before-narrow.png",
+            ],
+            now: [
+              "./147-shared-shell-after-desktop.png",
+              "./147-shared-shell-after-narrow.png",
+              "./147-shared-shell-after-320.png",
+            ],
+          },
+          {
+            id: "whole-app-projects-workspace",
+            title: "Projects, settings, and Project Workspace",
+            change:
+              "Projects, settings, workspace states, actions, cards, and fallback/recovery presentations now share stronger page hierarchy and explicit state treatment.",
+            myVerdict: "follow-up",
+            myComment:
+              "Please inspect whether the Project Workspace route and its loading/error states feel like the right canonical experience; the approved route-owner direction is implemented, but human product judgment still matters.",
+            source: "./147-ossie-ui-quality-program-ledger.md",
+            beforeNote:
+              "The previous family had multiple route/state owners, so no single before image honestly represents the whole surface.",
+            now: [
+              "./147-continuation-auth-projects-active-zoom-200.png",
+              "./147-continuation-unknown-fallback-zoom-200.png",
+            ],
+          },
+          {
+            id: "whole-app-project-versions",
+            title: "Project Version flows",
+            change:
+              "Project Version context, management cards, settings, archived/read-only states, carry-forward, and narrow identity reflow now use shared spacing and radius tokens.",
+            myVerdict: "yes",
+            myComment:
+              "Check identity readability, density, and whether the Default/Archived/read-only distinctions remain obvious without becoming visually loud.",
+            source: "./147-project-versions-review-a.md",
+            beforeNote:
+              "The token and reflow follow-ups were evaluated through recorded route evidence rather than one universal before screenshot.",
+            now: [
+              "./147-continuation-auth-project-version-context-zoom-200.png",
+              "./147-continuation-project-version-context-fixed-owner-narrow.png",
+            ],
+          },
+          {
+            id: "whole-app-capture-artifacts",
+            title: "Capture, artifacts, revisions, publishing, and activity",
+            change:
+              "Capture lists/details, artifact revision views, publishing panels, activity, buttons, cards, and recoverable states received the same hierarchy and spacing pass.",
+            myVerdict: "yes",
+            myComment:
+              "Review repeated-work density and whether important lifecycle status stays visible beside the actions that affect it.",
+            source: "./147-capture-portal-review-a.md",
+            beforeNote:
+              "Populated Event/Asset records were not fabricated; the family is represented by bounded synthetic lifecycle evidence.",
+            now: [
+              "./147-continuation-auth-capture-list-zoom-200.png",
+              "./147-continuation-auth-capture-completed-detail-zoom-200.png",
+            ],
+          },
+          {
+            id: "whole-app-guides",
+            title: "Guide authoring and public Guide readers",
+            change:
+              "Guide library, editor, preview, revision, public reader, embed, password, unavailable, and broken-media states now have clearer reader-first hierarchy and recovery treatment.",
+            myVerdict: "yes",
+            myComment:
+              "Review the public reader as a real content experience: typography, whitespace, step framing, and whether error/access states explain what happened.",
+            source: "./147-guide-public-review-a.md",
+            beforeNote:
+              "The family has separate internal/public candidates; before evidence is recorded in the linked bundle and earlier family records.",
+            now: [
+              "./147-continuation-auth-guide-editor-zoom-200.png",
+              "./147-continuation-public-guide-zoom-200.png",
+            ],
+          },
+          {
+            id: "whole-app-interactive-demos",
+            title: "Interactive Demo authoring and readers",
+            change:
+              "Demo editor, renderer, preview, revisions, public viewer, embed, hotspot controls, and empty/error/access states now emphasize the canvas and keep controls readable.",
+            myVerdict: "yes",
+            myComment:
+              "Check that the editor feels powerful without becoming cramped, and that the public viewer keeps the demonstration content dominant.",
+            source: "./147-interactive-demo-public-review-a.md",
+            beforeNote:
+              "The interactive canvas has state-specific evidence and direct-manipulation evidence rather than one universal before screenshot.",
+            now: [
+              "./147-continuation-auth-demo-editor-zoom-200.png",
+              "./147-continuation-auth-demo-viewer-zoom-200.png",
+            ],
+          },
+          {
+            id: "whole-app-documentation-authoring",
+            title: "Documentation authoring, review, and carry-forward",
+            change:
+              "Documentation Site, Page editor, review inbox/panel, carry-forward, auxiliary references, and failure/retry states now expose truthful feedback instead of silent or empty fallbacks.",
+            myVerdict: "yes",
+            myComment:
+              "Review the authoring density and whether retryable failures make it clear what is unavailable without losing the work context.",
+            source: "./147-documentation-authoring-review-a.md",
+            beforeNote:
+              "The authoring family is represented by separate Site, Page, Review, and carry-forward evidence; no single image covers all states.",
+            now: [
+              "./147-continuation-auth-documentation-author-zoom-200.png",
+              "./147-continuation-auth-documentation-page-editor-zoom-200.png",
+              "./147-continuation-viewer-documentation-review-inbox-zoom-200.png",
+            ],
+          },
+          {
+            id: "whole-app-documentation-public",
+            title: "Documentation publishing, previews, readers, and embeds",
+            change:
+              "Documentation publishing, draft/revision/publication previews, public readers, access challenges, links, embeds, and reader chrome now share content-first spacing and explicit recovery states.",
+            myVerdict: "yes",
+            myComment:
+              "Compare the polished reader presentation with the authoring surfaces and check that access limitations never look like generic success or empty content.",
+            source: "./147-documentation-public-review-a.md",
+            beforeNote:
+              "The public Documentation family evolved through several bounded candidates; the linked bundle contains the route-specific before/after records.",
+            now: [
+              "./147-continuation-auth-documentation-preview-zoom-200.png",
+              "./147-continuation-anonymous-documentation-zoom-200.png",
+            ],
+          },
+          {
+            id: "whole-app-org-admin",
+            title: "Organization, membership, compliance, and administration",
+            change:
+              "Members, invites, compliance, Documentation Operations, viewer denial, owner controls, and metrics now use clearer grouping and responsive state presentation.",
+            myVerdict: "yes",
+            myComment:
+              "Review owner/viewer boundaries and whether operational metrics remain legible without overpowering the actual administrative tasks.",
+            source: "./147-organization-admin-review-a.md",
+            beforeNote:
+              "Some metric contrast probes and pre-change screenshots remain explicitly limited; do not infer more than the recorded evidence.",
+            now: [
+              "./147-continuation-auth-organization-members-zoom-200.png",
+              "./147-continuation-auth-organization-documentation-operations-zoom-200.png",
+            ],
+          },
+          {
+            id: "whole-app-extension",
+            title: "Extension-facing UI",
+            change:
+              "Extension installation, compact popup states, Project Version context, capture action grouping, and recovery messages now use the shared visual language.",
+            myVerdict: "follow-up",
+            myComment:
+              "The direct extension-origin flow is evidenced, but the actual browser-toolbar icon activation remains blocked in this environment. Keep that limitation visible.",
+            source: "./147-extension-capture-review-b.md",
+            beforeNote:
+              "No honest before/after toolbar screenshot exists because toolbar activation was unavailable.",
+            now: [
+              "./147-continuation-extension-installation-ready-zoom-200.png",
+              "./147-continuation-extension-ready-zoom-200.png",
+            ],
+          },
+          {
+            id: "whole-app-contributor-docs",
+            title: "Contributor and operator documentation",
+            change:
+              "Contributor/operator docs now have more intentional hero semantics, spacing, image treatment, and native-zoom evidence while remaining separate from customer-authored Documentation.",
+            myVerdict: "yes",
+            myComment:
+              "Review readability and image treatment, remembering that external links were not followed during evidence capture.",
+            source: "./147-contributor-docs-review-a.md",
+            before: [
+              "./147-contributor-docs-before-desktop.png",
+              "./147-contributor-docs-before-narrow.png",
+            ],
+            now: [
+              "./147-contributor-docs-after-desktop.png",
+              "./147-continuation-contributor-docs-top-zoom-200.png",
+            ],
+          },
+          {
+            id: "whole-app-foundation-typography-mascot",
+            title: "Shared foundation, typography, and mascot states",
+            change:
+              "A single local system-sans stack, semantic spacing/radius/type tokens, shared StatusPanel behavior, and Ossie mascot-led loading/error/empty/forbidden states now support the whole app.",
+            myVerdict: "yes",
+            myComment:
+              "This is the central visual-system decision. Check font tone, hierarchy, mascot scale, and whether the illustration helps comprehension instead of becoming decoration.",
+            source: "./147-typography-selection.md",
+            beforeNote:
+              "No single before screenshot can represent the prior cross-app typography and state drift; the token and gallery records are the source evidence.",
+            now: ["./147-continuation-public-guide-zoom-200.png"],
+          },
+          {
+            id: "whole-app-independent-audits",
+            title: "Latest independent whole-app audits",
+            change:
+              "Two independent reviewers rechecked the whole-app candidate after the recovery and fail-closed publishing fixes, then recorded remaining P2 follow-ups for the final human disposition.",
+            myVerdict: "follow-up",
+            myComment:
+              "Needs human follow-up decision. Both audits found no P0/P1 blocker. Reviewer A's report names nested loading landmarks, OpenAPI policy retry/loading, public-demo route reset, comment mutation feedback, and Demo panel radius. Reviewer B's report records the shared destructive-alert announcement improvement and its earlier gate/test concern is reconciled in the current worktree.",
+            source: "./147-whole-app-review-a.md",
+            secondarySource: "./147-whole-app-review-b.md",
+            beforeNote:
+              "No single before screenshot represents an agent audit; the two independent written reports are the evidence for this review item.",
+            nowNote:
+              "Current reconciliation is recorded in both reports and in the current source. The plan remains open until the human accepts, rejects, or defers these findings.",
+          },
         ];
+        var routeItems = [
+          [
+            "login",
+            "Login",
+            "/login",
+            "LoginPage → EntryPageShell",
+            "Recheck entry hierarchy, validation, submit/error, keyboard, reduced motion, narrow, and native zoom.",
+          ],
+          [
+            "setup",
+            "First-run setup",
+            "/setup",
+            "FirstRunSetupPage",
+            "Recheck loading, ready, submit success, validation, unavailable, retry, and mascot treatment.",
+          ],
+          [
+            "project-list",
+            "Project library",
+            "/ and /projects",
+            "ProjectListPage → PortalAppShell",
+            "Recheck aliases, loading, empty, populated, create, archived, error/retry, filters, and pagination.",
+          ],
+          [
+            "organization-members",
+            "Organization members",
+            "/organization/members",
+            "OrganizationMembersPage",
+            "Recheck members, invites, pending invites, roles, mutation feedback, and long names.",
+          ],
+          [
+            "organization-compliance",
+            "Organization compliance",
+            "/organization/compliance",
+            "ComplianceTimelinePage",
+            "Recheck loading, empty/populated timeline, evidence, error/retry, long activity, and contrast.",
+          ],
+          [
+            "organization-documentation",
+            "Organization Documentation operations",
+            "/organization/documentation",
+            "OrganizationDocumentationOperationsPage",
+            "Recheck metrics, policy form, owner-only controls, viewer denial, and policy errors.",
+          ],
+          [
+            "browser-extension",
+            "Extension installation",
+            "/extension",
+            "BrowserExtensionPage",
+            "Recheck signed-out, auth error, ready, download error, update/remove, 200%, and fallback.",
+          ],
+          [
+            "invite-accept",
+            "Invite acceptance",
+            "/invites/:token",
+            "InviteAcceptPage",
+            "Recheck invalid/expired/unavailable/loaded, accept success/failure, sign-in handoff, and card width.",
+          ],
+          [
+            "project-workspace",
+            "Project workspace",
+            "/projects/:projectId",
+            "ProjectWorkspacePage → PortalAppShell",
+            "Reconcile live route ownership, loading, loaded, not-found, unauthenticated, error/retry, archived, and roles.",
+          ],
+          [
+            "project-version-workspace",
+            "Project Version workspace",
+            "/projects/:projectId/versions/:versionSlug",
+            "ProjectVersionRouteBoundary → VersionWorkspace",
+            "Recheck canonical redirect, loading/error, active/default/named/archived, viewer, and workspace cards.",
+          ],
+          [
+            "project-carry-forward",
+            "Project Carry Forward",
+            "/projects/:projectId/versions/:versionSlug/carry-forward",
+            "ProjectCarryForwardPage",
+            "Recheck source loading/error, empty source, target lifecycle, permission, success/failure, and duplicate guards.",
+          ],
+          [
+            "artifact-revision-history",
+            "Artifact Revision history",
+            "Versioned Guide/Demo /revisions",
+            "ArtifactRevisionHistoryPage",
+            "Recheck both artifact types, empty/populated history, loading/error, archived/read-only, and links.",
+          ],
+          [
+            "artifact-revision-preview",
+            "Artifact Revision preview",
+            "Versioned Guide/Demo /revisions/:number",
+            "GuideRevisionPreviewPage / InteractiveDemoRevisionPreviewPage",
+            "Recheck immutable identity, missing/error/retry, narrow reading measure, and back navigation.",
+          ],
+          [
+            "project-settings",
+            "Project settings",
+            "/projects/:projectId/settings",
+            "ProjectSettingsPage + membership/version sections",
+            "Recheck metadata, membership, versions, roles, archived, validation, saving, conflict, retry, and textarea contrast.",
+          ],
+          [
+            "project-compliance",
+            "Project compliance",
+            "/projects/:projectId/compliance",
+            "ComplianceTimelinePage",
+            "Recheck project context, loading/empty/populated/error, long activity, and evidence privacy.",
+          ],
+          [
+            "project-activity",
+            "Project activity",
+            "/projects/:projectId/activity",
+            "ProjectActivityTimelinePage",
+            "Recheck loading, empty/populated, pagination, error/retry, long events, roles, and narrow rhythm.",
+          ],
+          [
+            "capture-detail",
+            "Capture Session detail",
+            "Legacy/versioned /capture-sessions/:id",
+            "CaptureSessionDetailPage",
+            "Recheck completed/empty/capturing/canceled/archived/not-found/error, assets/events, upload, creation, and destructive controls.",
+          ],
+          [
+            "capture-list",
+            "Capture Session library",
+            "Legacy/versioned /capture-sessions",
+            "ProjectCaptureSessionListPage",
+            "Recheck versions, empty/populated/loading/error, create form, roles, filters, pagination, and card spacing.",
+          ],
+          [
+            "guide-detail",
+            "Guide detail/editor",
+            "Legacy/versioned /guides/:id",
+            "GuideEditorPage / GuidePreviewPage",
+            "Recheck editor-versus-viewer, lifecycle, loading/error, media/annotations, saving, validation, revisions, and preview.",
+          ],
+          [
+            "guide-preview",
+            "Guide preview",
+            "Legacy/versioned /guides/:id/preview",
+            "GuidePreviewPage",
+            "Recheck draft/immutable, loading/error, media fallback, long content, narrow reading, and links.",
+          ],
+          [
+            "guide-list",
+            "Guide library",
+            "Legacy/versioned /guides",
+            "ProjectGuideListPage",
+            "Recheck empty/populated/loading/error, roles, create/import, filters, pagination, long titles, and cards.",
+          ],
+          [
+            "demo-list",
+            "Interactive Demo library",
+            "Legacy/versioned /interactive-demos",
+            "ProjectInteractiveDemoListPage",
+            "Recheck empty/populated/loading/error, roles, create, filters, pagination, long titles, and cards.",
+          ],
+          [
+            "demo-detail",
+            "Interactive Demo editor",
+            "Legacy/versioned /interactive-demos/:id",
+            "InteractiveDemoEditorPage",
+            "Recheck editor loading/error, lifecycle, roles, canvas, scenes, assets, direct manipulation, saving, conflict, and 200%.",
+          ],
+          [
+            "demo-preview",
+            "Interactive Demo preview",
+            "Legacy/versioned /interactive-demos/:id/preview",
+            "InteractiveDemoPreviewPage",
+            "Recheck draft/immutable playback, loading/error, missing scene, access, keyboard, reduced motion, and 200%.",
+          ],
+          [
+            "documentation-site-list",
+            "Documentation site library",
+            "/projects/:id/versions/:slug/documentation",
+            "ProjectDocumentationSiteListPage",
+            "Recheck empty/populated/loading/error, import, create/carry-forward, archived/read-only, roles, and site cards.",
+          ],
+          [
+            "documentation-carry-forward",
+            "Documentation Carry Forward",
+            "Versioned Documentation /carry-forward",
+            "DocumentationCarryForwardPage",
+            "Recheck source states, target lifecycle, permission, success/failure, duplicate guards, and confirmation rhythm.",
+          ],
+          [
+            "documentation-review-inbox",
+            "Documentation Review Inbox",
+            "Versioned Documentation /reviews",
+            "DocumentationReviewInboxPage",
+            "Recheck loading/empty/populated/pagination, stale/retry error, roles, request/decision actions, and landmarks.",
+          ],
+          [
+            "documentation-site-editor",
+            "Documentation Site editor",
+            "Versioned Documentation /:siteId",
+            "DocumentationSiteEditorPage",
+            "Recheck Content, Structure, Assets, API, Snippets, Publish, Review, Comments, Portability, and lifecycle states.",
+          ],
+          [
+            "documentation-page-editor",
+            "Documentation Page editor",
+            "Versioned Documentation /:siteId/pages/:pageId",
+            "DocumentationPageEditor",
+            "Recheck blocks, structure, comments, references, saving, validation/conflict, viewer/archived, narrow, and 200%.",
+          ],
+          [
+            "documentation-draft-preview",
+            "Documentation draft preview",
+            "Versioned Documentation /:siteId/preview",
+            "DocumentationDraftPreviewPage",
+            "Recheck draft identity, navigation, unavailable/error, roles, review affordances, narrow/200%, and metadata boundary.",
+          ],
+          [
+            "documentation-revision-preview",
+            "Documentation Revision preview",
+            "Versioned Documentation /:siteId/revisions/:sequence",
+            "DocumentationRevisionPreviewPage",
+            "Recheck immutable identity, frozen controls, missing/error, navigation, long content, narrow/200%, and no mutation.",
+          ],
+          [
+            "documentation-publication-preview",
+            "Documentation Publication preview",
+            "Versioned Documentation /:siteId/publications/:sequence",
+            "DocumentationPublicationPreviewPage",
+            "Recheck Publication/Revision identity, immutable preview, missing/error, navigation, narrow/200%, and link boundary.",
+          ],
+          [
+            "public-documentation",
+            "Public Documentation reader",
+            "/docs/:slug[/versions/:version][/page]",
+            "PublicDocumentationReaderPage + reader sections",
+            "Recheck links, canonical/redirect, access/password states, TOC, API/Try It, metadata, keyboard, reduced motion, and 200%. /docs/:slug/embed is the same reader with pagePath=embed; there is no separate Documentation embed mode.",
+          ],
+          [
+            "public-guide-reader",
+            "Public Guide reader",
+            "/p/:slug[/versions/:version]",
+            "PublicGuideReaderPage",
+            "Recheck valid/unavailable/revoked/expired/unknown, password, blocks/media, Version selector, keyboard, reduced motion, and 200%.",
+          ],
+          [
+            "public-guide-embed",
+            "Public Guide embed",
+            "/p/:slug[/versions/:version]/embed",
+            "PublicGuideReaderPage mode=embed",
+            "Recheck embed chrome, access states, responsive frame, focus, keyboard, reduced motion, and metadata boundary.",
+          ],
+          [
+            "public-demo-reader",
+            "Public Interactive Demo reader",
+            "/d/:slug[/versions/:version]",
+            "PublicInteractiveDemoViewerPage",
+            "Recheck playback, access/password states, route-change loading reset, keyboard, reduced motion, narrow, and 200%.",
+          ],
+          [
+            "public-demo-embed",
+            "Public Interactive Demo embed",
+            "/d/:slug[/versions/:version]/embed",
+            "PublicInteractiveDemoViewerPage mode=embed",
+            "Recheck embed frame, access states, password, playback, focus, keyboard, reduced motion, narrow, and 200%.",
+          ],
+          [
+            "design-system",
+            "Design-system gallery",
+            "/__design-system",
+            "DesignSystemReviewPage",
+            "Recheck every primitive/state specimen, long labels, table reflow, keyboard, reduced motion, narrow, and local-only framing.",
+          ],
+          [
+            "unsupported",
+            "Global unsupported fallback",
+            "Any unmatched path",
+            "App fallback Page-not-found workspace",
+            "Recheck safe recovery, heading/main semantics, narrow/reflow, keyboard, reduced motion, and lazy-load failure.",
+          ],
+        ].map(function (row, index) {
+          return {
+            id: row[0],
+            number: index + 1,
+            title: row[1],
+            path: row[2],
+            owner: row[3],
+            followup: row[4],
+            myVerdict: "follow-up",
+          };
+        });
 
         function humanize(value) {
           return value
             .replace(/^\.\//, "")
             .replace(/\.(png|jpe?g|webp|gif)$/i, "")
             .replace(/[-_]+/g, " ")
-            .replace(/\b\w/g, function (letter) { return letter.toUpperCase(); });
+            .replace(/\b\w/g, function (letter) {
+              return letter.toUpperCase();
+            });
         }
 
         function renderComparisonColumn(label, paths, note) {
@@ -914,7 +2218,13 @@
               link.href = path;
               link.target = "_blank";
               link.rel = "noopener";
-              link.setAttribute("aria-label", "Open full-size " + label.toLowerCase() + " evidence: " + humanize(path));
+              link.setAttribute(
+                "aria-label",
+                "Open full-size " +
+                  label.toLowerCase() +
+                  " evidence: " +
+                  humanize(path),
+              );
               var image = document.createElement("img");
               image.loading = "lazy";
               image.src = path;
@@ -930,7 +2240,8 @@
           } else {
             var text = document.createElement("p");
             text.className = "comparison-image-note";
-            text.textContent = note || "No screenshot was recorded for this item.";
+            text.textContent =
+              note || "No screenshot was recorded for this item.";
             column.appendChild(text);
           }
           return column;
@@ -962,7 +2273,8 @@
             headingGroup.appendChild(change);
             var take = document.createElement("div");
             take.className = "agent-take " + item.myVerdict;
-            take.textContent = "My recommendation: " + reviewChoiceLabel(item.myVerdict);
+            take.textContent =
+              "My recommendation: " + reviewChoiceLabel(item.myVerdict);
             header.appendChild(headingGroup);
             header.appendChild(take);
 
@@ -970,8 +2282,16 @@
             body.className = "review-card-body";
             var comparison = document.createElement("div");
             comparison.className = "comparison-grid";
-            comparison.appendChild(renderComparisonColumn("Before", item.before || [], item.beforeNote));
-            comparison.appendChild(renderComparisonColumn("Now", item.now || [], item.nowNote));
+            comparison.appendChild(
+              renderComparisonColumn(
+                "Before",
+                item.before || [],
+                item.beforeNote,
+              ),
+            );
+            comparison.appendChild(
+              renderComparisonColumn("Now", item.now || [], item.nowNote),
+            );
             body.appendChild(comparison);
 
             var comment = document.createElement("p");
@@ -990,6 +2310,14 @@
             sourceLink.rel = "noopener";
             sourceLink.textContent = "Open supporting evidence";
             source.appendChild(sourceLink);
+            if (item.secondarySource) {
+              var secondaryLink = document.createElement("a");
+              secondaryLink.href = item.secondarySource;
+              secondaryLink.target = "_blank";
+              secondaryLink.rel = "noopener";
+              secondaryLink.textContent = " · Open second independent audit";
+              source.appendChild(secondaryLink);
+            }
             body.appendChild(source);
 
             var controls = document.createElement("fieldset");
@@ -997,18 +2325,22 @@
             var legend = document.createElement("legend");
             legend.textContent = "Your verdict";
             controls.appendChild(legend);
-            ["yes", "no", "follow-up", "not-reviewed"].forEach(function (value) {
-              var label = document.createElement("label");
-              label.className = "review-choice";
-              var input = document.createElement("input");
-              input.type = "radio";
-              input.name = "review-" + item.id;
-              input.value = value;
-              input.dataset.reviewId = item.id;
-              label.appendChild(input);
-              label.appendChild(document.createTextNode(reviewChoiceLabel(value)));
-              controls.appendChild(label);
-            });
+            ["yes", "no", "follow-up", "not-reviewed"].forEach(
+              function (value) {
+                var label = document.createElement("label");
+                label.className = "review-choice";
+                var input = document.createElement("input");
+                input.type = "radio";
+                input.name = "review-" + item.id;
+                input.value = value;
+                input.dataset.reviewId = item.id;
+                label.appendChild(input);
+                label.appendChild(
+                  document.createTextNode(reviewChoiceLabel(value)),
+                );
+                controls.appendChild(label);
+              },
+            );
             body.appendChild(controls);
 
             var noteLabel = document.createElement("label");
@@ -1028,10 +2360,94 @@
           updateReviewProgress();
         }
 
+        function renderRouteCoverage() {
+          var rows = document.getElementById("routeCoverageRows");
+          rows.innerHTML = "";
+          routeItems.forEach(function (item) {
+            var row = document.createElement("tr");
+            var number = document.createElement("td");
+            number.textContent = "Route " + item.number;
+            row.appendChild(number);
+
+            var title = document.createElement("td");
+            var titleStrong = document.createElement("strong");
+            titleStrong.textContent = item.title;
+            title.appendChild(titleStrong);
+            row.appendChild(title);
+
+            var path = document.createElement("td");
+            var pathCode = document.createElement("code");
+            pathCode.textContent = item.path;
+            path.appendChild(pathCode);
+            row.appendChild(path);
+
+            var owner = document.createElement("td");
+            owner.className = "route-owner";
+            owner.textContent = item.owner;
+            row.appendChild(owner);
+
+            var followup = document.createElement("td");
+            followup.className = "route-followup";
+            followup.textContent = item.followup;
+            row.appendChild(followup);
+
+            var controlsCell = document.createElement("td");
+            controlsCell.className = "route-controls";
+            var choiceList = document.createElement("div");
+            choiceList.className = "route-choice-list";
+            ["yes", "no", "follow-up", "not-reviewed"].forEach(
+              function (value) {
+                var label = document.createElement("label");
+                label.className = "route-choice";
+                var input = document.createElement("input");
+                input.type = "radio";
+                input.name = "route-review-" + item.id;
+                input.value = value;
+                input.dataset.routeReviewId = item.id;
+                label.appendChild(input);
+                label.appendChild(
+                  document.createTextNode(reviewChoiceLabel(value)),
+                );
+                choiceList.appendChild(label);
+              },
+            );
+            controlsCell.appendChild(choiceList);
+            var note = document.createElement("textarea");
+            note.className = "route-note";
+            note.rows = 2;
+            note.placeholder = "Route-specific note…";
+            note.dataset.routeNote = item.id;
+            controlsCell.appendChild(note);
+            row.appendChild(controlsCell);
+            rows.appendChild(row);
+          });
+          updateReviewProgress();
+        }
+
         function updateReviewProgress() {
-          var selected = document.querySelectorAll("input[data-review-id]:checked").length;
-          reviewProgress.textContent = selected + " of " + reviewItems.length + " item verdicts selected";
-          decisionMetric.textContent = String(selected + document.querySelectorAll("#decisionForm input[type=radio]:checked").length);
+          var selected = document.querySelectorAll(
+            "input[data-review-id]:checked",
+          ).length;
+          var routeSelected = document.querySelectorAll(
+            "input[data-route-review-id]:checked",
+          ).length;
+          reviewProgress.textContent =
+            selected +
+            " of " +
+            reviewItems.length +
+            " grouped item verdicts selected";
+          document.getElementById("routeReviewProgress").textContent =
+            routeSelected +
+            " of " +
+            routeItems.length +
+            " route verdicts selected";
+          decisionMetric.textContent = String(
+            selected +
+              routeSelected +
+              document.querySelectorAll(
+                "#decisionForm input[type=radio]:checked",
+              ).length,
+          );
         }
 
         function collectState() {
@@ -1040,20 +2456,46 @@
             decisions: {},
             checks: {},
             reviews: {},
-            reviewNotes: {}
+            reviewNotes: {},
+            routeReviews: {},
+            routeNotes: {},
           };
-          Array.prototype.forEach.call(form.querySelectorAll("input[type=radio]:checked"), function (input) {
-            state.decisions[input.name] = input.value;
-          });
-          Array.prototype.forEach.call(document.querySelectorAll("[data-check]"), function (input) {
-            state.checks[input.getAttribute("data-check")] = input.checked;
-          });
-          Array.prototype.forEach.call(document.querySelectorAll("input[data-review-id]:checked"), function (input) {
-            state.reviews[input.dataset.reviewId] = input.value;
-          });
-          Array.prototype.forEach.call(document.querySelectorAll("textarea[data-review-note]"), function (input) {
-            state.reviewNotes[input.dataset.reviewNote] = input.value;
-          });
+          Array.prototype.forEach.call(
+            form.querySelectorAll("input[type=radio]:checked"),
+            function (input) {
+              state.decisions[input.name] = input.value;
+            },
+          );
+          Array.prototype.forEach.call(
+            document.querySelectorAll("[data-check]"),
+            function (input) {
+              state.checks[input.getAttribute("data-check")] = input.checked;
+            },
+          );
+          Array.prototype.forEach.call(
+            document.querySelectorAll("input[data-review-id]:checked"),
+            function (input) {
+              state.reviews[input.dataset.reviewId] = input.value;
+            },
+          );
+          Array.prototype.forEach.call(
+            document.querySelectorAll("textarea[data-review-note]"),
+            function (input) {
+              state.reviewNotes[input.dataset.reviewNote] = input.value;
+            },
+          );
+          Array.prototype.forEach.call(
+            document.querySelectorAll("input[data-route-review-id]:checked"),
+            function (input) {
+              state.routeReviews[input.dataset.routeReviewId] = input.value;
+            },
+          );
+          Array.prototype.forEach.call(
+            document.querySelectorAll("textarea[data-route-note]"),
+            function (input) {
+              state.routeNotes[input.dataset.routeNote] = input.value;
+            },
+          );
           return state;
         }
 
@@ -1061,7 +2503,9 @@
           if (!stored) return;
           document.getElementById("reviewNotes").value = stored.notes || "";
           Object.keys(stored.decisions || {}).forEach(function (name) {
-            var input = form.querySelector("input[name=" + name + "][value=" + stored.decisions[name] + "]");
+            var input = form.querySelector(
+              "input[name=" + name + "][value=" + stored.decisions[name] + "]",
+            );
             if (input) input.checked = true;
           });
           Object.keys(stored.checks || {}).forEach(function (name) {
@@ -1069,26 +2513,56 @@
             if (input) input.checked = Boolean(stored.checks[name]);
           });
           Object.keys(stored.reviews || {}).forEach(function (name) {
-            var input = document.querySelector("input[data-review-id=" + name + "][value=" + stored.reviews[name] + "]");
+            var input = document.querySelector(
+              "input[data-review-id=" +
+                name +
+                "][value=" +
+                stored.reviews[name] +
+                "]",
+            );
             if (input) input.checked = true;
           });
           Object.keys(stored.reviewNotes || {}).forEach(function (name) {
-            var input = document.querySelector("textarea[data-review-note=" + name + "]");
+            var input = document.querySelector(
+              "textarea[data-review-note=" + name + "]",
+            );
             if (input) input.value = stored.reviewNotes[name] || "";
+          });
+          Object.keys(stored.routeReviews || {}).forEach(function (name) {
+            var input = document.querySelector(
+              "input[data-route-review-id=" +
+                name +
+                "][value=" +
+                stored.routeReviews[name] +
+                "]",
+            );
+            if (input) input.checked = true;
+          });
+          Object.keys(stored.routeNotes || {}).forEach(function (name) {
+            var input = document.querySelector(
+              "textarea[data-route-note=" + name + "]",
+            );
+            if (input) input.value = stored.routeNotes[name] || "";
           });
           updateReviewProgress();
         }
 
         function saveState() {
           var state = collectState();
-          try { localStorage.setItem(stateKey, JSON.stringify(state)); } catch (error) {}
+          try {
+            localStorage.setItem(stateKey, JSON.stringify(state));
+          } catch (error) {}
           saveStatus.textContent = "Saved locally in this browser.";
           updateReviewProgress();
         }
 
         function restoreState() {
           var stored;
-          try { stored = JSON.parse(localStorage.getItem(stateKey) || "null"); } catch (error) { stored = null; }
+          try {
+            stored = JSON.parse(localStorage.getItem(stateKey) || "null");
+          } catch (error) {
+            stored = null;
+          }
           if (!stored) return;
           applyState(stored);
           saveStatus.textContent = "Restored your local review.";
@@ -1098,11 +2572,13 @@
           var normalized = (query || "").trim().toLowerCase();
           var visible = 0;
           cards.forEach(function (card) {
-            var shown = !normalized || card.dataset.search.indexOf(normalized) !== -1;
+            var shown =
+              !normalized || card.dataset.search.indexOf(normalized) !== -1;
             card.hidden = !shown;
             if (shown) visible += 1;
           });
-          galleryCount.textContent = visible + " of " + cards.length + " screenshots shown";
+          galleryCount.textContent =
+            visible + " of " + cards.length + " screenshots shown";
         }
 
         function addEvidence(path) {
@@ -1114,7 +2590,10 @@
           link.href = path;
           link.target = "_blank";
           link.rel = "noopener";
-          link.setAttribute("aria-label", "Open full-size evidence: " + humanize(path));
+          link.setAttribute(
+            "aria-label",
+            "Open full-size evidence: " + humanize(path),
+          );
 
           var image = document.createElement("img");
           image.loading = "lazy";
@@ -1136,12 +2615,16 @@
         function loadBundle() {
           fetch(bundlePath, { cache: "no-store" })
             .then(function (response) {
-              if (!response.ok) throw new Error("Bundle returned " + response.status);
+              if (!response.ok)
+                throw new Error("Bundle returned " + response.status);
               return response.text();
             })
             .then(function (markdown) {
               rawBundle.textContent = markdown;
-              var matches = markdown.match(/\]\((\.\/[^)\s]+\.(?:png|jpe?g|webp|gif))\)/gi) || [];
+              var matches =
+                markdown.match(
+                  /\]\((\.\/[^)\s]+\.(?:png|jpe?g|webp|gif))\)/gi,
+                ) || [];
               var unique = [];
               matches.forEach(function (match) {
                 var path = match.slice(2, -1);
@@ -1153,18 +2636,29 @@
               renderGallery(filter.value);
             })
             .catch(function (error) {
-              rawBundle.textContent = "Unable to load the bundle: " + error.message;
-              gallery.innerHTML = '<div class="empty">The bundle could not be loaded. Open the source Markdown directly or check the server path.</div>';
+              rawBundle.textContent =
+                "Unable to load the bundle: " + error.message;
+              gallery.innerHTML =
+                '<div class="empty">The bundle could not be loaded. Open the source Markdown directly or check the server path.</div>';
               galleryCount.textContent = "Evidence unavailable";
               screenshotMetric.textContent = "—";
             });
         }
 
         function escapeHtml(value) {
-          var entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" };
-          return String(value == null ? "" : value).replace(/[&<>"']/g, function (character) {
-            return entities[character];
-          });
+          var entities = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          };
+          return String(value == null ? "" : value).replace(
+            /[&<>"']/g,
+            function (character) {
+              return entities[character];
+            },
+          );
         }
 
         function buildReviewExport() {
@@ -1173,38 +2667,141 @@
           data.exportedAt = new Date().toISOString();
           data.sourceUrl = location.href;
           data.reviewItems = reviewItems;
-          data.evidenceLinks = Array.prototype.map.call(document.querySelectorAll(".evidence-card a"), function (link) {
-            return link.href;
-          });
+          data.routeItems = routeItems;
+          data.evidenceLinks = Array.prototype.map.call(
+            document.querySelectorAll(".evidence-card a"),
+            function (link) {
+              return link.href;
+            },
+          );
           var embeddedData = JSON.stringify(data).replace(/</g, "\\u003c");
-          var reviewRows = reviewItems.map(function (item) {
-            var selected = document.querySelector("input[data-review-id=" + item.id + "]:checked");
-            var note = document.querySelector("textarea[data-review-note=" + item.id + "]");
-            var verdict = selected ? reviewChoiceLabel(selected.value) : "Not decided";
-            return "<tr><th>" + escapeHtml(item.title) + "</th><td>" + escapeHtml(verdict) + "</td><td>" + escapeHtml(item.myComment) + (note && note.value.trim() ? "<br><strong>Reviewer comment:</strong> " + escapeHtml(note.value.trim()) : "") + "</td></tr>";
-          }).join("");
-          var planRows = Array.prototype.map.call(form.querySelectorAll("fieldset"), function (fieldset) {
-            var selected = fieldset.querySelector("input[type=radio]:checked");
-            if (!selected) return "";
-            return "<tr><th>" + escapeHtml(fieldset.querySelector("legend").textContent) + "</th><td>" + escapeHtml(selected.parentElement.textContent.trim()) + "</td></tr>";
-          }).join("");
-          var checklistRows = Array.prototype.map.call(document.querySelectorAll("[data-check]"), function (input) {
-            return "<li>" + (input.checked ? "☑" : "☐") + " " + escapeHtml(input.parentElement.textContent.trim()) + "</li>";
-          }).join("");
-          var evidenceRows = Array.prototype.map.call(document.querySelectorAll(".evidence-card a"), function (link) {
-            return "<li><a href=\"" + escapeHtml(link.href) + "\">" + escapeHtml(link.querySelector("img").alt) + "</a></li>";
-          }).join("");
+          var reviewRows = reviewItems
+            .map(function (item) {
+              var selected = document.querySelector(
+                "input[data-review-id=" + item.id + "]:checked",
+              );
+              var note = document.querySelector(
+                "textarea[data-review-note=" + item.id + "]",
+              );
+              var verdict = selected
+                ? reviewChoiceLabel(selected.value)
+                : "Not decided";
+              return (
+                "<tr><th>" +
+                escapeHtml(item.title) +
+                "</th><td>" +
+                escapeHtml(verdict) +
+                "</td><td>" +
+                escapeHtml(item.myComment) +
+                (note && note.value.trim()
+                  ? "<br><strong>Reviewer comment:</strong> " +
+                    escapeHtml(note.value.trim())
+                  : "") +
+                "</td></tr>"
+              );
+            })
+            .join("");
+          var routeRows = routeItems
+            .map(function (item) {
+              var selected = document.querySelector(
+                "input[data-route-review-id=" + item.id + "]:checked",
+              );
+              var note = document.querySelector(
+                "textarea[data-route-note=" + item.id + "]",
+              );
+              var verdict = selected
+                ? reviewChoiceLabel(selected.value)
+                : "Not decided";
+              return (
+                "<tr><th>" +
+                escapeHtml(item.title) +
+                "<br><code>" +
+                escapeHtml(item.path) +
+                "</code></th><td>" +
+                escapeHtml(verdict) +
+                "</td><td><strong>Owner:</strong> " +
+                escapeHtml(item.owner) +
+                "<br><strong>Required follow-up:</strong> " +
+                escapeHtml(item.followup) +
+                (note && note.value.trim()
+                  ? "<br><strong>Reviewer comment:</strong> " +
+                    escapeHtml(note.value.trim())
+                  : "") +
+                "</td></tr>"
+              );
+            })
+            .join("");
+          var planRows = Array.prototype.map
+            .call(form.querySelectorAll("fieldset"), function (fieldset) {
+              var selected = fieldset.querySelector(
+                "input[type=radio]:checked",
+              );
+              if (!selected) return "";
+              return (
+                "<tr><th>" +
+                escapeHtml(fieldset.querySelector("legend").textContent) +
+                "</th><td>" +
+                escapeHtml(selected.parentElement.textContent.trim()) +
+                "</td></tr>"
+              );
+            })
+            .join("");
+          var checklistRows = Array.prototype.map
+            .call(document.querySelectorAll("[data-check]"), function (input) {
+              return (
+                "<li>" +
+                (input.checked ? "☑" : "☐") +
+                " " +
+                escapeHtml(input.parentElement.textContent.trim()) +
+                "</li>"
+              );
+            })
+            .join("");
+          var evidenceRows = Array.prototype.map
+            .call(
+              document.querySelectorAll(".evidence-card a"),
+              function (link) {
+                return (
+                  '<li><a href="' +
+                  escapeHtml(link.href) +
+                  '">' +
+                  escapeHtml(link.querySelector("img").alt) +
+                  "</a></li>"
+                );
+              },
+            )
+            .join("");
           var html = [
-            "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Plan 147 review submission</title>",
+            '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Plan 147 review submission</title>',
             "<style>body{margin:0;padding:32px;background:#f4f6f8;color:#17212b;font:16px/1.5 system-ui,sans-serif}main{max-width:1000px;margin:auto}section{margin:24px 0;padding:22px;border:1px solid #d8e0e5;border-radius:8px;background:#fff}h1{line-height:1.1}h2{margin-top:0}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #d8e0e5;text-align:left;vertical-align:top}th{width:28%}a{color:#155e75}li{margin:6px 0}.meta{color:#5d6b76}.note{white-space:pre-wrap}</style></head><body><main>",
             "<h1>Plan 147 human review submission</h1>",
-            "<p class=\"meta\">Exported: " + escapeHtml(data.exportedAt) + "<br>Source dashboard: " + escapeHtml(data.sourceUrl) + "</p>",
-            "<section><h2>Before / now review decisions</h2><table><thead><tr><th>Item</th><th>Reviewer verdict</th><th>Agent recommendation and comments</th></tr></thead><tbody>" + reviewRows + "</tbody></table></section>",
-            "<section><h2>Plan-level decisions</h2><table>" + (planRows || "<tr><td colspan=\"2\">No plan-level decisions selected.</td></tr>") + "</table><h3>Reviewer notes</h3><p class=\"note\">" + escapeHtml(data.notes || "None") + "</p></section>",
-            "<section><h2>Closeout checklist</h2><ul>" + checklistRows + "</ul></section>",
-            "<section><h2>Evidence links</h2><p>This submission contains the decisions and notes; the original synthetic screenshots remain available through these links.</p><ul>" + evidenceRows + "</ul></section>",
-            "<section><h2>Machine-readable review data</h2><p>The embedded JSON below lets the review be imported back into the dashboard.</p><script type=\"application/json\" id=\"plan147-review-data\">" + embeddedData + "<\/script></section>",
-            "</main></body></html>"
+            '<p class="meta">Exported: ' +
+              escapeHtml(data.exportedAt) +
+              "<br>Source dashboard: " +
+              escapeHtml(data.sourceUrl) +
+              "</p>",
+            "<section><h2>Before / now review decisions</h2><table><thead><tr><th>Item</th><th>Reviewer verdict</th><th>Agent recommendation and comments</th></tr></thead><tbody>" +
+              reviewRows +
+              "</tbody></table></section>",
+            "<section><h2>Every route review</h2><table><thead><tr><th>Route</th><th>Reviewer verdict</th><th>Owner and required follow-up</th></tr></thead><tbody>" +
+              routeRows +
+              "</tbody></table></section>",
+            "<section><h2>Plan-level decisions</h2><table>" +
+              (planRows ||
+                '<tr><td colspan="2">No plan-level decisions selected.</td></tr>') +
+              '</table><h3>Reviewer notes</h3><p class="note">' +
+              escapeHtml(data.notes || "None") +
+              "</p></section>",
+            "<section><h2>Closeout checklist</h2><ul>" +
+              checklistRows +
+              "</ul></section>",
+            "<section><h2>Evidence links</h2><p>This submission contains the decisions and notes; the original synthetic screenshots remain available through these links.</p><ul>" +
+              evidenceRows +
+              "</ul></section>",
+            '<section><h2>Machine-readable review data</h2><p>The embedded JSON below lets the review be imported back into the dashboard.</p><script type="application/json" id="plan147-review-data">' +
+              embeddedData +
+              "<\/script></section>",
+            "</main></body></html>",
           ].join("");
           window.__lastReviewExport = html;
           return html;
@@ -1217,27 +2814,45 @@
           var link = document.createElement("a");
           var stamp = new Date().toISOString().replace(/[:.]/g, "-");
           link.href = url;
-          link.download = "147-plan-147-human-review-submission-" + stamp + ".html";
+          link.download =
+            "147-plan-147-human-review-submission-" + stamp + ".html";
           document.body.appendChild(link);
           link.click();
           link.remove();
-          setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-          var unanswered = reviewItems.length - document.querySelectorAll("input[data-review-id]:checked").length;
-          document.getElementById("exportStatus").textContent = unanswered ? "Exported. " + unanswered + " item verdicts are still undecided." : "Exported. Send the downloaded HTML file back for review.";
+          setTimeout(function () {
+            URL.revokeObjectURL(url);
+          }, 1000);
+          var unanswered =
+            reviewItems.length -
+            document.querySelectorAll("input[data-review-id]:checked").length +
+            (routeItems.length -
+              document.querySelectorAll("input[data-route-review-id]:checked")
+                .length);
+          document.getElementById("exportStatus").textContent = unanswered
+            ? "Exported. " + unanswered + " item verdicts are still undecided."
+            : "Exported. Send the downloaded HTML file back for review.";
         }
 
         function importReviewFile(file) {
           var reader = new FileReader();
           reader.onload = function () {
             try {
-              var documentCopy = new DOMParser().parseFromString(reader.result, "text/html");
+              var documentCopy = new DOMParser().parseFromString(
+                reader.result,
+                "text/html",
+              );
               var dataNode = documentCopy.getElementById("plan147-review-data");
-              if (!dataNode) throw new Error("This file does not contain Plan 147 review data.");
+              if (!dataNode)
+                throw new Error(
+                  "This file does not contain Plan 147 review data.",
+                );
               applyState(JSON.parse(dataNode.textContent));
               saveState();
-              document.getElementById("exportStatus").textContent = "Imported review choices and notes from " + file.name + ".";
+              document.getElementById("exportStatus").textContent =
+                "Imported review choices and notes from " + file.name + ".";
             } catch (error) {
-              document.getElementById("exportStatus").textContent = "Import failed: " + error.message;
+              document.getElementById("exportStatus").textContent =
+                "Import failed: " + error.message;
             }
           };
           reader.readAsText(file);
@@ -1247,59 +2862,156 @@
           event.preventDefault();
           saveState();
         });
-        document.getElementById("saveReviewCards").addEventListener("click", saveState);
-        document.getElementById("exportReview").addEventListener("click", exportReviewFile);
-        document.getElementById("importReviewButton").addEventListener("click", function () {
-          document.getElementById("importReview").click();
-        });
-        document.getElementById("importReview").addEventListener("change", function (event) {
-          if (event.target.files && event.target.files[0]) importReviewFile(event.target.files[0]);
-          event.target.value = "";
-        });
+        document
+          .getElementById("saveReviewCards")
+          .addEventListener("click", saveState);
+        document
+          .getElementById("saveRouteReviews")
+          .addEventListener("click", saveState);
+        document
+          .getElementById("exportReview")
+          .addEventListener("click", exportReviewFile);
+        document
+          .getElementById("importReviewButton")
+          .addEventListener("click", function () {
+            document.getElementById("importReview").click();
+          });
+        document
+          .getElementById("importReview")
+          .addEventListener("change", function (event) {
+            if (event.target.files && event.target.files[0])
+              importReviewFile(event.target.files[0]);
+            event.target.value = "";
+          });
         function copyText(value, successMessage) {
           if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(value).then(function () {
-              saveStatus.textContent = successMessage;
-              reviewProgress.textContent = successMessage;
-            }).catch(function () {
-              saveStatus.textContent = "Copy was blocked; use Save instead.";
-            });
+            navigator.clipboard
+              .writeText(value)
+              .then(function () {
+                saveStatus.textContent = successMessage;
+                reviewProgress.textContent = successMessage;
+              })
+              .catch(function () {
+                saveStatus.textContent = "Copy was blocked; use Save instead.";
+              });
           } else {
-            saveStatus.textContent = "Clipboard is unavailable; use Save instead.";
+            saveStatus.textContent =
+              "Clipboard is unavailable; use Save instead.";
           }
         }
-        document.getElementById("copySummary").addEventListener("click", function () {
-          var lines = ["Plan 147 human review", ""];
-          Array.prototype.forEach.call(form.querySelectorAll("fieldset"), function (fieldset) {
-            var selected = fieldset.querySelector("input[type=radio]:checked");
-            lines.push(fieldset.querySelector("legend").textContent + ": " + (selected ? selected.parentElement.textContent.trim() : "Not decided"));
+        document
+          .getElementById("copySummary")
+          .addEventListener("click", function () {
+            var lines = ["Plan 147 human review", ""];
+            Array.prototype.forEach.call(
+              form.querySelectorAll("fieldset"),
+              function (fieldset) {
+                var selected = fieldset.querySelector(
+                  "input[type=radio]:checked",
+                );
+                lines.push(
+                  fieldset.querySelector("legend").textContent +
+                    ": " +
+                    (selected
+                      ? selected.parentElement.textContent.trim()
+                      : "Not decided"),
+                );
+              },
+            );
+            lines.push(
+              "",
+              "Notes:",
+              document.getElementById("reviewNotes").value || "None",
+            );
+            copyText(lines.join("\n"), "Plan-level decision summary copied.");
           });
-          lines.push("", "Notes:", document.getElementById("reviewNotes").value || "None");
-          copyText(lines.join("\n"), "Plan-level decision summary copied.");
-        });
-        document.getElementById("copyAllSummary").addEventListener("click", function () {
-          var lines = ["Plan 147 human review", "", "Before / now review items:"];
-          reviewItems.forEach(function (item) {
-            var selected = document.querySelector("input[data-review-id=" + item.id + "]:checked");
-            var note = document.querySelector("textarea[data-review-note=" + item.id + "]");
-            lines.push(item.title + ": " + (selected ? reviewChoiceLabel(selected.value) : "Not decided"));
-            lines.push("  Agent recommendation: " + reviewChoiceLabel(item.myVerdict));
-            if (note && note.value.trim()) lines.push("  Reviewer comment: " + note.value.trim());
+        document
+          .getElementById("copyAllSummary")
+          .addEventListener("click", function () {
+            var lines = [
+              "Plan 147 human review",
+              "",
+              "Before / now review items:",
+            ];
+            reviewItems.forEach(function (item) {
+              var selected = document.querySelector(
+                "input[data-review-id=" + item.id + "]:checked",
+              );
+              var note = document.querySelector(
+                "textarea[data-review-note=" + item.id + "]",
+              );
+              lines.push(
+                item.title +
+                  ": " +
+                  (selected
+                    ? reviewChoiceLabel(selected.value)
+                    : "Not decided"),
+              );
+              lines.push(
+                "  Agent recommendation: " + reviewChoiceLabel(item.myVerdict),
+              );
+              if (note && note.value.trim())
+                lines.push("  Reviewer comment: " + note.value.trim());
+            });
+            lines.push("", "Route reviews:");
+            routeItems.forEach(function (item) {
+              var selected = document.querySelector(
+                "input[data-route-review-id=" + item.id + "]:checked",
+              );
+              var note = document.querySelector(
+                "textarea[data-route-note=" + item.id + "]",
+              );
+              lines.push(
+                item.title +
+                  " (" +
+                  item.path +
+                  "): " +
+                  (selected
+                    ? reviewChoiceLabel(selected.value)
+                    : "Not decided"),
+              );
+              if (note && note.value.trim())
+                lines.push("  Reviewer comment: " + note.value.trim());
+            });
+            lines.push(
+              "",
+              "Plan-level notes:",
+              document.getElementById("reviewNotes").value || "None",
+            );
+            copyText(lines.join("\n"), "All review choices copied.");
           });
-          lines.push("", "Plan-level notes:", document.getElementById("reviewNotes").value || "None");
-          copyText(lines.join("\n"), "All review choices copied.");
+        filter.addEventListener("input", function () {
+          renderGallery(filter.value);
         });
-        filter.addEventListener("input", function () { renderGallery(filter.value); });
-        Array.prototype.forEach.call(document.querySelectorAll("[data-check]"), function (input) {
-          input.addEventListener("change", saveState);
-        });
+        Array.prototype.forEach.call(
+          document.querySelectorAll("[data-check]"),
+          function (input) {
+            input.addEventListener("change", saveState);
+          },
+        );
         renderReviewCards();
-        Array.prototype.forEach.call(document.querySelectorAll("input[data-review-id]"), function (input) {
-          input.addEventListener("change", updateReviewProgress);
-        });
+        renderRouteCoverage();
+        Array.prototype.forEach.call(
+          document.querySelectorAll("input[data-review-id]"),
+          function (input) {
+            input.addEventListener("change", updateReviewProgress);
+          },
+        );
+        Array.prototype.forEach.call(
+          document.querySelectorAll("input[data-route-review-id]"),
+          function (input) {
+            input.addEventListener("change", updateReviewProgress);
+          },
+        );
+        Array.prototype.forEach.call(
+          document.querySelectorAll("textarea[data-route-note]"),
+          function (input) {
+            input.addEventListener("change", saveState);
+          },
+        );
         restoreState();
         loadBundle();
-      }());
+      })();
     </script>
   </body>
 </html>

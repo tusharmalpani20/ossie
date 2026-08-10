@@ -1,30 +1,121 @@
 # Plan 147 human review bundle
 
-Status: `agent_accepted_pending_human`  
+Status: `whole_app_candidate_pending_final_human_review`
 Execution worktree: `/home/ubuntu/ossie-plan147`  
 Branch: `agent/plan-147-ui-quality`  
 Date: 2026-08-07
 
+## Continuation checkpoint — 2026-08-07
+
+The user has authorized an ambitious whole-app UI and interaction-quality pass
+before performing one final end-to-end human review. This bundle remains the
+durable evidence record, and the companion HTML dashboard is the review
+surface for recording the final decisions and notes.
+
+The continuation will apply the user's priorities across all shipped surfaces:
+better padding, margins, spacing, button/card composition, typography selection,
+loading/empty/error/denied states, Ossie/octopus mascot illustrations, and more
+polished public reader screens. The final bundle will be refreshed after the
+whole-app pass, and the user will then use the app and review the complete result
+in one pass. Two independent agent inputs remain required for each meaningful
+bounded candidate; browser and engineering evidence must remain truthful.
+
+## Whole-app candidate checkpoint — 2026-08-07
+
+The current candidate is the broad continuation requested by the user. It
+carries the visual pass through the shipped portal, auth/setup, Projects,
+Project Version, Capture, artifact, Guide, Interactive Demo, Documentation,
+public reader/embed, organization/admin, activity/publishing, extension, and
+contributor-doc surfaces. It includes the selected local system-sans stack in
+[`147-typography-selection.md`](./147-typography-selection.md), tokenized
+spacing/radius usage, improved buttons and cards, responsive composition, and
+the shared mascot-led StatusPanel for transient states.
+
+Final recovery additions include explicit retryable states for Documentation
+Page, auxiliary editor references, publishing, draft and immutable Revision
+previews, and Carry Forward source loading. Publishing refresh failures retain
+loaded content while announcing stale data. Review Inbox and embedded Review
+Request pagination prevent duplicate loads and announce retryable failures.
+Public Guide/Demo password fields have visible labels and
+`autocomplete="current-password"`; expired public links share the same
+terminal not-found treatment; and Project Version card geometry uses shared
+tokens.
+
+The latest independent whole-app audits found no P0 or P1 issue. Reviewer A
+recorded five P2 follow-ups and Reviewer B recorded one P2 accessibility
+follow-up; the reports and current reconciliation are linked below. The current
+web suite passes 95 files / 551 tests, UI is 5 files / 15 tests, repository
+typecheck/lint and web build pass, and `git diff --check` passes. Server lint has
+89 existing warnings and zero errors. Fresh 390px local unavailable-state
+evidence for Guide, Documentation, and Demo reports axe 0 violations / 0
+incomplete checks and no overflow. The local API returned HTTP 500 for the
+lightweight populated-flow runner, so no authenticated success state is
+claimed from that run.
+
+Historical surface rows below retain their original route ownership and
+candidate wording. The current whole-app checkpoint supersedes those older
+statements: the normal `/projects/:projectId` route now mounts
+`ProjectWorkspacePage` while preserving access and Project Version semantics.
+
+This is the final agent candidate for the user's one end-to-end review. Human
+review remains deferred until the user uses the whole app and records notes in
+the companion HTML dashboard; it is not complete or human-approved yet.
+
+## Exhaustive coverage continuation — 2026-08-08
+
+The user clarified that “whole application” means every individual shipped page,
+route variant, nested section, and applicable state, not representative surface
+families. The new [exhaustive route and section coverage](./147-exhaustive-route-coverage.md)
+document enumerates all 39 web route types plus the separately shipped docs and
+extension surfaces. The HTML dashboard now includes a persistent 39-row route
+review with per-route verdicts and comments; exports include those values in
+the same embedded review JSON.
+
+Two fresh independent audits are recorded in
+[`147-exhaustive-route-audit-a.md`](./147-exhaustive-route-audit-a.md) and
+[`147-exhaustive-route-audit-b.md`](./147-exhaustive-route-audit-b.md). The
+coordinator fixed the Compliance pagination race test-first, added
+Documentation password autocomplete/invalid-password retry coverage, and added
+a public Guide skip-to-content target. Human review remains deferred until the
+route/section evidence gaps are reconciled.
+
 ## Executive outcome
 
 The autonomous UI-quality run has produced immutable candidates and review
-records for the planned surface families. The final Projects workspace state
-cycle is intentionally incomplete: `ProjectWorkspacePage` is not mounted by
-the normal `/projects/:projectId` route, so its browser behavior cannot be
-claimed without a route-ownership decision. P2-001 is also held at
+records for the planned surface families. The approved continuation now mounts
+`ProjectWorkspacePage` on the normal `/projects/:projectId` route while
+preserving Project Version and access semantics. P2-001 remains held at
 `needs_human_surface` because its only scope definition is “cross-product
-libraries/readers,” with no exact route owner. Plan 147 is not human-approved
-and is intentionally not marked complete.
+libraries/readers,” with no exact route/state pair. Plan 147 is not
+human-approved and is intentionally not marked complete.
 
 ## Start here
 
+- [Interactive whole-app review dashboard](./147-plan-147-review-dashboard.html)
+- [Exhaustive route and section coverage](./147-exhaustive-route-coverage.md)
 - [Canonical surface, issue, review, and evidence ledger](./147-ossie-ui-quality-program-ledger.md)
 - [Plan 147](../plan/147-ossie-ui-quality-program.md)
 - [Current truth and accepted visual direction](../../CONTEXT.md)
+- [Latest independent whole-app audit A](./147-whole-app-review-a.md)
+- [Latest independent whole-app audit B](./147-whole-app-review-b.md)
+- [Latest exhaustive route audit A](./147-exhaustive-route-audit-a.md)
+- [Latest exhaustive route audit B](./147-exhaustive-route-audit-b.md)
+- [Previous human review input](./147-previous-human-review-input.md)
 
 The ledger is the authoritative index for every earlier surface candidate and
-its review artifacts. The latest closeout bundle is grouped below for quick
-review.
+its review artifacts. The exhaustive route and section coverage document is
+the authoritative check that grouped evidence has not skipped an individual
+page, route variant, nested section, or state. The latest closeout bundle is
+grouped below for quick review.
+
+## Important scope correction
+
+The earlier surface cards summarize families; they do not by themselves prove
+that every individual route, nested section, and state is finished. The route
+coverage document now enumerates all 39 `PortalRoute` types and the section
+owners inside them. Until that inventory is reconciled with exact browser
+evidence, the candidate remains an engineering pass in progress and not a
+claim that every screen has already been reviewed or approved.
 
 ## Latest closeout surfaces
 
@@ -393,8 +484,8 @@ database was reseeded with the Documentation fixture.
   controllable through this CLI.
 - Latest repository gates: `pnpm check-types` passed 13/13 tasks, `pnpm lint`
   passed 14/14 tasks with 89 existing server warnings and zero errors, `pnpm
-  build` passed 13/13 tasks, CSS-token check passed 130/123, and `git diff
-  --check` passed.
+build` passed 13/13 tasks, CSS-token check passed 130/123, and `git diff
+--check` passed.
 - Final closeout browser audits for the shared-foundation parent/candidate
   comparison report axe 0 violations / 0 incomplete checks, no page overflow,
   reduced-motion and keyboard paths as recorded in the reviews. Earlier latest
@@ -639,19 +730,19 @@ evidence. `Complete` means the requirement is proven for the scope named;
 `limited` means the bounded evidence and limitation are recorded; `pending`
 means human direction or review is still required.
 
-| Objective requirement | Current evidence | Status |
-| --- | --- | --- |
-| Use approved baseline and a dedicated implementation worktree | Starting commit `d638112` and branch/worktree `/home/ubuntu/ossie-plan147` are recorded in the ledger; original `/home/ubuntu/ossie` remains clean | complete |
-| Reconcile product truth, ADRs, design direction, and domain invariants | `CONTEXT.md`, accepted ADRs, Plan 147 preflight, and surface preflights are recorded; no candidate changed Project, Project Version, Membership, Capture, Revision, Publication, or public-link semantics | complete for executed candidates |
-| Use a disposable local database and deterministic synthetic fixture graph | Guarded local `ossie_test`; Documentation, Guide, Interactive Demo, Capture, and role-specific fixture runs are recorded; final state was reseeded with Documentation fixture | complete for executed browser runs |
-| Start and health-check local services | API `/healthz`/`/readyz`, Vite root, isolated ports, cleanup, and base-service preservation are recorded in the ledger | complete for executed runs |
-| Verify real setup, login, authenticated, public, password, embed, and extension entry points | Authenticated synthetic sessions, public/password/embed routes, direct unpacked extension-origin flow, and installation portal are evidenced | limited: browser-toolbar icon activation remains `blocked_local_for_run` |
-| Work through shipped surfaces with bounded candidates and truthful status | Surface ledger, issue ledger, rollback boundaries, immutable candidates, evidence-only continuations, and `agent_accepted_pending_human`/`needs_human_surface`/`blocked_local_for_run` statuses are current | complete for autonomous scope; broader matrix remains open |
-| Send immutable candidates to two blind read-only reviewers and cap cycles at three | Review ledger contains A/B reports for each immutable candidate; `projects-workspace` stopped at final cycle 3 and remains human-directed | complete for executed candidates |
-| Maintain screenshots, findings, verification, commits, checkpoints, and rollback information | Canonical ledger, implementation log, evidence rows, linked screenshots, review artifacts, exact commits, and rollback notes are assembled here and in the Plan | complete for recorded scope |
-| Run focused and broad engineering verification | Current candidate rerun: recursive tests web 95/511, server 127/553, extension 19/140, docs 4/13; typecheck 13/13; lint 14/14; build 13/13; CSS tokens 130/123; diff check passed | complete |
-| Complete the full 26.6 desktop/tablet/mobile/200%/extension and state matrix | Bounded desktop, tablet, mobile, native-200%, keyboard, reduced-motion, public/auth/embed, and direct-manipulation samples are recorded | limited: complete matrix, loading/denied/populated breadth, toolbar icon, and some known axe probes remain open |
-| Complete human feedback and final closeout | Bundle is assembled and statuses are truthful | pending: route ownership, P2/P3 dispositions, human findings, accepted-baseline decisions, and Plan 147 closeout |
+| Objective requirement                                                                        | Current evidence                                                                                                                                                                                            | Status                                                                                                                      |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Use approved baseline and a dedicated implementation worktree                                | Starting commit `d638112` and branch/worktree `/home/ubuntu/ossie-plan147` are recorded in the ledger; original `/home/ubuntu/ossie` remains clean                                                          | complete                                                                                                                    |
+| Reconcile product truth, ADRs, design direction, and domain invariants                       | `CONTEXT.md`, accepted ADRs, Plan 147 preflight, and surface preflights are recorded; no candidate changed Project, Project Version, Membership, Capture, Revision, Publication, or public-link semantics   | complete for executed candidates                                                                                            |
+| Use a disposable local database and deterministic synthetic fixture graph                    | Guarded local `ossie_test`; Documentation, Guide, Interactive Demo, Capture, and role-specific fixture runs are recorded; final state was reseeded with Documentation fixture                               | complete for executed browser runs                                                                                          |
+| Start and health-check local services                                                        | API `/healthz`/`/readyz`, Vite root, isolated ports, cleanup, and base-service preservation are recorded in the ledger                                                                                      | complete for executed runs                                                                                                  |
+| Verify real setup, login, authenticated, public, password, embed, and extension entry points | Authenticated synthetic sessions, public/password/embed routes, direct unpacked extension-origin flow, and installation portal are evidenced                                                                | limited: browser-toolbar icon activation remains `blocked_local_for_run`                                                    |
+| Work through shipped surfaces with bounded candidates and truthful status                    | Surface ledger, issue ledger, rollback boundaries, immutable candidates, evidence-only continuations, and `agent_accepted_pending_human`/`needs_human_surface`/`blocked_local_for_run` statuses are current | complete for autonomous scope; broader matrix remains open                                                                  |
+| Send immutable candidates to two blind read-only reviewers and cap cycles at three           | Review ledger contains A/B reports for each immutable candidate; `projects-workspace` stopped at final cycle 3 and remains human-directed                                                                   | complete for executed candidates                                                                                            |
+| Maintain screenshots, findings, verification, commits, checkpoints, and rollback information | Canonical ledger, implementation log, evidence rows, linked screenshots, review artifacts, exact commits, and rollback notes are assembled here and in the Plan                                             | complete for recorded scope                                                                                                 |
+| Run focused and broad engineering verification                                               | Current candidate rerun: recursive tests web 95/511, server 127/553, extension 19/140, docs 4/13; typecheck 13/13; lint 14/14; build 13/13; CSS tokens 130/123; diff check passed                           | complete                                                                                                                    |
+| Complete the full 26.6 desktop/tablet/mobile/200%/extension and state matrix                 | Bounded desktop, tablet, mobile, native-200%, keyboard, reduced-motion, public/auth/embed, and direct-manipulation samples are recorded                                                                     | limited: complete matrix, loading/denied/populated breadth, toolbar icon, and some known axe probes remain open             |
+| Complete human feedback and final closeout                                                   | Bundle is assembled and statuses are truthful                                                                                                                                                               | pending: human findings, P2/P3 dispositions, accepted-baseline decisions, broader matrix limitations, and Plan 147 closeout |
 
 ## Human review decisions still required
 
@@ -669,10 +760,9 @@ means human direction or review is still required.
 - Review the Projects denied-state before/after pair and confirm the heading and
   sign-in recovery hierarchy without treating the unauthenticated route as
   authenticated fixture evidence.
-- Decide the route ownership for `/projects/:projectId` before accepting or
-  wiring `ProjectWorkspacePage` transient-state semantics; the final-cycle
-  candidate has no truthful runtime browser evidence and is marked
-  `needs_human_surface`.
+- Review the now-mounted `/projects/:projectId` Project Workspace as part of the
+  whole-app experience. Historical route-ownership rows describe the earlier
+  pre-continuation candidate and are not current route truth.
 - Decide P2-001’s exact route/state scope: preserve the bounded Publication
   preview, authorize a paired preview/public-reader chrome study, or name a
   different narrow cross-product route pair. Do not accept a broad consistency

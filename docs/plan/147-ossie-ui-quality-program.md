@@ -4,10 +4,11 @@ Date: 2026-08-06
 
 Last full planning audit: 2026-08-06
 
-Status: Autonomous-run milestone reached — human review pending. Mandatory
-program preflight, bounded surface candidates, two-reviewer closeout records,
-and broad verification are recorded in the dedicated runner worktree. The
-canonical mutable ledger is `docs/ui/147-ossie-ui-quality-program-ledger.md`.
+Status: Whole-app continuation authorized — final human review deferred by the
+user. Prior autonomous evidence remains recorded in the dedicated runner
+worktree; completion is still gated on the user's final review and any accepted
+follow-up findings. The canonical mutable ledger is
+`docs/ui/147-ossie-ui-quality-program-ledger.md`.
 
 Plan number: 147.
 
@@ -94,9 +95,75 @@ completion requires:
 Do not mark Plan `147` complete while a required human review or accepted human
 finding remains outstanding.
 
+## 2.1 User-authorized whole-app continuation — 2026-08-07
+
+The user explicitly authorized continuation beyond the earlier autonomous-run
+milestone. The implementation scope is now an ambitious whole-app visual and
+interaction-quality pass across all shipped browser-visible surfaces, including
+portal, auth/setup, projects/workspace, Project Version flows, Capture and
+artifact workflows, Documentation, Guides, Interactive Demos, public readers
+and embeds, organization/admin surfaces, activity/publishing, extension-facing
+UI, contributor/operator docs, and shared UI foundations.
+
+The user's recorded priorities are to improve padding, margins, spacing,
+button/card composition, typography, loading/empty/error/denied states,
+Ossie/octopus mascot and illustration use, and the visual quality of public
+reader screens. Typography options may be compared and one best-fitting,
+accessible, performant choice selected for the product; no major dependency or
+external font service is implied by this direction.
+
+Final human review is intentionally deferred until the whole-app pass is ready.
+Each meaningful bounded slice still requires two independent blind agent
+reviews, focused verification, real-browser evidence where applicable, and
+truthful recording of blocked capabilities. The approved `mount-workspace`
+direction may be implemented as the normal `/projects/:projectId` route owner,
+while preserving Project Version, authorization, tenant isolation, public-link,
+and immutable lifecycle semantics. P2-001 must be decomposed into concrete
+shipped route/state candidates and must not become permission to expand product
+scope.
+
+This continuation does not authorize Video, AI, analytics, custom branding,
+hosted signup, translations, custom domains, static export, major dependency
+replacement, or changes to security, privacy, domain, permission, retention,
+deletion, immutable, or public-link behavior.
+
 Passing tests, an empty axe report, no horizontal overflow, a successful build,
 or good performance measurements is necessary where applicable, but none of
 those facts alone is visual acceptance.
+
+## 2.2 Whole-app continuation checkpoint — 2026-08-07
+
+The current implementation candidate completes the next whole-app pass across
+the shipped portal, auth/setup, Projects and Project Version flows, Capture and
+artifact workflows, Guides, Interactive Demos, Documentation authoring and
+readers, organization/admin, activity/publishing, extension-facing UI, and
+contributor docs. The pass applies the user's requested spacing, padding,
+button/card composition, single accessible system-sans selection, mascot-led
+state illustrations, responsive reflow, and loading/empty/error/denied/read-only
+state treatment.
+
+The candidate also hardens Documentation authoring and review recovery:
+initial Page, publishing, preview, and auxiliary-reference failures are
+explicit and retryable; Review Request pagination disables duplicate loads and
+announces failures; public password fields have visible labels and browser
+autocomplete; and remaining Project Version radius/spacing drift is tokenized.
+
+Verification is current: the full web suite passes all 95 test files / 551
+tests, UI is 5 files/15 tests, web typecheck/lint pass, recursive repository
+typecheck and lint pass (89 existing server warnings, zero errors), the web
+production build passes with the existing large-chunk warning, and
+`git diff --check` passes. Fresh local 390px Guide, Documentation, and Demo
+unavailable states render the mascot recovery treatment with axe 0 violations
+and 0 incomplete checks. Populated authenticated browser flows remain limited
+by the lightweight runner's local API HTTP 500; no success evidence is
+fabricated.
+
+This remains agent work pending the user's one end-to-end human review. The
+approved Project Workspace route direction is wired on the normal project
+route. The latest independent whole-app audits are recorded in
+`docs/ui/147-whole-app-review-a.md` and `docs/ui/147-whole-app-review-b.md`.
+P2-001, installed-toolbar, the broader matrix, and final human-disposition
+holds remain open.
 
 ## 3. Governing Authority And Precedence
 
@@ -2023,10 +2090,11 @@ These samples stayed within the 525px CSS viewport; the known compliance and
 Documentation Operations metric probes remain explicitly incomplete.
 The Projects library was also exercised at native 200% for active, empty
 archived, create-form, controlled list-error/Retry, and owner/viewer states.
-The valid seeded `/projects/:projectId` entry redirected through the existing
-`LegacyProjectRedirect` into the Project Version workspace and was axe-clean;
-this does not mount or accept the separate `ProjectWorkspacePage` candidate,
-so its route-ownership hold remains unchanged.
+The historical valid seeded `/projects/:projectId` entry followed the then
+existing `LegacyProjectRedirect` into the Project Version workspace and was
+axe-clean. The current continuation has since mounted `ProjectWorkspacePage`
+on the normal project route; the older evidence remains historical and does not
+replace the final human review of the mounted workspace.
 The authenticated extension-installation portal was additionally exercised at
 native 200% for ready, ZIP download, download-error, and forced auth-check-error
 states. The auth-check error initially exposed a missing level-one heading;
@@ -2057,6 +2125,7 @@ Product Documentation.
 ## 27. Final Human Review Bundle
 
 The assembled bundle is [`docs/ui/147-plan-147-human-review-bundle.md`](../ui/147-plan-147-human-review-bundle.md).
+The route-by-route closure contract is [`docs/ui/147-exhaustive-route-coverage.md`](../ui/147-exhaustive-route-coverage.md); grouped surface evidence does not close an individual route or nested section until that inventory links exact evidence or a truthful blocker.
 
 The final bundle must let the user review the heavy lifting in one sitting:
 
@@ -2527,7 +2596,7 @@ axe 0/0; it is evidence of current shipped routing, not acceptance or mounting
 of the separate `ProjectWorkspacePage` candidate. No mutation was submitted;
 zoom was restored to 100%, browser storage cleared, services stopped, and the
 Documentation fixture was reseeded. The route-ownership hold, broader 26.6
- matrix, and human review remain open. No new blind-review cycle is claimed.
+matrix, and human review remain open. No new blind-review cycle is claimed.
 
 2026-08-07 — native 200% extension-installation and contributor-docs
 continuation — source candidate `1058dbd` / `ae37ba6`; the bounded extension
@@ -2645,6 +2714,25 @@ truthful status vocabulary. It preserves the remaining limits: the complete
 Project workspace route ownership, P2/P3 dispositions, and section 26.7 human
 closeout.
 
+2026-08-08 — exhaustive application coverage clarification — the user
+confirmed that “whole application” means every individual shipped page, route
+variant, nested section, and applicable state, not a representative sample of
+surface families. Added `docs/ui/147-exhaustive-route-coverage.md` with all 39
+PortalRoute types, exact path shapes, current owners, nested section owners,
+and the state/viewport/interaction matrix. The web suite reran at 95 files / 551
+tests. Grouped browser evidence remains explicitly open until each route and
+section is reconciled with exact evidence or a truthful blocker; human review
+remains deferred until that exhaustive pass is complete.
+
+The same continuation added a persistent 39-row route checklist to the HTML
+dashboard, recorded independent internal/public audit reports, fixed the
+Compliance pagination/filter race test-first, added Documentation password
+autocomplete and invalid-password retry coverage, and added a public Guide
+skip-to-content target. `/docs/:slug/embed` is parsed as the same
+`public_documentation_reader` with `pagePath="embed"`; there is no separate
+Documentation embed mode to review or invent without an accepted product
+decision.
+
 Record future entries as:
 
 ```text
@@ -2712,16 +2800,20 @@ The following remain outside Plan `147` unless separately accepted:
 
 ## 32. Handoff
 
-The autonomous execution has completed all queued surface families through
-`design-system-gallery`, `global-fallback`, `contributor-docs`, and the bounded
-`shared-foundation` and `shared-shell-mobile` follow-ups; every qualifying surface is
-`agent_accepted_pending_human` unless the ledger explicitly records
-`blocked_local_for_run`. The next action is human review of the assembled
-bundle, followed by disposition and bounded implementation of any accepted
-human findings. Do not treat any accepted surface as human-approved; the
-installed-toolbar capability block, forced Documentation failure limitation,
-browser-fixture limitations, shared-shell/zoom limitations, and broader raw
-CSS review stay recorded in the ledger.
+The autonomous execution previously completed all queued surface families
+through `design-system-gallery`, `global-fallback`, `contributor-docs`, and the
+bounded `shared-foundation` and `shared-shell-mobile` follow-ups. The user has
+now authorized a whole-app continuation before final human review. Continue
+with the next eligible bounded shared-foundation or surface-family slice, then
+reconcile all qualifying surfaces into one final bundle. Every qualifying
+surface remains `agent_accepted_pending_human` unless the ledger explicitly
+records `blocked_local_for_run`.
+
+The final human review is still required after the whole-app pass. Do not treat
+any accepted surface as human-approved; the installed-toolbar capability block,
+forced Documentation failure limitation, browser-fixture limitations,
+shared-shell/zoom limitations, and broader raw CSS review stay recorded in the
+ledger.
 
 If a long-running execution stops, resume from the next eligible `queued` or
 `incomplete_checkpoint` surface after revalidating its preflight. Do not blindly
