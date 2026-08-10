@@ -36,6 +36,23 @@ const scenes = [
 describe("InteractiveDemoRenderer", () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it("gives an empty demo a named state with a clear hierarchy", () => {
+    render(
+      <InteractiveDemoRenderer
+        title="Empty demo"
+        scenes={[]}
+        assets={[]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("region", { name: "This demo has no scenes." }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "This demo has no scenes." }),
+    ).toBeInTheDocument();
+  });
+
   it("projects Hotspots over the captured screen and follows Transitions", () => {
     render(
       <InteractiveDemoRenderer
@@ -133,7 +150,9 @@ describe("InteractiveDemoRenderer", () => {
     );
 
     fireEvent.error(screen.getByRole("img", { name: "Start captured screen" }));
-    expect(screen.getByText("Captured screen is unavailable.")).toBeVisible();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Captured screen is unavailable.",
+    );
     expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
   });
 

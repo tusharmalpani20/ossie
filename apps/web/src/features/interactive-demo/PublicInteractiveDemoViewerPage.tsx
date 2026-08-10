@@ -5,6 +5,7 @@ import {
   createPublicPublishViewerSession,
   getPublicPublishLink,
 } from "../../lib/api";
+import { StatusPanel } from "@repo/ui/status-panel";
 import { PublicVersionSelector } from "../publish/PublicVersionSelector";
 import { InteractiveDemoRenderer } from "./InteractiveDemoRenderer";
 import styles from "./PublicInteractiveDemoViewerPage.module.css";
@@ -33,6 +34,8 @@ export const PublicInteractiveDemoViewerPage = ({
     [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
+    setState({ kind: "loading" });
+    setPasswordError(null);
     loadPublishLink(slug, "interactive_demo", versionSlug ?? null, mode)
       .then((response) => {
         if (!active) return;
@@ -92,22 +95,46 @@ export const PublicInteractiveDemoViewerPage = ({
     }
   };
   if (state.kind === "loading")
-    return <main className={styles.state}>Loading published demo…</main>;
+    return (
+      <main className={styles.state}>
+        <StatusPanel
+          className={styles.statePanel}
+          tone="loading"
+          title="Loading published demo"
+          description="Checking the published link and preparing the selected version."
+          titleAs="h1"
+        />
+      </main>
+    );
   if (state.kind === "password")
     return (
       <main className={styles.state}>
+        <StatusPanel
+          className={styles.statePanel}
+          tone="forbidden"
+          title="Password required"
+          description="Enter the password supplied by the Publish Link owner to continue."
+          titleAs="h1"
+        />
         <form onSubmit={unlock}>
-          <h1>Password required</h1>
+          <label htmlFor="interactive-demo-publish-link-password">Publish Link password</label>
           <input
-            aria-label="Publish Link password"
+            id="interactive-demo-publish-link-password"
+            aria-invalid={passwordError ? "true" : undefined}
+            aria-describedby={passwordError ? "interactive-demo-password-error" : undefined}
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
               setPasswordError(null);
             }}
           />
-          {passwordError && <p role="alert">{passwordError}</p>}
+          {passwordError && (
+            <p id="interactive-demo-password-error" role="alert">
+              {passwordError}
+            </p>
+          )}
           <button>Continue</button>
         </form>
       </main>
@@ -115,18 +142,32 @@ export const PublicInteractiveDemoViewerPage = ({
   if (state.kind === "error")
     return (
       <main className={styles.state}>
-        <h1>{state.message}</h1>
-        {state.retryable ? (
-          <button
-            type="button"
-            onClick={() => {
-              setState({ kind: "loading" });
-              setRetry((value) => value + 1);
-            }}
-          >
-            Try again
-          </button>
-        ) : null}
+        <StatusPanel
+          className={styles.statePanel}
+          tone={
+            state.message.includes("restricted")
+              ? "forbidden"
+              : state.message.includes("not found") ||
+                  state.message.includes("expired")
+                ? "not-found"
+                : "error"
+          }
+          title={state.message}
+          titleAs="h1"
+          action={
+            state.retryable ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setState({ kind: "loading" });
+                  setRetry((value) => value + 1);
+                }}
+              >
+                Try again
+              </button>
+            ) : null
+          }
+        />
       </main>
     );
   const publication = state.response.published_artifact;

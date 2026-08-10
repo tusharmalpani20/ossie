@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button, buttonVariants } from "@repo/ui/button";
-import { Card } from "@repo/ui/card";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   listProjectInteractiveDemos,
@@ -110,20 +110,13 @@ export const ProjectInteractiveDemoListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section
+        <StatusPanel
           className={styles.state}
-          aria-labelledby="interactive-demos-state-heading"
-        >
-          <h1
-            className={styles.stateTitle}
-            id="interactive-demos-state-heading"
-          >
-            Interactive demos
-          </h1>
-          <p className={styles.stateMessage} role="status">
-            Loading interactive demos...
-          </p>
-        </section>
+          description="Loading interactive demos..."
+          title="Interactive demos"
+          titleAs="h1"
+          tone="loading"
+        />
       </PortalShell>
     );
   }
@@ -137,23 +130,18 @@ export const ProjectInteractiveDemoListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section
+        <StatusPanel
+          action={
+            <a className={styles.stateLink} href={signInUrl(currentPath)}>
+              Sign in
+            </a>
+          }
           className={styles.state}
-          aria-labelledby="interactive-demos-state-heading"
-        >
-          <h1
-            className={styles.stateTitle}
-            id="interactive-demos-state-heading"
-          >
-            Interactive demos
-          </h1>
-          <p className={styles.stateMessage}>
-            Sign in to view interactive demos.
-          </p>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>
-            Sign in
-          </a>
-        </section>
+          description="Sign in to view interactive demos."
+          title="Interactive demos"
+          titleAs="h1"
+          tone="forbidden"
+        />
       </PortalShell>
     );
   }
@@ -167,18 +155,13 @@ export const ProjectInteractiveDemoListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section
+        <StatusPanel
           className={styles.state}
-          aria-labelledby="interactive-demos-state-heading"
-        >
-          <h1
-            className={styles.stateTitle}
-            id="interactive-demos-state-heading"
-          >
-            Interactive demos
-          </h1>
-          <p className={styles.stateMessage}>Project was not found.</p>
-        </section>
+          description="Project was not found."
+          title="Interactive demos"
+          titleAs="h1"
+          tone="not-found"
+        />
       </PortalShell>
     );
   }
@@ -192,26 +175,21 @@ export const ProjectInteractiveDemoListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section
+        <StatusPanel
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Retry
+            </Button>
+          }
           className={styles.state}
-          aria-labelledby="interactive-demos-state-heading"
-        >
-          <h1
-            className={styles.stateTitle}
-            id="interactive-demos-state-heading"
-          >
-            Interactive demos
-          </h1>
-          <p className={styles.stateMessage} role="alert">
-            Could not load interactive demos.
-          </p>
-          <Button
-            variant="secondary"
-            onClick={() => setReloadKey((key) => key + 1)}
-          >
-            Retry
-          </Button>
-        </section>
+          description="Could not load interactive demos."
+          title="Interactive demos"
+          titleAs="h1"
+          tone="error"
+        />
       </PortalShell>
     );
   }
@@ -242,17 +220,21 @@ export const ProjectInteractiveDemoListPage = ({
           Project interactive demos
         </h2>
         {state.demos.length === 0 ? (
-          <Card className={styles.empty}>
-            <div>No interactive demos yet.</div>
-            {canWrite ? (
-              <a
-                className={styles.stateLink}
-                href={captureSessionsUrl(projectId, versionSlug)}
-              >
-                Open capture sessions
-              </a>
-            ) : null}
-          </Card>
+          <StatusPanel
+            action={
+              canWrite ? (
+                <a
+                  className={styles.stateLink}
+                  href={captureSessionsUrl(projectId, versionSlug)}
+                >
+                  Open capture sessions
+                </a>
+              ) : undefined
+            }
+            className={styles.empty}
+            title="No interactive demos yet."
+            tone="empty"
+          />
         ) : (
           <div className={styles.list}>
             {state.demos.map((demo) => (

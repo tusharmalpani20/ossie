@@ -3,6 +3,37 @@ import { describe, expect, it, vi } from "vitest";
 import { ApiClientError } from "../../lib/api";
 import { PublicInteractiveDemoViewerPage } from "./PublicInteractiveDemoViewerPage";
 describe("PublicInteractiveDemoViewerPage", () => {
+  it("gives the public viewer an explicit loading state", () => {
+    render(
+      <PublicInteractiveDemoViewerPage
+        slug="link"
+        loadPublishLink={() => new Promise(() => undefined)}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Loading published demo" }),
+    ).toBeInTheDocument();
+  });
+
+  it("offers a clear retry state for a transient viewer failure", async () => {
+    render(
+      <PublicInteractiveDemoViewerPage
+        slug="link"
+        loadPublishLink={async () => {
+          throw new Error("temporary");
+        }}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Published demo could not be loaded.",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+  });
+
   it("renders typed immutable Demo Revision content", async () => {
     render(
       <PublicInteractiveDemoViewerPage
@@ -53,7 +84,9 @@ describe("PublicInteractiveDemoViewerPage", () => {
       />,
     );
 
-    fireEvent.change(await screen.findByLabelText("Publish Link password"), {
+    const passwordInput = await screen.findByLabelText("Publish Link password");
+    expect(passwordInput).toHaveAttribute("autocomplete", "current-password");
+    fireEvent.change(passwordInput, {
       target: { value: "wrong" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
@@ -151,5 +184,47 @@ describe("PublicInteractiveDemoViewerPage", () => {
       await screen.findByRole("heading", { name: "Recovered" }),
     ).toBeVisible();
     expect(loadPublishLink).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears the prior publication while navigating to another public demo", async () => {
+    let releaseSecond: ((value: never) => void) | undefined;
+    const loadPublishLink = vi
+      .fn()
+      .mockResolvedValueOnce({
+        publish_link: { entries: [] },
+        selected_entry: {},
+        canonical_public_url: "/d/first/versions/demo",
+        published_artifact: {
+          artifact_type: "interactive_demo",
+          publication_sequence: 1,
+          revision: { title: "First demo" },
+          demo_scenes: [],
+          capture_assets: [],
+        },
+      })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            releaseSecond = resolve;
+          }),
+      );
+    const { rerender } = render(
+      <PublicInteractiveDemoViewerPage
+        slug="first"
+        loadPublishLink={loadPublishLink}
+      />,
+    );
+    expect(await screen.findByRole("heading", { name: "First demo" })).toBeInTheDocument();
+
+    rerender(
+      <PublicInteractiveDemoViewerPage
+        slug="second"
+        loadPublishLink={loadPublishLink}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { name: "Loading published demo" }),
+    ).toBeInTheDocument();
+    releaseSecond?.({} as never);
   });
 });

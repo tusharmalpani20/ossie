@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DemoHotspotType } from "@repo/constants";
+import { StatusPanel } from "@repo/ui/status-panel";
 import styles from "./InteractiveDemoRenderer.module.css";
 
 export type InteractiveDemoRenderHotspot = {
@@ -136,10 +137,16 @@ export const InteractiveDemoRenderer = ({
 
   if (!scene) {
     return (
-      <section className={styles.viewer} aria-label={title}>
+      <section className={styles.emptyViewer} aria-label={title}>
         {showTitle ? <h1>{title}</h1> : null}
         {showTitle && description ? <p>{description}</p> : null}
-        <p>{emptyMessage}</p>
+        <StatusPanel
+          className={styles.emptyState}
+          tone="empty"
+          title={emptyMessage}
+          description="Published demos need at least one Scene before they can be played."
+          titleAs="h2"
+        />
       </section>
     );
   }
@@ -213,7 +220,9 @@ export const InteractiveDemoRenderer = ({
             onError={() => setFailedBackgroundKey(backgroundKey)}
           />
         ) : (
-          <div className={styles.missing}>Captured screen is unavailable.</div>
+          <div className={styles.missing} role="alert">
+            Captured screen is unavailable.
+          </div>
         )}
         {backgroundAvailable
           ? scene.hotspots.map((hotspot) => (

@@ -38,8 +38,8 @@
 }
 
 .header h1 {
-  font-size: clamp(1.35rem, 2.5vw, 2rem);
-  line-height: 1.15;
+  font-size: var(--ossie-font-size-xl);
+  line-height: var(--ossie-line-height-tight);
 }
 
 .description {
@@ -70,9 +70,14 @@
   display: grid;
   min-height: 100vh;
   place-items: center;
+  gap: var(--ossie-space-5);
   padding: var(--ossie-space-6);
   background: var(--ossie-color-canvas);
   color: var(--ossie-color-text);
+}
+
+.statePanel {
+  width: min(100%, 40rem);
 }
 
 .state form {

@@ -22,7 +22,9 @@ describe("ProjectInteractiveDemoListPage", () => {
         level: 1,
       }),
     ).toBeVisible();
-    expect(screen.getByRole("status")).toHaveTextContent(
+    expect(
+      screen.getByRole("status", { name: "Interactive demos" }),
+    ).toHaveTextContent(
       "Loading interactive demos...",
     );
   });
@@ -76,7 +78,7 @@ describe("ProjectInteractiveDemoListPage", () => {
       ).toBeVisible();
       const messageNode =
         error instanceof Error && !(error instanceof ApiClientError)
-          ? screen.getByRole("alert")
+          ? screen.getByRole("alert", { name: "Interactive demos" })
           : screen.getByText(message);
       expect(messageNode).toHaveTextContent(message);
     },
@@ -182,6 +184,9 @@ describe("ProjectInteractiveDemoListPage", () => {
 
     expect(
       await screen.findByText("No interactive demos yet."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "No interactive demos yet." }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("banner")).not.toBeInTheDocument();
   });

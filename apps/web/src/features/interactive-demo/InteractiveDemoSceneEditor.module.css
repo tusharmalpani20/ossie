@@ -3,7 +3,7 @@
   gap: var(--ossie-space-4);
   padding: var(--ossie-space-5);
   border: 1px solid var(--ossie-color-border);
-  border-radius: var(--ossie-radius-lg);
+  border-radius: var(--ossie-radius-card);
   background: var(--ossie-color-surface);
 }
 

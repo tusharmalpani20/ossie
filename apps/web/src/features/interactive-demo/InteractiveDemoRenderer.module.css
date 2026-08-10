@@ -8,6 +8,16 @@
   background: var(--ossie-color-surface);
 }
 
+.emptyViewer {
+  display: grid;
+  gap: var(--ossie-space-5);
+  min-width: 0;
+}
+
+.emptyState {
+  margin-top: var(--ossie-space-2);
+}
+
 .header,
 .sceneHeader,
 .controls {
@@ -51,8 +61,8 @@
 
 .hotspot {
   position: absolute;
-  min-width: 2px;
-  min-height: 2px;
+  min-width: var(--ossie-target-min);
+  min-height: var(--ossie-target-min);
   border: 2px solid var(--ossie-color-focus);
   background: color-mix(in srgb, var(--ossie-color-accent) 14%, transparent);
   cursor: pointer;

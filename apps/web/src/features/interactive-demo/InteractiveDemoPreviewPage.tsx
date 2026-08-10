@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Button } from "@repo/ui/button";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   getInteractiveDemo,
   listInteractiveDemoHotspots,
@@ -117,15 +119,30 @@ export const InteractiveDemoPreviewPage = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interactiveDemoId, projectId, projectVersionId, reload]);
 
-  if (state.status === "loading") return <p>Loading Working Draft preview…</p>;
+  if (state.status === "loading")
+    return (
+      <StatusPanel
+        className={styles.state}
+        tone="loading"
+        title="Loading Working Draft preview"
+        description="Opening the mutable draft and its Scenes."
+        titleAs="h1"
+      />
+    );
   if (state.status === "error")
     return (
-      <div>
-        <p>Could not load the Working Draft preview.</p>
-        <button type="button" onClick={() => setReload((value) => value + 1)}>
-          Retry
-        </button>
-      </div>
+      <StatusPanel
+        className={styles.state}
+        tone="error"
+        title="Working Draft preview unavailable"
+        description="Could not load the Working Draft preview."
+        action={
+          <Button type="button" onClick={() => setReload((value) => value + 1)}>
+            Try again
+          </Button>
+        }
+        titleAs="h1"
+      />
     );
 
   return (

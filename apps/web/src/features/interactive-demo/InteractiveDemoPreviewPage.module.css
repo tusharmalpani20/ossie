@@ -1,16 +1,21 @@
 .page {
   display: grid;
-  gap: 16px;
+  gap: var(--ossie-space-4);
   min-width: 0;
+}
+
+.state {
+  width: min(100%, 42rem);
+  margin: 0 auto;
 }
 
 .label {
   width: fit-content;
   margin: 0;
-  padding: 4px 8px;
+  padding: var(--ossie-space-1) var(--ossie-space-2);
   border: 1px solid var(--ossie-color-border);
   border-radius: var(--ossie-radius-control);
   color: var(--ossie-color-muted);
-  font-size: 0.8125rem;
+  font-size: var(--ossie-font-size-xs);
   font-weight: 600;
 }

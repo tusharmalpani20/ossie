@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { StatusPanel } from "@repo/ui/status-panel";
 import type { CaptureAssetWithFileUrl } from "@repo/types/capture";
 import {
   archiveInteractiveDemo,
@@ -926,7 +927,13 @@ const InteractiveDemoEditorLoaded = ({
         runAggregateMutation={runAggregateMutation}
       >
         {orderedScenes.length === 0 || !selectedScene ? (
-          <div className={styles.empty}>No scenes yet.</div>
+          <StatusPanel
+            className={styles.empty}
+            tone="empty"
+            title="No scenes yet."
+            description="Add a Scene to begin authoring this Interactive Demo."
+            titleAs="h3"
+          />
         ) : (
           <>
             <nav aria-label="Scene rail" className={styles.sceneRail}>

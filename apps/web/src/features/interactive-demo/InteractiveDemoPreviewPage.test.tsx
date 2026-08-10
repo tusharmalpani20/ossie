@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { InteractiveDemoPreviewPage } from "./InteractiveDemoPreviewPage";
 
 const now = "2026-07-29T00:00:00.000Z";
@@ -62,5 +62,36 @@ describe("InteractiveDemoPreviewPage", () => {
     );
     expect(await screen.findByText("Working Draft preview")).toBeVisible();
     expect(screen.queryByText("Published interactive demo")).toBeNull();
+  });
+
+  it("keeps Working Draft preview failures actionable", async () => {
+    const loadDemo = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(detail);
+    render(
+      <InteractiveDemoPreviewPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        interactiveDemoId="demo_1"
+        loadDemo={loadDemo}
+        loadScenes={async () => ({
+          demo_scenes: [],
+          working_draft: detail.working_draft,
+          background_capture_assets: [],
+        })}
+        loadHotspots={async () => ({
+          demo_hotspots: [],
+          working_draft: detail.working_draft,
+        })}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Working Draft preview unavailable" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(loadDemo).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Working Draft preview")).toBeVisible();
   });
 });
