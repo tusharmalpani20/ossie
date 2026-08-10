@@ -6,6 +6,25 @@
   color: var(--ossie-color-text);
 }
 
+.skipLink {
+  position: absolute;
+  top: var(--ossie-space-3);
+  left: var(--ossie-space-3);
+  z-index: 2;
+  transform: translateY(-180%);
+  padding: var(--ossie-space-2) var(--ossie-space-3);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-text);
+  color: var(--ossie-color-surface);
+  font-weight: 700;
+}
+
+.skipLink:focus-visible {
+  transform: translateY(0);
+  outline: 3px solid var(--ossie-color-focus);
+  outline-offset: 2px;
+}
+
 .page > .header,
 .embed > .header {
   display: flex;
@@ -38,8 +57,8 @@
 }
 
 .header h1 {
-  font-size: clamp(1.5rem, 3vw, 2.25rem);
-  line-height: 1.15;
+  font-size: var(--ossie-font-size-xl);
+  line-height: var(--ossie-line-height-tight);
 }
 
 .description {
@@ -111,23 +130,20 @@
 .empty {
   width: min(100%, 52rem);
   margin: var(--ossie-space-6) auto 0;
-  padding: var(--ossie-space-5);
-  border: 1px dashed var(--ossie-color-border-strong);
-  border-radius: var(--ossie-radius-card);
-  color: var(--ossie-color-muted);
-}
-
-.empty p {
-  margin: 0;
 }
 
 .state {
   display: grid;
   min-height: 100vh;
   place-items: center;
+  gap: var(--ossie-space-5);
   padding: var(--ossie-space-6);
   background: var(--ossie-color-canvas);
   color: var(--ossie-color-text);
+}
+
+.statePanel {
+  width: min(100%, 40rem);
 }
 
 .state form {

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   createProjectCaptureSession,
@@ -282,17 +283,13 @@ export const ProjectCaptureSessionListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section
+        <StatusPanel
           className={styles.state}
-          aria-labelledby="capture-sessions-state-heading"
-        >
-          <h1 className={styles.stateTitle} id="capture-sessions-state-heading">
-            Capture sessions
-          </h1>
-          <p className={styles.stateMessage} role="status">
-            Loading capture sessions...
-          </p>
-        </section>
+          description="Loading capture sessions..."
+          title="Capture sessions"
+          titleAs="h1"
+          tone="loading"
+        />
       </PortalShell>
     );
   }
@@ -306,18 +303,18 @@ export const ProjectCaptureSessionListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section
+        <StatusPanel
+          action={
+            <a className={styles.stateLink} href={signInUrl(currentPath)}>
+              Sign in
+            </a>
+          }
           className={styles.state}
-          aria-labelledby="capture-sessions-state-heading"
-        >
-          <h1 className={styles.stateTitle} id="capture-sessions-state-heading">
-            Capture sessions
-          </h1>
-          <p className={styles.stateMessage}>Sign in to view capture sessions.</p>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>
-            Sign in
-          </a>
-        </section>
+          description="Sign in to view capture sessions."
+          title="Capture sessions"
+          titleAs="h1"
+          tone="forbidden"
+        />
       </PortalShell>
     );
   }
@@ -331,15 +328,13 @@ export const ProjectCaptureSessionListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section
+        <StatusPanel
           className={styles.state}
-          aria-labelledby="capture-sessions-state-heading"
-        >
-          <h1 className={styles.stateTitle} id="capture-sessions-state-heading">
-            Capture sessions
-          </h1>
-          <p className={styles.stateMessage}>Project was not found.</p>
-        </section>
+          description="Project was not found."
+          title="Capture sessions"
+          titleAs="h1"
+          tone="not-found"
+        />
       </PortalShell>
     );
   }
@@ -353,25 +348,23 @@ export const ProjectCaptureSessionListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section
+        <StatusPanel
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Retry
+            </Button>
+          }
           className={styles.state}
-          aria-labelledby="capture-sessions-state-heading"
-        >
-          <h1 className={styles.stateTitle} id="capture-sessions-state-heading">
-            Capture sessions
-          </h1>
-          <p className={styles.stateMessage} role="alert">
-            Could not load capture sessions.
-          </p>
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            onClick={() => setReloadKey((key) => key + 1)}
-          >
-            Retry
-          </Button>
-        </section>
+          description="Could not load capture sessions."
+          title="Capture sessions"
+          titleAs="h1"
+          tone="error"
+        />
       </PortalShell>
     );
   }
@@ -486,7 +479,11 @@ export const ProjectCaptureSessionListPage = ({
             Project capture sessions
           </h2>
           {state.captureSessions.length === 0 ? (
-            <Card className={styles.empty}>No capture sessions yet.</Card>
+            <StatusPanel
+              className={styles.empty}
+              title="No capture sessions yet."
+              tone="empty"
+            />
           ) : (
             <div className={styles.list}>
               {state.captureSessions.map((captureSession) => (

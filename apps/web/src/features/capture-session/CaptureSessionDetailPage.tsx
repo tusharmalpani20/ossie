@@ -6,6 +6,7 @@ import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   createCaptureSessionEvent,
@@ -219,7 +220,12 @@ export const CaptureSessionDetailPage = ({
         navigate={navigate}
         renderShell={renderShell}
       >
-        <div className={styles.state}>Loading capture session...</div>
+        <StatusPanel
+          className={styles.state}
+          tone="loading"
+          title="Loading capture session..."
+          titleAs="h2"
+        />
       </PortalShell>
     );
   }
@@ -233,12 +239,17 @@ export const CaptureSessionDetailPage = ({
         navigate={navigate}
         renderShell={renderShell}
       >
-        <div className={styles.state}>
-          <div>Sign in to view this capture session.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>
-            Sign in
-          </a>
-        </div>
+        <StatusPanel
+          className={styles.state}
+          tone="forbidden"
+          title="Sign in to view this capture session."
+          action={
+            <a className={styles.stateLink} href={signInUrl(currentPath)}>
+              Sign in
+            </a>
+          }
+          titleAs="h2"
+        />
       </PortalShell>
     );
   }
@@ -252,7 +263,12 @@ export const CaptureSessionDetailPage = ({
         navigate={navigate}
         renderShell={renderShell}
       >
-        <div className={styles.state}>Capture session was not found.</div>
+        <StatusPanel
+          className={styles.state}
+          tone="not-found"
+          title="Capture session was not found."
+          titleAs="h2"
+        />
       </PortalShell>
     );
   }
@@ -266,17 +282,22 @@ export const CaptureSessionDetailPage = ({
         navigate={navigate}
         renderShell={renderShell}
       >
-        <div className={styles.state}>
-          <div>Could not load capture session.</div>
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            onClick={() => setReloadKey((key) => key + 1)}
-          >
-            Retry
-          </Button>
-        </div>
+        <StatusPanel
+          className={styles.state}
+          tone="error"
+          title="Could not load capture session."
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Retry
+            </Button>
+          }
+          titleAs="h2"
+        />
       </PortalShell>
     );
   }
@@ -930,7 +951,13 @@ const CaptureSessionDetailView = ({
               </Alert>
             ) : null}
             {detail.capture_events.length === 0 ? (
-              <div className={styles.empty}>No capture events yet.</div>
+              <StatusPanel
+                className={styles.empty}
+                tone="empty"
+                title="No capture events yet."
+                description="Events will appear here as this Capture session records source material."
+                titleAs="h3"
+              />
             ) : (
               <div className={styles.timeline}>
                 {detail.capture_events.map((event, index) => (
@@ -974,7 +1001,13 @@ const CaptureSessionDetailView = ({
               Assets
             </h2>
             {detail.capture_assets.length === 0 ? (
-              <div className={styles.empty}>No capture assets yet.</div>
+              <StatusPanel
+                className={styles.empty}
+                tone="empty"
+                title="No capture assets yet."
+                description="Uploaded screenshots and other source assets will appear here."
+                titleAs="h3"
+              />
             ) : (
               <div className={styles.assets}>
                 {detail.capture_assets.map((asset, index) => (

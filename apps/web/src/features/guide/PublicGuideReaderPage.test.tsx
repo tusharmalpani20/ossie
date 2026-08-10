@@ -3,6 +3,76 @@ import { describe, expect, it, vi } from "vitest";
 import { ApiClientError } from "../../lib/api";
 import { PublicGuideReaderPage } from "./PublicGuideReaderPage";
 describe("PublicGuideReaderPage", () => {
+  it("gives the public reader an explicit loading state", () => {
+    render(
+      <PublicGuideReaderPage
+        slug="link"
+        loadPublishLink={() => new Promise(() => undefined)}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Loading published guide" }),
+    ).toBeInTheDocument();
+  });
+
+  it("explains when the published guide cannot be found", async () => {
+    render(
+      <PublicGuideReaderPage
+        slug="link"
+        loadPublishLink={async () => {
+          throw new ApiClientError({
+            kind: "not_found",
+            status: 404,
+            message: "Not found",
+            type: "publish_link_not_found",
+          });
+        }}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Published guide was not found.",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("region")).toHaveAccessibleName(
+      "Published guide was not found.",
+    );
+  });
+
+  it("offers retry for a transient public reader failure", async () => {
+    const loadPublishLink = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("temporary"))
+      .mockResolvedValue({
+        publish_link: { entries: [] },
+        selected_entry: {},
+        published_artifact: {
+          artifact_type: "guide",
+          publication_sequence: 1,
+          revision: { title: "Recovered guide" },
+          guide_blocks: [],
+          capture_assets: [],
+        },
+        canonical_public_url: "/p/link/versions/docs",
+      } as never);
+    render(
+      <PublicGuideReaderPage slug="link" loadPublishLink={loadPublishLink} />,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Published guide could not be loaded.",
+      }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(
+      await screen.findByRole("heading", { name: "Recovered guide" }),
+    ).toBeInTheDocument();
+    expect(loadPublishLink).toHaveBeenCalledTimes(2);
+  });
+
   it("renders typed immutable Guide Revision content", async () => {
     render(
       <PublicGuideReaderPage
@@ -76,6 +146,34 @@ describe("PublicGuideReaderPage", () => {
     ).toBeVisible();
   });
 
+  it("provides a keyboard skip link to published Guide content", async () => {
+    render(
+      <PublicGuideReaderPage
+        slug="link"
+        loadPublishLink={async () => ({
+          publish_link: { entries: [] } as never,
+          selected_entry: {} as never,
+          published_artifact: {
+            artifact_type: "guide",
+            publication_sequence: 1,
+            revision: { title: "Keyboard guide" } as never,
+            guide_blocks: [],
+            capture_assets: [],
+          },
+          canonical_public_url: "/p/link",
+        })}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("link", { name: "Skip to guide content" }),
+    ).toHaveAttribute("href", "#public-guide-content");
+    expect(document.getElementById("public-guide-content")).toHaveAttribute(
+      "tabindex",
+      "-1",
+    );
+  });
+
   it("keeps the password form available after an invalid password", async () => {
     const createViewerSession = vi.fn().mockRejectedValue(
       new ApiClientError({
@@ -100,7 +198,9 @@ describe("PublicGuideReaderPage", () => {
       />,
     );
 
-    fireEvent.change(await screen.findByLabelText("Publish Link password"), {
+    const passwordInput = await screen.findByLabelText("Publish Link password");
+    expect(passwordInput).toHaveAttribute("autocomplete", "current-password");
+    fireEvent.change(passwordInput, {
       target: { value: "wrong" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));

@@ -11,13 +11,8 @@
 }
 
 .state {
-  max-width: 640px;
-  margin: 80px auto 0;
-  padding: var(--ossie-space-6);
-  border: 1px solid var(--ossie-color-border);
-  border-radius: var(--ossie-radius-card);
-  background: var(--ossie-color-surface);
-  color: var(--ossie-color-muted);
+  width: min(100%, 42rem);
+  margin: 0 auto;
 }
 
 .stateLink {
@@ -49,9 +44,8 @@
 
 .title {
   margin: 0;
-  font-size: clamp(1.75rem, 1.4rem + 1vw, 2.25rem);
-  letter-spacing: -0.025em;
-  line-height: 1.1;
+  font-size: var(--ossie-font-size-xl);
+  line-height: var(--ossie-line-height-tight);
 }
 
 .description {

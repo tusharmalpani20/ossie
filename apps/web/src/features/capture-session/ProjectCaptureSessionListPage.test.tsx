@@ -267,6 +267,9 @@ describe("ProjectCaptureSessionListPage", () => {
       await screen.findByText("No capture sessions yet."),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("region", { name: "No capture sessions yet." }),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole("button", { name: "New Capture Session" }),
     ).toBeInTheDocument();
   });

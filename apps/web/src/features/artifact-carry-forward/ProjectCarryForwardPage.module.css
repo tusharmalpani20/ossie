@@ -3,6 +3,11 @@
   gap: 1rem;
   max-width: 54rem;
 }
+
+.state {
+  width: min(100%, 40rem);
+  margin: var(--ossie-space-4) auto 0;
+}
 .page h1 {
   margin: 0.15rem 0;
 }

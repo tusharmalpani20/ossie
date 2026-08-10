@@ -18,8 +18,8 @@
 .heading h1 {
   margin: var(--ossie-space-1) 0 0;
   color: var(--ossie-color-text);
-  font-size: clamp(1.75rem, 1.4rem + 1vw, 2.25rem);
-  letter-spacing: -0.025em;
+  font-size: var(--ossie-font-size-xl);
+  line-height: var(--ossie-line-height-tight);
 }
 
 .heading p,
@@ -68,11 +68,13 @@
 }
 
 .empty {
-  padding: var(--ossie-space-5);
-  border: 1px dashed var(--ossie-color-border-strong);
-  border-radius: var(--ossie-radius-card);
-  background: var(--ossie-color-surface);
-  color: var(--ossie-color-muted);
+  width: min(100%, 40rem);
+  margin: var(--ossie-space-6) auto 0;
+}
+
+.state {
+  width: min(100%, 40rem);
+  margin: var(--ossie-space-6) auto 0;
 }
 
 @media (max-width: 42rem) {

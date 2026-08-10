@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { InteractiveDemoRevisionPreviewPage } from "./InteractiveDemoRevisionPreviewPage";
 
 const getArtifactRevision = vi.hoisted(() => vi.fn());
@@ -9,6 +9,43 @@ vi.mock("../../lib/api", async (original) => ({
 }));
 
 describe("InteractiveDemoRevisionPreviewPage", () => {
+  beforeEach(() => getArtifactRevision.mockReset());
+
+  it("offers retry when the immutable Demo Revision cannot be loaded", async () => {
+    getArtifactRevision
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({
+        revision: {
+          id: "revision",
+          edition_id: "edition",
+          revision_number: 4,
+          trigger: "carry_forward",
+          title: "Recovered demo",
+          description: null,
+          source_working_draft_version: 8,
+          created_by_id: "user",
+          created_at: "2026-07-19T12:00:00.000Z",
+        },
+        demo_scenes: [],
+        capture_assets: [],
+      });
+
+    render(
+      <InteractiveDemoRevisionPreviewPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        artifactId="demo_1"
+        revisionNumber={4}
+        historyHref="/history"
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Revision unavailable" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByRole("heading", { name: "Recovered demo" })).toBeInTheDocument();
+    expect(getArtifactRevision).toHaveBeenCalledTimes(2);
+  });
+
   it("renders the immutable scene graph returned for the Revision", async () => {
     getArtifactRevision.mockResolvedValue({
       revision: {

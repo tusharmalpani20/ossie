@@ -25,9 +25,8 @@
 .title {
   margin: 0;
   color: var(--foreground);
-  font-size: clamp(1.75rem, 1.4rem + 1vw, 2.25rem);
-  letter-spacing: -0.035em;
-  line-height: 1.1;
+  font-size: var(--ossie-font-size-xl);
+  line-height: var(--ossie-line-height-tight);
   overflow-wrap: anywhere;
 }
 
@@ -160,17 +159,11 @@
 
 .empty,
 .state {
-  padding: 1rem;
-  border: 1px dashed var(--border);
-  border-radius: 0.75rem;
-  background: var(--background);
-  color: var(--muted-foreground);
+  width: min(100%, 40rem);
 }
 
 .state {
-  max-width: 40rem;
-  margin: 4rem auto 0;
-  text-align: center;
+  margin: var(--ossie-space-6) auto 0;
 }
 
 .stateTitle {
@@ -186,9 +179,23 @@
 
 .stateLink {
   display: inline-flex;
-  margin-top: 0.75rem;
-  color: var(--foreground);
+  min-height: var(--ossie-control-height-compact);
+  align-items: center;
+  padding: 0 var(--ossie-space-3);
+  border: 1px solid var(--ossie-color-border-strong);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface);
+  color: var(--ossie-color-text);
   font-weight: 700;
+}
+
+.stateLink:hover {
+  background: var(--ossie-color-action-secondary-hover);
+}
+
+.stateLink:focus-visible {
+  outline: 2px solid var(--ossie-color-focus);
+  outline-offset: 2px;
 }
 
 @media (max-width: 52rem) {

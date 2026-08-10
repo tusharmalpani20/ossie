@@ -19,7 +19,9 @@ describe("ProjectGuideListPage", () => {
     expect(
       screen.getByRole("heading", { name: "Guides", level: 1 }),
     ).toBeVisible();
-    expect(screen.getByRole("status")).toHaveTextContent("Loading guides...");
+    expect(screen.getByRole("status", { name: "Guides" })).toHaveTextContent(
+      "Loading guides...",
+    );
   });
 
   it.each([
@@ -62,7 +64,7 @@ describe("ProjectGuideListPage", () => {
     ).toBeVisible();
     const messageNode =
       error instanceof Error && !(error instanceof ApiClientError)
-        ? screen.getByRole("alert")
+        ? screen.getByRole("alert", { name: "Guides" })
         : screen.getByText(message);
     expect(messageNode).toHaveTextContent(message);
   });
@@ -154,6 +156,9 @@ describe("ProjectGuideListPage", () => {
     );
 
     expect(await screen.findByText("No guides yet.")).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "No guides yet." }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("banner")).not.toBeInTheDocument();
   });
 });

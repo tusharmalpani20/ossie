@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert } from "@repo/ui/alert";
+import { Button } from "@repo/ui/button";
+import { StatusPanel } from "@repo/ui/status-panel";
 import type { InteractiveDemoRevisionDetail } from "@repo/types";
 import { getArtifactRevision } from "../../lib/api";
 import { InteractiveDemoRenderer } from "../interactive-demo/InteractiveDemoRenderer";
@@ -22,6 +24,7 @@ export const InteractiveDemoRevisionPreviewPage = ({
     null,
   );
   const [failed, setFailed] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
   useEffect(() => {
     setFailed(false);
@@ -35,16 +38,32 @@ export const InteractiveDemoRevisionPreviewPage = ({
     })
       .then(setValue)
       .catch(() => setFailed(true));
-  }, [artifactId, projectId, projectVersionId, revisionNumber]);
+  }, [artifactId, projectId, projectVersionId, retryAttempt, revisionNumber]);
 
   if (failed) {
     return (
-      <Alert variant="destructive">
-        Revision was not found or could not be loaded.
-      </Alert>
+      <StatusPanel
+        tone="error"
+        title="Revision unavailable"
+        description="Revision was not found or could not be loaded."
+        action={
+          <Button type="button" onClick={() => setRetryAttempt((value) => value + 1)}>
+            Try again
+          </Button>
+        }
+        titleAs="h1"
+      />
     );
   }
-  if (!value) return <p>Loading immutable Revision…</p>;
+  if (!value)
+    return (
+      <StatusPanel
+        tone="loading"
+        title="Loading immutable Revision"
+        description="Resolving the exact published authoring snapshot."
+        titleAs="h1"
+      />
+    );
   return (
     <article className={styles.page}>
       <Alert>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
 import { Card } from "@repo/ui/card";
+import { StatusPanel } from "@repo/ui/status-panel";
 import type { ArtifactRevisionSummary } from "@repo/types";
 import {
   checkpointArtifactRevision,
@@ -183,9 +184,34 @@ export const ArtifactRevisionHistoryPage = ({
         </Alert>
       ) : null}
       {state === "loading" && items.length === 0 ? (
-        <p>Loading Revision history…</p>
+        <StatusPanel
+          className={styles.state}
+          tone="loading"
+          title="Loading Revision history"
+          description="Retrieving immutable authoring history."
+          titleAs="h2"
+        />
+      ) : state === "error" && items.length === 0 ? (
+        <StatusPanel
+          className={styles.state}
+          tone="error"
+          title="Revision history unavailable"
+          description="Could not load the Revision history. Reload and try again."
+          action={
+            <Button variant="secondary" onClick={() => void load()}>
+              Try again
+            </Button>
+          }
+          titleAs="h2"
+        />
       ) : items.length === 0 ? (
-        <Card className={styles.empty}>No Revisions yet.</Card>
+        <StatusPanel
+          className={styles.empty}
+          tone="empty"
+          title="No Revisions yet."
+          description="Create a checkpoint to preserve the current Working Draft."
+          titleAs="h2"
+        />
       ) : (
         <ol className={styles.list}>
           {items.map((item) => (

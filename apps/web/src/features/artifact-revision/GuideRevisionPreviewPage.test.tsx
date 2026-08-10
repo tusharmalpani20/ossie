@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GuideRevisionPreviewPage } from "./GuideRevisionPreviewPage";
 
 const getArtifactRevision = vi.hoisted(() => vi.fn());
@@ -9,6 +9,43 @@ vi.mock("../../lib/api", async (original) => ({
 }));
 
 describe("GuideRevisionPreviewPage", () => {
+  beforeEach(() => getArtifactRevision.mockReset());
+
+  it("offers retry when the immutable Revision cannot be loaded", async () => {
+    getArtifactRevision
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({
+        revision: {
+          id: "revision",
+          edition_id: "edition",
+          revision_number: 3,
+          trigger: "manual_checkpoint",
+          title: "Recovered guide",
+          description: null,
+          source_working_draft_version: 7,
+          created_by_id: "user",
+          created_at: "2026-07-19T12:00:00.000Z",
+        },
+        guide_blocks: [],
+        capture_assets: [],
+      });
+
+    render(
+      <GuideRevisionPreviewPage
+        projectId="project_1"
+        projectVersionId="version_1"
+        artifactId="guide_1"
+        revisionNumber={3}
+        historyHref="/history"
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Revision unavailable" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByRole("heading", { name: "Recovered guide" })).toBeInTheDocument();
+    expect(getArtifactRevision).toHaveBeenCalledTimes(2);
+  });
+
   it("renders only the immutable Revision response", async () => {
     getArtifactRevision.mockResolvedValue({
       revision: {

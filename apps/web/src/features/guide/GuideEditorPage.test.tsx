@@ -471,7 +471,7 @@ describe("GuideEditorPage", () => {
     );
 
     expect(
-      screen.getByText(
+      await screen.findByText(
         "This screenshot could not be loaded. Highlight editing is unavailable.",
       ),
     ).toBeInTheDocument();

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
-import { Card } from "@repo/ui/card";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   listArtifactPublishLinks,
@@ -213,14 +213,13 @@ export const ProjectGuideListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section className={styles.state} aria-labelledby="guides-state-heading">
-          <h1 className={styles.stateTitle} id="guides-state-heading">
-            Guides
-          </h1>
-          <p className={styles.stateMessage} role="status">
-            Loading guides...
-          </p>
-        </section>
+        <StatusPanel
+          className={styles.state}
+          description="Loading guides..."
+          title="Guides"
+          titleAs="h1"
+          tone="loading"
+        />
       </PortalShell>
     );
   }
@@ -234,15 +233,18 @@ export const ProjectGuideListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section className={styles.state} aria-labelledby="guides-state-heading">
-          <h1 className={styles.stateTitle} id="guides-state-heading">
-            Guides
-          </h1>
-          <p className={styles.stateMessage}>Sign in to view guides.</p>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>
-            Sign in
-          </a>
-        </section>
+        <StatusPanel
+          action={
+            <a className={styles.stateLink} href={signInUrl(currentPath)}>
+              Sign in
+            </a>
+          }
+          className={styles.state}
+          description="Sign in to view guides."
+          title="Guides"
+          titleAs="h1"
+          tone="forbidden"
+        />
       </PortalShell>
     );
   }
@@ -256,12 +258,13 @@ export const ProjectGuideListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section className={styles.state} aria-labelledby="guides-state-heading">
-          <h1 className={styles.stateTitle} id="guides-state-heading">
-            Guides
-          </h1>
-          <p className={styles.stateMessage}>Project was not found.</p>
-        </section>
+        <StatusPanel
+          className={styles.state}
+          description="Project was not found."
+          title="Guides"
+          titleAs="h1"
+          tone="not-found"
+        />
       </PortalShell>
     );
   }
@@ -275,22 +278,23 @@ export const ProjectGuideListPage = ({
         versionSlug={versionSlug}
         renderShell={renderShell}
       >
-        <section className={styles.state} aria-labelledby="guides-state-heading">
-          <h1 className={styles.stateTitle} id="guides-state-heading">
-            Guides
-          </h1>
-          <p className={styles.stateMessage} role="alert">
-            Could not load guides.
-          </p>
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            onClick={() => setReloadKey((key) => key + 1)}
-          >
-            Retry
-          </Button>
-        </section>
+        <StatusPanel
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Retry
+            </Button>
+          }
+          className={styles.state}
+          description="Could not load guides."
+          title="Guides"
+          titleAs="h1"
+          tone="error"
+        />
       </PortalShell>
     );
   }
@@ -331,7 +335,11 @@ export const ProjectGuideListPage = ({
             </span>
           </div>
           {state.guides.length === 0 ? (
-            <Card className={styles.empty}>No guides yet.</Card>
+            <StatusPanel
+              className={styles.empty}
+              title="No guides yet."
+              tone="empty"
+            />
           ) : (
             <div className={styles.list}>
               {state.guides.map((guide) => (

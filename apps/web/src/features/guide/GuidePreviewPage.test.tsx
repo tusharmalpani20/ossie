@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { GuideDetail } from "@repo/types/guide";
 import { GuidePreviewPage } from "./GuidePreviewPage";
@@ -20,5 +20,27 @@ describe("GuidePreviewPage", () => {
     expect(await screen.findByRole("heading", { name: "Relational preview" })).toBeInTheDocument();
     expect(screen.getByText("Relational body")).toBeInTheDocument();
     expect(loadDetail).toHaveBeenCalledWith("project_1", "guide_1");
+  });
+
+  it("keeps a failed preview actionable without losing the route context", async () => {
+    const loadDetail = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(detail);
+    render(
+      <GuidePreviewPage
+        projectId="project_1"
+        projectVersionId="version_2"
+        guideId="guide_1"
+        loadDetail={loadDetail}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Guide preview unavailable" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(loadDetail).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("heading", { name: "Relational preview" })).toBeInTheDocument();
   });
 });

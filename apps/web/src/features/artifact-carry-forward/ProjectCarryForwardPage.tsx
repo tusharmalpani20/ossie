@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
 import { Card } from "@repo/ui/card";
+import { StatusPanel } from "@repo/ui/status-panel";
 import type { ProjectVersion } from "@repo/types/project-version";
 import {
   ApiClientError,
@@ -236,12 +237,23 @@ export const ProjectCarryForwardPage = ({
         </select>
       </label>
 
-      {state === "loading" ? <p>Loading source Editions…</p> : null}
+      {state === "loading" ? (
+        <StatusPanel
+          className={styles.state}
+          tone="loading"
+          title="Loading source Editions"
+          description="Checking the selected Project Version for carry-forward candidates."
+          titleAs="h2"
+        />
+      ) : null}
       {sourceId && state !== "loading" && choices.length === 0 ? (
-        <Card className={styles.choice}>
-          This Project Version has no Guide or Interactive Demo Editions to
-          carry forward.
-        </Card>
+        <StatusPanel
+          className={styles.state}
+          tone="empty"
+          title="No Editions to carry forward."
+          description="This Project Version has no Guide or Interactive Demo Editions to carry forward."
+          titleAs="h2"
+        />
       ) : null}
       <div className={styles.list}>
         {choices.map((choice) => {

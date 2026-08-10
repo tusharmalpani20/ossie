@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button, buttonVariants } from "@repo/ui/button";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   exportGuideMarkdown,
@@ -120,6 +121,7 @@ export const GuidePreviewPage = ({
   versionSlug,
 }: GuidePreviewPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -140,31 +142,64 @@ export const GuidePreviewPage = ({
     return () => {
       active = false;
     };
-    // Route identity intentionally controls refetching; the injected loader may be an inline test adapter.
+    // Route identity and retry intentionally control refetching; the injected loader may be an inline test adapter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, projectVersionId, guideId]);
+  }, [projectId, projectVersionId, guideId, retry]);
 
   if (state.status === "loading") {
-    return <div className={styles.state}>Loading guide preview...</div>;
-  }
-
-  if (state.status === "unauthenticated") {
     return (
-      <div className={styles.state}>
-        <div>Sign in to preview this guide.</div>
-        <a className={styles.stateLink} href={signInUrl(currentPath)}>
-          Sign in
-        </a>
-      </div>
+      <StatusPanel
+        className={styles.state}
+        tone="loading"
+        title="Loading guide preview"
+        description="Checking the selected Guide and its Project Version."
+        titleAs="h1"
+      />
     );
   }
 
+  if (state.status === "unauthenticated") {
+    return <StatusPanel
+      className={styles.state}
+      tone="forbidden"
+      title="Sign in to preview this guide"
+      description="Your session is not authorized to open this Guide."
+      action={
+        <a className={buttonVariants({ variant: "secondary" })} href={signInUrl(currentPath)}>
+          Sign in
+        </a>
+      }
+      titleAs="h1"
+    />;
+  }
+
   if (state.status === "not_found") {
-    return <div className={styles.state}>Guide was not found.</div>;
+    return (
+      <StatusPanel
+        className={styles.state}
+        tone="not-found"
+        title="Guide was not found"
+        description="The Guide may have been removed or is outside this Project Version."
+        titleAs="h1"
+      />
+    );
   }
 
   if (state.status === "error") {
-    return <div className={styles.state}>Could not load guide preview.</div>;
+    return (
+      <StatusPanel
+        className={styles.state}
+        tone="error"
+        title="Guide preview unavailable"
+        description="Could not load guide preview."
+        action={
+          <Button type="button" onClick={() => setRetry((value) => value + 1)}>
+            Try again
+          </Button>
+        }
+        titleAs="h1"
+      />
+    );
   }
 
   return (

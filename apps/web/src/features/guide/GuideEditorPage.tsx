@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@repo/ui/button";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   archiveGuide,
@@ -827,32 +828,56 @@ export const GuideEditorPage = ({
   };
 
   if (state.status === "loading") {
-    return <div className={styles.state}>Loading guide...</div>;
+    return (
+      <StatusPanel
+        className={styles.state}
+        tone="loading"
+        title="Loading guide..."
+        titleAs="h2"
+      />
+    );
   }
 
   if (state.status === "unauthenticated") {
     return (
-      <div className={styles.state}>
-        <div>Sign in to edit this guide.</div>
-        <a className={styles.stateLink} href={signInUrl(currentPath)}>
-          Sign in
-        </a>
-      </div>
+      <StatusPanel
+        className={styles.state}
+        tone="forbidden"
+        title="Sign in to edit this guide."
+        action={
+          <a className={styles.stateLink} href={signInUrl(currentPath)}>
+            Sign in
+          </a>
+        }
+        titleAs="h2"
+      />
     );
   }
 
   if (state.status === "not_found") {
-    return <div className={styles.state}>Guide was not found.</div>;
+    return (
+      <StatusPanel
+        className={styles.state}
+        tone="not-found"
+        title="Guide was not found."
+        titleAs="h2"
+      />
+    );
   }
 
   if (state.status === "error") {
     return (
-      <div className={styles.state}>
-        <div>Could not load guide.</div>
-        <Button variant="secondary" onClick={reload}>
-          Retry
-        </Button>
-      </div>
+      <StatusPanel
+        className={styles.state}
+        tone="error"
+        title="Could not load guide."
+        action={
+          <Button variant="secondary" onClick={reload}>
+            Retry
+          </Button>
+        }
+        titleAs="h2"
+      />
     );
   }
 
