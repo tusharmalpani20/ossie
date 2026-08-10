@@ -99,6 +99,7 @@ describe("shared UI primitives", () => {
     expect(screen.getByText("Needs attention").className).toContain(
       "bg-[var(--ossie-color-danger-subtle)]",
     );
+    expect(screen.getByRole("alert")).toHaveTextContent("Needs attention");
     expect(screen.getByText("Choose a tab to continue.").className).toContain(
       "bg-[var(--ossie-color-warning-subtle)]",
     );

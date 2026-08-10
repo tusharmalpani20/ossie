@@ -20,5 +20,7 @@ describe("semantic Ossie token aliases", () => {
     expect(tokenSource).toContain("--ossie-color-danger-subtle:");
     expect(tokenSource).toContain("--ossie-shadow-control:");
     expect(tokenSource).toContain("--ossie-control-height:");
+    expect(tokenSource).toContain("--ossie-space-8:");
+    expect(tokenSource).toContain("--ossie-target-min:");
   });
 });

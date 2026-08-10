@@ -29,7 +29,12 @@ export type AlertProps = HTMLAttributes<HTMLDivElement> &
 
 export const Alert = forwardRef<HTMLDivElement, AlertProps>(
   ({ className, variant, ...props }, ref) => (
-    <div ref={ref} className={cn(alertVariants({ variant }), className)} role="status" {...props} />
+    <div
+      ref={ref}
+      className={cn(alertVariants({ variant }), className)}
+      role={variant === "destructive" ? "alert" : "status"}
+      {...props}
+    />
   )
 );
 
