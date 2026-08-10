@@ -9,6 +9,7 @@ import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { StatusPanel } from "@repo/ui/status-panel";
 import type { Project } from "@repo/types/project";
 import type {
   ProjectVersion,
@@ -142,16 +143,25 @@ export const ProjectVersionManagementSection = ({
   };
   if (status === "loading")
     return (
-      <Card id="project-versions" className={styles.panel}>
-        Loading Project Versions...
-      </Card>
+      <div id="project-versions" className={styles.statePanel}>
+        <StatusPanel
+          tone="loading"
+          title="Loading Project Versions"
+          description="Checking the available release contexts."
+          titleAs="h2"
+        />
+      </div>
     );
   if (status === "error")
     return (
-      <Card id="project-versions" className={styles.panel}>
-        <Alert variant="destructive">Could not load Project Versions.</Alert>
-        <Button onClick={load}>Retry</Button>
-      </Card>
+      <div id="project-versions" className={styles.statePanel}>
+        <StatusPanel
+          tone="error"
+          title="Could not load Project Versions."
+          action={<Button onClick={load}>Retry</Button>}
+          titleAs="h2"
+        />
+      </div>
     );
   return (
     <Card

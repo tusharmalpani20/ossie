@@ -3,6 +3,7 @@ import type { ProjectActivityResponse } from "@repo/types/project-activity";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent } from "@repo/ui/card";
+import { StatusPanel, type StatusPanelTone } from "@repo/ui/status-panel";
 import { ApiClientError, listProjectActivity } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalAppShell } from "../portal/PortalAppShell";
@@ -85,31 +86,52 @@ export const ProjectActivityTimelinePage = ({
         </a>
       </header>
       {state.status === "loading" ? (
-        <Message>Loading Project activity…</Message>
+        <Message
+          tone="loading"
+          title="Loading Project activity"
+          description="Retrieving curated history for this Project."
+        />
       ) : state.status === "unauthenticated" ? (
-        <Message>
-          Sign in to view Project activity.{" "}
-          <a href={signInUrl(currentPath)}>Sign in</a>
-        </Message>
+        <Message
+          tone="forbidden"
+          title="Sign in to view Project activity"
+          description={
+            <>
+              Your session is required to view this Project’s history.{" "}
+              <a href={signInUrl(currentPath)}>Sign in</a>
+            </>
+          }
+        />
       ) : state.status === "forbidden" ? (
-        <Message>Your Project role cannot view Activity.</Message>
+        <Message
+          tone="forbidden"
+          title="Activity is unavailable"
+          description="Your Project role cannot view Activity."
+        />
       ) : state.status === "not_found" ? (
-        <Message>Project was not found.</Message>
+        <Message tone="not-found" title="Project was not found." />
       ) : state.status === "error" ? (
-        <Message>
-          Could not load Project activity.{" "}
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => setReload((value) => value + 1)}
-          >
-            Retry
-          </Button>
-        </Message>
+        <Message
+          tone="error"
+          title="Could not load Project activity"
+          action={
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setReload((value) => value + 1)}
+            >
+              Retry
+            </Button>
+          }
+        />
       ) : (
         <>
           {state.response.events.length === 0 ? (
-            <Message>No Project activity yet.</Message>
+            <Message
+              tone="empty"
+              title="No Project activity yet"
+              description="Curated history will appear here as Project work is recorded."
+            />
           ) : (
             <ol className={styles.timeline} aria-label="Project activity">
               {state.response.events.map((event) => (
@@ -140,7 +162,9 @@ export const ProjectActivityTimelinePage = ({
           )}
           {state.response.page.has_more ? (
             <div>
-              {pageError ? <span>Could not load more Activity.</span> : null}
+              {pageError ? (
+                <span role="alert">Could not load more Activity.</span>
+              ) : null}
               <Button
                 variant="secondary"
                 disabled={loadingMore}
@@ -155,8 +179,25 @@ export const ProjectActivityTimelinePage = ({
     </Shell>
   );
 };
-const Message = ({ children }: { children: ReactNode }) => (
-  <div className={styles.state}>{children}</div>
+const Message = ({
+  tone,
+  title,
+  description,
+  action,
+}: {
+  tone: StatusPanelTone;
+  title: string;
+  description?: ReactNode;
+  action?: ReactNode;
+}) => (
+  <StatusPanel
+    className={styles.state}
+    tone={tone}
+    title={title}
+    description={description}
+    action={action}
+    titleAs="h2"
+  />
 );
 const Shell = ({
   children,

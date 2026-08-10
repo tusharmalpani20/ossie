@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card } from "@repo/ui/card";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   getProject,
@@ -118,14 +119,13 @@ export const ProjectWorkspacePage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <section className={styles.state} aria-labelledby="projects-loading-heading">
-          <h1 className={styles.stateTitle} id="projects-loading-heading">
-            Projects
-          </h1>
-          <p className={styles.stateMessage} role="status">
-            Loading project...
-          </p>
-        </section>
+        <StatusPanel
+          className={styles.state}
+          description="Loading project..."
+          title="Projects"
+          titleAs="h1"
+          tone="loading"
+        />
       </PortalShell>
     );
   }
@@ -137,15 +137,18 @@ export const ProjectWorkspacePage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <section className={styles.state} aria-labelledby="projects-access-heading">
-          <h1 className={styles.stateTitle} id="projects-access-heading">
-            Projects
-          </h1>
-          <p className={styles.stateMessage}>Sign in to view this project.</p>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>
-            Sign in
-          </a>
-        </section>
+        <StatusPanel
+          action={
+            <a className={styles.stateLink} href={signInUrl(currentPath)}>
+              Sign in
+            </a>
+          }
+          className={styles.state}
+          description="Sign in to view this project."
+          title="Projects"
+          titleAs="h1"
+          tone="forbidden"
+        />
       </PortalShell>
     );
   }
@@ -157,12 +160,13 @@ export const ProjectWorkspacePage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <section className={styles.state} aria-labelledby="projects-not-found-heading">
-          <h1 className={styles.stateTitle} id="projects-not-found-heading">
-            Projects
-          </h1>
-          <p className={styles.stateMessage}>Project was not found.</p>
-        </section>
+        <StatusPanel
+          className={styles.state}
+          description="Project was not found."
+          title="Projects"
+          titleAs="h1"
+          tone="not-found"
+        />
       </PortalShell>
     );
   }
@@ -174,22 +178,23 @@ export const ProjectWorkspacePage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <section className={styles.state} aria-labelledby="projects-error-heading">
-          <h1 className={styles.stateTitle} id="projects-error-heading">
-            Projects
-          </h1>
-          <p className={styles.stateMessage} role="alert">
-            Could not load project.
-          </p>
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            onClick={() => setReloadKey((key) => key + 1)}
-          >
-            Retry
-          </Button>
-        </section>
+        <StatusPanel
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Retry
+            </Button>
+          }
+          className={styles.state}
+          description="Could not load project."
+          title="Projects"
+          titleAs="h1"
+          tone="error"
+        />
       </PortalShell>
     );
   }
@@ -231,7 +236,7 @@ export const ProjectWorkspacePage = ({
           </div>
         </div>
         {state.project.access.role === "project_admin" ? (
-          <div>
+          <div className={styles.headerActions}>
             <a className={styles.settingsLink} href={settingsUrl(projectId)}>
               Project settings
             </a>

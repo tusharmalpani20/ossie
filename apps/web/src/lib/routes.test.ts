@@ -156,6 +156,11 @@ describe("parsePortalRoute", () => {
       versionSlug: "v2",
       pagePath: "getting-started/install",
     });
+    expect(parsePortalRoute("/docs/public-docs/embed")).toEqual({
+      type: "public_documentation_reader",
+      slug: "public-docs",
+      pagePath: "embed",
+    });
   });
 
   it("parses Project Version Carry-Forward and immutable Revision routes", () => {

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   createProject,
@@ -103,10 +104,18 @@ const openProject = (project: Project, navigate?: (path: string) => void) => {
   window.location.assign(path);
 };
 
-const emptyProjectListMessage = (statusFilter: "active" | "archived") =>
+const emptyProjectListCopy = (statusFilter: "active" | "archived") =>
   statusFilter === "active"
-    ? "No active Projects yet. Create a Project to start capturing governed product knowledge."
-    : "No archived Projects. Archived Projects remain directly linkable and can be restored from settings.";
+    ? {
+        title: "No active Projects yet",
+        description:
+          "Create a Project to start capturing governed product knowledge.",
+      }
+    : {
+        title: "No archived Projects",
+        description:
+          "Archived Projects remain directly linkable and can be restored from settings.",
+      };
 
 /** Renders the portal Project list and create form. */
 export const ProjectListPage = ({
@@ -212,14 +221,13 @@ export const ProjectListPage = ({
   if (state.status === "loading") {
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
-        <section className={styles.state} aria-labelledby="projects-loading-heading">
-          <h1 className={styles.stateTitle} id="projects-loading-heading">
-            Projects
-          </h1>
-          <p className={styles.stateMessage} role="status">
-            Loading projects...
-          </p>
-        </section>
+        <StatusPanel
+          className={styles.state}
+          description="Loading projects..."
+          title="Projects"
+          titleAs="h1"
+          tone="loading"
+        />
       </PortalShell>
     );
   }
@@ -227,15 +235,18 @@ export const ProjectListPage = ({
   if (state.status === "unauthenticated") {
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
-        <section className={styles.state} aria-labelledby="projects-access-heading">
-          <h1 className={styles.stateTitle} id="projects-access-heading">
-            Projects
-          </h1>
-          <p className={styles.stateMessage}>Sign in to view projects.</p>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>
-            Sign in
-          </a>
-        </section>
+        <StatusPanel
+          action={
+            <a className={styles.stateLink} href={signInUrl(currentPath)}>
+              Sign in
+            </a>
+          }
+          className={styles.state}
+          description="Sign in to view projects."
+          title="Projects"
+          titleAs="h1"
+          tone="forbidden"
+        />
       </PortalShell>
     );
   }
@@ -243,25 +254,28 @@ export const ProjectListPage = ({
   if (state.status === "error") {
     return (
       <PortalShell performLogout={performLogout} navigate={navigate}>
-        <section className={styles.state} aria-labelledby="projects-error-heading">
-          <h1 className={styles.stateTitle} id="projects-error-heading">
-            Projects
-          </h1>
-          <p className={styles.stateMessage} role="alert">
-            Could not load projects.
-          </p>
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            onClick={() => setReloadKey((key) => key + 1)}
-          >
-            Retry
-          </Button>
-        </section>
+        <StatusPanel
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Retry
+            </Button>
+          }
+          className={styles.state}
+          description="Could not load projects."
+          title="Projects"
+          titleAs="h1"
+          tone="error"
+        />
       </PortalShell>
     );
   }
+
+  const emptyCopy = emptyProjectListCopy(statusFilter);
 
   return (
     <PortalShell performLogout={performLogout} navigate={navigate}>
@@ -363,9 +377,12 @@ export const ProjectListPage = ({
           </label>
         </div>
         {state.projects.length === 0 ? (
-          <Card className={styles.empty}>
-            {emptyProjectListMessage(statusFilter)}
-          </Card>
+          <StatusPanel
+            className={styles.empty}
+            description={emptyCopy.description}
+            title={emptyCopy.title}
+            tone="empty"
+          />
         ) : (
           <div className={styles.projects}>
             {state.projects.map((project) => (

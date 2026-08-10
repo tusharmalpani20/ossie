@@ -181,10 +181,16 @@ describe("ProjectListPage", () => {
       loadProjects: async () => ({ projects: [] }),
     });
 
+    expect(await screen.findByText("No active Projects yet")).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        "No active Projects yet. Create a Project to start capturing governed product knowledge.",
+      screen.getByText(
+        "Create a Project to start capturing governed product knowledge.",
       ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", {
+        name: "No active Projects yet",
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "New Project" }),
@@ -435,6 +441,7 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByText("Sign in to view projects."),
     ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Projects" })).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Projects", level: 1 }),
     ).toBeVisible();
@@ -455,6 +462,7 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByText("Could not load projects."),
     ).toBeInTheDocument();
+    expect(screen.getByRole("alert", { name: "Projects" })).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Projects", level: 1 }),
     ).toBeVisible();

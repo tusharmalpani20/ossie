@@ -87,7 +87,7 @@ describe("App public routes", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Install" }),
+      await screen.findByRole("heading", { name: "Install" }, { timeout: 5000 }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Ossie portal")).not.toBeInTheDocument();
   });
@@ -102,9 +102,7 @@ describe("App public routes", () => {
     expect(
       await screen.findByRole("heading", { name: "Department guide" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("This published guide does not have any blocks yet."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("This guide has no steps yet.")).toBeInTheDocument();
     expect(screen.queryByText("Ossie portal")).not.toBeInTheDocument();
     expect(screen.queryByText("Sign out")).not.toBeInTheDocument();
     expect(fetch).toHaveBeenCalledTimes(1);

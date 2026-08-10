@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   getProject,
@@ -263,7 +264,13 @@ export const ProjectSettingsPage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <div className={styles.state}>Loading project settings...</div>
+        <StatusPanel
+          className={styles.state}
+          tone="loading"
+          title="Loading project settings"
+          description="Loading project settings..."
+          titleAs="h1"
+        />
       </PortalShell>
     );
   }
@@ -275,12 +282,16 @@ export const ProjectSettingsPage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <div className={styles.state}>
-          <div>Sign in to manage this project.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>
-            Sign in
-          </a>
-        </div>
+        <StatusPanel
+          className={styles.state}
+          tone="forbidden"
+          title="Project settings"
+          description="Sign in to manage this project."
+          action={
+            <a href={signInUrl(currentPath)}>Sign in</a>
+          }
+          titleAs="h1"
+        />
       </PortalShell>
     );
   }
@@ -292,7 +303,12 @@ export const ProjectSettingsPage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <div className={styles.state}>Project was not found.</div>
+        <StatusPanel
+          className={styles.state}
+          tone="not-found"
+          title="Project was not found."
+          titleAs="h1"
+        />
       </PortalShell>
     );
   }
@@ -304,17 +320,23 @@ export const ProjectSettingsPage = ({
         performLogout={performLogout}
         navigate={navigate}
       >
-        <div className={styles.state}>
-          <div>Could not load project settings.</div>
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            onClick={() => setReloadKey((key) => key + 1)}
-          >
-            Retry
-          </Button>
-        </div>
+        <StatusPanel
+          className={styles.state}
+          tone="error"
+          title="Project settings"
+          description="Could not load project settings."
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Retry
+            </Button>
+          }
+          titleAs="h1"
+        />
       </PortalShell>
     );
   }
@@ -336,10 +358,13 @@ export const ProjectSettingsPage = ({
             Back to workspace
           </a>
         </section>
-        <div className={styles.state}>
-          Your {projectRoleLabel(project)} role can view Project content but
-          cannot manage settings.
-        </div>
+        <StatusPanel
+          className={styles.state}
+          tone="forbidden"
+          title="Settings are read-only"
+          description={`Your ${projectRoleLabel(project)} role can view Project content but cannot manage settings.`}
+          titleAs="h2"
+        />
       </PortalShell>
     );
   }

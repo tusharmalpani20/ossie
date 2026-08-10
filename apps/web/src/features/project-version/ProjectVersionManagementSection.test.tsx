@@ -26,6 +26,15 @@ const version = {
 const project = { id: "project_1", status: "active", version: 1 } as never;
 
 describe("ProjectVersionManagementSection", () => {
+  it("announces the initial Project Version load", () => {
+    api.listProjectVersions.mockReturnValue(new Promise(() => undefined));
+    render(<ProjectVersionManagementSection project={project} />);
+
+    expect(
+      screen.getByRole("heading", { name: "Loading Project Versions" }),
+    ).toBeInTheDocument();
+  });
+
   it("creates a Version while preserving optional null fields", async () => {
     api.listProjectVersions.mockResolvedValue({ project_versions: [version] });
     api.getProjectVersion.mockResolvedValue({

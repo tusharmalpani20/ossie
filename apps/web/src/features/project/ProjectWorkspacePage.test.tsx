@@ -64,7 +64,7 @@ describe("ProjectWorkspacePage", () => {
     expect(
       screen.getByRole("heading", { name: "Projects", level: 1 }),
     ).toBeVisible();
-    expect(screen.getByRole("status")).toHaveTextContent(
+    expect(screen.getByRole("status", { name: "Projects" })).toHaveTextContent(
       "Loading project...",
     );
     expect(
@@ -225,6 +225,7 @@ describe("ProjectWorkspacePage", () => {
     expect(
       screen.getByRole("heading", { name: "Projects", level: 1 }),
     ).toBeVisible();
+    expect(screen.getByRole("region", { name: "Projects" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/login?next=%2Fprojects%2Fproject_1%3Ftab%3Doverview",
@@ -251,6 +252,7 @@ describe("ProjectWorkspacePage", () => {
     expect(
       screen.getByRole("heading", { name: "Projects", level: 1 }),
     ).toBeVisible();
+    expect(screen.getByRole("region", { name: "Projects" })).toBeInTheDocument();
   });
 
   it("signs out from the project workspace", async () => {
@@ -301,7 +303,7 @@ describe("ProjectWorkspacePage", () => {
     expect(
       screen.getByRole("heading", { name: "Projects", level: 1 }),
     ).toBeVisible();
-    expect(screen.getByRole("alert")).toHaveTextContent(
+    expect(screen.getByRole("alert", { name: "Projects" })).toHaveTextContent(
       "Could not load project.",
     );
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));

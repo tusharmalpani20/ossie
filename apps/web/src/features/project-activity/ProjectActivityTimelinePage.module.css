@@ -1,6 +1,40 @@
-.header, .meta { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-.eyebrow { color: var(--muted-foreground); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
-.timeline { list-style: none; padding: 0; display: grid; gap: 1rem; }
-.timeline h2 { font-size: 1.05rem; }
-.state { padding: 2rem; text-align: center; }
-@media (max-width: 40rem) { .header { align-items: flex-start; flex-direction: column; } }
+.header,
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ossie-space-4);
+}
+
+.eyebrow {
+  color: var(--ossie-color-muted);
+  font-size: var(--ossie-font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.timeline {
+  display: grid;
+  gap: var(--ossie-space-4);
+  margin: var(--ossie-space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline h2 {
+  font-size: var(--ossie-font-size-lg);
+  line-height: var(--ossie-line-height-tight);
+}
+
+.state {
+  width: min(100%, 40rem);
+  margin: var(--ossie-space-6) auto 0;
+}
+
+@media (max-width: 40rem) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

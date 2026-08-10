@@ -93,7 +93,11 @@ export const LoginPage = ({
                 onChange={(event) => setPassword(event.target.value)}
               />
             </Label>
-            {error ? <Alert variant="destructive">{error}</Alert> : null}
+            {error ? (
+              <Alert variant="destructive" role="alert">
+                {error}
+              </Alert>
+            ) : null}
             <Button type="submit" disabled={submitting}>
               {submitting ? "Signing in..." : "Sign in"}
             </Button>

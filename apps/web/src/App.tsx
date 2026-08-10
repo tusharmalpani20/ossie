@@ -10,7 +10,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
+import { StatusPanel } from "@repo/ui/status-panel";
+import { Button } from "@repo/ui/button";
 import { OssieBrand } from "./components/OssieBrand";
 import { CaptureSessionDetailPage } from "./features/capture-session/CaptureSessionDetailPage";
 import { ProjectCaptureSessionListPage } from "./features/capture-session/ProjectCaptureSessionListPage";
@@ -29,6 +30,7 @@ import { BrowserExtensionPage } from "./features/extension/BrowserExtensionPage"
 import { ComplianceTimelinePage } from "./features/compliance/ComplianceTimelinePage";
 import { ProjectListPage } from "./features/project/ProjectListPage";
 import { ProjectSettingsPage } from "./features/project/ProjectSettingsPage";
+import { ProjectWorkspacePage } from "./features/project/ProjectWorkspacePage";
 import { ProjectVersionRouteBoundary } from "./features/project-version/ProjectVersionRouteBoundary";
 import { projectVersionWorkspaceUrl } from "./features/project-version/ProjectVersionContextBar";
 import { ProjectActivityTimelinePage } from "./features/project-activity/ProjectActivityTimelinePage";
@@ -113,9 +115,15 @@ const DocumentationSuspense = ({ children }: { children: ReactNode }) => (
   <DocumentationRouteErrorBoundary>
     <Suspense
       fallback={
-        <main className={styles.main} aria-busy="true">
-          Loading Documentation…
-        </main>
+        <div className={styles.main}>
+          <StatusPanel
+            className={styles.statePanel}
+            tone="loading"
+            title="Loading Documentation"
+            description="Opening the Documentation workspace."
+            titleAs="h1"
+          />
+        </div>
       }
     >
       {children}
@@ -136,12 +144,20 @@ class DocumentationRouteErrorBoundary extends Component<
   render() {
     if (this.state.failed)
       return (
-        <main className={styles.main} role="alert">
-          <p>The Documentation interface could not be loaded.</p>
-          <button type="button" onClick={() => window.location.reload()}>
-            Retry Documentation
-          </button>
-        </main>
+        <div className={styles.main}>
+          <StatusPanel
+            className={styles.statePanel}
+            tone="error"
+            title="Documentation could not be loaded."
+            description="The Documentation interface is unavailable right now."
+            action={
+              <Button type="button" onClick={() => window.location.reload()}>
+                Retry Documentation
+              </Button>
+            }
+            titleAs="h1"
+          />
+        </div>
       );
     return this.props.children;
   }
@@ -198,11 +214,14 @@ const LegacyProjectRedirect = ({
   ) => React.ReactNode;
 }) => {
   const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [project, setProject] = useState<
     import("@repo/types/project").Project | null
   >(null);
   useEffect(() => {
     let active = true;
+    setFailed(false);
+    setProject(null);
     getProject(projectId)
       .then(({ project }) => {
         if (!active) return;
@@ -216,7 +235,7 @@ const LegacyProjectRedirect = ({
     return () => {
       active = false;
     };
-  }, [projectId, suffix]);
+  }, [projectId, retry, suffix]);
   if (project)
     return children ? (
       children(project)
@@ -228,23 +247,29 @@ const LegacyProjectRedirect = ({
     );
   return (
     <div className={styles.page}>
-      <main
-        className={styles.main}
-        aria-labelledby={
-          failed ? "project-redirect-error" : "project-redirect-loading"
-        }
-      >
-        <h1
-          className={styles.title}
-          id={failed ? "project-redirect-error" : "project-redirect-loading"}
-        >
-          {failed ? "Project not found" : "Opening Project"}
-        </h1>
-        <p role={failed ? "alert" : "status"}>
-          {failed
-            ? "Project was not found."
-            : "Opening the Default Project Version..."}
-        </p>
+      <main className={styles.main}>
+        {failed ? (
+          <StatusPanel
+            className={styles.statePanel}
+            tone="not-found"
+            title="Project not found"
+            description="Project was not found."
+            action={
+              <Button type="button" onClick={() => setRetry((value) => value + 1)}>
+                Try again
+              </Button>
+            }
+            titleAs="h1"
+          />
+        ) : (
+          <StatusPanel
+            className={styles.statePanel}
+            tone="loading"
+            title="Opening Project"
+            description="Opening the Default Project Version."
+            titleAs="h1"
+          />
+        )}
       </main>
     </div>
   );
@@ -258,6 +283,7 @@ export default function App() {
   const [setupGateState, setSetupGateState] = useState<SetupGateState>(
     setupCheckRequired ? "checking" : "ready",
   );
+  const [setupRetryAttempt, setSetupRetryAttempt] = useState(0);
   const documentTitle = portalDocumentTitle(route);
 
   useEffect(() => {
@@ -294,7 +320,12 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [backgroundSetupCheckRequired, currentPath, route.type]);
+  }, [
+    backgroundSetupCheckRequired,
+    currentPath,
+    route.type,
+    setupRetryAttempt,
+  ]);
 
   if (setupGateState === "setup_required") {
     return <FirstRunSetupPage />;
@@ -382,14 +413,13 @@ export default function App() {
           </a>
         </header>
         <main className={styles.main}>
-          <Card className={styles.emptyState}>
-            <CardHeader>
-              <CardTitle className={styles.title}>Loading portal...</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Checking workspace readiness.</p>
-            </CardContent>
-          </Card>
+          <StatusPanel
+            className={styles.emptyState}
+            description="Checking workspace readiness."
+            title="Loading portal"
+            tone="loading"
+            titleAs="h1"
+          />
         </main>
       </div>
     );
@@ -404,16 +434,21 @@ export default function App() {
           </a>
         </header>
         <main className={styles.main}>
-          <Card className={styles.emptyState}>
-            <CardHeader>
-              <CardTitle className={styles.title}>
-                Setup status unavailable
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Could not load instance setup status.</p>
-            </CardContent>
-          </Card>
+          <StatusPanel
+            className={styles.emptyState}
+            description="Could not load instance setup status."
+            title="Setup status unavailable"
+            tone="error"
+            action={
+              <Button
+                type="button"
+                onClick={() => setSetupRetryAttempt((value) => value + 1)}
+              >
+                Try again
+              </Button>
+            }
+            titleAs="h1"
+          />
         </main>
       </div>
     );
@@ -437,22 +472,21 @@ export default function App() {
 
   if (route.type === "organization_documentation") {
     return (
-      <Suspense
-        fallback={
-          <main className={styles.main} aria-busy="true">
-            Loading Documentation operations…
-          </main>
-        }
-      >
+      <DocumentationSuspense>
         <LazyOrganizationDocumentationOperationsPage
           currentPath={currentPath}
         />
-      </Suspense>
+      </DocumentationSuspense>
     );
   }
 
   if (route.type === "project_workspace") {
-    return <LegacyProjectRedirect projectId={route.projectId} />;
+    return (
+      <ProjectWorkspacePage
+        projectId={route.projectId}
+        currentPath={currentPath}
+      />
+    );
   }
 
   if (route.type === "project_version_workspace") {
@@ -1189,22 +1223,23 @@ export default function App() {
         </a>
       </header>
       <main aria-label="Page not found workspace" className={styles.main}>
-        <Card className={styles.emptyState}>
-          <CardHeader>
-            <h1 className={styles.title}>Page not found</h1>
-          </CardHeader>
-          <CardContent>
-            <p>The route you opened is not part of the Ossie portal.</p>
-            <div className={styles.recoveryActions}>
+        <StatusPanel
+          action={
+            <>
               <a className={styles.recoveryPrimary} href="/projects">
                 Open Projects
               </a>
               <a className={styles.recoverySecondary} href="/login">
                 Sign in
               </a>
-            </div>
-          </CardContent>
-        </Card>
+            </>
+          }
+          className={styles.emptyState}
+          description="The route you opened is not part of the Ossie portal."
+          title="Page not found"
+          titleAs="h1"
+          tone="not-found"
+        />
       </main>
     </div>
   );

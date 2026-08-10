@@ -1,60 +1,50 @@
 .page {
   min-height: 100vh;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--ossie-color-background);
+  color: var(--ossie-color-text);
 }
 
 .topbar {
   display: flex;
   align-items: center;
   min-height: 64px;
-  padding: 0 28px;
-  border-bottom: 1px solid #e2e8f0;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(10px);
+  padding: 0 var(--ossie-space-6);
+  border-bottom: 1px solid var(--ossie-color-border);
+  background: var(--ossie-color-surface);
 }
 
 .brand {
-  color: #0f172a;
-  font-size: 16px;
+  color: var(--ossie-color-text);
+  font-size: var(--ossie-font-size-md);
   font-weight: 800;
   text-decoration: none;
 }
 
 .brand:hover {
-  color: #334155;
+  color: var(--ossie-color-muted);
 }
 
 .main {
   display: grid;
   place-items: center;
   min-height: calc(100vh - 64px);
-  padding: 24px;
+  padding: var(--ossie-space-6);
+}
+
+.statePanel {
+  width: min(100%, 42rem);
 }
 
 .emptyState {
   width: min(100%, 560px);
-  text-align: center;
-}
-
-.title {
-  color: #0f172a;
-  font-size: 24px;
-  line-height: 1.2;
-}
-
-.emptyState p {
-  margin: 0;
-  color: #64748b;
-  line-height: 1.5;
+  margin: 0 auto;
 }
 
 .recoveryActions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
-  margin-top: 20px;
+  gap: var(--ossie-space-2);
 }
 
 .recoveryPrimary,
@@ -62,21 +52,45 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  padding: 0 16px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 14px;
+  min-height: var(--ossie-control-height);
+  padding: 0 var(--ossie-space-4);
+  border: 1px solid var(--ossie-color-border-strong);
+  border-radius: var(--ossie-radius-control);
+  font-size: var(--ossie-font-size-sm);
   font-weight: 700;
+  transition: background-color 150ms ease, border-color 150ms ease,
+    color 150ms ease;
 }
 
 .recoveryPrimary {
-  border-color: #0f172a;
-  background: #0f172a;
-  color: #ffffff;
+  border-color: var(--ossie-color-action-primary);
+  background: var(--ossie-color-action-primary);
+  color: var(--ossie-color-inverted);
 }
 
 .recoverySecondary {
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--ossie-color-surface);
+  color: var(--ossie-color-text);
+}
+
+.recoveryPrimary:hover {
+  border-color: var(--ossie-color-action-primary-hover);
+  background: var(--ossie-color-action-primary-hover);
+}
+
+.recoverySecondary:hover {
+  background: var(--ossie-color-action-secondary-hover);
+}
+
+.recoveryPrimary:focus-visible,
+.recoverySecondary:focus-visible {
+  outline: 2px solid var(--ossie-color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recoveryPrimary,
+  .recoverySecondary {
+    transition-duration: 0.01ms;
+  }
 }

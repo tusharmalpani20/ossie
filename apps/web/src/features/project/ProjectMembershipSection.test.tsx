@@ -8,6 +8,15 @@ const candidate = { org_user_id: "member-1", email: "member@example.test", displ
 
 afterEach(() => vi.unstubAllGlobals());
 describe("ProjectMembershipSection", () => {
+  it("announces the initial roster load", () => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => undefined)));
+    render(<ProjectMembershipSection projectId="project-1" />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Loading Project access…",
+    );
+  });
+
   it("shows immutable owners and assigns an active unassigned member", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(json({ members: [owner, candidate] }))

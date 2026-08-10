@@ -1,7 +1,7 @@
 /**
  * @fileoverview App route smoke tests.
  */
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import App from "./App";
 
@@ -265,9 +265,7 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByText(
-        "No active Projects yet. Create a Project to start capturing governed product knowledge.",
-      ),
+      await screen.findByText("No active Projects yet"),
     ).toBeInTheDocument();
   });
 
@@ -394,9 +392,36 @@ describe("App", () => {
       await screen.findByRole("heading", { name: "Setup status unavailable" }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("alert", { name: "Setup status unavailable" }),
+    ).toContainElement(screen.getByRole("heading", { name: "Setup status unavailable" }));
+    expect(
       screen.getByText("Could not load instance setup status."),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/projects");
+  });
+
+  it("retries the private setup status check after a transient failure", async () => {
+    window.history.pushState({}, "", "/projects");
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("network unavailable"))
+      .mockResolvedValueOnce(jsonResponse(readyInstanceStatus))
+      .mockResolvedValue(jsonResponse({ projects: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Setup status unavailable" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "Setup status unavailable" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("renders project workspace routes", async () => {
@@ -423,9 +448,12 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Main" }),
+      await screen.findByRole("heading", {
+        name: "Internal onboarding demos",
+      }),
     ).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/projects/project_1/versions/main");
+    expect(screen.getByText("Default Project Version: Main")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/projects/project_1");
     expect(
       screen.getByRole("link", { name: "Open capture sessions" }),
     ).toBeInTheDocument();
@@ -450,10 +478,10 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Opening Project" }),
+      await screen.findByRole("heading", { name: "Projects", level: 1 }),
     ).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Opening the Default Project Version...",
+      "Loading project...",
     );
   });
 
@@ -476,9 +504,9 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Project not found" }),
+      await screen.findByRole("heading", { name: "Projects", level: 1 }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent(
+    expect(await screen.findByText("Project was not found.")).toHaveTextContent(
       "Project was not found.",
     );
   });
@@ -1089,6 +1117,9 @@ describe("App", () => {
     expect(
       screen.getByRole("heading", { name: "Page not found" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Page not found" }),
+    ).toContainElement(screen.getByRole("heading", { name: "Page not found" }));
     expect(
       screen.getByText("The route you opened is not part of the Ossie portal."),
     ).toBeInTheDocument();

@@ -139,7 +139,9 @@ describe("LoginPage", () => {
     fillForm();
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(await screen.findByText("Email or password is incorrect.")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Email or password is incorrect.",
+    );
   });
 
   it("shows generic sign-in errors", async () => {

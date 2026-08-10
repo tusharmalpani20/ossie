@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
 import { Card } from "@repo/ui/card";
+import { StatusPanel } from "@repo/ui/status-panel";
 import type { Project } from "@repo/types/project";
 import type {
   ProjectVersion,
@@ -112,8 +113,14 @@ export const ProjectVersionRouteBoundary = ({
   if (state.status === "unauthenticated")
     return (
       <main className={styles.state}>
-        <h1>Sign in to view this Project Version.</h1>
-        <a href={signInUrl(currentBrowserPath())}>Sign in</a>
+        <StatusPanel
+          className={styles.statePanel}
+          tone="forbidden"
+          title="Sign in to view this Project Version."
+          description="Your session is required to open this Version workspace."
+          action={<a href={signInUrl(currentBrowserPath())}>Sign in</a>}
+          titleAs="h1"
+        />
       </main>
     );
   if (state.status !== "loaded")
@@ -126,23 +133,32 @@ export const ProjectVersionRouteBoundary = ({
         navigate={navigate}
       >
         {state.status === "loading" ? (
-          <div className={styles.state}>
-            <h1>Loading Project Version...</h1>
-          </div>
+          <StatusPanel
+            className={styles.state}
+            tone="loading"
+            title="Loading Project Version"
+            description="Resolving the Project and its selected Version."
+            titleAs="h1"
+          />
         ) : state.status === "not_found" ? (
-          <div className={styles.state}>
-            <h1>Project Version was not found.</h1>
-          </div>
+          <StatusPanel
+            className={styles.state}
+            tone="not-found"
+            title="Project Version was not found."
+            titleAs="h1"
+          />
         ) : (
-          <div className={styles.state}>
-            <h1>Could not load this Project Version.</h1>
-            <Alert variant="destructive">
-              Could not load this Project Version.
-            </Alert>
-            <Button onClick={() => setReload((value) => value + 1)}>
-              Retry
-            </Button>
-          </div>
+          <StatusPanel
+            className={styles.state}
+            tone="error"
+            title="Could not load this Project Version."
+            action={
+              <Button onClick={() => setReload((value) => value + 1)}>
+                Retry
+              </Button>
+            }
+            titleAs="h1"
+          />
         )}
       </PortalAppShell>
     );

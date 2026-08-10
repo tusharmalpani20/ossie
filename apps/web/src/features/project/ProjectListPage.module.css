@@ -23,8 +23,8 @@
 .title {
   margin: 0;
   color: var(--ossie-color-text);
-  font-size: clamp(1.75rem, 3vw, 2.5rem);
-  line-height: 1.1;
+  font-size: var(--ossie-font-size-xl);
+  line-height: var(--ossie-line-height-tight);
 }
 
 .content {
@@ -176,12 +176,6 @@
 .empty {
   width: min(100%, 40rem);
   margin: var(--ossie-space-6) auto 0;
-  padding: var(--ossie-space-5);
-  border: 1px solid var(--ossie-color-border);
-  border-radius: var(--ossie-radius-card);
-  background: var(--ossie-color-surface);
-  color: var(--ossie-color-muted);
-  text-align: center;
 }
 
 .empty {
@@ -190,9 +184,23 @@
 
 .stateLink {
   display: inline-flex;
-  margin-top: var(--ossie-space-3);
+  min-height: var(--ossie-control-height-compact);
+  align-items: center;
+  padding: 0 var(--ossie-space-3);
+  border: 1px solid var(--ossie-color-border-strong);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface);
   color: var(--ossie-color-text);
   font-weight: 700;
+}
+
+.stateLink:hover {
+  background: var(--ossie-color-action-secondary-hover);
+}
+
+.stateLink:focus-visible {
+  outline: 2px solid var(--ossie-color-focus);
+  outline-offset: 2px;
 }
 
 .stateTitle {

@@ -1,32 +1,37 @@
 .panel {
-  scroll-margin-top: 1rem;
-  border-color: var(--border);
-  background: var(--card);
+  scroll-margin-top: var(--ossie-space-4);
+  border-color: var(--ossie-color-border);
+  background: var(--ossie-color-surface);
+}
+
+.statePanel {
+  width: min(100%, 42rem);
+  scroll-margin-top: var(--ossie-space-4);
 }
 
 .content {
   display: grid;
-  gap: 1.5rem;
+  gap: var(--ossie-space-6);
 }
 
 .form {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
+  gap: var(--ossie-space-4);
   align-items: end;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--muted) 28%, var(--card));
+  padding: var(--ossie-space-4);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-card);
+  background: var(--ossie-color-surface-subtle);
 }
 
 .form label,
 .edit label {
   display: grid;
   min-width: 0;
-  gap: 0.4rem;
-  color: var(--foreground);
-  font-size: 0.8125rem;
+  gap: var(--ossie-space-1);
+  color: var(--ossie-color-text);
+  font-size: var(--ossie-font-size-xs);
   font-weight: 650;
 }
 
@@ -36,38 +41,37 @@
 
 .group {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--ossie-space-3);
 }
 
 .group h3 {
   margin: 0;
-  color: var(--foreground);
-  font-size: 0.95rem;
-  letter-spacing: 0.01em;
+  color: var(--ossie-color-text);
+  font-size: var(--ossie-font-size-sm);
 }
 
 .empty {
   margin: 0;
-  padding: 1rem;
-  border: 1px dashed var(--border);
-  border-radius: 0.75rem;
-  color: var(--muted-foreground);
-  background: var(--background);
+  padding: var(--ossie-space-4);
+  border: 1px dashed var(--ossie-color-border-strong);
+  border-radius: var(--ossie-radius-card);
+  color: var(--ossie-color-muted);
+  background: var(--ossie-color-background);
 }
 
 .list {
   display: grid;
-  gap: 0.875rem;
+  gap: var(--ossie-space-3);
 }
 
 .version {
   display: grid;
-  gap: 0.875rem;
+  gap: var(--ossie-space-3);
   min-width: 0;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 0.875rem;
-  background: var(--background);
+  padding: var(--ossie-space-4);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-card);
+  background: var(--ossie-color-background);
 }
 
 .versionHeader,
@@ -75,18 +79,18 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
+  gap: var(--ossie-space-2) var(--ossie-space-3);
   align-items: center;
 }
 
 .versionHeader strong {
   overflow-wrap: anywhere;
-  font-size: 1rem;
+  font-size: var(--ossie-font-size-sm);
 }
 
 .details {
-  color: var(--muted-foreground);
-  font-size: 0.8125rem;
+  color: var(--ossie-color-muted);
+  font-size: var(--ossie-font-size-xs);
 }
 
 .details span {
@@ -95,8 +99,8 @@
 
 .aliases {
   margin: 0;
-  color: var(--muted-foreground);
-  font-size: 0.8125rem;
+  color: var(--ossie-color-muted);
+  font-size: var(--ossie-font-size-xs);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -104,25 +108,25 @@
 .edit {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: var(--ossie-space-3);
   align-items: end;
-  padding-top: 0.25rem;
+  padding-top: var(--ossie-space-1);
 }
 
 .editAction {
   align-self: end;
-  min-height: 2.25rem;
+  min-height: var(--ossie-control-height-compact);
 }
 
 .actions {
-  padding-top: 0.25rem;
-  border-top: 1px solid var(--border);
+  padding-top: var(--ossie-space-1);
+  border-top: 1px solid var(--ossie-color-border);
 }
 
 .actionNote {
   align-self: center;
-  color: var(--muted-foreground);
-  font-size: 0.8125rem;
+  color: var(--ossie-color-muted);
+  font-size: var(--ossie-font-size-xs);
   line-height: 1.4;
 }
 

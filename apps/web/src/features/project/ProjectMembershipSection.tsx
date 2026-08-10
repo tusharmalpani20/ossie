@@ -83,12 +83,12 @@ export const ProjectMembershipSection = ({ projectId, onAccessChanged }: Props) 
     catch (mutationError) { fail(mutationError); }
   };
 
-  return <Card className={styles.panel} aria-labelledby="project-membership-heading">
+  return <Card className={styles.panel} aria-busy={members === null} aria-labelledby="project-membership-heading">
     <CardHeader><h2 id="project-membership-heading" className={styles.title}>Membership</h2></CardHeader>
     <CardContent>
       <p>Control who can discover and work in this Project. Organization owners always have Project admin access.</p>
       <div aria-live="polite">{message ? <Alert variant="success">{message}</Alert> : null}{error ? <Alert variant="destructive">{error}</Alert> : null}</div>
-      {members === null ? <p>Loading Project access…</p> : <>
+      {members === null ? <p role="status">Loading Project access…</p> : <>
         {error ? <Button size="sm" variant="secondary" onClick={() => setReload((value) => value + 1)}>Retry</Button> : null}
         <ul className={styles.roster}>
           {members.filter((member) => member.organization_role === "owner" || member.membership).map((member) => {

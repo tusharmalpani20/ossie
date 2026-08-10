@@ -8,6 +8,7 @@ import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { StatusPanel } from "@repo/ui/status-panel";
 import {
   ApiClientError,
   completeFirstRunSetup,
@@ -131,9 +132,13 @@ export const FirstRunSetupPage = ({
   if (pageState.status === "loading") {
     return (
       <Shell>
-        <CardHeader>
-          <h1 className={styles.title}>Loading setup...</h1>
-        </CardHeader>
+        <StatusPanel
+          className={styles.state}
+          tone="loading"
+          title="Loading setup..."
+          description="Checking whether this Ossie instance needs first-run setup."
+          titleAs="h1"
+        />
       </Shell>
     );
   }
@@ -141,13 +146,18 @@ export const FirstRunSetupPage = ({
   if (pageState.status === "complete") {
     return (
       <Shell>
-        <CardHeader>
-          <h1 className={styles.title}>This instance is already set up.</h1>
-          <p className={styles.copy}>Sign in with an existing owner account to continue.</p>
-        </CardHeader>
-        <CardContent>
-          <a className={styles.link} href="/login">Go to sign in</a>
-        </CardContent>
+        <StatusPanel
+          className={styles.state}
+          tone="neutral"
+          title="This instance is already set up."
+          description="Sign in with an existing owner account to continue."
+          action={
+            <a className={styles.link} href="/login">
+              Go to sign in
+            </a>
+          }
+          titleAs="h1"
+        />
       </Shell>
     );
   }
@@ -155,10 +165,13 @@ export const FirstRunSetupPage = ({
   if (pageState.status === "unavailable") {
     return (
       <Shell>
-        <CardHeader>
-          <h1 className={styles.title}>First-run setup is not available for this instance.</h1>
-          <p className={styles.copy}>Use the configured onboarding flow for this deployment.</p>
-        </CardHeader>
+        <StatusPanel
+          className={styles.state}
+          tone="forbidden"
+          title="First-run setup is not available for this instance."
+          description="Use the configured onboarding flow for this deployment."
+          titleAs="h1"
+        />
       </Shell>
     );
   }
@@ -166,12 +179,13 @@ export const FirstRunSetupPage = ({
   if (pageState.status === "error") {
     return (
       <Shell>
-        <CardHeader>
-          <h1 className={styles.title}>Setup unavailable</h1>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">{pageState.message}</Alert>
-        </CardContent>
+        <StatusPanel
+          className={styles.state}
+          tone="error"
+          title="Setup unavailable"
+          description={pageState.message}
+          titleAs="h1"
+        />
       </Shell>
     );
   }
