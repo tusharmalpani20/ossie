@@ -20,8 +20,10 @@ Before child `121` completes, read in order:
 6. Relevant reviewed external skills under `.agents/skills/`.
 
 After child `121`, also read accepted root `PRODUCT.md` and `DESIGN.md` before
-implementation. Those files guide product design but do not override domain truth
-in `CONTEXT.md` or ADRs.
+implementation. During Plan `147`, read the active plan and
+`docs/ui/README.md`, including its evidence classifications, before treating any
+screenshot as a visual reference. Those files guide product design but do not
+override domain truth in `CONTEXT.md` or ADRs.
 
 If `PRODUCT.md` or `DESIGN.md` does not exist before child `121`, proceed with a
 scoped audit or implementation from current evidence. Do not generate either file
@@ -29,8 +31,11 @@ early and do not let an external skill do so implicitly.
 
 ## Inspect Before Designing
 
-- Identify the surface archetype: library/operations, authoring workbench,
-  reader/viewer, settings/admin, or activity/compliance.
+- Identify the surface archetype: focused entry, split first-run onboarding,
+  library/operations, authoring workbench, reader/viewer, settings/admin,
+  activity/compliance, or compact extension utility.
+- State the user goal, primary action, chosen approved pattern, required states,
+  and narrow-screen composition before implementation.
 - Trace current behavior, routes, data states, permissions, tests, components,
   tokens, icons, and responsive rules.
 - Capture a safe baseline for screens the active child will change.
@@ -67,6 +72,9 @@ toolbars, editors, and viewers do not shift or overlap.
   viewport and keep letter spacing neutral unless an accepted token says otherwise.
 - Avoid nested cards, floating page-section cards, decorative gradient/orb
   backgrounds, and a one-hue palette.
+- Treat purple as Ossie's signature, not its wallpaper. Use accepted semantic
+  purple tokens for brand regions, primary action, focus, and selection; do not
+  recolor semantic status states or invent page-local purple values.
 - Keep card radii at 8px or less unless the accepted design system specifies a
   different primitive.
 - Use Lucide icons for familiar commands, accessible labels for icon controls,
@@ -110,6 +118,8 @@ evidence, not permission to change product semantics or framework boundaries.
 5. Check keyboard order, focus, 200% zoom/reflow, reduced motion, console errors,
    failed requests, image loading, text clipping, overlap, and layout shift.
 6. Compare against the safe baseline and record intentional visual changes.
+7. During Plan `147`, present one verified page or bounded surface for explicit
+   human inspection and stop before beginning the next surface.
 
 Stop for explicit acceptance when the work chooses a product name, visual
 direction, major dependency, or consequential design-system rule not settled by

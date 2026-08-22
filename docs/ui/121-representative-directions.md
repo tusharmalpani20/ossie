@@ -6,8 +6,9 @@ Commit: `dcfb6ab`
 
 ## Status
 
-Implemented for review. Explicit user acceptance is still required before child
-`122`.
+Accepted by the user and closed with Child `121` on 2026-07-26. This is a
+historical structural reference, not a complete visual-pattern catalogue.
+Current authority lives in `DESIGN.md`, Plan `147`, and `docs/ui/README.md`.
 
 ## Review Route
 
@@ -80,10 +81,16 @@ Use this direction for:
 - Use reduced-motion instant state changes.
 - Preserve semantic HTML and keyboard order.
 
-## Acceptance Needed
+## Acceptance Record
 
-Before child `122`, the user must explicitly accept:
+Child `121` recorded explicit user acceptance of:
 
 - `PRODUCT.md`;
 - `DESIGN.md`;
 - the three representative directions above.
+
+Later completed work added entry/onboarding, settings/admin,
+activity/compliance, and compact extension needs. Plan `147` now owns their
+production pattern candidates and page-by-page visual acceptance. Existing
+Child `121` screenshots remain functional or historical evidence unless they
+are explicitly reclassified under that plan.

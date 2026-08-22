@@ -62,7 +62,7 @@ Items 1 through 11 are verified current behavior or repository foundation.
 See `docs/plan/master/005-knowledge-platform-and-ui-foundation-master-plan.md`
 for gates and exact child ordering.
 
-## Documentation Next
+## Documentation Experience
 
 Master Plan `006` and children `132`–`140` are complete. Children `132`–`139`
 shipped and independently close-rechecked Product Documentation V1; child `140`
@@ -72,12 +72,20 @@ objective.
 Master Plan `007` Children `141`–`145` implemented and independently
 close-rechecked bounded Tiptap authoring, Fumadocs public Publication chrome,
 deterministic inert curl/Fetch/Node.js/Python/Go request examples, and the
-integrated browser/accessibility/performance hardening. Child `146` is the
-active final reconciliation; accepted-later and rejected boundaries remain
-unchanged.
+integrated browser/accessibility/performance hardening. Child `146` completed
+the final reconciliation on 2026-08-06; accepted-later and rejected boundaries
+remain unchanged.
 
 Product Documentation is not another name for Guides and is not `apps/docs`,
 which remains repository documentation for contributors and operators.
+
+## Current UI Quality Program
+
+Plan `147` is the accepted execution baseline for a page-by-page visual and
+interaction quality pass. It begins with current-truth, token, route, and
+evidence reconciliation, then improves shared patterns and each shipped surface
+family. No Plan `147` runtime or UI change is shipped merely because it appears
+in the plan.
 
 ## Later
 

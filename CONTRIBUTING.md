@@ -84,6 +84,12 @@ Built at MVP/alpha level:
 - interactive demo generation, scene editing, hotspots, publish, password access, embed, and public viewer
 - Chrome extension capture with automatic click capture MVP and manual screenshot fallback
 - organization invite/member basics
+- Audit/Access Evidence, Project Membership, Project Versions, and
+  version-aware Guide and Interactive Demo Editions, Working Drafts, immutable
+  Revisions, Publications, and Publish Links
+- Product Documentation Sites, authoring, review, immutable Publications,
+  public readers, bounded Tiptap/Fumadocs adoption, and deterministic inert
+  five-language API request examples
 
 Deferred:
 
@@ -92,12 +98,9 @@ Deferred:
 - HTML replay
 - Chrome Web Store packaging
 - one-command production deployment packaging
-- advanced editor/demo polish
-- Product Documentation runtime until the post-foundation domain grill is accepted
+- the unimplemented portions of Plan `147`'s page-by-page UI quality program
 - Loom-style Video recording and library behavior
 
-The accepted target also includes Audit/Access Evidence, Project Membership,
-Project Versions, and version-aware Guide/Demo Editions, Revisions, and
-Publications. Those remain unimplemented until their ordered Master Plan `005`
-children close. Do not start Documentation or Video runtime work outside those
-gates.
+The accepted foundation and Documentation plans are complete. Do not describe
+future Plan `147` visual work, accepted-later Documentation ideas, or Video
+runtime as shipped before their owning work is implemented and accepted.

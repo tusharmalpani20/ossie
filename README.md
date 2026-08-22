@@ -69,12 +69,13 @@ browser workflow
 
 The product intentionally keeps guides and interactive demos separate. A capture session is source material; guides and demos are authored outputs created from that source.
 
-## Next Platform Direction
+## Current Platform And Next Direction
 
 Master Plan `005` closed the version/governance and UI foundation. Master Plan
 `006` and children `132`–`140` completed Product Documentation V1 and its
 post-V1 decision gate. [Master Plan `007`](docs/plan/master/007-documentation-post-v1-master-plan.md)
-now reserves the next Documentation experience sequence:
+and children `141`–`146` then completed the accepted post-V1 Documentation
+experience sequence:
 
 ```text
 Organization
@@ -94,7 +95,12 @@ bases. It is different from `apps/docs`, which is this repository's
 contributor/operator documentation hub. V1 is complete through child `139`.
 Master `007` Children `141`–`145` have implemented and independently verified
 bounded Tiptap/Fumadocs adapter use plus deterministic inert multi-language API
-request examples; Child `146` is the active final reconciliation.
+request examples; Child `146` completed the final reconciliation on 2026-08-06.
+
+[Plan `147`](docs/plan/147-ossie-ui-quality-program.md) is the accepted next UI
+quality program. It will reconcile shared tokens and patterns and improve one
+browser-visible surface at a time with explicit visual review. Its planned work
+must not be described as shipped before implementation and acceptance.
 
 ## Intentionally Deferred
 

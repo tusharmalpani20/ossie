@@ -4,11 +4,14 @@ Date: 2026-08-06
 
 Last full planning audit: 2026-08-06
 
-Status: Expanded execution baseline — ready to begin the mandatory program and
-per-surface preflight, but no surface is implementation-ready until its section
-22.1 preflight record is complete. This document is a planning deliverable
-only; no Plan `147` runtime, UI, dependency, schema, or product behavior change
-has started.
+Last design-direction and Markdown reconciliation: 2026-08-22
+
+Status: Accepted sequential human-review execution baseline — purple is the
+accepted signature direction and the Markdown authority has been reconciled.
+The mandatory program and per-surface preflight are ready to begin, but no
+surface is implementation-ready until its section 22.1 preflight record is
+complete. No Plan `147` runtime, UI, dependency, schema, or product behavior
+change has started.
 
 Plan number: 147.
 
@@ -60,6 +63,12 @@ This is not permission to:
 ## 2. Program Outcome
 
 Plan `147` has two distinct milestones.
+
+On 2026-08-22 the user selected **sequential human review mode**. The program
+must present each agent-accepted page or bounded surface for human inspection
+and stop before beginning the next one. Silence is not acceptance. The final
+bundle remains required, but it supplements rather than replaces page-by-page
+human review.
 
 The **autonomous-run milestone** is reached only when:
 
@@ -133,9 +142,15 @@ When sources disagree:
 The governing direction remains the **Quiet Versioned Workbench** described by
 `DESIGN.md` and `design-ossie-ui`.
 
+Purple is now an explicitly accepted Ossie design direction. Deep aubergine and
+vivid violet establish recognizable brand moments, primary action, focus, and
+selection. Neutral surfaces still carry operational work, while success,
+warning, danger, access, and lifecycle states keep their semantic colors. The
+rule is **purple as signature, not wallpaper**.
+
 For Ossie, modern means:
 
-- calm, precise, dependable, and operational;
+- calm, capable, focused, trustworthy, slightly warm, and operational;
 - dense enough for repeated work while easy to scan;
 - a clear page title, context, status, and primary action;
 - stable navigator, canvas/content, inspector, and status regions where an
@@ -193,7 +208,8 @@ Audit limitations:
 - it was not a complete assistive-technology screen-reader study;
 - committed screenshots do not cover every latest Documentation state;
 - external authenticated product interfaces can change or differ by account;
-- the audit did not approve a new brand direction;
+- the original audit did not approve a new brand direction; the user
+  subsequently accepted the restrained purple direction on 2026-08-22;
 - the audit did not modify or implement any UI;
 - visual scores are a prioritization tool, not a substitute for the final human
   review requested by the user.
@@ -330,18 +346,19 @@ foundation from the weaker visual and product-pattern layer.
 
 ## 8. Pre-Implementation Current-Truth Reconciliation
 
-The runner must verify and repair these stale statements before relying on the
-documents for UI implementation:
+The 2026-08-22 documentation pass repaired the Markdown sources below before UI
+implementation. The contributor/operator documentation app string remains part
+of Work Package A because it is application code rather than Markdown.
 
-| Source                           | Audited stale statement                                                 |
-| -------------------------------- | ----------------------------------------------------------------------- |
-| `CONTEXT.md`                     | describes Master `007` as planned next and post-V1 terms as not runtime |
-| `PRODUCT.md`                     | describes Child `146` as active and post-V1 work as planned             |
-| `docs/project-zoomout-status.md` | describes Master `007` as planning and Child `141` as next              |
-| `docs/roadmap.md`                | describes Child `146` as active                                         |
-| `README.md`                      | describes Master `007` as reserved and Child `146` as active            |
-| `apps/docs/app/docs-content.ts`  | describes Master `007` as planning-only and Child `141` as next         |
-| `CONTRIBUTING.md`                | describes shipped Documentation/foundation work as unimplemented        |
+| Source                           | Audited stale statement                                                 | 2026-08-22 disposition |
+| -------------------------------- | ----------------------------------------------------------------------- | ---------------------- |
+| `CONTEXT.md`                     | describes Master `007` as planned next and post-V1 terms as not runtime | Reconciled             |
+| `PRODUCT.md`                     | describes Child `146` as active and post-V1 work as planned             | Reconciled             |
+| `docs/project-zoomout-status.md` | describes Master `007` as planning and Child `141` as next              | Reconciled             |
+| `docs/roadmap.md`                | describes Child `146` as active                                         | Reconciled             |
+| `README.md`                      | describes Master `007` as reserved and Child `146` as active            | Reconciled             |
+| `apps/docs/app/docs-content.ts`  | describes Master `007` as planning-only and Child `141` as next         | Pending Work Package A |
+| `CONTRIBUTING.md`                | describes shipped Documentation/foundation work as unimplemented        | Reconciled             |
 
 These are current-truth and terminology repairs, not permission to alter
 product behavior. The reconciliation must:
@@ -620,8 +637,8 @@ and how the result remains recognizably Ossie.
 Create or designate one semantic token source covering:
 
 - canvas, surface, subtle surface, elevated surface, borders, strong borders;
-- primary, secondary, muted, inverted, link, success, warning, danger, and
-  focus colors;
+- brand ink, primary, primary hover/active/subtle, secondary, muted, inverted,
+  link, success, warning, danger, and focus colors;
 - type family, size, weight, line height, and tracking;
 - spacing scale;
 - control and panel radii;
@@ -793,11 +810,25 @@ Primary tasks:
 
 Target composition:
 
-- one restrained entry shell;
+- focused entry shells for login and invitation;
+- the accepted split first-run onboarding shell for self-hosted setup at wide
+  sizes, with approximately 35–40% deep brand-ink region and a white form
+  region;
+- no normal application header or navigation on entry/setup surfaces;
 - one concise title and purpose statement;
+- a 460–480px setup form without an unnecessarily small floating card;
+- grouped Owner and Organization details, with first and last name sharing a
+  desktop row when space allows;
+- comfortable 44px setup controls and purple primary/focus treatment;
+- a compact branded header, top-aligned content, 20–24px padding, and stacked
+  fields on narrow screens;
 - a linear form with explicit validation and submission state;
 - secondary deployment/help information visually quiet;
 - shared alert, retry, and return-focus behavior.
+
+The brand region may contain the Ossie mark, one heading, and factual setup
+guidance. It must not invent testimonials, statistics, product claims,
+illustrations, gradients, glows, or decorative blobs.
 
 Required states:
 
@@ -1297,6 +1328,10 @@ queued
      OR final clean verification
        -> both reviewers confirm final accept verdicts
        -> agent-accepted, pending human review
+       -> human page/surface review
+            -> accepted
+            OR revision requested
+                 -> bounded implementation (next cycle)
      OR blocked_local_for_run
        -> next demonstrably independent eligible surface
      OR needs_human_surface
@@ -1305,7 +1340,7 @@ queued
        -> stop the program
      OR incomplete_checkpoint
        -> persist state and end this run
-  -> next surface after acceptance
+  -> next surface only after explicit human acceptance
 ```
 
 Rules:
@@ -1330,6 +1365,10 @@ Rules:
     both reviews.
 11. Reviewers receive the completed final-verification bundle and confirm their
     final verdicts before the coordinator records agent acceptance.
+12. In the accepted sequential human-review mode, the coordinator presents the
+    exact candidate screenshots, route/state list, verification result, and
+    known limitations to the user, then stops. It does not begin another page or
+    surface until the user explicitly accepts the current one.
 
 ## 17. Stagnation, Disagreement, And Stop Conditions
 
@@ -1907,7 +1946,8 @@ security decision for the user.
       shared data.
 - [ ] Create and link the canonical
       `docs/ui/147-ossie-ui-quality-program-ledger.md`.
-- [ ] Reconcile all section 8 current-truth drift.
+- [x] Reconcile section 8 Markdown current-truth drift and record the remaining
+      non-Markdown docs-app string for Work Package A (2026-08-22).
 - [ ] Build the route/surface/state ledger with exact route strings and roles.
 - [ ] Classify existing `docs/ui/` screenshots and reports.
 - [ ] Create/revalidate the external reference ledger.
@@ -2041,7 +2081,21 @@ history.
 
 ## 29. Implementation Log
 
-No implementation has started.
+No runtime or surface implementation has started.
+
+2026-08-22 — documentation and design-direction reconciliation:
+
+- recorded the user's accepted restrained-purple direction and sequential
+  page-by-page human review mode;
+- reconciled the section 8 Markdown current-truth sources against completed
+  Master `007` and Child `146`;
+- expanded `DESIGN.md` with the semantic purple palette, density/control rules,
+  form contract, approved page-pattern decision table, split first-run setup
+  composition, and visual-acceptance workflow;
+- added `docs/ui/README.md` as the evidence-classification and exemplar index;
+- preserved `apps/docs/app/docs-content.ts` for Work Package A because this pass
+  was explicitly scoped to Markdown and agent guidance;
+- changed no runtime, dependency, schema, permission, or product behavior.
 
 Record future entries as:
 

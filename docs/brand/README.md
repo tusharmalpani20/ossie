@@ -44,6 +44,18 @@ compact headers or browser metadata.
 - The extension popup, toolbar action, and extension package use the generated
   16, 32, 48, and 128 px icon set.
 
+## UI Color Authority
+
+`DESIGN.md` is the source of truth for interface color tokens. The selected
+identity establishes the deep aubergine and vivid violet family, but agents and
+applications must not sample arbitrary colors from the raster artwork or brand
+sheet.
+
+Purple is Ossie's signature, not its wallpaper. Use the accepted semantic
+purple tokens for brand regions, primary action, focus, and selection. Keep
+operational surfaces neutral and preserve green, amber, and red for their
+semantic states.
+
 ## Constraints And Follow-Up
 
 These are raster-generated identity assets, not editable vector masters. The

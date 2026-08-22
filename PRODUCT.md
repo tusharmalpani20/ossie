@@ -36,14 +36,14 @@ The current product must help a team:
 - publish exact immutable material through controlled Publish Links;
 - read activity and compliance evidence without weakening permissions.
 
-Product Documentation V1 is shipped. The post-V1 Documentation experience work
-in Master Plan `007` Children `141`–`145` is implemented and independently
-verified: Tiptap is partial-adopted for bounded prose fields, Fumadocs is
-partial-adopted for named public Publication navigation/TOC primitives, and
-generated request examples are inert five-language V1 projections. Child `146`
-is the active final reconciliation; it must close the master before the
-sequence is treated as fully complete. Video remains an accepted future
-direction and is not shipped.
+Product Documentation V1 and the post-V1 Documentation experience work in
+Master Plan `007` are shipped and independently close-reconciled. Tiptap is
+partial-adopted for bounded prose fields, Fumadocs is partial-adopted for named
+public Publication navigation/TOC primitives, and generated request examples
+are inert five-language V1 projections. Master `007` and Child `146` completed
+on 2026-08-06. Plan `147` is the accepted UI-quality execution baseline, but it
+does not describe UI work as shipped before that work is implemented and
+accepted. Video remains an accepted future direction and is not shipped.
 
 ## Positioning
 
@@ -52,12 +52,16 @@ into governed internal knowledge and exact published artifacts.
 
 ## Brand Personality
 
-Ossie should feel calm, precise, and dependable. It is approachable because it
-reduces operational confusion, not because it uses playful decoration.
+Ossie should feel calm, capable, focused, trustworthy, and slightly warm. It is
+approachable because it reduces operational confusion, not because it uses
+playful decoration.
 
 The accepted display name is Ossie, with an original octopus character direction
-for brand surfaces. Runtime package names, routes, storage, cookies, database
-objects, and historical identifiers are not part of this design phase.
+for brand surfaces. Purple is the accepted signature color: it identifies the
+brand and guides primary action, focus, and selection without washing every
+operational surface in one hue. Runtime package names, routes, storage, cookies,
+database objects, and historical identifiers are not part of this design
+phase.
 
 ## Anti-references
 
@@ -66,7 +70,7 @@ Ossie should not look like:
 - a marketing landing page inside the product;
 - a nested-card dashboard;
 - a decorative gradient or orb interface;
-- a one-hue blue SaaS template;
+- a generic one-hue SaaS template, including a purple-everywhere treatment;
 - an AI-heavy, glassy, over-rounded, or animated-for-animation interface;
 - a generic documentation template that ignores Ossie's accepted
   Documentation domain and product shell.
@@ -78,12 +82,15 @@ Ossie should not look like:
 2. Optimize for repeated work. Dense lists, stable workbench regions, compact
    command bars, and predictable states matter more than dramatic composition.
 3. Preserve product truth. UI language must use the accepted terms in
-   `CONTEXT.md`, distinguish shipped Documentation V1 from planned post-V1
-   work, and must not say future Video behavior exists.
+   `CONTEXT.md`, distinguish shipped Documentation and post-V1 experience work
+   from future scope, and must not say future Video behavior exists.
 4. Make status readable. State must use text, shape, icon, and placement, not
    color alone.
 5. Prefer composable foundations. Later children should build screens from
    tokens, primitives, and archetypes instead of inventing one-off styling.
+6. Make purple recognizable through restraint. Reserve saturated purple mainly
+   for brand moments, primary actions, focus, and selection; keep lifecycle and
+   safety states semantically green, amber, and red.
 
 ## Accessibility & Inclusion
 

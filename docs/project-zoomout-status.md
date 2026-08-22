@@ -159,13 +159,18 @@ post-V1 decision gate. The accepted decisions are recorded in `CONTEXT.md`,
 ADRs `0021`–`0034`, the completed grill records, and
 `docs/documentation-domain-decisions.md`.
 
-Master Plan `007` is the next planning sequence. Child `141` must first expand
-and recheck isolated Tiptap-authoring and Fumadocs-reader adapter proofs. Only
-evidence-backed parts may be adopted; PostgreSQL, existing schemas,
-permissions, Publications, APIs, and URLs remain authoritative. Later children
-own authoring/reader modernization, deterministic multi-language request
-examples, integrated hardening, and final closeout.
+Master Plan `007` and children `141`–`146` completed on 2026-08-06. They
+partial-adopted Tiptap for bounded prose fields and Fumadocs for named public
+Publication navigation/TOC primitives, shipped deterministic inert
+five-language request examples, and closed the integrated hardening and final
+reconciliation. PostgreSQL, existing schemas, permissions, Publications, APIs,
+and URLs remain authoritative.
+
+Plan `147` is the accepted next UI-quality program. It preserves the current
+domain and permission model while reconciling tokens and product patterns and
+improving one shipped surface at a time with explicit visual review. Plan
+language is not shipped behavior.
 
 Accepted-later Documentation ideas and cross-product operations/maintenance
-remain outside Master `007`. Loom-style Video remains a later direction with no
-accepted runtime model.
+remain outside the completed Master `007` and current Plan `147`. Loom-style
+Video remains a later direction with no accepted runtime model.

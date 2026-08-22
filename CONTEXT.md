@@ -415,31 +415,34 @@ required, satisfied, or overridden; an override requires a Project Admin and a
 reason whose detail remains Admin-only.
 _Avoid_: mutable policy snapshot, public metadata, Audit Event replacement
 
-### Accepted Post-V1 Documentation Language
+### Post-V1 Documentation Language
 
-The following terms were accepted by child `140` for planning under Master
-`007`. They do not claim that the corresponding runtime is implemented.
+The following terms were accepted by child `140` and reconciled after Master
+`007` completed on 2026-08-06. Each term states whether it describes a shipped
+runtime capability, a completed evaluation method, or accepted-later scope.
 
 **Documentation Experience Adapter Proof**:
-A bounded, non-authoritative comparison of a candidate authoring or reader
-adapter against the shipped Ossie-native behavior. It may use existing
-Documentation content and Publications but cannot migrate authoritative data,
-replace permissions or URLs, or expose a production route before its adoption
-gate passes.
+A completed bounded, non-authoritative comparison method for a candidate
+authoring or reader adapter against shipped Ossie-native behavior. Master `007`
+used this method before partial-adopting Tiptap for bounded prose fields and
+Fumadocs for named public Publication navigation/TOC primitives. The proof is
+not a user-facing product capability and never migrates authoritative data or
+replaces Ossie permissions, URLs, access, or persistence authority.
 _Avoid_: framework migration, source-of-truth replacement
 
 **Generated API Request Example**:
-Deterministic inert source text derived from one exact accepted OpenAPI
-operation for one named language/runtime contract. It uses placeholders, never
+Shipped deterministic inert source text derived from one exact accepted OpenAPI
+operation for one named language/runtime contract. The V1 registry supports
+curl, Fetch, Node.js, Python, and Go projections. It uses placeholders, never
 entered credentials, performs no request, grants no origin authority, and is
 not a supported SDK package.
 _Avoid_: Try-It request, generated SDK, stored credential
 
 **Static Documentation Export**:
-An accepted-later deterministic portable website derived from one exact public
-Site Publication for customer-owned hosting. It is not an Ossie-managed
-deployment, cannot reproduce restricted/internal server authorization, and
-cannot be recalled after a customer downloads or deploys it.
+Accepted-later, not-shipped scope for a deterministic portable website derived
+from one exact public Site Publication for customer-owned hosting. It is not an
+Ossie-managed deployment, cannot reproduce restricted/internal server
+authorization, and cannot be recalled after a customer downloads or deploys it.
 _Avoid_: Site Publication authority, managed CDN deployment, revocable copy
 
 ## Relationships

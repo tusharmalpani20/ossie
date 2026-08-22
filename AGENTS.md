@@ -73,6 +73,22 @@ React, motion, and accessibility guidance. They are subordinate to this file,
 `CONTEXT.md`, accepted ADRs, and active plans. See `docs/agent-workflow.md` for
 provenance, restrictions, updates, and removal.
 
+## User-Facing UI Work
+
+- Before planning or coding a browser-visible change, read `PRODUCT.md`,
+  `DESIGN.md`, `docs/ui/README.md`, the active UI plan, and the current route,
+  components, styles, and tests.
+- State the user goal, primary action, chosen approved page pattern, applicable
+  states, and narrow-screen composition before implementation.
+- Use semantic tokens and existing shared primitives. Do not invent colors,
+  page shells, component styles, or major dependencies for one screen.
+- For Plan `147`, work on one page or bounded surface at a time. Present the
+  verified candidate for explicit human inspection and do not begin the next
+  surface until the current one is accepted.
+- Existing screenshots are functional or historical evidence unless
+  `docs/ui/README.md` and the Plan `147` ledger explicitly classify them as an
+  approved visual reference.
+
 ## Verification
 
 - Run focused tests while developing, then the broad checks required by the

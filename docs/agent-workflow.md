@@ -35,12 +35,12 @@ ran successfully.
 
 ## Repository-Local Skills
 
-| Skill                | Use it for                                                                         | Canonical truth remains in                                                                  |
-| -------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `model-ossie-domain` | Terminology, lifecycle, ownership, persistence meaning, and ADR decisions          | `CONTEXT.md`, current code/tests, and `docs/adr/`                                           |
-| `build-ossie-slice`  | Child-plan expansion, delivery, verification, and closeout                         | Active master/child plans and implementation                                                |
-| `design-ossie-ui`    | Operational UI architecture, interaction, motion, accessibility, and design review | Current UI, Master Plan `005`, then accepted `PRODUCT.md` and `DESIGN.md` after child `121` |
-| `dogfood-ossie`      | Browser and extension workflow evidence                                            | Setup, smoke, operations, and extension docs                                                |
+| Skill                | Use it for                                                                         | Canonical truth remains in                                                                    |
+| -------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `model-ossie-domain` | Terminology, lifecycle, ownership, persistence meaning, and ADR decisions          | `CONTEXT.md`, current code/tests, and `docs/adr/`                                             |
+| `build-ossie-slice`  | Child-plan expansion, delivery, verification, and closeout                         | Active master/child plans and implementation                                                  |
+| `design-ossie-ui`    | Operational UI architecture, interaction, motion, accessibility, and design review | Current UI, accepted `PRODUCT.md` and `DESIGN.md`, active Plan `147`, and `docs/ui/README.md` |
+| `dogfood-ossie`      | Browser and extension workflow evidence                                            | Setup, smoke, operations, and extension docs                                                  |
 
 The skills contain procedure, not copies of the product glossary or ADR text.
 
