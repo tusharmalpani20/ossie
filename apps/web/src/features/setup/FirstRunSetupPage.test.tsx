@@ -46,16 +46,66 @@ const fillSetupForm = () => {
 };
 
 describe("FirstRunSetupPage", () => {
+  it("presents organization details before owner identity and credentials", async () => {
+    render(<FirstRunSetupPage getInstanceStatus={async () => setupRequired} />);
+
+    await screen.findByRole("heading", {
+      name: "Set up your Ossie Organization",
+    });
+
+    const form = screen.getByLabelText("Owner email").closest("form");
+    expect(form).not.toBeNull();
+    expect(
+      Array.from(form!.querySelectorAll<HTMLInputElement>("input")).map(
+        (input) => input.name,
+      ),
+    ).toEqual([
+      "organization_name",
+      "first_name",
+      "last_name",
+      "owner_email",
+      "password",
+    ]);
+  });
+
+  it("allows the password to be shown and hidden with an accessible control", async () => {
+    render(<FirstRunSetupPage getInstanceStatus={async () => setupRequired} />);
+
+    await screen.findByRole("heading", {
+      name: "Set up your Ossie Organization",
+    });
+    const password = screen.getByLabelText("Password");
+
+    expect(password).toHaveAttribute("type", "password");
+    const showPassword = screen.getByRole("button", { name: "Show password" });
+    expect(showPassword.querySelector("svg")).toBeInTheDocument();
+    expect(showPassword).not.toHaveTextContent("Show");
+    fireEvent.click(showPassword);
+    expect(password).toHaveAttribute("type", "text");
+    const hidePassword = screen.getByRole("button", { name: "Hide password" });
+    expect(hidePassword.querySelector("svg")).toBeInTheDocument();
+    expect(hidePassword).not.toHaveTextContent("Hide");
+
+    fireEvent.click(hidePassword);
+    expect(password).toHaveAttribute("type", "password");
+  });
+
   it("renders first-run setup form when setup is required", async () => {
     render(<FirstRunSetupPage getInstanceStatus={async () => setupRequired} />);
 
-    expect(await screen.findByRole("heading", { name: "Set up Ossie" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", {
+        name: "Set up your Ossie Organization",
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Owner email")).toBeRequired();
     expect(screen.getByLabelText("First name")).not.toBeRequired();
     expect(screen.getByLabelText("Last name")).not.toBeRequired();
     expect(screen.getByLabelText("Organization name")).toBeRequired();
     expect(screen.getByLabelText("Password")).toBeRequired();
-    expect(screen.getByRole("button", { name: "Create owner account" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Complete setup" }),
+    ).toBeInTheDocument();
   });
 
   it("submits trimmed setup fields and navigates to projects", async () => {
@@ -74,25 +124,31 @@ describe("FirstRunSetupPage", () => {
         getInstanceStatus={async () => setupRequired}
         completeSetup={completeSetup}
         navigate={navigate}
-      />
+      />,
     );
 
-    await screen.findByRole("heading", { name: "Set up Ossie" });
+    await screen.findByRole("heading", {
+      name: "Set up your Ossie Organization",
+    });
     fillSetupForm();
-    fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
+    fireEvent.click(screen.getByRole("button", { name: "Complete setup" }));
 
-    expect(screen.getByRole("button", { name: "Creating owner account..." })).toBeDisabled();
-    await waitFor(() => expect(completeSetup).toHaveBeenCalledWith({
-      owner: {
-        email: "owner@example.com",
-        password: "safe local password",
-        first_name: "Owner",
-        last_name: "User",
-      },
-      organization: {
-        name: "Acme",
-      },
-    } satisfies FirstRunSetupInput));
+    expect(
+      screen.getByRole("button", { name: "Completing setup..." }),
+    ).toBeDisabled();
+    await waitFor(() =>
+      expect(completeSetup).toHaveBeenCalledWith({
+        owner: {
+          email: "owner@example.com",
+          password: "safe local password",
+          first_name: "Owner",
+          last_name: "User",
+        },
+        organization: {
+          name: "Acme",
+        },
+      } satisfies FirstRunSetupInput),
+    );
     expect(navigate).toHaveBeenCalledWith("/projects");
   });
 
@@ -106,15 +162,17 @@ describe("FirstRunSetupPage", () => {
       />,
     );
 
-    await screen.findByRole("heading", { name: "Set up Ossie" });
+    await screen.findByRole("heading", {
+      name: "Set up your Ossie Organization",
+    });
     fillSetupForm();
-    fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
+    fireEvent.click(screen.getByRole("button", { name: "Complete setup" }));
     fireEvent.click(
-      screen.getByRole("button", { name: "Creating owner account..." }),
+      screen.getByRole("button", { name: "Completing setup..." }),
     );
 
     expect(
-      screen.getByRole("button", { name: "Creating owner account..." }),
+      screen.getByRole("button", { name: "Completing setup..." }),
     ).toBeDisabled();
     expect(completeSetup).toHaveBeenCalledTimes(1);
   });
@@ -122,16 +180,31 @@ describe("FirstRunSetupPage", () => {
   it("shows already setup state when setup is no longer required", async () => {
     render(<FirstRunSetupPage getInstanceStatus={async () => setupComplete} />);
 
-    expect(await screen.findByRole("heading", { name: "This instance is already set up." })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Go to sign in" })).toHaveAttribute("href", "/login");
-    expect(screen.queryByRole("button", { name: "Create owner account" })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", {
+        name: "This instance is already set up.",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to sign in" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Complete setup" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows unavailable state for hosted signup mode", async () => {
     render(<FirstRunSetupPage getInstanceStatus={async () => signupMode} />);
 
-    expect(await screen.findByRole("heading", { name: "First-run setup is not available for this instance." })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Create owner account" })).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", {
+        name: "First-run setup is not available for this instance.",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Complete setup" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows setup validation and conflict errors", async () => {
@@ -148,14 +221,18 @@ describe("FirstRunSetupPage", () => {
       <FirstRunSetupPage
         getInstanceStatus={async () => setupRequired}
         completeSetup={completeSetup}
-      />
+      />,
     );
 
-    await screen.findByRole("heading", { name: "Set up Ossie" });
+    await screen.findByRole("heading", {
+      name: "Set up your Ossie Organization",
+    });
     fillSetupForm();
-    fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
+    fireEvent.click(screen.getByRole("button", { name: "Complete setup" }));
 
-    expect(await screen.findByText("Owner password must be at least 12 characters")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Owner password must be at least 12 characters"),
+    ).toBeInTheDocument();
 
     rerender(
       <FirstRunSetupPage
@@ -168,13 +245,17 @@ describe("FirstRunSetupPage", () => {
             message: "First-run setup has already been completed",
           });
         }}
-      />
+      />,
     );
 
-    await screen.findByRole("heading", { name: "Set up Ossie" });
+    await screen.findByRole("heading", {
+      name: "Set up your Ossie Organization",
+    });
     fillSetupForm();
-    fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
+    fireEvent.click(screen.getByRole("button", { name: "Complete setup" }));
 
-    expect(await screen.findByText("This instance is already set up.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("This instance is already set up."),
+    ).toBeInTheDocument();
   });
 });

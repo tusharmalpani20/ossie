@@ -1,36 +1,276 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(320px, 36%) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--ossie-color-surface);
+  color: var(--ossie-color-text);
+}
+
+.brandRegion {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: var(--ossie-space-7);
+  background: var(--ossie-color-brand-ink);
+  color: var(--ossie-color-inverted);
+}
+
+.brand {
+  align-self: flex-start;
+  color: var(--ossie-color-inverted);
+  font-size: 16px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.brand:focus-visible,
+.link:focus-visible,
+.passwordToggle:focus-visible {
+  outline: var(--ossie-focus-ring-width) solid var(--ossie-color-focus);
+  outline-offset: var(--ossie-focus-ring-offset);
+}
+
+.brandMessage {
+  max-width: 28rem;
+  margin-top: clamp(48px, 12vh, 128px);
+}
+
+.brandMessage h2 {
+  margin: 0;
+  color: inherit;
+  font-size: 28px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.brandMessage p {
+  max-width: 24rem;
+  margin: var(--ossie-space-3) 0 0;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0.82;
+}
+
+.steps {
+  display: grid;
+  gap: var(--ossie-space-3);
+  margin: var(--ossie-space-6) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--ossie-space-3);
+}
+
+.stepNumber {
+  display: inline-grid;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.brandFooter {
+  display: flex;
+  align-items: center;
+  gap: var(--ossie-space-2);
+  max-width: 28rem;
+  margin: auto 0 0;
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.82;
+}
+
+.brandFooter svg {
+  flex: none;
+}
+
+.content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  padding: clamp(40px, 6vh, 64px) clamp(32px, 7vw, 96px);
+  background: var(--ossie-color-surface);
+}
+
+.formColumn {
+  width: min(100%, 480px);
+}
+
+.intro {
+  display: grid;
+  gap: var(--ossie-space-2);
+  margin-bottom: var(--ossie-space-6);
+}
+
 .title {
   margin: 0;
   color: var(--ossie-color-text);
-  font-size: 24px;
+  font-size: 26px;
   line-height: 1.2;
+  letter-spacing: -0.015em;
 }
 
-.copy {
+.copy,
+.fieldHint {
   margin: 0;
-  color: var(--ossie-color-muted);
+  color: var(--ossie-color-text-muted);
   font-size: 14px;
   line-height: 1.5;
 }
 
 .form {
   display: grid;
-  gap: 14px;
+  gap: var(--ossie-space-5);
+}
+
+.group {
+  display: grid;
+  gap: var(--ossie-space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.group + .group {
+  padding-top: var(--ossie-space-5);
+  border-top: 1px solid var(--ossie-color-border);
+}
+
+.groupTitle {
+  padding: 0;
+  color: var(--ossie-color-accent-hover);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .field {
   display: grid;
-  gap: 6px;
+  gap: var(--ossie-space-2);
+  min-width: 0;
   color: var(--ossie-color-text);
   font-size: 13px;
   font-weight: 700;
 }
 
+.field :global(input) {
+  width: 100%;
+  min-height: var(--ossie-control-height-comfortable);
+  font-size: 15px;
+}
+
+.nameRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ossie-space-4);
+}
+
+.passwordControl {
+  position: relative;
+}
+
+.passwordControl :global(input) {
+  padding-right: 56px;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-grid;
+  width: var(--ossie-control-height-comfortable);
+  height: 100%;
+  min-height: var(--ossie-control-height-comfortable);
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--ossie-color-border);
+  border-radius: 0 var(--ossie-radius-control) var(--ossie-radius-control) 0;
+  background: transparent;
+  color: var(--ossie-color-accent-hover);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.passwordToggle:hover {
+  background: var(--ossie-color-accent-subtle);
+}
+
+.submitButton {
+  width: 100%;
+}
+
+.statePanel {
+  display: grid;
+  gap: var(--ossie-space-4);
+  width: 100%;
+  padding-top: var(--ossie-space-7);
+}
+
 .link {
-  color: var(--ossie-color-focus);
-  font-weight: 700;
+  width: fit-content;
+  color: var(--ossie-color-link);
+  font-size: 14px;
+  font-weight: 750;
   text-decoration: none;
 }
 
 .link:hover {
   text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  .page {
+    display: block;
+  }
+
+  .brandRegion {
+    min-height: auto;
+    padding: 20px 24px;
+  }
+
+  .brandMessage {
+    display: none;
+  }
+
+  .brandFooter {
+    display: none;
+  }
+
+  .content {
+    display: block;
+    padding: 32px 24px 48px;
+  }
+
+  .formColumn {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .nameRow {
+    grid-template-columns: 1fr;
+  }
+
+  .field :global(input) {
+    font-size: 16px;
+  }
 }

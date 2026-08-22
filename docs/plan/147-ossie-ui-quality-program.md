@@ -1731,6 +1731,9 @@ regression exists.
 
 ### 22.1 Mandatory per-surface implementation preflight
 
+The canonical execution and surface ledger is
+`docs/ui/147-ossie-ui-quality-program-ledger.md`.
+
 No UI or behavior edit may begin until the coordinator records this exact
 surface preflight in the canonical ledger:
 

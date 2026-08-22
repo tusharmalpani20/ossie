@@ -33,6 +33,13 @@ describe("design tokens", () => {
     );
   });
 
+  it("uses the accepted restrained purple direction", () => {
+    expect(semanticColorTokens.brandInk).toBe("#23164c");
+    expect(semanticColorTokens.accent).toBe("#6d46d9");
+    expect(semanticColorTokens.accentHover).toBe("#5c36c4");
+    expect(semanticColorTokens.focus).toBe("#7548eb");
+  });
+
   it("keeps shared radii restrained for workbench surfaces", () => {
     expect(radiusTokens.card).toBe("8px");
     expect(radiusTokens.control).toBe("6px");

@@ -7,10 +7,13 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
   ({ className, ...props }, ref) => (
     <label
       ref={ref}
-      className={cn("text-sm font-semibold leading-none text-slate-700", className)}
+      className={cn(
+        "text-sm font-semibold leading-none text-[var(--ossie-color-text)]",
+        className,
+      )}
       {...props}
     />
-  )
+  ),
 );
 
 Label.displayName = "Label";

@@ -307,7 +307,9 @@ describe("App", () => {
       screen.getByRole("heading", { name: "Sign in" }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByRole("heading", { name: "Set up Ossie" }),
+      await screen.findByRole("heading", {
+        name: "Set up your Ossie Organization",
+      }),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/setup");
   });
@@ -338,7 +340,9 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Set up Ossie" }),
+      await screen.findByRole("heading", {
+        name: "Set up your Ossie Organization",
+      }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Owner email")).toBeInTheDocument();
   });
@@ -442,7 +446,9 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Set up Ossie" }),
+      await screen.findByRole("heading", {
+        name: "Set up your Ossie Organization",
+      }),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/setup");
   });

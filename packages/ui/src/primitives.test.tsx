@@ -3,7 +3,13 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Alert, AlertDescription, AlertTitle } from "./alert";
 import { Badge } from "./badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./card";
 import { Input } from "./input";
 import { Label } from "./label";
 import { Select } from "./select";
@@ -23,7 +29,7 @@ describe("shared UI primitives", () => {
           <option value="draft">Draft</option>
           <option value="archived">Archived</option>
         </Select>
-      </form>
+      </form>,
     );
 
     expect(screen.getByLabelText("Project name")).toHaveClass("name-input");
@@ -46,7 +52,7 @@ describe("shared UI primitives", () => {
           </Alert>
           <Separator />
         </CardContent>
-      </Card>
+      </Card>,
     );
 
     expect(screen.getByText("Capture session")).toBeInTheDocument();
@@ -68,5 +74,15 @@ describe("shared UI primitives", () => {
     expect(
       screen.getByRole("region", { name: "Capture session" }),
     ).toBeInTheDocument();
+  });
+
+  it("announces destructive alerts with the alert role", () => {
+    render(
+      <Alert variant="destructive">The request could not be saved.</Alert>,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The request could not be saved.",
+    );
   });
 });

@@ -1,0 +1,81 @@
+:root {
+  /* Canonical Ossie semantic tokens shared by portal and extension. */
+  --ossie-color-background: #f8f7fb;
+  --ossie-color-surface: #ffffff;
+  --ossie-color-surface-subtle: #f3f1f8;
+  --ossie-color-surface-elevated: #ffffff;
+  --ossie-color-border: #ded9e8;
+  --ossie-color-border-strong: #918a9d;
+  --ossie-color-brand-ink: #23164c;
+  --ossie-color-text: #17151f;
+  --ossie-color-text-muted: #5f5a69;
+  --ossie-color-muted: var(--ossie-color-text-muted);
+  --ossie-color-accent: #6d46d9;
+  --ossie-color-accent-hover: #5c36c4;
+  --ossie-color-accent-active: #4b2aa6;
+  --ossie-color-accent-subtle: #f3f0ff;
+  --ossie-color-accent-border: #d9d1fa;
+  --ossie-color-primary: var(--ossie-color-accent);
+  --ossie-color-primary-hover: var(--ossie-color-accent-hover);
+  --ossie-color-primary-active: var(--ossie-color-accent-active);
+  --ossie-color-link: var(--ossie-color-accent-hover);
+  --ossie-color-inverted: #ffffff;
+  --ossie-color-success: #0f766e;
+  --ossie-color-warning: #92400e;
+  --ossie-color-danger: #b42318;
+  --ossie-color-focus: #7548eb;
+  --ossie-color-focus-ring: var(--ossie-color-focus);
+  --ossie-color-overlay: rgba(23, 21, 31, 0.58);
+  --ossie-color-selected: var(--ossie-color-accent-subtle);
+  --ossie-color-disabled: #e5e7eb;
+  --ossie-color-code: #1f2937;
+  --ossie-color-canvas: var(--ossie-color-background);
+
+  --ossie-space-1: 4px;
+  --ossie-space-2: 8px;
+  --ossie-space-3: 12px;
+  --ossie-space-4: 16px;
+  --ossie-space-5: 24px;
+  --ossie-space-6: 32px;
+  --ossie-space-7: 48px;
+  --ossie-space-8: 64px;
+
+  --ossie-radius-sm: 6px;
+  --ossie-radius-control: 6px;
+  --ossie-radius-card: 8px;
+  --ossie-radius-popover: 8px;
+  --ossie-radius-pill: 999px;
+  --ossie-radius-lg: var(--ossie-radius-card);
+
+  --ossie-control-height-compact: 32px;
+  --ossie-control-height-standard: 40px;
+  --ossie-control-height-comfortable: 44px;
+  --ossie-control-height-large: 48px;
+  --ossie-control-height-icon: 36px;
+
+  --ossie-font-size-xs: 12px;
+  --ossie-font-size-sm: 13px;
+  --ossie-font-size-md: 14px;
+  --ossie-font-size-lg: 16px;
+  --ossie-font-size-xl: 20px;
+  --ossie-font-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --ossie-font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --ossie-focus-ring-width: 2px;
+  --ossie-focus-ring-offset: 2px;
+
+  /* Compatibility aliases for existing consumers during the foundation pass. */
+  --color-text-muted: var(--ossie-color-text-muted);
+  --color-border: var(--ossie-color-border);
+  --color-border-strong: var(--ossie-color-border-strong);
+  --color-surface: var(--ossie-color-surface);
+  --background: var(--ossie-color-surface);
+  --foreground: var(--ossie-color-text);
+  --border: var(--ossie-color-border);
+  --muted-foreground: var(--ossie-color-text-muted);
+  --muted: var(--ossie-color-surface-subtle);
+  --destructive: var(--ossie-color-danger);
+  --card: var(--ossie-color-surface);
+}
