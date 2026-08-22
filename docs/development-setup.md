@@ -75,7 +75,7 @@ https://portal.example.com,chrome-extension://<extension-id>
 
 Development and test mode remain permissive for local browser/extension work, but keeping local origins in `.env-cmdrc` makes production parity easier.
 
-`API_URL` is the externally reachable API origin used for API-facing generated URLs. `OSSIE_PUBLIC_WEB_URL` is the browser-facing portal origin used for generated portal links such as organization invite URLs; set it to an origin only, without a path, query, or hash. In same-origin deployments it can be omitted; in split API/web development it should usually be `http://localhost:3000`.
+`API_URL` is the externally reachable API origin used for API-facing generated URLs. `OSSIE_PUBLIC_WEB_URL` is the browser-facing portal origin used for generated portal links such as organization invite URLs; set it to an origin only, without a path, query, or hash. In same-origin deployments it can be omitted; in split API/web development it should usually be `http://localhost:4050`.
 
 Common web variable:
 
@@ -83,7 +83,7 @@ Common web variable:
 VITE_OSSIE_API_URL
 ```
 
-The web dev server listens on `http://localhost:3000`. When `VITE_OSSIE_API_URL` is not set, it proxies `/api` requests to `http://localhost:3002`, matching the server example port.
+The web dev server listens on `http://localhost:4050`. When `VITE_OSSIE_API_URL` is not set, it proxies `/api` requests to `http://localhost:4060`, matching the server example port.
 
 ## Database
 

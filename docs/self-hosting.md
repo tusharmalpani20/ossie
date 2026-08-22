@@ -23,7 +23,7 @@ pnpm install
 
 ## Configure The Portal
 
-For local development, the web portal runs on `http://localhost:3000` and proxies same-origin `/api` requests to `http://localhost:3002`.
+For local development, the web portal runs on `http://localhost:4050` and proxies same-origin `/api` requests to `http://localhost:4060`.
 
 If the portal is served from a different origin without that dev proxy, set:
 
@@ -68,7 +68,7 @@ For a local self-hosted evaluation using the provided Compose database, the
   "development": {
     "JWT_KEY": "",
     "TZ": "UTC",
-    "SERVER_PORT": "3002",
+    "SERVER_PORT": "4060",
     "DEV_TYPE": "development",
     "DB_HOST": "127.0.0.1",
     "DB_PORT": "5432",
@@ -80,14 +80,14 @@ For a local self-hosted evaluation using the provided Compose database, the
     "COOKIE_SECRET": "",
     "OSSIE_DEPLOYMENT_MODE": "self_hosted",
     "OSSIE_ONBOARDING_MODE": "first_run_setup",
-    "OSSIE_CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:4000",
+    "OSSIE_CORS_ALLOWED_ORIGINS": "http://localhost:4050,http://localhost:4000",
     "OSSIE_LOCAL_STORAGE_ROOT": "./storage",
     "OSSIE_MAX_SCREENSHOT_UPLOAD_BYTES": "10485760",
     "OSSIE_JSON_BODY_LIMIT_BYTES": "1048576",
     "OSSIE_RATE_LIMIT_MAX_ATTEMPTS": "20",
     "OSSIE_RATE_LIMIT_WINDOW_MS": "60000",
-    "API_URL": "http://localhost:3002",
-    "AUTH_REDIRECT_URL": "http://localhost:3000/"
+    "API_URL": "http://localhost:4060",
+    "AUTH_REDIRECT_URL": "http://localhost:4050/"
   }
 }
 ```
@@ -263,8 +263,8 @@ Load `apps/extension/dist` in Chrome:
 
 In the extension popup:
 
-1. Set the instance URL to your server origin, for example `http://localhost:3002`.
-2. If the API and portal are on different origins, set the optional portal URL to the browser-facing portal origin without a path, query, or hash, for example `http://localhost:3000` or `https://demo.example.com`.
+1. Set the instance URL to your server origin, for example `http://localhost:4060`.
+2. If the API and portal are on different origins, set the optional portal URL to the browser-facing portal origin without a path, query, or hash, for example `http://localhost:4050` or `https://demo.example.com`.
 3. Sign in with the owner account created through first-run setup.
 4. Select a project.
 5. Start a capture session.

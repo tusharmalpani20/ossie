@@ -37,12 +37,12 @@ From the repository root:
 pnpm --filter web dev
 ```
 
-The Vite development server uses port `3000`. By default it proxies `/api` to
-`http://localhost:3002`. Set `VITE_OSSIE_API_URL` when the API uses another
+The Vite development server uses port `4050`. By default it proxies `/api` to
+`http://localhost:4060`. Set `VITE_OSSIE_API_URL` when the API uses another
 origin:
 
 ```bash
-VITE_OSSIE_API_URL=http://localhost:3002 pnpm --filter web dev
+VITE_OSSIE_API_URL=http://localhost:4060 pnpm --filter web dev
 ```
 
 For production-like local verification:
