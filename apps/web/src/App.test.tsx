@@ -343,6 +343,79 @@ describe("App", () => {
     expect(screen.getByLabelText("Owner email")).toBeInTheDocument();
   });
 
+  it("renders the immutable Documentation Publication preview route", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/projects/project_1/versions/main/documentation/site_1/publications/2",
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = input.toString();
+        if (url.endsWith("/api/v1/public/instance"))
+          return jsonResponse(readyInstanceStatus);
+        if (url.endsWith("/api/v1/projects/project_1"))
+          return jsonResponse(writableProjectResponse);
+        if (url.endsWith("/versions/resolve/main"))
+          return jsonResponse({
+            resolution: "canonical",
+            project_version: mainProjectVersion,
+          });
+        if (url.endsWith("/versions"))
+          return jsonResponse({ project_versions: [mainProjectVersion] });
+        if (url.endsWith("/documentation-sites/site_1/publications"))
+          return jsonResponse({
+            publications: [
+              {
+                id: "publication_2",
+                publication_sequence: 2,
+                revision_number: 4,
+                published_at: "2026-08-02T00:00:00.000Z",
+              },
+            ],
+          });
+        if (url.endsWith("/documentation-sites/site_1/revisions/4"))
+          return jsonResponse({
+            revision: {
+              site: { id: "site_1", name: "Product docs", description: null },
+              revision: {
+                id: "revision_4",
+                revision_number: 4,
+                created_at: "2026-08-01T00:00:00.000Z",
+              },
+              pages: [
+                {
+                  id: "page_1",
+                  title: "Install",
+                  canonical_path: "install",
+                  blocks: [
+                    {
+                      id: "block_1",
+                      kind: "paragraph",
+                      position: 1,
+                      expected_version: 1,
+                      text: "Immutable Publication content",
+                    },
+                  ],
+                },
+              ],
+              openapi_operations: [],
+            },
+          });
+        return jsonResponse({ error: { message: "Unexpected request" } }, 404);
+      }),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Product docs — immutable Publication 2",
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("routes private portal pages to setup when first-run setup is required", async () => {
     window.history.pushState({}, "", "/projects");
     vi.stubGlobal(

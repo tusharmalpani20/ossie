@@ -1534,6 +1534,29 @@ export type DocumentationRevisionSnapshot = {
     description: string | null;
   };
   revision: DocumentationRevisionSummary;
+  pages?: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    canonical_path: string;
+    blocks: DocumentationBlock[];
+  }>;
+  navigation?: {
+    nodes: Array<{
+      id: string;
+      parent_id: string | null;
+      kind: "group" | "page";
+      label: string | null;
+      page_id: string | null;
+      position: number;
+    }>;
+  };
+  snippets?: Array<{
+    id: string;
+    name: string;
+    status: "active" | "archived";
+    blocks: DocumentationBlock[];
+  }>;
   openapi_operations: DocumentationOpenApiOperation[];
 };
 

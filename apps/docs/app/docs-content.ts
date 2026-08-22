@@ -24,10 +24,11 @@ export const productCapabilities = [
 
 export const nextPlatformDirection = {
   status:
-    "Master Plans 005 and 006 are complete; Product Documentation V1 is shipped and Master Plan 007 is a planning-only next experience sequence.",
+    "Product Documentation V1 is shipped; Master Plans 005, 006, and 007 are complete, and the accepted post-V1 experience work is shipped. Plan 147 is the accepted UI-quality execution baseline; its runtime work is not shipped merely because it is planned.",
   items: [
     "Product Documentation V1 ships the accepted content, source-of-truth, publication, access, URL, search, comments, review, portability, lifecycle, security, and API experience boundaries.",
-    "The next activity is to expand and recheck child 141, an isolated Tiptap/Fumadocs adapter proof and adoption gate, before any dependency or runtime change.",
+    "The next activity is the page-by-page Plan 147 UI-quality program, beginning with shared foundation preflight and one human-reviewed surface at a time.",
+    "The existing child 141 Tiptap/Fumadocs adapter proof remains a bounded Product Documentation adoption record; it does not imply broader runtime behavior.",
     "Later selected children modernize authoring and reading, add deterministic multi-language API request examples, harden the combined experience, and perform final closeout.",
     "Loom-style Video later; its recording, storage, playback, and collaboration model remains deliberately unplanned.",
   ],
