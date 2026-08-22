@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
     ...loadEnv(mode, process.cwd(), ""),
   };
   const apiProxyTarget =
-    environment.VITE_OSSIE_API_URL ?? "http://localhost:3002";
+    environment.VITE_OSSIE_API_URL ?? "http://localhost:4060";
   const tryItOrigins = parseDocumentationTryItConnectOrigins(
     environment.OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS ??
       environment.VITE_OSSIE_DOCUMENTATION_TRY_IT_ALLOWED_ORIGINS,
@@ -62,7 +62,7 @@ export default defineConfig(({ mode }) => {
       },
     ],
     server: {
-      port: 3000,
+      port: 4050,
       headers: { "Content-Security-Policy": csp },
       proxy: {
         "/api": {
@@ -72,7 +72,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     preview: {
-      port: 3000,
+      port: 4050,
       headers: { "Content-Security-Policy": csp },
     },
     test: {
