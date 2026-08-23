@@ -2,6 +2,7 @@
   "manifest_version": 3,
   "name": "Ossie",
   "short_name": "Ossie",
+  "description": "Capture browser workflows and turn them into governed guides and interactive demos in Ossie.",
   "version": "0.1.0",
   "icons": {
     "16": "icons/ossie-16.png",

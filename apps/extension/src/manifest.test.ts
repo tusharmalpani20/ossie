@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 type ExtensionManifest = {
+  description?: string;
   action?: {
     default_icon?: Record<string, string>;
   };
@@ -20,6 +21,12 @@ const manifest = JSON.parse(
 ) as ExtensionManifest;
 
 describe("extension manifest", () => {
+  it("describes the extension purpose in Chrome", () => {
+    expect(manifest.description).toBe(
+      "Capture browser workflows and turn them into governed guides and interactive demos in Ossie."
+    );
+  });
+
   it("uses the selected Ossie icon set", () => {
     expect(manifest.icons).toEqual({
       "16": "icons/ossie-16.png",
