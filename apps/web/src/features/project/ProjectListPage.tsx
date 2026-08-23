@@ -2,6 +2,8 @@
  * @fileoverview Portal Project list with create flow and lifecycle filters.
  */
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import type { AuthContext, AuthResponse } from "@repo/types/auth";
+import { ArrowRight, Plus } from "lucide-react";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
@@ -12,6 +14,7 @@ import { Textarea } from "@repo/ui/textarea";
 import {
   ApiClientError,
   createProject,
+  getCurrentAuth,
   listProjects,
   type ProjectCreateResponse,
   type ProjectListResponse,
@@ -25,7 +28,7 @@ import styles from "./ProjectListPage.module.css";
 type LoadState =
   | { status: "loading" }
   | { status: "loaded"; projects: Project[] }
-  | { status: "unauthenticated" }
+  | { status: "redirecting" }
   | { status: "error" };
 
 type ProjectListPageProps = {
@@ -36,20 +39,13 @@ type ProjectListPageProps = {
   currentPath?: string;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
+  loadAuth?: () => Promise<AuthResponse>;
 };
 
 type CreateProjectFormState = {
   name: string;
   slug: string;
   description: string;
-};
-
-const loadStateFromError = (error: unknown): LoadState => {
-  if (error instanceof ApiClientError && error.kind === "unauthenticated") {
-    return { status: "unauthenticated" };
-  }
-
-  return { status: "error" };
 };
 
 const formatDateTime = (value: string) => {
@@ -103,11 +99,6 @@ const openProject = (project: Project, navigate?: (path: string) => void) => {
   window.location.assign(path);
 };
 
-const emptyProjectListMessage = (statusFilter: "active" | "archived") =>
-  statusFilter === "active"
-    ? "No active Projects yet. Create a Project to start capturing governed product knowledge."
-    : "No archived Projects. Archived Projects remain directly linkable and can be restored from settings.";
-
 /** Renders the portal Project list and create form. */
 export const ProjectListPage = ({
   loadProjects = listProjects,
@@ -115,6 +106,7 @@ export const ProjectListPage = ({
   currentPath = currentBrowserPath(),
   performLogout,
   navigate,
+  loadAuth = getCurrentAuth,
 }: ProjectListPageProps) => {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
@@ -129,6 +121,7 @@ export const ProjectListPage = ({
   });
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [account, setAccount] = useState<AuthContext | null>(null);
   const createNameInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -142,15 +135,45 @@ export const ProjectListPage = ({
         }
       })
       .catch((error: unknown) => {
-        if (active) {
-          setState(loadStateFromError(error));
+        if (!active) return;
+
+        if (
+          error instanceof ApiClientError &&
+          error.kind === "unauthenticated"
+        ) {
+          const path = signInUrl(currentPath);
+          setState({ status: "redirecting" });
+          if (navigate) {
+            navigate(path);
+          } else {
+            window.location.assign(path);
+          }
+          return;
         }
+
+        setState({ status: "error" });
       });
 
     return () => {
       active = false;
     };
-  }, [loadProjects, reloadKey, statusFilter]);
+  }, [currentPath, loadProjects, navigate, reloadKey, statusFilter]);
+
+  useEffect(() => {
+    let active = true;
+
+    loadAuth()
+      .then((response) => {
+        if (active) setAccount(response.auth);
+      })
+      .catch(() => {
+        if (active) setAccount(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [loadAuth]);
 
   useEffect(() => {
     if (showCreateForm) {
@@ -211,28 +234,27 @@ export const ProjectListPage = ({
 
   if (state.status === "loading") {
     return (
-      <PortalShell performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        account={account}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>Loading projects...</div>
       </PortalShell>
     );
   }
 
-  if (state.status === "unauthenticated") {
-    return (
-      <PortalShell performLogout={performLogout} navigate={navigate}>
-        <div className={styles.state}>
-          <div>Sign in to view projects.</div>
-          <a className={styles.stateLink} href={signInUrl(currentPath)}>
-            Sign in
-          </a>
-        </div>
-      </PortalShell>
-    );
+  if (state.status === "redirecting") {
+    return null;
   }
 
   if (state.status === "error") {
     return (
-      <PortalShell performLogout={performLogout} navigate={navigate}>
+      <PortalShell
+        account={account}
+        performLogout={performLogout}
+        navigate={navigate}
+      >
         <div className={styles.state}>
           <div>Could not load projects.</div>
           <Button
@@ -249,14 +271,27 @@ export const ProjectListPage = ({
   }
 
   return (
-    <PortalShell performLogout={performLogout} navigate={navigate}>
+    <PortalShell
+      account={account}
+      performLogout={performLogout}
+      navigate={navigate}
+    >
       <section className={styles.header}>
         <div>
-          <div className={styles.eyebrow}>Portal home</div>
           <h1 className={styles.title}>Projects</h1>
+          <p className={styles.subtitle}>
+            Organize your product knowledge and open the work your team needs.
+          </p>
         </div>
-        <Button type="button" onClick={openCreateForm}>
-          New Project
+        <Button
+          className={styles.createButton}
+          size="icon"
+          type="button"
+          aria-label="Create a new Project"
+          title="Create a new Project"
+          onClick={openCreateForm}
+        >
+          <Plus aria-hidden="true" size={19} />
         </Button>
       </section>
 
@@ -322,37 +357,72 @@ export const ProjectListPage = ({
         </Card>
       ) : null}
 
-      <section className={styles.content} aria-labelledby="projects-heading">
-        <div className={styles.titleRow}>
-          <h2 className={styles.sectionTitle} id="projects-heading">
-            {statusFilter === "active" ? "Active" : "Archived"} projects
-          </h2>
-          <label>
-            Project status{" "}
-            <select
-              aria-label="Project status"
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as "active" | "archived")
+      {!showCreateForm ? (
+        <section className={styles.content} aria-label="Project library">
+          <div
+            className={styles.tabs}
+            role="tablist"
+            aria-label="Project status"
+          >
+            <button
+              className={
+                statusFilter === "active" ? styles.tabActive : styles.tab
               }
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === "active"}
+              onClick={() => setStatusFilter("active")}
             >
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-            </select>
-          </label>
-        </div>
-        {state.projects.length === 0 ? (
-          <Card className={styles.empty}>
-            {emptyProjectListMessage(statusFilter)}
-          </Card>
-        ) : (
-          <div className={styles.projects}>
-            {state.projects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
+              Active
+            </button>
+            <button
+              className={
+                statusFilter === "archived" ? styles.tabActive : styles.tab
+              }
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === "archived"}
+              onClick={() => setStatusFilter("archived")}
+            >
+              Archived
+            </button>
           </div>
-        )}
-      </section>
+          {state.projects.length === 0 ? (
+            <div className={styles.empty}>
+              <img
+                className={styles.emptyIllustration}
+                src="/illustrations/ossie-projects-empty.png"
+                alt=""
+                aria-hidden="true"
+                width="320"
+                height="210"
+              />
+              <h2 className={styles.emptyTitle}>
+                {statusFilter === "active"
+                  ? "No Projects yet"
+                  : "No archived Projects"}
+              </h2>
+              <p className={styles.emptyDescription}>
+                {statusFilter === "active"
+                  ? "Projects organize your Captures, Guides, Interactive Demos, and Documentation."
+                  : "Projects you archive will appear here."}
+              </p>
+              {statusFilter === "active" ? (
+                <Button type="button" onClick={openCreateForm}>
+                  Create your first Project
+                  <ArrowRight aria-hidden="true" size={17} />
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <div className={styles.projects}>
+              {state.projects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
     </PortalShell>
   );
 };
@@ -360,16 +430,20 @@ export const ProjectListPage = ({
 /** Wraps the Project list in the shared portal shell. */
 const PortalShell = ({
   children,
+  account,
   performLogout,
   navigate,
 }: {
   children: React.ReactNode;
+  account?: AuthContext | null;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
 }) => (
   <PortalAppShell
     activeSection="projects"
     currentLabel="Projects"
+    account={account}
+    projectLibrary
     performLogout={performLogout}
     navigate={navigate}
   >

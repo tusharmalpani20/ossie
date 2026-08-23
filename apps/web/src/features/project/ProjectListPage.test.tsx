@@ -14,6 +14,23 @@ import { ApiClientError } from "../../lib/api";
 import { ProjectListPage } from "./ProjectListPage";
 import type { Project } from "./types";
 
+const authResponse = {
+  auth: {
+    user: {
+      id: "user_1",
+      email: "jane@example.com",
+      display_name: "Jane Member",
+    },
+    organization: { id: "organization_1", name: "Ossie Labs" },
+    org_user: { id: "org_user_1", role: "owner" as const },
+    session: {
+      id: "session_1",
+      session_type: "browser",
+      expires_at: "2026-09-01T10:00:00.000Z",
+    },
+  },
+};
+
 const projects: Project[] = [
   {
     id: "project_2",
@@ -74,6 +91,7 @@ const renderPage = (
     currentPath?: string;
     performLogout?: () => Promise<void>;
     navigate?: (path: string) => void;
+    loadAuth?: () => Promise<typeof authResponse>;
   } = {},
 ) => {
   const loadProjects =
@@ -88,6 +106,7 @@ const renderPage = (
       currentPath={overrides.currentPath}
       performLogout={overrides.performLogout}
       navigate={overrides.navigate}
+      loadAuth={overrides.loadAuth ?? vi.fn(async () => authResponse)}
     />,
   );
 
@@ -128,7 +147,7 @@ describe("ProjectListPage", () => {
       }),
     ).toHaveAttribute("href", "/projects/project_1/versions/main");
     expect(
-      screen.getByRole("button", { name: "Sign out" }),
+      screen.getByRole("button", { name: "Open account menu for Jane Member" }),
     ).toBeInTheDocument();
     expect(loadProjects).toHaveBeenCalledWith({ status: "active" });
     expect(screen.queryByText("organization_1")).not.toBeInTheDocument();
@@ -162,22 +181,96 @@ describe("ProjectListPage", () => {
     });
 
     expect(
-      await screen.findByText(
-        "No active Projects yet. Create a Project to start capturing governed product knowledge.",
+      await screen.findByRole("heading", { name: "No Projects yet" }),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector(
+        'img[src="/illustrations/ossie-projects-empty.png"]',
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "New Project" }),
+      screen.getByText(
+        "Projects organize your Captures, Guides, Interactive Demos, and Documentation.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Create your first Project" }),
+    ).toBeInTheDocument();
+  });
+
+  it("uses one page heading, compact lifecycle tabs, and no portal labels", async () => {
+    const loadProjects = vi.fn(async () => ({ projects: [] }));
+    renderPage({ loadProjects });
+
+    expect(
+      await screen.findByRole("heading", { name: "Projects", level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Projects")).toHaveLength(2);
+    expect(screen.queryByText("Portal")).not.toBeInTheDocument();
+    expect(screen.queryByText("Portal home")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: "Breadcrumb" }),
+    ).not.toBeInTheDocument();
+
+    const activeTab = screen.getByRole("tab", { name: "Active" });
+    const archivedTab = screen.getByRole("tab", { name: "Archived" });
+    expect(activeTab).toHaveAttribute("aria-selected", "true");
+    expect(archivedTab).toHaveAttribute("aria-selected", "false");
+
+    fireEvent.click(archivedTab);
+
+    await waitFor(() =>
+      expect(loadProjects).toHaveBeenLastCalledWith({ status: "archived" }),
+    );
+    expect(archivedTab).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("provides project navigation controls and an account menu", async () => {
+    renderPage({ loadProjects: async () => ({ projects: [] }) });
+
+    expect(
+      await screen.findByRole("heading", { name: "Projects", level: 1 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open navigation" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse navigation" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Projects" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open account menu for Jane Member" }),
+    );
+
+    const accountMenu = screen.getByRole("menu");
+    expect(
+      within(accountMenu).getByText("jane@example.com"),
+    ).toBeInTheDocument();
+    expect(within(accountMenu).getByText("Ossie Labs")).toBeInTheDocument();
+    expect(
+      within(accountMenu).getByText("Organization owner"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Organization members" }),
+    ).toHaveAttribute("href", "/organization/members");
+    expect(
+      screen.getByRole("menuitem", { name: "Sign out" }),
     ).toBeInTheDocument();
   });
 
   it("opens and cancels the project creation form", async () => {
-    renderPage();
+    renderPage({ loadProjects: async () => ({ projects: [] }) });
 
     expect(
       await screen.findByRole("heading", { name: "Projects" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "New Project" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a new Project" }),
+    );
 
     expect(
       screen.getByRole("heading", { name: "Create project" }),
@@ -186,12 +279,18 @@ describe("ProjectListPage", () => {
     expect(screen.getByLabelText("Slug")).toBeInTheDocument();
     expect(screen.getByLabelText("Description")).toBeInTheDocument();
     expect(screen.getByLabelText("Project name")).toHaveFocus();
+    expect(
+      screen.queryByRole("heading", { name: "No Projects yet" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(
       screen.queryByRole("heading", { name: "Create project" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "No Projects yet" }),
+    ).toBeInTheDocument();
   });
 
   it("validates project names before creating projects", async () => {
@@ -200,7 +299,9 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Projects" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "New Project" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a new Project" }),
+    );
     fireEvent.change(screen.getByLabelText("Project name"), {
       target: { value: "   " },
     });
@@ -224,7 +325,9 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Projects" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "New Project" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a new Project" }),
+    );
     fireEvent.change(screen.getByLabelText("Project name"), {
       target: { value: " Created project " },
     });
@@ -258,7 +361,9 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Projects" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "New Project" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a new Project" }),
+    );
     fireEvent.change(screen.getByLabelText("Project name"), {
       target: { value: "Created project" },
     });
@@ -297,7 +402,9 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Projects" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "New Project" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a new Project" }),
+    );
     fireEvent.change(screen.getByLabelText("Project name"), {
       target: { value: "Created project" },
     });
@@ -323,7 +430,9 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Projects" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "New Project" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a new Project" }),
+    );
     fireEvent.change(screen.getByLabelText("Project name"), {
       target: { value: "Created project" },
     });
@@ -352,7 +461,9 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Projects" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "New Project" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a new Project" }),
+    );
     fireEvent.change(screen.getByLabelText("Project name"), {
       target: { value: "Created project" },
     });
@@ -377,7 +488,9 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Projects" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "New Project" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a new Project" }),
+    );
     fireEvent.change(screen.getByLabelText("Project name"), {
       target: { value: "Created project" },
     });
@@ -399,9 +512,12 @@ describe("ProjectListPage", () => {
     );
   });
 
-  it("renders unauthenticated states with sign-in links", async () => {
+  it("redirects unauthenticated visitors to sign in with the current path", async () => {
+    const navigate = vi.fn();
+
     renderPage({
       currentPath: "/projects?view=recent",
+      navigate,
       loadProjects: async () => {
         throw new ApiClientError({
           kind: "unauthenticated",
@@ -412,13 +528,14 @@ describe("ProjectListPage", () => {
       },
     });
 
-    expect(
-      await screen.findByText("Sign in to view projects."),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
-      "href",
-      "/login?next=%2Fprojects%3Fview%3Drecent",
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith(
+        "/login?next=%2Fprojects%3Fview%3Drecent",
+      ),
     );
+    expect(
+      screen.queryByRole("navigation", { name: "Portal navigation" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders generic errors and supports retry", async () => {
@@ -466,7 +583,10 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Internal onboarding demos" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open account menu for Jane Member" }),
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
 
     await waitFor(() => expect(performLogout).toHaveBeenCalled());
     expect(navigate).toHaveBeenCalledWith("/login");
@@ -483,7 +603,10 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Internal onboarding demos" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open account menu for Jane Member" }),
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
 
     expect(await screen.findByText("Could not sign out.")).toBeInTheDocument();
     expect(
