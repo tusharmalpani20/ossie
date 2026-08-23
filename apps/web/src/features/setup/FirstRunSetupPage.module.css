@@ -1,6 +1,6 @@
 .page {
   display: grid;
-  grid-template-columns: minmax(320px, 36%) minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 35%) minmax(0, 1fr);
   min-height: 100vh;
   background: var(--ossie-color-surface);
   color: var(--ossie-color-text);
@@ -11,6 +11,7 @@
   flex-direction: column;
   min-height: 100vh;
   padding: var(--ossie-space-7);
+  border-right: 1px solid var(--ossie-color-accent-active);
   background: var(--ossie-color-brand-ink);
   color: var(--ossie-color-inverted);
 }
@@ -32,7 +33,7 @@
 
 .brandMessage {
   max-width: 28rem;
-  margin-top: clamp(48px, 12vh, 128px);
+  margin-top: clamp(40px, 7vh, 72px);
 }
 
 .brandMessage h2 {
@@ -41,6 +42,7 @@
   font-size: 28px;
   line-height: 1.25;
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .brandMessage p {
@@ -101,26 +103,27 @@
   align-items: flex-start;
   justify-content: center;
   min-width: 0;
-  padding: clamp(40px, 6vh, 64px) clamp(32px, 7vw, 96px);
+  padding: clamp(40px, 5vh, 56px) clamp(32px, 7vw, 96px);
   background: var(--ossie-color-surface);
 }
 
 .formColumn {
-  width: min(100%, 480px);
+  width: min(100%, 464px);
 }
 
 .intro {
   display: grid;
   gap: var(--ossie-space-2);
-  margin-bottom: var(--ossie-space-6);
+  margin-bottom: var(--ossie-space-5);
 }
 
 .title {
   margin: 0;
   color: var(--ossie-color-text);
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1.2;
   letter-spacing: -0.015em;
+  text-wrap: balance;
 }
 
 .copy,
@@ -179,6 +182,23 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--ossie-space-4);
+}
+
+.organizationControl {
+  position: relative;
+}
+
+.organizationControl :global(input) {
+  padding-right: 48px;
+}
+
+.organizationIcon {
+  position: absolute;
+  top: 50%;
+  right: var(--ossie-space-4);
+  color: var(--ossie-color-text-muted);
+  pointer-events: none;
+  transform: translateY(-50%);
 }
 
 .passwordControl {
@@ -245,6 +265,8 @@
   .brandRegion {
     min-height: auto;
     padding: 20px 24px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ossie-color-accent-active);
   }
 
   .brandMessage {
@@ -262,7 +284,7 @@
 
   .formColumn {
     width: 100%;
-    max-width: 480px;
+    max-width: 464px;
     margin: 0 auto;
   }
 

@@ -7,7 +7,7 @@ import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
-import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { ArrowRight, Building2, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import {
   ApiClientError,
   completeFirstRunSetup,
@@ -255,17 +255,25 @@ export const FirstRunSetupPage = ({
           <legend className={styles.groupTitle}>Organization</legend>
           <div className={styles.field}>
             <Label htmlFor="setup-organization">Organization name</Label>
-            <Input
-              id="setup-organization"
-              name="organization_name"
-              type="text"
-              value={organizationName}
-              required
-              autoComplete="organization"
-              placeholder="e.g. Acme Inc."
-              disabled={submitting}
-              onChange={(event) => setOrganizationName(event.target.value)}
-            />
+            <div className={styles.organizationControl}>
+              <Input
+                id="setup-organization"
+                name="organization_name"
+                type="text"
+                value={organizationName}
+                required
+                autoComplete="organization"
+                placeholder="e.g. Acme Inc."
+                disabled={submitting}
+                onChange={(event) => setOrganizationName(event.target.value)}
+              />
+              <Building2
+                className={styles.organizationIcon}
+                size={16}
+                strokeWidth={1.8}
+                aria-hidden="true"
+              />
+            </div>
           </div>
         </fieldset>
         <fieldset className={styles.group}>
@@ -353,6 +361,9 @@ export const FirstRunSetupPage = ({
           disabled={submitting}
         >
           {submitting ? "Completing setup..." : "Complete setup"}
+          {!submitting ? (
+            <ArrowRight size={16} strokeWidth={1.8} aria-hidden="true" />
+          ) : null}
         </Button>
       </form>
     </Shell>
