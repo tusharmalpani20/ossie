@@ -49,6 +49,8 @@ const setupErrorMessage = (error: unknown) => {
   return "Could not complete first-run setup.";
 };
 
+const isPasswordSetupError = (message: string) => /password/i.test(message);
+
 const Shell = ({ children }: { children: ReactNode }) => (
   <div className={styles.page}>
     <aside className={styles.brandRegion}>
@@ -172,6 +174,10 @@ export const FirstRunSetupPage = ({
     }
   };
 
+  const passwordError =
+    submitError && isPasswordSetupError(submitError) ? submitError : null;
+  const formError = submitError && !passwordError ? submitError : null;
+
   if (pageState.status === "loading") {
     return (
       <Shell>
@@ -245,7 +251,7 @@ export const FirstRunSetupPage = ({
   return (
     <Shell>
       <div className={styles.intro}>
-        <h1 className={styles.title}>Set up your Ossie Organization</h1>
+        <h1 className={styles.title}>Set up your Ossie workspace</h1>
         <p className={styles.copy}>
           Create the first Organization and owner account for this instance.
         </p>
@@ -330,6 +336,10 @@ export const FirstRunSetupPage = ({
                 value={password}
                 required
                 autoComplete="new-password"
+                aria-invalid={passwordError ? true : undefined}
+                aria-describedby={
+                  passwordError ? "setup-password-error" : undefined
+                }
                 disabled={submitting}
                 onChange={(event) => setPassword(event.target.value)}
               />
@@ -348,11 +358,23 @@ export const FirstRunSetupPage = ({
                 )}
               </button>
             </div>
-            <p className={styles.fieldHint}>Use at least 12 characters.</p>
+            {passwordError ? (
+              <p
+                className={styles.fieldError}
+                id="setup-password-error"
+                role="alert"
+              >
+                {passwordError}
+              </p>
+            ) : (
+              <p className={styles.fieldHint}>Use at least 12 characters.</p>
+            )}
           </div>
         </fieldset>
-        {submitError ? (
-          <Alert variant="destructive">{submitError}</Alert>
+        {formError ? (
+          <p className={styles.formError} role="alert">
+            {formError}
+          </p>
         ) : null}
         <Button
           className={styles.submitButton}
