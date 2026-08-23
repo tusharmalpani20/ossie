@@ -260,9 +260,7 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByText(
-        "No active Projects yet. Create a Project to start capturing governed product knowledge.",
-      ),
+      await screen.findByRole("heading", { name: "No Projects yet" }),
     ).toBeInTheDocument();
   });
 
@@ -308,7 +306,7 @@ describe("App", () => {
     ).toBeInTheDocument();
     expect(
       await screen.findByRole("heading", {
-        name: "Set up your Ossie Organization",
+        name: "Set up your Ossie workspace",
       }),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/setup");
@@ -341,7 +339,7 @@ describe("App", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Set up your Ossie Organization",
+        name: "Set up your Ossie workspace",
       }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Owner email")).toBeInTheDocument();
@@ -447,7 +445,7 @@ describe("App", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Set up your Ossie Organization",
+        name: "Set up your Ossie workspace",
       }),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/setup");
