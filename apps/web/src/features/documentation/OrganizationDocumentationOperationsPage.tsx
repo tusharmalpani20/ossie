@@ -1,9 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
-import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
-import { Label } from "@repo/ui/label";
 import {
   DocumentationApiError,
   getDocumentationOperations,
@@ -20,6 +18,8 @@ type LimitDraft = {
   pages: string;
 };
 
+type LoadState = "loading" | "loaded" | "error";
+
 const draftFrom = (
   limits: DocumentationOperationsSummary["limits"],
 ): LimitDraft => ({
@@ -28,6 +28,25 @@ const draftFrom = (
   sites: String(limits.active_sites_limit ?? 1),
   pages: String(limits.active_pages_limit ?? 1),
 });
+
+const formatCount = (value: number) => value.toLocaleString();
+
+const formatBytes = (bytes: number) => {
+  if (bytes < 1024) return `${bytes.toLocaleString()} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toLocaleString(undefined, {
+    maximumFractionDigits: value < 10 ? 1 : 0,
+  })} ${units[unit]}`;
+};
+
+const limitValue = (unlimited: boolean, value: string) =>
+  unlimited ? null : Number(value);
 
 export const OrganizationDocumentationOperationsPage = ({
   currentPath = window.location.pathname,
@@ -42,35 +61,64 @@ export const OrganizationDocumentationOperationsPage = ({
     null,
   );
   const [draft, setDraft] = useState<LimitDraft | null>(null);
-  const [status, setStatus] = useState("Loading Documentation usage…");
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [reloadKey, setReloadKey] = useState(0);
+  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
+    setLoadState("loading");
+    setMessage("");
     load()
       .then((result) => {
         if (!active) return;
         setSummary(result);
         setDraft(draftFrom(result.limits));
-        setStatus("Documentation usage is up to date.");
+        setLoadState("loaded");
       })
       .catch(() => {
-        if (active) setStatus("Documentation usage could not be loaded.");
+        if (active) setLoadState("error");
       });
     return () => {
       active = false;
     };
-  }, [load]);
+  }, [load, reloadKey]);
+
+  const proposedLimits = draft
+    ? {
+        active_sites_limit: limitValue(draft.sitesUnlimited, draft.sites),
+        active_pages_limit: limitValue(draft.pagesUnlimited, draft.pages),
+      }
+    : null;
+  const isValid = Boolean(
+    draft &&
+    (draft.sitesUnlimited || Number(draft.sites) >= 1) &&
+    (draft.pagesUnlimited || Number(draft.pages) >= 1),
+  );
+  const isDirty = Boolean(
+    summary &&
+    proposedLimits &&
+    (proposedLimits.active_sites_limit !== summary.limits.active_sites_limit ||
+      proposedLimits.active_pages_limit !== summary.limits.active_pages_limit),
+  );
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!summary || !draft || !summary.permissions.can_manage_limits) return;
+    if (
+      !summary ||
+      !draft ||
+      !proposedLimits ||
+      !summary.permissions.can_manage_limits ||
+      !isDirty ||
+      !isValid
+    )
+      return;
     setBusy(true);
-    setStatus("Saving Documentation product limits…");
+    setMessage("");
     try {
       const result = await update({
-        active_sites_limit: draft.sitesUnlimited ? null : Number(draft.sites),
-        active_pages_limit: draft.pagesUnlimited ? null : Number(draft.pages),
+        ...proposedLimits,
         expected_version: summary.limits.version,
       });
       setSummary((current) =>
@@ -83,7 +131,7 @@ export const OrganizationDocumentationOperationsPage = ({
           : current,
       );
       setDraft(draftFrom(result.limits));
-      setStatus("Documentation product limits were saved.");
+      setMessage("Documentation limits saved.");
     } catch (error) {
       if (
         error instanceof DocumentationApiError &&
@@ -96,11 +144,11 @@ export const OrganizationDocumentationOperationsPage = ({
           setSummary((current) =>
             current ? { ...current, limits: latest } : current,
           );
-        setStatus(
-          "Limits changed elsewhere. Your proposed values are preserved; review the latest version and retry.",
+        setMessage(
+          "Limits changed elsewhere. Your values are preserved; review the latest limits and try again.",
         );
       } else {
-        setStatus("Documentation product limits could not be saved.");
+        setMessage("Documentation limits could not be saved. Try again.");
       }
     } finally {
       setBusy(false);
@@ -116,44 +164,60 @@ export const OrganizationDocumentationOperationsPage = ({
       currentLabel="Documentation operations"
     >
       <main className={styles.page} data-current-path={currentPath}>
-        <header>
-          <p className={styles.eyebrow}>Organization</p>
-          <h1>Documentation operations</h1>
-          <p>
-            Review active usage, retained storage, and Organization product
-            limits.
-          </p>
-        </header>
-        <p role="status" aria-live="polite">
-          {status}
-        </p>
-        {summary ? (
+        <section className={styles.header}>
+          <div>
+            <h1 className={styles.title}>Documentation</h1>
+            <p className={styles.subtitle}>
+              Monitor Documentation usage and manage Organization limits.
+            </p>
+          </div>
+        </section>
+
+        {loadState === "loading" ? (
+          <section className={styles.state} aria-live="polite">
+            Loading Documentation usage…
+          </section>
+        ) : loadState === "error" ? (
+          <section className={styles.state}>
+            <p>Could not load Documentation usage.</p>
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => setReloadKey((value) => value + 1)}
+            >
+              Retry
+            </Button>
+          </section>
+        ) : summary ? (
           <>
-            <section className={styles.grid} aria-label="Documentation usage">
-              {[
-                ["Active Sites", summary.usage.active_sites],
-                ["Active Pages", summary.usage.active_pages],
-                ["Retained revisions", summary.usage.retained_revisions],
-                ["Retained publications", summary.usage.retained_publications],
-                ["Retained file bytes", summary.usage.retained_file_bytes],
-                [
-                  "Ready import inspections",
-                  summary.usage.active_import_inspections,
-                ],
-                ["Open review requests", summary.usage.open_review_requests],
-              ].map(([label, value]) => (
-                <Card key={label}>
-                  <CardHeader>
-                    <h2 className={styles.cardTitle}>{label}</h2>
-                  </CardHeader>
-                  <CardContent>
-                    <strong className={styles.metric}>
-                      {Number(value).toLocaleString()}
-                    </strong>
-                  </CardContent>
-                </Card>
-              ))}
+            <section
+              className={styles.section}
+              aria-labelledby="documentation-usage-heading"
+            >
+              <div className={styles.sectionHeader}>
+                <div>
+                  <h2 id="documentation-usage-heading">Usage overview</h2>
+                  <p>Current active content and retained file storage.</p>
+                </div>
+              </div>
+              <div className={styles.summary}>
+                {[
+                  ["Active Sites", formatCount(summary.usage.active_sites)],
+                  ["Active Pages", formatCount(summary.usage.active_pages)],
+                  [
+                    "Stored files",
+                    formatBytes(summary.usage.retained_file_bytes),
+                  ],
+                ].map(([label, value]) => (
+                  <div className={styles.summaryItem} key={label}>
+                    <span>{label}</span>
+                    <strong>{value}</strong>
+                  </div>
+                ))}
+              </div>
             </section>
+
             {state("active_sites")?.state === "over_limit" ||
             state("active_pages")?.state === "over_limit" ? (
               <Alert>
@@ -161,75 +225,177 @@ export const OrganizationDocumentationOperationsPage = ({
                 only new growth is blocked while usage is over a limit.
               </Alert>
             ) : null}
+
+            <div className={styles.secondaryGrid}>
+              <section
+                className={styles.panel}
+                aria-labelledby="documentation-attention-heading"
+              >
+                <div className={styles.panelHeader}>
+                  <h2 id="documentation-attention-heading">
+                    Work requiring attention
+                  </h2>
+                  <p>Documentation work waiting for review.</p>
+                </div>
+                <dl className={styles.detailList}>
+                  <div>
+                    <dt>Imports ready for review</dt>
+                    <dd>
+                      {formatCount(summary.usage.active_import_inspections)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Open review requests</dt>
+                    <dd>{formatCount(summary.usage.open_review_requests)}</dd>
+                  </div>
+                </dl>
+                {summary.usage.active_import_inspections === 0 &&
+                summary.usage.open_review_requests === 0 ? (
+                  <p className={styles.clearState}>
+                    Nothing needs your attention.
+                  </p>
+                ) : null}
+              </section>
+
+              <section
+                className={styles.panel}
+                aria-labelledby="retained-content-heading"
+              >
+                <div className={styles.panelHeader}>
+                  <h2 id="retained-content-heading">Retained content</h2>
+                  <p>Preserved Documentation history.</p>
+                </div>
+                <dl className={styles.detailList}>
+                  <div>
+                    <dt>Revisions</dt>
+                    <dd>{formatCount(summary.usage.retained_revisions)}</dd>
+                  </div>
+                  <div>
+                    <dt>Publications</dt>
+                    <dd>{formatCount(summary.usage.retained_publications)}</dd>
+                  </div>
+                </dl>
+              </section>
+            </div>
+
             {summary.permissions.can_manage_limits && draft ? (
-              <Card>
-                <CardHeader>
-                  <h2 className={styles.cardTitle}>Product limits</h2>
-                </CardHeader>
-                <CardContent>
-                  <form className={styles.form} onSubmit={submit}>
-                    <fieldset>
-                      <legend>Active Documentation Sites</legend>
-                      <Label>
+              <section
+                className={styles.limitsSection}
+                aria-labelledby="documentation-limits-heading"
+              >
+                <div className={styles.panelHeader}>
+                  <h2 id="documentation-limits-heading">
+                    Documentation limits
+                  </h2>
+                  <p>
+                    Control how many Sites and Pages can remain active. Existing
+                    content is never removed automatically.
+                  </p>
+                </div>
+                <form className={styles.form} onSubmit={submit}>
+                  <div
+                    className={styles.limitRow}
+                    role="group"
+                    aria-labelledby="active-sites-limit-heading"
+                  >
+                    <div className={styles.limitDescription}>
+                      <h3 id="active-sites-limit-heading">Active Sites</h3>
+                      <p>Maximum active Documentation Sites.</p>
+                    </div>
+                    <div className={styles.limitControls}>
+                      <label className={styles.unlimitedControl}>
                         <input
                           type="checkbox"
                           checked={draft.sitesUnlimited}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            setMessage("");
                             setDraft({
                               ...draft,
                               sitesUnlimited: event.target.checked,
-                            })
-                          }
-                        />{" "}
-                        Unlimited product quota
-                      </Label>
+                            });
+                          }}
+                        />
+                        Unlimited
+                      </label>
                       {!draft.sitesUnlimited ? (
                         <Input
+                          className={styles.limitInput}
                           aria-label="Active Site limit"
                           type="number"
+                          inputMode="numeric"
                           min={1}
+                          step={1}
                           required
                           value={draft.sites}
-                          onChange={(event) =>
-                            setDraft({ ...draft, sites: event.target.value })
-                          }
+                          onChange={(event) => {
+                            setMessage("");
+                            setDraft({ ...draft, sites: event.target.value });
+                          }}
                         />
                       ) : null}
-                    </fieldset>
-                    <fieldset>
-                      <legend>Active Documentation Pages</legend>
-                      <Label>
+                    </div>
+                  </div>
+                  <div
+                    className={styles.limitRow}
+                    role="group"
+                    aria-labelledby="active-pages-limit-heading"
+                  >
+                    <div className={styles.limitDescription}>
+                      <h3 id="active-pages-limit-heading">Active Pages</h3>
+                      <p>
+                        Maximum active Pages across all Documentation Sites.
+                      </p>
+                    </div>
+                    <div className={styles.limitControls}>
+                      <label className={styles.unlimitedControl}>
                         <input
                           type="checkbox"
                           checked={draft.pagesUnlimited}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            setMessage("");
                             setDraft({
                               ...draft,
                               pagesUnlimited: event.target.checked,
-                            })
-                          }
-                        />{" "}
-                        Unlimited product quota
-                      </Label>
+                            });
+                          }}
+                        />
+                        Unlimited
+                      </label>
                       {!draft.pagesUnlimited ? (
                         <Input
+                          className={styles.limitInput}
                           aria-label="Active Page limit"
                           type="number"
+                          inputMode="numeric"
                           min={1}
+                          step={1}
                           required
                           value={draft.pages}
-                          onChange={(event) =>
-                            setDraft({ ...draft, pages: event.target.value })
-                          }
+                          onChange={(event) => {
+                            setMessage("");
+                            setDraft({ ...draft, pages: event.target.value });
+                          }}
                         />
                       ) : null}
-                    </fieldset>
-                    <Button type="submit" disabled={busy}>
-                      {busy ? "Saving…" : "Save limits"}
+                    </div>
+                  </div>
+                  <div className={styles.formActions}>
+                    <p
+                      className={styles.formStatus}
+                      role="status"
+                      aria-live="polite"
+                    >
+                      {message}
+                    </p>
+                    <Button
+                      type="submit"
+                      disabled={busy || !isDirty || !isValid}
+                    >
+                      {busy ? "Saving…" : "Save changes"}
                     </Button>
-                  </form>
-                </CardContent>
-              </Card>
+                  </div>
+                </form>
+              </section>
             ) : null}
           </>
         ) : null}
