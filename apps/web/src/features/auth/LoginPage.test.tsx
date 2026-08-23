@@ -48,6 +48,10 @@ describe("LoginPage", () => {
       screen.getByRole("heading", { name: "Sign in" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeRequired();
+    expect(screen.getByLabelText("Email")).toHaveAttribute(
+      "placeholder",
+      "weenie@bigcity.example",
+    );
     expect(screen.getByLabelText("Password")).toBeRequired();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Sign in" })).toBeInTheDocument();

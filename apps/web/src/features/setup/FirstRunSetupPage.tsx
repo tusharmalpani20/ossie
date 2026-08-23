@@ -271,7 +271,7 @@ export const FirstRunSetupPage = ({
                 value={organizationName}
                 required
                 autoComplete="organization"
-                placeholder="e.g. Northstar Labs"
+                placeholder="e.g. Maestro Bingo’s Music Shop"
                 disabled={submitting}
                 onChange={(event) => setOrganizationName(event.target.value)}
               />
@@ -295,7 +295,7 @@ export const FirstRunSetupPage = ({
                 type="text"
                 value={firstName}
                 autoComplete="given-name"
-                placeholder="Jamie"
+                placeholder="Henry"
                 disabled={submitting}
                 onChange={(event) => setFirstName(event.target.value)}
               />
@@ -308,7 +308,7 @@ export const FirstRunSetupPage = ({
                 type="text"
                 value={lastName}
                 autoComplete="family-name"
-                placeholder="Chen"
+                placeholder="Penguin"
                 disabled={submitting}
                 onChange={(event) => setLastName(event.target.value)}
               />
@@ -323,7 +323,7 @@ export const FirstRunSetupPage = ({
               value={ownerEmail}
               required
               autoComplete="email"
-              placeholder="jamie@northstar.co"
+              placeholder="henry@bigcity.example"
               disabled={submitting}
               onChange={(event) => setOwnerEmail(event.target.value)}
             />

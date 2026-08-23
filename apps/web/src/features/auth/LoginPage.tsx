@@ -117,6 +117,7 @@ export const LoginPage = ({
                 value={email}
                 required
                 autoComplete="email"
+                placeholder="weenie@bigcity.example"
                 disabled={submitting}
                 onChange={(event) => setEmail(event.target.value)}
               />

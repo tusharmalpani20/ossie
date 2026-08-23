@@ -118,19 +118,19 @@ describe("FirstRunSetupPage", () => {
     expect(screen.getByLabelText("Password")).toBeRequired();
     expect(screen.getByLabelText("Organization name")).toHaveAttribute(
       "placeholder",
-      "e.g. Northstar Labs",
+      "e.g. Maestro Bingo’s Music Shop",
     );
     expect(screen.getByLabelText("First name")).toHaveAttribute(
       "placeholder",
-      "Jamie",
+      "Henry",
     );
     expect(screen.getByLabelText("Last name")).toHaveAttribute(
       "placeholder",
-      "Chen",
+      "Penguin",
     );
     expect(screen.getByLabelText("Owner email")).toHaveAttribute(
       "placeholder",
-      "jamie@northstar.co",
+      "henry@bigcity.example",
     );
     expect(
       screen.getByRole("button", { name: "Complete setup" }),
