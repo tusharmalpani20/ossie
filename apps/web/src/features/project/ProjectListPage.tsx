@@ -442,7 +442,7 @@ export const ProjectListPage = ({
                       : undefined
                   }
                   value={createForm.name}
-                  placeholder="e.g. Customer onboarding"
+                  placeholder="e.g. Oswald’s tomato garden"
                   onChange={(event) => updateProjectName(event.target.value)}
                 />
                 {createFieldErrors.name ? (
@@ -471,7 +471,7 @@ export const ProjectListPage = ({
                         : "create-project-url-help"
                     }
                     value={createForm.slug}
-                    placeholder="customer-onboarding"
+                    placeholder="oswalds-tomato-garden"
                     onChange={(event) => updateProjectUrl(event.target.value)}
                   />
                 </div>
@@ -496,7 +496,7 @@ export const ProjectListPage = ({
                   name="description"
                   rows={3}
                   value={createForm.description}
-                  placeholder="What will this Project contain?"
+                  placeholder="Captures, guides, and notes for growing Big City’s happiest tomato garden."
                   onChange={(event) =>
                     updateCreateField("description", event.target.value)
                   }
@@ -548,7 +548,11 @@ export const ProjectListPage = ({
         {state.projects.length === 0 ? (
           <div className={styles.empty}>
             <img
-              className={styles.emptyIllustration}
+              className={`${styles.emptyIllustration} ${
+                statusFilter === "archived"
+                  ? styles.emptyIllustrationArchived
+                  : ""
+              }`}
               src={
                 statusFilter === "active"
                   ? "/illustrations/ossie-projects-empty.png"

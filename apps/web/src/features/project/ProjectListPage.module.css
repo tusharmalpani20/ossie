@@ -335,6 +335,11 @@
   filter: drop-shadow(0 18px 22px rgba(50, 29, 105, 0.13));
 }
 
+.emptyIllustrationArchived {
+  transform: translateY(-6px) scale(1.06);
+  transform-origin: center;
+}
+
 .emptyTitle {
   margin-top: var(--ossie-space-5);
   font-size: 20px;

@@ -241,11 +241,13 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "No archived Projects" }),
     ).toBeInTheDocument();
-    expect(
-      document.querySelector(
-        'img[src="/illustrations/ossie-projects-archived-empty.png"]',
-      ),
-    ).toBeInTheDocument();
+    const archivedIllustration = document.querySelector(
+      'img[src="/illustrations/ossie-projects-archived-empty.png"]',
+    );
+    expect(archivedIllustration).toBeInTheDocument();
+    expect(archivedIllustration?.className).toMatch(
+      /emptyIllustrationArchived/,
+    );
     expect(
       document.querySelector(
         'img[src="/illustrations/ossie-projects-empty.png"]',
@@ -311,10 +313,24 @@ describe("ProjectListPage", () => {
       ),
     ).not.toBeInTheDocument();
     expect(within(dialog).getByLabelText("Project name *")).toBeRequired();
+    expect(within(dialog).getByLabelText("Project name *")).toHaveAttribute(
+      "placeholder",
+      "e.g. Oswald’s tomato garden",
+    );
     expect(within(dialog).getByLabelText("Project URL *")).toBeRequired();
+    expect(within(dialog).getByLabelText("Project URL *")).toHaveAttribute(
+      "placeholder",
+      "oswalds-tomato-garden",
+    );
     expect(
       within(dialog).getByLabelText("Description (optional)"),
     ).toBeInTheDocument();
+    expect(
+      within(dialog).getByLabelText("Description (optional)"),
+    ).toHaveAttribute(
+      "placeholder",
+      "Captures, guides, and notes for growing Big City’s happiest tomato garden.",
+    );
     expect(
       within(dialog).getByRole("button", { name: "Close create Project" }),
     ).toBeInTheDocument();
