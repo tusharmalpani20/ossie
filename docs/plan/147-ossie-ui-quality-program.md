@@ -2086,6 +2086,20 @@ history.
 
 No runtime or surface implementation has started.
 
+2026-08-23 — setup surface preflight:
+
+- Rechecked the current execution commit `989051c` before visual work. The
+  Documentation Publication preview finding is fixed by `fddbe55`, and the
+  semantic-token finding is fixed by `989051c`, with the shared token source
+  imported by web and extension consumers.
+- Recorded the isolated `/setup` candidate preflight in
+  `docs/ui/147-ossie-ui-quality-program-ledger.md`.
+- Corrected the remaining stale `apps/docs/app/docs-content.ts` direction
+  string so the contributor/operator app reflects completed post-V1 work and
+  the active Plan 147 sequence.
+- No browser visual test, screenshot, baseline update, or unrelated surface
+  redesign was performed.
+
 2026-08-22 — documentation and design-direction reconciliation:
 
 - recorded the user's accepted restrained-purple direction and sequential
