@@ -4,8 +4,25 @@
 
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PortalAppShell } from "./PortalAppShell";
+
+const authResponse = {
+  auth: {
+    user: {
+      id: "user_1",
+      email: "jane@example.com",
+      display_name: "Jane Member",
+    },
+    organization: { id: "organization_1", name: "Ossie Labs" },
+    org_user: { id: "org_user_1", role: "owner" as const },
+    session: {
+      id: "session_1",
+      session_type: "browser",
+      expires_at: "2026-09-01T10:00:00.000Z",
+    },
+  },
+};
 
 describe("PortalAppShell", () => {
   it("renders stable portal navigation and breadcrumbs", () => {
@@ -98,5 +115,45 @@ describe("PortalAppShell", () => {
         name: "Named Project Version context",
       }),
     ).toHaveTextContent("Project Version");
+  });
+
+  it("uses the modern organization shell and loads account context outside Projects", async () => {
+    const loadAuth = vi.fn(async () => authResponse);
+
+    render(
+      <PortalAppShell
+        activeSection="organization_members"
+        currentLabel="Organization members"
+        loadAuth={loadAuth}
+      >
+        <h1>Organization members</h1>
+      </PortalAppShell>,
+    );
+
+    const navigation = screen.getByRole("navigation", {
+      name: "Portal navigation",
+    });
+    expect(
+      screen.getByRole("link", { name: "Organization members" }),
+    ).toHaveTextContent("Members");
+    expect(navigation.querySelectorAll("svg")).toHaveLength(5);
+    expect(screen.queryByText("Portal")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: "Breadcrumb" }),
+    ).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", {
+        name: "Open account menu for Jane Member",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", {
+        name: "Current Organization and account",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse navigation" }),
+    ).toBeInTheDocument();
+    expect(loadAuth).toHaveBeenCalledTimes(1);
   });
 });

@@ -27,26 +27,177 @@
   font-weight: 600;
 }
 
-.actions {
+.actions,
+.leading {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .error {
-  color: #991b1b;
+  color: var(--ossie-color-danger);
   font-size: 13px;
 }
 
+.projectLibrary {
+  position: sticky;
+  z-index: 40;
+  top: 0;
+  min-height: 64px;
+  padding: 0 24px;
+  border-color: var(--ossie-color-border);
+  background: var(--ossie-color-surface);
+  backdrop-filter: none;
+}
+
+.projectLibrary .brand {
+  color: var(--ossie-color-text);
+}
+
+.mobileMenuButton {
+  display: none;
+}
+
+.account {
+  position: relative;
+}
+
+.accountTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: var(--ossie-radius-control);
+  background: transparent;
+  color: var(--ossie-color-text-muted);
+  cursor: pointer;
+  padding: 3px 7px 3px 3px;
+}
+
+.accountTrigger:hover,
+.accountTrigger[aria-expanded="true"] {
+  border-color: var(--ossie-color-accent-border);
+  background: var(--ossie-color-accent-subtle);
+  color: var(--ossie-color-text);
+}
+
+.accountTrigger:focus-visible,
+.accountMenuItem:focus-visible {
+  outline: 2px solid var(--ossie-color-focus);
+  outline-offset: 2px;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--ossie-radius-pill);
+  background: var(--ossie-color-brand-ink);
+  color: var(--ossie-color-inverted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.accountMenu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(288px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-popover);
+  background: var(--ossie-color-surface-elevated);
+  box-shadow: 0 12px 32px rgba(35, 22, 76, 0.14);
+  padding: 6px;
+}
+
+.accountIdentity,
+.organization {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+}
+
+.accountIdentity {
+  border-bottom: 1px solid var(--ossie-color-border);
+}
+
+.accountIdentity strong,
+.organization span {
+  overflow: hidden;
+  color: var(--ossie-color-text);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountIdentity span,
+.organization small {
+  overflow: hidden;
+  color: var(--ossie-color-text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  border-radius: var(--ossie-radius-control);
+  background: transparent;
+  color: var(--ossie-color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 10px;
+  text-align: left;
+  text-decoration: none;
+}
+
+.accountMenuItem:hover {
+  background: var(--ossie-color-surface-subtle);
+}
+
+.accountMenuItem:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.accountMenu .error {
+  padding: 8px 10px;
+}
+
+@media (max-width: 860px) {
+  .topbar.projectLibrary {
+    flex-direction: row;
+    min-height: 60px;
+    padding: 0 16px;
+  }
+
+  .mobileMenuButton {
+    display: inline-flex;
+  }
+}
+
 @media (max-width: 760px) {
-  .topbar {
+  .topbar:not(.projectLibrary) {
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
     padding: 12px 18px;
   }
 
-  .actions {
+  .topbar:not(.projectLibrary) .actions {
     width: 100%;
     justify-content: space-between;
   }
