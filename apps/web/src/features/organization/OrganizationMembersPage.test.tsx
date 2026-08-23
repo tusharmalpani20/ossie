@@ -97,13 +97,41 @@ describe("OrganizationMembersPage", () => {
 
     expect(screen.getByText("Loading organization members...")).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Organization members" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Compliance timeline" })).toHaveAttribute("href", "/organization/compliance");
+    expect(
+      screen.getByText(
+        "Manage Organization access, roles, and pending invitations.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Compliance timeline" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Invite member" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: "Members 2" }),
+    ).toHaveAttribute("aria-selected", "true");
+    expect(
+      screen.getByRole("tab", { name: "Pending invites 1" }),
+    ).toHaveAttribute("aria-selected", "false");
 
     const memberRows = screen.getAllByTestId("organization-member-row");
     expect(within(memberRows[0]!).getByText("Owner User")).toBeInTheDocument();
     expect(within(memberRows[0]!).getByText("owner@example.com")).toBeInTheDocument();
-    expect(within(memberRows[0]!).getByText("owner")).toBeInTheDocument();
+    expect(
+      within(memberRows[0]!).getByLabelText("Organization role: Owner"),
+    ).toHaveTextContent("Owner");
     expect(within(memberRows[1]!).getByText("Member User")).toBeInTheDocument();
+    expect(
+      within(memberRows[1]!).getByLabelText("Organization role: Member"),
+    ).toHaveTextContent("Member");
+    expect(
+      screen.queryByTestId("organization-invite-row"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("tab", { name: "Pending invites 1" }),
+    );
 
     const inviteRows = screen.getAllByTestId("organization-invite-row");
     expect(within(inviteRows[0]!).getByText("pending@example.com")).toBeInTheDocument();
@@ -113,16 +141,69 @@ describe("OrganizationMembersPage", () => {
     expect(loadInvites).toHaveBeenCalledWith();
   });
 
+  it("opens and closes the invite form as a modal", async () => {
+    renderPage();
+
+    await screen.findByRole("heading", { name: "Organization members" });
+    expect(
+      screen.queryByRole("dialog", { name: "Invite member" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Invite member" }));
+
+    expect(
+      screen.getByRole("dialog", { name: "Invite member" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Email address *")).toHaveFocus();
+    expect(screen.getByLabelText("Email address *")).toHaveAttribute(
+      "placeholder",
+      "daisy@ossie.team",
+    );
+    expect(
+      screen.getByRole("radiogroup", { name: "Organization role" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Member" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Owner" })).not.toBeChecked();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Owner" }));
+    expect(screen.getByRole("radio", { name: "Owner" })).toBeChecked();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(
+      screen.queryByRole("dialog", { name: "Invite member" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Invite member" })).toHaveFocus();
+  });
+
+  it("shows the Ossie invitation illustration when there are no pending invites", async () => {
+    renderPage({ loadInvites: async () => ({ invites: [] }) });
+
+    await screen.findByRole("heading", { name: "Organization members" });
+    fireEvent.click(screen.getByRole("tab", { name: "Pending invites 0" }));
+
+    expect(
+      screen.getByRole("img", {
+        name: "Ossie is ready to send an invitation",
+      }),
+    ).toHaveAttribute(
+      "src",
+      "/illustrations/ossie-invites-empty.png",
+    );
+    expect(screen.getByText("No pending invites")).toBeInTheDocument();
+    expect(
+      screen.getByText("Invitations waiting to be accepted will appear here."),
+    ).toBeInTheDocument();
+  });
+
   it("creates an invite, shows the one-time invite link, and copies it", async () => {
     const copyText = vi.fn(async () => undefined);
     const { createInvite } = renderPage({ copyText });
 
     await screen.findByRole("heading", { name: "Organization members" });
-    fireEvent.change(screen.getByLabelText("Invite email"), {
+    fireEvent.click(screen.getByRole("button", { name: "Invite member" }));
+    fireEvent.change(screen.getByLabelText("Email address *"), {
       target: { value: " new@example.com " },
-    });
-    fireEvent.change(screen.getByLabelText("Invite role"), {
-      target: { value: "member" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
 
@@ -145,7 +226,8 @@ describe("OrganizationMembersPage", () => {
     renderPage({ copyText });
 
     await screen.findByRole("heading", { name: "Organization members" });
-    fireEvent.change(screen.getByLabelText("Invite email"), {
+    fireEvent.click(screen.getByRole("button", { name: "Invite member" }));
+    fireEvent.change(screen.getByLabelText("Email address *"), {
       target: { value: "new@example.com" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
@@ -165,7 +247,8 @@ describe("OrganizationMembersPage", () => {
     const { createInvite } = renderPage();
 
     await screen.findByRole("heading", { name: "Organization members" });
-    fireEvent.change(screen.getByLabelText("Invite email"), {
+    fireEvent.click(screen.getByRole("button", { name: "Invite member" }));
+    fireEvent.change(screen.getByLabelText("Email address *"), {
       target: { value: "   " },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
@@ -187,7 +270,8 @@ describe("OrganizationMembersPage", () => {
     });
 
     await screen.findByRole("heading", { name: "Organization members" });
-    fireEvent.change(screen.getByLabelText("Invite email"), {
+    fireEvent.click(screen.getByRole("button", { name: "Invite member" }));
+    fireEvent.change(screen.getByLabelText("Email address *"), {
       target: { value: "pending@example.com" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
@@ -208,7 +292,8 @@ describe("OrganizationMembersPage", () => {
     });
 
     await screen.findByRole("heading", { name: "Organization members" });
-    fireEvent.change(screen.getByLabelText("Invite email"), {
+    fireEvent.click(screen.getByRole("button", { name: "Invite member" }));
+    fireEvent.change(screen.getByLabelText("Email address *"), {
       target: { value: "pending@example.com" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create invite" }));
@@ -244,11 +329,14 @@ describe("OrganizationMembersPage", () => {
     renderPage({ loadInvites, revokeInvite });
 
     await screen.findByRole("heading", { name: "Organization members" });
+    fireEvent.click(
+      screen.getByRole("tab", { name: "Pending invites 1" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Revoke invite for pending@example.com" }));
 
     await waitFor(() => expect(revokeInvite).toHaveBeenCalledWith("org_invite_1"));
     await waitFor(() => expect(loadInvites).toHaveBeenCalledTimes(2));
-    expect(await screen.findByText("No pending invites.")).toBeInTheDocument();
+    expect(await screen.findByText("No pending invites")).toBeInTheDocument();
   });
 
   it("links unauthenticated users to sign in", async () => {

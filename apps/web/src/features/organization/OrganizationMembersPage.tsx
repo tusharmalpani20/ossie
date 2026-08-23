@@ -2,14 +2,19 @@
  * @fileoverview Organization member and invite management page.
  */
 
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
-import { ORGANIZATION_ROLES } from "@repo/constants";
+import {
+  type FormEvent,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
-import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { ShieldCheck, UserPlus, UserRound, X } from "lucide-react";
 import {
   ApiClientError,
   createOrganizationInvite,
@@ -57,7 +62,32 @@ type OrganizationMembersPageProps = {
   navigate?: (path: string) => void;
 };
 
-const inviteRoleOptions = [...ORGANIZATION_ROLES].reverse();
+const inviteRoleOptions: Array<{
+  value: OrganizationRole;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "member",
+    label: "Member",
+    description: "Access only Projects they are added to.",
+  },
+  {
+    value: "owner",
+    label: "Owner",
+    description: "Manage all Organization settings and members.",
+  },
+];
+
+const memberInitials = (member: OrganizationMember) => {
+  const label = member.display_name || member.email;
+  const words = label.trim().split(/\s+/).filter(Boolean);
+  return words
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+};
 
 const defaultCopyText = async (text: string) => {
   if (!navigator.clipboard?.writeText) {
@@ -136,10 +166,19 @@ export const OrganizationMembersPage = ({
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [busyInviteId, setBusyInviteId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"members" | "invites">(
+    "members",
+  );
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const inviteDialogRef = useRef<HTMLDialogElement | null>(null);
+  const inviteEmailRef = useRef<HTMLInputElement | null>(null);
+  const inviteTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     let active = true;
-    setState({ status: "loading" });
+    setState((current) =>
+      current.status === "loaded" ? current : { status: "loading" },
+    );
 
     reloadOrganization(loadMembers, loadInvites)
       .then((nextState) => {
@@ -157,6 +196,62 @@ export const OrganizationMembersPage = ({
       active = false;
     };
   }, [loadMembers, loadInvites, reloadKey]);
+
+  useEffect(() => {
+    if (!showInviteForm) return;
+
+    const dialog = inviteDialogRef.current;
+    if (dialog && !dialog.open) {
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
+    }
+    inviteEmailRef.current?.focus();
+  }, [showInviteForm]);
+
+  const openInviteForm = (trigger: HTMLButtonElement) => {
+    inviteTriggerRef.current = trigger;
+    setEmail("");
+    setRole("member");
+    setFormError(null);
+    setMessage(null);
+    setInviteUrl(null);
+    setShowInviteForm(true);
+  };
+
+  const closeInviteForm = () => {
+    const dialog = inviteDialogRef.current;
+    if (dialog?.open) {
+      if (typeof dialog.close === "function") {
+        dialog.close();
+      } else {
+        dialog.removeAttribute("open");
+      }
+    }
+    setShowInviteForm(false);
+    setEmail("");
+    setRole("member");
+    setFormError(null);
+    setMessage(null);
+    setInviteUrl(null);
+    inviteTriggerRef.current?.focus();
+  };
+
+  const requestCloseInviteForm = () => {
+    if (isSubmitting) return;
+
+    if (
+      email.trim() &&
+      !inviteUrl &&
+      !window.confirm("Discard the invitation details you entered?")
+    ) {
+      return;
+    }
+
+    closeInviteForm();
+  };
 
   const submitInvite = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -270,145 +365,313 @@ export const OrganizationMembersPage = ({
     <PortalShell performLogout={performLogout} navigate={navigate}>
       <section className={styles.header}>
         <div>
-          <div className={styles.eyebrow}>Organization</div>
           <h1 className={styles.title}>Organization members</h1>
+          <p className={styles.subtitle}>
+            Manage Organization access, roles, and pending invitations.
+          </p>
         </div>
-        <a className={styles.complianceLink} href="/organization/compliance">
-          Compliance timeline
-        </a>
+        <Button
+          className={styles.inviteButton}
+          size="icon"
+          type="button"
+          aria-label="Invite member"
+          title="Invite member"
+          onClick={(event) => openInviteForm(event.currentTarget)}
+        >
+          <UserPlus aria-hidden="true" size={19} />
+        </Button>
       </section>
 
-      <Card className={styles.panel} aria-labelledby="invite-member-heading">
-        <CardHeader>
-          <h2 className={styles.sectionTitle} id="invite-member-heading">
-            Invite member
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <form className={styles.form} onSubmit={submitInvite}>
-            {formError ? (
-              <Alert variant="destructive">{formError}</Alert>
-            ) : null}
-            {message ? <Alert variant="success">{message}</Alert> : null}
-            {inviteUrl ? (
-              <div className={styles.inviteLink}>
-                <span>{inviteUrl}</span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  type="button"
-                  onClick={() => void copyInviteUrl()}
-                >
-                  Copy invite link
-                </Button>
-              </div>
-            ) : null}
-            <div className={styles.formGrid}>
-              <Label className={styles.field}>
-                <span>Invite email</span>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </Label>
-              <Label className={styles.field}>
-                <span>Invite role</span>
-                <select
-                  value={role}
-                  onChange={(event) =>
-                    setRole(event.target.value as OrganizationRole)
-                  }
-                >
-                  {inviteRoleOptions.map((organizationRole) => (
-                    <option key={organizationRole} value={organizationRole}>
-                      {organizationRole}
-                    </option>
-                  ))}
-                </select>
-              </Label>
-            </div>
-            <Button
-              className={styles.submitButton}
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Creating invite..." : "Create invite"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card className={styles.panel} aria-labelledby="members-heading">
-        <CardHeader>
-          <h2 className={styles.sectionTitle} id="members-heading">
-            Members
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <div className={styles.rows}>
-            {state.members.map((member) => (
-              <article
-                className={styles.row}
-                data-testid="organization-member-row"
-                key={member.id}
+      {showInviteForm ? (
+        <dialog
+          ref={inviteDialogRef}
+          className={styles.inviteDialog}
+          aria-labelledby="invite-member-heading"
+          aria-modal="true"
+          onCancel={(event) => {
+            event.preventDefault();
+            requestCloseInviteForm();
+          }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) requestCloseInviteForm();
+          }}
+        >
+          <div className={styles.inviteModal}>
+            <header className={styles.inviteModalHeader}>
+              <h2 className={styles.formTitle} id="invite-member-heading">
+                Invite member
+              </h2>
+              <Button
+                className={styles.closeButton}
+                variant="ghost"
+                size="icon"
+                type="button"
+                aria-label="Close invite member"
+                title="Close"
+                disabled={isSubmitting}
+                onClick={requestCloseInviteForm}
               >
-                <div>
-                  <h3 className={styles.rowTitle}>
-                    {member.display_name || member.email}
-                  </h3>
-                  <div className={styles.rowMeta}>{member.email}</div>
-                </div>
-                <Badge>{member.role}</Badge>
-              </article>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+                <X aria-hidden="true" size={19} />
+              </Button>
+            </header>
 
-      <Card className={styles.panel} aria-labelledby="pending-invites-heading">
-        <CardHeader>
-          <h2 className={styles.sectionTitle} id="pending-invites-heading">
-            Pending invites
-          </h2>
-        </CardHeader>
-        <CardContent>
-          {state.invites.length === 0 ? (
-            <div className={styles.empty}>No pending invites.</div>
-          ) : (
+            {inviteUrl ? (
+              <div className={styles.inviteSuccess}>
+                {message ? (
+                  <Alert
+                    variant={
+                      message.startsWith("Could not")
+                        ? "destructive"
+                        : "success"
+                    }
+                  >
+                    {message}
+                  </Alert>
+                ) : null}
+                <p className={styles.successHelp}>
+                  This token is only shown once. Copy the link before closing.
+                </p>
+                <div className={styles.inviteLink}>
+                  <span>{inviteUrl}</span>
+                </div>
+                <div className={styles.formActions}>
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    onClick={closeInviteForm}
+                  >
+                    Done
+                  </Button>
+                  <Button type="button" onClick={() => void copyInviteUrl()}>
+                    Copy invite link
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form className={styles.form} noValidate onSubmit={submitInvite}>
+                <div className={styles.field}>
+                  <Label htmlFor="invite-member-email">
+                    Email address <span aria-hidden="true">*</span>
+                  </Label>
+                  <Input
+                    id="invite-member-email"
+                    ref={inviteEmailRef}
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    aria-invalid={Boolean(formError)}
+                    aria-describedby={
+                      formError ? "invite-member-email-error" : undefined
+                    }
+                    value={email}
+                    placeholder="daisy@ossie.team"
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      if (formError) setFormError(null);
+                    }}
+                  />
+                  {formError ? (
+                    <span
+                      className={styles.fieldError}
+                      id="invite-member-email-error"
+                    >
+                      {formError}
+                    </span>
+                  ) : null}
+                </div>
+                <fieldset
+                  className={styles.roleFieldset}
+                  role="radiogroup"
+                >
+                  <legend className={styles.roleLegend}>
+                    Organization role
+                  </legend>
+                  <div className={styles.roleOptions}>
+                    {inviteRoleOptions.map((organizationRole) => (
+                      <label
+                        className={
+                          role === organizationRole.value
+                            ? styles.roleOptionSelected
+                            : styles.roleOption
+                        }
+                        key={organizationRole.value}
+                      >
+                        <input
+                          className={styles.roleOptionInput}
+                          type="radio"
+                          name="organization-role"
+                          value={organizationRole.value}
+                          aria-label={organizationRole.label}
+                          checked={role === organizationRole.value}
+                          onChange={() => setRole(organizationRole.value)}
+                        />
+                        <span className={styles.roleOptionCopy}>
+                          <strong>{organizationRole.label}</strong>
+                          <span>{organizationRole.description}</span>
+                        </span>
+                        <span
+                          className={styles.roleOptionMarker}
+                          aria-hidden="true"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <div className={styles.formActions}>
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={requestCloseInviteForm}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Creating invite..." : "Create invite"}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </dialog>
+      ) : null}
+
+      <section className={styles.content} aria-label="Organization access">
+        {message && !showInviteForm ? (
+          <Alert
+            variant={message.startsWith("Could not") ? "destructive" : "success"}
+          >
+            {message}
+          </Alert>
+        ) : null}
+        <div
+          className={styles.tabs}
+          role="tablist"
+          aria-label="Organization access"
+        >
+          <button
+            className={activeTab === "members" ? styles.tabActive : styles.tab}
+            type="button"
+            role="tab"
+            aria-label={`Members ${state.members.length}`}
+            aria-selected={activeTab === "members"}
+            aria-controls="organization-members-panel"
+            onClick={() => setActiveTab("members")}
+          >
+            Members
+            <span className={styles.tabCount}>{state.members.length}</span>
+          </button>
+          <button
+            className={activeTab === "invites" ? styles.tabActive : styles.tab}
+            type="button"
+            role="tab"
+            aria-label={`Pending invites ${state.invites.length}`}
+            aria-selected={activeTab === "invites"}
+            aria-controls="organization-invites-panel"
+            onClick={() => setActiveTab("invites")}
+          >
+            Pending invites{" "}
+            <span className={styles.tabCount}>{state.invites.length}</span>
+          </button>
+        </div>
+
+        {activeTab === "members" ? (
+          <div
+            className={styles.listSurface}
+            id="organization-members-panel"
+            role="tabpanel"
+          >
             <div className={styles.rows}>
-              {state.invites.map((invite) => (
+              {state.members.map((member) => (
                 <article
                   className={styles.row}
-                  data-testid="organization-invite-row"
-                  key={invite.id}
+                  data-testid="organization-member-row"
+                  key={member.id}
                 >
-                  <div>
-                    <h3 className={styles.rowTitle}>{invite.email}</h3>
-                    <div className={styles.rowMeta}>
-                      Expires {new Date(invite.expires_at).toLocaleDateString()}
-                    </div>
+                  <span className={styles.memberAvatar} aria-hidden="true">
+                    {memberInitials(member)}
+                  </span>
+                  <div className={styles.rowIdentity}>
+                    <h3 className={styles.rowTitle}>
+                      {member.display_name || member.email}
+                    </h3>
+                    <div className={styles.rowMeta}>{member.email}</div>
                   </div>
-                  <div className={styles.rowActions}>
-                    <Badge variant="warning">{invite.status}</Badge>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      type="button"
-                      disabled={busyInviteId === invite.id}
-                      onClick={() => void revokePendingInvite(invite)}
-                    >
-                      {busyInviteId === invite.id
-                        ? "Revoking..."
-                        : `Revoke invite for ${invite.email}`}
-                    </Button>
-                  </div>
+                  <span
+                    className={`${styles.memberRole} ${
+                      member.role === "owner" ? styles.ownerRole : ""
+                    }`}
+                    aria-label={`Organization role: ${
+                      member.role === "owner" ? "Owner" : "Member"
+                    }`}
+                  >
+                    {member.role === "owner" ? (
+                      <ShieldCheck aria-hidden="true" size={14} />
+                    ) : (
+                      <UserRound aria-hidden="true" size={14} />
+                    )}
+                    {member.role === "owner" ? "Owner" : "Member"}
+                  </span>
                 </article>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        ) : (
+          <div
+            className={styles.listSurface}
+            id="organization-invites-panel"
+            role="tabpanel"
+          >
+            {state.invites.length === 0 ? (
+              <div className={styles.empty}>
+                <img
+                  className={styles.emptyIllustration}
+                  src="/illustrations/ossie-invites-empty.png"
+                  alt="Ossie is ready to send an invitation"
+                  width="190"
+                  height="190"
+                />
+                <h3 className={styles.emptyTitle}>No pending invites</h3>
+                <p className={styles.emptyDescription}>
+                  Invitations waiting to be accepted will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className={styles.rows}>
+                {state.invites.map((invite) => (
+                  <article
+                    className={`${styles.row} ${styles.inviteRow}`}
+                    data-testid="organization-invite-row"
+                    key={invite.id}
+                  >
+                    <div className={styles.rowIdentity}>
+                      <h3 className={styles.rowTitle}>{invite.email}</h3>
+                      <div className={styles.rowMeta}>
+                        Expires {new Date(invite.expires_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className={styles.rowActions}>
+                      <Badge variant="warning">{invite.status}</Badge>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        type="button"
+                        disabled={busyInviteId === invite.id}
+                        onClick={() => void revokePendingInvite(invite)}
+                      >
+                        {busyInviteId === invite.id
+                          ? "Revoking..."
+                          : `Revoke invite for ${invite.email}`}
+                      </Button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
     </PortalShell>
   );
 };
