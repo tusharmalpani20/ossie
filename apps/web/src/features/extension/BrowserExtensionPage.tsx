@@ -4,9 +4,8 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Alert } from "@repo/ui/alert";
-import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
-import { Card, CardContent, CardHeader } from "@repo/ui/card";
+import { Download, ShieldCheck } from "lucide-react";
 import {
   ApiClientError,
   downloadExtensionBundle,
@@ -117,9 +116,11 @@ export const BrowserExtensionPage = ({
   if (authState === "checking") {
     return (
       <Shell performLogout={performLogout} navigate={navigate}>
-        <p className={styles.state} aria-live="polite">
-          Checking extension access…
-        </p>
+        <div className={styles.page}>
+          <p className={styles.state} aria-live="polite">
+            Checking extension access…
+          </p>
+        </div>
       </Shell>
     );
   }
@@ -127,9 +128,11 @@ export const BrowserExtensionPage = ({
   if (authState === "unauthenticated") {
     return (
       <Shell performLogout={performLogout} navigate={navigate}>
-        <div className={styles.state}>
-          <p>Sign in to download the Ossie browser extension.</p>
-          <a href={signInUrl(currentPath)}>Sign in</a>
+        <div className={styles.page}>
+          <div className={styles.state}>
+            <p>Sign in to download the Ossie browser extension.</p>
+            <a href={signInUrl(currentPath)}>Sign in</a>
+          </div>
         </div>
       </Shell>
     );
@@ -138,121 +141,170 @@ export const BrowserExtensionPage = ({
   if (authState === "error") {
     return (
       <Shell performLogout={performLogout} navigate={navigate}>
-        <Alert variant="destructive">
-          Extension access could not be checked. Reload this page to try again.
-        </Alert>
+        <div className={styles.page}>
+          <Alert variant="destructive">
+            Extension access could not be checked. Reload this page to try
+            again.
+          </Alert>
+        </div>
       </Shell>
     );
   }
 
   return (
     <Shell performLogout={performLogout} navigate={navigate}>
-      <section className={styles.header}>
-        <div>
-          <div className={styles.eyebrow}>Capture tools</div>
-          <h1>Install the browser extension</h1>
-          <p className={styles.lede}>
-            Capture clicks and screenshots from Chrome or another Chromium-based
-            browser, then turn them into guides and interactive demos in Ossie.
-          </p>
-        </div>
-        <Badge>Manifest V3</Badge>
-      </section>
+      <div className={styles.page}>
+        <header className={styles.header}>
+          <div>
+            <h1>Browser extension</h1>
+            <p>
+              Capture workflows from your browser and turn them into Guides and
+              Interactive Demos.
+            </p>
+          </div>
+        </header>
 
-      <Card className={styles.downloadCard} aria-labelledby="download-heading">
-        <CardHeader>
-          <h2 id="download-heading">Download the extension</h2>
-        </CardHeader>
-        <CardContent className={styles.downloadContent}>
-          <p>
-            This ZIP is generated from the extension build published by your
-            Ossie administrator. Keep the extracted folder after installing it.
-          </p>
-          {downloadError ? (
-            <Alert variant="destructive">{downloadError}</Alert>
-          ) : null}
+        <section
+          className={styles.downloadPanel}
+          aria-labelledby="download-heading"
+        >
+          <div className={styles.downloadCopy}>
+            <h2 id="download-heading">Download the extension</h2>
+            <p>
+              Download the ZIP published by your Ossie administrator, then keep
+              its extracted folder in a permanent location.
+            </p>
+          </div>
           <Button
+            className={styles.downloadAction}
             type="button"
             onClick={() => void downloadExtension()}
             disabled={isDownloading}
+            aria-label={
+              isDownloading
+                ? "Preparing extension download"
+                : "Download extension"
+            }
+            title="Download extension"
           >
-            {isDownloading ? "Preparing download…" : "Download extension"}
+            <Download size={20} aria-hidden="true" />
           </Button>
-        </CardContent>
-      </Card>
+          {downloadError ? (
+            <Alert className={styles.downloadError} variant="destructive">
+              {downloadError}
+            </Alert>
+          ) : null}
+        </section>
 
-      <div className={styles.grid}>
-        <Card aria-labelledby="install-heading">
-          <CardHeader>
-            <h2 id="install-heading">Install in Chrome</h2>
-          </CardHeader>
-          <CardContent>
+        <div className={styles.setupGrid}>
+          <section
+            className={styles.setupPanel}
+            aria-labelledby="install-heading"
+          >
+            <div className={styles.panelHeader}>
+              <h2 id="install-heading">Install in Chrome</h2>
+              <p>
+                Chrome and other Chromium-based browsers use the same steps.
+              </p>
+            </div>
             <ol className={styles.steps}>
-              <li>Download the ZIP and extract it to a permanent folder.</li>
               <li>
-                Enter <code>chrome://extensions</code> in the browser address
-                bar.
+                <span className={styles.stepNumber}>1</span>
+                <div>
+                  <h3>Extract the download</h3>
+                  <p>Unzip the download into a folder you will keep.</p>
+                </div>
               </li>
               <li>
-                Turn on <strong>Developer mode</strong>.
+                <span className={styles.stepNumber}>2</span>
+                <div>
+                  <h3>Open extension settings</h3>
+                  <p>
+                    Enter <code>chrome://extensions</code> in the address bar
+                    and turn on <strong>Developer mode</strong>.
+                  </p>
+                </div>
               </li>
               <li>
-                Select <strong>Load unpacked</strong>, then choose the extracted
-                folder that contains <code>manifest.json</code>.
+                <span className={styles.stepNumber}>3</span>
+                <div>
+                  <h3>Load and pin Ossie</h3>
+                  <p>
+                    Choose <strong>Load unpacked</strong>, select the folder
+                    that contains <code>manifest.json</code>, then pin Ossie.
+                  </p>
+                </div>
               </li>
-              <li>Pin Ossie from the browser Extensions menu.</li>
             </ol>
             <p className={styles.note}>
-              Chrome cannot install this ZIP directly. The “unpacked extension”
-              warning is expected for a self-hosted development build.
+              The “unpacked extension” warning is expected for this self-hosted
+              build.
             </p>
-          </CardContent>
-        </Card>
+          </section>
 
-        <Card aria-labelledby="connect-heading">
-          <CardHeader>
-            <h2 id="connect-heading">Connect it to this Ossie instance</h2>
-          </CardHeader>
-          <CardContent>
-            <ol className={styles.steps}>
+          <section
+            className={styles.setupPanel}
+            aria-labelledby="connect-heading"
+          >
+            <div className={styles.panelHeader}>
+              <h2 id="connect-heading">Connect to Ossie</h2>
+              <p>Use these values when the extension asks where to connect.</p>
+            </div>
+            <dl className={styles.connectionValues}>
+              <div>
+                <dt>Instance/API URL</dt>
+                <dd>
+                  <code>{instanceUrl}</code>
+                </dd>
+              </div>
+              <div>
+                <dt>Portal URL</dt>
+                <dd>
+                  <code>{portalUrl}</code>
+                  <span>Optional</span>
+                </dd>
+              </div>
+            </dl>
+            <ol className={styles.connectSteps}>
               <li>Open the pinned Ossie extension.</li>
-              <li>
-                Enter this value for <strong>Instance/API URL</strong>:
-                <code className={styles.url}>{instanceUrl}</code>
-              </li>
-              <li>
-                Enter this value for the optional <strong>Portal URL</strong>:
-                <code className={styles.url}>{portalUrl}</code>
-              </li>
+              <li>Enter the connection values above.</li>
               <li>Sign in with your normal Ossie email and password.</li>
-              <li>Select a project and Project Version, then start capture.</li>
+              <li>Select a Project and Project Version, then start Capture.</li>
             </ol>
-          </CardContent>
-        </Card>
-      </div>
+          </section>
+        </div>
 
-      <Card aria-labelledby="update-heading">
-        <CardHeader>
-          <h2 id="update-heading">Update or remove it</h2>
-        </CardHeader>
-        <CardContent className={styles.details}>
-          <p>
-            To update, download the latest ZIP, replace the files in the same
-            extracted folder, open <code>chrome://extensions</code>, and select
-            <strong> Reload</strong> on Ossie.
-          </p>
-          <p>
-            To remove it, select <strong>Remove</strong> on that same Chrome
-            page. Removing the extension clears its local session and capture
-            state, but it does not delete anything already stored in Ossie.
-          </p>
-          <p>
-            During an active capture, Ossie records supported clicks and visible
-            tab screenshots. It does not store passwords, typed input values, or
-            raw page HTML.
-          </p>
-        </CardContent>
-      </Card>
+        <details className={styles.maintenance}>
+          <summary>Update, remove, and privacy</summary>
+          <div className={styles.maintenanceGrid}>
+            <section>
+              <h2>Update the extension</h2>
+              <p>
+                Download the latest ZIP, replace the files in the same extracted
+                folder, open <code>chrome://extensions</code>, and select
+                <strong> Reload</strong> on Ossie.
+              </p>
+            </section>
+            <section>
+              <h2>Remove the extension</h2>
+              <p>
+                Select <strong>Remove</strong> in Chrome. This clears the local
+                extension session and Capture state without deleting anything
+                already stored in Ossie.
+              </p>
+            </section>
+            <section>
+              <h2>
+                <ShieldCheck size={18} aria-hidden="true" /> What Ossie captures
+              </h2>
+              <p>
+                Ossie records supported clicks and visible-tab screenshots. It
+                does not store passwords, typed input values, or raw page HTML.
+              </p>
+            </section>
+          </div>
+        </details>
+      </div>
     </Shell>
   );
 };

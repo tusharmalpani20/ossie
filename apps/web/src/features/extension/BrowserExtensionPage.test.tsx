@@ -21,9 +21,30 @@ describe("BrowserExtensionPage", () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Download extension" }),
-    );
+    expect(
+      await screen.findByRole("heading", {
+        name: "Browser extension",
+        level: 1,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Capture workflows from your browser and turn them into Guides and Interactive Demos.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Connect to Ossie" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Manifest V3")).not.toBeInTheDocument();
+    expect(screen.getByText("Update, remove, and privacy")).toBeInTheDocument();
+
+    const downloadButton = screen.getByRole("button", {
+      name: "Download extension",
+    });
+    expect(downloadButton).toHaveAttribute("title", "Download extension");
+    expect(downloadButton).toHaveTextContent("");
+
+    fireEvent.click(downloadButton);
 
     await waitFor(() => {
       expect(downloadBundle).toHaveBeenCalledTimes(1);

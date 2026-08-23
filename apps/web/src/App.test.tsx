@@ -173,7 +173,7 @@ describe("App", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Install the browser extension",
+        name: "Browser extension",
       }),
     ).toBeInTheDocument();
     expect(
