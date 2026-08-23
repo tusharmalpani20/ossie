@@ -272,25 +272,87 @@ describe("ProjectListPage", () => {
       screen.getByRole("button", { name: "Create a new Project" }),
     );
 
+    const dialog = screen.getByRole("dialog", { name: "Create a Project" });
+    expect(dialog).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Create project" }),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText("Project name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Slug")).toBeInTheDocument();
-    expect(screen.getByLabelText("Description")).toBeInTheDocument();
-    expect(screen.getByLabelText("Project name")).toHaveFocus();
-    expect(
-      screen.queryByRole("heading", { name: "No Projects yet" }),
+      within(dialog).queryByText("* Required fields"),
     ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByText(
+        "Set up a space for related Captures, Guides, Interactive Demos, and Documentation.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Project name *")).toBeRequired();
+    expect(within(dialog).getByLabelText("Project URL *")).toBeRequired();
+    expect(
+      within(dialog).getByLabelText("Description (optional)"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: "Close create Project" }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Project name *")).toHaveFocus();
+    expect(
+      screen.getByRole("heading", { name: "No Projects yet" }),
+    ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
 
     expect(
-      screen.queryByRole("heading", { name: "Create project" }),
+      screen.queryByRole("dialog", { name: "Create a Project" }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "No Projects yet" }),
     ).toBeInTheDocument();
+  });
+
+  it("generates a Project URL from the name until the URL is edited", async () => {
+    renderPage({ loadProjects: async () => ({ projects: [] }) });
+
+    expect(
+      await screen.findByRole("heading", { name: "Projects" }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a new Project" }),
+    );
+
+    const name = screen.getByLabelText("Project name *");
+    const projectUrl = screen.getByLabelText("Project URL *");
+    fireEvent.change(name, { target: { value: "Customer Onboarding" } });
+    expect(projectUrl).toHaveValue("customer-onboarding");
+
+    fireEvent.change(projectUrl, { target: { value: "onboarding" } });
+    fireEvent.change(name, { target: { value: "Customer Success" } });
+    expect(projectUrl).toHaveValue("onboarding");
+  });
+
+  it("asks before discarding entered Project details", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false);
+    renderPage({ loadProjects: async () => ({ projects: [] }) });
+
+    expect(
+      await screen.findByRole("heading", { name: "Projects" }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a new Project" }),
+    );
+    fireEvent.change(screen.getByLabelText("Project name *"), {
+      target: { value: "Customer onboarding" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(confirm).toHaveBeenCalledWith(
+      "Discard the Project details you entered?",
+    );
+    expect(
+      screen.getByRole("dialog", { name: "Create a Project" }),
+    ).toBeInTheDocument();
+
+    confirm.mockReturnValueOnce(true);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(
+      screen.queryByRole("dialog", { name: "Create a Project" }),
+    ).not.toBeInTheDocument();
+    confirm.mockRestore();
   });
 
   it("validates project names before creating projects", async () => {
@@ -302,12 +364,33 @@ describe("ProjectListPage", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Create a new Project" }),
     );
-    fireEvent.change(screen.getByLabelText("Project name"), {
+    fireEvent.change(screen.getByLabelText("Project name *"), {
       target: { value: "   " },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create Project" }));
 
     expect(screen.getByText("Project name is required.")).toBeInTheDocument();
+    expect(createProject).not.toHaveBeenCalled();
+  });
+
+  it("requires a Project URL", async () => {
+    const { createProject } = renderPage();
+
+    expect(
+      await screen.findByRole("heading", { name: "Projects" }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create a new Project" }),
+    );
+    fireEvent.change(screen.getByLabelText("Project name *"), {
+      target: { value: "Customer onboarding" },
+    });
+    fireEvent.change(screen.getByLabelText("Project URL *"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Project" }));
+
+    expect(screen.getByText("Project URL is required.")).toBeInTheDocument();
     expect(createProject).not.toHaveBeenCalled();
   });
 
@@ -328,13 +411,10 @@ describe("ProjectListPage", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Create a new Project" }),
     );
-    fireEvent.change(screen.getByLabelText("Project name"), {
+    fireEvent.change(screen.getByLabelText("Project name *"), {
       target: { value: " Created project " },
     });
-    fireEvent.change(screen.getByLabelText("Slug"), {
-      target: { value: "   " },
-    });
-    fireEvent.change(screen.getByLabelText("Description"), {
+    fireEvent.change(screen.getByLabelText("Description (optional)"), {
       target: { value: "   " },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create Project" }));
@@ -342,7 +422,7 @@ describe("ProjectListPage", () => {
     await waitFor(() =>
       expect(createProject).toHaveBeenCalledWith({
         name: "Created project",
-        slug: null,
+        slug: "created-project",
         description: null,
       }),
     );
@@ -364,13 +444,13 @@ describe("ProjectListPage", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Create a new Project" }),
     );
-    fireEvent.change(screen.getByLabelText("Project name"), {
+    fireEvent.change(screen.getByLabelText("Project name *"), {
       target: { value: "Created project" },
     });
-    fireEvent.change(screen.getByLabelText("Slug"), {
+    fireEvent.change(screen.getByLabelText("Project URL *"), {
       target: { value: "created-project" },
     });
-    fireEvent.change(screen.getByLabelText("Description"), {
+    fireEvent.change(screen.getByLabelText("Description (optional)"), {
       target: { value: "A useful project." },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create Project" }));
@@ -378,11 +458,13 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByText("Could not create project."),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Project name")).toHaveValue(
+    expect(screen.getByLabelText("Project name *")).toHaveValue(
       "Created project",
     );
-    expect(screen.getByLabelText("Slug")).toHaveValue("created-project");
-    expect(screen.getByLabelText("Description")).toHaveValue(
+    expect(screen.getByLabelText("Project URL *")).toHaveValue(
+      "created-project",
+    );
+    expect(screen.getByLabelText("Description (optional)")).toHaveValue(
       "A useful project.",
     );
   });
@@ -405,7 +487,7 @@ describe("ProjectListPage", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Create a new Project" }),
     );
-    fireEvent.change(screen.getByLabelText("Project name"), {
+    fireEvent.change(screen.getByLabelText("Project name *"), {
       target: { value: "Created project" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create Project" }));
@@ -433,16 +515,16 @@ describe("ProjectListPage", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Create a new Project" }),
     );
-    fireEvent.change(screen.getByLabelText("Project name"), {
+    fireEvent.change(screen.getByLabelText("Project name *"), {
       target: { value: "Created project" },
     });
-    fireEvent.change(screen.getByLabelText("Slug"), {
+    fireEvent.change(screen.getByLabelText("Project URL *"), {
       target: { value: "created-project" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create Project" }));
 
     expect(
-      await screen.findByText("A project with this slug already exists."),
+      await screen.findByText("That Project URL is already in use."),
     ).toBeInTheDocument();
   });
 
@@ -464,7 +546,7 @@ describe("ProjectListPage", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Create a new Project" }),
     );
-    fireEvent.change(screen.getByLabelText("Project name"), {
+    fireEvent.change(screen.getByLabelText("Project name *"), {
       target: { value: "Created project" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create Project" }));
@@ -491,7 +573,7 @@ describe("ProjectListPage", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Create a new Project" }),
     );
-    fireEvent.change(screen.getByLabelText("Project name"), {
+    fireEvent.change(screen.getByLabelText("Project name *"), {
       target: { value: "Created project" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create Project" }));
