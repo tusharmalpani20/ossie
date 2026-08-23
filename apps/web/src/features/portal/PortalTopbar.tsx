@@ -105,7 +105,13 @@ export const PortalTopbar = ({
         {context ? <div className={styles.context}>{context}</div> : null}
       </div>
       <div className={styles.actions}>
-        {projectLibrary && account ? (
+        {projectLibrary && !account ? (
+          <div
+            className={styles.accountPlaceholder}
+            role="status"
+            aria-label="Loading account"
+          />
+        ) : projectLibrary && account ? (
           <div className={styles.account} ref={accountMenuRef}>
             <button
               className={styles.accountTrigger}

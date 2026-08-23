@@ -4,6 +4,17 @@ import { describe, expect, it, vi } from "vitest";
 import { PortalTopbar } from "./PortalTopbar";
 
 describe("PortalTopbar", () => {
+  it("does not show the legacy sign-out control while a library account loads", () => {
+    render(<PortalTopbar projectLibrary account={null} />);
+
+    expect(
+      screen.getByRole("status", { name: "Loading account" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Sign out" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders a home brand link and preserves sign-out behavior", async () => {
     const performLogout = vi.fn(async () => undefined);
     const navigate = vi.fn();

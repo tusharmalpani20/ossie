@@ -16,8 +16,9 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
-import { getCurrentAuth } from "../../lib/api";
+import { type MouseEvent, type ReactNode, useEffect, useState } from "react";
+import { getCurrentAuth, logout } from "../../lib/api";
+import { navigateWithinApp } from "../../lib/clientNavigation";
 import type { PortalRouteSection } from "../../lib/portalRouteMetadata";
 import {
   buildPortalBreadcrumbs,
@@ -26,6 +27,7 @@ import {
   type PortalProjectVersionContext,
 } from "../../lib/portalNavigation";
 import styles from "./PortalAppShell.module.css";
+import { usePortalAccount } from "./PortalAccountContext";
 import { PortalTopbar } from "./PortalTopbar";
 
 type PortalAppShellProps = {
@@ -76,13 +78,14 @@ export const PortalAppShell = ({
   projectLibrary = false,
   loadAuth = getCurrentAuth,
   performLogout,
-  navigate,
+  navigate = navigateWithinApp,
 }: PortalAppShellProps) => {
   const [navigationCollapsed, setNavigationCollapsed] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [loadedAccount, setLoadedAccount] = useState<AuthContext | null>(null);
+  const sharedAccount = usePortalAccount();
   const organizationShell = projectLibrary || !project;
-  const resolvedAccount = account === undefined ? loadedAccount : account;
+  const resolvedAccount = account ?? sharedAccount?.account ?? loadedAccount;
   const navigation = buildPortalNavigation({
     activeSection,
     project,
@@ -95,7 +98,17 @@ export const PortalAppShell = ({
   });
 
   useEffect(() => {
-    if (!organizationShell || account !== undefined) return;
+    if (!organizationShell) return;
+
+    if (account !== undefined) {
+      if (account) sharedAccount?.rememberAccount(account);
+      return;
+    }
+
+    if (sharedAccount) {
+      sharedAccount.ensureAccount(loadAuth);
+      return;
+    }
 
     let active = true;
     void loadAuth()
@@ -109,7 +122,12 @@ export const PortalAppShell = ({
     return () => {
       active = false;
     };
-  }, [account, loadAuth, organizationShell]);
+  }, [account, loadAuth, organizationShell, sharedAccount]);
+
+  const handleLogout = async () => {
+    await (performLogout ?? logout)();
+    sharedAccount?.clearAccount();
+  };
 
   return (
     <div
@@ -131,7 +149,7 @@ export const PortalAppShell = ({
         account={resolvedAccount}
         projectLibrary={organizationShell}
         onOpenNavigation={() => setNavigationOpen(true)}
-        performLogout={performLogout}
+        performLogout={handleLogout}
         navigate={navigate}
       />
       <div className={styles.body}>
@@ -204,7 +222,23 @@ export const PortalAppShell = ({
                   aria-current={item.active ? "page" : undefined}
                   aria-label={accessibleLabel}
                   title={navigationCollapsed ? item.label : undefined}
-                  onClick={() => setNavigationOpen(false)}
+                  onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+                    setNavigationOpen(false);
+
+                    if (
+                      event.defaultPrevented ||
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey ||
+                      event.altKey
+                    ) {
+                      return;
+                    }
+
+                    event.preventDefault();
+                    navigate(item.href);
+                  }}
                 >
                   {Icon ? (
                     <Icon

@@ -62,6 +62,13 @@
   position: relative;
 }
 
+.accountPlaceholder {
+  width: 42px;
+  height: 40px;
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface-subtle);
+}
+
 .accountTrigger {
   display: inline-flex;
   align-items: center;

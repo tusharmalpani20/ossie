@@ -4,6 +4,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import App from "./App";
+import { navigateWithinApp } from "./lib/clientNavigation";
 
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -1013,5 +1014,20 @@ describe("App", () => {
         "Open the project list, a project workspace, capture session list, capture session, guide list, guide link, or interactive demo link to continue.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("updates the rendered route after client-side navigation", async () => {
+    window.history.pushState({}, "", "/login");
+
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+
+    navigateWithinApp("/unknown");
+
+    expect(
+      await screen.findByRole("heading", { name: "Ossie portal" }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/unknown");
   });
 });

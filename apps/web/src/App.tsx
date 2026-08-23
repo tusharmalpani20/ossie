@@ -38,6 +38,7 @@ import { GuideRevisionPreviewPage } from "./features/artifact-revision/GuideRevi
 import { InteractiveDemoRevisionPreviewPage } from "./features/artifact-revision/InteractiveDemoRevisionPreviewPage";
 import { ProjectCarryForwardPage } from "./features/artifact-carry-forward/ProjectCarryForwardPage";
 import { DesignSystemReviewPage } from "./features/design-system/DesignSystemReviewPage";
+import { PortalAccountProvider } from "./features/portal/PortalAccountContext";
 import { canPublishDocumentation } from "./features/documentation/documentationPermissions";
 import {
   canCarryForwardDocumentation,
@@ -52,6 +53,7 @@ import {
   getPublicInstanceStatus,
   listProjectScreenshotAssets,
 } from "./lib/api";
+import { useClientPath } from "./lib/clientNavigation";
 import { portalDocumentTitle } from "./lib/portalRouteMetadata";
 import { parsePortalRoute, type PortalRoute } from "./lib/routes";
 import styles from "./App.module.css";
@@ -237,11 +239,14 @@ const LegacyProjectRedirect = ({
   );
 };
 
-export default function App() {
-  const currentPath = `${window.location.pathname}${window.location.search}`;
-  const route = parsePortalRoute(window.location.pathname);
+const AppRoutes = () => {
+  const currentPath = useClientPath();
+  const route = parsePortalRoute(
+    new URL(currentPath, window.location.origin).pathname,
+  );
   const setupCheckRequired = shouldCheckSetup(route);
   const backgroundSetupCheckRequired = shouldCheckSetupInBackground(route);
+  const isLoginRoute = route.type === "login";
   const [setupGateState, setSetupGateState] = useState<SetupGateState>(
     setupCheckRequired ? "checking" : "ready",
   );
@@ -258,7 +263,7 @@ export default function App() {
     }
 
     let active = true;
-    setSetupGateState(route.type === "login" ? "ready" : "checking");
+    setSetupGateState(isLoginRoute ? "ready" : "checking");
 
     getPublicInstanceStatus()
       .then((status) => {
@@ -274,14 +279,14 @@ export default function App() {
       })
       .catch(() => {
         if (active) {
-          setSetupGateState(route.type === "login" ? "ready" : "error");
+          setSetupGateState(isLoginRoute ? "ready" : "error");
         }
       });
 
     return () => {
       active = false;
     };
-  }, [backgroundSetupCheckRequired, currentPath, route.type]);
+  }, [backgroundSetupCheckRequired, isLoginRoute]);
 
   if (setupGateState === "setup_required") {
     return <FirstRunSetupPage />;
@@ -1190,5 +1195,13 @@ export default function App() {
         </Card>
       </main>
     </div>
+  );
+};
+
+export default function App() {
+  return (
+    <PortalAccountProvider>
+      <AppRoutes />
+    </PortalAccountProvider>
   );
 }

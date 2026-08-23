@@ -3,8 +3,9 @@
  */
 
 import "@testing-library/jest-dom/vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { PortalAccountProvider } from "./PortalAccountContext";
 import { PortalAppShell } from "./PortalAppShell";
 
 const authResponse = {
@@ -155,5 +156,85 @@ describe("PortalAppShell", () => {
       screen.getByRole("button", { name: "Collapse navigation" }),
     ).toBeInTheDocument();
     expect(loadAuth).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the loaded account when switching library sections", async () => {
+    const loadAuth = vi.fn(async () => authResponse);
+    const renderShell = (section: "projects" | "organization_members") => (
+      <PortalAccountProvider>
+        <PortalAppShell
+          activeSection={section}
+          currentLabel={
+            section === "projects" ? "Projects" : "Organization members"
+          }
+          loadAuth={loadAuth}
+        >
+          <h1>{section === "projects" ? "Projects" : "Organization members"}</h1>
+        </PortalAppShell>
+      </PortalAccountProvider>
+    );
+    const view = render(renderShell("projects"));
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Open account menu for Jane Member",
+      }),
+    ).toBeInTheDocument();
+
+    view.rerender(renderShell("organization_members"));
+
+    expect(
+      screen.getByRole("button", {
+        name: "Open account menu for Jane Member",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Sign out" }),
+    ).not.toBeInTheDocument();
+    expect(loadAuth).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses client-side navigation for ordinary sidebar clicks", () => {
+    const navigate = vi.fn();
+
+    render(
+      <PortalAppShell
+        activeSection="projects"
+        currentLabel="Projects"
+        navigate={navigate}
+      >
+        <h1>Projects</h1>
+      </PortalAppShell>,
+    );
+
+    const membersLink = screen.getByRole("link", {
+      name: "Organization members",
+    });
+    expect(membersLink).toHaveAttribute("href", "/organization/members");
+
+    fireEvent.click(membersLink);
+
+    expect(navigate).toHaveBeenCalledWith("/organization/members");
+  });
+
+  it("preserves modified sidebar clicks for opening links in another tab", () => {
+    const navigate = vi.fn();
+
+    render(
+      <PortalAppShell
+        activeSection="projects"
+        currentLabel="Projects"
+        navigate={navigate}
+      >
+        <h1>Projects</h1>
+      </PortalAppShell>,
+    );
+
+    fireEvent.click(
+      screen.getByRole("link", { name: "Organization members" }),
+      { ctrlKey: true },
+    );
+
+    expect(navigate).not.toHaveBeenCalled();
   });
 });
