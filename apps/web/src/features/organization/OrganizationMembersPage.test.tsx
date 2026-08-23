@@ -182,14 +182,16 @@ describe("OrganizationMembersPage", () => {
     await screen.findByRole("heading", { name: "Organization members" });
     fireEvent.click(screen.getByRole("tab", { name: "Pending invites 0" }));
 
-    expect(
-      screen.getByRole("img", {
-        name: "Ossie is ready to send an invitation",
-      }),
-    ).toHaveAttribute(
+    const illustration = screen.getByRole("img", {
+      name: "Ossie is ready to send an invitation",
+    });
+
+    expect(illustration).toHaveAttribute(
       "src",
       "/illustrations/ossie-invites-empty.png",
     );
+    expect(illustration).toHaveAttribute("width", "260");
+    expect(illustration).toHaveAttribute("height", "260");
     expect(screen.getByText("No pending invites")).toBeInTheDocument();
     expect(
       screen.getByText("Invitations waiting to be accepted will appear here."),

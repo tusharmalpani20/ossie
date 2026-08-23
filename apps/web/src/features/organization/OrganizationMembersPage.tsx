@@ -629,8 +629,8 @@ export const OrganizationMembersPage = ({
                   className={styles.emptyIllustration}
                   src="/illustrations/ossie-invites-empty.png"
                   alt="Ossie is ready to send an invitation"
-                  width="190"
-                  height="190"
+                  width="260"
+                  height="260"
                 />
                 <h3 className={styles.emptyTitle}>No pending invites</h3>
                 <p className={styles.emptyDescription}>
