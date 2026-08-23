@@ -121,6 +121,11 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Projects" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Organize your project knowledge and access the work your team needs.",
+      ),
+    ).toBeInTheDocument();
 
     const rows = screen.getAllByRole("article");
     expect(

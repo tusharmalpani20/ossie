@@ -369,7 +369,7 @@ export const ProjectListPage = ({
         <div>
           <h1 className={styles.title}>Projects</h1>
           <p className={styles.subtitle}>
-            Organize your product knowledge and open the work your team needs.
+            Organize your project knowledge and access the work your team needs.
           </p>
         </div>
         <Button
