@@ -50,7 +50,7 @@ describe("FirstRunSetupPage", () => {
     render(<FirstRunSetupPage getInstanceStatus={async () => setupRequired} />);
 
     await screen.findByRole("heading", {
-      name: "Set up your Ossie Organization",
+      name: "Set up your Ossie workspace",
     });
 
     const form = screen.getByLabelText("Owner email").closest("form");
@@ -72,7 +72,7 @@ describe("FirstRunSetupPage", () => {
     render(<FirstRunSetupPage getInstanceStatus={async () => setupRequired} />);
 
     await screen.findByRole("heading", {
-      name: "Set up your Ossie Organization",
+      name: "Set up your Ossie workspace",
     });
     const password = screen.getByLabelText("Password");
 
@@ -95,14 +95,43 @@ describe("FirstRunSetupPage", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Set up your Ossie Organization",
+        name: "Set up your Ossie workspace",
       }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Your Ossie instance is ready",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Create your Organization")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === "SPAN" &&
+          element.textContent === "Self-hosted. Private.You're in control.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Owner email")).toBeRequired();
     expect(screen.getByLabelText("First name")).not.toBeRequired();
     expect(screen.getByLabelText("Last name")).not.toBeRequired();
     expect(screen.getByLabelText("Organization name")).toBeRequired();
     expect(screen.getByLabelText("Password")).toBeRequired();
+    expect(screen.getByLabelText("Organization name")).toHaveAttribute(
+      "placeholder",
+      "e.g. Northstar Labs",
+    );
+    expect(screen.getByLabelText("First name")).toHaveAttribute(
+      "placeholder",
+      "Jamie",
+    );
+    expect(screen.getByLabelText("Last name")).toHaveAttribute(
+      "placeholder",
+      "Chen",
+    );
+    expect(screen.getByLabelText("Owner email")).toHaveAttribute(
+      "placeholder",
+      "jamie@northstar.co",
+    );
     expect(
       screen.getByRole("button", { name: "Complete setup" }),
     ).toBeInTheDocument();
@@ -128,7 +157,7 @@ describe("FirstRunSetupPage", () => {
     );
 
     await screen.findByRole("heading", {
-      name: "Set up your Ossie Organization",
+      name: "Set up your Ossie workspace",
     });
     fillSetupForm();
     fireEvent.click(screen.getByRole("button", { name: "Complete setup" }));
@@ -163,7 +192,7 @@ describe("FirstRunSetupPage", () => {
     );
 
     await screen.findByRole("heading", {
-      name: "Set up your Ossie Organization",
+      name: "Set up your Ossie workspace",
     });
     fillSetupForm();
     fireEvent.click(screen.getByRole("button", { name: "Complete setup" }));
@@ -225,7 +254,7 @@ describe("FirstRunSetupPage", () => {
     );
 
     await screen.findByRole("heading", {
-      name: "Set up your Ossie Organization",
+      name: "Set up your Ossie workspace",
     });
     fillSetupForm();
     fireEvent.click(screen.getByRole("button", { name: "Complete setup" }));
@@ -249,7 +278,7 @@ describe("FirstRunSetupPage", () => {
     );
 
     await screen.findByRole("heading", {
-      name: "Set up your Ossie Organization",
+      name: "Set up your Ossie workspace",
     });
     fillSetupForm();
     fireEvent.click(screen.getByRole("button", { name: "Complete setup" }));

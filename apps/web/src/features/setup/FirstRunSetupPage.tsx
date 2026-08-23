@@ -58,9 +58,9 @@ const Shell = ({ children }: { children: ReactNode }) => (
         <OssieBrand />
       </a>
       <div className={styles.brandMessage}>
-        <h2>Your Ossie instance is ready.</h2>
+        <h2>Your Ossie instance is ready</h2>
         <p>
-          Complete this one-time step to create your Organization and owner
+          Complete this one-time setup to create your organization and owner
           account.
         </p>
         <ol className={styles.steps} aria-label="Setup steps">
@@ -85,9 +85,11 @@ const Shell = ({ children }: { children: ReactNode }) => (
         </ol>
       </div>
       <p className={styles.brandFooter}>
-        <ShieldCheck size={18} strokeWidth={1.8} aria-hidden="true" />
+        <ShieldCheck size={36} strokeWidth={1.6} aria-hidden="true" />
         <span>
-          Self-hosted setup. Your Organization stays on this deployment.
+          Self-hosted. Private.
+          <br />
+          You&apos;re in control.
         </span>
       </p>
     </aside>
@@ -269,7 +271,7 @@ export const FirstRunSetupPage = ({
                 value={organizationName}
                 required
                 autoComplete="organization"
-                placeholder="e.g. Acme Inc."
+                placeholder="e.g. Northstar Labs"
                 disabled={submitting}
                 onChange={(event) => setOrganizationName(event.target.value)}
               />
@@ -293,7 +295,7 @@ export const FirstRunSetupPage = ({
                 type="text"
                 value={firstName}
                 autoComplete="given-name"
-                placeholder="John"
+                placeholder="Jamie"
                 disabled={submitting}
                 onChange={(event) => setFirstName(event.target.value)}
               />
@@ -306,7 +308,7 @@ export const FirstRunSetupPage = ({
                 type="text"
                 value={lastName}
                 autoComplete="family-name"
-                placeholder="Doe"
+                placeholder="Chen"
                 disabled={submitting}
                 onChange={(event) => setLastName(event.target.value)}
               />
@@ -321,7 +323,7 @@ export const FirstRunSetupPage = ({
               value={ownerEmail}
               required
               autoComplete="email"
-              placeholder="you@example.com"
+              placeholder="jamie@northstar.co"
               disabled={submitting}
               onChange={(event) => setOwnerEmail(event.target.value)}
             />

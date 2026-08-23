@@ -7,21 +7,87 @@
 }
 
 .brandRegion {
+  position: relative;
+  isolation: isolate;
   display: flex;
+  overflow: hidden;
   flex-direction: column;
   min-height: 100vh;
-  padding: var(--ossie-space-7);
+  padding: clamp(48px, 4vw, 64px);
   border-right: 1px solid var(--ossie-color-accent-active);
-  background: var(--ossie-color-brand-ink);
+  background:
+    radial-gradient(
+      circle at 88% 10%,
+      color-mix(in srgb, var(--ossie-color-accent) 72%, transparent) 0,
+      transparent 38%
+    ),
+    linear-gradient(
+      155deg,
+      color-mix(
+          in srgb,
+          var(--ossie-color-accent-active) 76%,
+          var(--ossie-color-brand-ink)
+        )
+        0%,
+      var(--ossie-color-brand-ink) 54%,
+      color-mix(in srgb, var(--ossie-color-brand-ink) 72%, black) 100%
+    );
   color: var(--ossie-color-inverted);
 }
 
+.brandRegion::before {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  inset: 38% -34% -22% 6%;
+  background: linear-gradient(
+    145deg,
+    transparent 0 32%,
+    rgb(8 4 29 / 24%) 32% 68%,
+    rgb(116 72 227 / 10%) 68% 100%
+  );
+  clip-path: polygon(34% 0, 100% 0, 70% 100%, 0 100%);
+}
+
+.brandRegion::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  background-image: radial-gradient(
+    circle,
+    rgb(204 188 255 / 40%) 1px,
+    transparent 1.25px
+  );
+  background-size: 13px 13px;
+  opacity: 0.42;
+  pointer-events: none;
+  mask-image: radial-gradient(
+    ellipse at 108% 53%,
+    black 0,
+    rgb(0 0 0 / 82%) 24%,
+    transparent 65%
+  );
+}
+
 .brand {
+  position: relative;
   align-self: flex-start;
   color: var(--ossie-color-inverted);
   font-size: 16px;
   font-weight: 800;
   text-decoration: none;
+}
+
+.brand img {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.brand img + span {
+  font-size: 22px;
 }
 
 .brand:focus-visible,
@@ -32,35 +98,38 @@
 }
 
 .brandMessage {
-  max-width: 28rem;
-  margin-top: clamp(72px, 11vh, 120px);
+  position: relative;
+  max-width: 21rem;
+  margin-top: clamp(88px, 12vh, 132px);
 }
 
 .brandMessage h2 {
   margin: 0;
   color: inherit;
-  font-size: 28px;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
   text-wrap: balance;
 }
 
 .brandMessage p {
-  max-width: 24rem;
-  margin: var(--ossie-space-3) 0 0;
+  max-width: 20rem;
+  margin: var(--ossie-space-5) 0 0;
   color: inherit;
-  font-size: 14px;
-  line-height: 1.6;
-  opacity: 0.82;
+  font-size: 16px;
+  line-height: 1.55;
+  opacity: 0.86;
 }
 
 .steps {
   display: grid;
-  gap: var(--ossie-space-3);
-  margin: var(--ossie-space-6) 0 0;
+  gap: var(--ossie-space-4);
+  margin: 36px 0 0;
   padding: 0;
   list-style: none;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 600;
   line-height: 1.4;
 }
 
@@ -73,29 +142,36 @@
 .stepNumber {
   display: inline-grid;
   flex: none;
-  width: 24px;
-  height: 24px;
+  width: 34px;
+  height: 34px;
   place-items: center;
-  border: 1px solid currentColor;
+  border: 1.5px solid currentColor;
   border-radius: 50%;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .brandFooter {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--ossie-space-2);
-  max-width: 28rem;
+  max-width: 20rem;
   margin: auto 0 0;
   color: inherit;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
   line-height: 1.45;
-  opacity: 0.82;
+  opacity: 0.9;
 }
 
 .brandFooter svg {
   flex: none;
+  color: color-mix(
+    in srgb,
+    var(--ossie-color-accent) 58%,
+    var(--ossie-color-inverted)
+  );
 }
 
 .content {
@@ -146,7 +222,7 @@
 
 .group {
   display: grid;
-  gap: var(--ossie-space-3);
+  gap: var(--ossie-space-4);
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -154,11 +230,11 @@
 }
 
 .group + .group {
-  padding-top: var(--ossie-space-5);
-  border-top: 1px solid var(--ossie-color-border);
+  padding-top: var(--ossie-space-2);
 }
 
 .groupTitle {
+  margin-bottom: var(--ossie-space-4);
   padding: 0;
   color: var(--ossie-color-accent-hover);
   font-size: 11px;
@@ -185,7 +261,8 @@
 
 .field :global(input) {
   width: 100%;
-  min-height: 42px;
+  min-height: var(--ossie-control-height-comfortable);
+  padding: 0 var(--ossie-space-3);
   font-size: 14px;
   font-weight: 400;
 }
@@ -227,12 +304,11 @@
 
 .passwordToggle {
   position: absolute;
-  top: 0;
+  inset-block: 1px;
   right: 0;
   display: inline-grid;
   width: var(--ossie-control-height-comfortable);
-  height: 100%;
-  min-height: var(--ossie-control-height-comfortable);
+  min-height: 0;
   place-items: center;
   padding: 0;
   border: 0;
