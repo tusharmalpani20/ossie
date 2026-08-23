@@ -2084,7 +2084,8 @@ history.
 
 ## 29. Implementation Log
 
-No runtime or surface implementation has started.
+Execution records begin below; prior planning entries did not represent shipped
+Plan 147 runtime or surface behavior.
 
 2026-08-23 — setup surface preflight:
 
@@ -2099,6 +2100,24 @@ No runtime or surface implementation has started.
   the active Plan 147 sequence.
 - No browser visual test, screenshot, baseline update, or unrelated surface
   redesign was performed.
+
+2026-08-23 — setup presentation candidate:
+
+- Implemented the bounded `/setup` presentation candidate on isolated branch
+  `codex/setup-onboarding` at immutable commit `54feffb`.
+- Narrowed the desktop form column, tightened the split layout rhythm, added a
+  tokenized brand-region divider, added a decorative Organization icon, and
+  added an aria-hidden completion arrow without changing the accessible action
+  name or form behavior.
+- Focused setup tests (8/8), web type-check, web lint, CSS-token validation,
+  scoped Prettier, and `git diff --check` passed.
+- Broad verification passed for repository type-check and lint, and the
+  affected web production build passed. Server tests passed at 127 files / 553
+  tests; the web suite retained four unrelated Documentation timing/render
+  failures, and the workspace build was blocked by the temporary external
+  `apps/docs/node_modules` symlink used only by this isolated worktree.
+- Browser visual verification and independent blind reviews were not run at
+  the user's explicit request and remain pending human inspection.
 
 2026-08-22 — documentation and design-direction reconciliation:
 

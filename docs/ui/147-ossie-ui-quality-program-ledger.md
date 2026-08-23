@@ -1,6 +1,6 @@
 # Plan 147 UI Quality Program Ledger
 
-Status: `in_preflight`
+Status: `needs_human_surface`
 
 Last reviewed: 2026-08-23
 
@@ -18,9 +18,9 @@ Last reviewed: 2026-08-23
 
 ## Surface ledger
 
-| Surface id              | Exact route | Role/access                                         | Current state                                                                           | Pattern                    | Status         |
-| ----------------------- | ----------- | --------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------- | -------------- |
-| `entry.setup.first-run` | `/setup`    | Public self-hosted first-run setup, unauthenticated | Ready, plus loading, submitting, complete, unavailable, error, validation, and conflict | Split first-run onboarding | `in_implementation` |
+| Surface id              | Exact route | Role/access                                         | Current state                                                                           | Pattern                    | Status                |
+| ----------------------- | ----------- | --------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------- | --------------------- |
+| `entry.setup.first-run` | `/setup`    | Public self-hosted first-run setup, unauthenticated | Ready, plus loading, submitting, complete, unavailable, error, validation, and conflict | Split first-run onboarding | `needs_human_surface` |
 
 Normal entry points are direct `/setup` navigation and setup guards from login
 or setup-protected portal routes. The current request changes field order and
@@ -75,10 +75,10 @@ completion behavior remain out of scope.
 
 ## Findings rechecked
 
-| ID     | Severity | Finding                                                                                                                 | Current evidence                                                                                                                                                              | Disposition                    |
-| ------ | -------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| P1-001 | P1       | Documentation Publication preview route was parsed and setup-guarded without a render branch. | Rechecked on `989051c`: `apps/web/src/App.tsx` lazy-loads and renders `DocumentationPublicationPreviewPage`; focused route coverage is present from `fddbe55`. | Fixed before this candidate; no `/setup` change required. |
-| P1-002 | P1       | Live CSS consumed undefined Ossie custom properties and used fragmented color authority. | Rechecked on `989051c`: `packages/ui/src/tokens.css` is imported by both `apps/web/src/index.css` and `apps/extension/src/index.css`; current Ossie consumers resolve against that source. | Fixed before this candidate; no `/setup` change required. |
+| ID     | Severity | Finding                                                                                       | Current evidence                                                                                                                                                                           | Disposition                                               |
+| ------ | -------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| P1-001 | P1       | Documentation Publication preview route was parsed and setup-guarded without a render branch. | Rechecked on `989051c`: `apps/web/src/App.tsx` lazy-loads and renders `DocumentationPublicationPreviewPage`; focused route coverage is present from `fddbe55`.                             | Fixed before this candidate; no `/setup` change required. |
+| P1-002 | P1       | Live CSS consumed undefined Ossie custom properties and used fragmented color authority.      | Rechecked on `989051c`: `packages/ui/src/tokens.css` is imported by both `apps/web/src/index.css` and `apps/extension/src/index.css`; current Ossie consumers resolve against that source. | Fixed before this candidate; no `/setup` change required. |
 
 ## `/setup` candidate preflight
 
@@ -114,17 +114,24 @@ completion behavior remain out of scope.
 
 ## Surface acceptance checkpoint
 
-- Focused tests: setup, App route, Publication preview, shared primitive, and
-  the isolated unrelated DocumentationPortabilityPanel test pass. The serial
-  workspace suite had one unrelated timing-sensitive failure in that panel
-  while the publication list was still settling; the isolated rerun passed.
-- Non-visual engineering checks: type checks, lint, build, CSS-token check, and
-  `git diff --check` pass.
+- Focused setup test: `FirstRunSetupPage.test.tsx`, 8 tests passed.
+- Broad tests: server 127 files / 553 tests passed; all non-web workspace test
+  packages passed; web had 90 of 93 files and 480 of 484 tests pass, with 3
+  unrelated Documentation files and 4 tests failing. No setup test failed.
+- Type checks: repository `pnpm check-types` passed (13 tasks).
+- Lint: repository `pnpm lint` passed (14 tasks), with the existing server
+  warnings recorded as 89 warnings and 0 errors; affected web lint passed.
+- Builds: affected web `pnpm --filter web build` passed. The workspace build
+  did not complete because Turbopack rejected the temporary external
+  `apps/docs/node_modules` symlink used to reuse cached dependencies in the
+  isolated worktree; this is an environment limitation, not a candidate code
+  failure.
+- CSS-token check, scoped Prettier, and `git diff --check` passed.
 - Browser/visual verification: blocked by explicit user instruction
-- Independent Reviewer A: unavailable until an immutable candidate and review
-  capability are available
-- Independent Reviewer B: unavailable until an immutable candidate and review
-  capability are available
+- Independent Reviewer A: unavailable in this environment; no blind review
+  evidence manufactured
+- Independent Reviewer B: unavailable in this environment; no blind review
+  evidence manufactured
 - Human visual inspection: pending user review
 
 ## Candidate evidence bundle
@@ -136,7 +143,15 @@ completion behavior remain out of scope.
   and password in that DOM order; password visibility uses an accessible icon
   button; setup submission still calls the existing API and navigates to
   `/projects` on success.
+- Candidate commit: `54feffb` (`refactor(web): refine first-run setup presentation`).
 - Visual before/evidence classification: known-problem and user direction;
   no candidate screenshot captured.
 - Visual browser results: intentionally not collected; 1440, 1024, 390, and
   200% zoom inspection remain for the user.
+- Intentional differences: the candidate narrows the desktop form to 464px,
+  reduces the brand-panel vertical offset, adds a tokenized panel divider,
+  adds a decorative Organization icon, adds an aria-hidden completion arrow,
+  and retains Ossie's Organization terminology and 12-character password rule.
+- Known limitations: visual browser verification, console/network inspection,
+  keyboard/reflow/reduced-motion evidence, and both independent reviews remain
+  intentionally pending.
