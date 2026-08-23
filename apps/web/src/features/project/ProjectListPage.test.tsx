@@ -225,6 +225,29 @@ describe("ProjectListPage", () => {
     expect(archivedTab).toHaveAttribute("aria-selected", "true");
   });
 
+  it("uses the archive mascot for an empty archived Project library", async () => {
+    renderPage({ loadProjects: async () => ({ projects: [] }) });
+
+    expect(
+      await screen.findByRole("heading", { name: "No Projects yet" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Archived" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "No archived Projects" }),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector(
+        'img[src="/illustrations/ossie-projects-archived-empty.png"]',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector(
+        'img[src="/illustrations/ossie-projects-empty.png"]',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   it("provides project navigation controls and an account menu", async () => {
     renderPage({ loadProjects: async () => ({ projects: [] }) });
 

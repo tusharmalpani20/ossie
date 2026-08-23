@@ -549,11 +549,15 @@ export const ProjectListPage = ({
           <div className={styles.empty}>
             <img
               className={styles.emptyIllustration}
-              src="/illustrations/ossie-projects-empty.png"
+              src={
+                statusFilter === "active"
+                  ? "/illustrations/ossie-projects-empty.png"
+                  : "/illustrations/ossie-projects-archived-empty.png"
+              }
               alt=""
               aria-hidden="true"
               width="320"
-              height="210"
+              height="213"
             />
             <h2 className={styles.emptyTitle}>
               {statusFilter === "active"
