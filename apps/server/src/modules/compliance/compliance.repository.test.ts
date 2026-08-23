@@ -26,6 +26,7 @@ describe("compliance repository", () => {
       organization_id: "01J00000000000000000000001",
       project_id: null,
       kind: "all",
+      activity: "important",
       cursor: null,
       limit: 25,
     });
@@ -42,9 +43,9 @@ describe("compliance repository", () => {
     expect(query.mock.calls[1]?.[0]).toContain(
       "access_event.organization_id = $1",
     );
-    expect(query.mock.calls[0]?.[1]?.[0]).toBe(
-      "01J00000000000000000000001",
-    );
+    expect(query.mock.calls[0]?.[1]?.[0]).toBe("01J00000000000000000000001");
+    expect(query.mock.calls[0]?.[1]).toContain("important");
+    expect(query.mock.calls[0]?.[0]).toContain("authentication.session.viewed");
   });
 
   it("reconstructs exactly one typed scalar column", () => {

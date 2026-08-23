@@ -39,7 +39,10 @@ export const ComplianceAuditEventSummarySchema = CommonSchema.extend({
   evidence_kind: z.literal("audit"),
   outcome: z.literal("committed"),
   correlation_id: z.string().min(1).max(255).nullable(),
-  idempotency_key_hash: z.string().regex(/^[0-9a-f]{64}$/u).nullable(),
+  idempotency_key_hash: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/u)
+    .nullable(),
   before_row_version: z.number().int().nonnegative().nullable(),
   after_row_version: z.number().int().nonnegative().nullable(),
   reason: z.string().max(500).nullable(),
@@ -60,9 +63,7 @@ export const ComplianceAccessEventSchema = CommonSchema.extend({
   reason_code: z.enum(ACCESS_REASON_CODES).nullable(),
   response_bytes: z.number().int().nonnegative().nullable(),
 }).strict();
-export type ComplianceAccessEvent = z.infer<
-  typeof ComplianceAccessEventSchema
->;
+export type ComplianceAccessEvent = z.infer<typeof ComplianceAccessEventSchema>;
 
 const NonValueStateSchema = z
   .object({ state: z.enum(["absent", "null", "redacted", "present"]) })
@@ -176,3 +177,6 @@ export type ComplianceEventsResponse = z.infer<
 
 export const ComplianceKindSchema = z.enum(["all", "audit", "access"]);
 export type ComplianceKind = z.infer<typeof ComplianceKindSchema>;
+
+export const ComplianceActivitySchema = z.enum(["important", "all"]);
+export type ComplianceActivity = z.infer<typeof ComplianceActivitySchema>;

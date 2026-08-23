@@ -2819,11 +2819,12 @@ describe("api client", () => {
 
     await listComplianceEvents({
       kind: "access",
+      activity: "important",
       cursor: "next page",
       limit: 10,
     });
     expect(fetch).toHaveBeenLastCalledWith(
-      "/api/v1/organization/compliance/events?kind=access&cursor=next+page&limit=10",
+      "/api/v1/organization/compliance/events?kind=access&activity=important&cursor=next+page&limit=10",
       expect.objectContaining({ credentials: "include" }),
     );
     await getComplianceAuditEvent("audit/id");

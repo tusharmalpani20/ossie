@@ -80,7 +80,7 @@ describe("compliance routes", () => {
     });
     const response = await app.inject({
       method: "GET",
-      url: "/api/v1/organization/compliance/events?kind=access&limit=10",
+      url: "/api/v1/organization/compliance/events?kind=access&activity=important&limit=10",
       headers: { authorization: "Bearer synthetic" },
     });
 
@@ -90,7 +90,7 @@ describe("compliance routes", () => {
         organization_id: auth.organization.id,
         actor_role: "owner",
       },
-      query: { kind: "access", limit: 10 },
+      query: { kind: "access", activity: "important", limit: 10 },
     });
     expect(response.json().totals.access_events).toBe(3);
     await app.close();
@@ -144,18 +144,21 @@ describe("compliance routes", () => {
   it.each([
     "/api/v1/organization/compliance/events?project_id=not-a-ulid",
     "/api/v1/organization/compliance/audit-events/not-a-ulid",
-  ])("rejects malformed evidence identifiers before calling the service", async (url) => {
-    const list_events = vi.fn();
-    const get_audit_event_detail = vi.fn();
-    const app = build_app({
-      compliance_service: { list_events, get_audit_event_detail },
-    });
+  ])(
+    "rejects malformed evidence identifiers before calling the service",
+    async (url) => {
+      const list_events = vi.fn();
+      const get_audit_event_detail = vi.fn();
+      const app = build_app({
+        compliance_service: { list_events, get_audit_event_detail },
+      });
 
-    const response = await app.inject({ method: "GET", url });
+      const response = await app.inject({ method: "GET", url });
 
-    expect(response.statusCode).toBe(400);
-    expect(list_events).not.toHaveBeenCalled();
-    expect(get_audit_event_detail).not.toHaveBeenCalled();
-    await app.close();
-  });
+      expect(response.statusCode).toBe(400);
+      expect(list_events).not.toHaveBeenCalled();
+      expect(get_audit_event_detail).not.toHaveBeenCalled();
+      await app.close();
+    },
+  );
 });

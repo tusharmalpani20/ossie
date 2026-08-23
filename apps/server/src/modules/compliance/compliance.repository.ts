@@ -1,5 +1,6 @@
 import type {
   ComplianceAccessEvent,
+  ComplianceActivity,
   ComplianceAuditChangeItem,
   ComplianceAuditEventSummary,
   ComplianceAuditState,
@@ -128,7 +129,8 @@ export const compliance_state_from_row = (
     state === "null" ||
     state === "redacted" ||
     state === "present"
-  ) return { state };
+  )
+    return { state };
   if (state !== "value" || !value_types.includes(value_type as never))
     throw new Error("evidence_integrity_failed");
 
@@ -143,7 +145,8 @@ export const compliance_state_from_row = (
     return { state: "value", value_type, value: safe_integer(value) };
   }
   if (value_type === "boolean") {
-    if (typeof value !== "boolean") throw new Error("evidence_integrity_failed");
+    if (typeof value !== "boolean")
+      throw new Error("evidence_integrity_failed");
     return { state: "value", value_type, value };
   }
   if (value_type === "timestamp")
@@ -152,7 +155,10 @@ export const compliance_state_from_row = (
     return {
       state: "value",
       value_type,
-      value: value instanceof Date ? value.toISOString().slice(0, 10) : String(value),
+      value:
+        value instanceof Date
+          ? value.toISOString().slice(0, 10)
+          : String(value),
     };
   return {
     state: "value",
@@ -161,7 +167,9 @@ export const compliance_state_from_row = (
   };
 };
 
-const map_change_item = (row: Record<string, unknown>): ComplianceAuditChangeItem => ({
+const map_change_item = (
+  row: Record<string, unknown>,
+): ComplianceAuditChangeItem => ({
   id: String(row.id),
   entity_type: String(row.entity_type),
   entity_id: row.entity_id == null ? null : String(row.entity_id),
@@ -193,6 +201,7 @@ export const build_compliance_repository = (db: Queryable) => ({
     organization_id: string;
     project_id: string | null;
     kind: ComplianceKind;
+    activity: ComplianceActivity;
     cursor: ComplianceCursor | null;
     limit: number;
   }) {
@@ -218,6 +227,15 @@ export const build_compliance_repository = (db: Queryable) => ({
           AND audit_change_item.organization_id = audit_event.organization_id
         WHERE audit_event.organization_id = $1
           AND ($2::text IS NULL OR audit_event.project_id = $2)
+          AND ($8::text = 'all' OR audit_event.action NOT IN (
+            'authentication.session.activity_recorded',
+            'authentication.session.viewed',
+            'compliance.timeline_viewed',
+            'compliance.audit_event_viewed'
+          ))
+          AND ($8::text = 'all' OR RIGHT(audit_event.action, 7) NOT IN (
+            '_viewed', '.viewed'
+          ))
         GROUP BY audit_event.id
       ), access_rows AS (
         SELECT access_event.id, 'access'::text AS evidence_kind,
@@ -236,6 +254,14 @@ export const build_compliance_repository = (db: Queryable) => ({
         FROM audit_schema.access_event access_event
         WHERE access_event.organization_id = $1
           AND ($2::text IS NULL OR access_event.project_id = $2)
+          AND ($8::text = 'all' OR access_event.action NOT IN (
+            'authentication.session.activity_recorded',
+            'authentication.session.viewed',
+            'compliance.timeline_viewed',
+            'compliance.audit_event_viewed'
+          ))
+          AND ($8::text = 'all' OR access_event.outcome <> 'succeeded'
+            OR RIGHT(access_event.action, 7) NOT IN ('_viewed', '.viewed'))
       ), evidence AS (
         SELECT * FROM audit_rows WHERE $3 IN ('all', 'audit')
         UNION ALL
@@ -255,6 +281,7 @@ export const build_compliance_repository = (db: Queryable) => ({
         input.cursor?.id ?? null,
         input.cursor?.evidence_kind ?? null,
         input.limit + 1,
+        input.activity,
       ],
     );
     const has_more = result.rows.length > input.limit;
@@ -267,33 +294,77 @@ export const build_compliance_repository = (db: Queryable) => ({
         WHERE audit_event.organization_id = $1
           AND ($2::text IS NULL OR audit_event.project_id = $2)
           AND $3 IN ('all', 'audit')
+          AND ($4::text = 'all' OR audit_event.action NOT IN (
+            'authentication.session.activity_recorded',
+            'authentication.session.viewed',
+            'compliance.timeline_viewed',
+            'compliance.audit_event_viewed'
+          ))
+          AND ($4::text = 'all' OR RIGHT(audit_event.action, 7) NOT IN (
+            '_viewed', '.viewed'
+          ))
         UNION ALL
         SELECT access_event.occurred_at, 'access'::text AS kind
         FROM audit_schema.access_event access_event
         WHERE access_event.organization_id = $1
           AND ($2::text IS NULL OR access_event.project_id = $2)
           AND $3 IN ('all', 'access')
+          AND ($4::text = 'all' OR access_event.action NOT IN (
+            'authentication.session.activity_recorded',
+            'authentication.session.viewed',
+            'compliance.timeline_viewed',
+            'compliance.audit_event_viewed'
+          ))
+          AND ($4::text = 'all' OR access_event.outcome <> 'succeeded'
+            OR RIGHT(access_event.action, 7) NOT IN ('_viewed', '.viewed'))
       )
       SELECT
         (SELECT COUNT(*) FROM audit_schema.audit_event audit_event
           WHERE audit_event.organization_id = $1
             AND ($2::text IS NULL OR audit_event.project_id = $2)
-            AND $3 IN ('all', 'audit'))::bigint AS audit_events,
+            AND $3 IN ('all', 'audit')
+            AND ($4::text = 'all' OR audit_event.action NOT IN (
+              'authentication.session.activity_recorded',
+              'authentication.session.viewed',
+              'compliance.timeline_viewed',
+              'compliance.audit_event_viewed'
+            ))
+            AND ($4::text = 'all' OR RIGHT(audit_event.action, 7) NOT IN (
+              '_viewed', '.viewed'
+            )))::bigint AS audit_events,
         (SELECT COUNT(*) FROM audit_schema.audit_change_item item
           JOIN audit_schema.audit_event audit_event ON audit_event.id = item.audit_event_id
             AND audit_event.organization_id = item.organization_id
           WHERE audit_event.organization_id = $1
             AND ($2::text IS NULL OR audit_event.project_id = $2)
-            AND $3 IN ('all', 'audit'))::bigint AS audit_change_items,
+            AND $3 IN ('all', 'audit')
+            AND ($4::text = 'all' OR audit_event.action NOT IN (
+              'authentication.session.activity_recorded',
+              'authentication.session.viewed',
+              'compliance.timeline_viewed',
+              'compliance.audit_event_viewed'
+            ))
+            AND ($4::text = 'all' OR RIGHT(audit_event.action, 7) NOT IN (
+              '_viewed', '.viewed'
+            )))::bigint AS audit_change_items,
         (SELECT COUNT(*) FROM audit_schema.access_event access_event
           WHERE access_event.organization_id = $1
             AND ($2::text IS NULL OR access_event.project_id = $2)
-            AND $3 IN ('all', 'access'))::bigint AS access_events,
+            AND $3 IN ('all', 'access')
+            AND ($4::text = 'all' OR access_event.action NOT IN (
+              'authentication.session.activity_recorded',
+              'authentication.session.viewed',
+              'compliance.timeline_viewed',
+              'compliance.audit_event_viewed'
+            ))
+            AND ($4::text = 'all' OR access_event.outcome <> 'succeeded'
+              OR RIGHT(access_event.action, 7) NOT IN ('_viewed', '.viewed'))
+          )::bigint AS access_events,
         MIN(occurred_at) AS oldest_occurred_at,
         MAX(occurred_at) AS newest_occurred_at
       FROM selected
       `,
-      [input.organization_id, input.project_id, input.kind],
+      [input.organization_id, input.project_id, input.kind, input.activity],
     );
     const totals = totals_result.rows[0] ?? {};
     return {

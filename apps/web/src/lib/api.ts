@@ -1045,6 +1045,7 @@ export const createPublicPublishViewerSession = async (
 export const listComplianceEvents = async (
   input: {
     kind?: ComplianceKind;
+    activity?: "important" | "all";
     projectId?: string;
     cursor?: string;
     limit?: number;
@@ -1052,6 +1053,7 @@ export const listComplianceEvents = async (
 ): Promise<ComplianceEventsResponse> => {
   const query = new URLSearchParams();
   if (input.kind && input.kind !== "all") query.set("kind", input.kind);
+  if (input.activity) query.set("activity", input.activity);
   if (input.projectId) query.set("project_id", input.projectId);
   if (input.cursor) query.set("cursor", input.cursor);
   if (input.limit) query.set("limit", String(input.limit));
@@ -1072,12 +1074,14 @@ export const listProjectComplianceEvents = async (
   projectId: string,
   input: {
     kind?: ComplianceKind;
+    activity?: "important" | "all";
     cursor?: string;
     limit?: number;
   } = {},
 ): Promise<ComplianceEventsResponse> => {
   const query = new URLSearchParams();
   if (input.kind && input.kind !== "all") query.set("kind", input.kind);
+  if (input.activity) query.set("activity", input.activity);
   if (input.cursor) query.set("cursor", input.cursor);
   if (input.limit) query.set("limit", String(input.limit));
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
