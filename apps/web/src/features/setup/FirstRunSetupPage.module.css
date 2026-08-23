@@ -187,6 +187,10 @@
   width: min(100%, 464px);
 }
 
+.content:has(.statePanel) {
+  align-items: center;
+}
+
 .intro {
   display: grid;
   gap: var(--ossie-space-2);
@@ -342,7 +346,7 @@
   display: grid;
   gap: var(--ossie-space-4);
   width: 100%;
-  padding-top: var(--ossie-space-7);
+  padding-top: 0;
 }
 
 .link {

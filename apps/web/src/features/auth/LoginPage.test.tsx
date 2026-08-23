@@ -44,11 +44,37 @@ describe("LoginPage", () => {
   it("renders login form fields", () => {
     render(<LoginPage />);
 
-    expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Sign in" }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeRequired();
     expect(screen.getByLabelText("Password")).toBeRequired();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Sign in" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Welcome back to Ossie" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText((_, element) =>
+        Boolean(
+          element?.tagName === "SPAN" &&
+          element.textContent.startsWith("Self-hosted. Private."),
+        ),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("allows the password to be shown and hidden", () => {
+    render(<LoginPage />);
+
+    const password = screen.getByLabelText("Password");
+    expect(password).toHaveAttribute("type", "password");
+
+    fireEvent.click(screen.getByRole("button", { name: "Show password" }));
+    expect(password).toHaveAttribute("type", "text");
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(password).toHaveAttribute("type", "password");
   });
 
   it("defaults successful login navigation to projects", async () => {
@@ -66,15 +92,25 @@ describe("LoginPage", () => {
     const submitLogin = vi.fn(async () => authResponse);
     const navigate = vi.fn();
 
-    render(<LoginPage nextPath="/projects/project_1?tab=guides" submitLogin={submitLogin} navigate={navigate} />);
+    render(
+      <LoginPage
+        nextPath="/projects/project_1?tab=guides"
+        submitLogin={submitLogin}
+        navigate={navigate}
+      />,
+    );
     fillForm();
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(screen.getByRole("button", { name: "Signing in..." })).toBeDisabled();
-    await waitFor(() => expect(submitLogin).toHaveBeenCalledWith({
-      email: "person@example.com",
-      password: " secret ",
-    }));
+    expect(
+      screen.getByRole("button", { name: "Signing in..." }),
+    ).toBeDisabled();
+    await waitFor(() =>
+      expect(submitLogin).toHaveBeenCalledWith({
+        email: "person@example.com",
+        password: " secret ",
+      }),
+    );
     expect(navigate).toHaveBeenCalledWith("/projects/project_1?tab=guides");
   });
 
@@ -86,7 +122,9 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     fireEvent.click(screen.getByRole("button", { name: "Signing in..." }));
 
-    expect(screen.getByRole("button", { name: "Signing in..." })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Signing in..." }),
+    ).toBeDisabled();
     expect(submitLogin).toHaveBeenCalledTimes(1);
   });
 
@@ -94,7 +132,13 @@ describe("LoginPage", () => {
     const submitLogin = vi.fn(async () => authResponse);
     const navigate = vi.fn();
 
-    render(<LoginPage nextPath="//evil.example/path" submitLogin={submitLogin} navigate={navigate} />);
+    render(
+      <LoginPage
+        nextPath="//evil.example/path"
+        submitLogin={submitLogin}
+        navigate={navigate}
+      />,
+    );
     fillForm();
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
@@ -105,7 +149,9 @@ describe("LoginPage", () => {
     const submitLogin = vi.fn(async () => authResponse);
     const navigate = vi.fn();
 
-    const { unmount } = render(<LoginPage submitLogin={submitLogin} navigate={navigate} />);
+    const { unmount } = render(
+      <LoginPage submitLogin={submitLogin} navigate={navigate} />,
+    );
     fillForm();
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
@@ -115,7 +161,13 @@ describe("LoginPage", () => {
     navigate.mockClear();
     submitLogin.mockClear();
 
-    render(<LoginPage nextPath="https://evil.example/path" submitLogin={submitLogin} navigate={navigate} />);
+    render(
+      <LoginPage
+        nextPath="https://evil.example/path"
+        submitLogin={submitLogin}
+        navigate={navigate}
+      />,
+    );
     fillForm();
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
@@ -133,13 +185,15 @@ describe("LoginPage", () => {
             message: "Email or password is incorrect",
           });
         }}
-      />
+      />,
     );
 
     fillForm();
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(await screen.findByText("Email or password is incorrect.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Email or password is incorrect."),
+    ).toBeInTheDocument();
   });
 
   it("shows generic sign-in errors", async () => {
@@ -148,7 +202,7 @@ describe("LoginPage", () => {
         submitLogin={async () => {
           throw new Error("Network failed");
         }}
-      />
+      />,
     );
 
     fillForm();

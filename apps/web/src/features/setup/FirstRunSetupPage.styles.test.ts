@@ -57,4 +57,11 @@ describe("FirstRunSetupPage styles", () => {
     expect(passwordToggleRule).toContain("inset-block: 1px");
     expect(passwordToggleRule).toContain("min-height: 0");
   });
+
+  it("centers setup status messages in the content panel", () => {
+    expect(ruleFor(".content:has(.statePanel)")).toContain(
+      "align-items: center",
+    );
+    expect(ruleFor(".statePanel")).toContain("padding-top: 0");
+  });
 });

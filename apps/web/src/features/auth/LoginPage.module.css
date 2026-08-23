@@ -1,26 +1,299 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(320px, 35%) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--ossie-color-surface);
+  color: var(--ossie-color-text);
+}
+
+.brandRegion {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: clamp(48px, 4vw, 64px);
+  border-right: 1px solid var(--ossie-color-accent-active);
+  background:
+    radial-gradient(
+      circle at 88% 10%,
+      color-mix(in srgb, var(--ossie-color-accent) 72%, transparent) 0,
+      transparent 38%
+    ),
+    linear-gradient(
+      155deg,
+      color-mix(
+          in srgb,
+          var(--ossie-color-accent-active) 76%,
+          var(--ossie-color-brand-ink)
+        )
+        0%,
+      var(--ossie-color-brand-ink) 54%,
+      color-mix(in srgb, var(--ossie-color-brand-ink) 72%, black) 100%
+    );
+  color: var(--ossie-color-inverted);
+}
+
+.brandRegion::before {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  inset: 38% -34% -22% 6%;
+  background: linear-gradient(
+    145deg,
+    transparent 0 32%,
+    rgb(8 4 29 / 24%) 32% 68%,
+    rgb(116 72 227 / 10%) 68% 100%
+  );
+  clip-path: polygon(34% 0, 100% 0, 70% 100%, 0 100%);
+}
+
+.brandRegion::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  background-image: radial-gradient(
+    circle,
+    rgb(204 188 255 / 40%) 1px,
+    transparent 1.25px
+  );
+  background-size: 13px 13px;
+  opacity: 0.42;
+  pointer-events: none;
+  mask-image: radial-gradient(
+    ellipse at 108% 53%,
+    black 0,
+    rgb(0 0 0 / 82%) 24%,
+    transparent 65%
+  );
+}
+
+.brand {
+  position: relative;
+  align-self: flex-start;
+  color: var(--ossie-color-inverted);
+  font-size: 16px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.brand img {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.brand img + span {
+  font-size: 22px;
+}
+
+.brandMessage {
+  position: relative;
+  max-width: 22rem;
+  margin-top: clamp(88px, 12vh, 132px);
+}
+
+.brandMessage h2 {
+  margin: 0;
+  color: inherit;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.brandMessage p {
+  margin: var(--ossie-space-5) 0 0;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1.55;
+  opacity: 0.86;
+}
+
+.capabilities {
+  display: grid;
+  gap: var(--ossie-space-4);
+  margin: 34px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.capabilities li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ossie-space-3);
+}
+
+.capabilities svg {
+  flex: none;
+  margin-top: 1px;
+  color: color-mix(
+    in srgb,
+    var(--ossie-color-accent) 54%,
+    var(--ossie-color-inverted)
+  );
+}
+
+.brandFooter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--ossie-space-2);
+  margin: auto 0 0;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  opacity: 0.9;
+}
+
+.brandFooter svg {
+  flex: none;
+  color: color-mix(
+    in srgb,
+    var(--ossie-color-accent) 58%,
+    var(--ossie-color-inverted)
+  );
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: clamp(48px, 8vh, 80px) clamp(32px, 7vw, 96px);
+  background: var(--ossie-color-surface);
+}
+
+.signInPanel {
+  width: min(100%, 440px);
+}
+
+.intro {
+  display: grid;
+  gap: var(--ossie-space-2);
+  margin-bottom: 28px;
+}
+
 .title {
   margin: 0;
   color: var(--ossie-color-text);
-  font-size: 24px;
+  font-size: 30px;
+  font-weight: 650;
   line-height: 1.2;
+  letter-spacing: -0.025em;
 }
 
 .copy {
   margin: 0;
-  color: var(--ossie-color-muted);
-  font-size: 14px;
-  line-height: 1.5;
+  color: var(--ossie-color-text-muted);
+  font-size: 15px;
+  line-height: 1.55;
 }
 
 .form {
   display: grid;
-  gap: 14px;
+  gap: var(--ossie-space-5);
 }
 
 .field {
   display: grid;
-  gap: 6px;
-  color: var(--ossie-color-text);
+  gap: var(--ossie-space-2);
+  min-width: 0;
+}
+
+.field :global(label) {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.field :global(input) {
+  width: 100%;
+  min-height: var(--ossie-control-height-comfortable);
+  padding: 0 var(--ossie-space-3);
+  font-size: 14px;
+}
+
+.field :global(input:hover:not(:disabled)) {
+  border-color: var(--ossie-color-border-strong);
+}
+
+.passwordControl {
+  position: relative;
+}
+
+.passwordControl :global(input) {
+  padding-right: 56px;
+}
+
+.passwordToggle {
+  position: absolute;
+  inset-block: 1px;
+  right: 0;
+  display: inline-grid;
+  width: var(--ossie-control-height-comfortable);
+  min-height: 0;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--ossie-color-border);
+  border-radius: 0 var(--ossie-radius-control) var(--ossie-radius-control) 0;
+  background: transparent;
+  color: var(--ossie-color-accent-hover);
+  cursor: pointer;
+}
+
+.passwordToggle:hover:not(:disabled) {
+  background: var(--ossie-color-accent-subtle);
+}
+
+.brand:focus-visible,
+.passwordToggle:focus-visible {
+  outline: var(--ossie-focus-ring-width) solid var(--ossie-color-focus);
+  outline-offset: var(--ossie-focus-ring-offset);
+}
+
+.submitButton {
+  width: 100%;
+  min-height: var(--ossie-control-height-comfortable);
+}
+
+@media (max-width: 760px) {
+  .page {
+    display: block;
+  }
+
+  .brandRegion {
+    min-height: auto;
+    padding: 20px 24px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ossie-color-accent-active);
+  }
+
+  .brandMessage,
+  .brandFooter {
+    display: none;
+  }
+
+  .content {
+    display: block;
+    padding: 48px 24px;
+  }
+
+  .signInPanel {
+    margin: 0 auto;
+  }
+
+  .field :global(input) {
+    min-height: 44px;
+    font-size: 16px;
+  }
 }
