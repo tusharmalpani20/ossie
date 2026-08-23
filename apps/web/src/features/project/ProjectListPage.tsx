@@ -3,11 +3,10 @@
  */
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { AuthContext, AuthResponse } from "@repo/types/auth";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Plus, X } from "lucide-react";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
-import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
@@ -48,6 +47,24 @@ type CreateProjectFormState = {
   description: string;
 };
 
+type CreateProjectFieldErrors = {
+  name?: string;
+  slug?: string;
+};
+
+const emptyCreateProjectForm = (): CreateProjectFormState => ({
+  name: "",
+  slug: "",
+  description: "",
+});
+
+const projectUrlSegment = (value: string) =>
+  value
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+
 const formatDateTime = (value: string) => {
   const date = new Date(value);
 
@@ -81,7 +98,7 @@ const createProjectErrorMessage = (error: unknown) => {
     }
 
     if (error.type === "project_slug_conflict") {
-      return "A project with this slug already exists.";
+      return "That Project URL is already in use.";
     }
   }
 
@@ -114,15 +131,18 @@ export const ProjectListPage = ({
     "active",
   );
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [createForm, setCreateForm] = useState<CreateProjectFormState>({
-    name: "",
-    slug: "",
-    description: "",
-  });
+  const [createForm, setCreateForm] = useState<CreateProjectFormState>(
+    emptyCreateProjectForm,
+  );
+  const [createFieldErrors, setCreateFieldErrors] =
+    useState<CreateProjectFieldErrors>({});
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [account, setAccount] = useState<AuthContext | null>(null);
+  const createDialogRef = useRef<HTMLDialogElement | null>(null);
   const createNameInputRef = useRef<HTMLInputElement | null>(null);
+  const createTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const projectUrlEditedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -176,9 +196,17 @@ export const ProjectListPage = ({
   }, [loadAuth]);
 
   useEffect(() => {
-    if (showCreateForm) {
-      createNameInputRef.current?.focus();
+    if (!showCreateForm) return;
+
+    const dialog = createDialogRef.current;
+    if (dialog && !dialog.open) {
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
     }
+    createNameInputRef.current?.focus();
   }, [showCreateForm]);
 
   const updateCreateField = (
@@ -189,16 +217,69 @@ export const ProjectListPage = ({
       ...current,
       [field]: value,
     }));
+    if (field === "name" || field === "slug") {
+      setCreateFieldErrors((current) => ({ ...current, [field]: undefined }));
+    }
   };
 
-  const openCreateForm = () => {
+  const updateProjectName = (value: string) => {
+    setCreateForm((current) => ({
+      ...current,
+      name: value,
+      slug: projectUrlEditedRef.current
+        ? current.slug
+        : projectUrlSegment(value),
+    }));
+    setCreateFieldErrors((current) => ({
+      ...current,
+      name: undefined,
+      slug: projectUrlEditedRef.current ? current.slug : undefined,
+    }));
+  };
+
+  const updateProjectUrl = (value: string) => {
+    projectUrlEditedRef.current = true;
+    updateCreateField("slug", projectUrlSegment(value));
+  };
+
+  const openCreateForm = (trigger: HTMLButtonElement) => {
+    createTriggerRef.current = trigger;
     setShowCreateForm(true);
     setCreateError(null);
+    setCreateFieldErrors({});
   };
 
   const closeCreateForm = () => {
+    const dialog = createDialogRef.current;
+    if (dialog?.open) {
+      if (typeof dialog.close === "function") {
+        dialog.close();
+      } else {
+        dialog.removeAttribute("open");
+      }
+    }
     setShowCreateForm(false);
     setCreateError(null);
+    setCreateFieldErrors({});
+    setCreateForm(emptyCreateProjectForm());
+    projectUrlEditedRef.current = false;
+    createTriggerRef.current?.focus();
+  };
+
+  const requestCloseCreateForm = () => {
+    if (isCreating) return;
+
+    const hasEnteredDetails = Object.values(createForm).some((value) =>
+      Boolean(value.trim()),
+    );
+    if (
+      hasEnteredDetails &&
+      !window.confirm("Discard the Project details you entered?")
+    ) {
+      return;
+    }
+
+    closeCreateForm();
   };
 
   const submitCreateProject = async (event: FormEvent<HTMLFormElement>) => {
@@ -209,9 +290,17 @@ export const ProjectListPage = ({
     }
 
     const name = createForm.name.trim();
+    const slug = createForm.slug.trim();
+    const fieldErrors: CreateProjectFieldErrors = {};
 
     if (!name) {
-      setCreateError("Project name is required.");
+      fieldErrors.name = "Project name is required.";
+    }
+    if (!slug) {
+      fieldErrors.slug = "Project URL is required.";
+    }
+    if (fieldErrors.name || fieldErrors.slug) {
+      setCreateFieldErrors(fieldErrors);
       return;
     }
 
@@ -221,7 +310,7 @@ export const ProjectListPage = ({
     try {
       const response = await createProjectAction({
         name,
-        slug: optionalProjectField(createForm.slug),
+        slug,
         description: optionalProjectField(createForm.description),
       });
       openProject(response.project, navigate);
@@ -289,140 +378,211 @@ export const ProjectListPage = ({
           type="button"
           aria-label="Create a new Project"
           title="Create a new Project"
-          onClick={openCreateForm}
+          onClick={(event) => openCreateForm(event.currentTarget)}
         >
           <Plus aria-hidden="true" size={19} />
         </Button>
       </section>
 
-      {showCreateForm ? (
-        <Card
-          className={styles.createPanel}
+      {!showCreateForm ? null : (
+        <dialog
+          ref={createDialogRef}
+          className={styles.createDialog}
           aria-labelledby="create-project-heading"
+          aria-modal="true"
+          onCancel={(event) => {
+            event.preventDefault();
+            requestCloseCreateForm();
+          }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) requestCloseCreateForm();
+          }}
         >
-          <CardHeader>
-            <h2 className={styles.formTitle} id="create-project-heading">
-              Create project
-            </h2>
-          </CardHeader>
-          <CardContent>
-            <form className={styles.form} onSubmit={submitCreateProject}>
+          <div className={styles.createModal}>
+            <header className={styles.createModalHeader}>
+              <div>
+                <h2 className={styles.formTitle} id="create-project-heading">
+                  Create a Project
+                </h2>
+              </div>
+              <Button
+                className={styles.closeButton}
+                variant="ghost"
+                size="icon"
+                type="button"
+                aria-label="Close create Project"
+                title="Close"
+                disabled={isCreating}
+                onClick={requestCloseCreateForm}
+              >
+                <X aria-hidden="true" size={19} />
+              </Button>
+            </header>
+            <form
+              className={styles.form}
+              noValidate
+              onSubmit={submitCreateProject}
+            >
               {createError ? (
                 <Alert variant="destructive">{createError}</Alert>
               ) : null}
-              <Label className={styles.field}>
-                <span>Project name</span>
+              <div className={styles.field}>
+                <Label htmlFor="create-project-name">
+                  Project name <span aria-hidden="true">*</span>
+                </Label>
                 <Input
+                  id="create-project-name"
                   ref={createNameInputRef}
+                  name="name"
+                  required
+                  aria-invalid={Boolean(createFieldErrors.name)}
+                  aria-describedby={
+                    createFieldErrors.name
+                      ? "create-project-name-error"
+                      : undefined
+                  }
                   value={createForm.name}
-                  onChange={(event) =>
-                    updateCreateField("name", event.target.value)
-                  }
+                  placeholder="e.g. Customer onboarding"
+                  onChange={(event) => updateProjectName(event.target.value)}
                 />
-              </Label>
-              <Label className={styles.field}>
-                <span>Slug</span>
-                <Input
-                  value={createForm.slug}
-                  onChange={(event) =>
-                    updateCreateField("slug", event.target.value)
-                  }
-                />
-              </Label>
-              <Label className={styles.field}>
-                <span>Description</span>
+                {createFieldErrors.name ? (
+                  <span
+                    className={styles.fieldError}
+                    id="create-project-name-error"
+                  >
+                    {createFieldErrors.name}
+                  </span>
+                ) : null}
+              </div>
+              <div className={styles.field}>
+                <Label htmlFor="create-project-url">
+                  Project URL <span aria-hidden="true">*</span>
+                </Label>
+                <div className={styles.projectUrlControl}>
+                  <span aria-hidden="true">/projects/</span>
+                  <Input
+                    id="create-project-url"
+                    name="slug"
+                    required
+                    aria-invalid={Boolean(createFieldErrors.slug)}
+                    aria-describedby={
+                      createFieldErrors.slug
+                        ? "create-project-url-help create-project-url-error"
+                        : "create-project-url-help"
+                    }
+                    value={createForm.slug}
+                    placeholder="customer-onboarding"
+                    onChange={(event) => updateProjectUrl(event.target.value)}
+                  />
+                </div>
+                <span className={styles.fieldHelp} id="create-project-url-help">
+                  Generated from the Project name. You can change it.
+                </span>
+                {createFieldErrors.slug ? (
+                  <span
+                    className={styles.fieldError}
+                    id="create-project-url-error"
+                  >
+                    {createFieldErrors.slug}
+                  </span>
+                ) : null}
+              </div>
+              <div className={styles.field}>
+                <Label htmlFor="create-project-description">
+                  Description (optional)
+                </Label>
                 <Textarea
-                  rows={4}
+                  id="create-project-description"
+                  name="description"
+                  rows={3}
                   value={createForm.description}
+                  placeholder="What will this Project contain?"
                   onChange={(event) =>
                     updateCreateField("description", event.target.value)
                   }
                 />
-              </Label>
+              </div>
               <div className={styles.formActions}>
-                <Button type="submit" disabled={isCreating}>
-                  {isCreating ? "Creating Project..." : "Create Project"}
-                </Button>
                 <Button
                   variant="secondary"
                   type="button"
                   disabled={isCreating}
-                  onClick={closeCreateForm}
+                  onClick={requestCloseCreateForm}
                 >
                   Cancel
                 </Button>
+                <Button type="submit" disabled={isCreating}>
+                  {isCreating ? "Creating Project..." : "Create Project"}
+                </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {!showCreateForm ? (
-        <section className={styles.content} aria-label="Project library">
-          <div
-            className={styles.tabs}
-            role="tablist"
-            aria-label="Project status"
-          >
-            <button
-              className={
-                statusFilter === "active" ? styles.tabActive : styles.tab
-              }
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === "active"}
-              onClick={() => setStatusFilter("active")}
-            >
-              Active
-            </button>
-            <button
-              className={
-                statusFilter === "archived" ? styles.tabActive : styles.tab
-              }
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === "archived"}
-              onClick={() => setStatusFilter("archived")}
-            >
-              Archived
-            </button>
           </div>
-          {state.projects.length === 0 ? (
-            <div className={styles.empty}>
-              <img
-                className={styles.emptyIllustration}
-                src="/illustrations/ossie-projects-empty.png"
-                alt=""
-                aria-hidden="true"
-                width="320"
-                height="210"
-              />
-              <h2 className={styles.emptyTitle}>
-                {statusFilter === "active"
-                  ? "No Projects yet"
-                  : "No archived Projects"}
-              </h2>
-              <p className={styles.emptyDescription}>
-                {statusFilter === "active"
-                  ? "Projects organize your Captures, Guides, Interactive Demos, and Documentation."
-                  : "Projects you archive will appear here."}
-              </p>
-              {statusFilter === "active" ? (
-                <Button type="button" onClick={openCreateForm}>
-                  Create your first Project
-                  <ArrowRight aria-hidden="true" size={17} />
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <div className={styles.projects}>
-              {state.projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          )}
-        </section>
-      ) : null}
+        </dialog>
+      )}
+
+      <section className={styles.content} aria-label="Project library">
+        <div className={styles.tabs} role="tablist" aria-label="Project status">
+          <button
+            className={
+              statusFilter === "active" ? styles.tabActive : styles.tab
+            }
+            type="button"
+            role="tab"
+            aria-selected={statusFilter === "active"}
+            onClick={() => setStatusFilter("active")}
+          >
+            Active
+          </button>
+          <button
+            className={
+              statusFilter === "archived" ? styles.tabActive : styles.tab
+            }
+            type="button"
+            role="tab"
+            aria-selected={statusFilter === "archived"}
+            onClick={() => setStatusFilter("archived")}
+          >
+            Archived
+          </button>
+        </div>
+        {state.projects.length === 0 ? (
+          <div className={styles.empty}>
+            <img
+              className={styles.emptyIllustration}
+              src="/illustrations/ossie-projects-empty.png"
+              alt=""
+              aria-hidden="true"
+              width="320"
+              height="210"
+            />
+            <h2 className={styles.emptyTitle}>
+              {statusFilter === "active"
+                ? "No Projects yet"
+                : "No archived Projects"}
+            </h2>
+            <p className={styles.emptyDescription}>
+              {statusFilter === "active"
+                ? "Projects organize your Captures, Guides, Interactive Demos, and Documentation."
+                : "Projects you archive will appear here."}
+            </p>
+            {statusFilter === "active" ? (
+              <Button
+                type="button"
+                onClick={(event) => openCreateForm(event.currentTarget)}
+              >
+                Create your first Project
+                <ArrowRight aria-hidden="true" size={17} />
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <div className={styles.projects}>
+            {state.projects.map((project) => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </div>
+        )}
+      </section>
     </PortalShell>
   );
 };
