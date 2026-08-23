@@ -18,6 +18,8 @@ describe("Button", () => {
     expect(button).toHaveAttribute("type", "button");
     expect(button).toHaveClass("extra-class");
     expect(button.className).toContain("border");
+    expect(button.className).toContain("cursor-pointer");
+    expect(button.className).toContain("disabled:cursor-not-allowed");
 
     fireEvent.click(button);
 

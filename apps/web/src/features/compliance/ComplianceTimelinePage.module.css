@@ -115,6 +115,7 @@
   height: 16px;
   margin: 0;
   accent-color: var(--ossie-color-accent);
+  cursor: pointer;
 }
 
 .tableSurface {
