@@ -138,14 +138,16 @@ describe("ProjectListPage", () => {
         name: "Internal onboarding demos",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("archived")).toBeInTheDocument();
-    expect(screen.getByText("active")).toBeInTheDocument();
+    expect(within(rows[0]!).getByText("A")).toBeInTheDocument();
+    expect(within(rows[1]!).getByText("I")).toBeInTheDocument();
+    expect(screen.queryByText("archived")).not.toBeInTheDocument();
+    expect(screen.queryByText("active")).not.toBeInTheDocument();
     expect(
       screen.getByText("Reusable captures and guides for internal teams."),
     ).toBeInTheDocument();
-    expect(screen.getByText("internal-onboarding-demos")).toBeInTheDocument();
+    expect(screen.queryByText("internal-onboarding-demos")).not.toBeInTheDocument();
     expect(screen.getAllByText(/Updated /).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Created /).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Created /)).not.toBeInTheDocument();
     expect(
       screen.getByRole("link", {
         name: "Open project Internal onboarding demos",
@@ -683,7 +685,7 @@ describe("ProjectListPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("handles invalid project timestamps", async () => {
+  it("handles an invalid project update timestamp", async () => {
     renderPage({
       loadProjects: async () => ({
         projects: [
@@ -697,7 +699,7 @@ describe("ProjectListPage", () => {
     });
 
     expect(await screen.findByText("Updated Unknown")).toBeInTheDocument();
-    expect(screen.getByText("Created Unknown")).toBeInTheDocument();
+    expect(screen.queryByText("Created Unknown")).not.toBeInTheDocument();
   });
 
   it("signs out from the project list", async () => {
