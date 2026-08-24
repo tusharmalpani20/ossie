@@ -80,68 +80,78 @@
 
 .project {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) 36px;
   gap: var(--ossie-space-4);
   align-items: center;
   border: 1px solid var(--ossie-color-border);
   border-radius: var(--ossie-radius-card);
   background: var(--ossie-color-surface);
-  padding: 16px 18px;
+  padding: 16px;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
 .project:hover {
   border-color: var(--ossie-color-accent-border);
 }
 
-.projectBody {
-  min-width: 0;
+.projectIdentity {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--ossie-color-accent-border);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-accent-subtle);
+  color: var(--ossie-color-accent-active);
+  font-size: 19px;
+  font-weight: 700;
 }
 
-.titleRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
+.projectBody {
+  min-width: 0;
 }
 
 .projectTitle {
   margin: 0;
   color: var(--ossie-color-text);
   font-size: 16px;
+  line-height: 1.35;
 }
 
 .description {
-  margin: 7px 0 0;
+  margin: 4px 0 0;
   color: var(--ossie-color-text-muted);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
-  margin-top: 10px;
+  gap: 4px 0;
+  margin-top: 7px;
   color: var(--ossie-color-text-muted);
   font-size: 12px;
 }
 
+.meta span + span::before {
+  content: "·";
+  margin: 0 7px;
+  color: var(--ossie-color-text-muted);
+}
+
 .openLink {
-  display: inline-flex;
+  display: grid;
   align-items: center;
-  min-height: 36px;
-  border: 1px solid var(--ossie-color-border);
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border-radius: var(--ossie-radius-control);
-  background: var(--ossie-color-surface);
-  color: var(--ossie-color-text);
-  font-size: 13px;
-  font-weight: 700;
-  padding: 0 14px;
+  color: var(--ossie-color-text-muted);
   text-decoration: none;
 }
 
 .openLink:hover {
-  border-color: var(--ossie-color-accent-border);
   background: var(--ossie-color-accent-subtle);
   color: var(--ossie-color-accent-active);
 }
@@ -389,11 +399,23 @@
   }
 
   .project {
-    grid-template-columns: 1fr;
+    grid-template-columns: 40px minmax(0, 1fr) 36px;
+    gap: 12px;
+    padding: 14px;
   }
 
-  .openLink {
-    justify-content: center;
+  .projectIdentity {
+    width: 40px;
+    height: 40px;
+    font-size: 17px;
+  }
+
+  .meta span:last-child {
+    flex-basis: 100%;
+  }
+
+  .meta span:last-child::before {
+    display: none;
   }
 
   .empty {

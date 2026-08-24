@@ -3,9 +3,8 @@
  */
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { AuthContext, AuthResponse } from "@repo/types/auth";
-import { ArrowRight, Plus, X } from "lucide-react";
+import { ArrowRight, ChevronRight, Plus, X } from "lucide-react";
 import { Alert } from "@repo/ui/alert";
-import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
@@ -77,6 +76,9 @@ const formatDateTime = (value: string) => {
     timeStyle: "short",
   }).format(date);
 };
+
+const projectInitial = (name: string) =>
+  name.match(/[\p{L}\p{N}]/u)?.[0]?.toLocaleUpperCase() ?? "P";
 
 const projectUrl = (project: Project) =>
   `/projects/${encodeURIComponent(project.id)}/versions/${encodeURIComponent(project.default_project_version.slug)}`;
@@ -622,26 +624,27 @@ const PortalShell = ({
 /** Renders one Project summary card with Default Project Version entry link. */
 const ProjectCard = ({ project }: { project: Project }) => (
   <article className={styles.project}>
+    <div className={styles.projectIdentity} aria-hidden="true">
+      {projectInitial(project.name)}
+    </div>
     <div className={styles.projectBody}>
-      <div className={styles.titleRow}>
-        <h3 className={styles.projectTitle}>{project.name}</h3>
-        <Badge variant={project.status === "active" ? "success" : "default"}>
-          {project.status}
-        </Badge>
-        <Badge>{projectRoleLabel(project)}</Badge>
-      </div>
+      <h3 className={styles.projectTitle}>{project.name}</h3>
       {project.description ? (
         <p className={styles.description}>{project.description}</p>
       ) : null}
       <div className={styles.meta}>
-        <span>Default: {project.default_project_version.name}</span>
-        {project.slug ? <span>{project.slug}</span> : null}
+        <span>{project.default_project_version.name}</span>
+        <span>{projectRoleLabel(project)}</span>
         <span>Updated {formatDateTime(project.updated_at)}</span>
-        <span>Created {formatDateTime(project.created_at)}</span>
       </div>
     </div>
-    <a className={styles.openLink} href={projectUrl(project)}>
-      Open project {project.name}
+    <a
+      className={styles.openLink}
+      href={projectUrl(project)}
+      aria-label={`Open project ${project.name}`}
+      title={`Open project ${project.name}`}
+    >
+      <ChevronRight aria-hidden="true" size={20} />
     </a>
   </article>
 );
