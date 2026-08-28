@@ -40,6 +40,16 @@ describe("PortalAppShell styles", () => {
     expect(topbarRule).toContain("z-index: 40");
   });
 
+  it("keeps the shared shell scroll model active for project workspaces", () => {
+    const shellRule = ruleFor(shellStylesheet, ".shell");
+    const contentRule = ruleFor(shellStylesheet, ".contentFrame");
+
+    expect(shellRule).toContain("height: 100dvh");
+    expect(shellRule).toContain("overflow: hidden");
+    expect(contentRule).toContain("height: 100%");
+    expect(contentRule).toContain("overflow-y: auto");
+  });
+
   it("anchors the organization navigation below the sticky header", () => {
     const sidebarRule = ruleFor(
       shellStylesheet,

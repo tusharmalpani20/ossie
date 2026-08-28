@@ -6,11 +6,17 @@ import type { AuthContext, AuthResponse } from "@repo/types/auth";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import {
+  Activity,
   BookOpenText,
+  Camera,
+  FileText,
   FolderKanban,
+  LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
+  PlaySquare,
   Puzzle,
+  Settings,
   ShieldCheck,
   Users,
   X,
@@ -60,11 +66,13 @@ const libraryNavigationIcons: Record<string, LucideIcon> = {
   Compliance: ShieldCheck,
   "Documentation operations": BookOpenText,
   "Browser extension": Puzzle,
-};
-
-const libraryNavigationLabels: Record<string, string> = {
-  "Organization members": "Members",
-  "Documentation operations": "Documentation",
+  Workspace: LayoutDashboard,
+  "Capture sessions": Camera,
+  Guides: BookOpenText,
+  "Interactive demos": PlaySquare,
+  Documentation: FileText,
+  Activity,
+  "Project settings": Settings,
 };
 
 /** Renders shared topbar, context, navigation, and content frame. */
@@ -75,7 +83,6 @@ export const PortalAppShell = ({
   project,
   projectVersion,
   account,
-  projectLibrary = false,
   loadAuth = getCurrentAuth,
   performLogout,
   navigate = navigateWithinApp,
@@ -84,7 +91,9 @@ export const PortalAppShell = ({
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [loadedAccount, setLoadedAccount] = useState<AuthContext | null>(null);
   const sharedAccount = usePortalAccount();
-  const organizationShell = projectLibrary || !project;
+  // Every authenticated route uses the same shell. Project pages keep their
+  // project context in the content area, while navigation and account controls
+  // remain stable as the user moves between organization and project views.
   const resolvedAccount = account ?? sharedAccount?.account ?? loadedAccount;
   const navigation = buildPortalNavigation({
     activeSection,
@@ -98,8 +107,6 @@ export const PortalAppShell = ({
   });
 
   useEffect(() => {
-    if (!organizationShell) return;
-
     if (account !== undefined) {
       if (account) sharedAccount?.rememberAccount(account);
       return;
@@ -122,18 +129,37 @@ export const PortalAppShell = ({
     return () => {
       active = false;
     };
-  }, [account, loadAuth, organizationShell, sharedAccount]);
+  }, [account, loadAuth, sharedAccount]);
 
   const handleLogout = async () => {
     await (performLogout ?? logout)();
     sharedAccount?.clearAccount();
   };
 
+  const handleInternalNavigation = (
+    event: MouseEvent<HTMLAnchorElement>,
+    path: string,
+  ) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    navigate(path);
+  };
+
   return (
     <div
       className={[
         styles.shell,
-        organizationShell ? styles.projectLibrary : "",
+        styles.projectLibrary,
         navigationCollapsed ? styles.navigationCollapsed : "",
       ]
         .filter(Boolean)
@@ -143,17 +169,15 @@ export const PortalAppShell = ({
         Skip to main content
       </a>
       <PortalTopbar
-        context={
-          organizationShell ? undefined : contextLabel(project, projectVersion)
-        }
+        context={project ? contextLabel(project, projectVersion) : undefined}
         account={resolvedAccount}
-        projectLibrary={organizationShell}
+        projectLibrary
         onOpenNavigation={() => setNavigationOpen(true)}
         performLogout={handleLogout}
         navigate={navigate}
       />
       <div className={styles.body}>
-        {organizationShell && navigationOpen ? (
+        {navigationOpen ? (
           <button
             className={styles.navigationBackdrop}
             type="button"
@@ -166,106 +190,105 @@ export const PortalAppShell = ({
             .filter(Boolean)
             .join(" ")}
         >
-          {organizationShell ? (
-            <div className={styles.mobileSidebarHeader}>
-              <strong>Navigation</strong>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Close navigation"
-                onClick={() => setNavigationOpen(false)}
-              >
-                <X aria-hidden="true" size={20} />
-              </Button>
-            </div>
-          ) : null}
-          {organizationShell ? (
+          <div className={styles.mobileSidebarHeader}>
+            <strong>Navigation</strong>
             <Button
-              className={styles.collapseButton}
               variant="ghost"
               size="icon"
-              aria-label={
-                navigationCollapsed
-                  ? "Expand navigation"
-                  : "Collapse navigation"
-              }
-              title={
-                navigationCollapsed
-                  ? "Expand navigation"
-                  : "Collapse navigation"
-              }
-              onClick={() => setNavigationCollapsed((collapsed) => !collapsed)}
+              aria-label="Close navigation"
+              onClick={() => setNavigationOpen(false)}
             >
-              {navigationCollapsed ? (
-                <PanelLeftOpen aria-hidden="true" size={18} />
-              ) : (
-                <PanelLeftClose aria-hidden="true" size={18} />
-              )}
+              <X aria-hidden="true" size={20} />
             </Button>
-          ) : null}
+          </div>
+          <Button
+            className={styles.collapseButton}
+            variant="ghost"
+            size="icon"
+            aria-label={
+              navigationCollapsed ? "Expand navigation" : "Collapse navigation"
+            }
+            title={
+              navigationCollapsed ? "Expand navigation" : "Collapse navigation"
+            }
+            onClick={() => setNavigationCollapsed((collapsed) => !collapsed)}
+          >
+            {navigationCollapsed ? (
+              <PanelLeftOpen aria-hidden="true" size={18} />
+            ) : (
+              <PanelLeftClose aria-hidden="true" size={18} />
+            )}
+          </Button>
           <nav className={styles.nav} aria-label="Portal navigation">
-            {navigation.map((item) => {
-              const Icon = organizationShell
-                ? libraryNavigationIcons[item.label]
-                : undefined;
-              const accessibleLabel = organizationShell
-                ? item.label
-                : item.ariaLabel;
+            {navigation.map((item, index) => {
+              const Icon = libraryNavigationIcons[item.label];
+              // Keep the accessible name aligned with the visible navigation label.
+              // Longer ariaLabel values are useful metadata, but make sidebar links
+              // harder to discover for screen-reader users and tests.
+              const accessibleLabel = item.label;
+              const isProjectLink = Boolean(project) && index === 5;
 
               return (
-                <a
-                  key={`${item.label}-${item.href}`}
-                  className={
-                    item.active ? styles.navItemActive : styles.navItem
-                  }
-                  href={item.href}
-                  aria-current={item.active ? "page" : undefined}
-                  aria-label={accessibleLabel}
-                  title={navigationCollapsed ? item.label : undefined}
-                  onClick={(event: MouseEvent<HTMLAnchorElement>) => {
-                    setNavigationOpen(false);
-
-                    if (
-                      event.defaultPrevented ||
-                      event.button !== 0 ||
-                      event.metaKey ||
-                      event.ctrlKey ||
-                      event.shiftKey ||
-                      event.altKey
-                    ) {
-                      return;
+                <div key={`${item.label}-${item.href}`}>
+                  {isProjectLink ? <div className={styles.navDivider} /> : null}
+                  <a
+                    className={
+                      item.active ? styles.navItemActive : styles.navItem
                     }
+                    href={item.href}
+                    aria-current={item.active ? "page" : undefined}
+                    aria-label={accessibleLabel}
+                    title={navigationCollapsed ? item.label : undefined}
+                    onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+                      setNavigationOpen(false);
 
-                    event.preventDefault();
-                    navigate(item.href);
-                  }}
-                >
-                  {Icon ? (
-                    <Icon
-                      className={styles.navIcon}
-                      aria-hidden="true"
-                      size={19}
-                    />
-                  ) : null}
-                  <span className={styles.navLabel}>
-                    {organizationShell
-                      ? (libraryNavigationLabels[item.label] ?? item.label)
-                      : item.label}
-                  </span>
-                </a>
+                      if (
+                        event.defaultPrevented ||
+                        event.button !== 0 ||
+                        event.metaKey ||
+                        event.ctrlKey ||
+                        event.shiftKey ||
+                        event.altKey
+                      ) {
+                        return;
+                      }
+
+                      event.preventDefault();
+                      navigate(item.href);
+                    }}
+                  >
+                    {Icon ? (
+                      <Icon
+                        className={styles.navIcon}
+                        aria-hidden="true"
+                        size={19}
+                      />
+                    ) : null}
+                    <span className={styles.navLabel}>
+                      {item.displayLabel ?? item.label}
+                    </span>
+                  </a>
+                </div>
               );
             })}
           </nav>
         </aside>
         <div className={styles.contentFrame}>
-          {!organizationShell ? (
+          {project ? (
             <div className={styles.contextBar}>
               <nav aria-label="Breadcrumb">
                 <ol className={styles.breadcrumbs}>
                   {breadcrumbs.map((crumb, index) => (
                     <li key={`${crumb.label}-${index}`}>
                       {crumb.href && index < breadcrumbs.length - 1 ? (
-                        <a href={crumb.href}>{crumb.label}</a>
+                        <a
+                          href={crumb.href}
+                          onClick={(event) =>
+                            handleInternalNavigation(event, crumb.href!)
+                          }
+                        >
+                          {crumb.label}
+                        </a>
                       ) : (
                         <span>{crumb.label}</span>
                       )}

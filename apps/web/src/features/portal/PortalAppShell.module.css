@@ -1,5 +1,7 @@
 .shell {
-  min-height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   background: var(--ossie-color-background);
   color: var(--ossie-color-text);
 }
@@ -40,6 +42,12 @@
   gap: 6px;
 }
 
+.navDivider {
+  height: 1px;
+  margin: 14px 8px 8px;
+  background: var(--ossie-color-border);
+}
+
 .navItem,
 .navItemActive {
   display: flex;
@@ -72,6 +80,8 @@
 
 .contentFrame {
   min-width: 0;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .contextBar {

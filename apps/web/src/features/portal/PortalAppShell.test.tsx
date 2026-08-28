@@ -72,6 +72,44 @@ describe("PortalAppShell", () => {
     expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
   });
 
+  it("uses the shared navigation and account controls inside a project workspace", () => {
+    const navigate = vi.fn();
+
+    render(
+      <PortalAppShell
+        activeSection="guides"
+        currentLabel="Guides"
+        project={{
+          id: "project_1",
+          name: "OSS Handbook",
+          defaultProjectVersionSlug: "main",
+          access: { role: "project_admin", source: "project_membership" },
+        }}
+        projectVersion={{ slug: "main", name: "Main", isDefault: true }}
+        account={authResponse.auth}
+        navigate={navigate}
+      >
+        <h1>Guides</h1>
+      </PortalAppShell>,
+    );
+
+    const navigation = screen.getByRole("navigation", {
+      name: "Portal navigation",
+    });
+    expect(navigation.querySelectorAll("svg")).toHaveLength(12);
+    expect(screen.getByRole("button", { name: "Collapse navigation" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open account menu for Jane Member" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
+
+    const membersLink = screen.getByRole("link", {
+      name: "Organization members",
+    });
+    fireEvent.click(membersLink);
+    expect(navigate).toHaveBeenCalledWith("/organization/members");
+  });
+
   it("keeps viewer settings links out of the shell", () => {
     render(
       <PortalAppShell

@@ -5,7 +5,7 @@
 import type { AuthContext } from "@repo/types/auth";
 import { Button } from "@repo/ui/button";
 import { ChevronDown, LogOut, Menu, Users } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { OssieBrand } from "../../components/OssieBrand";
 import { logout } from "../../lib/api";
 import styles from "./PortalTopbar.module.css";
@@ -82,6 +82,26 @@ export const PortalTopbar = ({
     }
   };
 
+  const handleInternalNavigation = (
+    event: ReactMouseEvent<HTMLAnchorElement>,
+    path: string,
+  ) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    setAccountMenuOpen(false);
+    navigate(path);
+  };
+
   return (
     <header
       className={`${styles.topbar} ${projectLibrary ? styles.projectLibrary : ""}`}
@@ -99,7 +119,11 @@ export const PortalTopbar = ({
             <Menu aria-hidden="true" size={20} />
           </Button>
         ) : null}
-        <a className={styles.brand} href="/projects">
+        <a
+          className={styles.brand}
+          href="/projects"
+          onClick={(event) => handleInternalNavigation(event, "/projects")}
+        >
           <OssieBrand />
         </a>
         {context ? <div className={styles.context}>{context}</div> : null}
@@ -140,6 +164,9 @@ export const PortalTopbar = ({
                   className={styles.accountMenuItem}
                   href="/organization/members"
                   role="menuitem"
+                  onClick={(event) =>
+                    handleInternalNavigation(event, "/organization/members")
+                  }
                 >
                   <Users aria-hidden="true" size={17} />
                   Organization members

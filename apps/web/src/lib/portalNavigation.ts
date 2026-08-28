@@ -28,6 +28,8 @@ export type PortalNavigationItem = {
   href: string;
   active: boolean;
   ariaLabel?: string;
+  /** Short label used in the compact shell while preserving the full accessible name. */
+  displayLabel?: string;
 };
 
 export type PortalBreadcrumb = {
@@ -80,6 +82,7 @@ export const buildPortalNavigation = ({
       href: "/organization/members",
       active: activeSection === "organization_members",
       ariaLabel: "Portal organization members",
+      displayLabel: "Members",
     },
     {
       label: "Compliance",
@@ -92,6 +95,7 @@ export const buildPortalNavigation = ({
       href: "/organization/documentation",
       active: activeSection === "organization_documentation",
       ariaLabel: "Portal Documentation operations",
+      displayLabel: "Documentation",
     },
     {
       label: "Browser extension",
