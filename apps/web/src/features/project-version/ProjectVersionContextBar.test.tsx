@@ -96,4 +96,16 @@ describe("ProjectVersionContextBar", () => {
       "/projects/project_1/versions/q3/guides",
     );
   });
+
+  it("does not add filler context when only one Version exists", () => {
+    render(
+      <ProjectVersionContextBar
+        project={project}
+        selected={main as never}
+        versions={[main] as never}
+      />,
+    );
+
+    expect(screen.queryByText("Main context")).not.toBeInTheDocument();
+  });
 });

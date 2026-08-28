@@ -3,6 +3,15 @@
  */
 
 import { useEffect, useState } from "react";
+import {
+  ArrowRight,
+  BookOpenText,
+  Camera,
+  FileText,
+  Forward,
+  MousePointer2,
+  type LucideIcon,
+} from "lucide-react";
 import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
 import { Card } from "@repo/ui/card";
@@ -56,7 +65,7 @@ export const ProjectVersionRouteBoundary = ({
   replace,
   allowVersionOwnedContent = false,
   activeSection = "project_workspace",
-  currentLabel = "Project Version workspace",
+  currentLabel = "Workspace",
 }: {
   projectId: string;
   versionSlug: string;
@@ -180,76 +189,161 @@ export const ProjectVersionRouteBoundary = ({
       {children && (legacyContentAvailable || allowVersionOwnedContent) ? (
         children(state)
       ) : (
-        <VersionWorkspace {...state} />
+        <VersionWorkspace {...state} navigate={navigate} />
       )}
     </PortalAppShell>
   );
 };
 
 /** Renders the Project Version workspace when no child route owns content. */
-const VersionWorkspace = ({ project, selected }: Loaded) => (
-  <section className={styles.workspace}>
-    <div>
-      <p className={styles.eyebrow}>Project Version workspace</p>
-      <h1>{selected.name}</h1>
-      {selected.description ? (
-        <p>{selected.description}</p>
-      ) : (
-        <p>No description yet.</p>
-      )}
+const formatDate = (value: string | null | undefined) =>
+  value
+    ? new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value))
+    : "Not set";
+
+const VersionWorkspace = ({
+  project,
+  selected,
+  navigate,
+}: Loaded & { navigate?: (path: string) => void }) => {
+  const workspacePath = projectVersionWorkspaceUrl(project.id, selected.slug);
+
+  return (
+    <section className={styles.workspace}>
+      <header className={styles.workspaceHeader}>
+        <div>
+          <p className={styles.eyebrow}>Project workspace</p>
+          <h1>Workspace</h1>
+          <p className={styles.intro}>
+            Keep the work for this Project Version in one clear place.
+          </p>
+        </div>
+        <div className={styles.versionSummary}>
+          <span>{selected.name}</span>
+          <span className={styles.statusDot} aria-hidden="true" />
+          <span>{selected.status === "active" ? "Active" : "Archived"}</span>
+        </div>
+      </header>
       <dl className={styles.metadata}>
         <div>
-          <dt>Canonical slug</dt>
-          <dd>{selected.slug}</dd>
+          <dt>Version</dt>
+          <dd>{selected.name}</dd>
         </div>
         <div>
-          <dt>Release date</dt>
-          <dd>{selected.release_date ?? "Not set"}</dd>
+          <dt>Status</dt>
+          <dd>{selected.status === "active" ? "Active" : "Archived"}</dd>
         </div>
         <div>
-          <dt>Lifecycle</dt>
-          <dd>{selected.status}</dd>
+          <dt>Released</dt>
+          <dd>{formatDate(selected.release_date)}</dd>
         </div>
         <div>
-          <dt>Updated</dt>
-          <dd>{new Date(selected.updated_at).toLocaleString()}</dd>
+          <dt>Last updated</dt>
+          <dd>{formatDate(selected.updated_at)}</dd>
         </div>
       </dl>
-    </div>
-    <div className={styles.cards}>
-      <WorkspaceLink
-        title="Capture sessions"
-        href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/capture-sessions`}
-      />
-      {project.status === "active" &&
-      selected.status === "active" &&
-      project.access.role !== "viewer" ? (
+      <div className={styles.cards}>
         <WorkspaceLink
-          title="Carry Forward Editions"
-          href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/carry-forward`}
+          title="Capture sessions"
+          description="Record and review browser workflows."
+          icon={Camera}
+          href={`${workspacePath}/capture-sessions`}
+          navigate={navigate}
         />
+        {project.status === "active" &&
+        selected.status === "active" &&
+        project.access.role !== "viewer" ? (
+          <WorkspaceLink
+            title="Carry Forward Editions"
+            description="Start a draft from another Version."
+            icon={Forward}
+            href={`${workspacePath}/carry-forward`}
+            navigate={navigate}
+          />
+        ) : null}
+        <WorkspaceLink
+          title="Guides"
+          description="Turn captured steps into governed instructions."
+          icon={BookOpenText}
+          href={`${workspacePath}/guides`}
+          navigate={navigate}
+        />
+        <WorkspaceLink
+          title="Interactive demos"
+          description="Share guided, interactive product walkthroughs."
+          icon={MousePointer2}
+          href={`${workspacePath}/interactive-demos`}
+          navigate={navigate}
+        />
+        <WorkspaceLink
+          title="Documentation"
+          description="Publish the product knowledge your team trusts."
+          icon={FileText}
+          href={`${workspacePath}/documentation`}
+          navigate={navigate}
+        />
+      </div>
+      {!selected.is_default ? (
+        <Card className={styles.empty}>
+          Guides and Interactive Demos belong to this Project Version. Use
+          Carry Forward Editions to create independent drafts from another
+          Version.
+        </Card>
       ) : null}
-      <WorkspaceLink
-        title="Guides"
-        href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/guides`}
-      />
-      <WorkspaceLink
-        title="Interactive demos"
-        href={`${projectVersionWorkspaceUrl(project.id, selected.slug)}/interactive-demos`}
-      />
-    </div>
-    {!selected.is_default ? (
-      <Card className={styles.empty}>
-        Guides and Interactive Demos belong to this Project Version. Use Carry
-        Forward Editions to create independent drafts from another Version.
-      </Card>
-    ) : null}
-  </section>
-);
+    </section>
+  );
+};
 /** Renders one Project Version workspace link. */
-const WorkspaceLink = ({ title, href }: { title: string; href: string }) => (
-  <Card className={styles.linkCard}>
-    <h2>{title}</h2>
-    <a href={href}>Open {title.toLowerCase()}</a>
-  </Card>
-);
+const WorkspaceLink = ({
+  title,
+  description,
+  icon: Icon,
+  href,
+  navigate,
+}: {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  href: string;
+  navigate?: (path: string) => void;
+}) => {
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (
+      !navigate ||
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    event.preventDefault();
+    navigate(href);
+  };
+
+  return (
+    <a
+      className={styles.linkCard}
+      href={href}
+      aria-label={`Open ${title.toLowerCase()}`}
+      onClick={handleClick}
+    >
+      <span className={styles.linkIcon} aria-hidden="true">
+        <Icon size={20} />
+      </span>
+      <span className={styles.linkCopy}>
+        <strong>{title}</strong>
+        <span>{description}</span>
+        <span className={styles.linkAction}>
+          Open {title.toLowerCase()}
+          <ArrowRight aria-hidden="true" size={16} />
+        </span>
+      </span>
+    </a>
+  );
+};

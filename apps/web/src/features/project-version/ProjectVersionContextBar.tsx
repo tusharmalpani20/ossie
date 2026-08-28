@@ -9,6 +9,7 @@ import type {
 } from "@repo/types/project-version";
 import type { Project } from "@repo/types/project";
 import { projectVersionWorkspaceUrl } from "../../lib/portalNavigation";
+import { navigateWithinApp } from "../../lib/clientNavigation";
 import styles from "./ProjectVersionContextBar.module.css";
 
 export { projectVersionWorkspaceUrl };
@@ -31,8 +32,22 @@ export const ProjectVersionContextBar = ({
   const archived = versions.filter(({ status }) => status === "archived");
   const open = (slug: string) => {
     const path = `${projectVersionWorkspaceUrl(project.id, slug)}${routeSuffix}`;
-    if (navigate) navigate(path);
-    else window.location.assign(path);
+    (navigate ?? navigateWithinApp)(path);
+  };
+  const openManageVersions = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    const path = `/projects/${encodeURIComponent(project.id)}/settings#project-versions`;
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    event.preventDefault();
+    (navigate ?? navigateWithinApp)(path);
   };
   return (
     <section className={styles.bar} aria-label="Project Version context">
@@ -72,12 +87,11 @@ export const ProjectVersionContextBar = ({
             ) : null}
           </select>
         </label>
-      ) : (
-        <div className={styles.compact}>Main context</div>
-      )}
+      ) : null}
       {project.access.role === "project_admin" ? (
         <a
           href={`/projects/${encodeURIComponent(project.id)}/settings#project-versions`}
+          onClick={openManageVersions}
         >
           Manage Versions
         </a>

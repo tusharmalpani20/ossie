@@ -99,6 +99,16 @@ describe("ProjectVersionRouteBoundary", () => {
     ).toBeInTheDocument();
   });
 
+  it("presents the default Version as a workspace with human-readable metadata", async () => {
+    render(<ProjectVersionRouteBoundary projectId="project_1" versionSlug="main" />);
+
+    expect(await screen.findByRole("heading", { name: "Workspace" })).toBeInTheDocument();
+    expect(screen.getByText("Version")).toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeInTheDocument();
+    expect(screen.getByText("Last updated")).toBeInTheDocument();
+    expect(screen.queryByText("Main context")).not.toBeInTheDocument();
+  });
+
   it("lets nested Project Version list routes own the active shell section", async () => {
     render(
       <ProjectVersionRouteBoundary
@@ -243,7 +253,7 @@ describe("ProjectVersionRouteBoundary", () => {
     render(
       <ProjectVersionRouteBoundary projectId="project_1" versionSlug="main" />,
     );
-    await screen.findByRole("heading", { name: "Main" });
+    await screen.findByRole("heading", { name: "Workspace" });
     expect(
       screen.queryByRole("link", { name: "Open carry forward editions" }),
     ).not.toBeInTheDocument();
