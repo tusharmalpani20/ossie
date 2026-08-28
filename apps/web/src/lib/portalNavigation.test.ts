@@ -78,4 +78,17 @@ describe("portalNavigation", () => {
       { label: "Guides" },
     ]);
   });
+
+  it("omits the workspace label when the project landing page owns the heading", () => {
+    expect(
+      buildPortalBreadcrumbs({
+        activeLabel: "",
+        project,
+        projectVersion: { slug: "main", name: "Main", isDefault: true },
+      }),
+    ).toEqual([
+      { label: "Projects", href: "/projects" },
+      { label: "OSS Handbook", href: "/projects/project%201/versions/main" },
+    ]);
+  });
 });

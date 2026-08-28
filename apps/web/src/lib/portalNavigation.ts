@@ -179,7 +179,7 @@ export const buildPortalBreadcrumbs = ({
     });
   }
 
-  if (activeLabel !== crumbs.at(-1)?.label) {
+  if (activeLabel && activeLabel !== crumbs.at(-1)?.label) {
     crumbs.push({ label: activeLabel });
   }
 

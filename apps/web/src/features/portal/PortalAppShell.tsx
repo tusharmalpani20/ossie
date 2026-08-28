@@ -49,17 +49,6 @@ type PortalAppShellProps = {
   navigate?: (path: string) => void;
 };
 
-const contextLabel = (
-  project?: PortalProjectContext,
-  projectVersion?: PortalProjectVersionContext,
-) => {
-  if (!project) return "Portal";
-  if (!projectVersion || projectVersion.isDefault)
-    return project.name ?? project.id;
-
-  return `${project.name ?? project.id} / ${projectVersion.name ?? projectVersion.slug}`;
-};
-
 const libraryNavigationIcons: Record<string, LucideIcon> = {
   Projects: FolderKanban,
   "Organization members": Users,
@@ -169,7 +158,6 @@ export const PortalAppShell = ({
         Skip to main content
       </a>
       <PortalTopbar
-        context={project ? contextLabel(project, projectVersion) : undefined}
         account={resolvedAccount}
         projectLibrary
         onOpenNavigation={() => setNavigationOpen(true)}
@@ -230,7 +218,14 @@ export const PortalAppShell = ({
 
               return (
                 <div key={`${item.label}-${item.href}`}>
-                  {isProjectLink ? <div className={styles.navDivider} /> : null}
+                  {isProjectLink ? (
+                    <>
+                      <div className={styles.navDivider} />
+                      <div className={styles.projectNavLabel}>
+                        {project?.name ?? project?.id}
+                      </div>
+                    </>
+                  ) : null}
                   <a
                     className={
                       item.active ? styles.navItemActive : styles.navItem

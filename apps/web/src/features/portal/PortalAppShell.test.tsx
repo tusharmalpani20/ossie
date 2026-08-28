@@ -46,7 +46,10 @@ describe("PortalAppShell", () => {
       </PortalAppShell>,
     );
 
-    expect(screen.getByRole("banner")).toHaveTextContent("OSS Handbook");
+    expect(
+      screen.getByRole("navigation", { name: "Portal navigation" }),
+    ).toHaveTextContent("OSS Handbook");
+    expect(screen.getByRole("banner")).not.toHaveTextContent("OSS Handbook");
     expect(
       screen.getByRole("navigation", { name: "Portal navigation" }),
     ).toBeInTheDocument();
@@ -97,11 +100,15 @@ describe("PortalAppShell", () => {
       name: "Portal navigation",
     });
     expect(navigation.querySelectorAll("svg")).toHaveLength(12);
-    expect(screen.getByRole("button", { name: "Collapse navigation" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse navigation" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Open account menu for Jane Member" }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Sign out" }),
+    ).not.toBeInTheDocument();
 
     const membersLink = screen.getByRole("link", {
       name: "Organization members",
@@ -114,7 +121,7 @@ describe("PortalAppShell", () => {
     render(
       <PortalAppShell
         activeSection="project_workspace"
-        currentLabel="Project workspace"
+        currentLabel=""
         project={{
           id: "project_1",
           name: "OSS Handbook",
@@ -207,7 +214,9 @@ describe("PortalAppShell", () => {
           }
           loadAuth={loadAuth}
         >
-          <h1>{section === "projects" ? "Projects" : "Organization members"}</h1>
+          <h1>
+            {section === "projects" ? "Projects" : "Organization members"}
+          </h1>
         </PortalAppShell>
       </PortalAccountProvider>
     );
