@@ -14,7 +14,7 @@ import styles from "./ProjectVersionContextBar.module.css";
 
 export { projectVersionWorkspaceUrl };
 
-/** Renders current Project Version identity and switching controls. */
+/** Renders the current Project Version selector and its status. */
 export const ProjectVersionContextBar = ({
   project,
   selected,
@@ -51,49 +51,45 @@ export const ProjectVersionContextBar = ({
   };
   return (
     <section className={styles.bar} aria-label="Project Version context">
-      <div
-        className={styles.identity}
-        title={`${project.name} / ${selected.name}`}
-      >
-        <span>{project.name}</span>
-        <span aria-hidden="true">/</span>
-        <strong>{selected.name}</strong>
-        {selected.is_default ? <Badge>Default</Badge> : null}
-        {selected.status === "archived" ? <Badge>Archived</Badge> : null}
-      </div>
-      {active.length > 1 || archived.length > 0 ? (
-        <label className={styles.selector}>
-          <span>Project Version</span>
-          <select
-            value={selected.slug}
-            onChange={(event) => open(event.target.value)}
-          >
-            <optgroup label="Active">
-              {active.map((version) => (
+      <label className={styles.selector}>
+        <span className={styles.visuallyHidden}>Project Version</span>
+        <select
+          aria-label="Project Version"
+          value={selected.slug}
+          onChange={(event) => open(event.target.value)}
+        >
+          <optgroup label="Active">
+            {active.map((version) => (
+              <option key={version.id} value={version.slug}>
+                {version.name}
+              </option>
+            ))}
+          </optgroup>
+          {archived.length ? (
+            <optgroup label="Archived">
+              {archived.map((version) => (
                 <option key={version.id} value={version.slug}>
                   {version.name}
-                  {version.is_default ? " — Default" : ""}
                 </option>
               ))}
             </optgroup>
-            {archived.length ? (
-              <optgroup label="Archived">
-                {archived.map((version) => (
-                  <option key={version.id} value={version.slug}>
-                    {version.name} — Archived
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-          </select>
-        </label>
-      ) : null}
+          ) : null}
+        </select>
+      </label>
+      <div className={styles.statuses} aria-label="Version status">
+        {selected.is_default ? (
+          <Badge className={styles.defaultBadge}>Default</Badge>
+        ) : null}
+        <Badge variant={selected.status === "active" ? "success" : "default"}>
+          {selected.status === "active" ? "Active" : "Archived"}
+        </Badge>
+      </div>
       {project.access.role === "project_admin" ? (
         <a
           href={`/projects/${encodeURIComponent(project.id)}/settings#project-versions`}
           onClick={openManageVersions}
         >
-          Manage Versions
+          Manage versions
         </a>
       ) : null}
     </section>

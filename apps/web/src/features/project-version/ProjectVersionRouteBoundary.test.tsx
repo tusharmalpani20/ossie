@@ -37,6 +37,7 @@ const version = {
 const project = {
   id: "project_1",
   name: "Ossie",
+  description: "A calm place for product knowledge.",
   status: "active",
   access: { role: "project_admin" },
   default_project_version: version,
@@ -99,14 +100,33 @@ describe("ProjectVersionRouteBoundary", () => {
     ).toBeInTheDocument();
   });
 
-  it("presents the default Version as a workspace with human-readable metadata", async () => {
-    render(<ProjectVersionRouteBoundary projectId="project_1" versionSlug="main" />);
+  it("presents the default Version as a focused workspace", async () => {
+    render(
+      <ProjectVersionRouteBoundary projectId="project_1" versionSlug="main" />,
+    );
 
-    expect(await screen.findByRole("heading", { name: "Workspace" })).toBeInTheDocument();
-    expect(screen.getByText("Version")).toBeInTheDocument();
-    expect(screen.getByText("Status")).toBeInTheDocument();
-    expect(screen.getByText("Last updated")).toBeInTheDocument();
-    expect(screen.queryByText("Main context")).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Ossie", level: 1 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("A calm place for product knowledge."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Workspace", level: 2 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Create and manage content for this Project Version."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Version tools", level: 2 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open carry forward edits" }),
+    ).toHaveAttribute(
+      "href",
+      "/projects/project_1/versions/main/carry-forward",
+    );
+    expect(screen.queryByText("Last updated")).not.toBeInTheDocument();
   });
 
   it("lets nested Project Version list routes own the active shell section", async () => {
@@ -205,7 +225,7 @@ describe("ProjectVersionRouteBoundary", () => {
       "/projects/project_1/versions/q3/interactive-demos",
     );
     expect(
-      screen.getByRole("link", { name: "Open carry forward editions" }),
+      screen.getByRole("link", { name: "Open carry forward edits" }),
     ).toHaveAttribute("href", "/projects/project_1/versions/q3/carry-forward");
   });
 
@@ -239,7 +259,7 @@ describe("ProjectVersionRouteBoundary", () => {
     );
     await screen.findByText(/Archived Project Version/i);
     expect(
-      screen.queryByRole("link", { name: "Open carry forward editions" }),
+      screen.queryByRole("link", { name: "Open carry forward edits" }),
     ).not.toBeInTheDocument();
     unmount();
 
@@ -255,7 +275,7 @@ describe("ProjectVersionRouteBoundary", () => {
     );
     await screen.findByRole("heading", { name: "Workspace" });
     expect(
-      screen.queryByRole("link", { name: "Open carry forward editions" }),
+      screen.queryByRole("link", { name: "Open carry forward edits" }),
     ).not.toBeInTheDocument();
   });
 

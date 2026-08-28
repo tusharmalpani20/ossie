@@ -21,7 +21,7 @@ const main = {
 };
 
 describe("ProjectVersionContextBar", () => {
-  it("shows textual Default/Archived context and navigates canonically", () => {
+  it("shows the current Version selector and status badges", () => {
     const navigate = vi.fn();
     render(
       <ProjectVersionContextBar
@@ -52,16 +52,17 @@ describe("ProjectVersionContextBar", () => {
         navigate={navigate}
       />,
     );
-    expect(screen.getByLabelText("Project Version context")).toHaveTextContent(
-      "Ossie/MainDefault",
-    );
+    expect(screen.getByLabelText("Project Version")).toHaveValue("main");
+    expect(screen.getByText("Default")).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Manage versions" }),
+    ).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Project Version"), {
       target: { value: "q3" },
     });
     expect(navigate).toHaveBeenCalledWith("/projects/project_1/versions/q3");
-    expect(
-      screen.getByRole("option", { name: "Old — Archived" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Old" })).toBeInTheDocument();
   });
 
   it("preserves the current list route family when switching Project Versions", () => {
@@ -97,7 +98,7 @@ describe("ProjectVersionContextBar", () => {
     );
   });
 
-  it("does not add filler context when only one Version exists", () => {
+  it("still shows the Version selector when only one Version exists", () => {
     render(
       <ProjectVersionContextBar
         project={project}
@@ -106,6 +107,6 @@ describe("ProjectVersionContextBar", () => {
       />,
     );
 
-    expect(screen.queryByText("Main context")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Project Version")).toHaveValue("main");
   });
 });
