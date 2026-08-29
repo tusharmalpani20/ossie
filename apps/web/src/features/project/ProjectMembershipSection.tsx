@@ -5,7 +5,7 @@ import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@repo/ui/card";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, UserPlus, X } from "lucide-react";
 import {
   ApiClientError,
   assignProjectMembership,
@@ -129,6 +129,17 @@ export const ProjectMembershipSection = ({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [candidateId, setCandidateId] = useState("");
   const [candidateRole, setCandidateRole] = useState<ProjectRole>("viewer");
+  const [showAddMember, setShowAddMember] = useState(false);
+  const addMemberDialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (!showAddMember) return;
+    const dialog = addMemberDialogRef.current;
+    if (dialog && !dialog.open) {
+      if (typeof dialog.showModal === "function") dialog.showModal();
+      else dialog.setAttribute("open", "");
+    }
+  }, [showAddMember]);
 
   useEffect(() => {
     let active = true;
@@ -191,6 +202,8 @@ export const ProjectMembershipSection = ({
         org_user_id: candidateId,
         role: candidateRole,
       });
+      setShowAddMember(false);
+      setCandidateId("");
       complete("Project access assigned.");
     } catch (mutationError) {
       fail(mutationError);
@@ -232,34 +245,54 @@ export const ProjectMembershipSection = ({
   };
 
   return (
-    <Card className={styles.panel} aria-labelledby="project-membership-heading">
-      <CardHeader>
-        <h2 id="project-membership-heading" className={styles.title}>
-          Membership
-        </h2>
-        <CardDescription>
-          Control who can discover and work in this Project. Organization owners
-          always have Project admin access.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className={styles.content}>
-        <div aria-live="polite">
-          {message ? <Alert variant="success">{message}</Alert> : null}
-          {error ? <Alert variant="destructive">{error}</Alert> : null}
+    <section
+      className={styles.section}
+      aria-labelledby="project-membership-heading"
+    >
+      <header className={styles.sectionHeader}>
+        <div>
+          <h2 id="project-membership-heading" className={styles.title}>
+            Membership
+          </h2>
+          <p>
+            Control who can discover and work in this Project. Organization
+            owners always have Project admin access.
+          </p>
         </div>
-        {members === null ? (
-          <p>Loading Project access…</p>
-        ) : (
-          <>
-            {error ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setReload((value) => value + 1)}
-              >
-                Retry
-              </Button>
-            ) : null}
+        <Button
+          type="button"
+          disabled={members === null}
+          onClick={() => setShowAddMember(true)}
+        >
+          <UserPlus aria-hidden="true" size={18} />
+          Add member
+        </Button>
+      </header>
+
+      <div aria-live="polite">
+        {message ? <Alert variant="success">{message}</Alert> : null}
+        {error ? <Alert variant="destructive">{error}</Alert> : null}
+      </div>
+
+      <Card className={styles.panel} aria-labelledby="current-access-heading">
+        <CardHeader>
+          <h3 id="current-access-heading">Current access</h3>
+          <CardDescription>
+            Members who can currently discover and work in this Project.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className={styles.content}>
+          {members === null ? <p>Loading Project access…</p> : null}
+          {error ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setReload((value) => value + 1)}
+            >
+              Retry
+            </Button>
+          ) : null}
+          {members ? (
             <ul className={styles.roster}>
               {members
                 .filter(
@@ -286,7 +319,10 @@ export const ProjectMembershipSection = ({
                         </div>
                       </div>
                       {immutable ? (
-                        <span>Project admin</span>
+                        <div className={styles.roleSummary}>
+                          <Badge variant="success">Project admin</Badge>
+                          <span>Inherited access</span>
+                        </div>
                       ) : member.membership?.status === "active" ? (
                         <div className={styles.actions}>
                           <label>
@@ -323,40 +359,72 @@ export const ProjectMembershipSection = ({
                   );
                 })}
             </ul>
-            <section
-              className={styles.assignSection}
-              aria-labelledby="add-project-member-heading"
-            >
+          ) : null}
+        </CardContent>
+      </Card>
+
+      {!showAddMember ? null : (
+        <dialog
+          ref={addMemberDialogRef}
+          className={styles.dialog}
+          aria-labelledby="add-project-member-heading"
+          aria-modal="true"
+          onCancel={(event) => {
+            event.preventDefault();
+            setShowAddMember(false);
+          }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setShowAddMember(false);
+          }}
+        >
+          <div className={styles.modal}>
+            <header className={styles.modalHeader}>
               <div>
                 <h3 id="add-project-member-heading">Add member</h3>
                 <p>
                   Give an active Organization member access to this Project.
                 </p>
               </div>
-              <div className={styles.assign}>
-                <MembershipDropdown
-                  label="Organization member"
-                  menuLabel="Organization members"
-                  value={candidateId}
-                  placeholder={
-                    candidates.length
-                      ? "Choose a member"
-                      : "No members available"
-                  }
-                  disabled={candidates.length === 0 || busyId !== null}
-                  options={candidates.map((member) => ({
-                    value: member.org_user_id,
-                    label: member.display_name,
-                  }))}
-                  onChange={setCandidateId}
-                />
-                <MembershipDropdown
-                  label="Project role"
-                  menuLabel="Project roles"
-                  value={candidateRole}
-                  options={roles}
-                  onChange={(role) => setCandidateRole(role as ProjectRole)}
-                />
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                aria-label="Close add member"
+                onClick={() => setShowAddMember(false)}
+              >
+                <X aria-hidden="true" size={19} />
+              </Button>
+            </header>
+            <div className={styles.assign}>
+              <MembershipDropdown
+                label="Organization member"
+                menuLabel="Organization members"
+                value={candidateId}
+                placeholder={
+                  candidates.length ? "Choose a member" : "No members available"
+                }
+                disabled={candidates.length === 0 || busyId !== null}
+                options={candidates.map((member) => ({
+                  value: member.org_user_id,
+                  label: member.display_name,
+                }))}
+                onChange={setCandidateId}
+              />
+              <MembershipDropdown
+                label="Project role"
+                menuLabel="Project roles"
+                value={candidateRole}
+                options={roles}
+                onChange={(role) => setCandidateRole(role as ProjectRole)}
+              />
+              <div className={styles.modalActions}>
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={() => setShowAddMember(false)}
+                >
+                  Cancel
+                </Button>
                 <Button
                   disabled={!candidateId || busyId !== null}
                   onClick={() => void assign()}
@@ -369,10 +437,10 @@ export const ProjectMembershipSection = ({
                   Everyone eligible already has Project access.
                 </p>
               ) : null}
-            </section>
-          </>
-        )}
-      </CardContent>
-    </Card>
+            </div>
+          </div>
+        </dialog>
+      )}
+    </section>
   );
 };

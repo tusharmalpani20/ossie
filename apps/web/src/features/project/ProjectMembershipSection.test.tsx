@@ -45,18 +45,26 @@ describe("ProjectMembershipSection", () => {
     vi.stubGlobal("fetch", fetch);
     render(<ProjectMembershipSection projectId="project-1" />);
     expect(
-      await screen.findByRole("heading", { name: "Add member" }),
+      await screen.findByRole("region", { name: "Current access" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", { name: "Add member" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Add member" }));
+    const addMemberDialog = screen.getByRole("dialog", { name: "Add member" });
+    expect(
+      within(addMemberDialog).getByRole("heading", { name: "Add member" }),
     ).toBeInTheDocument();
     expect(await screen.findByText("Organization owner")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /remove owner/i }),
     ).not.toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("button", {
+      within(addMemberDialog).getByRole("button", {
         name: "Organization member: Choose a member",
       }),
     );
-    const memberList = screen.getByRole("listbox", {
+    const memberList = within(addMemberDialog).getByRole("listbox", {
       name: "Organization members",
     });
     expect(within(memberList).getByText("Organization members")).toBeVisible();
@@ -65,19 +73,29 @@ describe("ProjectMembershipSection", () => {
     ).not.toBeInTheDocument();
     fireEvent.click(within(memberList).getByRole("option", { name: "Member" }));
     expect(
-      screen.getByRole("button", { name: "Organization member: Member" }),
+      within(addMemberDialog).getByRole("button", {
+        name: "Organization member: Member",
+      }),
     ).toHaveAttribute("aria-expanded", "false");
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Project role: Viewer" }),
+      within(addMemberDialog).getByRole("button", {
+        name: "Project role: Viewer",
+      }),
     );
-    const roleList = screen.getByRole("listbox", { name: "Project roles" });
+    const roleList = within(addMemberDialog).getByRole("listbox", {
+      name: "Project roles",
+    });
     expect(within(roleList).getByText("Project roles")).toBeVisible();
     fireEvent.click(within(roleList).getByRole("option", { name: "Editor" }));
     expect(
-      screen.getByRole("button", { name: "Project role: Editor" }),
+      within(addMemberDialog).getByRole("button", {
+        name: "Project role: Editor",
+      }),
     ).toHaveAttribute("aria-expanded", "false");
-    fireEvent.click(screen.getByRole("button", { name: "Assign access" }));
+    fireEvent.click(
+      within(addMemberDialog).getByRole("button", { name: "Assign access" }),
+    );
     await waitFor(() =>
       expect(fetch).toHaveBeenCalledWith(
         "/api/v1/projects/project-1/memberships",
