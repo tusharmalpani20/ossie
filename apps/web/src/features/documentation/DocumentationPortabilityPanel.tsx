@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@repo/ui/button";
+import { Card } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { FileArchive, Search } from "lucide-react";
 import {
   applyDocumentationImport,
   cancelDocumentationImport,
@@ -10,6 +12,7 @@ import {
   type DocumentationImportInspection,
 } from "../../lib/documentationApi";
 import { DocumentationImportReview } from "./DocumentationImportReview";
+import styles from "./DocumentationPortabilityPanel.module.css";
 
 type Props = {
   projectId: string;
@@ -59,9 +62,7 @@ export const DocumentationPortabilityPanel = ({
     void Promise.all(
       kinds.map(async (bindingKind) => {
         const artifactType =
-          bindingKind === "guide_publication"
-            ? "guide"
-            : "interactive_demo";
+          bindingKind === "guide_publication" ? "guide" : "interactive_demo";
         const result = await listDocumentationArtifactPublications(
           projectId,
           versionSlug,
@@ -160,11 +161,7 @@ export const DocumentationPortabilityPanel = ({
 
   const cancel = async () => {
     if (!inspection) return;
-    await cancelDocumentationImport(
-      projectId,
-      versionSlug,
-      inspection.id,
-    );
+    await cancelDocumentationImport(projectId, versionSlug, inspection.id);
     setInspection(null);
     setStatus("Inspection cancelled.");
   };
@@ -175,32 +172,61 @@ export const DocumentationPortabilityPanel = ({
     !allBindingsSelected ||
     (mode === "page" && (!title.trim() || !canonicalPath.trim()));
   const Heading = headingLevel === 2 ? "h2" : "h3";
+  const headingId = `documentation-${kind}-${mode}-heading`;
+  const descriptionId = `documentation-${kind}-${mode}-description`;
 
   return (
-    <section aria-labelledby={`documentation-${kind}-${mode}-heading`}>
-      <Heading id={`documentation-${kind}-${mode}-heading`}>
-        {kind === "site_package"
-          ? "Import Site package"
-          : "Import Markdown as a new Page"}
-      </Heading>
-      <Label htmlFor={`documentation-import-${kind}-${mode}`}>
-        {kind === "site_package" ? "Ossie Site ZIP" : "Markdown file"}
-      </Label>
-      <input
-        id={`documentation-import-${kind}-${mode}`}
-        type="file"
-        accept={kind === "site_package" ? "application/zip,.zip" : "text/markdown,.md"}
-        onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-      />
-      <Button disabled={!file} onClick={() => void inspectFile()}>
-        Inspect file
-      </Button>
+    <Card className={styles.panel} aria-labelledby={headingId}>
+      <div className={styles.panelHeader}>
+        <span className={styles.panelIcon} aria-hidden="true">
+          <FileArchive size={22} />
+        </span>
+        <div>
+          <Heading id={headingId} className={styles.heading}>
+            {kind === "site_package"
+              ? "Import Site package"
+              : "Import Markdown as a new Page"}
+          </Heading>
+          <p id={descriptionId} className={styles.description}>
+            Select a file to inspect its contents before importing anything.
+          </p>
+        </div>
+      </div>
+      <div className={styles.fileActions}>
+        <div className={styles.fileField}>
+          <Label htmlFor={`documentation-import-${kind}-${mode}`}>
+            {kind === "site_package" ? "Ossie Site ZIP" : "Markdown file"}
+          </Label>
+          <input
+            className={styles.fileInput}
+            id={`documentation-import-${kind}-${mode}`}
+            type="file"
+            accept={
+              kind === "site_package"
+                ? "application/zip,.zip"
+                : "text/markdown,.md"
+            }
+            aria-describedby={descriptionId}
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          />
+        </div>
+        <Button
+          className={styles.inspectButton}
+          disabled={!file}
+          onClick={() => void inspectFile()}
+        >
+          <Search aria-hidden="true" size={17} />
+          Inspect file
+        </Button>
+      </div>
       {inspection ? (
         <>
           <DocumentationImportReview inspection={inspection} />
           {mode === "page" ? (
             <>
-              <Label htmlFor="documentation-import-page-title">Page title</Label>
+              <Label htmlFor="documentation-import-page-title">
+                Page title
+              </Label>
               <Input
                 id="documentation-import-page-title"
                 value={title}
@@ -258,9 +284,7 @@ export const DocumentationPortabilityPanel = ({
           <Button disabled={disabled} onClick={() => void apply()}>
             Confirm and apply import
           </Button>
-          <Button onClick={() => void cancel()}>
-            Cancel inspection
-          </Button>
+          <Button onClick={() => void cancel()}>Cancel inspection</Button>
           {disabled ? (
             <p>
               Apply is available after source blockers are resolved and every
@@ -269,9 +293,9 @@ export const DocumentationPortabilityPanel = ({
           ) : null}
         </>
       ) : null}
-      <p role="status" aria-live="polite">
+      <p className={styles.status} role="status" aria-live="polite">
         {status}
       </p>
-    </section>
+    </Card>
   );
 };

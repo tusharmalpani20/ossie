@@ -27,6 +27,9 @@ describe("DocumentationPortabilityPanel", () => {
       "application/zip,.zip",
     );
     expect(screen.getByRole("button", { name: "Inspect file" })).toBeDisabled();
+    expect(
+      screen.getByRole("region", { name: "Import Site package" }),
+    ).toHaveClass("rounded-[var(--ossie-radius-card)]");
   });
 
   it("does not expose mutation controls to a Viewer", () => {
@@ -110,7 +113,9 @@ describe("DocumentationPortabilityPanel", () => {
     );
 
     await waitFor(() => expect(onApplied).toHaveBeenCalledWith("site"));
-    expect(screen.queryByRole("region", { name: "Import review" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: "Import review" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Import applied.");
   });
 
@@ -177,9 +182,7 @@ describe("DocumentationPortabilityPanel", () => {
     );
     fireEvent.change(screen.getByLabelText("Ossie Site ZIP"), {
       target: {
-        files: [
-          new File(["zip"], "docs.zip", { type: "application/zip" }),
-        ],
+        files: [new File(["zip"], "docs.zip", { type: "application/zip" })],
       },
     });
     fireEvent.click(screen.getByRole("button", { name: "Inspect file" }));

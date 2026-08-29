@@ -15,6 +15,7 @@ describe("ProjectDocumentationSiteListPage", () => {
         projectId="project"
         versionSlug="main"
         canManage
+        canCarry
         loadSites={async () => ({ documentation_sites: [] })}
         createSite={createSite}
       />,
@@ -37,7 +38,18 @@ describe("ProjectDocumentationSiteListPage", () => {
         name: "Import Site package",
       }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Create Site" }));
+    const createSiteButton = screen.getByRole("button", {
+      name: "Create Site",
+    });
+    expect(createSiteButton).toHaveAttribute("title", "Create Site");
+    expect(createSiteButton).toHaveTextContent("");
+    expect(
+      screen.getByRole("link", { name: "Carry Forward Sites" }),
+    ).toHaveTextContent("");
+    expect(
+      screen.getByRole("link", { name: "Review inbox" }),
+    ).toHaveTextContent("");
+    fireEvent.click(createSiteButton);
     fireEvent.change(screen.getByLabelText("Site name"), {
       target: { value: "Product docs" },
     });

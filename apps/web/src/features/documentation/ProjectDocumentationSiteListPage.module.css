@@ -10,23 +10,52 @@
   max-width: 30rem;
 }
 
-.headerLink {
+.headerIconLink {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  min-height: var(--ossie-control-height-standard);
-  color: var(--ossie-color-accent-hover);
-  font-weight: 700;
+  justify-content: center;
+  width: var(--ossie-control-height-icon);
+  height: var(--ossie-control-height-icon);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface);
+  color: var(--ossie-color-text-muted);
   text-decoration: none;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
 }
 
-.headerLink:hover {
+.headerIconLink:hover {
+  border-color: var(--ossie-color-accent-border);
+  background: var(--ossie-color-accent-subtle);
   color: var(--ossie-color-accent-active);
 }
 
-.headerLink:focus-visible {
-  border-radius: 0.25rem;
+.headerIconLink:focus-visible {
   outline: 2px solid var(--ossie-color-focus);
-  outline-offset: 3px;
+  outline-offset: var(--ossie-focus-ring-offset);
+}
+
+.notificationBadge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.25rem;
+  border: 2px solid var(--ossie-color-background);
+  border-radius: var(--ossie-radius-pill);
+  background: var(--ossie-color-accent);
+  color: var(--ossie-color-inverted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .list {

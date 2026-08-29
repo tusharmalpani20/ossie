@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@repo/ui/button";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { Forward, Inbox, Plus } from "lucide-react";
 import {
   createDocumentationSite,
   listDocumentationSites,
@@ -111,22 +112,41 @@ export const ProjectDocumentationSiteListPage = ({
         actions={
           <>
             {canManage && !creating ? (
-              <Button onClick={() => setCreating(true)}>Create Site</Button>
+              <Button
+                size="icon"
+                aria-label="Create Site"
+                title="Create Site"
+                onClick={() => setCreating(true)}
+              >
+                <Plus aria-hidden="true" size={19} />
+              </Button>
             ) : null}
             {canCarry ? (
               <a
-                className={styles.headerLink}
+                className={styles.headerIconLink}
                 href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/carry-forward`}
+                aria-label="Carry Forward Sites"
+                title="Carry Forward Sites"
               >
-                Carry Forward Sites
+                <Forward aria-hidden="true" size={18} />
               </a>
             ) : null}
             <a
-              className={styles.headerLink}
+              className={styles.headerIconLink}
               href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/reviews`}
+              aria-label={
+                reviewUnreadCount
+                  ? `Review inbox (${reviewUnreadCount} unread)`
+                  : "Review inbox"
+              }
+              title="Review inbox"
             >
-              Review inbox
-              {reviewUnreadCount ? ` (${reviewUnreadCount} unread)` : ""}
+              <Inbox aria-hidden="true" size={18} />
+              {reviewUnreadCount ? (
+                <span className={styles.notificationBadge} aria-hidden="true">
+                  {reviewUnreadCount}
+                </span>
+              ) : null}
             </a>
           </>
         }
