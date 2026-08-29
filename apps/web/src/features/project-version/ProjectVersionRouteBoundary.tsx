@@ -4,7 +4,6 @@
 
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft,
   ArrowRight,
   BookOpenText,
   Camera,
@@ -211,7 +210,6 @@ const VersionWorkspace = ({
   navigate,
 }: Loaded & { navigate?: (path: string) => void }) => {
   const workspacePath = projectVersionWorkspaceUrl(project.id, selected.slug);
-  const projectInitial = project.name.trim().charAt(0).toUpperCase() || "P";
   const openProjects = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (
       !navigate ||
@@ -231,113 +229,99 @@ const VersionWorkspace = ({
   return (
     <section className={styles.workspace}>
       <header className={styles.projectHeader}>
-        <a className={styles.backLink} href="/projects" onClick={openProjects}>
-          <ArrowLeft aria-hidden="true" size={16} />
-          All projects
-        </a>
-        <div className={styles.projectIdentityRow}>
-          <span
-            className={styles.projectIdentity}
-            aria-label="Project identity"
-          >
-            {projectInitial}
-          </span>
-          <div>
-            <h1>{project.name}</h1>
-            {project.description ? (
-              <p className={styles.projectDescription}>{project.description}</p>
-            ) : null}
-          </div>
+        <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="/projects" onClick={openProjects}>
+                Projects
+              </a>
+            </li>
+            <li aria-current="page">{project.name}</li>
+          </ol>
+        </nav>
+        <div>
+          <h1>{project.name}</h1>
+          {project.description ? (
+            <p className={styles.projectDescription}>{project.description}</p>
+          ) : null}
         </div>
+        <ProjectVersionContextBar
+          project={project}
+          selected={selected}
+          versions={versions}
+          navigate={navigate}
+        />
       </header>
 
-      <ProjectVersionContextBar
-        project={project}
-        selected={selected}
-        versions={versions}
-        navigate={navigate}
-      />
-
-      <div className={styles.creationFlow}>
-        <section
-          className={styles.captureCallout}
-          aria-labelledby="capture-heading"
-        >
-          <span className={styles.captureIcon} aria-hidden="true">
-            <Camera size={24} />
-          </span>
-          <div className={styles.captureCopy}>
-            <span className={styles.eyebrow}>Recommended next step</span>
-            <h2 id="capture-heading">Start a capture</h2>
-            <p>
-              Record a browser workflow, then turn it into a guide, interactive
-              demo, or documentation.
-            </p>
-          </div>
+      <section
+        className={styles.workspaceSection}
+        aria-labelledby="workspace-heading"
+      >
+        <header className={styles.sectionHeader}>
+          <h2 id="workspace-heading">
+            <strong>Workspace</strong>
+          </h2>
+          <p>Create and manage content for this Project Version.</p>
+        </header>
+        <div className={styles.cards}>
           <WorkspaceLink
-            title="Start a capture"
+            title="Capture sessions"
+            description="Record browser workflows."
+            actionLabel="Open captures"
+            icon={Camera}
             href={`${workspacePath}/capture-sessions`}
             navigate={navigate}
-            variant="primary"
           />
-        </section>
-
-        <section
-          className={styles.buildSection}
-          aria-labelledby="build-heading"
-        >
-          <header className={styles.sectionHeader}>
-            <h2 id="build-heading">Quick access</h2>
-            <p>Continue working with this Project Version.</p>
-          </header>
-          <div className={styles.cards}>
-            <WorkspaceLink
-              title="Guides"
-              description="Create clear, step-by-step instructions."
-              icon={BookOpenText}
-              href={`${workspacePath}/guides`}
-              navigate={navigate}
-            />
-            <WorkspaceLink
-              title="Interactive demos"
-              description="Turn a workflow into a guided walkthrough."
-              icon={PlaySquare}
-              href={`${workspacePath}/interactive-demos`}
-              navigate={navigate}
-            />
-            <WorkspaceLink
-              title="Documentation"
-              description="Organize and publish lasting project knowledge."
-              icon={FileText}
-              href={`${workspacePath}/documentation`}
-              navigate={navigate}
-            />
-          </div>
-        </section>
-      </div>
+          <WorkspaceLink
+            title="Guides"
+            description="Build step-by-step guides."
+            actionLabel="Open guides"
+            icon={BookOpenText}
+            href={`${workspacePath}/guides`}
+            navigate={navigate}
+          />
+          <WorkspaceLink
+            title="Interactive demos"
+            description="Build guided walkthroughs."
+            actionLabel="Open demos"
+            icon={PlaySquare}
+            href={`${workspacePath}/interactive-demos`}
+            navigate={navigate}
+          />
+          <WorkspaceLink
+            title="Documentation"
+            description="Publish product knowledge."
+            actionLabel="Open documentation"
+            icon={FileText}
+            href={`${workspacePath}/documentation`}
+            navigate={navigate}
+          />
+        </div>
+      </section>
 
       {project.status === "active" &&
       selected.status === "active" &&
       project.access.role !== "viewer" ? (
-        <details className={styles.versionActions}>
-          <summary role="button" aria-label="More version actions">
-            <span>
-              <strong>More version actions</strong>
-              <span>Advanced tools for this version</span>
-            </span>
-            <ChevronRight aria-hidden="true" size={18} />
-          </summary>
-          <div className={styles.versionActionsBody}>
-            <WorkspaceLink
-              variant="tool"
-              title="Carry forward edits"
-              description="Start a draft in this version using edits from another version."
-              icon={Forward}
-              href={`${workspacePath}/carry-forward`}
-              navigate={navigate}
-            />
-          </div>
-        </details>
+        <section
+          className={styles.versionTools}
+          aria-labelledby="version-tools-heading"
+        >
+          <header className={styles.versionToolsHeader}>
+            <h2 id="version-tools-heading">
+              <strong>Version tools</strong>
+            </h2>
+            <p>Move work between Project Versions.</p>
+          </header>
+          <WorkspaceLink
+            variant="tool"
+            title="Carry forward edits"
+            description="Start a draft from another Version."
+            actionLabel="Open carry forward edits"
+            icon={Forward}
+            href={`${workspacePath}/carry-forward`}
+            navigate={navigate}
+          />
+        </section>
       ) : null}
       {!selected.is_default ? (
         <Card className={styles.notice}>
@@ -352,6 +336,7 @@ const VersionWorkspace = ({
 const WorkspaceLink = ({
   title,
   description,
+  actionLabel,
   icon: Icon,
   href,
   navigate,
@@ -359,10 +344,11 @@ const WorkspaceLink = ({
 }: {
   title: string;
   description?: string;
+  actionLabel?: string;
   icon?: LucideIcon;
   href: string;
   navigate?: (path: string) => void;
-  variant?: "card" | "tool" | "primary";
+  variant?: "card" | "tool";
 }) => {
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (
@@ -382,15 +368,9 @@ const WorkspaceLink = ({
 
   return (
     <a
-      className={
-        variant === "tool"
-          ? styles.toolLink
-          : variant === "primary"
-            ? styles.primaryLink
-            : styles.linkCard
-      }
+      className={variant === "tool" ? styles.toolLink : styles.linkCard}
       href={href}
-      aria-label={variant === "primary" ? title : `Open ${title.toLowerCase()}`}
+      aria-label={actionLabel ?? `Open ${title.toLowerCase()}`}
       onClick={handleClick}
     >
       {Icon ? (
@@ -398,20 +378,23 @@ const WorkspaceLink = ({
           <Icon size={20} />
         </span>
       ) : null}
-      {variant === "primary" ? (
-        <>
-          <span>{title}</span>
-          <ArrowRight aria-hidden="true" size={18} />
-        </>
-      ) : (
-        <span className={styles.linkCopy}>
-          <strong>{title}</strong>
-          {description ? <span>{description}</span> : null}
+      <span className={styles.linkCopy}>
+        <strong>{title}</strong>
+        {description ? <span>{description}</span> : null}
+        {variant === "card" && actionLabel ? (
           <span className={styles.linkAction} aria-hidden="true">
+            {actionLabel}
             <ArrowRight size={18} />
           </span>
-        </span>
-      )}
+        ) : null}
+      </span>
+      {variant === "tool" ? (
+        <ChevronRight
+          className={styles.toolChevron}
+          aria-hidden="true"
+          size={20}
+        />
+      ) : null}
     </a>
   );
 };

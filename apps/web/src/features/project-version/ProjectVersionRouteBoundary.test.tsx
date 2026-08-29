@@ -117,51 +117,64 @@ describe("ProjectVersionRouteBoundary", () => {
   });
 
   it("presents the default Version as a task-focused project home", async () => {
-    const navigate = vi.fn();
     render(
-      <ProjectVersionRouteBoundary
-        projectId="project_1"
-        versionSlug="main"
-        navigate={navigate}
-      />,
+      <ProjectVersionRouteBoundary projectId="project_1" versionSlug="main" />,
     );
 
-    const allProjects = await screen.findByRole("link", {
-      name: "All projects",
-    });
-    expect(allProjects).toHaveAttribute("href", "/projects");
-    fireEvent.click(allProjects);
-    expect(navigate).toHaveBeenCalledWith("/projects");
     expect(
-      screen.getByRole("heading", { name: "Ossie", level: 1 }),
+      await screen.findByRole("heading", { name: "Ossie", level: 1 }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Project identity")).toHaveTextContent("O");
+    const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(breadcrumb).toHaveTextContent("ProjectsOssie");
+    expect(breadcrumb.closest("header")).not.toBeNull();
+    expect(
+      screen.getAllByRole("navigation", { name: "Breadcrumb" }),
+    ).toHaveLength(1);
+    expect(
+      screen.queryByRole("link", { name: "All projects" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Project identity")).not.toBeInTheDocument();
     expect(
       screen.getByText("A calm place for product knowledge."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Version")).toBeInTheDocument();
-    expect(screen.getByText("Default version")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Start a capture", level: 2 }),
+      screen.getByRole("button", { name: "Project Version: Main" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Default")).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Start a capture" }),
-    ).toHaveAttribute(
+      screen
+        .getByRole("heading", { name: "Workspace", level: 2 })
+        .querySelector("strong"),
+    ).toHaveTextContent("Workspace");
+    expect(
+      screen.getByText("Create and manage content for this Project Version."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open captures" })).toHaveAttribute(
       "href",
       "/projects/project_1/versions/main/capture-sessions",
     );
-    expect(
-      screen.getByRole("heading", {
-        name: "Quick access",
-        level: 2,
-      }),
-    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open guides" })).toHaveAttribute(
       "href",
       "/projects/project_1/versions/main/guides",
     );
+    expect(screen.getByRole("link", { name: "Open demos" })).toHaveAttribute(
+      "href",
+      "/projects/project_1/versions/main/interactive-demos",
+    );
     expect(
-      screen.getByRole("button", { name: "More version actions" }),
+      screen.getByRole("link", { name: "Open documentation" }),
+    ).toHaveAttribute(
+      "href",
+      "/projects/project_1/versions/main/documentation",
+    );
+    expect(
+      screen
+        .getByRole("heading", { name: "Version tools", level: 2 })
+        .querySelector("strong"),
+    ).toHaveTextContent("Version tools");
+    expect(
+      screen.getByText("Move work between Project Versions."),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Open carry forward edits" }),
@@ -170,7 +183,14 @@ describe("ProjectVersionRouteBoundary", () => {
       "/projects/project_1/versions/main/carry-forward",
     );
     expect(
-      screen.queryByText("Build from your captures"),
+      screen.queryByRole("heading", { name: "Quick access" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Continue working with this Project Version."),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Recommended next step")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "More version actions" }),
     ).not.toBeInTheDocument();
   });
 
@@ -220,9 +240,10 @@ describe("ProjectVersionRouteBoundary", () => {
     );
 
     await screen.findByRole("heading", { name: "Project Version guides" });
-    fireEvent.change(screen.getByLabelText("Project Version"), {
-      target: { value: "q3" },
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Project Version: Main" }),
+    );
+    fireEvent.click(screen.getByRole("option", { name: "Q3" }));
 
     expect(navigate).toHaveBeenCalledWith(
       "/projects/project_1/versions/q3/guides",
@@ -246,7 +267,7 @@ describe("ProjectVersionRouteBoundary", () => {
       </ProjectVersionRouteBoundary>,
     );
     expect(
-      await screen.findByRole("link", { name: "Start a capture" }),
+      await screen.findByRole("link", { name: "Open captures" }),
     ).toHaveAttribute(
       "href",
       "/projects/project_1/versions/q3/capture-sessions",
@@ -263,9 +284,7 @@ describe("ProjectVersionRouteBoundary", () => {
       "href",
       "/projects/project_1/versions/q3/guides",
     );
-    expect(
-      screen.getByRole("link", { name: "Open interactive demos" }),
-    ).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Open demos" })).toHaveAttribute(
       "href",
       "/projects/project_1/versions/q3/interactive-demos",
     );
@@ -318,7 +337,7 @@ describe("ProjectVersionRouteBoundary", () => {
     render(
       <ProjectVersionRouteBoundary projectId="project_1" versionSlug="main" />,
     );
-    await screen.findByRole("heading", { name: "Start a capture" });
+    await screen.findByRole("heading", { name: "Workspace" });
     expect(
       screen.queryByRole("link", { name: "Open carry forward edits" }),
     ).not.toBeInTheDocument();
