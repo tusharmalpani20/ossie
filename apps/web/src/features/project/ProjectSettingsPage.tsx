@@ -5,10 +5,12 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
-import { Card, CardContent, CardHeader } from "@repo/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
+import type { AuthResponse } from "@repo/types/auth";
+import { ArrowLeft } from "lucide-react";
 import {
   ApiClientError,
   getProject,
@@ -40,6 +42,7 @@ type ProjectSettingsPageProps = {
     input: UpdateProjectInput,
   ) => Promise<ProjectUpdateResponse>;
   currentPath?: string;
+  loadAuth?: () => Promise<AuthResponse>;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
 };
@@ -51,6 +54,16 @@ type ProjectSettingsForm = {
 };
 
 type SubmitState = "idle" | "saving" | "updating_status";
+type SettingsTab = "details" | "members" | "versions";
+
+const settingsTabFromPath = (path: string): SettingsTab => {
+  const tab = new URL(path, window.location.origin).searchParams.get("tab");
+
+  return tab === "members" || tab === "versions" ? tab : "details";
+};
+
+const settingsTabUrl = (projectId: string, tab: SettingsTab) =>
+  `/projects/${encodeURIComponent(projectId)}/settings?tab=${tab}`;
 
 const loadStateFromError = (error: unknown): LoadState => {
   if (error instanceof ApiClientError) {
@@ -131,6 +144,7 @@ export const ProjectSettingsPage = ({
   loadProject = getProject,
   updateProject = updateProjectRequest,
   currentPath = currentBrowserPath(),
+  loadAuth,
   performLogout,
   navigate,
 }: ProjectSettingsPageProps) => {
@@ -149,6 +163,9 @@ export const ProjectSettingsPage = ({
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() =>
+    settingsTabFromPath(currentPath),
+  );
 
   useEffect(() => {
     let active = true;
@@ -233,6 +250,15 @@ export const ProjectSettingsPage = ({
 
   const updateStatus = async () => {
     if (state.status !== "loaded" || submitState !== "idle") {
+      return;
+    }
+
+    if (
+      state.project.status === "active" &&
+      !window.confirm(
+        `Archive ${state.project.name}? It will be hidden from the active project list until restored.`,
+      )
+    ) {
       return;
     }
 
@@ -349,116 +375,205 @@ export const ProjectSettingsPage = ({
   const isBusy = submitState !== "idle";
   const lifecycleButtonText =
     project.status === "archived" ? "Restore project" : "Archive project";
+  const selectTab = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    tab: SettingsTab,
+  ) => {
+    event.preventDefault();
+    setActiveTab(tab);
+    window.history.replaceState(null, "", settingsTabUrl(projectId, tab));
+  };
 
   return (
     <PortalShell
       project={project}
+      loadAuth={loadAuth}
       performLogout={performLogout}
       navigate={navigate}
     >
-      <section className={styles.header}>
+      <section
+        className={styles.header}
+        aria-labelledby="project-settings-heading"
+      >
         <div>
-          <div className={styles.eyebrow}>Project settings</div>
           <div className={styles.titleRow}>
-            <h1 className={styles.title}>Project settings</h1>
+            <h1 className={styles.title} id="project-settings-heading">
+              Project settings
+            </h1>
             <Badge
               variant={project.status === "active" ? "success" : "default"}
             >
               {project.status}
             </Badge>
           </div>
-          <p className={styles.description}>{project.name}</p>
+          <p className={styles.description}>
+            Manage details, access, lifecycle, and versions for {project.name}.
+          </p>
           <div className={styles.meta}>
             <span>Updated {formatDateTime(project.updated_at)}</span>
             <span>Created {formatDateTime(project.created_at)}</span>
           </div>
         </div>
         <a className={styles.backLink} href={workspaceUrl(project)}>
+          <ArrowLeft aria-hidden="true" size={17} />
           Back to workspace
         </a>
       </section>
 
-      <div className={styles.content}>
-        <Card
-          className={styles.panel}
-          aria-labelledby="project-details-heading"
-        >
-          <CardHeader>
-            <h2 className={styles.sectionTitle} id="project-details-heading">
-              Details
-            </h2>
-          </CardHeader>
-          <CardContent>
-            {message ? <Alert variant="success">{message}</Alert> : null}
-            {error ? <Alert variant="destructive">{error}</Alert> : null}
-            <form className={styles.form} onSubmit={saveDetails}>
-              <Label className={styles.field}>
-                <span>Project name</span>
-                <Input
-                  value={form.name}
-                  disabled={isBusy}
-                  onChange={(event) => updateField("name", event.target.value)}
-                />
-              </Label>
-              <Label className={styles.field}>
-                <span>Description</span>
-                <Textarea
-                  rows={4}
-                  value={form.description}
-                  disabled={isBusy}
-                  onChange={(event) =>
-                    updateField("description", event.target.value)
-                  }
-                />
-              </Label>
-              <Label className={styles.field}>
-                <span>Slug</span>
-                <Input
-                  value={form.slug}
-                  disabled={isBusy}
-                  onChange={(event) => updateField("slug", event.target.value)}
-                />
-              </Label>
-              <div className={styles.formActions}>
-                <Button type="submit" disabled={isBusy || !detailsDirty}>
-                  {isSaving ? "Saving changes..." : "Save changes"}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card
-          className={styles.panel}
-          aria-labelledby="project-lifecycle-heading"
-        >
-          <CardHeader>
-            <h2 className={styles.sectionTitle} id="project-lifecycle-heading">
-              Lifecycle
-            </h2>
-          </CardHeader>
-          <CardContent>
-            <p className={styles.panelText}>
-              {project.status === "archived"
-                ? "Return this project to the active project list."
-                : "Archived projects are hidden from the active project list but can still be opened directly and restored later."}
-            </p>
-            <Button
-              variant="secondary"
-              type="button"
-              disabled={isBusy}
-              onClick={updateStatus}
+      <nav className={styles.tabs} aria-label="Project settings sections">
+        <div role="tablist" aria-label="Project settings">
+          {(
+            [
+              ["details", "Details"],
+              ["members", "Members"],
+              ["versions", "Versions"],
+            ] as const
+          ).map(([tab, label]) => (
+            <a
+              className={activeTab === tab ? styles.tabActive : styles.tab}
+              id={`settings-${tab}-tab`}
+              key={tab}
+              role="tab"
+              aria-controls={`settings-${tab}-panel`}
+              aria-selected={activeTab === tab}
+              href={settingsTabUrl(projectId, tab)}
+              onClick={(event) => selectTab(event, tab)}
             >
-              {isUpdatingStatus ? "Updating project..." : lifecycleButtonText}
-            </Button>
-          </CardContent>
-        </Card>
-        <ProjectMembershipSection projectId={projectId} />
-        <ProjectVersionManagementSection
-          project={project}
-          onProjectChange={applyProject}
-        />
-      </div>
+              {label}
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      {activeTab === "details" ? (
+        <div
+          className={styles.content}
+          id="settings-details-panel"
+          role="tabpanel"
+          aria-labelledby="settings-details-tab"
+        >
+          <Card
+            className={styles.panel}
+            aria-labelledby="project-details-heading"
+          >
+            <CardHeader>
+              <h2 className={styles.sectionTitle} id="project-details-heading">
+                Details
+              </h2>
+              <CardDescription>
+                Update the name, description, and URL slug for this Project.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {message ? <Alert variant="success">{message}</Alert> : null}
+              {error ? <Alert variant="destructive">{error}</Alert> : null}
+              <form
+                className={`${styles.form} ${styles.detailsForm}`}
+                onSubmit={saveDetails}
+              >
+                <Label className={styles.field}>
+                  <span>Project name</span>
+                  <Input
+                    value={form.name}
+                    disabled={isBusy}
+                    onChange={(event) =>
+                      updateField("name", event.target.value)
+                    }
+                  />
+                </Label>
+                <Label className={styles.field}>
+                  <span>Slug</span>
+                  <Input
+                    value={form.slug}
+                    disabled={isBusy}
+                    onChange={(event) =>
+                      updateField("slug", event.target.value)
+                    }
+                  />
+                </Label>
+                <Label className={`${styles.field} ${styles.fullField}`}>
+                  <span>Description</span>
+                  <Textarea
+                    rows={4}
+                    value={form.description}
+                    disabled={isBusy}
+                    onChange={(event) =>
+                      updateField("description", event.target.value)
+                    }
+                  />
+                </Label>
+                <div className={styles.formActions}>
+                  <Button type="submit" disabled={isBusy || !detailsDirty}>
+                    {isSaving ? "Saving changes..." : "Save changes"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`${styles.panel} ${
+              project.status === "active" ? styles.dangerPanel : ""
+            }`}
+            aria-labelledby="project-lifecycle-heading"
+          >
+            <CardHeader>
+              <h2
+                className={styles.sectionTitle}
+                id="project-lifecycle-heading"
+              >
+                Lifecycle
+              </h2>
+              <CardDescription>
+                Control whether this Project is available in the active Project
+                list.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className={styles.lifecycleContent}>
+              <p className={styles.panelText}>
+                {project.status === "archived"
+                  ? "Return this project to the active project list."
+                  : "Archived projects are hidden from the active project list but can still be opened directly and restored later."}
+              </p>
+              <Button
+                variant={
+                  project.status === "active" ? "destructive" : "secondary"
+                }
+                type="button"
+                disabled={isBusy}
+                onClick={updateStatus}
+              >
+                {isUpdatingStatus ? "Updating project..." : lifecycleButtonText}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
+
+      {activeTab === "members" ? (
+        <div
+          className={styles.content}
+          id="settings-members-panel"
+          role="tabpanel"
+          aria-labelledby="settings-members-tab"
+        >
+          <ProjectMembershipSection projectId={projectId} />
+        </div>
+      ) : null}
+
+      {activeTab === "versions" ? (
+        <div
+          className={styles.content}
+          id="settings-versions-panel"
+          role="tabpanel"
+          aria-labelledby="settings-versions-tab"
+        >
+          <ProjectVersionManagementSection
+            project={project}
+            onProjectChange={applyProject}
+          />
+        </div>
+      ) : null}
     </PortalShell>
   );
 };
@@ -467,11 +582,13 @@ export const ProjectSettingsPage = ({
 const PortalShell = ({
   children,
   project,
+  loadAuth,
   performLogout,
   navigate,
 }: {
   children: React.ReactNode;
   project: Project | string;
+  loadAuth?: () => Promise<AuthResponse>;
   performLogout?: () => Promise<void>;
   navigate?: (path: string) => void;
 }) => {
@@ -488,8 +605,9 @@ const PortalShell = ({
   return (
     <PortalAppShell
       activeSection="project_settings"
-      currentLabel="Project settings"
+      currentLabel=""
       project={projectContext}
+      loadAuth={loadAuth}
       performLogout={performLogout}
       navigate={navigate}
     >

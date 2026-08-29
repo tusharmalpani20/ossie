@@ -60,7 +60,7 @@ describe("ProjectVersionContextBar", () => {
     expect(screen.getByText("Active")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Manage versions" }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute("href", "/projects/project_1/settings?tab=versions");
     const actions = screen.getByRole("group", {
       name: "Project Version actions",
     });

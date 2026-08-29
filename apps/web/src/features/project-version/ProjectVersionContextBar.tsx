@@ -68,7 +68,7 @@ export const ProjectVersionContextBar = ({
     };
   }, [menuOpen]);
   const openManageVersions = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    const path = `/projects/${encodeURIComponent(project.id)}/settings#project-versions`;
+    const path = `/projects/${encodeURIComponent(project.id)}/settings?tab=versions`;
     if (
       event.defaultPrevented ||
       event.button !== 0 ||
@@ -175,7 +175,7 @@ export const ProjectVersionContextBar = ({
         </div>
         {project.access.role === "project_admin" ? (
           <a
-            href={`/projects/${encodeURIComponent(project.id)}/settings#project-versions`}
+            href={`/projects/${encodeURIComponent(project.id)}/settings?tab=versions`}
             onClick={openManageVersions}
           >
             Manage versions

@@ -32,6 +32,23 @@ const project: Project = {
   },
 };
 
+const authResponse = {
+  auth: {
+    user: {
+      id: "user_1",
+      email: "jane@example.com",
+      display_name: "Jane Member",
+    },
+    organization: { id: "organization_1", name: "Ossie Labs" },
+    org_user: { id: "org_user_1", role: "owner" as const },
+    session: {
+      id: "session_1",
+      session_type: "browser",
+      expires_at: "2026-09-01T10:00:00.000Z",
+    },
+  },
+};
+
 const renderPage = (
   overrides: {
     projectId?: string;
@@ -41,6 +58,7 @@ const renderPage = (
       input: UpdateProjectInput,
     ) => Promise<{ project: Project }>;
     currentPath?: string;
+    loadAuth?: () => Promise<typeof authResponse>;
     performLogout?: () => Promise<void>;
     navigate?: (path: string) => void;
   } = {},
@@ -62,7 +80,10 @@ const renderPage = (
       projectId={overrides.projectId ?? "project_1"}
       loadProject={loadProject}
       updateProject={updateProject}
-      currentPath={overrides.currentPath}
+      currentPath={
+        overrides.currentPath ?? "/projects/project_1/settings?tab=details"
+      }
+      loadAuth={overrides.loadAuth ?? vi.fn(async () => authResponse)}
       performLogout={overrides.performLogout}
       navigate={overrides.navigate}
     />,
@@ -95,6 +116,51 @@ describe("ProjectSettingsPage", () => {
       screen.getByRole("link", { name: "Back to workspace" }),
     ).toHaveAttribute("href", "/projects/project_1/versions/main");
     expect(loadProject).toHaveBeenCalledWith("project_1");
+  });
+
+  it("uses one settings header without the shell breadcrumb strip", async () => {
+    renderPage();
+
+    expect(
+      await screen.findByRole("heading", { name: "Project settings" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: "Breadcrumb" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Manage details, access, lifecycle, and versions for Internal onboarding demos.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("separates details, members, and versions into addressable tabs", async () => {
+    renderPage({
+      currentPath: "/projects/project_1/settings?tab=members",
+    });
+
+    await screen.findByRole("heading", { name: "Project settings" });
+    expect(screen.getByRole("tab", { name: "Members" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(
+      screen.getByRole("heading", { name: "Membership" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Details" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Versions" }));
+
+    expect(screen.getByRole("tab", { name: "Versions" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tabpanel", { name: "Versions" })).toBeVisible();
+    expect(
+      screen.queryByRole("heading", { name: "Membership" }),
+    ).not.toBeInTheDocument();
   });
 
   it("saves project detail changes and resets the dirty state", async () => {
@@ -150,6 +216,7 @@ describe("ProjectSettingsPage", () => {
   });
 
   it("archives and unarchives a project", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     const updateProject = vi
       .fn<
         (
@@ -177,6 +244,10 @@ describe("ProjectSettingsPage", () => {
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Archive project" }),
+    );
+
+    expect(confirm).toHaveBeenCalledWith(
+      "Archive Internal onboarding demos? It will be hidden from the active project list until restored.",
     );
 
     await waitFor(() =>
@@ -294,7 +365,12 @@ describe("ProjectSettingsPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Project settings" }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Open account menu for Jane Member",
+      }),
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
 
     await waitFor(() => expect(performLogout).toHaveBeenCalled());
     expect(navigate).toHaveBeenCalledWith("/login");
