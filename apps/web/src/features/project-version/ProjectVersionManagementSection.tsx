@@ -350,7 +350,11 @@ const VersionList = ({
     <CardContent>
       {versions.length === 0 ? (
         title.startsWith("Archived") ? (
-          <div className={styles.emptyState}>
+          <div
+            className={styles.emptyState}
+            role="status"
+            aria-label="No archived versions"
+          >
             <img
               src="/illustrations/ossie-versions-archived-empty.png"
               alt="No archived versions"

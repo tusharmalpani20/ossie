@@ -93,6 +93,9 @@ describe("ProjectVersionManagementSection", () => {
       "src",
       "/illustrations/ossie-versions-archived-empty.png",
     );
+    expect(
+      within(archived).getByRole("status", { name: "No archived versions" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/Row Version/i)).not.toBeInTheDocument();
   });
 

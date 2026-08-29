@@ -104,16 +104,16 @@
 }
 
 .emptyState {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--ossie-space-4);
-  min-height: 0;
-  text-align: left;
+  display: grid;
+  justify-items: center;
+  gap: var(--ossie-space-3);
+  min-height: 14rem;
+  padding: var(--ossie-space-5) var(--ossie-space-4);
+  text-align: center;
 }
 
 .emptyState img {
-  width: 4.5rem;
+  width: 8rem;
   height: auto;
   object-fit: contain;
 }
@@ -189,12 +189,7 @@
     align-items: stretch;
   }
 
-  .emptyState {
-    flex-direction: column;
-    text-align: center;
-  }
-
   .emptyState img {
-    width: 4.5rem;
+    width: 7rem;
   }
 }

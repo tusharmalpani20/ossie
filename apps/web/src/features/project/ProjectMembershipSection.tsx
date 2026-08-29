@@ -278,7 +278,9 @@ export const ProjectMembershipSection = ({
 
       <Card className={styles.panel} aria-labelledby="current-access-heading">
         <CardHeader>
-          <h3 id="current-access-heading">Current access</h3>
+          <h3 id="current-access-heading" className={styles.cardTitle}>
+            Current access
+          </h3>
           <CardDescription>
             Members who can currently discover and work in this Project.
           </CardDescription>

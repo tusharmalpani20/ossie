@@ -44,9 +44,14 @@ describe("ProjectMembershipSection", () => {
       .mockResolvedValueOnce(json({ members: [owner] }));
     vi.stubGlobal("fetch", fetch);
     render(<ProjectMembershipSection projectId="project-1" />);
+    const currentAccess = await screen.findByRole("region", {
+      name: "Current access",
+    });
+    expect(currentAccess).toBeInTheDocument();
     expect(
-      await screen.findByRole("region", { name: "Current access" }),
-    ).toBeInTheDocument();
+      within(currentAccess).getByRole("heading", { name: "Current access" })
+        .className,
+    ).toContain("cardTitle");
     expect(
       screen.queryByRole("dialog", { name: "Add member" }),
     ).not.toBeInTheDocument();

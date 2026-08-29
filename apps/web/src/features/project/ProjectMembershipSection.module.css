@@ -33,6 +33,10 @@
   font-weight: 700;
 }
 
+.cardTitle {
+  font-weight: 800;
+}
+
 .content {
   display: grid;
   gap: var(--ossie-space-5);
