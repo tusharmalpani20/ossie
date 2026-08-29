@@ -7,6 +7,8 @@ import { ArrowLeft } from "lucide-react";
 import { ApiClientError, listProjectActivity } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalAppShell } from "../portal/PortalAppShell";
+import { useProjectAccess } from "../project/useProjectAccess";
+import type { Project } from "../project/types";
 import styles from "./ProjectActivityTimelinePage.module.css";
 
 type State =
@@ -34,6 +36,15 @@ export const ProjectActivityTimelinePage = ({
   const [reload, setReload] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [pageError, setPageError] = useState(false);
+  const projectAccess = useProjectAccess(projectId);
+  const project =
+    projectAccess.state.status === "loaded"
+      ? projectAccess.state.project
+      : projectId;
+  const workspaceHref =
+    typeof project === "string"
+      ? `/projects/${encodeURIComponent(projectId)}`
+      : `/projects/${encodeURIComponent(project.id)}/versions/${encodeURIComponent(project.default_project_version.slug)}`;
   useEffect(() => {
     let active = true;
     setState({ status: "loading" });
@@ -75,7 +86,7 @@ export const ProjectActivityTimelinePage = ({
   };
 
   return (
-    <Shell projectId={projectId}>
+    <Shell project={project}>
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Activity</h1>
@@ -83,10 +94,7 @@ export const ProjectActivityTimelinePage = ({
             Review important changes across this Project.
           </p>
         </div>
-        <a
-          className={styles.workspaceLink}
-          href={`/projects/${encodeURIComponent(projectId)}`}
-        >
+        <a className={styles.workspaceLink} href={workspaceHref}>
           <ArrowLeft aria-hidden="true" size={17} />
           Back to workspace
         </a>
@@ -132,7 +140,10 @@ export const ProjectActivityTimelinePage = ({
                   <tbody>
                     {state.response.events.map((event) => (
                       <tr key={event.id}>
-                        <td className={styles.activityCell} data-label="Activity">
+                        <td
+                          className={styles.activityCell}
+                          data-label="Activity"
+                        >
                           <strong>{event.summary}</strong>
                           {event.grouped_event_count > 1 ? (
                             <span>
@@ -186,16 +197,28 @@ const formatActivityDate = (value: string) =>
 
 const Shell = ({
   children,
-  projectId,
+  project,
 }: {
   children: ReactNode;
-  projectId: string;
-}) => (
-  <PortalAppShell
-    activeSection="project_activity"
-    currentLabel=""
-    project={{ id: projectId }}
-  >
-    {children}
-  </PortalAppShell>
-);
+  project: Project | string;
+}) => {
+  const projectContext =
+    typeof project === "string"
+      ? { id: project }
+      : {
+          id: project.id,
+          name: project.name,
+          access: project.access,
+          defaultProjectVersionSlug: project.default_project_version.slug,
+        };
+
+  return (
+    <PortalAppShell
+      activeSection="project_activity"
+      currentLabel=""
+      project={projectContext}
+    >
+      {children}
+    </PortalAppShell>
+  );
+};
