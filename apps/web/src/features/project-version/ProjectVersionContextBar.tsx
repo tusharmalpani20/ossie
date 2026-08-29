@@ -52,7 +52,7 @@ export const ProjectVersionContextBar = ({
   return (
     <section className={styles.bar} aria-label="Project Version context">
       <label className={styles.selector}>
-        <span className={styles.visuallyHidden}>Project Version</span>
+        <span>Version</span>
         <select
           aria-label="Project Version"
           value={selected.slug}
@@ -76,22 +76,28 @@ export const ProjectVersionContextBar = ({
           ) : null}
         </select>
       </label>
-      <div className={styles.statuses} aria-label="Version status">
-        {selected.is_default ? (
-          <Badge className={styles.defaultBadge}>Default</Badge>
+      <div
+        className={styles.contextActions}
+        role="group"
+        aria-label="Project Version actions"
+      >
+        <div className={styles.statuses} aria-label="Version status">
+          {selected.is_default ? (
+            <Badge className={styles.defaultBadge}>Default version</Badge>
+          ) : null}
+          <Badge variant={selected.status === "active" ? "success" : "default"}>
+            {selected.status === "active" ? "Active" : "Archived"}
+          </Badge>
+        </div>
+        {project.access.role === "project_admin" ? (
+          <a
+            href={`/projects/${encodeURIComponent(project.id)}/settings#project-versions`}
+            onClick={openManageVersions}
+          >
+            Manage versions
+          </a>
         ) : null}
-        <Badge variant={selected.status === "active" ? "success" : "default"}>
-          {selected.status === "active" ? "Active" : "Archived"}
-        </Badge>
       </div>
-      {project.access.role === "project_admin" ? (
-        <a
-          href={`/projects/${encodeURIComponent(project.id)}/settings#project-versions`}
-          onClick={openManageVersions}
-        >
-          Manage versions
-        </a>
-      ) : null}
     </section>
   );
 };

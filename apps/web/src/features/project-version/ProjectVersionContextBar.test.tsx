@@ -2,7 +2,7 @@
  * @fileoverview Project Version context bar tests.
  */
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectVersionContextBar } from "./ProjectVersionContextBar";
 
@@ -53,10 +53,17 @@ describe("ProjectVersionContextBar", () => {
       />,
     );
     expect(screen.getByLabelText("Project Version")).toHaveValue("main");
-    expect(screen.getByText("Default")).toBeInTheDocument();
+    expect(screen.getByText("Default version")).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Manage versions" }),
+    ).toBeInTheDocument();
+    const actions = screen.getByRole("group", {
+      name: "Project Version actions",
+    });
+    expect(within(actions).getByText("Default version")).toBeInTheDocument();
+    expect(
+      within(actions).getByRole("link", { name: "Manage versions" }),
     ).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Project Version"), {
       target: { value: "q3" },
