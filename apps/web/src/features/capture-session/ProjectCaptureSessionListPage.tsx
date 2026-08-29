@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
+import { Plus } from "lucide-react";
 import {
   ApiClientError,
   createProjectCaptureSession,
@@ -360,8 +361,14 @@ export const ProjectCaptureSessionListPage = ({
         headingId="capture-sessions-heading"
         actions={
           writable ? (
-            <Button type="button" onClick={openCreateForm}>
-              New Capture Session
+            <Button
+              size="icon"
+              type="button"
+              aria-label="New Capture Session"
+              title="New Capture Session"
+              onClick={openCreateForm}
+            >
+              <Plus aria-hidden="true" size={19} />
             </Button>
           ) : (
             <Badge>Read only</Badge>

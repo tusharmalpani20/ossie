@@ -252,9 +252,11 @@ describe("ProjectCaptureSessionListPage", () => {
       }),
     ).toHaveAttribute("src", "/illustrations/capture-session.png");
     expect(screen.queryByText("project_1")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "New Capture Session" }),
-    ).toBeInTheDocument();
+    const newCaptureButton = screen.getByRole("button", {
+      name: "New Capture Session",
+    });
+    expect(newCaptureButton).toHaveAttribute("title", "New Capture Session");
+    expect(newCaptureButton).toHaveTextContent("");
   });
 
   it("can render content without its own shell inside Project Version routes", async () => {
