@@ -218,14 +218,7 @@ export const PortalAppShell = ({
 
               return (
                 <div key={`${item.label}-${item.href}`}>
-                  {isProjectLink ? (
-                    <>
-                      <div className={styles.navDivider} />
-                      <div className={styles.projectNavLabel}>
-                        {project?.name ?? project?.id}
-                      </div>
-                    </>
-                  ) : null}
+                  {isProjectLink ? <div className={styles.navDivider} /> : null}
                   <a
                     className={
                       item.active ? styles.navItemActive : styles.navItem
@@ -269,7 +262,7 @@ export const PortalAppShell = ({
           </nav>
         </aside>
         <div className={styles.contentFrame}>
-          {project ? (
+          {project && currentLabel ? (
             <div className={styles.contextBar}>
               <nav aria-label="Breadcrumb">
                 <ol className={styles.breadcrumbs}>

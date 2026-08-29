@@ -48,7 +48,7 @@ describe("PortalAppShell", () => {
 
     expect(
       screen.getByRole("navigation", { name: "Portal navigation" }),
-    ).toHaveTextContent("OSS Handbook");
+    ).not.toHaveTextContent("OSS Handbook");
     expect(screen.getByRole("banner")).not.toHaveTextContent("OSS Handbook");
     expect(
       screen.getByRole("navigation", { name: "Portal navigation" }),
