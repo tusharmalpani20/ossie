@@ -50,7 +50,10 @@ describe("ProjectMembershipSection", () => {
     expect(
       screen.queryByRole("dialog", { name: "Add member" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Add member" }));
+    const addMemberButton = screen.getByRole("button", { name: "Add member" });
+    expect(addMemberButton).toHaveAttribute("title", "Add member");
+    expect(addMemberButton).not.toHaveTextContent("Add member");
+    fireEvent.click(addMemberButton);
     const addMemberDialog = screen.getByRole("dialog", { name: "Add member" });
     expect(
       within(addMemberDialog).getByRole("heading", { name: "Add member" }),

@@ -260,12 +260,14 @@ export const ProjectMembershipSection = ({
           </p>
         </div>
         <Button
+          aria-label="Add member"
+          title="Add member"
+          size="icon"
           type="button"
           disabled={members === null}
           onClick={() => setShowAddMember(true)}
         >
           <UserPlus aria-hidden="true" size={18} />
-          Add member
         </Button>
       </header>
 

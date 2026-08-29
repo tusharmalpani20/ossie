@@ -43,7 +43,12 @@ describe("ProjectVersionManagementSection", () => {
     expect(
       screen.queryByRole("dialog", { name: "Create a Project Version" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Create version" }));
+    const createVersionButton = screen.getByRole("button", {
+      name: "Create version",
+    });
+    expect(createVersionButton).toHaveAttribute("title", "Create version");
+    expect(createVersionButton).not.toHaveTextContent("Create version");
+    fireEvent.click(createVersionButton);
     const createDialog = screen.getByRole("dialog", {
       name: "Create a Project Version",
     });

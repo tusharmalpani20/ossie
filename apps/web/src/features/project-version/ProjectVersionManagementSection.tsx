@@ -178,12 +178,14 @@ export const ProjectVersionManagementSection = ({
         </div>
         {project.status === "active" ? (
           <Button
+            aria-label="Create version"
+            title="Create version"
+            size="icon"
             type="button"
             disabled={busy !== null}
             onClick={() => setShowCreateVersion(true)}
           >
             <Plus aria-hidden="true" size={18} />
-            Create version
           </Button>
         ) : null}
       </header>
