@@ -10,6 +10,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     emptyOutDir: true,
+    modulePreload: false,
     rollupOptions: {
       input: {
         index: resolve(dirname, "index.html"),
