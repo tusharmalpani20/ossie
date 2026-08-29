@@ -2,7 +2,13 @@
  * @fileoverview Project Version management section tests.
  */
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectVersionManagementSection } from "./ProjectVersionManagementSection";
 const api = vi.hoisted(() => ({
@@ -35,13 +41,24 @@ describe("ProjectVersionManagementSection", () => {
     render(<ProjectVersionManagementSection project={project} />);
     await screen.findByRole("heading", { name: "Project Versions" });
     expect(
-      screen.getByRole("heading", { name: "Create a Project Version" }),
+      screen.queryByRole("dialog", { name: "Create a Project Version" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Create version" }));
+    const createDialog = screen.getByRole("dialog", {
+      name: "Create a Project Version",
+    });
+    expect(
+      within(createDialog).getByRole("heading", {
+        name: "Create a Project Version",
+      }),
     ).toBeInTheDocument();
-    fireEvent.change(screen.getAllByLabelText("Name")[0]!, {
+    fireEvent.change(within(createDialog).getByLabelText("Name"), {
       target: { value: "Q3" },
     });
     fireEvent.click(
-      screen.getByRole("button", { name: "Create Project Version" }),
+      within(createDialog).getByRole("button", {
+        name: "Create Project Version",
+      }),
     );
     await waitFor(() =>
       expect(api.createProjectVersion).toHaveBeenCalledWith("project_1", {
@@ -61,6 +78,16 @@ describe("ProjectVersionManagementSection", () => {
     render(<ProjectVersionManagementSection project={project} />);
 
     await screen.findByRole("heading", { name: "Project Versions" });
+    expect(
+      screen.getByRole("region", { name: "Active versions" }),
+    ).toBeInTheDocument();
+    const archived = screen.getByRole("region", { name: "Archived versions" });
+    expect(
+      within(archived).getByRole("img", { name: "No archived versions" }),
+    ).toHaveAttribute(
+      "src",
+      "/illustrations/ossie-versions-archived-empty.png",
+    );
     expect(screen.queryByText(/Row Version/i)).not.toBeInTheDocument();
   });
 

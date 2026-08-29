@@ -1,27 +1,29 @@
-.panel {
+.panel,
+.section {
   scroll-margin-top: 1rem;
 }
 
-.content {
+.section {
   display: grid;
-  gap: 1.25rem;
+  gap: var(--ossie-space-5);
 }
 
-.createSection {
-  display: grid;
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: var(--ossie-space-4);
-  padding: var(--ossie-space-4);
-  border: 1px solid var(--ossie-color-border);
-  border-radius: var(--ossie-radius-control);
-  background: var(--ossie-color-surface-subtle);
 }
 
-.createSection h3,
-.createSection p {
+.sectionHeader h2,
+.sectionHeader p,
+.listCard h3,
+.emptyState p {
   margin: 0;
 }
 
-.createSection p {
+.sectionHeader p {
+  margin-top: var(--ossie-space-1);
   color: var(--ossie-color-text-muted);
 }
 
@@ -32,15 +34,90 @@
   align-items: end;
 }
 
-.createButton {
-  grid-column: 1 / -1;
-  justify-self: start;
-}
-
 .form label,
 .edit label {
   display: grid;
   gap: 0.35rem;
+}
+
+.dialog {
+  position: fixed;
+  z-index: 70;
+  inset: 50% auto auto 50%;
+  width: min(44rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-popover);
+  background: var(--ossie-color-surface-elevated);
+  box-shadow: 0 24px 64px rgb(35 22 76 / 0.2);
+  padding: 0;
+}
+
+.dialog::backdrop {
+  background: rgb(23 16 51 / 0.42);
+}
+
+.modal {
+  display: grid;
+  gap: var(--ossie-space-5);
+  padding: var(--ossie-space-6);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ossie-space-4);
+}
+
+.modalHeader h3,
+.modalHeader p {
+  margin: 0;
+}
+
+.modalHeader p {
+  margin-top: var(--ossie-space-1);
+  color: var(--ossie-color-text-muted);
+}
+
+.modalActions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: var(--ossie-space-2);
+  padding-top: var(--ossie-space-2);
+}
+
+.listCard {
+  width: 100%;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ossie-space-5);
+  min-height: 11rem;
+  text-align: left;
+}
+
+.emptyState img {
+  width: min(9rem, 35%);
+  height: auto;
+  object-fit: contain;
+}
+
+.emptyState strong {
+  display: block;
+  margin-bottom: var(--ossie-space-1);
+  font-size: 1rem;
+}
+
+.emptyState p,
+.emptyText {
+  color: var(--ossie-color-text-muted);
 }
 
 .list {
@@ -85,16 +162,30 @@
 }
 
 @media (max-width: 44rem) {
+  .sectionHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .form {
     grid-template-columns: 1fr;
   }
 
-  .createButton {
-    width: 100%;
+  .modalActions {
+    grid-column: 1;
   }
 
   .edit {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .emptyState {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .emptyState img {
+    width: 7.5rem;
   }
 }

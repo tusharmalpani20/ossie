@@ -2,13 +2,14 @@
  * @fileoverview Project Version management settings section.
  */
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
+import { Plus, X } from "lucide-react";
 import type { Project } from "@repo/types/project";
 import type {
   ProjectVersion,
@@ -58,6 +59,8 @@ export const ProjectVersionManagementSection = ({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [showCreateVersion, setShowCreateVersion] = useState(false);
+  const createDialogRef = useRef<HTMLDialogElement>(null);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -81,6 +84,14 @@ export const ProjectVersionManagementSection = ({
       .catch(() => setStatus("error"));
   };
   useEffect(load, [project.id]);
+  useEffect(() => {
+    if (!showCreateVersion) return;
+    const dialog = createDialogRef.current;
+    if (dialog && !dialog.open) {
+      if (typeof dialog.showModal === "function") dialog.showModal();
+      else dialog.setAttribute("open", "");
+    }
+  }, [showCreateVersion]);
   const mutate = async (
     key: string,
     action: () => Promise<unknown>,
@@ -112,6 +123,7 @@ export const ProjectVersionManagementSection = ({
           release_date: form.release_date || null,
         });
         setForm({ name: "", description: "", slug: "", release_date: "" });
+        setShowCreateVersion(false);
       },
       "Project Version created.",
     );
@@ -154,31 +166,89 @@ export const ProjectVersionManagementSection = ({
       </Card>
     );
   return (
-    <Card
+    <section
       id="project-versions"
-      className={styles.panel}
+      className={styles.section}
       aria-labelledby="project-versions-heading"
     >
-      <CardHeader>
-        <h2 id="project-versions-heading">Project Versions</h2>
-        <CardDescription>
-          Organize release contexts without moving existing content.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className={styles.content}>
+      <header className={styles.sectionHeader}>
+        <div>
+          <h2 id="project-versions-heading">Project Versions</h2>
+          <p>Organize release contexts without moving existing content.</p>
+        </div>
+        {project.status === "active" ? (
+          <Button
+            type="button"
+            disabled={busy !== null}
+            onClick={() => setShowCreateVersion(true)}
+          >
+            <Plus aria-hidden="true" size={18} />
+            Create version
+          </Button>
+        ) : null}
+      </header>
+
+      <div aria-live="polite">
         {message ? <Alert variant="success">{message}</Alert> : null}
         {error ? <Alert variant="destructive">{error}</Alert> : null}
-        {project.status === "active" ? (
-          <section
-            className={styles.createSection}
-            aria-labelledby="create-project-version-heading"
-          >
-            <div>
-              <h3 id="create-project-version-heading">
-                Create a Project Version
-              </h3>
-              <p>Add a release context with its own content and settings.</p>
-            </div>
+      </div>
+      {project.status !== "active" ? (
+        <Alert>Archived Projects cannot manage Project Versions.</Alert>
+      ) : null}
+
+      <VersionList
+        title="Active versions"
+        headingId="active-versions-heading"
+        versions={active}
+        busy={busy}
+        project={project}
+        move={move}
+        mutate={mutate}
+        onProjectChange={onProjectChange}
+      />
+      <VersionList
+        title="Archived versions"
+        headingId="archived-versions-heading"
+        versions={archived}
+        busy={busy}
+        project={project}
+        mutate={mutate}
+        onProjectChange={onProjectChange}
+      />
+
+      {!showCreateVersion ? null : (
+        <dialog
+          ref={createDialogRef}
+          className={styles.dialog}
+          aria-labelledby="create-project-version-heading"
+          aria-modal="true"
+          onCancel={(event) => {
+            event.preventDefault();
+            setShowCreateVersion(false);
+          }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget)
+              setShowCreateVersion(false);
+          }}
+        >
+          <div className={styles.modal}>
+            <header className={styles.modalHeader}>
+              <div>
+                <h3 id="create-project-version-heading">
+                  Create a Project Version
+                </h3>
+                <p>Add a release context with its own content and settings.</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                aria-label="Close create version"
+                onClick={() => setShowCreateVersion(false)}
+              >
+                <X aria-hidden="true" size={19} />
+              </Button>
+            </header>
             <form className={styles.form} onSubmit={create}>
               <Label>
                 Name
@@ -223,42 +293,29 @@ export const ProjectVersionManagementSection = ({
                   }
                 />
               </Label>
-              <Button
-                className={styles.createButton}
-                type="submit"
-                disabled={busy !== null}
-              >
-                {busy === "create" ? "Creating..." : "Create Project Version"}
-              </Button>
+              <div className={styles.modalActions}>
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={() => setShowCreateVersion(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={busy !== null}>
+                  {busy === "create" ? "Creating..." : "Create Project Version"}
+                </Button>
+              </div>
             </form>
-          </section>
-        ) : (
-          <Alert>Archived Projects cannot manage Project Versions.</Alert>
-        )}
-        <VersionList
-          title="Active"
-          versions={active}
-          busy={busy}
-          project={project}
-          move={move}
-          mutate={mutate}
-          onProjectChange={onProjectChange}
-        />
-        <VersionList
-          title="Archived"
-          versions={archived}
-          busy={busy}
-          project={project}
-          mutate={mutate}
-          onProjectChange={onProjectChange}
-        />
-      </CardContent>
-    </Card>
+          </div>
+        </dialog>
+      )}
+    </section>
   );
 };
 
 const VersionList = ({
   title,
+  headingId,
   versions,
   busy,
   project,
@@ -267,6 +324,7 @@ const VersionList = ({
   onProjectChange,
 }: {
   title: string;
+  headingId: string;
   versions: ProjectVersionDetail[];
   busy: string | null;
   project: Project;
@@ -278,145 +336,167 @@ const VersionList = ({
   ) => Promise<void>;
   onProjectChange?: (project: Project) => void;
 }) => (
-  <section>
-    <h3>{title}</h3>
-    {versions.length === 0 ? (
-      <p>No {title.toLowerCase()} Project Versions.</p>
-    ) : (
-      <div className={styles.list}>
-        {versions.map((version, index) => (
-          <article className={styles.version} key={version.id}>
-            <div className={styles.versionHeader}>
-              <strong>{version.name}</strong>
-              {version.is_default ? <Badge>Default</Badge> : null}
-              {version.status === "archived" ? <Badge>Archived</Badge> : null}
-            </div>
-            <div className={styles.details}>
-              <span>/{version.slug}</span>
-              <span>{version.release_date ?? "No release date"}</span>
-            </div>
-            {version.aliases.length ? (
-              <p className={styles.aliases}>
-                Permanent former slugs:{" "}
-                {version.aliases.map(({ slug }) => `/${slug}`).join(", ")}
-              </p>
-            ) : null}
-            <VersionEdit
-              project={project}
-              version={version}
-              busy={busy}
-              mutate={mutate}
+  <Card className={styles.listCard} aria-labelledby={headingId}>
+    <CardHeader>
+      <h3 id={headingId}>{title}</h3>
+      <CardDescription>
+        {title.startsWith("Active")
+          ? "Versions currently available to your team."
+          : "Read-only versions kept for reference."}
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      {versions.length === 0 ? (
+        title.startsWith("Archived") ? (
+          <div className={styles.emptyState}>
+            <img
+              src="/illustrations/ossie-versions-archived-empty.png"
+              alt="No archived versions"
             />
-            <div className={styles.actions}>
-              {move ? (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={busy !== null || index === 0}
-                    onClick={() => move(version, -1)}
-                  >
-                    Move up
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={busy !== null || index === versions.length - 1}
-                    onClick={() => move(version, 1)}
-                  >
-                    Move down
-                  </Button>
-                </>
+            <div>
+              <strong>No archived versions</strong>
+              <p>Versions you archive will appear here.</p>
+            </div>
+          </div>
+        ) : (
+          <p className={styles.emptyText}>No active Project Versions.</p>
+        )
+      ) : (
+        <div className={styles.list}>
+          {versions.map((version, index) => (
+            <article className={styles.version} key={version.id}>
+              <div className={styles.versionHeader}>
+                <strong>{version.name}</strong>
+                {version.is_default ? <Badge>Default</Badge> : null}
+                {version.status === "archived" ? <Badge>Archived</Badge> : null}
+              </div>
+              <div className={styles.details}>
+                <span>/{version.slug}</span>
+                <span>{version.release_date ?? "No release date"}</span>
+              </div>
+              {version.aliases.length ? (
+                <p className={styles.aliases}>
+                  Permanent former slugs:{" "}
+                  {version.aliases.map(({ slug }) => `/${slug}`).join(", ")}
+                </p>
               ) : null}
-              {version.status === "active" && !version.is_default ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={busy !== null}
-                  onClick={() => {
-                    if (
-                      !window.confirm(
-                        `Set ${version.name} as the Default Project Version? Existing content will not move.`,
+              <VersionEdit
+                project={project}
+                version={version}
+                busy={busy}
+                mutate={mutate}
+              />
+              <div className={styles.actions}>
+                {move ? (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={busy !== null || index === 0}
+                      onClick={() => move(version, -1)}
+                    >
+                      Move up
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={busy !== null || index === versions.length - 1}
+                      onClick={() => move(version, 1)}
+                    >
+                      Move down
+                    </Button>
+                  </>
+                ) : null}
+                {version.status === "active" && !version.is_default ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busy !== null}
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          `Set ${version.name} as the Default Project Version? Existing content will not move.`,
+                        )
                       )
-                    )
-                      return;
-                    void mutate(
-                      version.id,
-                      async () => {
-                        const response = await setDefaultProjectVersion(
-                          project.id,
+                        return;
+                      void mutate(
+                        version.id,
+                        async () => {
+                          const response = await setDefaultProjectVersion(
+                            project.id,
+                            version.id,
+                            {
+                              expected_version: version.version,
+                              expected_project_row_version: project.version,
+                            },
+                          );
+                          onProjectChange?.(response.project);
+                        },
+                        "Default Project Version changed.",
+                      );
+                    }}
+                  >
+                    Set Default
+                  </Button>
+                ) : null}
+                {version.status === "active" && version.is_default ? (
+                  <span className={styles.actionNote}>
+                    Default Project Version cannot be archived.
+                  </span>
+                ) : null}
+                {version.status === "active" ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busy !== null || version.is_default}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Archive ${version.name}? It will become read-only.`,
+                        )
+                      )
+                        void mutate(
                           version.id,
-                          {
-                            expected_version: version.version,
-                            expected_project_row_version: project.version,
-                          },
+                          () =>
+                            archiveProjectVersion(
+                              project.id,
+                              version.id,
+                              version.version,
+                            ),
+                          "Project Version archived.",
                         );
-                        onProjectChange?.(response.project);
-                      },
-                      "Default Project Version changed.",
-                    );
-                  }}
-                >
-                  Set Default
-                </Button>
-              ) : null}
-              {version.status === "active" && version.is_default ? (
-                <span className={styles.actionNote}>
-                  Default Project Version cannot be archived.
-                </span>
-              ) : null}
-              {version.status === "active" ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={busy !== null || version.is_default}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Archive ${version.name}? It will become read-only.`,
-                      )
-                    )
+                    }}
+                  >
+                    Archive
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busy !== null}
+                    onClick={() =>
                       void mutate(
                         version.id,
                         () =>
-                          archiveProjectVersion(
+                          restoreProjectVersion(
                             project.id,
                             version.id,
                             version.version,
                           ),
-                        "Project Version archived.",
-                      );
-                  }}
-                >
-                  Archive
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={busy !== null}
-                  onClick={() =>
-                    void mutate(
-                      version.id,
-                      () =>
-                        restoreProjectVersion(
-                          project.id,
-                          version.id,
-                          version.version,
-                        ),
-                      "Project Version restored.",
-                    )
-                  }
-                >
-                  Restore
-                </Button>
-              )}
-            </div>
-          </article>
-        ))}
-      </div>
-    )}
-  </section>
+                        "Project Version restored.",
+                      )
+                    }
+                  >
+                    Restore
+                  </Button>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </CardContent>
+  </Card>
 );
 
 const VersionEdit = ({
