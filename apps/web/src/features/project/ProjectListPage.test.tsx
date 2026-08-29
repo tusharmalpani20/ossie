@@ -243,6 +243,9 @@ describe("ProjectListPage", () => {
     expect(
       await screen.findByRole("heading", { name: "No archived Projects" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "No archived Projects" }),
+    ).toBeInTheDocument();
     const archivedIllustration = document.querySelector(
       'img[src="/illustrations/ossie-projects-archived-empty.png"]',
     );

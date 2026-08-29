@@ -6,6 +6,7 @@ import type { AuthContext, AuthResponse } from "@repo/types/auth";
 import { ArrowRight, ChevronRight, Plus, X } from "lucide-react";
 import { Alert } from "@repo/ui/alert";
 import { Button } from "@repo/ui/button";
+import { Card } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
@@ -548,7 +549,10 @@ export const ProjectListPage = ({
           </button>
         </div>
         {state.projects.length === 0 ? (
-          <div className={styles.empty}>
+          <Card
+            className={styles.empty}
+            aria-labelledby="projects-empty-heading"
+          >
             <img
               className={`${styles.emptyIllustration} ${
                 statusFilter === "archived"
@@ -565,7 +569,7 @@ export const ProjectListPage = ({
               width="320"
               height="213"
             />
-            <h2 className={styles.emptyTitle}>
+            <h2 className={styles.emptyTitle} id="projects-empty-heading">
               {statusFilter === "active"
                 ? "No Projects yet"
                 : "No archived Projects"}
@@ -584,7 +588,7 @@ export const ProjectListPage = ({
                 <ArrowRight aria-hidden="true" size={17} />
               </Button>
             ) : null}
-          </div>
+          </Card>
         ) : (
           <div className={styles.projects}>
             {state.projects.map((project) => (
