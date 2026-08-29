@@ -7,13 +7,34 @@
   gap: 1.25rem;
 }
 
+.createSection {
+  display: grid;
+  gap: var(--ossie-space-4);
+  padding: var(--ossie-space-4);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface-subtle);
+}
+
+.createSection h3,
+.createSection p {
+  margin: 0;
+}
+
+.createSection p {
+  color: var(--ossie-color-text-muted);
+}
+
 .form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   align-items: end;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
+}
+
+.createButton {
+  grid-column: 1 / -1;
+  justify-self: start;
 }
 
 .form label,
@@ -31,8 +52,9 @@
   display: grid;
   gap: 0.75rem;
   padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface);
 }
 
 .versionHeader,
@@ -46,14 +68,14 @@
 }
 
 .details {
-  color: var(--muted-foreground);
+  color: var(--ossie-color-text-muted);
   font-size: 0.875rem;
   overflow-wrap: anywhere;
 }
 
 .actionNote {
   align-self: center;
-  color: var(--muted-foreground);
+  color: var(--ossie-color-text-muted);
   font-size: 0.875rem;
 }
 
@@ -65,6 +87,10 @@
 @media (max-width: 44rem) {
   .form {
     grid-template-columns: 1fr;
+  }
+
+  .createButton {
+    width: 100%;
   }
 
   .edit {

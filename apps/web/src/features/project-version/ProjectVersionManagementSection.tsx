@@ -6,7 +6,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
-import { Card, CardContent, CardHeader } from "@repo/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@repo/ui/card";
 import { Input } from "@repo/ui/input";
 import { Label } from "@repo/ui/label";
 import type { Project } from "@repo/types/project";
@@ -161,60 +161,77 @@ export const ProjectVersionManagementSection = ({
     >
       <CardHeader>
         <h2 id="project-versions-heading">Project Versions</h2>
-        <p>Organize release contexts without moving existing content.</p>
+        <CardDescription>
+          Organize release contexts without moving existing content.
+        </CardDescription>
       </CardHeader>
       <CardContent className={styles.content}>
         {message ? <Alert variant="success">{message}</Alert> : null}
         {error ? <Alert variant="destructive">{error}</Alert> : null}
         {project.status === "active" ? (
-          <form className={styles.form} onSubmit={create}>
-            <Label>
-              Name
-              <Input
-                required
-                value={form.name}
+          <section
+            className={styles.createSection}
+            aria-labelledby="create-project-version-heading"
+          >
+            <div>
+              <h3 id="create-project-version-heading">
+                Create a Project Version
+              </h3>
+              <p>Add a release context with its own content and settings.</p>
+            </div>
+            <form className={styles.form} onSubmit={create}>
+              <Label>
+                Name
+                <Input
+                  required
+                  value={form.name}
+                  disabled={busy !== null}
+                  onChange={(event) =>
+                    setForm({ ...form, name: event.target.value })
+                  }
+                />
+              </Label>
+              <Label>
+                Description
+                <Input
+                  value={form.description}
+                  disabled={busy !== null}
+                  onChange={(event) =>
+                    setForm({ ...form, description: event.target.value })
+                  }
+                />
+              </Label>
+              <Label>
+                Reviewed slug (optional)
+                <Input
+                  value={form.slug}
+                  pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                  disabled={busy !== null}
+                  onChange={(event) =>
+                    setForm({ ...form, slug: event.target.value })
+                  }
+                />
+              </Label>
+              <Label>
+                Release date (optional)
+                <Input
+                  type="date"
+                  value={form.release_date}
+                  disabled={busy !== null}
+                  onChange={(event) =>
+                    setForm({ ...form, release_date: event.target.value })
+                  }
+                />
+              </Label>
+              <Button
+                className={styles.createButton}
+                type="submit"
                 disabled={busy !== null}
-                onChange={(event) =>
-                  setForm({ ...form, name: event.target.value })
-                }
-              />
-            </Label>
-            <Label>
-              Description
-              <Input
-                value={form.description}
-                disabled={busy !== null}
-                onChange={(event) =>
-                  setForm({ ...form, description: event.target.value })
-                }
-              />
-            </Label>
-            <Label>
-              Reviewed slug (optional)
-              <Input
-                value={form.slug}
-                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                disabled={busy !== null}
-                onChange={(event) =>
-                  setForm({ ...form, slug: event.target.value })
-                }
-              />
-            </Label>
-            <Label>
-              Release date (optional)
-              <Input
-                type="date"
-                value={form.release_date}
-                disabled={busy !== null}
-                onChange={(event) =>
-                  setForm({ ...form, release_date: event.target.value })
-                }
-              />
-            </Label>
-            <Button type="submit" disabled={busy !== null}>
-              {busy === "create" ? "Creating..." : "Create Project Version"}
-            </Button>
-          </form>
+              >
+                {busy === "create" ? "Creating..." : "Create Project Version"}
+              </Button>
+            </form>
+          </section>
         ) : (
           <Alert>Archived Projects cannot manage Project Versions.</Alert>
         )}

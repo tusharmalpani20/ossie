@@ -34,6 +34,9 @@ describe("ProjectVersionManagementSection", () => {
     api.createProjectVersion.mockResolvedValue({ project_version: version });
     render(<ProjectVersionManagementSection project={project} />);
     await screen.findByRole("heading", { name: "Project Versions" });
+    expect(
+      screen.getByRole("heading", { name: "Create a Project Version" }),
+    ).toBeInTheDocument();
     fireEvent.change(screen.getAllByLabelText("Name")[0]!, {
       target: { value: "Q3" },
     });

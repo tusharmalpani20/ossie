@@ -1,10 +1,99 @@
-.panel { width: 100%; }
-.title { margin: 0; font-size: 1.1rem; }
-.roster { display: grid; gap: .75rem; padding: 0; list-style: none; }
-.member { display: flex; justify-content: space-between; gap: 1rem; align-items: center; padding: .875rem; border: 1px solid var(--border); border-radius: .75rem; }
-.member span { display: block; color: var(--muted-foreground); }
-.badges, .actions, .assign { display: flex; flex-wrap: wrap; gap: .5rem; align-items: end; }
-.assign { padding-top: 1rem; border-top: 1px solid var(--border); }
-.assign label, .actions label { display: grid; gap: .25rem; font-size: .875rem; }
-.assign select, .actions select { min-height: 2.5rem; border: 1px solid var(--border); border-radius: .5rem; background: var(--background); color: inherit; padding: 0 .6rem; }
-@media (max-width: 42rem) { .member { align-items: stretch; flex-direction: column; } }
+.panel {
+  width: 100%;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.content {
+  display: grid;
+  gap: var(--ossie-space-5);
+}
+
+.roster {
+  display: grid;
+  gap: var(--ossie-space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.member {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ossie-space-4);
+  align-items: center;
+  padding: var(--ossie-space-4);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface);
+}
+
+.member strong,
+.member span {
+  display: block;
+}
+
+.member span {
+  color: var(--ossie-color-text-muted);
+}
+
+.badges,
+.actions,
+.assign {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ossie-space-2);
+  align-items: end;
+}
+
+.badges {
+  margin-top: var(--ossie-space-2);
+}
+
+.assignSection {
+  display: grid;
+  gap: var(--ossie-space-4);
+  padding-top: var(--ossie-space-5);
+  border-top: 1px solid var(--ossie-color-border);
+}
+
+.assignSection h3,
+.assignSection p {
+  margin: 0;
+}
+
+.assignSection p,
+.emptyNote {
+  color: var(--ossie-color-text-muted);
+}
+
+.assign label,
+.actions label {
+  display: grid;
+  gap: var(--ossie-space-1);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.assign select,
+.actions select {
+  min-height: var(--ossie-control-height-standard);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface);
+  color: var(--ossie-color-text);
+  padding: 0 var(--ossie-space-3);
+}
+
+@media (max-width: 42rem) {
+  .member,
+  .assign,
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
