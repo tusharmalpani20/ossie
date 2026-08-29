@@ -4,9 +4,11 @@
 
 import { useEffect, useState } from "react";
 import {
+  ArrowLeft,
   ArrowRight,
   BookOpenText,
   Camera,
+  ChevronRight,
   FileText,
   Forward,
   PlaySquare,
@@ -26,6 +28,8 @@ import {
   listProjectVersions,
   resolveProjectVersion,
 } from "../../lib/api";
+import { navigateWithinApp } from "../../lib/clientNavigation";
+import { LoginPage } from "../auth/LoginPage";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { portalProjectVersionFromDetail } from "../../lib/portalNavigation";
 import type { PortalRouteSection } from "../../lib/portalRouteMetadata";
@@ -120,13 +124,13 @@ export const ProjectVersionRouteBoundary = ({
   }, [projectId, versionSlug, reload, replace]);
   const shellCurrentLabel =
     activeSection === "project_workspace" ? "" : currentLabel;
-  if (state.status === "unauthenticated")
-    return (
-      <main className={styles.state}>
-        <h1>Sign in to view this Project Version.</h1>
-        <a href={signInUrl(currentBrowserPath())}>Sign in</a>
-      </main>
-    );
+  useEffect(() => {
+    if (state.status !== "unauthenticated") return;
+    (navigate ?? navigateWithinApp)(signInUrl(currentBrowserPath()));
+  }, [navigate, state.status]);
+  if (state.status === "unauthenticated") {
+    return <LoginPage nextPath={currentBrowserPath()} navigate={navigate} />;
+  }
   if (state.status !== "loaded")
     return (
       <PortalAppShell
@@ -207,15 +211,43 @@ const VersionWorkspace = ({
   navigate,
 }: Loaded & { navigate?: (path: string) => void }) => {
   const workspacePath = projectVersionWorkspaceUrl(project.id, selected.slug);
+  const projectInitial = project.name.trim().charAt(0).toUpperCase() || "P";
+  const openProjects = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (
+      !navigate ||
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    event.preventDefault();
+    navigate("/projects");
+  };
 
   return (
     <section className={styles.workspace}>
       <header className={styles.projectHeader}>
-        <div>
-          <h1>{project.name}</h1>
-          {project.description ? (
-            <p className={styles.projectDescription}>{project.description}</p>
-          ) : null}
+        <a className={styles.backLink} href="/projects" onClick={openProjects}>
+          <ArrowLeft aria-hidden="true" size={16} />
+          All projects
+        </a>
+        <div className={styles.projectIdentityRow}>
+          <span
+            className={styles.projectIdentity}
+            aria-label="Project identity"
+          >
+            {projectInitial}
+          </span>
+          <div>
+            <h1>{project.name}</h1>
+            {project.description ? (
+              <p className={styles.projectDescription}>{project.description}</p>
+            ) : null}
+          </div>
         </div>
       </header>
 
@@ -226,69 +258,86 @@ const VersionWorkspace = ({
         navigate={navigate}
       />
 
-      <section
-        className={styles.workspaceSection}
-        aria-labelledby="workspace-heading"
-      >
-        <header className={styles.workspaceHeader}>
-          <div>
-            <h2 id="workspace-heading">Workspace</h2>
-            <p className={styles.intro}>
-              Create and manage content for this Project Version.
+      <div className={styles.creationFlow}>
+        <section
+          className={styles.captureCallout}
+          aria-labelledby="capture-heading"
+        >
+          <span className={styles.captureIcon} aria-hidden="true">
+            <Camera size={24} />
+          </span>
+          <div className={styles.captureCopy}>
+            <span className={styles.eyebrow}>Recommended next step</span>
+            <h2 id="capture-heading">Start a capture</h2>
+            <p>
+              Record a browser workflow, then turn it into a guide, interactive
+              demo, or documentation.
             </p>
           </div>
-        </header>
-        <div className={styles.cards}>
           <WorkspaceLink
-            title="Capture sessions"
-            description="Record browser workflows."
-            icon={Camera}
+            title="Start a capture"
             href={`${workspacePath}/capture-sessions`}
             navigate={navigate}
+            variant="primary"
           />
-          <WorkspaceLink
-            title="Guides"
-            description="Build step-by-step guides."
-            icon={BookOpenText}
-            href={`${workspacePath}/guides`}
-            navigate={navigate}
-          />
-          <WorkspaceLink
-            title="Interactive demos"
-            description="Build guided walkthroughs."
-            icon={PlaySquare}
-            href={`${workspacePath}/interactive-demos`}
-            navigate={navigate}
-          />
-          <WorkspaceLink
-            title="Documentation"
-            description="Publish product knowledge."
-            icon={FileText}
-            href={`${workspacePath}/documentation`}
-            navigate={navigate}
-          />
-        </div>
-      </section>
+        </section>
+
+        <section
+          className={styles.buildSection}
+          aria-labelledby="build-heading"
+        >
+          <header className={styles.sectionHeader}>
+            <h2 id="build-heading">Quick access</h2>
+            <p>Continue working with this Project Version.</p>
+          </header>
+          <div className={styles.cards}>
+            <WorkspaceLink
+              title="Guides"
+              description="Create clear, step-by-step instructions."
+              icon={BookOpenText}
+              href={`${workspacePath}/guides`}
+              navigate={navigate}
+            />
+            <WorkspaceLink
+              title="Interactive demos"
+              description="Turn a workflow into a guided walkthrough."
+              icon={PlaySquare}
+              href={`${workspacePath}/interactive-demos`}
+              navigate={navigate}
+            />
+            <WorkspaceLink
+              title="Documentation"
+              description="Organize and publish lasting project knowledge."
+              icon={FileText}
+              href={`${workspacePath}/documentation`}
+              navigate={navigate}
+            />
+          </div>
+        </section>
+      </div>
 
       {project.status === "active" &&
       selected.status === "active" &&
       project.access.role !== "viewer" ? (
-        <section
-          className={styles.versionTools}
-          aria-labelledby="version-tools-heading"
-        >
-          <header className={styles.toolsHeader}>
-            <h2 id="version-tools-heading">Version tools</h2>
-          </header>
-          <WorkspaceLink
-            variant="tool"
-            title="Carry forward edits"
-            description="Start a draft from another Version."
-            icon={Forward}
-            href={`${workspacePath}/carry-forward`}
-            navigate={navigate}
-          />
-        </section>
+        <details className={styles.versionActions}>
+          <summary role="button" aria-label="More version actions">
+            <span>
+              <strong>More version actions</strong>
+              <span>Advanced tools for this version</span>
+            </span>
+            <ChevronRight aria-hidden="true" size={18} />
+          </summary>
+          <div className={styles.versionActionsBody}>
+            <WorkspaceLink
+              variant="tool"
+              title="Carry forward edits"
+              description="Start a draft in this version using edits from another version."
+              icon={Forward}
+              href={`${workspacePath}/carry-forward`}
+              navigate={navigate}
+            />
+          </div>
+        </details>
       ) : null}
       {!selected.is_default ? (
         <Card className={styles.notice}>
@@ -309,11 +358,11 @@ const WorkspaceLink = ({
   variant = "card",
 }: {
   title: string;
-  description: string;
-  icon: LucideIcon;
+  description?: string;
+  icon?: LucideIcon;
   href: string;
   navigate?: (path: string) => void;
-  variant?: "card" | "tool";
+  variant?: "card" | "tool" | "primary";
 }) => {
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (
@@ -333,28 +382,36 @@ const WorkspaceLink = ({
 
   return (
     <a
-      className={variant === "tool" ? styles.toolLink : styles.linkCard}
+      className={
+        variant === "tool"
+          ? styles.toolLink
+          : variant === "primary"
+            ? styles.primaryLink
+            : styles.linkCard
+      }
       href={href}
-      aria-label={`Open ${title.toLowerCase()}`}
+      aria-label={variant === "primary" ? title : `Open ${title.toLowerCase()}`}
       onClick={handleClick}
     >
-      <span className={styles.linkIcon} aria-hidden="true">
-        <Icon size={20} />
-      </span>
-      <span className={styles.linkCopy}>
-        <strong>{title}</strong>
-        <span>{description}</span>
-        {variant === "tool" ? (
+      {Icon ? (
+        <span className={styles.linkIcon} aria-hidden="true">
+          <Icon size={20} />
+        </span>
+      ) : null}
+      {variant === "primary" ? (
+        <>
+          <span>{title}</span>
+          <ArrowRight aria-hidden="true" size={18} />
+        </>
+      ) : (
+        <span className={styles.linkCopy}>
+          <strong>{title}</strong>
+          {description ? <span>{description}</span> : null}
           <span className={styles.linkAction} aria-hidden="true">
             <ArrowRight size={18} />
           </span>
-        ) : (
-          <span className={styles.linkAction}>
-            Open {title.toLowerCase()}
-            <ArrowRight aria-hidden="true" size={16} />
-          </span>
-        )}
-      </span>
+        </span>
+      )}
     </a>
   );
 };
