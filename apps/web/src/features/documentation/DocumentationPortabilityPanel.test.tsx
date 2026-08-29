@@ -30,6 +30,9 @@ describe("DocumentationPortabilityPanel", () => {
     expect(
       screen.getByRole("region", { name: "Import Site package" }),
     ).toHaveClass("rounded-[var(--ossie-radius-card)]");
+    expect(
+      screen.getByRole("group", { name: "Site package file actions" }),
+    ).toContainElement(screen.getByRole("button", { name: "Inspect file" }));
   });
 
   it("does not expose mutation controls to a Viewer", () => {

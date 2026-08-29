@@ -192,7 +192,15 @@ export const DocumentationPortabilityPanel = ({
           </p>
         </div>
       </div>
-      <div className={styles.fileActions}>
+      <div
+        className={styles.fileActions}
+        role="group"
+        aria-label={
+          kind === "site_package"
+            ? "Site package file actions"
+            : "Markdown file actions"
+        }
+      >
         <div className={styles.fileField}>
           <Label htmlFor={`documentation-import-${kind}-${mode}`}>
             {kind === "site_package" ? "Ossie Site ZIP" : "Markdown file"}
