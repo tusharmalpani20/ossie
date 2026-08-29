@@ -1,37 +1,104 @@
 .bar {
   display: flex;
-  align-items: end;
-  gap: 0.875rem;
-  padding: 0 0 1rem;
-  border-bottom: 1px solid var(--ossie-color-border);
+  align-items: center;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
 .selector {
-  display: grid;
-  gap: 0.4rem;
+  position: relative;
   flex: 0 0 auto;
 }
 
-.selector > span {
-  color: var(--ossie-color-text-muted);
-  font-size: 0.8125rem;
-  font-weight: 700;
-}
-
-.selector select {
-  min-width: 8.5rem;
-  min-height: 2.5rem;
-  border: 1px solid var(--ossie-color-border-strong);
+.selectorTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 9rem;
+  min-height: 3rem;
+  border: 1px solid var(--ossie-color-border);
   border-radius: var(--ossie-radius-control);
   background: var(--ossie-color-surface);
   color: var(--ossie-color-text);
-  padding: 0 2.25rem 0 0.875rem;
+  padding: 0 0.875rem 0 1rem;
   font: inherit;
-  font-weight: 650;
+  font-weight: 700;
+  cursor: pointer;
 }
 
-.selector select:focus-visible {
+.selectorTrigger svg {
+  flex: 0 0 auto;
+  color: var(--ossie-color-text-muted);
+  transition: transform 160ms ease;
+}
+
+.selectorTrigger[aria-expanded="true"] {
+  border-color: var(--ossie-color-accent);
+  box-shadow: 0 0 0 1px var(--ossie-color-accent);
+}
+
+.selectorTrigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.selectorMenu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  width: max(100%, 13rem);
+  overflow: hidden;
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-popover);
+  background: var(--ossie-color-surface-elevated);
+  box-shadow: 0 12px 32px rgb(35 22 76 / 0.14);
+  padding: 0.375rem;
+}
+
+.selectorMenu > div + div {
+  margin-top: 0.375rem;
+  padding-top: 0.375rem;
+  border-top: 1px solid var(--ossie-color-border);
+}
+
+.selectorGroupLabel {
+  display: block;
+  padding: 0.5rem 0.625rem 0.375rem;
+  color: var(--ossie-color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.selectorOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.5rem;
+  border: 0;
+  border-radius: var(--ossie-radius-control);
+  background: transparent;
+  color: var(--ossie-color-text);
+  padding: 0.5rem 0.625rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.selectorOption:hover,
+.selectorOptionSelected {
+  background: var(--ossie-color-accent-subtle);
+  color: var(--ossie-color-accent-active);
+}
+
+.selectorTrigger:focus-visible,
+.selectorOption:focus-visible {
   outline: 2px solid var(--ossie-color-focus);
   outline-offset: 2px;
 }
@@ -40,7 +107,15 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-height: 3rem;
+}
+
+.statusBadge {
   min-height: 2.5rem;
+  padding: 0 0.875rem;
+  border-radius: var(--ossie-radius-control);
+  font-size: 0.875rem;
+  font-weight: 700;
 }
 
 .defaultBadge {
@@ -49,14 +124,25 @@
   color: var(--ossie-color-accent-active);
 }
 
+.activeBadge {
+  background: color-mix(
+    in srgb,
+    var(--ossie-color-success) 10%,
+    var(--ossie-color-surface)
+  );
+}
+
 .contextActions {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .contextActions > a {
+  flex: 0 0 auto;
+  margin-left: auto;
   color: var(--ossie-color-accent-hover);
   font-size: 0.875rem;
   font-weight: 700;
@@ -86,12 +172,18 @@
     width: 100%;
   }
 
-  .selector select {
+  .selectorTrigger {
     width: 100%;
   }
 
   .contextActions {
-    justify-content: space-between;
+    flex-wrap: wrap;
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selectorTrigger svg {
+    transition: none;
   }
 }

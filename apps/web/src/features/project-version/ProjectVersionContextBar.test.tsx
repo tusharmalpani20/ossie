@@ -52,8 +52,11 @@ describe("ProjectVersionContextBar", () => {
         navigate={navigate}
       />,
     );
-    expect(screen.getByLabelText("Project Version")).toHaveValue("main");
-    expect(screen.getByText("Default version")).toBeInTheDocument();
+    const trigger = screen.getByRole("button", {
+      name: "Project Version: Main",
+    });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("Default")).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Manage versions" }),
@@ -61,15 +64,18 @@ describe("ProjectVersionContextBar", () => {
     const actions = screen.getByRole("group", {
       name: "Project Version actions",
     });
-    expect(within(actions).getByText("Default version")).toBeInTheDocument();
+    expect(within(actions).getByText("Default")).toBeInTheDocument();
     expect(
       within(actions).getByRole("link", { name: "Manage versions" }),
     ).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Project Version"), {
-      target: { value: "q3" },
-    });
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByRole("listbox", { name: "Project Versions" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Archived versions")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("option", { name: "Q3" }));
     expect(navigate).toHaveBeenCalledWith("/projects/project_1/versions/q3");
-    expect(screen.getByRole("option", { name: "Old" })).toBeInTheDocument();
   });
 
   it("preserves the current list route family when switching Project Versions", () => {
@@ -96,9 +102,10 @@ describe("ProjectVersionContextBar", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Project Version"), {
-      target: { value: "q3" },
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Project Version: Main" }),
+    );
+    fireEvent.click(screen.getByRole("option", { name: "Q3" }));
 
     expect(navigate).toHaveBeenCalledWith(
       "/projects/project_1/versions/q3/guides",
@@ -114,6 +121,8 @@ describe("ProjectVersionContextBar", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Project Version")).toHaveValue("main");
+    expect(
+      screen.getByRole("button", { name: "Project Version: Main" }),
+    ).toBeInTheDocument();
   });
 });
