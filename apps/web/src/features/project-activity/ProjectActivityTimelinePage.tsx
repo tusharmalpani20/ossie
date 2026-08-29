@@ -3,6 +3,7 @@ import type { ProjectActivityResponse } from "@repo/types/project-activity";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent } from "@repo/ui/card";
+import { ArrowLeft } from "lucide-react";
 import { ApiClientError, listProjectActivity } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalAppShell } from "../portal/PortalAppShell";
@@ -77,11 +78,17 @@ export const ProjectActivityTimelinePage = ({
     <Shell projectId={projectId}>
       <header className={styles.header}>
         <div>
-          <div className={styles.eyebrow}>Curated Project history</div>
-          <h1>Activity</h1>
+          <h1 className={styles.title}>Activity</h1>
+          <p className={styles.subtitle}>
+            Review important changes across this Project.
+          </p>
         </div>
-        <a href={`/projects/${encodeURIComponent(projectId)}`}>
-          Project workspace
+        <a
+          className={styles.workspaceLink}
+          href={`/projects/${encodeURIComponent(projectId)}`}
+        >
+          <ArrowLeft aria-hidden="true" size={17} />
+          Back to workspace
         </a>
       </header>
       {state.status === "loading" ? (
@@ -111,35 +118,47 @@ export const ProjectActivityTimelinePage = ({
           {state.response.events.length === 0 ? (
             <Message>No Project activity yet.</Message>
           ) : (
-            <ol className={styles.timeline} aria-label="Project activity">
-              {state.response.events.map((event) => (
-                <li key={event.id}>
-                  <Card>
-                    <CardContent>
-                      <div className={styles.meta}>
-                        <Badge>{event.category}</Badge>
-                        <time dateTime={event.occurred_at}>
-                          {new Intl.DateTimeFormat(undefined, {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          }).format(new Date(event.occurred_at))}
-                        </time>
-                      </div>
-                      <h2>{event.summary}</h2>
-                      <p>
-                        {event.actor_label} · {event.source_type}
-                      </p>
-                      {event.grouped_event_count > 1 ? (
-                        <p>{event.grouped_event_count} grouped events</p>
-                      ) : null}
-                    </CardContent>
-                  </Card>
-                </li>
-              ))}
-            </ol>
+            <Card className={styles.tableSurface}>
+              <CardContent className={styles.tableContent}>
+                <table className={styles.table} aria-label="Project activity">
+                  <thead>
+                    <tr>
+                      <th scope="col">Activity</th>
+                      <th scope="col">Performed by</th>
+                      <th scope="col">Source</th>
+                      <th scope="col">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.response.events.map((event) => (
+                      <tr key={event.id}>
+                        <td className={styles.activityCell} data-label="Activity">
+                          <strong>{event.summary}</strong>
+                          {event.grouped_event_count > 1 ? (
+                            <span>
+                              {event.grouped_event_count} grouped events
+                            </span>
+                          ) : null}
+                        </td>
+                        <td data-label="Performed by">{event.actor_label}</td>
+                        <td className={styles.sourceCell} data-label="Source">
+                          <Badge>{event.category}</Badge>
+                          <span>{event.source_type}</span>
+                        </td>
+                        <td data-label="Date">
+                          <time dateTime={event.occurred_at}>
+                            {formatActivityDate(event.occurred_at)}
+                          </time>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
           )}
           {state.response.page.has_more ? (
-            <div>
+            <div className={styles.pagination}>
               {pageError ? <span>Could not load more Activity.</span> : null}
               <Button
                 variant="secondary"
@@ -158,6 +177,13 @@ export const ProjectActivityTimelinePage = ({
 const Message = ({ children }: { children: ReactNode }) => (
   <div className={styles.state}>{children}</div>
 );
+
+const formatActivityDate = (value: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+
 const Shell = ({
   children,
   projectId,
@@ -167,7 +193,7 @@ const Shell = ({
 }) => (
   <PortalAppShell
     activeSection="project_activity"
-    currentLabel="Activity"
+    currentLabel=""
     project={{ id: projectId }}
   >
     {children}
