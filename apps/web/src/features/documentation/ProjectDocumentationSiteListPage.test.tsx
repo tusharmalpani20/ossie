@@ -21,8 +21,15 @@ describe("ProjectDocumentationSiteListPage", () => {
     );
 
     expect(
-      await screen.findByText("No Documentation Sites yet"),
+      await screen.findByRole("heading", {
+        name: "No Documentation Sites yet",
+      }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", {
+        name: "Ossie mascot organizing documentation",
+      }),
+    ).toHaveAttribute("src", "/illustrations/documentation-sites.png");
     expect(container.querySelector("main")).not.toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
@@ -34,7 +41,9 @@ describe("ProjectDocumentationSiteListPage", () => {
     fireEvent.change(screen.getByLabelText("Site name"), {
       target: { value: "Product docs" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Create Documentation Site" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Create Documentation Site" }),
+    );
 
     await waitFor(() => expect(createSite).toHaveBeenCalled());
     expect(await screen.findByText("Product docs")).toBeInTheDocument();

@@ -103,8 +103,13 @@ describe("ProjectInteractiveDemoListPage", () => {
     );
 
     expect(
-      await screen.findByText("No interactive demos yet."),
+      await screen.findByRole("heading", { name: "No interactive demos yet" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", {
+        name: "Ossie mascot building an interactive demo",
+      }),
+    ).toHaveAttribute("src", "/illustrations/interactive-demo.png");
     expect(screen.queryByRole("banner")).not.toBeInTheDocument();
   });
 });

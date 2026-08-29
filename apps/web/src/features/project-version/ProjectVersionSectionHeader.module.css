@@ -1,0 +1,41 @@
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.header h2 {
+  margin: 0;
+  color: var(--ossie-color-text);
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.header p {
+  max-width: 44rem;
+  margin: 0.4rem 0 0;
+  color: var(--ossie-color-text-muted);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+@media (max-width: 42rem) {
+  .header {
+    display: grid;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+}

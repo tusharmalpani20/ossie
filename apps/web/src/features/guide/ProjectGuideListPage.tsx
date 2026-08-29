@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
-import { Card } from "@repo/ui/card";
 import {
   ApiClientError,
   listArtifactPublishLinks,
@@ -10,6 +9,8 @@ import {
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalAppShell } from "../portal/PortalAppShell";
+import { ProjectVersionEmptyState } from "../project-version/ProjectVersionEmptyState";
+import { ProjectVersionSectionHeader } from "../project-version/ProjectVersionSectionHeader";
 import type { PublishLink } from "@repo/types/publish";
 import type { Guide } from "./types";
 import styles from "./ProjectGuideListPage.module.css";
@@ -283,20 +284,20 @@ export const ProjectGuideListPage = ({
       versionSlug={versionSlug}
       renderShell={renderShell}
     >
-      <section className={styles.header}>
-        <div>
-          <div className={styles.eyebrow}>Project</div>
-          <h1 className={styles.title}>Guides</h1>
-          <p className={styles.description}>{projectId}</p>
-        </div>
-      </section>
+      <ProjectVersionSectionHeader
+        title="Guides"
+        description="Build and manage step-by-step guides for this Project Version."
+        headingId="guides-heading"
+      />
 
       <section className={styles.content} aria-labelledby="guides-heading">
-        <h2 className={styles.sectionTitle} id="guides-heading">
-          Project guides
-        </h2>
         {state.guides.length === 0 ? (
-          <Card className={styles.empty}>No guides yet.</Card>
+          <ProjectVersionEmptyState
+            imageSrc="/illustrations/guide.png"
+            imageAlt="Ossie mascot building a guide"
+            title="No guides yet"
+            description="Create a guide from a capture session to share a clear workflow."
+          />
         ) : (
           <div className={styles.list}>
             {state.guides.map((guide) => (
@@ -335,7 +336,7 @@ const PortalShell = ({
   renderShell ? (
     <PortalAppShell
       activeSection="guides"
-      currentLabel="Guides"
+      currentLabel=""
       project={{ id: projectId }}
       projectVersion={versionSlug ? { slug: versionSlug } : undefined}
       performLogout={performLogout}

@@ -19,6 +19,8 @@ import {
   projectIsWritable,
   useProjectAccess,
 } from "../project/useProjectAccess";
+import { ProjectVersionEmptyState } from "../project-version/ProjectVersionEmptyState";
+import { ProjectVersionSectionHeader } from "../project-version/ProjectVersionSectionHeader";
 import type { CaptureSession, CreateCaptureSessionInput } from "./types";
 import styles from "./ProjectCaptureSessionListPage.module.css";
 
@@ -352,20 +354,20 @@ export const ProjectCaptureSessionListPage = ({
       versionSlug={versionSlug}
       renderShell={renderShell}
     >
-      <section className={styles.header}>
-        <div>
-          <div className={styles.eyebrow}>Project</div>
-          <h1 className={styles.title}>Capture sessions</h1>
-          <p className={styles.description}>{projectId}</p>
-        </div>
-        {writable ? (
-          <Button type="button" onClick={openCreateForm}>
-            New Capture Session
-          </Button>
-        ) : (
-          <Badge>Read only</Badge>
-        )}
-      </section>
+      <ProjectVersionSectionHeader
+        title="Capture sessions"
+        description="Record and manage browser workflows for this Project Version."
+        headingId="capture-sessions-heading"
+        actions={
+          writable ? (
+            <Button type="button" onClick={openCreateForm}>
+              New Capture Session
+            </Button>
+          ) : (
+            <Badge>Read only</Badge>
+          )
+        }
+      />
 
       {showCreateForm ? (
         <Card
@@ -438,11 +440,13 @@ export const ProjectCaptureSessionListPage = ({
         className={styles.content}
         aria-labelledby="capture-sessions-heading"
       >
-        <h2 className={styles.sectionTitle} id="capture-sessions-heading">
-          Project capture sessions
-        </h2>
         {state.captureSessions.length === 0 ? (
-          <Card className={styles.empty}>No capture sessions yet.</Card>
+          <ProjectVersionEmptyState
+            imageSrc="/illustrations/capture-session.png"
+            imageAlt="Ossie mascot creating a capture session"
+            title="No capture sessions yet"
+            description="Capture a browser workflow to start building guides and interactive demos."
+          />
         ) : (
           <div className={styles.list}>
             {state.captureSessions.map((captureSession) => (
@@ -478,7 +482,7 @@ const PortalShell = ({
   renderShell ? (
     <PortalAppShell
       activeSection="capture_sessions"
-      currentLabel="Capture sessions"
+      currentLabel=""
       project={{ id: projectId }}
       projectVersion={versionSlug ? { slug: versionSlug } : undefined}
       performLogout={performLogout}

@@ -10,6 +10,8 @@ import {
 import styles from "./ProjectDocumentationSiteListPage.module.css";
 import { DocumentationPortabilityPanel } from "./DocumentationPortabilityPanel";
 import { listDocumentationReviewInbox } from "../../lib/documentationReviewApi";
+import { ProjectVersionEmptyState } from "../project-version/ProjectVersionEmptyState";
+import { ProjectVersionSectionHeader } from "../project-version/ProjectVersionSectionHeader";
 
 type Props = {
   projectId: string;
@@ -33,7 +35,9 @@ export const ProjectDocumentationSiteListPage = ({
   loadReviewInbox = listDocumentationReviewInbox,
 }: Props) => {
   const [sites, setSites] = useState<DocumentationSiteSummary[]>([]);
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [reviewUnreadCount, setReviewUnreadCount] = useState(0);
@@ -101,30 +105,32 @@ export const ProjectDocumentationSiteListPage = ({
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <p className={styles.eyebrow}>Project Version Documentation</p>
-          <h1>Documentation Sites</h1>
-        </div>
-        {canManage && !creating ? (
-          <div>
-            <Button onClick={() => setCreating(true)}>Create Site</Button>
-          </div>
-        ) : null}
-        {canCarry ? (
-          <a
-            href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/carry-forward`}
-          >
-            Carry Forward Sites
-          </a>
-        ) : null}
-        <a
-          href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/reviews`}
-        >
-          Review inbox
-          {reviewUnreadCount ? ` (${reviewUnreadCount} unread)` : ""}
-        </a>
-      </header>
+      <ProjectVersionSectionHeader
+        title="Documentation"
+        description="Create and manage product and API knowledge for this Project Version."
+        actions={
+          <>
+            {canManage && !creating ? (
+              <Button onClick={() => setCreating(true)}>Create Site</Button>
+            ) : null}
+            {canCarry ? (
+              <a
+                className={styles.headerLink}
+                href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/carry-forward`}
+              >
+                Carry Forward Sites
+              </a>
+            ) : null}
+            <a
+              className={styles.headerLink}
+              href={`/projects/${encodeURIComponent(projectId)}/versions/${encodeURIComponent(versionSlug)}/documentation/reviews`}
+            >
+              Review inbox
+              {reviewUnreadCount ? ` (${reviewUnreadCount} unread)` : ""}
+            </a>
+          </>
+        }
+      />
       {creating ? (
         <form className={styles.form} onSubmit={submit}>
           <Label htmlFor="documentation-site-name">Site name</Label>
@@ -142,14 +148,16 @@ export const ProjectDocumentationSiteListPage = ({
         <p role="note">{importUnavailableReason}</p>
       ) : null}
       {sites.length === 0 ? (
-        <section className={styles.empty}>
-          <h2>No Documentation Sites yet</h2>
-          <p>
-            {canManage
+        <ProjectVersionEmptyState
+          imageSrc="/illustrations/documentation-sites.png"
+          imageAlt="Ossie mascot organizing documentation"
+          title="No Documentation Sites yet"
+          description={
+            canManage
               ? "Create a version-aware Site for product and API knowledge."
-              : "No writable Documentation Site is available in this Project Version."}
-          </p>
-        </section>
+              : "No writable Documentation Site is available in this Project Version."
+          }
+        />
       ) : (
         <ul className={styles.list}>
           {sites.map((site) => (

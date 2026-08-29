@@ -70,7 +70,13 @@ describe("ProjectGuideListPage", () => {
       />,
     );
 
-    expect(await screen.findByText("No guides yet.")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "No guides yet" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Ossie mascot building a guide" }),
+    ).toHaveAttribute("src", "/illustrations/guide.png");
+    expect(screen.queryByText("project_1")).not.toBeInTheDocument();
     expect(screen.queryByRole("banner")).not.toBeInTheDocument();
   });
 });

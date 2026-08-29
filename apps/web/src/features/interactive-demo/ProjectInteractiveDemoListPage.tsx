@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@repo/ui/badge";
 import { Button, buttonVariants } from "@repo/ui/button";
-import { Card } from "@repo/ui/card";
 import {
   ApiClientError,
   listProjectInteractiveDemos,
@@ -9,6 +8,8 @@ import {
 } from "../../lib/api";
 import { currentBrowserPath, signInUrl } from "../auth/navigation";
 import { PortalAppShell } from "../portal/PortalAppShell";
+import { ProjectVersionEmptyState } from "../project-version/ProjectVersionEmptyState";
+import { ProjectVersionSectionHeader } from "../project-version/ProjectVersionSectionHeader";
 import styles from "./ProjectInteractiveDemoListPage.module.css";
 
 type InteractiveDemoListItem =
@@ -178,35 +179,33 @@ export const ProjectInteractiveDemoListPage = ({
       versionSlug={versionSlug}
       renderShell={renderShell}
     >
-      <section className={styles.header}>
-        <div>
-          <div className={styles.eyebrow}>Project</div>
-          <h1 className={styles.title}>Interactive demos</h1>
-          <p className={styles.description}>
-            Author, preview, and publish guided product journeys.
-          </p>
-        </div>
-      </section>
+      <ProjectVersionSectionHeader
+        title="Interactive demos"
+        description="Build and manage guided walkthroughs for this Project Version."
+        headingId="interactive-demos-heading"
+      />
 
       <section
         className={styles.content}
         aria-labelledby="interactive-demos-heading"
       >
-        <h2 className={styles.sectionTitle} id="interactive-demos-heading">
-          Project interactive demos
-        </h2>
         {state.demos.length === 0 ? (
-          <Card className={styles.empty}>
-            <div>No interactive demos yet.</div>
-            {canWrite ? (
-              <a
-                className={styles.stateLink}
-                href={captureSessionsUrl(projectId, versionSlug)}
-              >
-                Open capture sessions
-              </a>
-            ) : null}
-          </Card>
+          <ProjectVersionEmptyState
+            imageSrc="/illustrations/interactive-demo.png"
+            imageAlt="Ossie mascot building an interactive demo"
+            title="No interactive demos yet"
+            description="Turn a capture session into a guided product walkthrough."
+            action={
+              canWrite ? (
+                <a
+                  className={styles.stateLink}
+                  href={captureSessionsUrl(projectId, versionSlug)}
+                >
+                  Open capture sessions
+                </a>
+              ) : undefined
+            }
+          />
         ) : (
           <div className={styles.list}>
             {state.demos.map((demo) => (
@@ -242,7 +241,7 @@ const PortalShell = ({
   renderShell ? (
     <PortalAppShell
       activeSection="interactive_demos"
-      currentLabel="Interactive demos"
+      currentLabel=""
       project={{ id: projectId }}
       projectVersion={versionSlug ? { slug: versionSlug } : undefined}
       performLogout={performLogout}

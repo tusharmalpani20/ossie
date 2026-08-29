@@ -210,7 +210,12 @@ const ProjectVersionHeader = ({
   routeSuffix,
 }: Loaded & {
   navigate?: (path: string) => void;
-  routeSuffix: string;
+  routeSuffix:
+    | ""
+    | "/capture-sessions"
+    | "/guides"
+    | "/interactive-demos"
+    | "/documentation";
 }) => {
   const openProjects = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (
@@ -261,7 +266,6 @@ const ProjectVersionHeader = ({
 const VersionWorkspace = ({
   project,
   selected,
-  versions,
   navigate,
 }: Loaded & { navigate?: (path: string) => void }) => {
   const workspacePath = projectVersionWorkspaceUrl(project.id, selected.slug);

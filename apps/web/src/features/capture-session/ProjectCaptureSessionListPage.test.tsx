@@ -244,8 +244,14 @@ describe("ProjectCaptureSessionListPage", () => {
     });
 
     expect(
-      await screen.findByText("No capture sessions yet."),
+      await screen.findByRole("heading", { name: "No capture sessions yet" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", {
+        name: "Ossie mascot creating a capture session",
+      }),
+    ).toHaveAttribute("src", "/illustrations/capture-session.png");
+    expect(screen.queryByText("project_1")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "New Capture Session" }),
     ).toBeInTheDocument();
@@ -258,7 +264,7 @@ describe("ProjectCaptureSessionListPage", () => {
     });
 
     expect(
-      await screen.findByText("No capture sessions yet."),
+      await screen.findByRole("heading", { name: "No capture sessions yet" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("banner")).not.toBeInTheDocument();
   });

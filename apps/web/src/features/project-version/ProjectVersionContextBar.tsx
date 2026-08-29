@@ -28,7 +28,12 @@ export const ProjectVersionContextBar = ({
   selected: ProjectVersionDetail;
   versions: ProjectVersion[];
   navigate?: (path: string) => void;
-  routeSuffix?: "" | "/capture-sessions" | "/guides" | "/interactive-demos";
+  routeSuffix?:
+    | ""
+    | "/capture-sessions"
+    | "/guides"
+    | "/interactive-demos"
+    | "/documentation";
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const selectorRef = useRef<HTMLDivElement>(null);
