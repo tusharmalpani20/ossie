@@ -211,6 +211,20 @@ describe("ProjectVersionRouteBoundary", () => {
       await screen.findByRole("heading", { name: "Project Version guides" }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole("banner")).toHaveLength(1);
+    expect(
+      screen.getByRole("heading", { name: "Ossie", level: 1 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("navigation", { name: "Breadcrumb" }),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole("navigation", { name: "Breadcrumb" }),
+    ).toHaveTextContent("ProjectsOssie");
+    expect(
+      screen
+        .getByRole("region", { name: "Project Version context" })
+        .closest("header"),
+    ).not.toBeNull();
     expect(screen.getByRole("link", { name: "Guides" })).toHaveAttribute(
       "aria-current",
       "page",

@@ -51,12 +51,13 @@ type State =
 const routeSuffixBySection: Partial<
   Record<
     PortalRouteSection,
-    "/capture-sessions" | "/guides" | "/interactive-demos"
+    "/capture-sessions" | "/guides" | "/interactive-demos" | "/documentation"
   >
 > = {
   capture_sessions: "/capture-sessions",
   guides: "/guides",
   interactive_demos: "/interactive-demos",
+  documentation: "/documentation",
 };
 
 /** Resolves Project Version context before rendering version-owned content. */
@@ -68,7 +69,6 @@ export const ProjectVersionRouteBoundary = ({
   replace,
   allowVersionOwnedContent = false,
   activeSection = "project_workspace",
-  currentLabel = "Workspace",
 }: {
   projectId: string;
   versionSlug: string;
@@ -121,8 +121,7 @@ export const ProjectVersionRouteBoundary = ({
       active = false;
     };
   }, [projectId, versionSlug, reload, replace]);
-  const shellCurrentLabel =
-    activeSection === "project_workspace" ? "" : currentLabel;
+  const shellCurrentLabel = "";
   useEffect(() => {
     if (state.status !== "unauthenticated") return;
     (navigate ?? navigateWithinApp)(signInUrl(currentBrowserPath()));
@@ -186,30 +185,33 @@ export const ProjectVersionRouteBoundary = ({
           Version is read-only.
         </Alert>
       ) : null}
-      {children && (legacyContentAvailable || allowVersionOwnedContent) ? (
-        <>
-          <ProjectVersionContextBar
-            {...state}
-            navigate={navigate}
-            routeSuffix={routeSuffixBySection[activeSection] ?? ""}
-          />
-          {children(state)}
-        </>
-      ) : (
-        <VersionWorkspace {...state} navigate={navigate} />
-      )}
+      <section className={styles.workspace}>
+        <ProjectVersionHeader
+          {...state}
+          navigate={navigate}
+          routeSuffix={routeSuffixBySection[activeSection] ?? ""}
+        />
+        {children && (legacyContentAvailable || allowVersionOwnedContent) ? (
+          children(state)
+        ) : (
+          <VersionWorkspace {...state} navigate={navigate} />
+        )}
+      </section>
     </PortalAppShell>
   );
 };
 
-/** Renders the Project Version workspace when no child route owns content. */
-const VersionWorkspace = ({
+/** Keeps Project and Version context consistent across all version-owned pages. */
+const ProjectVersionHeader = ({
   project,
   selected,
   versions,
   navigate,
-}: Loaded & { navigate?: (path: string) => void }) => {
-  const workspacePath = projectVersionWorkspaceUrl(project.id, selected.slug);
+  routeSuffix,
+}: Loaded & {
+  navigate?: (path: string) => void;
+  routeSuffix: string;
+}) => {
   const openProjects = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (
       !navigate ||
@@ -227,32 +229,45 @@ const VersionWorkspace = ({
   };
 
   return (
-    <section className={styles.workspace}>
-      <header className={styles.projectHeader}>
-        <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="/projects" onClick={openProjects}>
-                Projects
-              </a>
-            </li>
-            <li aria-current="page">{project.name}</li>
-          </ol>
-        </nav>
-        <div>
-          <h1>{project.name}</h1>
-          {project.description ? (
-            <p className={styles.projectDescription}>{project.description}</p>
-          ) : null}
-        </div>
-        <ProjectVersionContextBar
-          project={project}
-          selected={selected}
-          versions={versions}
-          navigate={navigate}
-        />
-      </header>
+    <header className={styles.projectHeader} role="presentation">
+      <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
+        <ol>
+          <li>
+            <a href="/projects" onClick={openProjects}>
+              Projects
+            </a>
+          </li>
+          <li aria-current="page">{project.name}</li>
+        </ol>
+      </nav>
+      <div>
+        <h1>{project.name}</h1>
+        {project.description ? (
+          <p className={styles.projectDescription}>{project.description}</p>
+        ) : null}
+      </div>
+      <ProjectVersionContextBar
+        project={project}
+        selected={selected}
+        versions={versions}
+        navigate={navigate}
+        routeSuffix={routeSuffix}
+      />
+    </header>
+  );
+};
 
+/** Renders the Project Version workspace when no child route owns content. */
+const VersionWorkspace = ({
+  project,
+  selected,
+  versions,
+  navigate,
+}: Loaded & { navigate?: (path: string) => void }) => {
+  const workspacePath = projectVersionWorkspaceUrl(project.id, selected.slug);
+
+  return (
+    <>
       <section
         className={styles.workspaceSection}
         aria-labelledby="workspace-heading"
@@ -329,7 +344,7 @@ const VersionWorkspace = ({
           forward edits to create an independent draft from another Version.
         </Card>
       ) : null}
-    </section>
+    </>
   );
 };
 /** Renders one Project Version workspace link. */
