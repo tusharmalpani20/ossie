@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ProjectMembershipSection } from "./ProjectMembershipSection";
 
@@ -45,9 +51,32 @@ describe("ProjectMembershipSection", () => {
     expect(
       screen.queryByRole("button", { name: /remove owner/i }),
     ).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Organization member"), {
-      target: { value: "member-1" },
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Organization member: Choose a member",
+      }),
+    );
+    const memberList = screen.getByRole("listbox", {
+      name: "Organization members",
     });
+    expect(within(memberList).getByText("Organization members")).toBeVisible();
+    expect(
+      within(memberList).queryByRole("option", { name: "Choose a member" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(memberList).getByRole("option", { name: "Member" }));
+    expect(
+      screen.getByRole("button", { name: "Organization member: Member" }),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Project role: Viewer" }),
+    );
+    const roleList = screen.getByRole("listbox", { name: "Project roles" });
+    expect(within(roleList).getByText("Project roles")).toBeVisible();
+    fireEvent.click(within(roleList).getByRole("option", { name: "Editor" }));
+    expect(
+      screen.getByRole("button", { name: "Project role: Editor" }),
+    ).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(screen.getByRole("button", { name: "Assign access" }));
     await waitFor(() =>
       expect(fetch).toHaveBeenCalledWith(

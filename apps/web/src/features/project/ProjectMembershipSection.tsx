@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ProjectRole } from "@repo/constants";
 import type { ProjectAccessMember } from "@repo/types/project-membership";
 import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@repo/ui/card";
+import { Check, ChevronDown } from "lucide-react";
 import {
   ApiClientError,
   assignProjectMembership,
@@ -20,6 +21,102 @@ const roles: { value: ProjectRole; label: string }[] = [
   { value: "editor", label: "Editor" },
   { value: "viewer", label: "Viewer" },
 ];
+
+type DropdownOption = { value: string; label: string };
+
+const MembershipDropdown = ({
+  label,
+  menuLabel,
+  options,
+  placeholder,
+  value,
+  disabled = false,
+  onChange,
+}: {
+  label: string;
+  menuLabel: string;
+  options: DropdownOption[];
+  placeholder?: string;
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  const menuLabelId = useId();
+  const selected = options.find((option) => option.value === value);
+  const displayLabel = selected?.label ?? placeholder ?? "Select";
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <div className={styles.selectField} ref={rootRef}>
+      <span className={styles.selectLabel}>{label}</span>
+      <button
+        className={styles.selectTrigger}
+        type="button"
+        aria-label={`${label}: ${displayLabel}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span>{displayLabel}</span>
+        <ChevronDown aria-hidden="true" size={18} />
+      </button>
+      {open ? (
+        <div
+          className={styles.selectMenu}
+          id={menuId}
+          role="listbox"
+          aria-label={menuLabel}
+        >
+          <div role="group" aria-labelledby={menuLabelId}>
+            <span className={styles.selectGroupLabel} id={menuLabelId}>
+              {menuLabel}
+            </span>
+            {options.map((option) => (
+              <button
+                className={`${styles.selectOption} ${
+                  option.value === value ? styles.selectOptionSelected : ""
+                }`}
+                key={option.value || "empty"}
+                type="button"
+                role="option"
+                aria-selected={option.value === value}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+              >
+                <span>{option.label}</span>
+                {option.value === value ? (
+                  <Check aria-hidden="true" size={17} />
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
 
 export const ProjectMembershipSection = ({
   projectId,
@@ -237,38 +334,29 @@ export const ProjectMembershipSection = ({
                 </p>
               </div>
               <div className={styles.assign}>
-                <label>
-                  Organization member
-                  <select
-                    value={candidateId}
-                    onChange={(event) => setCandidateId(event.target.value)}
-                  >
-                    <option value="">Choose a member</option>
-                    {candidates.map((member) => (
-                      <option
-                        key={member.org_user_id}
-                        value={member.org_user_id}
-                      >
-                        {member.display_name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Project role
-                  <select
-                    value={candidateRole}
-                    onChange={(event) =>
-                      setCandidateRole(event.target.value as ProjectRole)
-                    }
-                  >
-                    {roles.map((role) => (
-                      <option key={role.value} value={role.value}>
-                        {role.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <MembershipDropdown
+                  label="Organization member"
+                  menuLabel="Organization members"
+                  value={candidateId}
+                  placeholder={
+                    candidates.length
+                      ? "Choose a member"
+                      : "No members available"
+                  }
+                  disabled={candidates.length === 0 || busyId !== null}
+                  options={candidates.map((member) => ({
+                    value: member.org_user_id,
+                    label: member.display_name,
+                  }))}
+                  onChange={setCandidateId}
+                />
+                <MembershipDropdown
+                  label="Project role"
+                  menuLabel="Project roles"
+                  value={candidateRole}
+                  options={roles}
+                  onChange={(role) => setCandidateRole(role as ProjectRole)}
+                />
                 <Button
                   disabled={!candidateId || busyId !== null}
                   onClick={() => void assign()}

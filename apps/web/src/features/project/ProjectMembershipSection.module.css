@@ -79,6 +79,113 @@
   font-weight: 600;
 }
 
+.selectField {
+  position: relative;
+  display: grid;
+  gap: var(--ossie-space-1);
+  min-width: 11.5rem;
+}
+
+.selectLabel {
+  color: var(--ossie-color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.selectTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ossie-space-3);
+  min-width: 100%;
+  min-height: var(--ossie-control-height-standard);
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-control);
+  background: var(--ossie-color-surface);
+  color: var(--ossie-color-text);
+  padding: 0 var(--ossie-space-3);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.selectTrigger svg {
+  flex: 0 0 auto;
+  color: var(--ossie-color-text-muted);
+  transition: transform 160ms ease;
+}
+
+.selectTrigger[aria-expanded="true"] {
+  border-color: var(--ossie-color-accent);
+  box-shadow: 0 0 0 1px var(--ossie-color-accent);
+}
+
+.selectTrigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.selectTrigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.selectMenu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  width: max(100%, 13rem);
+  overflow: hidden;
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-popover);
+  background: var(--ossie-color-surface-elevated);
+  box-shadow: 0 12px 32px rgb(35 22 76 / 0.14);
+  padding: 0.375rem;
+}
+
+.selectGroupLabel {
+  display: block;
+  padding: 0.5rem 0.625rem 0.375rem;
+  color: var(--ossie-color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.selectOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ossie-space-3);
+  width: 100%;
+  min-height: 2.5rem;
+  border: 0;
+  border-radius: var(--ossie-radius-control);
+  background: transparent;
+  color: var(--ossie-color-text);
+  padding: 0.5rem 0.625rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.selectOption:hover,
+.selectOptionSelected {
+  background: var(--ossie-color-accent-subtle);
+  color: var(--ossie-color-accent-active);
+}
+
+.selectTrigger:focus-visible,
+.selectOption:focus-visible {
+  outline: 2px solid var(--ossie-color-focus);
+  outline-offset: 2px;
+}
+
 .assign select,
 .actions select {
   min-height: var(--ossie-control-height-standard);
@@ -95,5 +202,15 @@
   .actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .selectField {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selectTrigger svg {
+    transition: none;
   }
 }
