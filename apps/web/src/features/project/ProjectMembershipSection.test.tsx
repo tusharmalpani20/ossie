@@ -94,7 +94,7 @@ describe("ProjectMembershipSection", () => {
       }),
     ).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(
-      within(addMemberDialog).getByRole("button", { name: "Assign access" }),
+      within(addMemberDialog).getByRole("button", { name: "Assign" }),
     );
     await waitFor(() =>
       expect(fetch).toHaveBeenCalledWith(
@@ -105,5 +105,30 @@ describe("ProjectMembershipSection", () => {
     expect(
       await screen.findByText("Project access assigned."),
     ).toBeInTheDocument();
+  });
+
+  it("explains the empty member state without showing unusable controls", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValueOnce(json({ members: [owner] })),
+    );
+    render(<ProjectMembershipSection projectId="project-1" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Add member" }));
+    const dialog = screen.getByRole("dialog", { name: "Add member" });
+
+    expect(
+      within(dialog).getByRole("heading", { name: "No members to add" }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "Every active Organization member already has access to this Project.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: "Assign" }),
+    ).not.toBeInTheDocument();
   });
 });

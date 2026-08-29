@@ -5,7 +5,7 @@ import { Alert } from "@repo/ui/alert";
 import { Badge } from "@repo/ui/badge";
 import { Button } from "@repo/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@repo/ui/card";
-import { Check, ChevronDown, UserPlus, X } from "lucide-react";
+import { Check, ChevronDown, UserPlus, UsersRound, X } from "lucide-react";
 import {
   ApiClientError,
   assignProjectMembership,
@@ -396,47 +396,57 @@ export const ProjectMembershipSection = ({
               </Button>
             </header>
             <div className={styles.assign}>
-              <MembershipDropdown
-                label="Organization member"
-                menuLabel="Organization members"
-                value={candidateId}
-                placeholder={
-                  candidates.length ? "Choose a member" : "No members available"
-                }
-                disabled={candidates.length === 0 || busyId !== null}
-                options={candidates.map((member) => ({
-                  value: member.org_user_id,
-                  label: member.display_name,
-                }))}
-                onChange={setCandidateId}
-              />
-              <MembershipDropdown
-                label="Project role"
-                menuLabel="Project roles"
-                value={candidateRole}
-                options={roles}
-                onChange={(role) => setCandidateRole(role as ProjectRole)}
-              />
-              <div className={styles.modalActions}>
-                <Button
-                  variant="secondary"
-                  type="button"
-                  onClick={() => setShowAddMember(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  disabled={!candidateId || busyId !== null}
-                  onClick={() => void assign()}
-                >
-                  Assign access
-                </Button>
-              </div>
-              {candidates.length === 0 ? (
-                <p className={styles.emptyNote}>
-                  Everyone eligible already has Project access.
-                </p>
-              ) : null}
+              {candidates.length ? (
+                <>
+                  <MembershipDropdown
+                    label="Organization member"
+                    menuLabel="Organization members"
+                    value={candidateId}
+                    placeholder="Choose a member"
+                    disabled={busyId !== null}
+                    options={candidates.map((member) => ({
+                      value: member.org_user_id,
+                      label: member.display_name,
+                    }))}
+                    onChange={setCandidateId}
+                  />
+                  <MembershipDropdown
+                    label="Project role"
+                    menuLabel="Project roles"
+                    value={candidateRole}
+                    options={roles}
+                    onChange={(role) => setCandidateRole(role as ProjectRole)}
+                  />
+                  <div className={styles.modalActions}>
+                    <Button
+                      variant="secondary"
+                      type="button"
+                      onClick={() => setShowAddMember(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      disabled={!candidateId || busyId !== null}
+                      onClick={() => void assign()}
+                    >
+                      Assign
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className={styles.emptyMemberState}>
+                  <span className={styles.emptyMemberIcon}>
+                    <UsersRound aria-hidden="true" size={22} />
+                  </span>
+                  <div>
+                    <h4>No members to add</h4>
+                    <p>
+                      Every active Organization member already has access to
+                      this Project.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </dialog>

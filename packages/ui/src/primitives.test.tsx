@@ -32,7 +32,11 @@ describe("shared UI primitives", () => {
       </form>,
     );
 
-    expect(screen.getByLabelText("Project name")).toHaveClass("name-input");
+    expect(screen.getByLabelText("Project name")).toHaveClass(
+      "name-input",
+      "font-normal",
+    );
+    expect(screen.getByLabelText("Notes")).toHaveClass("font-normal");
     expect(screen.getByLabelText("Notes")).toHaveValue("Internal walkthrough");
     expect(screen.getByLabelText("Status")).toHaveValue("draft");
   });

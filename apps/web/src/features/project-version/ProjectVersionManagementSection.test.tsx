@@ -57,7 +57,7 @@ describe("ProjectVersionManagementSection", () => {
     });
     fireEvent.click(
       within(createDialog).getByRole("button", {
-        name: "Create Project Version",
+        name: "Create",
       }),
     );
     await waitFor(() =>

@@ -302,7 +302,7 @@ export const ProjectVersionManagementSection = ({
                   Cancel
                 </Button>
                 <Button type="submit" disabled={busy !== null}>
-                  {busy === "create" ? "Creating..." : "Create Project Version"}
+                  {busy === "create" ? "Creating..." : "Create"}
                 </Button>
               </div>
             </form>
