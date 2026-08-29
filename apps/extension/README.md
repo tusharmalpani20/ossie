@@ -119,13 +119,13 @@ Then load `apps/extension/dist` in Chrome:
 For local self-host testing, configure the extension instance URL as the API origin:
 
 ```text
-http://localhost:3002
+http://localhost:4060
 ```
 
 If the API and web portal run on different origins, also set the optional portal URL. For the default local Vite portal this is:
 
 ```text
-http://localhost:3000
+http://localhost:4050
 ```
 
 API calls still use the instance URL. `Open in portal` and `Finish and open portal` use the portal URL when it is configured.

@@ -6,9 +6,14 @@
   box-sizing: border-box;
 }
 
-body {
+html,
+body,
+#root {
   width: 360px;
-  max-width: 100vw;
+  min-width: 360px;
+}
+
+body {
   min-height: 420px;
   max-height: 600px;
   margin: 0;
@@ -29,9 +34,10 @@ body {
 .brand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   color: var(--ossie-color-text);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
 }
 
@@ -53,6 +59,7 @@ h1 {
   margin: 0;
   color: var(--ossie-color-text);
   font-size: 18px;
+  font-weight: 800;
   line-height: 1.25;
 }
 
@@ -127,20 +134,129 @@ label {
   gap: 8px;
 }
 
-.field select {
+.popupSelectField {
+  display: grid;
+  gap: 6px;
+}
+
+.popupSelectLabel {
+  color: var(--ossie-color-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.popupSelect {
+  position: relative;
+  min-width: 0;
+}
+
+.popupSelectTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   width: 100%;
-  min-height: 40px;
-  padding: 8px 32px 8px 10px;
+  min-height: 44px;
+  padding: 0 12px;
   border: 1px solid var(--ossie-color-border-strong);
   border-radius: var(--ossie-radius-control);
   background: var(--ossie-color-surface);
   color: var(--ossie-color-text);
   font: inherit;
-  font-weight: 600;
-  text-overflow: ellipsis;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
 }
 
-.field select:focus-visible,
+.popupSelectTrigger > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popupSelectTrigger svg {
+  flex: 0 0 auto;
+  color: var(--ossie-color-text-muted);
+  transition: transform 160ms ease;
+}
+
+.popupSelectTrigger[aria-expanded="true"] {
+  border-color: var(--ossie-color-accent);
+  box-shadow: 0 0 0 1px var(--ossie-color-accent);
+}
+
+.popupSelectTrigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.popupSelectTrigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.popupSelectMenu {
+  position: static;
+  width: 100%;
+  max-height: 220px;
+  margin-top: 6px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--ossie-color-border);
+  border-radius: var(--ossie-radius-popover);
+  background: var(--ossie-color-surface-elevated);
+  box-shadow: 0 12px 32px rgb(35 22 76 / 0.14);
+}
+
+.popupSelectGroupLabel {
+  display: block;
+  padding: 8px 10px 6px;
+  color: var(--ossie-color-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.popupSelectOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--ossie-radius-control);
+  background: transparent;
+  color: var(--ossie-color-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.popupSelectOption > span {
+  display: grid;
+  min-width: 0;
+}
+
+.popupSelectOption small {
+  color: var(--ossie-color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.popupSelectOption:hover,
+.popupSelectOptionSelected {
+  background: var(--ossie-color-accent-subtle);
+  color: var(--ossie-color-accent-active);
+}
+
+.popupSelectTrigger:focus-visible,
+.popupSelectOption:focus-visible,
 button:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--ossie-color-focus);
@@ -260,5 +376,9 @@ input:focus-visible {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .popupSelectTrigger svg {
+    transition: none;
   }
 }

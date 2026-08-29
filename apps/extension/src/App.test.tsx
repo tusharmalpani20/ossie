@@ -22,7 +22,7 @@ describe("extension popup App orchestration", () => {
     const dependencies = renderApp();
 
     expect(
-      await screen.findByRole("heading", { name: "Connect instance" }),
+      await screen.findByRole("heading", { name: "Connect Instance" }),
     ).toBeInTheDocument();
     expect(document.querySelector(".brand img")).toHaveAttribute(
       "src",
@@ -30,11 +30,11 @@ describe("extension popup App orchestration", () => {
     );
     expect(screen.getByLabelText("Instance URL")).toHaveAttribute(
       "placeholder",
-      "http://localhost:3002",
+      "http://localhost:4060",
     );
     expect(screen.getByLabelText("Portal URL (optional)")).toHaveAttribute(
       "placeholder",
-      "http://localhost:3000",
+      "http://localhost:4050",
     );
 
     fireEvent.change(screen.getByLabelText("Instance URL"), {
@@ -65,7 +65,7 @@ describe("extension popup App orchestration", () => {
     renderApp();
 
     expect(
-      await screen.findByRole("heading", { name: "Connect instance" }),
+      await screen.findByRole("heading", { name: "Connect Instance" }),
     ).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Instance URL"), {
       target: {
@@ -83,7 +83,7 @@ describe("extension popup App orchestration", () => {
     const dependencies = renderApp();
 
     expect(
-      await screen.findByRole("heading", { name: "Connect instance" }),
+      await screen.findByRole("heading", { name: "Connect Instance" }),
     ).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Instance URL"), {
       target: {
@@ -165,9 +165,12 @@ describe("extension popup App orchestration", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("owner@example.com")).toBeInTheDocument();
     expect(screen.getByText("Acme")).toBeInTheDocument();
-    const projectSelect = screen.getByLabelText("Project");
-    expect(projectSelect).toHaveTextContent("Archived onboarding demos");
-    expect(projectSelect).toHaveTextContent("Internal onboarding demos");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Project: Select a Project" }),
+    );
+    const projectListbox = screen.getByRole("listbox", { name: "Projects" });
+    expect(projectListbox).toHaveTextContent("Archived onboarding demos");
+    expect(projectListbox).toHaveTextContent("Internal onboarding demos");
     expect(dependencies.login).toHaveBeenCalledWith(
       "https://demo.example.com",
       {
@@ -197,9 +200,12 @@ describe("extension popup App orchestration", () => {
     expect(
       await screen.findByRole("heading", { name: "Select project" }),
     ).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Project"), {
-      target: { value: "project_1" },
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Project: Select a Project" }),
+    );
+    fireEvent.click(
+      screen.getByRole("option", { name: "Internal onboarding demos" }),
+    );
 
     await waitFor(() =>
       expect(dependencies.saveSelectedProjectId).toHaveBeenCalledWith(
@@ -236,9 +242,10 @@ describe("extension popup App orchestration", () => {
       createCaptureSession,
     });
 
-    fireEvent.change(await screen.findByLabelText("Project Version"), {
-      target: { value: "version_next" },
-    });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Project Version: Main" }),
+    );
+    fireEvent.click(screen.getByRole("option", { name: "Next" }));
     await screen.findByText("Internal onboarding demos / Next");
     fireEvent.click(screen.getByRole("button", { name: "Start capture" }));
 
@@ -608,6 +615,10 @@ describe("extension popup App orchestration", () => {
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Portal settings" }),
+    );
+    expect(screen.getByLabelText("Portal URL (optional)")).toHaveAttribute(
+      "placeholder",
+      "http://localhost:4050",
     );
     fireEvent.change(screen.getByLabelText("Portal URL (optional)"), {
       target: { value: "https://portal.example.com/new/" },

@@ -51,14 +51,14 @@ export const ConnectInstancePanel = ({
 
   return (
     <section className="panel" aria-labelledby="connect-heading">
-      <h1 id="connect-heading">Connect instance</h1>
+      <h1 id="connect-heading">Connect Instance</h1>
       <form className="form" onSubmit={handleSubmit}>
         <Label>
           <span>Instance URL</span>
           <Input
             type="url"
             value={instanceUrl}
-            placeholder="http://localhost:3002"
+            placeholder="http://localhost:4060"
             disabled={submitting}
             autoFocus
             onChange={(event) => setInstanceUrl(event.target.value)}
@@ -69,7 +69,7 @@ export const ConnectInstancePanel = ({
           <Input
             type="url"
             value={portalUrl}
-            placeholder="http://localhost:3000"
+            placeholder="http://localhost:4050"
             disabled={submitting}
             onChange={(event) => setPortalUrl(event.target.value)}
           />

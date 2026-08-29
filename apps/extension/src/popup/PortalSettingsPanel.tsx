@@ -47,7 +47,7 @@ export const PortalSettingsPanel = ({
         <Input
           type="url"
           value={value}
-          placeholder="http://localhost:3000"
+          placeholder="http://localhost:4050"
           disabled={saving}
           autoFocus
           onChange={(event) => setValue(event.target.value)}

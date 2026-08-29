@@ -12,6 +12,7 @@ import { LocalCaptureRecovery } from "./LocalCaptureRecovery";
 import { CaptureContextPanel } from "./CaptureContextPanel";
 import { CaptureStatusPanel } from "./CaptureStatusPanel";
 import { PortalSettingsPanel } from "./PortalSettingsPanel";
+import { PopupSelect } from "./PopupSelect";
 
 export const CaptureWorkspace = ({
   auth,
@@ -687,46 +688,38 @@ export const CaptureWorkspace = ({
           {selectionError ? (
             <div className="error">{selectionError}</div>
           ) : null}
-          <label className="field" htmlFor="project-select">
-            <span>Project</span>
-            <select
-              id="project-select"
-              value={selectedProjectId ?? ""}
-              disabled={busy}
-              onChange={(event) => void handleSelectProject(event.target.value)}
-            >
-              <option value="" disabled>
-                Select a Project
-              </option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <PopupSelect
+            label="Project"
+            listboxLabel="Projects"
+            groupLabel="Projects"
+            placeholder="Select a Project"
+            value={selectedProjectId}
+            options={projects.map((project) => ({
+              value: project.id,
+              label: project.name,
+            }))}
+            disabled={busy}
+            onChange={(projectId) => void handleSelectProject(projectId)}
+          />
           {selectedProject ? (
-            <label className="field" htmlFor="project-version-select">
-              <span>Project Version</span>
-              <select
-                id="project-version-select"
-                value={selectedProjectVersionId ?? ""}
-                disabled={busy || projectVersions.length === 0}
-                onChange={(event) =>
-                  void handleSelectVersion(event.target.value)
-                }
-              >
-                <option value="" disabled>
-                  Select a Project Version
-                </option>
-                {projectVersions.map((version) => (
-                  <option key={version.id} value={version.id}>
-                    {version.name}
-                    {version.is_default ? " — Default" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <PopupSelect
+              label="Project Version"
+              listboxLabel="Project Versions"
+              groupLabel="Active versions"
+              placeholder="Select a Project Version"
+              value={selectedProjectVersionId}
+              options={projectVersions.map((version) => ({
+                value: version.id,
+                label: version.name,
+                ...(version.is_default
+                  ? { secondaryLabel: "Default" }
+                  : {}),
+              }))}
+              disabled={busy || projectVersions.length === 0}
+              onChange={(projectVersionId) =>
+                void handleSelectVersion(projectVersionId)
+              }
+            />
           ) : null}
         </div>
       ) : null}

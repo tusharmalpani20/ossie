@@ -7,8 +7,8 @@ export const PopupShell = ({ children }: { children: ReactNode }) => (
         src="/icons/ossie-32.png"
         alt=""
         aria-hidden="true"
-        width="28"
-        height="28"
+        width="32"
+        height="32"
       />
       <span>Ossie</span>
     </div>
